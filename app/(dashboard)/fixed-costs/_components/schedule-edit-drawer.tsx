@@ -49,6 +49,13 @@ export function ScheduleEditDrawer({
   const [endDate, setEndDate] = useState("");
   const [includeInCashDrawer, setIncludeInCashDrawer] = useState(false);
   const [branchId, setBranchId] = useState("");
+  const [automationMode, setAutomationMode] = useState<"auto_post" | "remind">(
+    "auto_post",
+  );
+  const [vendorContactName, setVendorContactName] = useState("");
+  const [vendorPhone, setVendorPhone] = useState("");
+  const [vendorMpesaNumber, setVendorMpesaNumber] = useState("");
+  const [vendorLeaseNote, setVendorLeaseNote] = useState("");
 
   useEffect(() => {
     if (!open || !schedule) return;
@@ -59,6 +66,13 @@ export function ScheduleEditDrawer({
     setEndDate(schedule.endDate?.slice(0, 10) ?? "");
     setIncludeInCashDrawer(schedule.includeInCashDrawer);
     setBranchId(schedule.branchId ?? "");
+    setAutomationMode(
+      schedule.automationMode === "remind" ? "remind" : "auto_post",
+    );
+    setVendorContactName(schedule.vendorContactName ?? "");
+    setVendorPhone(schedule.vendorPhone ?? "");
+    setVendorMpesaNumber(schedule.vendorMpesaNumber ?? "");
+    setVendorLeaseNote(schedule.vendorLeaseNote ?? "");
   }, [open, schedule]);
 
   const save = async () => {
@@ -82,6 +96,11 @@ export function ScheduleEditDrawer({
         endDate: endDate.trim() || null,
         includeInCashDrawer,
         branchId: branchId.trim() || null,
+        automationMode,
+        vendorContactName: vendorContactName.trim() || null,
+        vendorPhone: vendorPhone.trim() || null,
+        vendorMpesaNumber: vendorMpesaNumber.trim() || null,
+        vendorLeaseNote: vendorLeaseNote.trim() || null,
       });
       onSaved(updated);
       onOpenChange(false);
@@ -150,6 +169,20 @@ export function ScheduleEditDrawer({
         </label>
 
         <label className="space-y-1 text-sm">
+          <span className="font-medium">When due</span>
+          <select
+            className={dashboardSelectClass(false)}
+            value={automationMode}
+            onChange={(e) =>
+              setAutomationMode(e.target.value as "auto_post" | "remind")
+            }
+          >
+            <option value="auto_post">Post automatically overnight</option>
+            <option value="remind">Wait for me to confirm</option>
+          </select>
+        </label>
+
+        <label className="space-y-1 text-sm">
           <span className="font-medium">End date (optional)</span>
           <input
             type="date"
@@ -185,6 +218,45 @@ export function ScheduleEditDrawer({
           />
           Include in till cash balance
         </label>
+
+        <div className="space-y-2 rounded-lg border border-border/50 p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Landlord / vendor (optional)
+          </p>
+          <label className="space-y-1 text-sm">
+            <span className="font-medium">Contact name</span>
+            <input
+              className={dashboardInputClass(false)}
+              value={vendorContactName}
+              onChange={(e) => setVendorContactName(e.target.value)}
+            />
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="font-medium">Phone</span>
+            <input
+              className={dashboardInputClass(false)}
+              value={vendorPhone}
+              onChange={(e) => setVendorPhone(e.target.value)}
+            />
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="font-medium">M-Pesa number</span>
+            <input
+              className={dashboardInputClass(false)}
+              value={vendorMpesaNumber}
+              onChange={(e) => setVendorMpesaNumber(e.target.value)}
+            />
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="font-medium">Lease note</span>
+            <textarea
+              className={dashboardInputClass(false)}
+              rows={2}
+              value={vendorLeaseNote}
+              onChange={(e) => setVendorLeaseNote(e.target.value)}
+            />
+          </label>
+        </div>
       </FormDrawerFields>
 
       <div className="flex justify-end gap-2 border-t border-border/60 pt-4">

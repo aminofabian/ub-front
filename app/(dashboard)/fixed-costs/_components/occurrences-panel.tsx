@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Download, Loader2 } from "lucide-react";
 
 import {
   DASHBOARD_SECTION_SURFACE,
@@ -21,6 +21,7 @@ import {
 } from "@/lib/api";
 import {
   fixedCostMonthLabel,
+  exportFixedCostOccurrencesCsv,
   formatFixedCostDate,
   formatFixedCostMoney,
   occurrenceStatusLabel,
@@ -76,6 +77,21 @@ export function OccurrencesPanel({
     () => rows.filter((r) => r.status === "due" || r.status === "failed"),
     [rows],
   );
+
+  const exportCsv = () => {
+    exportFixedCostOccurrencesCsv(
+      rows.map((row) => ({
+        scheduleName: row.scheduleName,
+        occurrenceDate: row.occurrenceDate,
+        amount: Number(row.amount),
+        status: row.status,
+        paymentMethod: row.paymentMethod,
+        failureReason: row.failureReason,
+      })),
+      year,
+      month,
+    );
+  };
 
   const rowKey = (row: ExpenseScheduleOccurrenceRecord) =>
     row.id ?? `${row.scheduleId}:${row.occurrenceDate}`;
@@ -168,8 +184,12 @@ export function OccurrencesPanel({
       ) : null}
 
       <section className={cn(DASHBOARD_TABLE_SURFACE)}>
-        <div className="border-b border-border/60 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
           <p className="text-sm font-medium">Due dates — {fixedCostMonthLabel(year, month)}</p>
+          <Button type="button" variant="outline" size="sm" onClick={exportCsv}>
+            <Download className="mr-1.5 size-3.5" aria-hidden />
+            Export CSV
+          </Button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">

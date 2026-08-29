@@ -375,6 +375,44 @@ export function fixedCostCalendarCellClass(status: string): string {
   }
 }
 
+export function exportFixedCostOccurrencesCsv(
+  rows: Array<{
+    scheduleName: string;
+    occurrenceDate: string;
+    amount: number;
+    status: string;
+    paymentMethod: string;
+    failureReason: string | null;
+  }>,
+  year: number,
+  month: number,
+): void {
+  const csv = [
+    ["Bill", "Due date", "Amount", "Status", "Payment", "Failure"],
+    ...rows.map((row) => [
+      row.scheduleName,
+      row.occurrenceDate.slice(0, 10),
+      Number(row.amount).toFixed(2),
+      occurrenceStatusLabel(row.status),
+      paymentMethodLabel(row.paymentMethod),
+      row.failureReason ?? "",
+    ]),
+  ]
+    .map((line) => line.map(escapeCsvCell).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `fixed-costs-occurrences-${year}-${String(month).padStart(2, "0")}.csv`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+export function automationModeLabel(mode: string | undefined): string {
+  return mode === "remind" ? "Confirm before post" : "Auto-post on due date";
+}
+
 export function fixedCostCalendarDotClass(status: string): string {
   switch (status) {
     case "posted":

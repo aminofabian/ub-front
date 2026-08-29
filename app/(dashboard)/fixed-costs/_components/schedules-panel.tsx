@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, Pencil, Trash2 } from "lucide-react";
+import { Download, History, Pencil, Trash2 } from "lucide-react";
 
 import {
   DASHBOARD_TABLE_SURFACE,
@@ -17,6 +17,7 @@ import {
   type ExpenseScheduleRecord,
 } from "@/lib/api";
 import {
+  automationModeLabel,
   categoryTypeLabel,
   exportFixedCostSchedulesCsv,
   formatFixedCostDate,
@@ -26,6 +27,8 @@ import {
   nextDueFromSchedule,
   paymentMethodLabel,
 } from "@/lib/fixed-costs-utils";
+
+import { ScheduleHistoryDrawer } from "./schedule-history-drawer";
 
 type BranchOption = { id: string; name: string };
 
@@ -56,6 +59,10 @@ export function SchedulesPanel({
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<ExpenseScheduleRecord[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [historySchedule, setHistorySchedule] = useState<ExpenseScheduleRecord | null>(
+    null,
+  );
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const branchName = useCallback(
     (id: string | null) =>
@@ -191,24 +198,25 @@ export function SchedulesPanel({
 
       <section className={cn(DASHBOARD_TABLE_SURFACE)}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[880px] text-left text-sm">
+          <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Branch</th>
                 <th className="px-4 py-3 font-medium">Amount</th>
                 <th className="px-4 py-3 font-medium">Rhythm</th>
+                <th className="px-4 py-3 font-medium">When due</th>
                 <th className="px-4 py-3 font-medium">Next due</th>
                 <th className="px-4 py-3 font-medium">This month</th>
                 <th className="px-4 py-3 font-medium">Payment</th>
-                {canManage ? <th className="px-4 py-3 font-medium" /> : null}
+                <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
             <tbody>
               {enriched.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={canManage ? 8 : 7}
+                    colSpan={9}
                     className="px-4 py-10 text-center text-muted-foreground"
                   >
                     No fixed costs yet. Add shop rent, KPLC, or other repeating bills.
@@ -229,6 +237,9 @@ export function SchedulesPanel({
                       {formatFixedCostMoney(Number(row.amount))}
                     </td>
                     <td className="px-4 py-3">{frequencyLabel(row.frequency)}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {automationModeLabel(row.automationMode)}
+                    </td>
                     <td className="px-4 py-3">
                       {row.nextDue ? formatFixedCostDate(row.nextDue) : "—"}
                       {row.lastGeneratedOn ? (
@@ -243,33 +254,48 @@ export function SchedulesPanel({
                     <td className="px-4 py-3">
                       {paymentMethodLabel(row.paymentMethod)}
                     </td>
-                    {canManage ? (
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            onClick={() => onEdit(row)}
-                            aria-label={`Edit ${row.name}`}
-                          >
-                            <Pencil className="size-4" aria-hidden />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            disabled={busyId === row.id}
-                            onClick={() => void deactivate(row)}
-                            aria-label={`Deactivate ${row.name}`}
-                          >
-                            <Trash2 className="size-4" aria-hidden />
-                          </Button>
-                        </div>
-                      </td>
-                    ) : null}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          onClick={() => {
+                            setHistorySchedule(row);
+                            setHistoryOpen(true);
+                          }}
+                          aria-label={`History for ${row.name}`}
+                        >
+                          <History className="size-4" aria-hidden />
+                        </Button>
+                        {canManage ? (
+                          <>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              onClick={() => onEdit(row)}
+                              aria-label={`Edit ${row.name}`}
+                            >
+                              <Pencil className="size-4" aria-hidden />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              disabled={busyId === row.id}
+                              onClick={() => void deactivate(row)}
+                              aria-label={`Deactivate ${row.name}`}
+                            >
+                              <Trash2 className="size-4" aria-hidden />
+                            </Button>
+                          </>
+                        ) : null}
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -277,6 +303,14 @@ export function SchedulesPanel({
           </table>
         </div>
       </section>
+
+      <ScheduleHistoryDrawer
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        schedule={historySchedule}
+        year={year}
+        month={month}
+      />
     </div>
   );
 }

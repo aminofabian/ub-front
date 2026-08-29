@@ -6151,6 +6151,11 @@ export type ExpenseScheduleRecord = {
   receiptS3Key: string | null;
   expenseLedgerAccountId: string;
   lastGeneratedOn: string | null;
+  automationMode?: string;
+  vendorContactName?: string | null;
+  vendorPhone?: string | null;
+  vendorMpesaNumber?: string | null;
+  vendorLeaseNote?: string | null;
   createdBy: string;
 };
 
@@ -6170,6 +6175,11 @@ export async function createExpenseSchedule(body: {
   branchId?: string | null;
   receiptS3Key?: string | null;
   expenseLedgerAccountId?: string | null;
+  automationMode?: string;
+  vendorContactName?: string | null;
+  vendorPhone?: string | null;
+  vendorMpesaNumber?: string | null;
+  vendorLeaseNote?: string | null;
 }): Promise<ExpenseScheduleRecord> {
   return request<ExpenseScheduleRecord>("/api/v1/finance/expense-schedules", {
     method: "POST",
@@ -6190,6 +6200,11 @@ export async function patchExpenseSchedule(
     branchId?: string | null;
     receiptS3Key?: string | null;
     expenseLedgerAccountId?: string | null;
+    automationMode?: string;
+    vendorContactName?: string | null;
+    vendorPhone?: string | null;
+    vendorMpesaNumber?: string | null;
+    vendorLeaseNote?: string | null;
   },
 ): Promise<ExpenseScheduleRecord> {
   return request<ExpenseScheduleRecord>(
@@ -6312,6 +6327,16 @@ export async function skipExpenseScheduleOccurrenceByDate(body: {
   return request<ExpenseScheduleOccurrenceRecord>(
     "/api/v1/finance/expense-schedules/occurrences/skip",
     { method: "POST", body },
+  );
+}
+
+export async function processExpenseSchedulesForDate(
+  date: string,
+): Promise<{ date: string; postedCount: number }> {
+  const params = new URLSearchParams({ date: date.slice(0, 10) });
+  return request<{ date: string; postedCount: number }>(
+    `/api/v1/finance/expense-schedules/process?${params}`,
+    { method: "POST" },
   );
 }
 

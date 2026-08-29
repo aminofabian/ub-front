@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Building2, CalendarDays, Receipt } from "lucide-react";
 
 import {
@@ -14,11 +15,13 @@ import {
 import { useDashboard } from "@/components/dashboard-provider";
 import { cn } from "@/lib/utils";
 import {
+  fetchExpenseScheduleOccurrences,
   fetchExpenseSchedules,
   fetchFinancePulse,
   type ExpenseScheduleRecord,
 } from "@/lib/api";
 import {
+  fixedCostMonthLabel,
   formatFixedCostMoney,
   monthlyCommitmentForSchedule,
 } from "@/lib/fixed-costs-utils";
@@ -34,6 +37,7 @@ import { SchedulesPanel } from "./_components/schedules-panel";
 type Tab = "schedules" | "calendar" | "history";
 
 export default function FixedCostsPage() {
+  const searchParams = useSearchParams();
   const {
     loading: dashLoading,
     canReadFinanceExpenses,
@@ -62,6 +66,16 @@ export default function FixedCostsPage() {
   const [commitment, setCommitment] = useState(0);
   const [activeScheduleCount, setActiveScheduleCount] = useState(0);
   const [expensesTotal, setExpensesTotal] = useState<number | null>(null);
+  const [occurrencePosted, setOccurrencePosted] = useState(0);
+  const [occurrenceOpen, setOccurrenceOpen] = useState(0);
+  const [occurrenceFailed, setOccurrenceFailed] = useState(0);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "history" || tabParam === "calendar" || tabParam === "schedules") {
+      setTab(tabParam);
+    }
+  }, [searchParams]);
 
   const loadSummary = useCallback(async () => {
     if (!canReadFinanceExpenses) return;
@@ -95,6 +109,19 @@ export default function FixedCostsPage() {
         else setExpensesTotal(null);
       } else {
         setExpensesTotal(null);
+      }
+
+      try {
+        const occurrences = await fetchExpenseScheduleOccurrences(year, month, {
+          branchId: branchFilter || undefined,
+        });
+        setOccurrencePosted(occurrences.filter((o) => o.status === "posted").length);
+        setOccurrenceOpen(occurrences.filter((o) => o.status === "due").length);
+        setOccurrenceFailed(occurrences.filter((o) => o.status === "failed").length);
+      } catch {
+        setOccurrencePosted(0);
+        setOccurrenceOpen(0);
+        setOccurrenceFailed(0);
       }
     } catch {
       /* summary is best-effort */
@@ -198,7 +225,7 @@ export default function FixedCostsPage() {
 
       {tab === "schedules" ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <SummaryCard
               label="Monthly commitment"
               value={formatFixedCostMoney(commitment)}
@@ -208,6 +235,20 @@ export default function FixedCostsPage() {
               label="Active schedules"
               value={String(activeScheduleCount)}
               hint="Rent, utilities, and other repeating costs below"
+            />
+            <SummaryCard
+              label={`Posted in ${fixedCostMonthLabel(year, month)}`}
+              value={String(occurrencePosted)}
+              hint="Due dates recorded to finance"
+            />
+            <SummaryCard
+              label="Need attention"
+              value={String(occurrenceOpen + occurrenceFailed)}
+              hint={
+                occurrenceFailed > 0
+                  ? `${occurrenceOpen} due · ${occurrenceFailed} failed`
+                  : "Due dates waiting to post or skip"
+              }
             />
             {expensesTotal != null ? (
               <SummaryCard

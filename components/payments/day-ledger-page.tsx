@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Flag,
   Loader2,
+  Plus,
   RefreshCw,
   Search,
   ShieldAlert,
@@ -21,10 +22,12 @@ import {
   DashboardFeedback,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
+import { OneOffExpenseDrawer } from "@/components/payments/one-off-expense-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import {
+  fetchFinancePulse,
   fetchPaymentLedger,
   type PaymentLedgerRow,
 } from "@/lib/api";
@@ -233,7 +236,13 @@ function rowSearchBlob(row: PaymentLedgerRow): string {
 }
 
 export function DayLedgerPage() {
-  const { business, canViewSalesIntelligence } = useDashboard();
+  const {
+    business,
+    branches,
+    canViewSalesIntelligence,
+    canReadFinanceExpenses,
+    canWriteFinanceExpenses,
+  } = useDashboard();
   const { branchId } = useSessionBranch();
   const businessId = business?.id?.trim() || "default";
   const allowed = canViewSalesIntelligence;
@@ -251,6 +260,12 @@ export function DayLedgerPage() {
   const [marks, setMarks] = useState<PaymentLedgerMarksMap>({});
   const [noteDraftId, setNoteDraftId] = useState<string | null>(null);
   const [showUnverifiedList, setShowUnverifiedList] = useState(false);
+  const [expensesTotal, setExpensesTotal] = useState<number | null>(null);
+  const [expenseDrawerOpen, setExpenseDrawerOpen] = useState(false);
+  const [expenseFeedback, setExpenseFeedback] = useState<{
+    kind: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     setMarks(loadPaymentLedgerMarks(businessId, day));
@@ -288,21 +303,24 @@ export function DayLedgerPage() {
       else setRefreshing(true);
       setError(null);
       try {
-        const data = await fetchPaymentLedger(
-          day,
-          day,
-          branchId.trim() || undefined,
-        );
+        const [data, pulse] = await Promise.all([
+          fetchPaymentLedger(day, day, branchId.trim() || undefined),
+          canReadFinanceExpenses
+            ? fetchFinancePulse(day, branchId.trim() || undefined).catch(() => null)
+            : Promise.resolve(null),
+        ]);
         setRows(Array.isArray(data) ? data : []);
+        setExpensesTotal(pulse ? Number(pulse.expensesTotal) : null);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load payments.");
         if (!silent) setRows([]);
+        setExpensesTotal(null);
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [allowed, branchId, day],
+    [allowed, branchId, day, canReadFinanceExpenses],
   );
 
   useEffect(() => {
@@ -538,6 +556,42 @@ export function DayLedgerPage() {
       </header>
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      {expenseFeedback ? (
+        <DashboardFeedback kind={expenseFeedback.kind} text={expenseFeedback.text} />
+      ) : null}
+
+      {canReadFinanceExpenses && expensesTotal != null && expensesTotal > 0 ? (
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm">
+          <div>
+            <p className="text-sm font-medium">Expenses recorded today</p>
+            <p className="text-xs text-muted-foreground">
+              {fmtKes(expensesTotal)} posted to finance — rent, bills, and petty cash.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" asChild>
+              <Link href={`${APP_ROUTES.fixedCosts}?tab=history`}>View expenses</Link>
+            </Button>
+            {canWriteFinanceExpenses ? (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setExpenseDrawerOpen(true)}
+              >
+                <Plus className="mr-1.5 size-3.5" aria-hidden />
+                Record expense
+              </Button>
+            ) : null}
+          </div>
+        </section>
+      ) : canWriteFinanceExpenses ? (
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" size="sm" onClick={() => setExpenseDrawerOpen(true)}>
+            <Plus className="mr-1.5 size-3.5" aria-hidden />
+            Record expense
+          </Button>
+        </div>
+      ) : null}
 
       {/* Ledger mix — share of day by tender */}
       {rows.length > 0 ? (
@@ -1149,6 +1203,19 @@ export function DayLedgerPage() {
           </div>
         )}
       </section>
+
+      <OneOffExpenseDrawer
+        open={expenseDrawerOpen}
+        onOpenChange={setExpenseDrawerOpen}
+        expenseDate={day}
+        branches={branches.map((b) => ({ id: b.id, name: b.name }))}
+        canManage={canWriteFinanceExpenses}
+        onSaved={() => {
+          setExpenseFeedback({ kind: "success", text: "Expense recorded." });
+          void load({ silent: true });
+        }}
+        onError={(text) => setExpenseFeedback({ kind: "error", text })}
+      />
     </div>
   );
 }

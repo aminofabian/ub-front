@@ -57,6 +57,13 @@ export function ScheduleFormDrawer({
   const [paymentMethod, setPaymentMethod] = useState("mpesa_manual");
   const [includeInCashDrawer, setIncludeInCashDrawer] = useState(false);
   const [branchId, setBranchId] = useState("");
+  const [automationMode, setAutomationMode] = useState<"auto_post" | "remind">(
+    "auto_post",
+  );
+  const [vendorContactName, setVendorContactName] = useState("");
+  const [vendorPhone, setVendorPhone] = useState("");
+  const [vendorMpesaNumber, setVendorMpesaNumber] = useState("");
+  const [vendorLeaseNote, setVendorLeaseNote] = useState("");
 
   useEffect(() => {
     if (!open) {
@@ -71,6 +78,11 @@ export function ScheduleFormDrawer({
       setPaymentMethod("mpesa_manual");
       setIncludeInCashDrawer(false);
       setBranchId("");
+      setAutomationMode("auto_post");
+      setVendorContactName("");
+      setVendorPhone("");
+      setVendorMpesaNumber("");
+      setVendorLeaseNote("");
     }
   }, [open]);
 
@@ -117,6 +129,11 @@ export function ScheduleFormDrawer({
         endDate: endDate.trim() || null,
         includeInCashDrawer,
         branchId: branchId || null,
+        automationMode,
+        vendorContactName: vendorContactName.trim() || null,
+        vendorPhone: vendorPhone.trim() || null,
+        vendorMpesaNumber: vendorMpesaNumber.trim() || null,
+        vendorLeaseNote: vendorLeaseNote.trim() || null,
       });
       onCreated(schedule);
       onOpenChange(false);
@@ -277,6 +294,57 @@ export function ScheduleFormDrawer({
               />
               Paid from till cash (reduces expected closing float)
             </label>
+            <label className="flex flex-col gap-1 text-sm">
+              When due
+              <select
+                className={dashboardSelectClass(false)}
+                value={automationMode}
+                onChange={(e) =>
+                  setAutomationMode(e.target.value as "auto_post" | "remind")
+                }
+              >
+                <option value="auto_post">Post automatically overnight</option>
+                <option value="remind">Wait for me to confirm</option>
+              </select>
+            </label>
+            <div className="space-y-2 rounded-lg border border-border/50 p-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Landlord / vendor (optional)
+              </p>
+              <label className="flex flex-col gap-1 text-sm">
+                Contact name
+                <input
+                  className={dashboardInputClass(false)}
+                  value={vendorContactName}
+                  onChange={(e) => setVendorContactName(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Phone
+                <input
+                  className={dashboardInputClass(false)}
+                  value={vendorPhone}
+                  onChange={(e) => setVendorPhone(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                M-Pesa number
+                <input
+                  className={dashboardInputClass(false)}
+                  value={vendorMpesaNumber}
+                  onChange={(e) => setVendorMpesaNumber(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Lease note
+                <textarea
+                  className={dashboardInputClass(false)}
+                  rows={2}
+                  value={vendorLeaseNote}
+                  onChange={(e) => setVendorLeaseNote(e.target.value)}
+                />
+              </label>
+            </div>
           </>
         ) : null}
 

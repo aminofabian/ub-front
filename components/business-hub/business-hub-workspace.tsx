@@ -71,6 +71,7 @@ import {
   paymentTenderTotals,
 } from "@/lib/business-hub/pulse-insights";
 import type { Period } from "@/lib/business-hub/types";
+import { monthlyCommitmentForSchedule } from "@/lib/fixed-costs-utils";
 import { cn } from "@/lib/utils";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
@@ -81,6 +82,7 @@ import {
 } from "@/lib/analytics-date-range";
 import {
   fetchBatchDashboard,
+  fetchExpenseSchedules,
   fetchDashboardOwnerSummary,
   fetchFinancePL,
   fetchFinancePulse,
@@ -169,6 +171,7 @@ export function BusinessHubWorkspace() {
     canPathBRead,
     canRecordSupplierPayment,
     canReviewPaymentClaims,
+    canReadFinanceExpenses,
   } = useDashboard();
   const featureFlags = useFeatureFlags();
   const hubAlerts = useMemo(
@@ -242,6 +245,9 @@ export function BusinessHubWorkspace() {
   >([]);
   const [creditActivity, setCreditActivity] =
     useState<CreditsActivitySummaryRecord | null>(null);
+  const [fixedCostCommitment, setFixedCostCommitment] = useState<number | null>(
+    null,
+  );
   const [payBillRow, setPayBillRow] =
     useState<PathBSupplyListRowRecord | null>(null);
   const [payBillOpen, setPayBillOpen] = useState(false);
@@ -308,6 +314,7 @@ export function BusinessHubWorkspace() {
         creditSummaryRes,
         webOrdersRes,
         paymentBreakdownRes,
+        expenseSchedulesRes,
       ] = await Promise.all([
         canViewOwnerSummary
           ? fetchDashboardOwnerSummary(branch, type).catch(() => null)
@@ -398,6 +405,9 @@ export function BusinessHubWorkspace() {
               type,
             ).catch(() => [] as PaymentMethodBreakdownRow[])
           : Promise.resolve([] as PaymentMethodBreakdownRow[]),
+        canReadFinanceExpenses
+          ? fetchExpenseSchedules().catch(() => [])
+          : Promise.resolve([]),
       ]);
 
       if (gen !== loadGen.current) return;
@@ -439,6 +449,35 @@ export function BusinessHubWorkspace() {
         ).slice(0, CREDIT_TABS_DISPLAY_LIMIT),
       );
       setCreditActivity(creditSummaryRes);
+      if (canReadFinanceExpenses && Array.isArray(expenseSchedulesRes)) {
+        const hubNow = new Date();
+        const hubYear = hubNow.getFullYear();
+        const hubMonth = hubNow.getMonth() + 1;
+        const branchScope = branch?.trim();
+        const filteredSchedules = branchScope
+          ? expenseSchedulesRes.filter(
+              (s) => !s.branchId || s.branchId === branchScope,
+            )
+          : expenseSchedulesRes;
+        setFixedCostCommitment(
+          filteredSchedules.reduce(
+            (sum, s) =>
+              sum +
+              monthlyCommitmentForSchedule({
+                amount: Number(s.amount),
+                frequency: s.frequency,
+                startDate: s.startDate,
+                endDate: s.endDate,
+                active: s.active,
+                year: hubYear,
+                month: hubMonth,
+              }),
+            0,
+          ),
+        );
+      } else {
+        setFixedCostCommitment(null);
+      }
       const branchScope = branch?.trim();
       const webRows = (Array.isArray(webOrdersRes) ? webOrdersRes : [])
         .filter((order) =>
@@ -750,6 +789,17 @@ export function BusinessHubWorkspace() {
         tone: (openShifts > 0 ? "warning" : "muted") as "warning" | "muted",
         href: APP_ROUTES.shifts,
       },
+      ...(canReadFinanceExpenses && fixedCostCommitment != null && fixedCostCommitment > 0
+        ? [
+            {
+              label: "Fixed costs",
+              value: money(fixedCostCommitment),
+              hint: "Committed this month",
+              tone: "muted" as const,
+              href: APP_ROUTES.fixedCosts,
+            },
+          ]
+        : []),
     ];
     return metrics;
   }, [
@@ -764,6 +814,9 @@ export function BusinessHubWorkspace() {
     profitTone,
     revenue,
     ticket,
+    canReadFinanceExpenses,
+    fixedCostCommitment,
+    money,
   ]);
 
   const stockItems = useMemo(() => {
