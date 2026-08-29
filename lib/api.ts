@@ -11944,7 +11944,12 @@ export async function fetchStaffAdvances(
 
 export async function createStaffAdvance(
   userId: string,
-  body: { amount: number; advancedOn: string; note?: string },
+  body: {
+    amount: number;
+    advancedOn: string;
+    note?: string;
+    amountRepaid?: number;
+  },
 ): Promise<SalaryAdvanceRecord> {
   return request<SalaryAdvanceRecord>(
     `${API_ROUTES.staff}/${encodeURIComponent(userId)}/advances`,
@@ -11985,6 +11990,7 @@ export async function payStaffPayroll(
     postExpense?: boolean;
     paymentMethod?: string;
     branchId?: string;
+    advancesToDeduct?: number;
   },
 ): Promise<PayslipRecord> {
   return request<PayslipRecord>(

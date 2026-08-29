@@ -4,11 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Banknote,
   CalendarDays,
-  Download,
-  IdCard,
+  Clock,
   Loader2,
-  Pencil,
   Receipt,
+  Scale,
   Users,
   Wallet,
 } from "lucide-react";
@@ -16,14 +15,12 @@ import {
 import {
   DASHBOARD_MAX_WIDE,
   DASHBOARD_SECTION_SURFACE,
-  DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoadError,
   DashboardLoading,
   DashboardPageHero,
   dashboardInputClass,
-  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
@@ -31,7 +28,6 @@ import { StaffProfileDrawer } from "@/components/staff/staff-profile-drawer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  createStaffAdvance,
   createStaffSalary,
   fetchPayrollRun,
   payAllStaffPayroll,
@@ -40,18 +36,20 @@ import {
   type PayrollRunRow,
 } from "@/lib/api";
 import {
-  employmentStatusLabel,
   exportPayrollRunCsv,
-  formatPayrollDate,
   formatPayrollMoney,
   payrollMonthLabel,
 } from "@/lib/payroll-utils";
 
 import { AdvanceLedgerDrawer } from "./_components/advance-ledger-drawer";
 import { AdvanceLedgerPanel } from "./_components/advance-ledger-panel";
+import { LogAdvanceDrawer } from "./_components/log-advance-drawer";
 import { PayConfirmDrawer, type PayConfirmPayload } from "./_components/pay-confirm-drawer";
 import { PayrollCalendarPanel } from "./_components/payroll-calendar-panel";
 import { PayrollMonthNav } from "./_components/payroll-month-nav";
+import { PayrollRunPanel } from "./_components/payroll-run-panel";
+import { PayrollRunToolbar } from "./_components/payroll-run-toolbar";
+import { PayrollStaffDrawer } from "./_components/payroll-staff-drawer";
 import { PayslipDrawer } from "./_components/payslip-drawer";
 import { PayslipHistoryPanel } from "./_components/payslip-history-panel";
 
@@ -88,14 +86,13 @@ export default function PayrollPage() {
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [profileUserLabel, setProfileUserLabel] = useState("");
 
+  const [staffDrawerOpen, setStaffDrawerOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState<PayrollRunRow | null>(null);
+
   const [advanceOpen, setAdvanceOpen] = useState(false);
   const [advanceUserId, setAdvanceUserId] = useState<string | null>(null);
   const [advanceName, setAdvanceName] = useState("");
-  const [advanceAmount, setAdvanceAmount] = useState("");
-  const [advanceDate, setAdvanceDate] = useState(
-    () => new Date().toISOString().slice(0, 10),
-  );
-  const [advanceNote, setAdvanceNote] = useState("");
+  const [advanceOutstanding, setAdvanceOutstanding] = useState(0);
   const [advanceSaving, setAdvanceSaving] = useState(false);
 
   const [salaryOpen, setSalaryOpen] = useState(false);
@@ -119,9 +116,7 @@ export default function PayrollPage() {
   const [payslipUserId, setPayslipUserId] = useState<string | null>(null);
   const [payslipName, setPayslipName] = useState("");
   const [payslipId, setPayslipId] = useState<string | null>(null);
-  const [payslipInitial, setPayslipInitial] = useState<PayslipRecord | null>(
-    null,
-  );
+  const [payslipInitial, setPayslipInitial] = useState<PayslipRecord | null>(null);
 
   const summary = useMemo(() => {
     const pending = rows.filter(
@@ -141,11 +136,14 @@ export default function PayrollPage() {
         0,
       ),
       totalNetPending: pending.reduce((s, r) => s + Number(r.suggestedNet), 0),
-      totalNetPaid: paid.reduce((s, r) => s + Number(r.suggestedNet), 0),
+      totalStatutory: rows.reduce(
+        (s, r) => s + (applyStatutory ? Number(r.statutoryTotal) : 0),
+        0,
+      ),
       missingSalary: rows.filter((r) => Number(r.baseSalary) <= 0).length,
       onLeaveCount: rows.filter((r) => r.employmentStatus === "on_leave").length,
     };
-  }, [rows]);
+  }, [rows, applyStatutory]);
 
   const load = useCallback(async () => {
     if (!canViewPayroll) return;
@@ -154,7 +152,7 @@ export default function PayrollPage() {
     try {
       const data = await fetchPayrollRun(year, month, {
         branchId: branchFilter || undefined,
-        statutory: true,
+        statutory: applyStatutory,
       });
       setRows(data);
     } catch (err) {
@@ -163,13 +161,18 @@ export default function PayrollPage() {
     } finally {
       setLoading(false);
     }
-  }, [canViewPayroll, year, month, branchFilter]);
+  }, [canViewPayroll, year, month, branchFilter, applyStatutory]);
 
   useEffect(() => {
     if (!dashLoading && canViewPayroll && tab === "run") {
       void load();
     }
   }, [dashLoading, canViewPayroll, load, tab]);
+
+  function openStaffDrawer(row: PayrollRunRow) {
+    setSelectedRow(row);
+    setStaffDrawerOpen(true);
+  }
 
   function openProfile(row: PayrollRunRow) {
     setProfileUserId(row.userId);
@@ -183,12 +186,10 @@ export default function PayrollPage() {
     setProfileUserLabel(name);
   }
 
-  function openAdvance(row: PayrollRunRow) {
+  function openAdvanceForRow(row: PayrollRunRow) {
     setAdvanceUserId(row.userId);
     setAdvanceName(row.displayName);
-    setAdvanceAmount("");
-    setAdvanceDate(new Date().toISOString().slice(0, 10));
-    setAdvanceNote("");
+    setAdvanceOutstanding(Number(row.advancesOutstanding));
     setAdvanceOpen(true);
   }
 
@@ -196,9 +197,7 @@ export default function PayrollPage() {
     setSalaryUserId(row.userId);
     setSalaryName(row.displayName);
     setSalaryCurrent(Number(row.baseSalary) || 0);
-    setSalaryAmount(
-      row.baseSalary > 0 ? String(Number(row.baseSalary)) : "",
-    );
+    setSalaryAmount(row.baseSalary > 0 ? String(Number(row.baseSalary)) : "");
     setSalaryFrom(new Date().toISOString().slice(0, 10));
     setSalaryOpen(true);
   }
@@ -261,9 +260,11 @@ export default function PayrollPage() {
         postExpense: payload.postExpense,
         paymentMethod: payload.postExpense ? payload.paymentMethod : undefined,
         branchId: branchFilter || undefined,
+        advancesToDeduct: payload.advancesToDeduct,
       });
       setPayConfirmOpen(false);
       setPayRow(null);
+      setStaffDrawerOpen(false);
       setFeedback({
         kind: "success",
         text: `Paid ${payRow.displayName} for ${payrollMonthLabel(year, month)}.`,
@@ -281,10 +282,7 @@ export default function PayrollPage() {
 
   async function onPayAll() {
     if (!canRunPayroll) return;
-    const pending = rows.filter(
-      (r) => !r.alreadyPaid && Number(r.baseSalary) > 0,
-    );
-    if (pending.length === 0) {
+    if (summary.pendingCount === 0) {
       setFeedback({ kind: "error", text: "No payable staff in this month." });
       return;
     }
@@ -321,36 +319,6 @@ export default function PayrollPage() {
     }
   }
 
-  async function onSaveAdvance() {
-    if (!advanceUserId || !canManagePayroll) return;
-    const amount = Number(advanceAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setFeedback({ kind: "error", text: "Enter a valid advance amount." });
-      return;
-    }
-    setAdvanceSaving(true);
-    try {
-      await createStaffAdvance(advanceUserId, {
-        amount,
-        advancedOn: advanceDate,
-        note: advanceNote.trim() || undefined,
-      });
-      setAdvanceOpen(false);
-      setFeedback({
-        kind: "success",
-        text: `Logged advance for ${advanceName}.`,
-      });
-      if (tab === "run") await load();
-    } catch (err) {
-      setFeedback({
-        kind: "error",
-        text: err instanceof Error ? err.message : "Failed to log advance",
-      });
-    } finally {
-      setAdvanceSaving(false);
-    }
-  }
-
   async function onSaveSalary() {
     if (!salaryUserId || !canManagePayroll) return;
     const amount = Number(salaryAmount);
@@ -369,10 +337,7 @@ export default function PayrollPage() {
         effectiveFrom: salaryFrom,
       });
       setSalaryOpen(false);
-      setFeedback({
-        kind: "success",
-        text: `Salary set for ${salaryName}.`,
-      });
+      setFeedback({ kind: "success", text: `Salary set for ${salaryName}.` });
       await load();
     } catch (err) {
       setFeedback({
@@ -384,79 +349,57 @@ export default function PayrollPage() {
     }
   }
 
-  if (dashLoading) {
-    return null;
-  }
+  if (dashLoading) return null;
   if (!canViewPayroll) {
     return (
       <DashboardAccessDenied
         title="Payroll unavailable"
-        description="You don’t have permission to view payroll."
+        description="You don't have permission to view payroll."
       />
     );
   }
 
+  const branchOptions = branches.map((b) => ({ id: b.id, name: b.name }));
+
   return (
-    <div className={DASHBOARD_MAX_WIDE}>
+    <div className={cn("mx-auto space-y-6", DASHBOARD_MAX_WIDE)}>
       <DashboardPageHero
         icon={Banknote}
         eyebrow="Organization"
         title="Payroll"
-        description="Monthly salaries, advance ledger, and payslips — linked to each staff profile."
+        description="Monthly pay run — salaries, statutory, advances, and payslips in one place."
       />
 
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className={cn(
-            "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            tab === "run"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted/50 text-muted-foreground hover:text-foreground",
-          )}
-          onClick={() => setTab("run")}
-        >
-          Monthly run
-        </button>
-        <button
-          type="button"
-          className={cn(
-            "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            tab === "calendar"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted/50 text-muted-foreground hover:text-foreground",
-          )}
-          onClick={() => setTab("calendar")}
-        >
-          <span className="inline-flex items-center gap-1.5">
-            <CalendarDays className="size-3.5" aria-hidden />
-            Calendar
-          </span>
-        </button>
-        <button
-          type="button"
-          className={cn(
-            "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            tab === "advances"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted/50 text-muted-foreground hover:text-foreground",
-          )}
-          onClick={() => setTab("advances")}
-        >
-          Advance ledger
-        </button>
-        <button
-          type="button"
-          className={cn(
-            "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            tab === "history"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted/50 text-muted-foreground hover:text-foreground",
-          )}
-          onClick={() => setTab("history")}
-        >
-          Payslip history
-        </button>
+        {(
+          [
+            ["run", "Monthly run", null],
+            ["calendar", "Calendar", CalendarDays],
+            ["advances", "Advance ledger", Wallet],
+            ["history", "Payslip history", Receipt],
+          ] as const
+        ).map(([id, label, Icon]) => (
+          <button
+            key={id}
+            type="button"
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              tab === id
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted/50 text-muted-foreground hover:text-foreground",
+            )}
+            onClick={() => setTab(id)}
+          >
+            {Icon ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Icon className="size-3.5" aria-hidden />
+                {label}
+              </span>
+            ) : (
+              label
+            )}
+          </button>
+        ))}
       </div>
 
       {tab === "run" || tab === "history" ? (
@@ -474,23 +417,37 @@ export default function PayrollPage() {
       {tab === "run" ? (
         <>
           {!loading && !error ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <SummaryCard
-                label="Staff this month"
+                icon={Users}
+                label="Staff"
                 value={String(summary.headcount)}
                 hint={`${summary.paidCount} paid · ${summary.pendingCount} pending`}
               />
               <SummaryCard
+                icon={Banknote}
                 label="Total base"
                 value={formatPayrollMoney(summary.totalBase)}
                 hint="Before deductions"
               />
               <SummaryCard
-                label="Outstanding advances"
+                icon={Wallet}
+                label="Advances owed"
                 value={formatPayrollMoney(summary.totalAdvances)}
-                hint="Deducted on pay day"
+                hint="Outstanding shop-wide"
               />
               <SummaryCard
+                icon={Scale}
+                label="Statutory preview"
+                value={
+                  applyStatutory
+                    ? formatPayrollMoney(summary.totalStatutory)
+                    : "Off"
+                }
+                hint={applyStatutory ? "Applied in net column" : "Toggle in toolbar"}
+              />
+              <SummaryCard
+                icon={Clock}
                 label="Net pending"
                 value={formatPayrollMoney(summary.totalNetPending)}
                 hint={
@@ -506,113 +463,55 @@ export default function PayrollPage() {
             <DashboardFeedback kind={feedback.kind} text={feedback.text} />
           ) : null}
 
-          <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border/50 bg-muted/20 p-4">
-            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-              Branch
-              <select
-                className={dashboardSelectClass(false, "min-w-[10rem]")}
-                value={branchFilter}
-                onChange={(e) => setBranchFilter(e.target.value)}
-              >
-                <option value="">All branches</option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex items-center gap-2 pb-2 text-xs">
-              <input
-                type="checkbox"
-                checked={applyStatutory}
-                onChange={(e) => setApplyStatutory(e.target.checked)}
-              />
-              Apply statutory on pay all
-            </label>
-            <label className="flex items-center gap-2 pb-2 text-xs">
-              <input
-                type="checkbox"
-                checked={postExpenseDefault}
-                onChange={(e) => setPostExpenseDefault(e.target.checked)}
-              />
-              Post pay all to finance
-            </label>
-          </div>
+          {!loading && !error ? (
+            <PayrollRunToolbar
+              year={year}
+              month={month}
+              branches={branchOptions}
+              branchFilter={branchFilter}
+              onBranchFilterChange={setBranchFilter}
+              applyStatutory={applyStatutory}
+              onApplyStatutoryChange={setApplyStatutory}
+              postExpenseDefault={postExpenseDefault}
+              onPostExpenseChange={setPostExpenseDefault}
+              pendingCount={summary.pendingCount}
+              canRunPayroll={canRunPayroll}
+              payingAll={payingAll}
+              payingId={payingId}
+              onPayAll={() => void onPayAll()}
+              onExport={() => exportPayrollRunCsv(rows, year, month)}
+              hasRows={rows.length > 0}
+            />
+          ) : null}
 
           {!loading && !error && summary.onLeaveCount > 0 ? (
-            <p className="rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-sm text-sky-950 dark:text-sky-100">
-              {summary.onLeaveCount} staff on leave — excluded from pay all until status changes.
-            </p>
+            <AlertBanner tone="sky">
+              {summary.onLeaveCount} staff on leave — excluded from pay all until status
+              changes.
+            </AlertBanner>
           ) : null}
 
           {!loading && !error && summary.missingSalary > 0 && canManagePayroll ? (
-            <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+            <AlertBanner tone="amber">
               {summary.missingSalary} staff{" "}
-              {summary.missingSalary === 1 ? "has" : "have"} no monthly salary
-              yet. Set salary before marking paid.
-            </p>
+              {summary.missingSalary === 1 ? "has" : "have"} no monthly salary. Tap a row
+              to set salary before paying.
+            </AlertBanner>
           ) : null}
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              Pay run for{" "}
-              <span className="font-medium text-foreground">
-                {payrollMonthLabel(year, month)}
-              </span>
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              {!loading && !error && rows.length > 0 ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => exportPayrollRunCsv(rows, year, month)}
-                >
-                  <Download className="mr-1.5 size-3.5" aria-hidden />
-                  Export CSV
-                </Button>
-              ) : null}
-              {canRunPayroll && summary.pendingCount > 0 ? (
-                <Button
-                  type="button"
-                  disabled={payingAll || payingId != null}
-                  onClick={() => void onPayAll()}
-                >
-                  {payingAll ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" aria-hidden />
-                      Paying all…
-                    </>
-                  ) : (
-                    <>Pay all pending ({summary.pendingCount})</>
-                  )}
-                </Button>
-              ) : null}
-            </div>
-          </div>
 
           {loading ? (
             <DashboardLoading label="Loading payroll run…" />
           ) : error ? (
             <DashboardLoadError
-              title="Couldn’t load payroll"
+              title="Couldn't load payroll"
               message={error}
               onRetry={() => void load()}
             />
           ) : (
-            <PayrollRunTable
+            <PayrollRunPanel
               rows={rows}
-              canReadStaffProfile={canReadStaffProfile}
-              canManagePayroll={canManagePayroll}
-              canRunPayroll={canRunPayroll}
-              payingId={payingId}
-              onOpenProfile={openProfile}
-              onOpenSalary={openSalary}
-              onOpenAdvance={openAdvance}
-              onOpenLedger={openLedger}
-              onOpenPay={openPayConfirm}
-              onOpenPayslip={openPayslip}
+              applyStatutoryPreview={applyStatutory}
+              onSelectRow={openStaffDrawer}
             />
           )}
         </>
@@ -620,7 +519,7 @@ export default function PayrollPage() {
         <PayrollCalendarPanel
           year={year}
           branchFilter={branchFilter}
-          branches={branches.map((b) => ({ id: b.id, name: b.name }))}
+          branches={branchOptions}
           onYearChange={setYear}
           onBranchFilterChange={setBranchFilter}
           onSelectMonth={(y, m) => {
@@ -652,6 +551,25 @@ export default function PayrollPage() {
         </>
       )}
 
+      <PayrollStaffDrawer
+        open={staffDrawerOpen}
+        onOpenChange={setStaffDrawerOpen}
+        row={selectedRow}
+        year={year}
+        month={month}
+        applyStatutoryPreview={applyStatutory}
+        canReadStaffProfile={canReadStaffProfile}
+        canManagePayroll={canManagePayroll}
+        canRunPayroll={canRunPayroll}
+        paying={payingId === selectedRow?.userId}
+        onOpenProfile={() => selectedRow && openProfile(selectedRow)}
+        onEditSalary={() => selectedRow && openSalary(selectedRow)}
+        onLogAdvance={() => selectedRow && openAdvanceForRow(selectedRow)}
+        onOpenLedger={() => selectedRow && openLedger(selectedRow)}
+        onOpenPay={() => selectedRow && openPayConfirm(selectedRow)}
+        onOpenPayslip={() => selectedRow && openPayslip(selectedRow)}
+      />
+
       <StaffProfileDrawer
         open={profileUserId != null}
         onOpenChange={(open) => {
@@ -675,13 +593,29 @@ export default function PayrollPage() {
         onLogAdvance={() => {
           if (!ledgerUserId) return;
           const row = rows.find((r) => r.userId === ledgerUserId);
-          if (row) openAdvance(row);
+          if (row) openAdvanceForRow(row);
           else {
             setAdvanceUserId(ledgerUserId);
             setAdvanceName(ledgerName);
+            setAdvanceOutstanding(0);
             setAdvanceOpen(true);
           }
         }}
+      />
+
+      <LogAdvanceDrawer
+        open={advanceOpen}
+        onOpenChange={setAdvanceOpen}
+        userId={advanceUserId}
+        staffName={advanceName}
+        outstandingTotal={advanceOutstanding}
+        saving={advanceSaving}
+        onSavingChange={setAdvanceSaving}
+        onSaved={() => {
+          setFeedback({ kind: "success", text: `Logged advance for ${advanceName}.` });
+          if (tab === "run") void load();
+        }}
+        onError={(text) => setFeedback({ kind: "error", text })}
       />
 
       <PayConfirmDrawer
@@ -753,7 +687,7 @@ export default function PayrollPage() {
               </p>
             ) : null}
             <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Amount
+              Amount (KES)
               <input
                 type="number"
                 min="0"
@@ -776,504 +710,49 @@ export default function PayrollPage() {
           </div>
         </FormDrawerFields>
       </FormDrawer>
-
-      <FormDrawer
-        open={advanceOpen}
-        onOpenChange={setAdvanceOpen}
-        title="Log salary advance"
-        description={advanceName}
-        contextLabel="Payroll"
-        icon={<Wallet className="size-5 text-primary" aria-hidden />}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setAdvanceOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={advanceSaving}
-              onClick={() => void onSaveAdvance()}
-            >
-              {advanceSaving ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Saving…
-                </>
-              ) : (
-                "Save advance"
-              )}
-            </Button>
-          </div>
-        }
-      >
-        <FormDrawerFields legend="Advance">
-          <div className="grid gap-3">
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Amount
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                className={dashboardInputClass()}
-                value={advanceAmount}
-                onChange={(e) => setAdvanceAmount(e.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Date
-              <input
-                type="date"
-                className={dashboardInputClass()}
-                value={advanceDate}
-                onChange={(e) => setAdvanceDate(e.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Note
-              <input
-                className={dashboardInputClass()}
-                value={advanceNote}
-                onChange={(e) => setAdvanceNote(e.target.value)}
-                placeholder="e.g. Emergency medical"
-              />
-            </label>
-          </div>
-        </FormDrawerFields>
-      </FormDrawer>
     </div>
   );
 }
 
 function SummaryCard({
+  icon: Icon,
   label,
   value,
   hint,
 }: {
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   hint: string;
 }) {
   return (
-    <div className={cn(DASHBOARD_SECTION_SURFACE, "space-y-1")}>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
+    <div className={cn(DASHBOARD_SECTION_SURFACE, "space-y-2 p-4")}>
+      <div className="flex items-center gap-2">
+        <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="size-4" aria-hidden />
+        </span>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+      </div>
       <p className="text-xl font-semibold tabular-nums">{value}</p>
       <p className="text-xs text-muted-foreground">{hint}</p>
     </div>
   );
 }
 
-type RowActionProps = {
-  canReadStaffProfile: boolean;
-  canManagePayroll: boolean;
-  canRunPayroll: boolean;
-  onOpenProfile: (row: PayrollRunRow) => void;
-  onOpenSalary: (row: PayrollRunRow) => void;
-  onOpenAdvance: (row: PayrollRunRow) => void;
-  onOpenLedger: (row: PayrollRunRow) => void;
-  onOpenPay: (row: PayrollRunRow) => void;
-  onOpenPayslip: (row: PayrollRunRow) => void;
-};
-
-type TableProps = RowActionProps & {
-  rows: PayrollRunRow[];
-  payingId: string | null;
-};
-
-function PayrollRunTable({
-  rows,
-  canReadStaffProfile,
-  canManagePayroll,
-  canRunPayroll,
-  payingId,
-  onOpenProfile,
-  onOpenSalary,
-  onOpenAdvance,
-  onOpenLedger,
-  onOpenPay,
-  onOpenPayslip,
-}: TableProps) {
+function AlertBanner({
+  tone,
+  children,
+}: {
+  tone: "sky" | "amber";
+  children: React.ReactNode;
+}) {
+  const cls =
+    tone === "sky"
+      ? "border-sky-500/25 bg-sky-500/10 text-sky-950 dark:text-sky-100"
+      : "border-amber-500/25 bg-amber-500/10 text-amber-950 dark:text-amber-100";
   return (
-    <>
-      <div className="space-y-3 md:hidden">
-        {rows.length === 0 ? (
-          <p className="rounded-xl border border-border/50 px-4 py-10 text-center text-sm text-muted-foreground">
-            No staff in this payroll run.
-          </p>
-        ) : (
-          rows.map((row) => (
-            <PayrollRunCard
-              key={row.userId}
-              row={row}
-              canReadStaffProfile={canReadStaffProfile}
-              canManagePayroll={canManagePayroll}
-              canRunPayroll={canRunPayroll}
-              paying={payingId === row.userId}
-              onOpenProfile={onOpenProfile}
-              onOpenSalary={onOpenSalary}
-              onOpenAdvance={onOpenAdvance}
-              onOpenLedger={onOpenLedger}
-              onOpenPay={onOpenPay}
-              onOpenPayslip={onOpenPayslip}
-            />
-          ))
-        )}
-      </div>
-
-      <section className={cn(DASHBOARD_TABLE_SURFACE, "hidden md:block")}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[960px] text-left text-sm">
-            <thead className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 font-medium">Employee</th>
-                <th className="px-4 py-3 font-medium">Branch</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium text-right">Base</th>
-                <th className="px-4 py-3 font-medium text-right">Advances</th>
-                <th className="px-4 py-3 font-medium text-right">Statutory</th>
-                <th className="px-4 py-3 font-medium text-right">Net</th>
-                <th className="px-4 py-3 font-medium">Paid on</th>
-                <th className="px-4 py-3 font-medium">Run status</th>
-                <th className="px-4 py-3 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={10}
-                    className="px-4 py-10 text-center text-muted-foreground"
-                  >
-                    No staff in this payroll run.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row) => (
-                  <tr
-                    key={row.userId}
-                    className="border-b border-border/40 last:border-0"
-                  >
-                    <td className="px-4 py-3">
-                      {canReadStaffProfile ? (
-                        <button
-                          type="button"
-                          className="text-left font-medium underline-offset-2 hover:underline"
-                          onClick={() => onOpenProfile(row)}
-                        >
-                          {row.displayName}
-                        </button>
-                      ) : (
-                        <div className="font-medium">{row.displayName}</div>
-                      )}
-                      <div className="text-xs text-muted-foreground">
-                        {row.title || "—"}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {row.branchName ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {employmentStatusLabel(row.employmentStatus)}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {row.baseSalary > 0 ? (
-                        formatPayrollMoney(row.baseSalary)
-                      ) : (
-                        <span className="text-amber-700 dark:text-amber-300">
-                          Not set
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {row.advancesOutstanding > 0 ? (
-                        <button
-                          type="button"
-                          className="font-medium text-amber-800 underline-offset-2 hover:underline dark:text-amber-200"
-                          onClick={() => onOpenLedger(row)}
-                        >
-                          {formatPayrollMoney(row.advancesOutstanding)}
-                        </button>
-                      ) : (
-                        formatPayrollMoney(0)
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                      {row.statutoryTotal > 0
-                        ? formatPayrollMoney(row.statutoryTotal)
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums font-medium">
-                      {formatPayrollMoney(row.suggestedNet)}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {row.alreadyPaid ? (
-                        <button
-                          type="button"
-                          className="underline-offset-2 hover:underline"
-                          onClick={() => onOpenPayslip(row)}
-                        >
-                          {formatPayrollDate(row.paidAt)}
-                        </button>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.alreadyPaid ? (
-                        <button
-                          type="button"
-                          className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-300"
-                          onClick={() => onOpenPayslip(row)}
-                        >
-                          Paid
-                        </button>
-                      ) : row.employmentStatus === "on_leave" ? (
-                        <span className="rounded-md bg-sky-500/15 px-2 py-0.5 text-xs text-sky-900 dark:text-sky-200">
-                          On leave
-                        </span>
-                      ) : (
-                        <span className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                          Pending
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <RowActions
-                        row={row}
-                        compact
-                        canReadStaffProfile={canReadStaffProfile}
-                        canManagePayroll={canManagePayroll}
-                        canRunPayroll={canRunPayroll}
-                        paying={payingId === row.userId}
-                        onOpenProfile={onOpenProfile}
-                        onOpenSalary={onOpenSalary}
-                        onOpenAdvance={onOpenAdvance}
-                        onOpenLedger={onOpenLedger}
-                        onOpenPay={onOpenPay}
-                        onOpenPayslip={onOpenPayslip}
-                      />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </>
-  );
-}
-
-function PayrollRunCard(
-  props: RowActionProps & { row: PayrollRunRow; paying: boolean },
-) {
-  const {
-    row,
-    canReadStaffProfile,
-    canManagePayroll,
-    canRunPayroll,
-    paying,
-    onOpenProfile,
-    onOpenSalary,
-    onOpenAdvance,
-    onOpenLedger,
-    onOpenPay,
-    onOpenPayslip,
-  } = props;
-  return (
-    <article className={cn(DASHBOARD_TABLE_SURFACE, "space-y-3 p-4")}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          {canReadStaffProfile ? (
-            <button
-              type="button"
-              className="text-left font-medium underline-offset-2 hover:underline"
-              onClick={() => onOpenProfile(row)}
-            >
-              {row.displayName}
-            </button>
-          ) : (
-            <div className="font-medium">{row.displayName}</div>
-          )}
-          <div className="text-xs text-muted-foreground">
-            {[row.title, row.branchName, employmentStatusLabel(row.employmentStatus)]
-              .filter(Boolean)
-              .join(" · ") || "—"}
-          </div>
-        </div>
-        {row.alreadyPaid ? (
-          <button
-            type="button"
-            className="shrink-0 rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-300"
-            onClick={() => onOpenPayslip(row)}
-          >
-            Paid
-          </button>
-        ) : (
-          <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            Pending
-          </span>
-        )}
-      </div>
-
-      <dl className="grid grid-cols-3 gap-2 text-center text-xs">
-        <div className="rounded-lg bg-muted/40 px-2 py-2">
-          <dt className="text-muted-foreground">Base</dt>
-          <dd className="mt-0.5 tabular-nums font-medium">
-            {row.baseSalary > 0 ? (
-              formatPayrollMoney(row.baseSalary)
-            ) : (
-              <span className="text-amber-700 dark:text-amber-300">Not set</span>
-            )}
-          </dd>
-        </div>
-        <div className="rounded-lg bg-muted/40 px-2 py-2">
-          <dt className="text-muted-foreground">Advances</dt>
-          <dd className="mt-0.5 tabular-nums font-medium">
-            {row.advancesOutstanding > 0 ? (
-              <button type="button" onClick={() => onOpenLedger(row)}>
-                {formatPayrollMoney(row.advancesOutstanding)}
-              </button>
-            ) : (
-              formatPayrollMoney(0)
-            )}
-          </dd>
-        </div>
-        <div className="rounded-lg bg-muted/40 px-2 py-2">
-          <dt className="text-muted-foreground">Net</dt>
-          <dd className="mt-0.5 tabular-nums font-medium">
-            {formatPayrollMoney(row.suggestedNet)}
-          </dd>
-        </div>
-      </dl>
-
-      {row.alreadyPaid && row.paidAt ? (
-        <p className="text-xs text-muted-foreground">
-          Paid {formatPayrollDate(row.paidAt)}{" "}
-          <button
-            type="button"
-            className="font-medium underline-offset-2 hover:underline"
-            onClick={() => onOpenPayslip(row)}
-          >
-            View payslip
-          </button>
-        </p>
-      ) : null}
-
-      <RowActions
-        row={row}
-        canReadStaffProfile={canReadStaffProfile}
-        canManagePayroll={canManagePayroll}
-        canRunPayroll={canRunPayroll}
-        paying={paying}
-        onOpenProfile={onOpenProfile}
-        onOpenSalary={onOpenSalary}
-        onOpenAdvance={onOpenAdvance}
-        onOpenLedger={onOpenLedger}
-        onOpenPay={onOpenPay}
-        onOpenPayslip={onOpenPayslip}
-      />
-    </article>
-  );
-}
-
-function RowActions({
-  row,
-  compact,
-  paying,
-  canReadStaffProfile,
-  canManagePayroll,
-  canRunPayroll,
-  onOpenProfile,
-  onOpenSalary,
-  onOpenAdvance,
-  onOpenLedger,
-  onOpenPay,
-  onOpenPayslip,
-}: RowActionProps & { row: PayrollRunRow; compact?: boolean; paying: boolean }) {
-  const btnClass = compact
-    ? "h-7 gap-1 px-2 text-xs"
-    : "h-9 flex-1 gap-1.5 text-xs sm:flex-none";
-
-  return (
-    <div className={cn("flex flex-wrap gap-1.5", compact ? "justify-end" : "")}>
-      {canReadStaffProfile ? (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className={btnClass}
-          onClick={() => onOpenProfile(row)}
-        >
-          <IdCard className={compact ? "size-3" : "size-3.5"} aria-hidden />
-          Profile
-        </Button>
-      ) : null}
-      {canManagePayroll ? (
-        <>
-          <Button
-            type="button"
-            size="sm"
-            variant={row.baseSalary > 0 ? "outline" : "default"}
-            className={btnClass}
-            onClick={() => onOpenSalary(row)}
-          >
-            <Pencil className={compact ? "size-3" : "size-3.5"} aria-hidden />
-            {row.baseSalary > 0 ? "Salary" : "Set salary"}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className={btnClass}
-            onClick={() => onOpenAdvance(row)}
-          >
-            <Wallet className={compact ? "size-3" : "size-3.5"} aria-hidden />
-            Advance
-          </Button>
-          {row.advancesOutstanding > 0 ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className={btnClass}
-              onClick={() => onOpenLedger(row)}
-            >
-              <Users className={compact ? "size-3" : "size-3.5"} aria-hidden />
-              Ledger
-            </Button>
-          ) : null}
-        </>
-      ) : null}
-      {row.alreadyPaid ? (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className={btnClass}
-          onClick={() => onOpenPayslip(row)}
-        >
-          <Receipt className={compact ? "size-3" : "size-3.5"} aria-hidden />
-          Payslip
-        </Button>
-      ) : canRunPayroll ? (
-        <Button
-          type="button"
-          size="sm"
-          className={btnClass}
-          disabled={paying}
-          onClick={() => onOpenPay(row)}
-        >
-          {paying ? (
-            <Loader2
-              className={compact ? "size-3 animate-spin" : "size-3.5 animate-spin"}
-              aria-hidden
-            />
-          ) : null}
-          Mark paid
-        </Button>
-      ) : null}
-    </div>
+    <p className={cn("rounded-lg border px-3 py-2 text-sm", cls)}>{children}</p>
   );
 }

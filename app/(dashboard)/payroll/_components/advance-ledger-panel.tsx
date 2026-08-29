@@ -132,6 +132,7 @@ export function AdvanceLedgerPanel({
                 <th className="px-4 py-3 font-medium">Staff</th>
                 <th className="px-4 py-3 font-medium">Branch</th>
                 <th className="px-4 py-3 font-medium text-right">Original</th>
+                <th className="px-4 py-3 font-medium text-right">Repaid</th>
                 <th className="px-4 py-3 font-medium text-right">Balance</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Note</th>
@@ -141,7 +142,7 @@ export function AdvanceLedgerPanel({
               {filtered.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-10 text-center text-muted-foreground"
                   >
                     No advances in this view.
@@ -174,6 +175,9 @@ export function AdvanceLedgerPanel({
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
                       {formatPayrollMoney(Number(row.amount))}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                      {formatPayrollMoney(Number(row.amountRepaid ?? 0))}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums font-medium">
                       {formatPayrollMoney(Number(row.balanceOutstanding ?? row.amount))}
