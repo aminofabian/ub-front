@@ -79,6 +79,30 @@ describe("resolvePostAuthDestination", () => {
     );
   });
 
+  it("sends configured owners and admins to the admin dashboard", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        null,
+        completedOnboarding,
+      ),
+    ).toBe(APP_ROUTES.overview);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "admin" } },
+        null,
+        completedOnboarding,
+      ),
+    ).toBe(APP_ROUTES.overview);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        null,
+        dismissedOnboarding,
+      ),
+    ).toBe(APP_ROUTES.overview);
+  });
+
   it("sends stock managers to daily audit", () => {
     expect(
       resolvePostAuthDestination({ role: { key: "stock_manager" } }),
@@ -263,7 +287,7 @@ describe("resolvePostAuthDestination", () => {
         null,
         completedOnboarding,
       ),
-    ).toBe(APP_ROUTES.shop);
+    ).toBe(APP_ROUTES.overview);
     expect(
       resolvePostAuthDestination(
         { role: { key: "owner" } },
@@ -277,7 +301,7 @@ describe("resolvePostAuthDestination", () => {
         null,
         dismissedOnboarding,
       ),
-    ).toBe(APP_ROUTES.shop);
+    ).toBe(APP_ROUTES.overview);
     expect(
       resolvePostAuthDestination(
         { role: { key: "owner" } },
@@ -319,7 +343,7 @@ describe("roleLandingRedirect", () => {
     ).toBe(APP_ROUTES.inventoryStockTakeDailyAudit);
   });
 
-  it("does not yank configured owners off the business hub onto the storefront", () => {
+  it("does not yank configured owners off the business hub", () => {
     expect(
       roleLandingRedirect(
         { role: { key: "owner" } },
@@ -330,6 +354,13 @@ describe("roleLandingRedirect", () => {
     expect(
       roleLandingRedirect(
         { role: { key: "owner" } },
+        APP_ROUTES.business,
+        completedOnboarding,
+      ),
+    ).toBeNull();
+    expect(
+      roleLandingRedirect(
+        { role: { key: "admin" } },
         APP_ROUTES.business,
         completedOnboarding,
       ),

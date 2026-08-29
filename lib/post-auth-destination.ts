@@ -102,6 +102,9 @@ function dedicatedRoleHome(
   if (roleKey === "manager" && isGroceryOperationsBusiness(business)) {
     return APP_ROUTES.grocery;
   }
+  if (roleKey === "owner" || roleKey === "admin") {
+    return APP_ROUTES.overview;
+  }
   return null;
 }
 
@@ -127,12 +130,13 @@ export function isOnboardingIncomplete(
  * Buyers keep their storefront `?next=` / credit-tab paths. Owner/admin with an
  * unfinished business setup (or a missing business payload) go straight to the
  * business hub — `?next=` and role homes cannot pull a brand-new owner onto the
- * storefront before their shop is configured, and a failed business fetch must
- * not fall through to the storefront default. Staff/POS roles keep their
- * dedicated homes (grocery managers stay on /grocery, cashiers on /cashier…).
- * The onboarding gate is cloud-only (`!IS_DESKTOP`): the desktop SKU uses its
- * own `/setup` first-run wizard and should keep its prior routing.
- * Otherwise role homes beat generic defaults; tenant default is the storefront.
+ * admin dashboard before their shop is configured, and a failed business fetch
+ * must not fall through to generic defaults. Staff/POS roles keep their
+ * dedicated homes (cashiers on /cashier, grocery clerks on /grocery…). Configured
+ * owners/admins land on the admin dashboard (/overview). The onboarding gate is
+ * cloud-only (`!IS_DESKTOP`): the desktop SKU uses its own `/setup` first-run
+ * wizard and should keep its prior routing. Otherwise role homes beat generic
+ * defaults; tenant default is the storefront for roles without a dedicated home.
  */
 export function resolvePostAuthDestination(
   me: PostAuthMe | null | undefined,
@@ -161,6 +165,13 @@ export function resolvePostAuthDestination(
   }
 
   if (isShopNextPath(requested) || isCustomerTabPath(requested)) {
+    return requested;
+  }
+
+  if (
+    isSafeAppPath(requested) &&
+    (roleKey === "owner" || roleKey === "admin")
+  ) {
     return requested;
   }
 
@@ -206,7 +217,15 @@ export function roleLandingRedirect(
   if (!ROLE_OVERRIDE_LANDING_PATHS.has(pathname)) {
     return null;
   }
-  // Storefront is the tenant default — do not yank owners/admins off /business.
+  const roleKey = roleKeyOf(me);
+  // Business hub is a valid admin destination — not a mistaken landing page.
+  if (
+    pathname === APP_ROUTES.business &&
+    (roleKey === "owner" || roleKey === "admin")
+  ) {
+    return null;
+  }
+  // Storefront is the tenant default for roles without a dedicated home.
   if (isStorefrontHome(home) || isCustomerTabPath(home)) {
     return null;
   }
