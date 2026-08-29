@@ -60,6 +60,8 @@ const SEVERITY_BADGE: Record<AuditEventSeverity, string> = {
 /** Event types the backend can emit as failures/issues — quick filter help. */
 const KNOWN_FAILURE_EVENT_TYPES = [
   "login.failed",
+  "session.tenant_mismatch",
+  "session.access_denied",
   "permission.denied",
   "account.locked.soft",
   "account.locked.hard",

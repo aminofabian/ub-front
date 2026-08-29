@@ -50,7 +50,7 @@ let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let lastActivityRefresh = 0;
 let consecutiveRefreshRejections = 0;
 
-const MAX_REFRESH_REJECT_BEFORE_LOGOUT = 3;
+const MAX_REFRESH_REJECT_BEFORE_LOGOUT = 5;
 
 /** Drop legacy localStorage refresh tokens; httpOnly cookie is authoritative. */
 function clearLegacyRefreshTokenFromStorage(): void {
