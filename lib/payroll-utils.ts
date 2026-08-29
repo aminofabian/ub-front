@@ -89,6 +89,20 @@ export function payrollCalendarMonthName(month: number): string {
   return PAYROLL_MONTHS.find((m) => m.value === month)?.label ?? String(month);
 }
 
+export function payrollCalendarShortMonth(month: number): string {
+  return new Date(2000, month - 1, 1).toLocaleString(undefined, {
+    month: "short",
+  });
+}
+
+export function payrollCalendarMonthProgress(month: {
+  headcount: number;
+  paidCount: number;
+}): number {
+  if (month.headcount <= 0) return 0;
+  return Math.round((month.paidCount / month.headcount) * 100);
+}
+
 export function payrollCalendarStatusLabel(status: PayrollCalendarStatus): string {
   switch (status) {
     case "paid":
