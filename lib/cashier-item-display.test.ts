@@ -118,6 +118,19 @@ describe("pos package stock", () => {
 });
 
 describe("cashier labels", () => {
+  it("uses live parentName when variant row still has stale family copy", () => {
+    expect(
+      cashierItemPrimaryLabel({
+        id: "v1",
+        name: "Old Coca Cola",
+        sku: "COKE-500",
+        variantName: "500ml",
+        variantOfItemId: "parent",
+        parentName: "Coca Cola",
+      }),
+    ).toBe("Coca Cola 500ml");
+  });
+
   it("disambiguates variants with size or package, not full SKU", () => {
     const tray: ItemSummaryRecord = {
       id: "1",

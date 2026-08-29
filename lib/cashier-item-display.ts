@@ -4,6 +4,7 @@ import {
   joinProductNameParts,
   looksLikeUuid,
   resolveCatalogItemName,
+  resolveCatalogVariantListTitle,
   withProductCode,
 } from "@/lib/catalog-display";
 
@@ -32,6 +33,18 @@ export function cashierItemTitleParts(row: ItemSummaryRecord): {
   primary: string;
   option: string | null;
 } {
+  const parentName = row.parentName?.trim();
+  if (parentName && row.variantOfItemId?.trim()) {
+    const variantTitle = resolveCatalogVariantListTitle(row, {
+      parentInList: false,
+      parentRow: { name: parentName },
+    });
+    if (variantTitle.family && variantTitle.option) {
+      return { primary: variantTitle.family, option: variantTitle.option };
+    }
+    return { primary: variantTitle.combined, option: null };
+  }
+
   const resolved = resolveCatalogItemName({
     name: row.name,
     sku: undefined,

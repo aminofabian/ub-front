@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { MonitorSmartphone } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +23,10 @@ import {
   registerTillDevice,
   tillDeviceErrorMessage,
 } from "@/lib/till-devices-api";
+import {
+  OPEN_REGISTER_TILL_EVENT,
+  notifyPosGuidanceResolved,
+} from "@/lib/pos-guidance";
 import { cn } from "@/lib/utils";
 
 type RegisterTillControlProps = {
@@ -45,13 +49,20 @@ export function RegisterTillControl({
   const [label, setLabel] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const openDialog = () => {
+  const openDialog = useCallback(() => {
     getOrCreateTillDeviceId();
     const current = tillDeviceDisplayName();
     // Prefill only a custom label — skip the default "Till {shortId}".
     setLabel(/^Till\s+[a-f0-9]{6,}$/i.test(current) ? "" : current);
     setOpen(true);
-  };
+  }, []);
+
+  useEffect(() => {
+    const onOpenRequest = () => openDialog();
+    window.addEventListener(OPEN_REGISTER_TILL_EVENT, onOpenRequest);
+    return () =>
+      window.removeEventListener(OPEN_REGISTER_TILL_EVENT, onOpenRequest);
+  }, [openDialog]);
 
   const onRegister = async () => {
     const bid = branchId?.trim();
@@ -68,6 +79,7 @@ export function RegisterTillControl({
       const friendly = humanTillLabel(row.label);
       setTillDeviceLabel(friendly ?? "");
       onRegistered?.(friendly ?? tillDeviceDisplayName());
+      notifyPosGuidanceResolved("register-till");
       toast.success(`Registered as “${friendly ?? tillDeviceDisplayName()}”`);
       setOpen(false);
     } catch (error) {

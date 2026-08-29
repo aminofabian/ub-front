@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import {
   formatApiProblemMessage,
   getBranchGuidanceKind,
+  getPosGuidanceKind,
   isItemNotFoundProblem,
   isSessionRelatedProblem,
   isTenantContextMissingProblem,
@@ -254,6 +255,27 @@ describe("isUnmappedTenantHostProblem", () => {
   });
 });
 
+describe("getPosGuidanceKind", () => {
+  it("matches trusted-till registration copy", () => {
+    expect(
+      getPosGuidanceKind(
+        "This till is not registered for this branch. Ask a manager to register it under Business Settings → Trusted tills.",
+      ),
+    ).toBe("register-till");
+  });
+
+  it("matches no open shift responses", () => {
+    expect(getPosGuidanceKind("No open shift")).toBe("open-shift");
+    expect(getPosGuidanceKind("No open shift for this branch")).toBe(
+      "open-shift",
+    );
+  });
+
+  it("ignores unrelated errors", () => {
+    expect(getPosGuidanceKind("Branch not found")).toBe(null);
+    expect(getPosGuidanceKind("Insufficient wallet balance")).toBe(null);
+  });
+});
 describe("getBranchGuidanceKind", () => {
   it("matches the top-bar shop-location coaching copy", () => {
     expect(

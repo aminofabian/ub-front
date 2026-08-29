@@ -56,7 +56,7 @@ export function useCashierTemplate(branchId: string | null | undefined): {
       return;
     }
     let cancelled = false;
-    void fetchTillDeviceMe({ branchId: bid })
+    void fetchTillDeviceMe({ branchId: bid, toast: false })
       .then((row) => {
         if (cancelled) return;
         setRegistered(row.cashierTemplate);

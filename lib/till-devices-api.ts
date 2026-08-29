@@ -65,10 +65,12 @@ export async function registerTillDevice(opts: {
 
 export async function fetchTillDeviceMe(opts: {
   branchId: string;
+  toast?: boolean;
 }): Promise<TillDeviceRecord> {
   const sp = new URLSearchParams({ branchId: opts.branchId });
   const row = await apiRequest<TillDeviceRecord>(
     `/api/v1/till-devices/me?${sp.toString()}`,
+    { toast: opts.toast },
   );
   return normalizeTillDevice(row);
 }

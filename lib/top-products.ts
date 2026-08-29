@@ -18,6 +18,7 @@ export type TopProductRecord = {
   packageVariant?: boolean;
   packageUnitsPerSale?: number | string | null;
   variantOfItemId?: string | null;
+  parentName?: string | null;
   /** Number of separate cart-add events. */
   count: number;
   /** Sum of quantities sold (rounded to 4 decimals). */
@@ -95,6 +96,7 @@ type ItemLike = Pick<
   | "packageVariant"
   | "packageUnitsPerSale"
   | "variantOfItemId"
+  | "parentName"
 >;
 
 function mergeMeta(existing: TopProductRecord | undefined, item: ItemLike): {
@@ -108,6 +110,7 @@ function mergeMeta(existing: TopProductRecord | undefined, item: ItemLike): {
   packageVariant?: boolean;
   packageUnitsPerSale?: number | string | null;
   variantOfItemId?: string | null;
+  parentName?: string | null;
 } {
   const stockQty =
     item.stockQty !== undefined ? item.stockQty : existing?.stockQty;
@@ -122,6 +125,7 @@ function mergeMeta(existing: TopProductRecord | undefined, item: ItemLike): {
     packageUnitsPerSale:
       item.packageUnitsPerSale ?? existing?.packageUnitsPerSale ?? null,
     variantOfItemId: item.variantOfItemId ?? existing?.variantOfItemId ?? null,
+    parentName: item.parentName ?? existing?.parentName ?? null,
     ...(stockQty !== undefined ? { stockQty } : {}),
   };
 }

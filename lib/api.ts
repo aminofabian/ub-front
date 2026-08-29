@@ -48,10 +48,12 @@ import type {
   MyMobileConfigResponse,
 } from "@/lib/public-mobile-config";
 import { notifyBranchRequired } from "@/lib/branch-guidance";
+import { notifyPosGuidance } from "@/lib/pos-guidance";
 import {
   parseProblem,
   formatApiProblemMessage,
   getBranchGuidanceKind,
+  getPosGuidanceKind,
   isSessionRelatedProblem,
 } from "@/lib/problem";
 import { toast } from "sonner";
@@ -123,6 +125,11 @@ function notifyHttpErrorToast(message: string) {
   const branchKind = getBranchGuidanceKind(message);
   if (branchKind) {
     notifyBranchRequired(branchKind);
+    return;
+  }
+  const posKind = getPosGuidanceKind(message);
+  if (posKind) {
+    notifyPosGuidance(posKind);
     return;
   }
   const lines = message.split("\n");
@@ -762,6 +769,11 @@ export type ItemSummaryRecord = {
   bundlePrice?: number | string | null;
   /** Reference buying / cost price on the item record. */
   buyingPrice?: number | string | null;
+  /**
+   * Live parent item name when this row is a variant. POS uses this so a parent
+   * rename shows on till before every child `name` copy is patched.
+   */
+  parentName?: string | null;
 };
 
 /** Resolved HTTPS URL for catalog lists / quick sale (prefers {@link ItemSummaryRecord.thumbnailUrl}). */
@@ -8353,9 +8365,12 @@ export async function postOpenShift(body: {
 
 export async function fetchCurrentShift(
   branchId: string,
+  opts?: { toast?: boolean },
 ): Promise<ShiftRecord> {
   const params = new URLSearchParams({ branchId: branchId.trim() });
-  return request<ShiftRecord>(`/api/v1/shifts/current?${params.toString()}`);
+  return request<ShiftRecord>(`/api/v1/shifts/current?${params.toString()}`, {
+    toast: opts?.toast,
+  });
 }
 
 export async function postCloseShift(
@@ -8738,6 +8753,7 @@ export type PosTopProductRecord = {
   variantOfItemId?: string | null;
   packageVariant?: boolean | null;
   packageUnitsPerSale?: number | string | null;
+  parentName?: string | null;
 };
 
 /**

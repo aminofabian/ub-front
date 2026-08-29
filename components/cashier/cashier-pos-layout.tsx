@@ -743,6 +743,7 @@ function TopSellerTile({
     packageVariant: product.packageVariant,
     packageUnitsPerSale: product.packageUnitsPerSale ?? undefined,
     variantOfItemId: product.variantOfItemId ?? undefined,
+    parentName: product.parentName ?? undefined,
     thumbnailUrl: product.thumbnailUrl ?? null,
     stockQty: product.stockQty ?? undefined,
   };
@@ -1336,6 +1337,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       packageVariant: product.packageVariant,
       packageUnitsPerSale: product.packageUnitsPerSale ?? undefined,
       variantOfItemId: product.variantOfItemId ?? undefined,
+      parentName: product.parentName ?? undefined,
       stockQty: product.stockQty ?? undefined,
     };
     // Known variant child — add it directly (matches tile behavior).

@@ -31,6 +31,7 @@ function chipLabels(product: TopProductRecord): {
     brand: product.brand ?? undefined,
     size: product.size ?? undefined,
     variantOfItemId: product.variantOfItemId ?? undefined,
+    parentName: product.parentName ?? undefined,
   };
   const { primary, option } = cashierItemTitleParts(row);
 

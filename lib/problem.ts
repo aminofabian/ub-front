@@ -360,6 +360,38 @@ export function isBranchGuidanceMessage(text: string): boolean {
   return getBranchGuidanceKind(text) != null;
 }
 
+/**
+ * POS readiness coaching — unregistered till or missing shift.
+ * Shown as a till chrome banner instead of an error toast.
+ */
+export type PosGuidanceKind = "register-till" | "open-shift";
+
+export function getPosGuidanceKind(text: string): PosGuidanceKind | null {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  if (
+    normalized.includes("till is not registered") ||
+    normalized.includes("till device not registered") ||
+    normalized.includes("trusted tills")
+  ) {
+    return "register-till";
+  }
+  if (
+    normalized.includes("no open shift") ||
+    normalized.includes("open a shift") ||
+    normalized.includes("open the register")
+  ) {
+    return "open-shift";
+  }
+  return null;
+}
+
+export function isPosGuidanceMessage(text: string): boolean {
+  return getPosGuidanceKind(text) != null;
+}
+
 /** Soften harsh branch-resolution copy into actionable guidance. */
 function friendlyBranchRequiredMessage(detail: string): string | null {
   const kind = getBranchGuidanceKind(detail);

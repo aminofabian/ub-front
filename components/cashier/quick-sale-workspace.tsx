@@ -56,6 +56,11 @@ import {
 } from "@/lib/stk-phone";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
+  OPEN_POS_SHIFT_EVENT,
+  notifyPosGuidance,
+  notifyPosGuidanceResolved,
+} from "@/lib/pos-guidance";
+import {
   cashierMayRecordDrawout,
   POS_CASHIER_CAPABILITY_FLAGS,
 } from "@/lib/pos-cashier-capabilities";
@@ -1963,6 +1968,7 @@ export function QuickSaleWorkspace({
               brand: row.brand ?? null,
               size: row.size ?? null,
               variantOfItemId: row.variantOfItemId ?? null,
+              parentName: row.parentName ?? null,
               packageVariant: row.packageVariant === true,
               packageUnitsPerSale: row.packageUnitsPerSale ?? null,
               count: row.saleCount,
@@ -3551,11 +3557,12 @@ export function QuickSaleWorkspace({
     } catch (e) {
       setLoading(false);
       const msg = e instanceof Error ? e.message : "No open shift.";
-      setError(
-        /not\s*found|404|no open shift/i.test(msg)
-          ? "Open a shift for this branch on the Shifts page before selling."
-          : msg,
-      );
+      if (/not\s*found|404|no open shift/i.test(msg)) {
+        notifyPosGuidance("open-shift");
+        setError("Open a shift on this till before completing the sale.");
+      } else {
+        setError(msg);
+      }
       return;
     }
 
@@ -4230,9 +4237,12 @@ export function QuickSaleWorkspace({
       return;
     }
     setBranchShiftLoading(true);
-    void fetchCurrentShift(branchId.trim())
+    void fetchCurrentShift(branchId.trim(), { toast: false })
       .then((s) => {
         setBranchOpenShift(s.status === "open" ? s : null);
+        if (s.status === "open") {
+          notifyPosGuidanceResolved("open-shift");
+        }
       })
       .catch(() => {
         setBranchOpenShift(null);
@@ -4255,6 +4265,16 @@ export function QuickSaleWorkspace({
     refetchBranchOpenShift();
   }, [shouldFetchOpenShift, branchId, online, refetchBranchOpenShift]);
 
+  useEffect(() => {
+    const onOpenShiftRequest = () => {
+      setError("");
+      setOpenShiftModal(true);
+    };
+    window.addEventListener(OPEN_POS_SHIFT_EVENT, onOpenShiftRequest);
+    return () =>
+      window.removeEventListener(OPEN_POS_SHIFT_EVENT, onOpenShiftRequest);
+  }, []);
+
   const dialogBrandTheme = useMemo(
     () => posBrandThemeStyle(business?.branding ?? null),
     [business?.branding],
@@ -4268,6 +4288,7 @@ export function QuickSaleWorkspace({
         return;
       }
       if (!branchOpenShift) {
+        notifyPosGuidance("open-shift");
         setError("No open shift for this register.");
         return;
       }
@@ -4580,6 +4601,7 @@ export function QuickSaleWorkspace({
             onOpened={() => {
               setOpenShiftModal(false);
               setNotice("Shift opened successfully.");
+              notifyPosGuidanceResolved("open-shift");
               refetchBranchOpenShift();
             }}
           />
@@ -4590,6 +4612,7 @@ export function QuickSaleWorkspace({
             onClosed={() => {
               setCloseShiftModal(false);
               setNotice("Shift closed successfully.");
+              notifyPosGuidance("open-shift");
               refetchBranchOpenShift();
             }}
           />
