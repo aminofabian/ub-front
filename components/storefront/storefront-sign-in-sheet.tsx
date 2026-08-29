@@ -24,6 +24,7 @@ import {
 import { useShopCartOptional } from "@/hooks/use-shop-cart";
 import {
   completeShopperPhoneSession,
+  fetchBusiness,
   fetchMe,
   fetchShopperAccountOverview,
   loginWithPassword,
@@ -47,7 +48,7 @@ import {
   type PostAuthMe,
 } from "@/lib/post-auth-destination";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
-import { isCustomerTabPath } from "@/lib/buyer-role";
+import { isBuyerAccount, isCustomerTabPath } from "@/lib/buyer-role";
 import { cn } from "@/lib/utils";
 
 /** Where the shopper asked to sign in from. Apex is added in Phase 4. */
@@ -265,8 +266,8 @@ function StorefrontSignInSheet({
         : APP_ROUTES.shopAccount;
 
   /**
-   * Landing / apex may navigate after auth. On the live storefront chrome we
-   * stay put unless this was a staff door (office hub) or an explicit next.
+   * Landing / apex may navigate after auth. On the live storefront chrome,
+   * shoppers stay put (D3); merchants route to their role home / business hub.
    */
   const finishSignedIn = useCallback(async () => {
     onOpenChange(false);
@@ -277,40 +278,70 @@ function StorefrontSignInSheet({
       // Best-effort: the cart merge can retry on the next cart fetch.
     }
 
-    if (door === "staff") {
-      router.push(safeNext || APP_ROUTES.business);
-      return;
-    }
+    const keepShoppersOnPage =
+      door !== "staff" &&
+      surface !== "landing" &&
+      entry?.reason !== "apex";
 
-    // Surface A: the shopper never left the page — no navigation (D3).
-    if (surface !== "landing" && entry?.reason !== "apex") {
-      if (rawNext && isShopNextPath(rawNext) && rawNext !== pathname) {
-        router.push(rawNext);
-      }
-      return;
-    }
-
-    const fallback = isShopNextPath(rawNext) ? rawNext : APP_ROUTES.shopAccount;
-    let destination = fallback;
+    let destination: string | null = null;
     try {
       const me = await fetchMe();
-      const enriched: PostAuthMe = applyShopperTabHint(
-        me,
-        await fetchShopperAccountOverview(0, 1),
+      let enriched: PostAuthMe = me;
+      if (isBuyerAccount(me)) {
+        enriched = applyShopperTabHint(
+          me,
+          await fetchShopperAccountOverview(0, 1),
+        );
+      }
+      const business = await fetchBusiness().catch(() => null);
+
+      let requestedNext: string | null = null;
+      if (door === "staff") {
+        requestedNext = safeNext || null;
+      } else if (keepShoppersOnPage) {
+        // D3: only buyers inherit the storefront path they were browsing.
+        requestedNext =
+          isBuyerAccount(enriched) && isShopNextPath(rawNext) ? rawNext : null;
+      } else if (isShopNextPath(rawNext)) {
+        requestedNext = rawNext;
+      }
+
+      destination = resolvePostAuthDestination(
+        enriched,
+        requestedNext,
+        business,
       );
-      const resolved = resolvePostAuthDestination(enriched, fallback);
       if (
-        resolved === APP_ROUTES.shopAccount &&
+        destination === APP_ROUTES.shopAccount &&
         enriched.tabPath &&
         isCustomerTabPath(enriched.tabPath)
       ) {
         destination = enriched.tabPath;
-      } else {
-        destination = resolved;
+      }
+
+      if (
+        keepShoppersOnPage &&
+        isBuyerAccount(enriched) &&
+        (!destination ||
+          destination === pathname ||
+          destination === APP_ROUTES.shop)
+      ) {
+        if (rawNext && isShopNextPath(rawNext) && rawNext !== pathname) {
+          router.push(rawNext);
+        }
+        return;
       }
     } catch {
-      // Keep the fallback — sign-in itself already succeeded.
+      destination =
+        door === "staff" ? safeNext || APP_ROUTES.business : null;
+      if (keepShoppersOnPage && !destination) {
+        if (rawNext && isShopNextPath(rawNext) && rawNext !== pathname) {
+          router.push(rawNext);
+        }
+        return;
+      }
     }
+
     if (destination && destination !== pathname) {
       router.push(destination);
     }
