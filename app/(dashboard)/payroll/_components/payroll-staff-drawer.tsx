@@ -152,14 +152,24 @@ export function PayrollStaffDrawer({
         </div>
       }
     >
-      <div className={cn("mb-5 rounded-xl border px-3 py-2 text-sm", statusTone)}>
-        {row.alreadyPaid
-          ? `Paid ${formatPayrollDate(row.paidAt)}`
-          : row.employmentStatus === "on_leave"
-            ? "On leave — update status before paying"
-            : Number(row.baseSalary) <= 0
-              ? "Salary not set — add monthly amount first"
-              : `${employmentStatusLabel(row.employmentStatus)} · ready for ${payrollMonthLabel(year, month)}`}
+      <div
+        className={cn(
+          "mb-5 overflow-hidden rounded-xl border",
+          statusTone,
+        )}
+      >
+        <div className="flex items-center gap-3 px-4 py-3">
+          <StaffAvatar name={row.displayName} paid={row.alreadyPaid} />
+          <div className="min-w-0 flex-1 text-sm">
+            {row.alreadyPaid
+              ? `Paid ${formatPayrollDate(row.paidAt)}`
+              : row.employmentStatus === "on_leave"
+                ? "On leave — update status before paying"
+                : Number(row.baseSalary) <= 0
+                  ? "Salary not set — add monthly amount first"
+                  : `${employmentStatusLabel(row.employmentStatus)} · ready for ${payrollMonthLabel(year, month)}`}
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -302,6 +312,27 @@ export function PayrollStaffDrawer({
         </div>
       </FormDrawerFields>
     </FormDrawer>
+  );
+}
+
+function StaffAvatar({ name, paid }: { name: string; paid: boolean }) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+  return (
+    <span
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1",
+        paid
+          ? "bg-emerald-500/15 text-emerald-800 ring-emerald-500/20 dark:text-emerald-200"
+          : "bg-primary/10 text-primary ring-primary/15",
+      )}
+    >
+      {initials || "?"}
+    </span>
   );
 }
 

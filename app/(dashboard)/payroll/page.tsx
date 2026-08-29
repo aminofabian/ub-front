@@ -3,18 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Banknote,
-  CalendarDays,
-  Clock,
   Loader2,
-  Receipt,
-  Scale,
-  Users,
-  Wallet,
 } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
-  DASHBOARD_SECTION_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoadError,
@@ -47,9 +40,11 @@ import { LogAdvanceDrawer } from "./_components/log-advance-drawer";
 import { PayConfirmDrawer, type PayConfirmPayload } from "./_components/pay-confirm-drawer";
 import { PayrollCalendarPanel } from "./_components/payroll-calendar-panel";
 import { PayrollMonthNav } from "./_components/payroll-month-nav";
+import { PayrollRunHeader } from "./_components/payroll-run-header";
 import { PayrollRunPanel } from "./_components/payroll-run-panel";
-import { PayrollRunToolbar } from "./_components/payroll-run-toolbar";
+import { PayrollRunSidebar } from "./_components/payroll-run-sidebar";
 import { PayrollStaffDrawer } from "./_components/payroll-staff-drawer";
+import { PayrollTabs } from "./_components/payroll-tabs";
 import { PayslipDrawer } from "./_components/payslip-drawer";
 import { PayslipHistoryPanel } from "./_components/payslip-history-panel";
 
@@ -367,42 +362,12 @@ export default function PayrollPage() {
         icon={Banknote}
         eyebrow="Organization"
         title="Payroll"
-        description="Monthly pay run — salaries, statutory, advances, and payslips in one place."
+        description="Run monthly salaries with clarity — review each person, apply statutory, recover advances, and close the period."
       />
 
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            ["run", "Monthly run", null],
-            ["calendar", "Calendar", CalendarDays],
-            ["advances", "Advance ledger", Wallet],
-            ["history", "Payslip history", Receipt],
-          ] as const
-        ).map(([id, label, Icon]) => (
-          <button
-            key={id}
-            type="button"
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-              tab === id
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-muted-foreground hover:text-foreground",
-            )}
-            onClick={() => setTab(id)}
-          >
-            {Icon ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Icon className="size-3.5" aria-hidden />
-                {label}
-              </span>
-            ) : (
-              label
-            )}
-          </button>
-        ))}
-      </div>
+      <PayrollTabs tab={tab} onTabChange={setTab} />
 
-      {tab === "run" || tab === "history" ? (
+      {tab === "history" ? (
         <PayrollMonthNav
           year={year}
           month={month}
@@ -410,93 +375,28 @@ export default function PayrollPage() {
             setYear(y);
             setMonth(m);
           }}
-          onRefresh={tab === "run" ? () => void load() : undefined}
         />
       ) : null}
 
       {tab === "run" ? (
         <>
           {!loading && !error ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <SummaryCard
-                icon={Users}
-                label="Staff"
-                value={String(summary.headcount)}
-                hint={`${summary.paidCount} paid · ${summary.pendingCount} pending`}
-              />
-              <SummaryCard
-                icon={Banknote}
-                label="Total base"
-                value={formatPayrollMoney(summary.totalBase)}
-                hint="Before deductions"
-              />
-              <SummaryCard
-                icon={Wallet}
-                label="Advances owed"
-                value={formatPayrollMoney(summary.totalAdvances)}
-                hint="Outstanding shop-wide"
-              />
-              <SummaryCard
-                icon={Scale}
-                label="Statutory preview"
-                value={
-                  applyStatutory
-                    ? formatPayrollMoney(summary.totalStatutory)
-                    : "Off"
-                }
-                hint={applyStatutory ? "Applied in net column" : "Toggle in toolbar"}
-              />
-              <SummaryCard
-                icon={Clock}
-                label="Net pending"
-                value={formatPayrollMoney(summary.totalNetPending)}
-                hint={
-                  summary.missingSalary > 0
-                    ? `${summary.missingSalary} missing salary`
-                    : "Ready to pay"
-                }
-              />
-            </div>
+            <PayrollRunHeader
+              year={year}
+              month={month}
+              summary={summary}
+              applyStatutory={applyStatutory}
+              totalStatutory={summary.totalStatutory}
+              onMonthChange={(y, m) => {
+                setYear(y);
+                setMonth(m);
+              }}
+              onRefresh={() => void load()}
+            />
           ) : null}
 
           {feedback ? (
             <DashboardFeedback kind={feedback.kind} text={feedback.text} />
-          ) : null}
-
-          {!loading && !error ? (
-            <PayrollRunToolbar
-              year={year}
-              month={month}
-              branches={branchOptions}
-              branchFilter={branchFilter}
-              onBranchFilterChange={setBranchFilter}
-              applyStatutory={applyStatutory}
-              onApplyStatutoryChange={setApplyStatutory}
-              postExpenseDefault={postExpenseDefault}
-              onPostExpenseChange={setPostExpenseDefault}
-              pendingCount={summary.pendingCount}
-              canRunPayroll={canRunPayroll}
-              payingAll={payingAll}
-              payingId={payingId}
-              onPayAll={() => void onPayAll()}
-              onExport={() => exportPayrollRunCsv(rows, year, month)}
-              hasRows={rows.length > 0}
-            />
-          ) : null}
-
-          {!loading && !error && summary.onLeaveCount > 0 ? (
-            <AlertBanner tone="sky">
-              {summary.onLeaveCount} staff on leave — excluded from pay all until status
-              changes.
-            </AlertBanner>
-          ) : null}
-
-          {!loading && !error && summary.missingSalary > 0 && canManagePayroll ? (
-            <AlertBanner tone="amber">
-              {summary.missingSalary} staff{" "}
-              {summary.missingSalary === 1 ? "has" : "have"} no monthly salary. Tap a row
-              to set salary before paying.
-            </AlertBanner>
           ) : null}
 
           {loading ? (
@@ -508,15 +408,51 @@ export default function PayrollPage() {
               onRetry={() => void load()}
             />
           ) : (
-            <PayrollRunPanel
-              rows={rows}
-              applyStatutoryPreview={applyStatutory}
-              onSelectRow={openStaffDrawer}
-            />
+            <div className="grid gap-6 lg:grid-cols-[minmax(15rem,17rem)_1fr]">
+              <PayrollRunSidebar
+                branches={branchOptions}
+                branchFilter={branchFilter}
+                onBranchFilterChange={setBranchFilter}
+                applyStatutory={applyStatutory}
+                onApplyStatutoryChange={setApplyStatutory}
+                postExpenseDefault={postExpenseDefault}
+                onPostExpenseChange={setPostExpenseDefault}
+                pendingCount={summary.pendingCount}
+                canRunPayroll={canRunPayroll}
+                payingAll={payingAll}
+                payingId={payingId}
+                onPayAll={() => void onPayAll()}
+                onExport={() => exportPayrollRunCsv(rows, year, month)}
+                hasRows={rows.length > 0}
+              />
+
+              <div className="min-w-0 space-y-4">
+                {!loading && !error && summary.onLeaveCount > 0 ? (
+                  <AlertBanner tone="sky">
+                    {summary.onLeaveCount} on leave — excluded from pay all until status
+                    updates.
+                  </AlertBanner>
+                ) : null}
+
+                {!loading && !error && summary.missingSalary > 0 && canManagePayroll ? (
+                  <AlertBanner tone="amber">
+                    {summary.missingSalary} without salary — open their row to set pay
+                    before marking paid.
+                  </AlertBanner>
+                ) : null}
+
+                <PayrollRunPanel
+                  rows={rows}
+                  applyStatutoryPreview={applyStatutory}
+                  onSelectRow={openStaffDrawer}
+                />
+              </div>
+            </div>
           )}
         </>
       ) : tab === "calendar" ? (
-        <PayrollCalendarPanel
+        <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
+          <PayrollCalendarPanel
           year={year}
           branchFilter={branchFilter}
           branches={branchOptions}
@@ -527,9 +463,10 @@ export default function PayrollPage() {
             setMonth(m);
             setTab("run");
           }}
-        />
+          />
+        </div>
       ) : tab === "advances" ? (
-        <>
+        <div className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
           {feedback ? (
             <DashboardFeedback kind={feedback.kind} text={feedback.text} />
           ) : null}
@@ -537,9 +474,9 @@ export default function PayrollPage() {
             canReadStaffProfile={canReadStaffProfile}
             onOpenStaff={openProfileById}
           />
-        </>
+        </div>
       ) : (
-        <>
+        <div className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
           {feedback ? (
             <DashboardFeedback kind={feedback.kind} text={feedback.text} />
           ) : null}
@@ -548,7 +485,7 @@ export default function PayrollPage() {
             month={month}
             onOpenPayslip={openPayslipRecord}
           />
-        </>
+        </div>
       )}
 
       <PayrollStaffDrawer
@@ -710,33 +647,6 @@ export default function PayrollPage() {
           </div>
         </FormDrawerFields>
       </FormDrawer>
-    </div>
-  );
-}
-
-function SummaryCard({
-  icon: Icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  hint: string;
-}) {
-  return (
-    <div className={cn(DASHBOARD_SECTION_SURFACE, "space-y-2 p-4")}>
-      <div className="flex items-center gap-2">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="size-4" aria-hidden />
-        </span>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </p>
-      </div>
-      <p className="text-xl font-semibold tabular-nums">{value}</p>
-      <p className="text-xs text-muted-foreground">{hint}</p>
     </div>
   );
 }
