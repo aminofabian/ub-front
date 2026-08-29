@@ -45,6 +45,8 @@ import {
   type StorefrontForm,
 } from "@/components/business/business-settings-types";
 import { CurrentLookLink } from "@/components/business/branding-template-section";
+import { FrontWindowLandingEditor } from "@/components/business/front-window-landing-editor";
+import { BrandPosterLandingEditor } from "@/components/business/brand-poster-landing-editor";
 import type { BranchRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -145,6 +147,7 @@ export function BusinessSettingsForm({
   logoUrl,
   brandPrimary,
   currency,
+  businessId,
   onSubmit,
   onCancel,
   onRemoveDeliveryArea,
@@ -172,6 +175,7 @@ export function BusinessSettingsForm({
   logoUrl?: string | null;
   brandPrimary?: string | null;
   currency?: string | null;
+  businessId?: string | null;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
   onRemoveDeliveryArea?: (areaId: string) => void | Promise<void>;
@@ -476,51 +480,24 @@ export function BusinessSettingsForm({
               ) : null}
 
               {!storefront.enabled ? (
-                <div className="grid gap-2.5 sm:grid-cols-2">
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <p className={labelClass()}>Landing page copy (optional)</p>
-                    <p className={hintClass()}>
-                      Overrides default template text when set. Prefer the
-                      structured fields in{" "}
-                      <Link
-                        href={APP_ROUTES.businessDesign}
-                        className="font-medium underline underline-offset-2"
-                      >
-                        Design → Business details
-                      </Link>{" "}
-                      (hours, tagline, contact) — every theme uses those
-                      automatically.
-                    </p>
-                  </div>
-                  {(
-                    [
-                      ["landingHeadline", "Headline", "sf-land-headline"],
-                      ["landingSubheadline", "Subheadline", "sf-land-sub"],
-                      ["landingHours", "Hours", "sf-land-hours"],
-                      ["landingAddress", "Address", "sf-land-address"],
-                      ["landingPhone", "Phone", "sf-land-phone"],
-                      ["landingWhatsapp", "WhatsApp", "sf-land-wa"],
-                      ["landingCtaLabel", "CTA label", "sf-land-cta"],
-                    ] as const
-                  ).map(([field, label, id]) => (
-                    <div key={field} className="space-y-1.5">
-                      <label className={labelClass()} htmlFor={id}>
-                        {label}
-                      </label>
-                      <input
-                        id={id}
-                        className={inputClass()}
-                        value={storefront[field]}
-                        onChange={(e) =>
-                          setStorefront((s) => ({
-                            ...s,
-                            [field]: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                  ))}
-                </div>
+                storefront.landingTemplateId === "brand-poster" ? (
+                  <BrandPosterLandingEditor
+                    storefront={storefront}
+                    setStorefront={setStorefront}
+                    storeName={editable.name.trim() || "Your shop"}
+                    businessId={businessId}
+                  />
+                ) : (
+                  <FrontWindowLandingEditor
+                    storefront={storefront}
+                    setStorefront={setStorefront}
+                    storeName={editable.name.trim() || "Your shop"}
+                    businessId={businessId}
+                    showTemplateSections={
+                      storefront.landingTemplateId === "front-window"
+                    }
+                  />
+                )
               ) : null}
 
               <div className="grid gap-2.5 sm:grid-cols-2">

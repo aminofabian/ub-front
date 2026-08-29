@@ -921,6 +921,7 @@ export function applyBusinessProfileToLandingContent(
     return derived;
   }
   return {
+    ...explicit,
     headline: explicit.headline ?? null,
     subheadline: derived.subheadline ?? explicit.subheadline ?? null,
     phone: derived.phone ?? explicit.phone ?? null,

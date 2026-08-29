@@ -921,6 +921,12 @@ export type DeliveryAreaRecord = {
   active: boolean;
 };
 
+export type LandingHighlightRecord = {
+  title?: string | null;
+  note?: string | null;
+  imageUrl?: string | null;
+};
+
 export type LandingContentRecord = {
   headline?: string | null;
   subheadline?: string | null;
@@ -929,6 +935,31 @@ export type LandingContentRecord = {
   hours?: string | null;
   address?: string | null;
   ctaLabel?: string | null;
+  vitrineImageUrl?: string | null;
+  storyImageUrl?: string | null;
+  visitImageUrl?: string | null;
+  storyTitle?: string | null;
+  storyBody?: string | null;
+  storyQuote?: string | null;
+  carryTitle?: string | null;
+  carryLead?: string | null;
+  visitTitle?: string | null;
+  holdAtCounterNote?: string | null;
+  contactTitle?: string | null;
+  contactBody?: string | null;
+  secondaryCtaLabel?: string | null;
+  navStoryLabel?: string | null;
+  navCarryLabel?: string | null;
+  navVisitLabel?: string | null;
+  navContactLabel?: string | null;
+  highlights?: LandingHighlightRecord[] | null;
+  posterTagline?: string | null;
+  posterEditionText?: string | null;
+  posterSpineText?: string | null;
+  posterBadgeLabel?: string | null;
+  posterContactLead?: string | null;
+  posterSecondaryImageUrl?: string | null;
+  posterTone?: "paper" | "night" | string | null;
 };
 
 export type WhatsAppCheckoutSettingsRecord = {

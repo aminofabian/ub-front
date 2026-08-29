@@ -195,6 +195,7 @@ export async function StorefrontCatalogHome({
           deliveryAreaNames={deliveryAreaNames}
           countryCode={tenant?.countryCode ?? null}
           heroFallbackUrl={
+            tenant?.landingContent?.vitrineImageUrl?.trim() ||
             design?.photos?.hero?.url?.trim() ||
             heroBannerUrls?.[0]?.trim() ||
             featured[0]?.imageUrl?.trim() ||

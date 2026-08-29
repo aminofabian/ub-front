@@ -113,6 +113,12 @@ export type StorefrontTemplateMeta = {
   phone: ThemePhoneSkin;
 };
 
+export type LandingHighlight = {
+  title?: string | null;
+  note?: string | null;
+  imageUrl?: string | null;
+};
+
 export type LandingContent = {
   headline?: string | null;
   subheadline?: string | null;
@@ -121,6 +127,40 @@ export type LandingContent = {
   hours?: string | null;
   address?: string | null;
   ctaLabel?: string | null;
+  /** Front window — hero vitrine photo (overrides design hero when set). */
+  vitrineImageUrl?: string | null;
+  storyImageUrl?: string | null;
+  visitImageUrl?: string | null;
+  storyTitle?: string | null;
+  storyBody?: string | null;
+  storyQuote?: string | null;
+  carryTitle?: string | null;
+  carryLead?: string | null;
+  visitTitle?: string | null;
+  holdAtCounterNote?: string | null;
+  contactTitle?: string | null;
+  contactBody?: string | null;
+  secondaryCtaLabel?: string | null;
+  navStoryLabel?: string | null;
+  navCarryLabel?: string | null;
+  navVisitLabel?: string | null;
+  navContactLabel?: string | null;
+  /** Fallback product highlights when catalog is sparse. */
+  highlights?: LandingHighlight[] | null;
+  /** Brand poster — small label above headline. */
+  posterTagline?: string | null;
+  /** Brand poster — large watermark (defaults to current year). */
+  posterEditionText?: string | null;
+  /** Brand poster — vertical spine text on wide screens. */
+  posterSpineText?: string | null;
+  /** Brand poster — status badge override. */
+  posterBadgeLabel?: string | null;
+  /** Brand poster — contact bar lead copy. */
+  posterContactLead?: string | null;
+  /** Brand poster — inset detail photo. */
+  posterSecondaryImageUrl?: string | null;
+  /** Brand poster — `night` for dark stock; omit for warm paper. */
+  posterTone?: "paper" | "night" | string | null;
 };
 
 export const STORE_THEME_IDS: readonly StoreThemeId[] = [

@@ -420,6 +420,7 @@ export default function BusinessSettingsPage() {
               logoUrl={editor.effectiveSnapshot?.branding?.logoUrl}
               brandPrimary={editor.effectiveSnapshot?.branding?.primaryColor}
               currency={editor.effectiveSnapshot?.currency}
+              businessId={editor.effectiveSnapshot?.id}
               onSubmit={onSave}
               onCancel={onCancel}
               onRemoveDeliveryArea={editor.removeDeliveryArea}

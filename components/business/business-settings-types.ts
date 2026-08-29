@@ -13,6 +13,16 @@ import {
   type HubAlertSettings,
 } from "@/lib/hub-alert-settings";
 import type { BranchRecord } from "@/lib/api";
+import {
+  DEFAULT_FRONT_WINDOW_FORM,
+  frontWindowFormFromLandingContent,
+  type FrontWindowLandingForm,
+} from "@/lib/front-window-landing";
+import {
+  DEFAULT_BRAND_POSTER_FORM,
+  brandPosterFormFromLandingContent,
+  type BrandPosterLandingForm,
+} from "@/lib/brand-poster-landing";
 
 export const MAX_FEATURED = 12;
 
@@ -40,6 +50,10 @@ export type StorefrontForm = {
   landingHours: string;
   landingAddress: string;
   landingCtaLabel: string;
+  /** Front window template — section copy, photos, highlights. */
+  frontWindow: FrontWindowLandingForm;
+  /** Brand poster template — print details, tone, secondary photo. */
+  brandPoster: BrandPosterLandingForm;
   /** "Orders on WhatsApp" (all themes, scope §7). */
   waCheckoutMode: "off" | "fallback" | "always";
   waGreeting: string;
@@ -167,6 +181,8 @@ export const DEFAULT_STOREFRONT: StorefrontForm = {
   landingHours: "",
   landingAddress: "",
   landingCtaLabel: "",
+  frontWindow: DEFAULT_FRONT_WINDOW_FORM,
+  brandPoster: DEFAULT_BRAND_POSTER_FORM,
   waCheckoutMode: "fallback",
   waGreeting: "",
   waExpiryMins: "180",
@@ -308,6 +324,14 @@ export function storefrontFromRecord(
     landingHours: String(lc?.hours ?? ""),
     landingAddress: String(lc?.address ?? ""),
     landingCtaLabel: String(lc?.ctaLabel ?? ""),
+    frontWindow: frontWindowFormFromLandingContent(
+      String(b?.name ?? b?.branding?.displayName ?? "Your shop"),
+      lc ?? null,
+    ),
+    brandPoster: brandPosterFormFromLandingContent(
+      String(b?.name ?? b?.branding?.displayName ?? "Your shop"),
+      lc ?? null,
+    ),
     waCheckoutMode:
       s?.whatsappCheckout?.mode === "always" || s?.whatsappCheckout?.mode === "off"
         ? s.whatsappCheckout.mode

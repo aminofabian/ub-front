@@ -1,13 +1,21 @@
 "use client";
 
+import Link from "next/link";
+import type { CSSProperties } from "react";
+import { MapPin } from "lucide-react";
+
+import { TenantLogo } from "@/components/brand/tenant-logo";
+import { minimartHoursFontVariables } from "@/components/storefront/templates/landing/minimart-hours-fonts";
+import styles from "@/components/storefront/templates/landing/minimart-hours.module.css";
 import {
-  ContactActions,
-  LandingBrandHeader,
+  LandingAccountAction,
   LandingShell,
+  LANDING_STAFF_LOGIN_HREF,
   resolveLandingCopy,
 } from "@/components/storefront/templates/landing/shared";
 import type { LandingTemplateProps } from "@/components/storefront/templates/types";
-import { MapPin } from "lucide-react";
+import { normalizeWhatsApp } from "@/lib/whatsapp-order";
+import { cn } from "@/lib/utils";
 
 export function MinimartHoursLanding(props: LandingTemplateProps) {
   const brand = props.primaryHex || props.accentHex || "#0369A1";
@@ -18,50 +26,74 @@ export function MinimartHoursLanding(props: LandingTemplateProps) {
     hours: "Open 6:00 – 22:00, every day",
     address: "Drop a pin — ask us for the exact street",
   });
+  const wa =
+    normalizeWhatsApp(copy.whatsapp) ?? normalizeWhatsApp(copy.phone);
 
   return (
     <LandingShell
       templateId="minimart-hours"
       storeName={props.storeName}
-      className="bg-sky-50 text-slate-900"
+      className={cn(styles.root, minimartHoursFontVariables)}
+      style={
+        {
+          ["--mm-brand" as string]: brand,
+          ["--mm-glow" as string]: props.accentHex || "#38bdf8",
+        } as CSSProperties
+      }
     >
-      <div className="mx-auto flex min-h-screen max-w-lg flex-col px-5 py-8 sm:px-6">
-        <LandingBrandHeader
-          storeName={props.storeName}
-          logoUrl={props.logoUrl}
-          primaryHex={brand}
-        />
-        <main className="flex flex-1 flex-col items-stretch justify-center gap-8 py-16 text-center">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              {copy.headline}
-            </h1>
-            <p className="mt-3 text-slate-600">{copy.subheadline}</p>
+      <div className={styles.frame}>
+        <div className={styles.window}>
+          <header className={styles.topRow}>
+            <div className={styles.logoWrap}>
+              {props.logoUrl ? (
+                <TenantLogo
+                  brand={copy.storeName}
+                  logoUrl={props.logoUrl}
+                  primaryColor={brand}
+                  size="sm"
+                  tone="dark"
+                />
+              ) : (
+                <span className={styles.logoFallback}>{copy.storeName}</span>
+              )}
+            </div>
+            <p className={styles.openSign}>Open</p>
+          </header>
+
+          <h1 className={styles.headline}>{copy.headline}</h1>
+          <p className={styles.subheadline}>{copy.subheadline}</p>
+
+          <div className={styles.hoursPanel}>
+            <p className={styles.hoursLabel}>Store hours</p>
+            <p className={styles.hoursValue}>{copy.hours}</p>
           </div>
-          <div
-            className="border bg-white px-6 py-8 shadow-sm"
-            style={{ borderColor: `${brand}33` }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Hours
+
+          {copy.address ? (
+            <p className={styles.address}>
+              <MapPin className={styles.addressIcon} size={16} aria-hidden />
+              <span>{copy.address}</span>
             </p>
-            <p className="mt-2 text-xl font-medium" style={{ color: brand }}>
-              {copy.hours}
-            </p>
-          </div>
-          <div className="flex items-start justify-center gap-2 text-sm text-slate-600">
-            <MapPin className="mt-0.5 size-4 shrink-0" style={{ color: brand }} />
-            <span>{copy.address}</span>
-          </div>
-          <div className="flex justify-center">
-            <ContactActions
-              phone={copy.phone}
-              whatsapp={copy.whatsapp}
-              ctaLabel={copy.ctaLabel}
-              brand={brand}
-            />
-          </div>
-        </main>
+          ) : null}
+
+          {wa || copy.phone ? (
+            <div className={styles.contactWrap}>
+              <div className={styles.contactActions}>
+                {wa ? (
+                  <a href={`https://wa.me/${wa}`}>{copy.ctaLabel}</a>
+                ) : null}
+                {copy.phone ? (
+                  <a href={`tel:${copy.phone}`}>Call {copy.phone}</a>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          <footer className={styles.footer}>
+            <LandingAccountAction className="text-sm font-medium" />
+            {" · "}
+            <Link href={LANDING_STAFF_LOGIN_HREF}>Staff</Link>
+          </footer>
+        </div>
       </div>
     </LandingShell>
   );

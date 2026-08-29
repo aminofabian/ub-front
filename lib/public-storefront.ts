@@ -225,16 +225,6 @@ export type TenantAuthConfig = {
  * Single tenant-context payload returned by the public host-resolve endpoint.
  * Drives storefront branding, auth-method UI, and feature gates.
  */
-export type LandingContentPayload = {
-  headline?: string | null;
-  subheadline?: string | null;
-  phone?: string | null;
-  whatsapp?: string | null;
-  hours?: string | null;
-  address?: string | null;
-  ctaLabel?: string | null;
-};
-
 export type TenantContext = {
   tenantId: string;
   tenantName: string;
@@ -246,7 +236,7 @@ export type TenantContext = {
   storefrontEnabled: boolean;
   storeThemeId: string;
   landingTemplateId: string;
-  landingContent: LandingContentPayload | null;
+  landingContent: LandingContent | null;
   /** Parsed merchant design overrides (theme-agnostic customization). */
   design: StorefrontDesign | null;
   resolvedAt: string;
@@ -789,6 +779,32 @@ function normalizeLandingContentPayload(raw: unknown): LandingContent | null {
     const v = o[key];
     return typeof v === "string" && v.trim() ? v.trim() : null;
   };
+  const highlightsRaw = o.highlights;
+  const highlights = Array.isArray(highlightsRaw)
+    ? highlightsRaw
+        .map((item) => {
+          if (!item || typeof item !== "object") return null;
+          const row = item as Record<string, unknown>;
+          const title =
+            typeof row.title === "string" && row.title.trim()
+              ? row.title.trim()
+              : null;
+          if (!title) return null;
+          return {
+            title,
+            note:
+              typeof row.note === "string" && row.note.trim()
+                ? row.note.trim()
+                : null,
+            imageUrl:
+              typeof row.imageUrl === "string" && row.imageUrl.trim()
+                ? row.imageUrl.trim()
+                : null,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item != null)
+    : null;
+
   const content: LandingContent = {
     headline: pick("headline"),
     subheadline: pick("subheadline"),
@@ -797,16 +813,37 @@ function normalizeLandingContentPayload(raw: unknown): LandingContent | null {
     hours: pick("hours"),
     address: pick("address"),
     ctaLabel: pick("ctaLabel"),
+    vitrineImageUrl: pick("vitrineImageUrl"),
+    storyImageUrl: pick("storyImageUrl"),
+    visitImageUrl: pick("visitImageUrl"),
+    storyTitle: pick("storyTitle"),
+    storyBody: pick("storyBody"),
+    storyQuote: pick("storyQuote"),
+    carryTitle: pick("carryTitle"),
+    carryLead: pick("carryLead"),
+    visitTitle: pick("visitTitle"),
+    holdAtCounterNote: pick("holdAtCounterNote"),
+    contactTitle: pick("contactTitle"),
+    contactBody: pick("contactBody"),
+    secondaryCtaLabel: pick("secondaryCtaLabel"),
+    navStoryLabel: pick("navStoryLabel"),
+    navCarryLabel: pick("navCarryLabel"),
+    navVisitLabel: pick("navVisitLabel"),
+    navContactLabel: pick("navContactLabel"),
+    highlights: highlights?.length ? highlights : null,
+    posterTagline: pick("posterTagline"),
+    posterEditionText: pick("posterEditionText"),
+    posterSpineText: pick("posterSpineText"),
+    posterBadgeLabel: pick("posterBadgeLabel"),
+    posterContactLead: pick("posterContactLead"),
+    posterSecondaryImageUrl: pick("posterSecondaryImageUrl"),
+    posterTone: pick("posterTone"),
   };
-  if (
-    !content.headline &&
-    !content.subheadline &&
-    !content.phone &&
-    !content.whatsapp &&
-    !content.hours &&
-    !content.address &&
-    !content.ctaLabel
-  ) {
+  const hasValue = Object.values(content).some((value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    return Boolean(value);
+  });
+  if (!hasValue) {
     return null;
   }
   return content;

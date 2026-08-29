@@ -15,47 +15,19 @@ import {
   LandingAccountAction,
   LandingShell,
   LANDING_STAFF_LOGIN_HREF,
-  resolveLandingCopy,
 } from "@/components/storefront/templates/landing/shared";
 import {
   isGarbageProductName,
   joinProductNameParts,
 } from "@/lib/catalog-display";
+import { resolveFrontWindowCopy } from "@/lib/front-window-landing";
+import type { LandingHighlight } from "@/lib/storefront-templates";
 import { formatDisplayPrice } from "@/lib/money";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 import type { LandingTemplateProps } from "@/components/storefront/templates/types";
 import { cn } from "@/lib/utils";
 
 const VITRINE_SRC = "/storefront/front-window/vitrine.png";
-const COUNTER_SRC = "/storefront/front-window/counter.png";
-const STREET_SRC = "/storefront/front-window/street.png";
-
-const CARRY = [
-  {
-    title: "Notebooks and journals",
-    note: "Hardback, spiral, and pocket sizes for school and desk.",
-  },
-  {
-    title: "Fine pens and pencils",
-    note: "Ballpoints, gel, fountain-friendly inks, and sharpeners.",
-  },
-  {
-    title: "Gift wrap and cards",
-    note: "Ribbon, tissue, bags, and greeting cards for every occasion.",
-  },
-  {
-    title: "Office essentials",
-    note: "Files, staplers, clips and tape. The everyday counter staples.",
-  },
-  {
-    title: "Art supplies",
-    note: "Markers, sketch pads, paints, and craft basics.",
-  },
-  {
-    title: "School packs",
-    note: "Term lists, bulk stationery, and student-friendly bundles.",
-  },
-] as const;
 
 type DisplayItem = {
   id: string;
@@ -74,6 +46,8 @@ function buildDisplay(
   featured: readonly PublicCatalogItemCard[] | undefined,
   catalog: readonly PublicCatalogItemCard[] | undefined,
   currency: string | null | undefined,
+  highlights: readonly LandingHighlight[],
+  vitrineFallback: string,
 ): DisplayItem[] {
   const seen = new Set<string>();
   const fromStock: DisplayItem[] = [];
@@ -93,11 +67,13 @@ function buildDisplay(
     if (fromStock.length >= 6) break;
   }
   if (fromStock.length >= 3) return fromStock;
-  return CARRY.map((item, index) => ({
+  return highlights.slice(0, 6).map((item, index) => ({
     id: `carry-${index}`,
-    title: item.title,
-    note: item.note,
-    imageUrl: index === 0 ? VITRINE_SRC : null,
+    title: item.title ?? "",
+    note: item.note ?? "",
+    imageUrl:
+      item.imageUrl?.trim() ||
+      (index === 0 ? vitrineFallback : null),
   }));
 }
 
@@ -174,22 +150,20 @@ function useFrontWindowScrollEffects() {
 export function FrontWindowLanding(props: LandingTemplateProps) {
   const accent = props.primaryHex || props.accentHex || "#2F6F6A";
   const brand = props.accentHex || props.primaryHex || accent;
-  const copy = resolveLandingCopy(props.storeName, props.landingContent, {
-    headline: props.storeName,
-    subheadline:
-      "Pens, paper, gifts and everyday essentials, curated at our neighborhood counter.",
-    ctaLabel: "Message us",
-    hours: "Mon–Sat 8:00–19:00 · Sun 9:00–17:00",
-    address: "Walk in. We are easy to find on the high street.",
-  });
+  const copy = resolveFrontWindowCopy(
+    props.storeName,
+    props.landingContent,
+    props.heroFallbackUrl,
+  );
   const display = buildDisplay(
     props.featured,
     props.catalogItems,
     props.currency,
+    copy.highlights,
+    copy.vitrineImageUrl || VITRINE_SRC,
   );
   const featured = display[0]!;
   const rest = display.slice(1);
-  const vitrineSrc = props.heroFallbackUrl?.trim() || VITRINE_SRC;
   const closeMenu = (event: MouseEvent<HTMLAnchorElement>) => {
     event.currentTarget.closest("details")?.removeAttribute("open");
   };
@@ -225,22 +199,22 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
           <ul className={styles.navLinks}>
             <li>
               <a href="#story" className={styles.navLink} data-fw-nav>
-                Our story
+                {copy.navStoryLabel}
               </a>
             </li>
             <li>
               <a href="#carry" className={styles.navLink} data-fw-nav>
-                What we carry
+                {copy.navCarryLabel}
               </a>
             </li>
             <li>
               <a href="#visit" className={styles.navLink} data-fw-nav>
-                Visit
+                {copy.navVisitLabel}
               </a>
             </li>
             <li>
               <a href="#contact" className={styles.navLink} data-fw-nav>
-                Contact
+                {copy.navContactLabel}
               </a>
             </li>
           </ul>
@@ -249,22 +223,22 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
             <ul className={styles.menuList}>
               <li>
                 <a href="#story" onClick={closeMenu}>
-                  Our story
+                  {copy.navStoryLabel}
                 </a>
               </li>
               <li>
                 <a href="#carry" onClick={closeMenu}>
-                  What we carry
+                  {copy.navCarryLabel}
                 </a>
               </li>
               <li>
                 <a href="#visit" onClick={closeMenu}>
-                  Visit
+                  {copy.navVisitLabel}
                 </a>
               </li>
               <li>
                 <a href="#contact" onClick={closeMenu}>
-                  Contact
+                  {copy.navContactLabel}
                 </a>
               </li>
             </ul>
@@ -295,7 +269,7 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
                 {copy.ctaLabel}
               </a>
               <a href="#visit" className={styles.btnGhost}>
-                Plan your visit
+                {copy.secondaryCtaLabel}
               </a>
             </div>
           </div>
@@ -303,7 +277,7 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
             <span className={styles.vitrineGlow} aria-hidden />
             <div className={styles.glass}>
               <Image
-                src={vitrineSrc}
+                src={copy.vitrineImageUrl}
                 alt=""
                 fill
                 priority
@@ -325,7 +299,7 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
       <section id="story" className={styles.story}>
         <div className={styles.storyPhoto} data-fw-reveal="left">
           <Image
-            src={COUNTER_SRC}
+            src={copy.storyImageUrl}
             alt=""
             fill
             unoptimized
@@ -334,31 +308,19 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
           />
         </div>
         <div className={styles.storyCopy} data-fw-reveal="right">
-          <h2 className={styles.storyTitle}>
-            A counter you can actually walk up to.
-          </h2>
-          <p className={styles.storyBody}>
-            {copy.storeName} is a neighborhood stationery shop: the kind with
-            someone behind the counter who knows which notebook lays flat, which
-            pen will not bleed, and where to find the right gift wrap before
-            closing. No warehouse aisles. A well-stocked shelf and a person who
-            will help you choose.
-          </p>
-          <blockquote className={styles.storyQuote}>
-            We opened so students, offices, and gift-givers could get what they
-            need without hunting through a mega-store.
-          </blockquote>
+          <h2 className={styles.storyTitle}>{copy.storyTitle}</h2>
+          <p className={styles.storyBody}>{copy.storyBody}</p>
+          <blockquote className={styles.storyQuote}>{copy.storyQuote}</blockquote>
         </div>
       </section>
 
       <section id="carry" className={styles.carry}>
         <div className={styles.carryHeader}>
           <h2 className={styles.carryTitle} data-fw-reveal="up">
-            Stocked for desk, school and gift.
+            {copy.carryTitle}
           </h2>
           <p className={styles.carryLead} data-fw-reveal="up" data-fw-reveal-delay="1">
-            Walk the aisles in person. These are the counters our regulars come
-            back for. Ask if you need something specific; we reorder fast.
+            {copy.carryLead}
           </p>
         </div>
         <div className={styles.carryGrid}>
@@ -406,7 +368,7 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
         <div className={styles.visitInner}>
           <div className={styles.visitVisual} data-fw-reveal="scale">
             <Image
-              src={STREET_SRC}
+              src={copy.visitImageUrl}
               alt=""
               fill
               unoptimized
@@ -415,7 +377,7 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
             />
           </div>
           <div className={styles.visitContent} data-fw-reveal="right">
-            <h2 className={styles.visitTitle}>Find us on the street.</h2>
+            <h2 className={styles.visitTitle}>{copy.visitTitle}</h2>
             <dl className={styles.visitFacts}>
               <div className={styles.visitFact}>
                 <span className={styles.visitFactIcon} aria-hidden>
@@ -441,10 +403,7 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
                 </span>
                 <div>
                   <dt>Hold at the counter</dt>
-                  <dd>
-                    Message us on WhatsApp if you want something ready when you
-                    arrive.
-                  </dd>
+                  <dd>{copy.holdAtCounterNote}</dd>
                 </div>
               </div>
             </dl>
@@ -455,11 +414,8 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
       <section id="contact" className={styles.contact}>
         <div className={styles.contactPanel} data-fw-reveal="up">
           <div>
-            <h2 className={styles.contactTitle}>Say hello from the sidewalk.</h2>
-            <p className={styles.contactBody}>
-              Questions about stock, bulk orders, or school lists? A real person at{" "}
-              {copy.storeName} will reply.
-            </p>
+            <h2 className={styles.contactTitle}>{copy.contactTitle}</h2>
+            <p className={styles.contactBody}>{copy.contactBody}</p>
           </div>
           {(copy.phone || copy.whatsapp) && (
             <div className={styles.contactActions}>
@@ -496,10 +452,10 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
           <div className={styles.footerCol}>
             <p className={styles.footerLabel}>Explore</p>
             <nav className={styles.footerNav} aria-label="Footer">
-              <a href="#story">Our story</a>
-              <a href="#carry">What we carry</a>
-              <a href="#visit">Find us</a>
-              <a href="#contact">Contact</a>
+              <a href="#story">{copy.navStoryLabel}</a>
+              <a href="#carry">{copy.navCarryLabel}</a>
+              <a href="#visit">{copy.navVisitLabel}</a>
+              <a href="#contact">{copy.navContactLabel}</a>
             </nav>
           </div>
         </div>

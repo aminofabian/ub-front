@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { frontWindowFieldsForLandingContent } from "@/lib/front-window-landing";
+import { brandPosterFieldsForLandingContent } from "@/lib/brand-poster-landing";
 import {
   applyBusinessSnapshot,
   clampDailyAuditSampleSize,
@@ -350,6 +352,8 @@ export function useBusinessSettingsEditor() {
               hours: storefront.landingHours.trim() || null,
               address: storefront.landingAddress.trim() || null,
               ctaLabel: storefront.landingCtaLabel.trim() || null,
+              ...frontWindowFieldsForLandingContent(storefront.frontWindow),
+              ...brandPosterFieldsForLandingContent(storefront.brandPoster),
             },
             whatsappCheckout: {
               mode: storefront.waCheckoutMode,
