@@ -7,6 +7,7 @@ import { Suspense, useCallback, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
+import { StaffShopPickerDialog } from "@/components/auth/staff-shop-picker-dialog";
 import {
   authInputClassName,
   authPrimaryCtaClass,
@@ -31,13 +32,18 @@ import {
   loginWithPassword,
   loginWithPin,
   onboardBusiness,
-  resolveBusinessByEmail,
   setOwnPin,
+  type PublicSignInDestination,
 } from "@/lib/api";
 import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
 import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
 import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
+import {
+  buildStaffDestinationLoginUrl,
+  resolveApexStaffTenant,
+  resolveTenantIdForStaffDestination,
+} from "@/lib/staff-tenant-resolve";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import { cn } from "@/lib/utils";
@@ -73,6 +79,11 @@ function LoginPageContent() {
   const [businessName, setBusinessName] = useState("");
   const [countryCode, setCountryCode] = useState(DEFAULT_SELFSERVE_COUNTRY_CODE);
   const [isOnboarding, setIsOnboarding] = useState(false);
+  const [shopPickerOpen, setShopPickerOpen] = useState(false);
+  const [shopPickerRows, setShopPickerRows] = useState<
+    PublicSignInDestination[]
+  >([]);
+  const [shopPickerBusy, setShopPickerBusy] = useState(false);
   const { countries } = useSelfServeCountries();
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
@@ -108,10 +119,47 @@ function LoginPageContent() {
     }
   };
 
-  const redirectToTenantStaffLogin = (shopUrl: string) => {
-    window.location.assign(
-      `${shopUrl}${APP_ROUTES.staffLogin}?email=${encodeURIComponent(email)}`,
+  const redirectToStaffDestination = (destination: PublicSignInDestination) => {
+    const url = buildStaffDestinationLoginUrl(
+      destination,
+      email,
+      loginNextHint || null,
     );
+    if (url) {
+      window.location.assign(url);
+      return true;
+    }
+    return false;
+  };
+
+  const completeStaffSignIn = async (tenantId: string) => {
+    const usePin = looksLikeStaffPin(secret);
+    persistTenantId(tenantId);
+
+    if (usePin) {
+      await loginWithPin(email, secret.trim());
+      const pinDest = await resolveAfterStaffAuth({ honorNext: false });
+      const pinPath =
+        pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest;
+      await completeAuthAndNavigate(pinPath, tenant?.slug);
+      return;
+    }
+
+    await loginWithPassword(email, secret);
+    // A fresh desktop install (or a staff account with no PIN yet) has
+    // no till PIN — prompt to set one before entering the counter. The
+    // cloud web app does not force this: password-only sign-in is valid
+    // there.
+    if (IS_DESKTOP) {
+      const me = await fetchMe().catch(() => null);
+      if (me && me.hasPin === false) {
+        setSecret("");
+        setPinSetup(true);
+        return;
+      }
+    }
+    const dest = await resolveAfterStaffAuth();
+    await completeAuthAndNavigate(dest, tenant?.slug);
   };
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -129,51 +177,26 @@ function LoginPageContent() {
         return;
       }
 
-      const id = await ensureTenantResolved();
+      let tenantId = (await ensureTenantResolved())?.trim() ?? "";
       // The desktop SKU is single-tenant: its backend resolves the business
       // itself, so a bare 127.0.0.1 host must NOT fall through to the
       // cloud's email → subdomain redirect (which would bounce the webview
       // to test.kiosk.ke and appear as a logout loop).
-      if (!id?.trim() && !IS_DESKTOP) {
-        const biz = await resolveBusinessByEmail(email);
-        if (!biz) {
+      if (!tenantId && !IS_DESKTOP) {
+        const resolution = await resolveApexStaffTenant(email);
+        if (resolution.kind === "none") {
           setShowOnboarding(true);
           return;
         }
-        const shopUrl = biz.slug ? slugDerivedShopUrl(biz.slug) : null;
-        if (shopUrl) {
-          navigatedAway = true;
-          redirectToTenantStaffLogin(shopUrl);
+        if (resolution.kind === "multiple") {
+          setShopPickerRows(resolution.destinations);
+          setShopPickerOpen(true);
           return;
         }
-        // Known account with no shop address to send them to — sign in from
-        // here; the API resolves the shop from the email.
+        tenantId = resolution.tenantId;
       }
-      persistTenantId(id ?? "");
 
-      if (usePin) {
-        await loginWithPin(email, secret.trim());
-        const pinDest = await resolveAfterStaffAuth({ honorNext: false });
-        const pinPath =
-          pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest;
-        await completeAuthAndNavigate(pinPath, tenant?.slug);
-      } else {
-        await loginWithPassword(email, secret);
-        // A fresh desktop install (or a staff account with no PIN yet) has
-        // no till PIN — prompt to set one before entering the counter. The
-        // cloud web app does not force this: password-only sign-in is valid
-        // there.
-        if (IS_DESKTOP) {
-          const me = await fetchMe().catch(() => null);
-          if (me && me.hasPin === false) {
-            setSecret("");
-            setPinSetup(true);
-            return;
-          }
-        }
-        const dest = await resolveAfterStaffAuth();
-        await completeAuthAndNavigate(dest, tenant?.slug);
-      }
+      await completeStaffSignIn(tenantId);
       navigatedAway = true;
     } catch (error) {
       setErrorMessage(
@@ -187,6 +210,31 @@ function LoginPageContent() {
       if (!navigatedAway) {
         setIsSubmitting(false);
       }
+    }
+  };
+
+  const onPickStaffShop = async (destination: PublicSignInDestination) => {
+    setShopPickerBusy(true);
+    setErrorMessage("");
+    try {
+      const tenantId = await resolveTenantIdForStaffDestination(destination);
+      if (tenantId) {
+        setShopPickerOpen(false);
+        setIsSubmitting(true);
+        await completeStaffSignIn(tenantId);
+        return;
+      }
+      if (redirectToStaffDestination(destination)) {
+        return;
+      }
+      setErrorMessage("Could not open that shop. Try again or contact support.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Could not sign in to that shop.",
+      );
+    } finally {
+      setShopPickerBusy(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -294,6 +342,22 @@ function LoginPageContent() {
 
   return (
     <AuthSplitShell tenant={tenant}>
+      <StaffShopPickerDialog
+        open={shopPickerOpen}
+        onOpenChange={(open) => {
+          setShopPickerOpen(open);
+          if (!open) {
+            setShopPickerBusy(false);
+            setIsSubmitting(false);
+          }
+        }}
+        destinations={shopPickerRows}
+        email={email.trim().toLowerCase()}
+        busy={shopPickerBusy}
+        onPick={(destination) => {
+          void onPickStaffShop(destination);
+        }}
+      />
       <AuthPageHeader
         title="Staff sign-in"
         description={

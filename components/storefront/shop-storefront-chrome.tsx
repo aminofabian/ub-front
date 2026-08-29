@@ -37,6 +37,9 @@ import { BoutiqueShelfHeader } from "@/components/storefront/templates/store/bou
 import { boutiqueShelfFontVariables } from "@/components/storefront/templates/store/boutique-shelf-fonts";
 import boutiqueShelfStyles from "@/components/storefront/templates/store/boutique-shelf.module.css";
 import { ChemLabHeader } from "@/components/storefront/templates/store/chem-lab-header";
+import { ComilmartHeader } from "@/components/storefront/templates/store/comilmart-header";
+import { comilmartFontVariables } from "@/components/storefront/templates/store/comilmart-fonts";
+import comilmartStyles from "@/components/storefront/templates/store/comilmart.module.css";
 import { chemLabFontVariables } from "@/components/storefront/templates/store/chem-lab-fonts";
 import {
   ChemLabCopyProvider,
@@ -184,7 +187,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop" | "pastry-case";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop" | "pastry-case" | "comilmart";
   storeThemeId?: string | null;
   /** D8: `ub.session` presence hint from `StorefrontShell` (label-only). */
   hasPresence: boolean;
@@ -221,7 +224,8 @@ export function ShopStorefrontChrome({
   const isPrintAtelier = chromeVariant === "print-atelier";
   const isBlankDrop = chromeVariant === "blank-drop";
   const isPastryCase = chromeVariant === "pastry-case";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase;
+  const isComilmart = chromeVariant === "comilmart";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase || isComilmart;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const restoreAttemptedRef = useRef(false);
@@ -329,6 +333,11 @@ export function ShopStorefrontChrome({
                           ["--pc-frost" as string]: primaryHex || "#E56BA4",
                           ["--pc-ink" as string]: "#2B1520",
                         } as CSSProperties)
+                      : isComilmart
+                        ? ({
+                            ["--cm-navy" as string]: primaryHex || "#0E1B2B",
+                            ["--cm-gold" as string]: accentHex || "#FFC20C",
+                          } as CSSProperties)
         : undefined;
 
   return (
@@ -431,6 +440,13 @@ export function ShopStorefrontChrome({
               pastryCaseFontVariables,
               "[--storefront-paper:#FFFBFC]",
             ),
+          isComilmart &&
+            cn(
+              comilmartStyles.root,
+              comilmartStyles.body,
+              comilmartFontVariables,
+              "[--storefront-paper:#F6F4EF]",
+            ),
           isChemLab &&
             cn(
               chemLabStyles.root,
@@ -518,6 +534,19 @@ export function ShopStorefrontChrome({
             logoUrl={logoUrl}
             announcement={announcement}
             whatsapp={whatsappNumber}
+          />
+        </Suspense>
+      ) : null}
+      {isComilmart && !compactChrome ? (
+        <Suspense fallback={null}>
+          <ComilmartHeader
+            slug={slug}
+            storeName={headerTitle}
+            logoUrl={logoUrl}
+            announcement={announcement}
+            areaLabel={locationHint}
+            whatsapp={whatsappNumber}
+            categories={categories}
           />
         </Suspense>
       ) : null}

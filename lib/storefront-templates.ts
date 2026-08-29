@@ -20,7 +20,8 @@ export type StoreThemeId =
   | "chem-lab"
   | "print-atelier"
   | "blank-drop"
-  | "pastry-case";
+  | "pastry-case"
+  | "comilmart";
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
@@ -65,7 +66,8 @@ export type ThemePhoneLayout =
   | "hours-map"
   | "logo-poster"
   | "shop-window"
-  | "locked-shelf";
+  | "locked-shelf"
+  | "marketplace";
 
 /**
  * Per-theme "try it on" skin: what a miniature of the theme looks like when
@@ -178,6 +180,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "print-atelier",
   "blank-drop",
   "pastry-case",
+  "comilmart",
 ] as const;
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
@@ -754,6 +757,50 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
       onAccent: "#FFFFFF",
       radius: "round",
       font: "sans",
+    },
+  },
+  {
+    id: "comilmart",
+    kind: "store",
+    name: "Comilmart",
+    blurb:
+      "A B2B/B2C marketplace — navy chrome, gold CTAs, hero carousel, product rails.",
+    previewFrom: "#0E1B2B",
+    previewTo: "#FFC20C",
+    accent: "#FFC20C",
+    vibes: ["Industrial & office", "Boutique & gifts"],
+    matches: [
+      "marketplace",
+      "market",
+      "wholesale",
+      "b2b",
+      "b2c",
+      "vendor",
+      "supplier",
+      "sourcing",
+      "catalogue",
+      "catalog",
+      "multi",
+      "global",
+      "trade",
+      "comilmart",
+    ],
+    points: [
+      "A B2B/B2C marketplace — navy chrome, gold CTAs, and product rails.",
+      "Hero carousel, category scroll, and horizontal new-arrival rows.",
+      "Built for multi-category shops, wholesalers, and marketplace sellers.",
+    ],
+    phone: {
+      layout: "marketplace",
+      surface: "#F6F4EF",
+      ink: "#0E1B2B",
+      muted: "#5C6673",
+      card: "#FFFFFF",
+      accent: "#FFC20C",
+      onAccent: "#0E1B2B",
+      radius: "soft",
+      font: "sans",
+      dark: true,
     },
   },
 ];

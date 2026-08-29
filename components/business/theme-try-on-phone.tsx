@@ -467,6 +467,86 @@ function StoreBody({
     );
   }
 
+  if (layout === "marketplace") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div
+          className="px-[0.75em] py-[0.35em] text-[0.46em] font-semibold"
+          style={{ backgroundColor: skin.ink, color: skin.accent }}
+        >
+          Verified shop · Search
+        </div>
+        <div
+          className="relative mx-[0.65em] mt-[0.35em] min-h-[5.8em] overflow-hidden"
+          style={{ backgroundColor: skin.ink }}
+        >
+          {heroUrl ? (
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${heroUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+              aria-hidden
+            />
+          ) : (
+            <Face
+              product={p0}
+              skin={skin}
+              index={0}
+              className="absolute inset-0 h-full w-full opacity-70"
+            />
+          )}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(105deg, rgba(14,27,43,0.9) 0%, rgba(14,27,43,0.45) 100%)",
+            }}
+            aria-hidden
+          />
+          <div className="relative px-[0.65em] py-[0.7em]">
+            <p className="text-[0.46em] font-bold uppercase tracking-[0.12em]" style={{ color: skin.accent }}>
+              New arrivals
+            </p>
+            <p className="mt-[0.25em] truncate text-[0.72em] font-bold leading-tight text-white">
+              {storeName || "Marketplace"}
+            </p>
+            <span
+              className={cn(
+                "mt-[0.45em] inline-flex px-[0.55em] py-[0.28em] text-[0.5em] font-bold",
+                RADIUS_PILL[skin.radius],
+              )}
+              style={{ backgroundColor: skin.accent, color: skin.onAccent }}
+            >
+              Browse shop
+            </span>
+          </div>
+        </div>
+        <div className="mt-[0.45em] flex gap-[0.4em] overflow-hidden px-[0.7em] pb-[0.7em]">
+          {[p0, p1, p2].map((product, i) => (
+            <div
+              key={i}
+              className={cn("w-[4.2em] shrink-0 overflow-hidden border", card)}
+              style={{ borderColor: lineColor(skin), backgroundColor: skin.card }}
+            >
+              <Face
+                product={product}
+                skin={skin}
+                index={i}
+                className="h-[3em] w-full"
+              />
+              <p className="truncate px-[0.35em] py-[0.3em] text-[0.46em] font-semibold">
+                {product?.name || "Product"}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (layout === "shelf-row") {
     return (
       <div className="flex min-h-0 flex-1 flex-col justify-end gap-[0.5em] px-[0.7em] pb-[0.9em] pt-[0.4em]">
@@ -1064,6 +1144,7 @@ function productCta(layout: ThemePhoneLayout): string {
   if (layout === "console") return "Dispense";
   if (layout === "poster") return "Enquire";
   if (layout === "pastry") return "Add to bag";
+  if (layout === "marketplace") return "Add to cart";
   if (layout === "locked-shelf") return "Notify";
   return "Add";
 }
@@ -1076,6 +1157,7 @@ function cartCta(layout: ThemePhoneLayout): string {
   if (layout === "editorial" || layout === "scent") return "Request";
   if (layout === "poster") return "Enquire";
   if (layout === "pastry") return "Order";
+  if (layout === "marketplace") return "Checkout";
   if (layout === "locked-shelf") return "Notify";
   return "Pay";
 }
