@@ -10,8 +10,14 @@ import {
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { PayrollRunRow } from "@/lib/api";
-import { formatPayrollMoney, payrollMonthLabel } from "@/lib/payroll-utils";
+import { fetchStaffAdvances, type PayrollRunRow, type SalaryAdvanceRecord } from "@/lib/api";
+import {
+  advanceRepaymentModeSummary,
+  allocateAdvanceRepayments,
+  formatPayrollMoney,
+  payrollMonthLabel,
+  scheduledAdvanceDeduction,
+} from "@/lib/payroll-utils";
 
 const DEDUCTION_TEMPLATES = [
   { label: "Uniform", amount: 500 },
@@ -57,6 +63,8 @@ export function PayConfirmDrawer({
   const [applyStatutory, setApplyStatutory] = useState(applyStatutoryDefault);
   const [postExpense, setPostExpense] = useState(postExpenseDefault);
   const [paymentMethod, setPaymentMethod] = useState("mpesa_manual");
+  const [advances, setAdvances] = useState<SalaryAdvanceRecord[]>([]);
+  const [loadingAdvances, setLoadingAdvances] = useState(false);
 
   useEffect(() => {
     if (!open || !row) return;
@@ -65,12 +73,21 @@ export function PayConfirmDrawer({
     setApplyStatutory(applyStatutoryDefault);
     setPostExpense(postExpenseDefault);
     setPaymentMethod("mpesa_manual");
-
-    const other = 0;
-    const statutory = applyStatutoryDefault ? Number(row.statutoryTotal) || 0 : 0;
-    const pool = Math.max(0, Number(row.baseSalary) - statutory - other);
-    const defaultAdvance = Math.min(Number(row.advancesOutstanding), pool);
-    setAdvancesToDeduct(defaultAdvance > 0 ? String(defaultAdvance) : "0");
+    setAdvances([]);
+    setLoadingAdvances(true);
+    void fetchStaffAdvances(row.userId)
+      .then((data) => {
+        const outstanding = data.filter((a) => a.status === "outstanding");
+        setAdvances(outstanding);
+        const other = 0;
+        const statutory = applyStatutoryDefault ? Number(row.statutoryTotal) || 0 : 0;
+        const pool = Math.max(0, Number(row.baseSalary) - statutory - other);
+        const scheduled = Number(row.advancesScheduledThisRun) || scheduledAdvanceDeduction(outstanding);
+        const defaultAdvance = Math.min(scheduled, pool);
+        setAdvancesToDeduct(defaultAdvance > 0 ? String(defaultAdvance) : "0");
+      })
+      .catch(() => setAdvances([]))
+      .finally(() => setLoadingAdvances(false));
   }, [open, row, applyStatutoryDefault, postExpenseDefault]);
 
   const other = Number(otherDeductions) || 0;
@@ -83,9 +100,24 @@ export function PayConfirmDrawer({
     : 0;
   const advanceInput = advancesToDeduct.trim() === "" ? maxAdvanceDeduct : Number(advancesToDeduct) || 0;
   const advancesApplied = Math.min(maxAdvanceDeduct, Math.max(0, advanceInput));
+  const manualOverride = true;
+  const allocationPreview = useMemo(() => {
+    const { allocations } = allocateAdvanceRepayments(
+      advancesApplied,
+      advances,
+      manualOverride,
+    );
+    return allocations.map((item) => ({
+      advance: advances.find((a) => a.id === item.advanceId),
+      amount: item.amount,
+    }));
+  }, [advancesApplied, advances]);
   const net = row
     ? Math.max(0, Number(row.baseSalary) - statutory - advancesApplied - other)
     : 0;
+
+  const scheduledThisRun =
+    Number(row?.advancesScheduledThisRun) || scheduledAdvanceDeduction(advances);
 
   const statutoryLines = useMemo(
     () =>
@@ -99,6 +131,23 @@ export function PayConfirmDrawer({
         : [],
     [row, applyStatutory],
   );
+
+  function applyPreset(kind: "scheduled" | "full" | "half" | "none") {
+    switch (kind) {
+      case "scheduled":
+        setAdvancesToDeduct(String(Math.min(scheduledThisRun, advancePool)));
+        break;
+      case "full":
+        setAdvancesToDeduct(String(maxAdvanceDeduct));
+        break;
+      case "half":
+        setAdvancesToDeduct(String(Math.round(maxAdvanceDeduct * 50) / 100));
+        break;
+      case "none":
+        setAdvancesToDeduct("0");
+        break;
+    }
+  }
 
   if (!row) return null;
 
@@ -151,7 +200,7 @@ export function PayConfirmDrawer({
       <div className="grid gap-4 lg:grid-cols-2">
         <FormDrawerFields
           legend="Deductions"
-          hint="Advances repay oldest-first up to the amount you set below."
+          hint="Each advance follows its arrangement. Oldest balance is repaid first."
         >
           <button
             type="button"
@@ -183,6 +232,48 @@ export function PayConfirmDrawer({
             </dl>
           ) : null}
 
+          {loadingAdvances ? (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              Loading advance arrangements…
+            </p>
+          ) : advances.length > 0 ? (
+            <div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3">
+              <p className="text-xs font-medium text-muted-foreground">Outstanding advances</p>
+              {advances.map((advance) => (
+                <div key={advance.id} className="flex justify-between gap-3 text-xs">
+                  <span className="text-muted-foreground">
+                    {formatPayrollMoney(Number(advance.balanceOutstanding))}
+                    <span className="ml-1 opacity-80">
+                      · {advanceRepaymentModeSummary(advance.repaymentMode, advance.repaymentValue)}
+                    </span>
+                  </span>
+                  <span className="tabular-nums font-medium">
+                    sched. {formatPayrollMoney(Number(advance.scheduledDeductionThisRun ?? 0))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { key: "scheduled" as const, label: "Scheduled" },
+              { key: "full" as const, label: "Full balance" },
+              { key: "half" as const, label: "50%" },
+              { key: "none" as const, label: "Skip" },
+            ].map((preset) => (
+              <button
+                key={preset.key}
+                type="button"
+                className="rounded-md border border-border/60 px-2 py-0.5 text-xs hover:bg-muted/50"
+                onClick={() => applyPreset(preset.key)}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
             Deduct from advances this run (max {formatPayrollMoney(maxAdvanceDeduct)})
             <input
@@ -196,8 +287,12 @@ export function PayConfirmDrawer({
             />
           </label>
           <p className="text-[11px] text-muted-foreground">
-            Outstanding: {formatPayrollMoney(row.advancesOutstanding)} · Pool after statutory &
-            other: {formatPayrollMoney(advancePool)}
+            Outstanding: {formatPayrollMoney(row.advancesOutstanding)}
+            {scheduledThisRun > 0 && scheduledThisRun < row.advancesOutstanding
+              ? ` · Scheduled: ${formatPayrollMoney(scheduledThisRun)}`
+              : ""}
+            {" · "}
+            Pool: {formatPayrollMoney(advancePool)}
           </p>
 
           <div className="flex flex-wrap gap-1.5">
@@ -244,6 +339,22 @@ export function PayConfirmDrawer({
                 − {formatPayrollMoney(advancesApplied)}
               </dd>
             </div>
+            {advancesApplied > 0 && allocationPreview.length > 0 ? (
+              <div className="space-y-1 border-l-2 border-amber-500/30 pl-3 text-xs text-muted-foreground">
+                {allocationPreview
+                  .filter((line) => line.amount > 0)
+                  .map((line) => (
+                    <div key={line.advance?.id} className="flex justify-between gap-3">
+                      <span>
+                        {formatPayrollDateShort(line.advance?.advancedOn)}
+                      </span>
+                      <span className="tabular-nums">
+                        {formatPayrollMoney(line.amount)}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            ) : null}
             {other > 0 ? (
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Other</dt>
@@ -292,4 +403,11 @@ export function PayConfirmDrawer({
       </div>
     </FormDrawer>
   );
+}
+
+function formatPayrollDateShort(value: string | null | undefined): string {
+  if (!value) return "Advance";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value.slice(0, 10);
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }

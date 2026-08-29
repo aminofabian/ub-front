@@ -217,7 +217,17 @@ export function PayrollRunPanel({
                     <td className="px-4 py-3 text-right tabular-nums">
                       {row.advancesOutstanding > 0 ? (
                         <span className="font-medium text-amber-800 dark:text-amber-200">
-                          −{formatPayrollMoney(row.advancesOutstanding)}
+                          −{formatPayrollMoney(
+                            row.advancesScheduledThisRun > 0
+                              ? row.advancesScheduledThisRun
+                              : row.advancesOutstanding,
+                          )}
+                          {row.advancesScheduledThisRun > 0 &&
+                          row.advancesScheduledThisRun < row.advancesOutstanding ? (
+                            <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                              of {formatPayrollMoney(row.advancesOutstanding)}
+                            </span>
+                          ) : null}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">—</span>

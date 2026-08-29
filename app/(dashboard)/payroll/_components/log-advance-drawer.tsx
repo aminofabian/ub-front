@@ -10,7 +10,11 @@ import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { createStaffAdvance } from "@/lib/api";
-import { formatPayrollMoney } from "@/lib/payroll-utils";
+import {
+  type AdvanceRepaymentMode,
+  formatPayrollMoney,
+} from "@/lib/payroll-utils";
+import { AdvanceRepaymentArrangement } from "./advance-repayment-arrangement";
 
 type Mode = "new" | "past";
 
@@ -42,6 +46,8 @@ export function LogAdvanceDrawer({
   const [amountRepaid, setAmountRepaid] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState("");
+  const [repaymentMode, setRepaymentMode] = useState<AdvanceRepaymentMode>("full_balance");
+  const [repaymentValue, setRepaymentValue] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -50,6 +56,8 @@ export function LogAdvanceDrawer({
     setAmountRepaid("");
     setDate(new Date().toISOString().slice(0, 10));
     setNote("");
+    setRepaymentMode("full_balance");
+    setRepaymentValue("");
   }, [open, userId]);
 
   const parsedAmount = Number(amount);
@@ -74,6 +82,17 @@ export function LogAdvanceDrawer({
       onError("Amount repaid cannot exceed the original advance.");
       return;
     }
+    const parsedRepaymentValue = Number(repaymentValue) || 0;
+    if (repaymentMode === "percent_of_original") {
+      if (parsedRepaymentValue <= 0 || parsedRepaymentValue > 100) {
+        onError("Enter a repayment percentage between 1 and 100.");
+        return;
+      }
+    }
+    if (repaymentMode === "fixed_per_pay" && parsedRepaymentValue <= 0) {
+      onError("Enter a fixed repayment amount per pay.");
+      return;
+    }
     onSavingChange(true);
     try {
       await createStaffAdvance(userId, {
@@ -81,6 +100,11 @@ export function LogAdvanceDrawer({
         advancedOn: date,
         note: note.trim() || undefined,
         amountRepaid: mode === "past" && parsedRepaid > 0 ? parsedRepaid : undefined,
+        repaymentMode,
+        repaymentValue:
+          repaymentMode === "percent_of_original" || repaymentMode === "fixed_per_pay"
+            ? parsedRepaymentValue
+            : undefined,
       });
       onSaved();
       onOpenChange(false);
@@ -148,7 +172,7 @@ export function LogAdvanceDrawer({
         hint={
           mode === "past"
             ? "Use this when staff already had an advance before Palmart — enter how much was originally given and what has been repaid so far."
-            : "Deducted automatically on pay day, oldest advance first."
+            : "Choose how repayments are deducted on each pay run."
         }
       >
         <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
@@ -187,6 +211,13 @@ export function LogAdvanceDrawer({
             </span>
           </div>
         ) : null}
+
+        <AdvanceRepaymentArrangement
+          mode={repaymentMode}
+          value={repaymentValue}
+          onModeChange={setRepaymentMode}
+          onValueChange={setRepaymentValue}
+        />
 
         <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
           Date given

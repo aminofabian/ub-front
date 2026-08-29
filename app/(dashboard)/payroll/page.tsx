@@ -527,6 +527,9 @@ export default function PayrollPage() {
         userId={ledgerUserId}
         staffName={ledgerName}
         canManage={canManagePayroll}
+        onUpdated={() => {
+          if (tab === "run") void load();
+        }}
         onLogAdvance={() => {
           if (!ledgerUserId) return;
           const row = rows.find((r) => r.userId === ledgerUserId);

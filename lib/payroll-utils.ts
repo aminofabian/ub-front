@@ -1,3 +1,156 @@
+export type AdvanceRepaymentMode =
+  | "full_balance"
+  | "percent_of_original"
+  | "fixed_per_pay"
+  | "manual";
+
+export const ADVANCE_REPAYMENT_MODES: Array<{
+  value: AdvanceRepaymentMode;
+  label: string;
+  hint: string;
+  needsValue: boolean;
+  valueLabel?: string;
+  valuePlaceholder?: string;
+  valueMax?: number;
+}> = [
+  {
+    value: "full_balance",
+    label: "Full balance",
+    hint: "Deduct as much as the pay pool allows until cleared",
+    needsValue: false,
+  },
+  {
+    value: "percent_of_original",
+    label: "Percentage each pay",
+    hint: "Fixed slice of the original advance every run",
+    needsValue: true,
+    valueLabel: "Percent of original (%)",
+    valuePlaceholder: "e.g. 25",
+    valueMax: 100,
+  },
+  {
+    value: "fixed_per_pay",
+    label: "Fixed amount each pay",
+    hint: "Same KES amount every pay run until cleared",
+    needsValue: true,
+    valueLabel: "Amount per pay (KES)",
+    valuePlaceholder: "e.g. 5000",
+  },
+  {
+    value: "manual",
+    label: "Manual each pay",
+    hint: "Skipped on pay-all — you choose when confirming payment",
+    needsValue: false,
+  },
+];
+
+export function advanceRepaymentModeLabel(mode: string | null | undefined): string {
+  return (
+    ADVANCE_REPAYMENT_MODES.find((m) => m.value === mode)?.label ?? "Full balance"
+  );
+}
+
+export function advanceRepaymentModeSummary(
+  mode: string | null | undefined,
+  value: number | null | undefined,
+): string {
+  switch (mode) {
+    case "percent_of_original":
+      return value != null && value > 0 ? `${value}% of original / pay` : "Percent / pay";
+    case "fixed_per_pay":
+      return value != null && value > 0
+        ? `${formatPayrollMoney(value)} / pay`
+        : "Fixed / pay";
+    case "manual":
+      return "Manual at pay time";
+    default:
+      return "Full balance when paid";
+  }
+}
+
+export type AdvanceRepaymentInput = {
+  id: string;
+  amount: number;
+  balanceOutstanding: number;
+  repaymentMode?: string | null;
+  repaymentValue?: number | null;
+  advancedOn?: string;
+  note?: string | null;
+};
+
+function roundMoney(n: number): number {
+  return Math.round(Number(n) * 100) / 100;
+}
+
+export function advanceRepaymentCap(
+  advance: Pick<
+    AdvanceRepaymentInput,
+    "amount" | "balanceOutstanding" | "repaymentMode" | "repaymentValue"
+  >,
+  manualOverride = false,
+): number {
+  const balance = roundMoney(Math.max(0, Number(advance.balanceOutstanding)));
+  if (balance <= 0) return 0;
+
+  const mode = advance.repaymentMode ?? "full_balance";
+  const value = Number(advance.repaymentValue) || 0;
+
+  switch (mode) {
+    case "manual":
+      return manualOverride ? balance : 0;
+    case "percent_of_original": {
+      const pct = Math.min(100, Math.max(0, value));
+      const slice = roundMoney((Number(advance.amount) * pct) / 100);
+      return roundMoney(Math.min(balance, slice));
+    }
+    case "fixed_per_pay":
+      return value > 0 ? roundMoney(Math.min(balance, value)) : balance;
+    default:
+      return balance;
+  }
+}
+
+export function allocateAdvanceRepayments(
+  pool: number,
+  advances: AdvanceRepaymentInput[],
+  manualOverride = false,
+): { allocations: Array<{ advanceId: string; amount: number }>; total: number } {
+  let remaining = roundMoney(Math.max(0, pool));
+  const allocations: Array<{ advanceId: string; amount: number }> = [];
+
+  const ordered = [...advances].sort((a, b) =>
+    (a.advancedOn ?? "").localeCompare(b.advancedOn ?? ""),
+  );
+
+  for (const advance of ordered) {
+    if (remaining <= 0) break;
+    const balance = roundMoney(Math.max(0, Number(advance.balanceOutstanding)));
+    if (balance <= 0) continue;
+    const cap = advanceRepaymentCap(advance, manualOverride);
+    if (cap <= 0) continue;
+    const applied = roundMoney(Math.min(remaining, Math.min(balance, cap)));
+    if (applied <= 0) continue;
+    allocations.push({ advanceId: advance.id, amount: applied });
+    remaining = roundMoney(remaining - applied);
+  }
+
+  const total = roundMoney(
+    allocations.reduce((sum, row) => sum + row.amount, 0),
+  );
+  return { allocations, total };
+}
+
+export function scheduledAdvanceDeduction(
+  advances: AdvanceRepaymentInput[],
+): number {
+  return roundMoney(
+    advances.reduce(
+      (sum, advance) => sum + advanceRepaymentCap(advance, false),
+      0,
+    ),
+  );
+}
+
 export function formatPayrollMoney(n: number): string {
   return Number(n).toLocaleString(undefined, {
     minimumFractionDigits: 2,

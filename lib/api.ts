@@ -11743,6 +11743,9 @@ export type SalaryAdvanceRecord = {
   note: string | null;
   status: string;
   repaidInPayslipId: string | null;
+  repaymentMode: string;
+  repaymentValue: number | null;
+  scheduledDeductionThisRun: number;
   createdAt: string;
 };
 
@@ -11782,6 +11785,7 @@ export type PayrollRunRow = {
   nssfSuggested: number;
   shifSuggested: number;
   housingLevySuggested: number;
+  advancesScheduledThisRun: number;
   suggestedNet: number;
   alreadyPaid: boolean;
   payslipId: string | null;
@@ -11819,6 +11823,8 @@ export type StaffPaySelfAdvance = {
   advancedOn: string;
   status: string;
   note: string | null;
+  repaymentMode: string;
+  repaymentValue: number | null;
 };
 
 export type StaffPaySelfPayslip = {
@@ -11865,6 +11871,8 @@ export type PayrollAdvanceLedgerRow = {
   note: string | null;
   status: string;
   repaidInPayslipId: string | null;
+  repaymentMode: string;
+  repaymentValue: number | null;
   createdAt: string;
 };
 
@@ -11949,11 +11957,28 @@ export async function createStaffAdvance(
     advancedOn: string;
     note?: string;
     amountRepaid?: number;
+    repaymentMode?: string;
+    repaymentValue?: number;
   },
 ): Promise<SalaryAdvanceRecord> {
   return request<SalaryAdvanceRecord>(
     `${API_ROUTES.staff}/${encodeURIComponent(userId)}/advances`,
     { method: "POST", body },
+  );
+}
+
+export async function patchStaffAdvance(
+  userId: string,
+  advanceId: string,
+  body: {
+    repaymentMode?: string;
+    repaymentValue?: number;
+    note?: string;
+  },
+): Promise<SalaryAdvanceRecord> {
+  return request<SalaryAdvanceRecord>(
+    `${API_ROUTES.staff}/${encodeURIComponent(userId)}/advances/${encodeURIComponent(advanceId)}`,
+    { method: "PATCH", body },
   );
 }
 
