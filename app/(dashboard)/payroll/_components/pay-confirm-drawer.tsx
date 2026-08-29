@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fetchStaffAdvances, type PayrollRunRow, type SalaryAdvanceRecord } from "@/lib/api";
 import {
+  advanceRepaymentCap,
   advanceRepaymentModeSummary,
   allocateAdvanceRepayments,
   formatPayrollMoney,
@@ -65,6 +66,7 @@ export function PayConfirmDrawer({
   const [paymentMethod, setPaymentMethod] = useState("mpesa_manual");
   const [advances, setAdvances] = useState<SalaryAdvanceRecord[]>([]);
   const [loadingAdvances, setLoadingAdvances] = useState(false);
+  const [deductionPreset, setDeductionPreset] = useState<"scheduled" | "full" | "half" | "none" | "custom">("scheduled");
 
   useEffect(() => {
     if (!open || !row) return;
@@ -73,18 +75,13 @@ export function PayConfirmDrawer({
     setApplyStatutory(applyStatutoryDefault);
     setPostExpense(postExpenseDefault);
     setPaymentMethod("mpesa_manual");
+    setDeductionPreset("scheduled");
     setAdvances([]);
     setLoadingAdvances(true);
     void fetchStaffAdvances(row.userId)
       .then((data) => {
         const outstanding = data.filter((a) => a.status === "outstanding");
         setAdvances(outstanding);
-        const other = 0;
-        const statutory = applyStatutoryDefault ? Number(row.statutoryTotal) || 0 : 0;
-        const pool = Math.max(0, Number(row.baseSalary) - statutory - other);
-        const scheduled = Number(row.advancesScheduledThisRun) || scheduledAdvanceDeduction(outstanding);
-        const defaultAdvance = Math.min(scheduled, pool);
-        setAdvancesToDeduct(defaultAdvance > 0 ? String(defaultAdvance) : "0");
       })
       .catch(() => setAdvances([]))
       .finally(() => setLoadingAdvances(false));
@@ -95,29 +92,77 @@ export function PayConfirmDrawer({
   const advancePool = row
     ? Math.max(0, Number(row.baseSalary) - statutory - other)
     : 0;
-  const maxAdvanceDeduct = row
-    ? Math.min(Number(row.advancesOutstanding), advancePool)
-    : 0;
+
+  const scheduledThisRun = useMemo(
+    () =>
+      row
+        ? Number(row.advancesScheduledThisRun) || scheduledAdvanceDeduction(advances)
+        : 0,
+    [row, advances],
+  );
+
+  const fullDeductCap = useMemo(() => {
+    if (!row || advances.length === 0) {
+      return Math.min(Number(row?.advancesOutstanding ?? 0), advancePool);
+    }
+    const withManual = advances.reduce(
+      (sum, adv) => sum + advanceRepaymentCap(adv, true),
+      0,
+    );
+    return Math.min(withManual, advancePool);
+  }, [row, advances, advancePool]);
+
+  useEffect(() => {
+    if (!open || !row || loadingAdvances) return;
+    if (deductionPreset === "custom") return;
+
+    let next = 0;
+    switch (deductionPreset) {
+      case "scheduled":
+        next = Math.min(scheduledThisRun, advancePool);
+        break;
+      case "full":
+        next = fullDeductCap;
+        break;
+      case "half":
+        next = Math.round(Math.min(scheduledThisRun, advancePool) * 50) / 100;
+        break;
+      case "none":
+        next = 0;
+        break;
+    }
+    setAdvancesToDeduct(next > 0 ? String(next) : "0");
+  }, [
+    open,
+    row,
+    loadingAdvances,
+    deductionPreset,
+    scheduledThisRun,
+    fullDeductCap,
+    advancePool,
+    applyStatutory,
+    other,
+  ]);
+
+  const maxAdvanceDeduct = fullDeductCap;
   const advanceInput = advancesToDeduct.trim() === "" ? maxAdvanceDeduct : Number(advancesToDeduct) || 0;
   const advancesApplied = Math.min(maxAdvanceDeduct, Math.max(0, advanceInput));
-  const manualOverride = true;
+  const includeManualAdvances = advancesApplied > scheduledThisRun + 0.009;
+
   const allocationPreview = useMemo(() => {
     const { allocations } = allocateAdvanceRepayments(
       advancesApplied,
       advances,
-      manualOverride,
+      includeManualAdvances,
     );
     return allocations.map((item) => ({
       advance: advances.find((a) => a.id === item.advanceId),
       amount: item.amount,
     }));
-  }, [advancesApplied, advances]);
+  }, [advancesApplied, advances, includeManualAdvances]);
   const net = row
     ? Math.max(0, Number(row.baseSalary) - statutory - advancesApplied - other)
     : 0;
-
-  const scheduledThisRun =
-    Number(row?.advancesScheduledThisRun) || scheduledAdvanceDeduction(advances);
 
   const statutoryLines = useMemo(
     () =>
@@ -133,20 +178,12 @@ export function PayConfirmDrawer({
   );
 
   function applyPreset(kind: "scheduled" | "full" | "half" | "none") {
-    switch (kind) {
-      case "scheduled":
-        setAdvancesToDeduct(String(Math.min(scheduledThisRun, advancePool)));
-        break;
-      case "full":
-        setAdvancesToDeduct(String(maxAdvanceDeduct));
-        break;
-      case "half":
-        setAdvancesToDeduct(String(Math.round(maxAdvanceDeduct * 50) / 100));
-        break;
-      case "none":
-        setAdvancesToDeduct("0");
-        break;
-    }
+    setDeductionPreset(kind);
+  }
+
+  function handleAdvanceInputChange(raw: string) {
+    setDeductionPreset("custom");
+    setAdvancesToDeduct(raw);
   }
 
   if (!row) return null;
@@ -239,34 +276,57 @@ export function PayConfirmDrawer({
             </p>
           ) : advances.length > 0 ? (
             <div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3">
-              <p className="text-xs font-medium text-muted-foreground">Outstanding advances</p>
-              {advances.map((advance) => (
-                <div key={advance.id} className="flex justify-between gap-3 text-xs">
-                  <span className="text-muted-foreground">
-                    {formatPayrollMoney(Number(advance.balanceOutstanding))}
-                    <span className="ml-1 opacity-80">
-                      · {advanceRepaymentModeSummary(advance.repaymentMode, advance.repaymentValue)}
-                    </span>
-                  </span>
-                  <span className="tabular-nums font-medium">
-                    sched. {formatPayrollMoney(Number(advance.scheduledDeductionThisRun ?? 0))}
-                  </span>
-                </div>
-              ))}
+              <p className="text-xs font-medium text-muted-foreground">
+                Repayment plan this run
+              </p>
+              {advances.map((advance) => {
+                const scheduled = Number(advance.scheduledDeductionThisRun ?? 0);
+                const applied =
+                  allocationPreview.find((line) => line.advance?.id === advance.id)?.amount ?? 0;
+                return (
+                  <div key={advance.id} className="rounded-md bg-background/60 px-2.5 py-2 text-xs">
+                    <div className="flex justify-between gap-3">
+                      <span className="font-medium tabular-nums">
+                        {formatPayrollMoney(Number(advance.balanceOutstanding))}
+                      </span>
+                      <span className="tabular-nums font-semibold text-amber-800 dark:text-amber-200">
+                        {applied > 0
+                          ? `− ${formatPayrollMoney(applied)}`
+                          : scheduled > 0
+                            ? `sched. ${formatPayrollMoney(scheduled)}`
+                            : "—"}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-muted-foreground">
+                      {formatPayrollDateShort(advance.advancedOn)} ·{" "}
+                      {advanceRepaymentModeSummary(
+                        advance.repaymentMode,
+                        advance.repaymentValue,
+                        Number(advance.amount),
+                      )}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           ) : null}
 
           <div className="flex flex-wrap gap-1.5">
             {[
-              { key: "scheduled" as const, label: "Scheduled" },
-              { key: "full" as const, label: "Full balance" },
-              { key: "half" as const, label: "50%" },
+              { key: "scheduled" as const, label: `Scheduled (${formatPayrollMoney(Math.min(scheduledThisRun, advancePool))})` },
+              { key: "full" as const, label: "All outstanding" },
+              { key: "half" as const, label: "Half scheduled" },
               { key: "none" as const, label: "Skip" },
             ].map((preset) => (
               <button
                 key={preset.key}
                 type="button"
-                className="rounded-md border border-border/60 px-2 py-0.5 text-xs hover:bg-muted/50"
+                className={cn(
+                  "rounded-md border px-2 py-0.5 text-xs transition-colors",
+                  deductionPreset === preset.key
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border/60 hover:bg-muted/50",
+                )}
                 onClick={() => applyPreset(preset.key)}
               >
                 {preset.label}
@@ -275,7 +335,7 @@ export function PayConfirmDrawer({
           </div>
 
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Deduct from advances this run (max {formatPayrollMoney(maxAdvanceDeduct)})
+            Total advance deduction this run (max {formatPayrollMoney(maxAdvanceDeduct)})
             <input
               type="number"
               min="0"
@@ -283,16 +343,14 @@ export function PayConfirmDrawer({
               step="0.01"
               className={dashboardInputClass()}
               value={advancesToDeduct}
-              onChange={(e) => setAdvancesToDeduct(e.target.value)}
+              onChange={(e) => handleAdvanceInputChange(e.target.value)}
             />
           </label>
           <p className="text-[11px] text-muted-foreground">
             Outstanding: {formatPayrollMoney(row.advancesOutstanding)}
-            {scheduledThisRun > 0 && scheduledThisRun < row.advancesOutstanding
-              ? ` · Scheduled: ${formatPayrollMoney(scheduledThisRun)}`
-              : ""}
+            {scheduledThisRun > 0 ? ` · Arrangements schedule ${formatPayrollMoney(scheduledThisRun)}` : ""}
             {" · "}
-            Pool: {formatPayrollMoney(advancePool)}
+            Pay pool: {formatPayrollMoney(advancePool)}
           </p>
 
           <div className="flex flex-wrap gap-1.5">
@@ -347,8 +405,14 @@ export function PayConfirmDrawer({
                     <div key={line.advance?.id} className="flex justify-between gap-3">
                       <span>
                         {formatPayrollDateShort(line.advance?.advancedOn)}
+                        {line.advance?.repaymentMode === "percent_of_original" &&
+                        line.advance.repaymentValue ? (
+                          <span className="ml-1 opacity-80">
+                            ({line.advance.repaymentValue}%)
+                          </span>
+                        ) : null}
                       </span>
-                      <span className="tabular-nums">
+                      <span className="tabular-nums font-medium text-foreground">
                         {formatPayrollMoney(line.amount)}
                       </span>
                     </div>

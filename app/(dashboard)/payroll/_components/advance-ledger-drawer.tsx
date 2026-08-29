@@ -17,6 +17,8 @@ import {
   advanceRepaymentModeSummary,
   formatPayrollDate,
   formatPayrollMoney,
+  parseRepaymentMoneyInput,
+  parseRepaymentPercentInput,
 } from "@/lib/payroll-utils";
 import {
   AdvanceRepaymentArrangement,
@@ -103,7 +105,12 @@ export function AdvanceLedgerDrawer({
 
   async function saveEdit(row: SalaryAdvanceRecord) {
     if (!userId) return;
-    const parsedValue = Number(editValue) || 0;
+    const parsedValue =
+      editMode === "percent_of_original"
+        ? Number(parseRepaymentPercentInput(editValue)) || 0
+        : editMode === "fixed_per_pay"
+          ? Number(parseRepaymentMoneyInput(editValue)) || 0
+          : 0;
     if (editMode === "percent_of_original" && (parsedValue <= 0 || parsedValue > 100)) {
       setError("Enter a repayment percentage between 1 and 100.");
       return;
@@ -266,7 +273,11 @@ export function AdvanceLedgerDrawer({
 
                   {row.status === "outstanding" && editingId !== row.id ? (
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {advanceRepaymentModeSummary(row.repaymentMode, row.repaymentValue)}
+                      {advanceRepaymentModeSummary(
+                        row.repaymentMode,
+                        row.repaymentValue,
+                        Number(row.amount),
+                      )}
                       {Number(row.scheduledDeductionThisRun) > 0 ? (
                         <>
                           {" "}
@@ -288,13 +299,16 @@ export function AdvanceLedgerDrawer({
                         value={editValue}
                         onModeChange={setEditMode}
                         onValueChange={setEditValue}
+                        originalAmount={Number(row.amount)}
+                        balanceOutstanding={Number(row.balanceOutstanding ?? row.amount)}
                       />
                       <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                        Note
+                        Note <span className="font-normal">(optional — not the repayment %)</span>
                         <input
                           className={dashboardInputClass()}
                           value={editNote}
                           onChange={(e) => setEditNote(e.target.value)}
+                          placeholder="e.g. Emergency medical, car repair…"
                         />
                       </label>
                       <div className="flex justify-end gap-2">

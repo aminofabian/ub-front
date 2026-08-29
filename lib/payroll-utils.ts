@@ -53,10 +53,18 @@ export function advanceRepaymentModeLabel(mode: string | null | undefined): stri
 export function advanceRepaymentModeSummary(
   mode: string | null | undefined,
   value: number | null | undefined,
+  originalAmount?: number | null,
 ): string {
   switch (mode) {
-    case "percent_of_original":
-      return value != null && value > 0 ? `${value}% of original / pay` : "Percent / pay";
+    case "percent_of_original": {
+      if (value == null || value <= 0) return "Percent / pay";
+      const pct = `${value}%`;
+      if (originalAmount != null && originalAmount > 0) {
+        const slice = roundMoney((originalAmount * value) / 100);
+        return `${pct} of ${formatPayrollMoney(originalAmount)} (${formatPayrollMoney(slice)}/pay)`;
+      }
+      return `${pct} of original / pay`;
+    }
     case "fixed_per_pay":
       return value != null && value > 0
         ? `${formatPayrollMoney(value)} / pay`
@@ -66,6 +74,73 @@ export function advanceRepaymentModeSummary(
     default:
       return "Full balance when paid";
   }
+}
+
+export function parseRepaymentPercentInput(raw: string): string {
+  return raw.replace(/%/g, "").replace(/[^\d.]/g, "").trim();
+}
+
+export function parseRepaymentMoneyInput(raw: string): string {
+  return raw.replace(/[^\d.]/g, "").trim();
+}
+
+export function advanceRepaymentPreview(
+  advance: Pick<
+    AdvanceRepaymentInput,
+    "amount" | "balanceOutstanding" | "repaymentMode" | "repaymentValue"
+  >,
+  mode: AdvanceRepaymentMode,
+  rawValue: string,
+): {
+  perPay: number;
+  paysRemaining: number | null;
+  summary: string;
+} {
+  const balance = roundMoney(Math.max(0, Number(advance.balanceOutstanding ?? advance.amount)));
+  const original = roundMoney(Math.max(0, Number(advance.amount)));
+  const parsedPercent = Number(parseRepaymentPercentInput(rawValue)) || 0;
+  const parsedFixed = Number(parseRepaymentMoneyInput(rawValue)) || 0;
+
+  let perPay = 0;
+  if (mode === "percent_of_original" && parsedPercent > 0) {
+    perPay = advanceRepaymentCap(
+      {
+        amount: original,
+        balanceOutstanding: balance,
+        repaymentMode: mode,
+        repaymentValue: parsedPercent,
+      },
+      false,
+    );
+  } else if (mode === "fixed_per_pay" && parsedFixed > 0) {
+    perPay = advanceRepaymentCap(
+      {
+        amount: original,
+        balanceOutstanding: balance,
+        repaymentMode: mode,
+        repaymentValue: parsedFixed,
+      },
+      false,
+    );
+  } else if (mode === "full_balance") {
+    perPay = balance;
+  }
+
+  const paysRemaining =
+    perPay > 0 && balance > 0 ? Math.ceil(balance / perPay) : null;
+
+  let summary = "";
+  if (mode === "percent_of_original" && parsedPercent > 0) {
+    summary = `${parsedPercent}% → ${formatPayrollMoney(perPay)} each pay`;
+  } else if (mode === "fixed_per_pay" && parsedFixed > 0) {
+    summary = `${formatPayrollMoney(parsedFixed)} each pay`;
+  } else if (mode === "full_balance") {
+    summary = `Up to ${formatPayrollMoney(balance)} this pay`;
+  } else if (mode === "manual") {
+    summary = "You choose the amount when marking paid";
+  }
+
+  return { perPay, paysRemaining, summary };
 }
 
 export type AdvanceRepaymentInput = {

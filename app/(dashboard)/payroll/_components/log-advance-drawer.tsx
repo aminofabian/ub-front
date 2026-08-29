@@ -13,6 +13,8 @@ import { createStaffAdvance } from "@/lib/api";
 import {
   type AdvanceRepaymentMode,
   formatPayrollMoney,
+  parseRepaymentMoneyInput,
+  parseRepaymentPercentInput,
 } from "@/lib/payroll-utils";
 import { AdvanceRepaymentArrangement } from "./advance-repayment-arrangement";
 
@@ -82,7 +84,12 @@ export function LogAdvanceDrawer({
       onError("Amount repaid cannot exceed the original advance.");
       return;
     }
-    const parsedRepaymentValue = Number(repaymentValue) || 0;
+    const parsedRepaymentValue =
+      repaymentMode === "percent_of_original"
+        ? Number(parseRepaymentPercentInput(repaymentValue)) || 0
+        : repaymentMode === "fixed_per_pay"
+          ? Number(parseRepaymentMoneyInput(repaymentValue)) || 0
+          : 0;
     if (repaymentMode === "percent_of_original") {
       if (parsedRepaymentValue <= 0 || parsedRepaymentValue > 100) {
         onError("Enter a repayment percentage between 1 and 100.");
@@ -217,6 +224,8 @@ export function LogAdvanceDrawer({
           value={repaymentValue}
           onModeChange={setRepaymentMode}
           onValueChange={setRepaymentValue}
+          originalAmount={parsedAmount > 0 ? parsedAmount : null}
+          balanceOutstanding={balancePreview}
         />
 
         <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">

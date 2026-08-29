@@ -21,6 +21,7 @@ import {
   type SalaryAdvanceRecord,
 } from "@/lib/api";
 import {
+  advanceRepaymentModeSummary,
   employmentStatusLabel,
   formatPayrollDate,
   formatPayrollMoney,
@@ -94,13 +95,12 @@ export function PayrollStaffDrawer({
 
   if (!row) return null;
 
+  const scheduledThisRun = Number(row.advancesScheduledThisRun) || 0;
   const statutory = applyStatutoryPreview ? Number(row.statutoryTotal) || 0 : 0;
+  const advanceDeductionPreview = scheduledThisRun > 0 ? scheduledThisRun : Number(row.advancesOutstanding);
   const netPreview = applyStatutoryPreview
     ? Number(row.suggestedNet)
-    : Math.max(
-        0,
-        Number(row.baseSalary) - Number(row.advancesOutstanding),
-      );
+    : Math.max(0, Number(row.baseSalary) - advanceDeductionPreview);
 
   const statusTone =
     row.alreadyPaid
@@ -264,12 +264,25 @@ export function PayrollStaffDrawer({
                   key={adv.id}
                   className="flex items-center justify-between gap-2 rounded-md bg-background/60 px-2 py-1.5"
                 >
-                  <span className="text-muted-foreground">
-                    {formatPayrollDate(adv.advancedOn)}
-                    {adv.note ? ` · ${adv.note}` : ""}
+                  <span className="min-w-0 text-muted-foreground">
+                    <span className="block">{formatPayrollDate(adv.advancedOn)}</span>
+                    <span className="block truncate text-[10px] opacity-80">
+                      {advanceRepaymentModeSummary(
+                        adv.repaymentMode,
+                        adv.repaymentValue,
+                        Number(adv.amount),
+                      )}
+                    </span>
                   </span>
-                  <span className="shrink-0 tabular-nums font-medium">
-                    {formatPayrollMoney(Number(adv.balanceOutstanding ?? adv.amount))}
+                  <span className="shrink-0 text-right tabular-nums">
+                    <span className="block font-medium">
+                      {formatPayrollMoney(Number(adv.balanceOutstanding ?? adv.amount))}
+                    </span>
+                    {Number(adv.scheduledDeductionThisRun) > 0 ? (
+                      <span className="block text-[10px] text-amber-800 dark:text-amber-200">
+                        −{formatPayrollMoney(Number(adv.scheduledDeductionThisRun))} next
+                      </span>
+                    ) : null}
                   </span>
                 </li>
               ))}
@@ -305,8 +318,8 @@ export function PayrollStaffDrawer({
             icon={<Scale className="size-3" aria-hidden />}
           />
           <MiniStat
-            label="Advances due"
-            value={formatPayrollMoney(row.advancesOutstanding)}
+            label="Advances next pay"
+            value={formatPayrollMoney(advanceDeductionPreview)}
             icon={<Wallet className="size-3" aria-hidden />}
           />
         </div>
