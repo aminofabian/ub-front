@@ -47,6 +47,7 @@ import { PayrollStaffDrawer } from "./_components/payroll-staff-drawer";
 import { PayrollTabs } from "./_components/payroll-tabs";
 import { PayslipDrawer } from "./_components/payslip-drawer";
 import { PayslipHistoryPanel } from "./_components/payslip-history-panel";
+import { StaffSmsDrawer } from "./_components/staff-sms-drawer";
 
 type Tab = "run" | "calendar" | "advances" | "history";
 
@@ -113,6 +114,10 @@ export default function PayrollPage() {
   const [payslipId, setPayslipId] = useState<string | null>(null);
   const [payslipInitial, setPayslipInitial] = useState<PayslipRecord | null>(null);
 
+  const [smsOpen, setSmsOpen] = useState(false);
+  const [smsUserId, setSmsUserId] = useState<string | null>(null);
+  const [smsUserName, setSmsUserName] = useState("");
+
   const summary = useMemo(() => {
     const pending = rows.filter(
       (r) =>
@@ -163,6 +168,18 @@ export default function PayrollPage() {
       void load();
     }
   }, [dashLoading, canViewPayroll, load, tab]);
+
+  function openSmsBulk() {
+    setSmsUserId(null);
+    setSmsUserName("");
+    setSmsOpen(true);
+  }
+
+  function openSmsForRow(row: PayrollRunRow) {
+    setSmsUserId(row.userId);
+    setSmsUserName(row.displayName);
+    setSmsOpen(true);
+  }
 
   function openStaffDrawer(row: PayrollRunRow) {
     setSelectedRow(row);
@@ -419,9 +436,11 @@ export default function PayrollPage() {
                 onPostExpenseChange={setPostExpenseDefault}
                 pendingCount={summary.pendingCount}
                 canRunPayroll={canRunPayroll}
+                canManagePayroll={canManagePayroll}
                 payingAll={payingAll}
                 payingId={payingId}
                 onPayAll={() => void onPayAll()}
+                onOpenSms={canManagePayroll ? openSmsBulk : undefined}
                 onExport={() => exportPayrollRunCsv(rows, year, month)}
                 hasRows={rows.length > 0}
               />
@@ -505,6 +524,20 @@ export default function PayrollPage() {
         onOpenLedger={() => selectedRow && openLedger(selectedRow)}
         onOpenPay={() => selectedRow && openPayConfirm(selectedRow)}
         onOpenPayslip={() => selectedRow && openPayslip(selectedRow)}
+        onSendSms={
+          canManagePayroll && selectedRow
+            ? () => openSmsForRow(selectedRow)
+            : undefined
+        }
+      />
+
+      <StaffSmsDrawer
+        open={smsOpen}
+        onOpenChange={setSmsOpen}
+        rows={rows}
+        targetUserId={smsUserId}
+        targetName={smsUserName}
+        onSent={(text) => setFeedback({ kind: "success", text })}
       />
 
       <StaffProfileDrawer

@@ -6,6 +6,7 @@ import {
   ChevronRight,
   IdCard,
   Loader2,
+  MessageSquare,
   Pencil,
   Receipt,
   Scale,
@@ -45,6 +46,7 @@ type Props = {
   onOpenLedger: () => void;
   onOpenPay: () => void;
   onOpenPayslip: () => void;
+  onSendSms?: () => void;
 };
 
 export function PayrollStaffDrawer({
@@ -64,6 +66,7 @@ export function PayrollStaffDrawer({
   onOpenLedger,
   onOpenPay,
   onOpenPayslip,
+  onSendSms,
 }: Props) {
   const [advances, setAdvances] = useState<SalaryAdvanceRecord[]>([]);
   const [loadingAdvances, setLoadingAdvances] = useState(false);
@@ -127,6 +130,12 @@ export function PayrollStaffDrawer({
               <Button type="button" variant="outline" size="sm" onClick={onOpenProfile}>
                 <IdCard className="mr-1.5 size-3.5" aria-hidden />
                 Full profile
+              </Button>
+            ) : null}
+            {canManagePayroll && onSendSms ? (
+              <Button type="button" variant="outline" size="sm" onClick={onSendSms}>
+                <MessageSquare className="mr-1.5 size-3.5" aria-hidden />
+                SMS
               </Button>
             ) : null}
             {row.alreadyPaid ? (

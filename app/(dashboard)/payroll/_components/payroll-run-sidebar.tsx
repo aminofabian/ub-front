@@ -1,10 +1,11 @@
 "use client";
 
-import { Download, Loader2, Scale, Sparkles, Wallet } from "lucide-react";
+import { Download, Loader2, MessageSquare, Scale, Sparkles, Wallet } from "lucide-react";
 
 import { dashboardSelectClass } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PayrollAutomationPanel } from "./payroll-automation-panel";
 
 type BranchOption = { id: string; name: string };
 
@@ -18,9 +19,11 @@ type Props = {
   onPostExpenseChange: (value: boolean) => void;
   pendingCount: number;
   canRunPayroll: boolean;
+  canManagePayroll: boolean;
   payingAll: boolean;
   payingId: string | null;
   onPayAll: () => void;
+  onOpenSms?: () => void;
   onExport?: () => void;
   hasRows: boolean;
 };
@@ -35,9 +38,11 @@ export function PayrollRunSidebar({
   onPostExpenseChange,
   pendingCount,
   canRunPayroll,
+  canManagePayroll,
   payingAll,
   payingId,
   onPayAll,
+  onOpenSms,
   onExport,
   hasRows,
 }: Props) {
@@ -129,7 +134,28 @@ export function PayrollRunSidebar({
             Export CSV
           </Button>
         ) : null}
+
+        {canManagePayroll && onOpenSms ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2 w-full"
+            onClick={onOpenSms}
+          >
+            <MessageSquare className="mr-1.5 size-3.5" aria-hidden />
+            SMS staff
+          </Button>
+        ) : null}
       </div>
+
+      <PayrollAutomationPanel
+        canManage={canManagePayroll}
+        branches={branches}
+        applyStatutory={applyStatutory}
+        postExpenseDefault={postExpenseDefault}
+        branchFilter={branchFilter}
+      />
 
       <div className="rounded-2xl border border-dashed border-border/60 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
         <p className="font-medium text-foreground">How this works</p>

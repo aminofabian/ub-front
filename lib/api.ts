@@ -12070,6 +12070,99 @@ export async function fetchPayrollCalendar(
   return request<PayrollCalendar>(`${API_ROUTES.payroll}/calendar?${params}`);
 }
 
+export type PayrollAutomationSettings = {
+  enabled: boolean;
+  automationMode: "auto_pay" | "remind";
+  payDayOfMonth: number;
+  autoPayTimes: string[];
+  applyStatutory: boolean;
+  postExpense: boolean;
+  paymentMethod: string;
+  branchId: string | null;
+  autoPayLastRunSlot: string | null;
+};
+
+export async function fetchPayrollAutomation(): Promise<PayrollAutomationSettings> {
+  return request<PayrollAutomationSettings>(`${API_ROUTES.payroll}/automation`);
+}
+
+export async function updatePayrollAutomation(
+  body: Partial<{
+    enabled: boolean;
+    automationMode: "auto_pay" | "remind";
+    payDayOfMonth: number;
+    autoPayTimes: string[];
+    applyStatutory: boolean;
+    postExpense: boolean;
+    paymentMethod: string;
+    branchId: string | null;
+  }>,
+): Promise<PayrollAutomationSettings> {
+  return request<PayrollAutomationSettings>(`${API_ROUTES.payroll}/automation`, {
+    method: "PUT",
+    body,
+  });
+}
+
+export type StaffSmsTemplate = {
+  key: string;
+  label: string;
+  description: string;
+  defaultBody: string;
+  placeholders: string[];
+};
+
+export async function fetchStaffSmsTemplates(): Promise<StaffSmsTemplate[]> {
+  return request<StaffSmsTemplate[]>(`${API_ROUTES.payroll}/staff-messages/templates`);
+}
+
+export async function previewStaffSms(
+  userId: string,
+  body: { templateKey: string; bodyOverride?: string },
+): Promise<{
+  templateKey: string;
+  renderedBody: string;
+  phone: string;
+  phoneAvailable: boolean;
+  staffName: string;
+}> {
+  return request(
+    `${API_ROUTES.payroll}/staff-messages/${encodeURIComponent(userId)}/preview`,
+    { method: "POST", body },
+  );
+}
+
+export async function sendStaffSms(
+  userId: string,
+  body: { templateKey: string; bodyOverride?: string },
+): Promise<{
+  sent: boolean;
+  phone: string;
+  renderedBody: string;
+  providerStatus: string;
+  staffName: string;
+}> {
+  return request(
+    `${API_ROUTES.payroll}/staff-messages/${encodeURIComponent(userId)}/send`,
+    { method: "POST", body },
+  );
+}
+
+export async function bulkSendStaffSms(body: {
+  userIds: string[];
+  templateKey: string;
+  bodyOverride?: string;
+}): Promise<{
+  sent: number;
+  skipped: number;
+  failures: Array<{ userId: string; displayName: string; reason: string }>;
+}> {
+  return request(`${API_ROUTES.payroll}/staff-messages/bulk-send`, {
+    method: "POST",
+    body,
+  });
+}
+
 export async function fetchStaffPaySelf(): Promise<StaffPaySelfPortal> {
   return request<StaffPaySelfPortal>(`${API_ROUTES.payroll}/me`);
 }
