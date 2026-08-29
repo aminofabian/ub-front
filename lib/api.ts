@@ -11106,6 +11106,13 @@ export type SetupProgressRecord = {
   currentStepKey: string | null;
   snoozedUntil: string | null;
   steps: SetupProgressStepRecord[];
+  reward: SetupProgressRewardRecord | null;
+};
+
+export type SetupProgressRewardRecord = {
+  smsCredits: number;
+  grantedAt: string | null;
+  justGranted: boolean;
 };
 
 export async function fetchSetupProgress(): Promise<SetupProgressRecord> {

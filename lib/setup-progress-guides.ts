@@ -10,7 +10,7 @@ export type SetupGuide = {
   doItUrl: string;
 };
 
-const ONBOARDING = "/help/onboarding";
+const SP = "/help/setup-progress";
 
 export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide>> = {
   stock_shelf: {
@@ -19,23 +19,23 @@ export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide
       doItUrl: "/products",
       shots: [
         {
-          src: `${ONBOARDING}/m1-fill-shelf.svg`,
+          src: `${SP}/stock-01-products-nav.png`,
           alt: "Products page in Kiosk",
           caption: "Open **Products** from the sidebar.",
         },
         {
-          src: `${ONBOARDING}/m2-sizes.svg`,
+          src: `${SP}/stock-02-add-button.jpg`,
           alt: "Add product button",
           caption: "Tap **Add product** in the top right.",
         },
         {
-          src: `${ONBOARDING}/m2-variant.svg`,
+          src: `${SP}/stock-03-form.jpg`,
           alt: "Product form with name, price, and stock",
           caption:
             "Enter the product name, selling price, and stock count. Tap **Save**.",
         },
         {
-          src: `${ONBOARDING}/m1-fill-shelf.svg`,
+          src: `${SP}/stock-04-shelf.png`,
           alt: "Product on the shelf",
           caption: "Your product appears on the shelf — you can sell from the till.",
         },
@@ -46,18 +46,18 @@ export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide
       doItUrl: "/products/catalog?from=setup",
       shots: [
         {
-          src: `${ONBOARDING}/m1-fill-shelf.svg`,
+          src: `${SP}/stock-01-products-nav.png`,
           alt: "Global product catalogue",
           caption:
             "Browse the global catalogue — products come with barcodes and suggested prices.",
         },
         {
-          src: `${ONBOARDING}/m4-fallback.svg`,
+          src: `${SP}/stock-catalog-02-select.png`,
           alt: "Selecting products to import",
           caption: "Tick the products you sell, then tap **Import**.",
         },
         {
-          src: `${ONBOARDING}/m1-fill-shelf.svg`,
+          src: `${SP}/stock-catalog-03-review.png`,
           alt: "Imported products on the shelf",
           caption: "Review prices, then confirm. Your shelf is stocked.",
         },
@@ -68,19 +68,19 @@ export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide
       doItUrl: "/products",
       shots: [
         {
-          src: `${ONBOARDING}/m2-sizes.svg`,
+          src: `${SP}/stock-variant-01-family.jpg`,
           alt: "Create product as a family",
           caption:
             "When creating a product, choose **Family** — same item, different sizes.",
         },
         {
-          src: `${ONBOARDING}/m2-variant.svg`,
+          src: `${SP}/stock-variant-02-variants.jpg`,
           alt: "Variant rows under a family",
           caption:
             "Add variants under the family (e.g. 500ml, 1L). Each gets its own price and stock.",
         },
         {
-          src: `${ONBOARDING}/m2-variant.svg`,
+          src: `${SP}/stock-variant-03-shelf.jpg`,
           alt: "Variants on the till",
           caption: "Variants show as one row on the till with a size picker.",
         },
@@ -92,23 +92,23 @@ export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide
     doItUrl: "/suppliers",
     shots: [
       {
-        src: `${ONBOARDING}/m3-supplier.svg`,
+        src: `${SP}/supplier-01-create.png`,
         alt: "New supplier form",
         caption: "Open **Suppliers** → **New supplier**. Enter name and phone.",
       },
       {
-        src: `${ONBOARDING}/m3-money-loop.svg`,
+        src: `${SP}/supplier-02-link.png`,
         alt: "Linking a product to a supplier",
         caption: "Open a product → **Suppliers** tab → **Link supplier**.",
       },
       {
-        src: `${ONBOARDING}/m3-money-loop.svg`,
+        src: `${SP}/supplier-03-supply.png`,
         alt: "New supply drawer",
         caption:
           "To receive stock: **Supplies** → **New supply** → pick supplier and products.",
       },
       {
-        src: `${ONBOARDING}/m3-money-loop.svg`,
+        src: `${SP}/supplier-04-posted.png`,
         alt: "Posted supply",
         caption: "Tap **Post supply** — stock counts update automatically.",
       },
@@ -119,18 +119,18 @@ export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide
     doItUrl: "/business/settings",
     shots: [
       {
-        src: `${ONBOARDING}/m5-go-live.svg`,
+        src: `${SP}/phone-01-settings.png`,
         alt: "Business settings alerts panel",
         caption: "Open **Business settings** → **Alerts & notifications**.",
       },
       {
-        src: `${ONBOARDING}/m5-go-live.svg`,
+        src: `${SP}/phone-02-enter.png`,
         alt: "Enter phone number",
         caption:
           "Enter your shop phone number. This receives sale alerts and login codes.",
       },
       {
-        src: `${ONBOARDING}/m5-go-live.svg`,
+        src: `${SP}/phone-03-verify.png`,
         alt: "Verify phone code",
         caption: "Enter the code we send you. Green tick = verified.",
       },
@@ -141,17 +141,17 @@ export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide
     doItUrl: "/users",
     shots: [
       {
-        src: `${ONBOARDING}/m6-team.svg`,
+        src: `${SP}/cashier-01-invite.png`,
         alt: "Invite user form",
         caption: "Open **Users** → **Invite user**.",
       },
       {
-        src: `${ONBOARDING}/m6-team.svg`,
+        src: `${SP}/cashier-02-pin.png`,
         alt: "Till PIN credential option",
         caption: "Choose **Till PIN** so they can log in without email.",
       },
       {
-        src: `${ONBOARDING}/m6-team.svg`,
+        src: `${SP}/cashier-03-login.png`,
         alt: "Staff login link",
         caption: "Share the staff login link. They set a PIN on first visit.",
       },
@@ -162,17 +162,17 @@ export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide
     doItUrl: "/cashier",
     shots: [
       {
-        src: `${ONBOARDING}/m4-first-sale.svg`,
+        src: `${SP}/sale-01-shift.png`,
         alt: "Open shift float count",
         caption: "Open a shift — count the float in the till.",
       },
       {
-        src: `${ONBOARDING}/m4-first-sale.svg`,
+        src: `${SP}/sale-02-till.png`,
         alt: "Till with a product selected",
         caption: "Tap a product, take payment (cash or M-Pesa).",
       },
       {
-        src: `${ONBOARDING}/w-week-checkin.svg`,
+        src: `${SP}/sale-03-receipt.png`,
         alt: "Sale complete on business pulse",
         caption: "Sale complete — your pulse updates with real numbers.",
       },
@@ -183,12 +183,12 @@ export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide
     doItUrl: "/business/settings",
     shots: [
       {
-        src: `${ONBOARDING}/m5-go-live.svg`,
+        src: `${SP}/golive-01-enable.png`,
         alt: "Enable storefront toggle",
         caption: "Open **Business settings** → turn on **Storefront**.",
       },
       {
-        src: `${ONBOARDING}/m5-go-live.svg`,
+        src: `${SP}/golive-02-preview.png`,
         alt: "Storefront phone preview",
         caption: "Preview your shop on a phone — customers can browse and order.",
       },

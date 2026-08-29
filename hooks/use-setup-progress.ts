@@ -48,7 +48,11 @@ export function useSetupProgress({
         }
       }
 
-      if (row.shopReady && prevEarnedRef.current != null && !row.visible) {
+      if (row.reward?.justGranted) {
+        toast.success(
+          `Shop ready — +${row.reward.smsCredits} SMS credits on us!`,
+        );
+      } else if (row.shopReady && prevEarnedRef.current != null && !row.visible) {
         toast.success("Shop ready — you're set to sell!");
       }
 

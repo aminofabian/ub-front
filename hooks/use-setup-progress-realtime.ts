@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { getRealtimeClient } from "@/lib/realtime";
 
@@ -16,6 +16,8 @@ type Options = {
  */
 export function useSetupProgressRealtime({ enabled = true, onInvalidate }: Options) {
   const subscriptionId = useId();
+  const onInvalidateRef = useRef(onInvalidate);
+  onInvalidateRef.current = onInvalidate;
 
   useEffect(() => {
     if (!enabled) return;
@@ -28,7 +30,7 @@ export function useSetupProgressRealtime({ enabled = true, onInvalidate }: Optio
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         timer = null;
-        if (!stopped) onInvalidate();
+        if (!stopped) onInvalidateRef.current();
       }, DEBOUNCE_MS);
     };
 
@@ -45,5 +47,5 @@ export function useSetupProgressRealtime({ enabled = true, onInvalidate }: Optio
       if (timer) clearTimeout(timer);
       unregister();
     };
-  }, [enabled, onInvalidate, subscriptionId]);
+  }, [enabled, subscriptionId]);
 }

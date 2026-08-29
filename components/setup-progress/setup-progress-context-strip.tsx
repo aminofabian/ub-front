@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight } from "lucide-react";
 
 import { SetupProgressGuideDrawer } from "@/components/setup-progress/setup-progress-guide-drawer";
 import { useSetupProgress } from "@/hooks/use-setup-progress";
@@ -22,14 +21,11 @@ export function SetupProgressContextStrip({
   enabled = true,
 }: SetupProgressContextStripProps) {
   const pathname = usePathname();
-  const { data } = useSetupProgress({ enabled });
+  const onHub = pathname === "/business";
+  const { data } = useSetupProgress({ enabled: enabled && !onHub });
   const [guideOpen, setGuideOpen] = useState(false);
 
-  if (!enabled || !data?.visible || !data.currentStepKey) {
-    return null;
-  }
-
-  if (pathname === "/business") {
+  if (!enabled || onHub || !data?.visible || !data.currentStepKey) {
     return null;
   }
 
@@ -45,9 +41,7 @@ export function SetupProgressContextStrip({
     <>
       <div
         role="status"
-        className={cn(
-          "shrink-0 border-b border-[#B08D48]/25 bg-[#FCFAF6] text-[#141414]",
-        )}
+        className="shrink-0 border-b border-[#B08D48]/25 bg-[#FCFAF6] text-[#141414]"
       >
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 sm:px-4">
           <div className="flex min-w-0 flex-1 items-center gap-2">
