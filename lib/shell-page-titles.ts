@@ -62,6 +62,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.branches]: "Branches",
     [APP_ROUTES.paymentsSettings]: "How you get paid",
     [APP_ROUTES.paymentsDayLedger]: "Today's takings",
+    [APP_ROUTES.fixedCosts]: "Fixed costs",
     [APP_ROUTES.paymentsKioskPay]: "Kiosk Pay",
     [APP_ROUTES.airtime]: "Airtime",
     [APP_ROUTES.onlineAirtime]: "Online airtime",

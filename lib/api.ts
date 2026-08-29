@@ -6136,6 +6136,200 @@ export async function fetchFinanceExpenses(
   );
 }
 
+export type ExpenseScheduleRecord = {
+  id: string;
+  branchId: string | null;
+  name: string;
+  categoryType: string;
+  amount: number;
+  paymentMethod: string;
+  frequency: string;
+  startDate: string;
+  endDate: string | null;
+  active: boolean;
+  includeInCashDrawer: boolean;
+  receiptS3Key: string | null;
+  expenseLedgerAccountId: string;
+  lastGeneratedOn: string | null;
+  createdBy: string;
+};
+
+export async function fetchExpenseSchedules(): Promise<ExpenseScheduleRecord[]> {
+  return request<ExpenseScheduleRecord[]>("/api/v1/finance/expense-schedules");
+}
+
+export async function createExpenseSchedule(body: {
+  name: string;
+  categoryType: string;
+  amount: number;
+  paymentMethod: string;
+  frequency: string;
+  startDate: string;
+  endDate?: string | null;
+  includeInCashDrawer: boolean;
+  branchId?: string | null;
+  receiptS3Key?: string | null;
+  expenseLedgerAccountId?: string | null;
+}): Promise<ExpenseScheduleRecord> {
+  return request<ExpenseScheduleRecord>("/api/v1/finance/expense-schedules", {
+    method: "POST",
+    body,
+  });
+}
+
+export async function patchExpenseSchedule(
+  scheduleId: string,
+  body: {
+    name?: string;
+    amount?: number;
+    paymentMethod?: string;
+    frequency?: string;
+    endDate?: string | null;
+    active?: boolean;
+    includeInCashDrawer?: boolean;
+    branchId?: string | null;
+    receiptS3Key?: string | null;
+    expenseLedgerAccountId?: string | null;
+  },
+): Promise<ExpenseScheduleRecord> {
+  return request<ExpenseScheduleRecord>(
+    `/api/v1/finance/expense-schedules/${encodeURIComponent(scheduleId)}`,
+    { method: "PATCH", body },
+  );
+}
+
+export async function deactivateExpenseSchedule(
+  scheduleId: string,
+): Promise<ExpenseScheduleRecord> {
+  return request<ExpenseScheduleRecord>(
+    `/api/v1/finance/expense-schedules/${encodeURIComponent(scheduleId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export type ExpenseOccurrenceStatus =
+  | "posted"
+  | "failed"
+  | "skipped"
+  | "due"
+  | "upcoming";
+
+export type ExpenseScheduleOccurrenceRecord = {
+  id: string | null;
+  scheduleId: string;
+  scheduleName: string;
+  branchId: string | null;
+  occurrenceDate: string;
+  status: ExpenseOccurrenceStatus;
+  amount: number;
+  paymentMethod: string;
+  expenseId: string | null;
+  postedAt: string | null;
+  failureReason: string | null;
+};
+
+export type FixedCostCalendarStatus =
+  | "posted"
+  | "pending"
+  | "failed"
+  | "future"
+  | "empty";
+
+export type FixedCostCalendarMonth = {
+  month: number;
+  status: FixedCostCalendarStatus;
+  dueCount: number;
+  postedCount: number;
+  failedCount: number;
+  skippedCount: number;
+  commitment: number | string;
+  postedTotal: number | string;
+};
+
+export type FixedCostCalendar = {
+  year: number;
+  months: FixedCostCalendarMonth[];
+};
+
+export async function fetchExpenseScheduleOccurrences(
+  year: number,
+  month: number,
+  options?: { branchId?: string },
+): Promise<ExpenseScheduleOccurrenceRecord[]> {
+  const params = new URLSearchParams({
+    year: String(year),
+    month: String(month),
+  });
+  if (options?.branchId?.trim()) params.set("branchId", options.branchId.trim());
+  return request<ExpenseScheduleOccurrenceRecord[]>(
+    `/api/v1/finance/expense-schedules/occurrences?${params}`,
+  );
+}
+
+export async function fetchFixedCostCalendar(
+  year: number,
+  options?: { branchId?: string },
+): Promise<FixedCostCalendar> {
+  const params = new URLSearchParams({ year: String(year) });
+  if (options?.branchId?.trim()) params.set("branchId", options.branchId.trim());
+  return request<FixedCostCalendar>(
+    `/api/v1/finance/expense-schedules/calendar?${params}`,
+  );
+}
+
+export async function postExpenseScheduleOccurrence(
+  occurrenceId: string,
+): Promise<ExpenseScheduleOccurrenceRecord> {
+  return request<ExpenseScheduleOccurrenceRecord>(
+    `/api/v1/finance/expense-schedules/occurrences/${encodeURIComponent(occurrenceId)}/post`,
+    { method: "POST" },
+  );
+}
+
+export async function postExpenseScheduleOccurrenceByDate(body: {
+  scheduleId: string;
+  occurrenceDate: string;
+}): Promise<ExpenseScheduleOccurrenceRecord> {
+  return request<ExpenseScheduleOccurrenceRecord>(
+    "/api/v1/finance/expense-schedules/occurrences/post",
+    { method: "POST", body },
+  );
+}
+
+export async function skipExpenseScheduleOccurrence(
+  occurrenceId: string,
+): Promise<ExpenseScheduleOccurrenceRecord> {
+  return request<ExpenseScheduleOccurrenceRecord>(
+    `/api/v1/finance/expense-schedules/occurrences/${encodeURIComponent(occurrenceId)}/skip`,
+    { method: "POST" },
+  );
+}
+
+export async function skipExpenseScheduleOccurrenceByDate(body: {
+  scheduleId: string;
+  occurrenceDate: string;
+}): Promise<ExpenseScheduleOccurrenceRecord> {
+  return request<ExpenseScheduleOccurrenceRecord>(
+    "/api/v1/finance/expense-schedules/occurrences/skip",
+    { method: "POST", body },
+  );
+}
+
+export async function postFinanceExpense(body: {
+  expenseDate: string;
+  name: string;
+  categoryType: string;
+  amount: number;
+  paymentMethod: string;
+  includeInCashDrawer: boolean;
+  branchId?: string | null;
+}): Promise<FinanceExpenseResponse> {
+  return request<FinanceExpenseResponse>("/api/v1/finance/expenses", {
+    method: "POST",
+    body,
+  });
+}
+
 export type OwnerDashboardResponse = {
   pulseToday: FinancePulseResponse;
   payablesAging: {
@@ -11518,6 +11712,8 @@ export type SalaryAdvanceRecord = {
   staffProfileId: string;
   userId: string;
   amount: number;
+  amountRepaid: number;
+  balanceOutstanding: number;
   advancedOn: string;
   note: string | null;
   status: string;
@@ -11535,10 +11731,15 @@ export type PayslipRecord = {
   baseSalary: number;
   advancesDeducted: number;
   otherDeductions: number;
+  payeDeducted: number;
+  nssfDeducted: number;
+  shifDeducted: number;
+  housingLevyDeducted: number;
   netPaid: number;
   paidAt: string;
   note: string | null;
   expenseId: string | null;
+  paymentMethod: string | null;
 };
 
 export type PayrollRunRow = {
@@ -11548,12 +11749,108 @@ export type PayrollRunRow = {
   title: string | null;
   employmentStatus: string;
   branchName: string | null;
+  branchId: string | null;
   baseSalary: number;
   advancesOutstanding: number;
+  statutoryTotal: number;
+  payeSuggested: number;
+  nssfSuggested: number;
+  shifSuggested: number;
+  housingLevySuggested: number;
   suggestedNet: number;
   alreadyPaid: boolean;
   payslipId: string | null;
   paidAt: string | null;
+};
+
+export type PayrollCalendarStatus =
+  | "future"
+  | "empty"
+  | "missing_salary"
+  | "pending"
+  | "paid";
+
+export type PayrollCalendarMonth = {
+  month: number;
+  status: PayrollCalendarStatus;
+  headcount: number;
+  paidCount: number;
+  pendingCount: number;
+  missingSalaryCount: number;
+  onLeaveCount: number;
+  totalNetPaid: number;
+};
+
+export type PayrollCalendar = {
+  year: number;
+  months: PayrollCalendarMonth[];
+};
+
+export type StaffPaySelfAdvance = {
+  id: string;
+  amount: number;
+  amountRepaid: number;
+  balanceOutstanding: number;
+  advancedOn: string;
+  status: string;
+  note: string | null;
+};
+
+export type StaffPaySelfPayslip = {
+  id: string;
+  periodYear: number;
+  periodMonth: number;
+  baseSalary: number;
+  advancesDeducted: number;
+  otherDeductions: number;
+  payeDeducted: number;
+  nssfDeducted: number;
+  shifDeducted: number;
+  housingLevyDeducted: number;
+  netPaid: number;
+  paidAt: string;
+  note: string | null;
+  paymentMethod: string | null;
+};
+
+export type StaffPaySelfPortal = {
+  displayName: string;
+  title: string | null;
+  employmentStatus: string;
+  startDate: string | null;
+  phone: string | null;
+  shopName: string;
+  currentSalary: number;
+  advancesOutstanding: number;
+  advances: StaffPaySelfAdvance[];
+  payslips: StaffPaySelfPayslip[];
+  sharePath: string | null;
+};
+
+export type PayrollAdvanceLedgerRow = {
+  id: string;
+  staffProfileId: string;
+  userId: string;
+  displayName: string;
+  branchName: string | null;
+  amount: number;
+  amountRepaid: number;
+  balanceOutstanding: number;
+  advancedOn: string;
+  note: string | null;
+  status: string;
+  repaidInPayslipId: string | null;
+  createdAt: string;
+};
+
+export type PayAllRunResult = {
+  paidCount: number;
+  skippedCount: number;
+  failures: Array<{
+    userId: string;
+    displayName: string;
+    reason: string;
+  }>;
 };
 
 export type UpdateStaffProfilePayload = {
@@ -11641,11 +11938,14 @@ export async function fetchStaffPayslips(
 export async function fetchPayrollRun(
   year: number,
   month: number,
+  options?: { branchId?: string; statutory?: boolean },
 ): Promise<PayrollRunRow[]> {
   const params = new URLSearchParams({
     year: String(year),
     month: String(month),
   });
+  if (options?.branchId) params.set("branchId", options.branchId);
+  if (options?.statutory) params.set("statutory", "true");
   return request<PayrollRunRow[]>(`${API_ROUTES.payroll}/runs?${params}`);
 }
 
@@ -11656,12 +11956,66 @@ export async function payStaffPayroll(
     month: number;
     otherDeductions?: number;
     note?: string;
+    applyStatutory?: boolean;
+    postExpense?: boolean;
+    paymentMethod?: string;
+    branchId?: string;
   },
 ): Promise<PayslipRecord> {
   return request<PayslipRecord>(
     `${API_ROUTES.payroll}/runs/${encodeURIComponent(userId)}/pay`,
     { method: "POST", body },
   );
+}
+
+export async function payAllStaffPayroll(
+  body: {
+    year: number;
+    month: number;
+    applyStatutory?: boolean;
+    postExpense?: boolean;
+    paymentMethod?: string;
+    branchId?: string;
+  },
+): Promise<PayAllRunResult> {
+  return request<PayAllRunResult>(`${API_ROUTES.payroll}/runs/pay-all`, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function fetchPayrollAdvances(
+  status?: "outstanding" | "repaid",
+): Promise<PayrollAdvanceLedgerRow[]> {
+  const params = status ? new URLSearchParams({ status }) : "";
+  const suffix = params ? `?${params}` : "";
+  return request<PayrollAdvanceLedgerRow[]>(
+    `${API_ROUTES.payroll}/advances${suffix}`,
+  );
+}
+
+export async function fetchPayrollPeriodPayslips(
+  year: number,
+  month: number,
+): Promise<PayslipRecord[]> {
+  const params = new URLSearchParams({
+    year: String(year),
+    month: String(month),
+  });
+  return request<PayslipRecord[]>(`${API_ROUTES.payroll}/payslips?${params}`);
+}
+
+export async function fetchPayrollCalendar(
+  year: number,
+  options?: { branchId?: string },
+): Promise<PayrollCalendar> {
+  const params = new URLSearchParams({ year: String(year) });
+  if (options?.branchId) params.set("branchId", options.branchId);
+  return request<PayrollCalendar>(`${API_ROUTES.payroll}/calendar?${params}`);
+}
+
+export async function fetchStaffPaySelf(): Promise<StaffPaySelfPortal> {
+  return request<StaffPaySelfPortal>(`${API_ROUTES.payroll}/me`);
 }
 
 // ---------------------------------------------------------------- nightly restock digest

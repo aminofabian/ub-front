@@ -11,12 +11,21 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   createStaffSalary,
+  fetchStaffAdvances,
+  fetchStaffPayslips,
   fetchStaffProfile,
   fetchStaffSalaries,
   updateStaffProfile,
+  type PayslipRecord,
+  type SalaryAdvanceRecord,
   type SalaryRecord,
   type StaffProfileRecord,
 } from "@/lib/api";
+import {
+  formatPayrollDate,
+  formatPayrollMoney,
+  payrollMonthLabel,
+} from "@/lib/payroll-utils";
 import { hasPermission, Permission } from "@/lib/permissions";
 
 type Props = {
@@ -102,6 +111,8 @@ export function StaffProfileDrawer({
   const [profile, setProfile] = useState<StaffProfileRecord | null>(null);
   const [draft, setDraft] = useState<ProfileDraft>(EMPTY_DRAFT);
   const [salaries, setSalaries] = useState<SalaryRecord[]>([]);
+  const [advances, setAdvances] = useState<SalaryAdvanceRecord[]>([]);
+  const [payslips, setPayslips] = useState<PayslipRecord[]>([]);
   const [salaryAmount, setSalaryAmount] = useState("");
   const [salaryFrom, setSalaryFrom] = useState(
     () => new Date().toISOString().slice(0, 10),
@@ -117,10 +128,18 @@ export function StaffProfileDrawer({
       setProfile(next);
       setDraft(draftFromProfile(next));
       if (canViewPayroll) {
-        const rows = await fetchStaffSalaries(userId);
-        setSalaries(rows);
+        const [salaryRows, advanceRows, payslipRows] = await Promise.all([
+          fetchStaffSalaries(userId),
+          fetchStaffAdvances(userId),
+          fetchStaffPayslips(userId),
+        ]);
+        setSalaries(salaryRows);
+        setAdvances(advanceRows);
+        setPayslips(payslipRows);
       } else {
         setSalaries([]);
+        setAdvances([]);
+        setPayslips([]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load profile");
@@ -509,6 +528,79 @@ export function StaffProfileDrawer({
                   </Button>
                 </div>
               ) : null}
+            </FormDrawerFields>
+          ) : null}
+
+          {canViewPayroll ? (
+            <FormDrawerFields
+              legend="Salary advances"
+              hint="Outstanding advances are deducted on the next pay run, oldest first."
+            >
+              <ul className="space-y-1.5 text-sm">
+                {advances.length === 0 ? (
+                  <li className="text-muted-foreground">No advances logged.</li>
+                ) : (
+                  advances.slice(0, 8).map((row) => (
+                    <li
+                      key={row.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/50 px-3 py-2"
+                    >
+                      <span className="tabular-nums">
+                        {formatPayrollMoney(Number(row.balanceOutstanding ?? row.amount))}
+                        <span className="text-xs text-muted-foreground">
+                          {" "}
+                          of {formatPayrollMoney(Number(row.amount))}
+                        </span>
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatPayrollDate(row.advancedOn)}
+                      </span>
+                      <span
+                        className={
+                          row.status === "repaid"
+                            ? "text-xs text-emerald-700 dark:text-emerald-300"
+                            : Number(row.amountRepaid) > 0
+                              ? "text-xs text-sky-800 dark:text-sky-200"
+                              : "text-xs text-amber-800 dark:text-amber-200"
+                        }
+                      >
+                        {row.status === "repaid"
+                          ? "Repaid"
+                          : Number(row.amountRepaid) > 0
+                            ? "Partial"
+                            : "Outstanding"}
+                      </span>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </FormDrawerFields>
+          ) : null}
+
+          {canViewPayroll ? (
+            <FormDrawerFields legend="Payslip history">
+              <ul className="space-y-1.5 text-sm">
+                {payslips.length === 0 ? (
+                  <li className="text-muted-foreground">No payslips yet.</li>
+                ) : (
+                  payslips.slice(0, 12).map((row) => (
+                    <li
+                      key={row.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/50 px-3 py-2"
+                    >
+                      <span className="font-medium">
+                        {payrollMonthLabel(row.periodYear, row.periodMonth)}
+                      </span>
+                      <span className="tabular-nums">
+                        {formatPayrollMoney(Number(row.netPaid))}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatPayrollDate(row.paidAt)}
+                      </span>
+                    </li>
+                  ))
+                )}
+              </ul>
             </FormDrawerFields>
           ) : null}
         </div>

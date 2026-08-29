@@ -51,6 +51,16 @@ export function toKenyanLocal07(raw: string): string | null {
   return networkFromNdc(Number.parseInt(local.slice(1, 4), 10)) ? local : null;
 }
 
+/** True when two phone strings refer to the same Kenyan mobile. */
+export function phonesMatchKenyan(a: string, b: string): boolean {
+  const left = toKenyanLocal07(a);
+  const right = toKenyanLocal07(b);
+  if (left && right) return left === right;
+  const da = kenyanMobileDigits(a);
+  const db = kenyanMobileDigits(b);
+  return da.length > 0 && da === db;
+}
+
 /** Grouped local form `0714 282 874` for account and till displays. */
 export function formatKenyanPhoneDisplay(raw: string | null | undefined): string {
   const trimmed = raw?.trim() ?? "";

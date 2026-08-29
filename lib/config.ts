@@ -61,6 +61,11 @@ export const APP_ROUTES = {
   userProfile: (userId: string) =>
     `/users?profile=${encodeURIComponent(userId)}`,
   payroll: "/payroll",
+  /** Recurring rent, utilities, and other fixed costs. */
+  fixedCosts: "/fixed-costs",
+  /** Staff self-service payslip portal (login required). */
+  myPay: "/my-pay",
+  staffPayPortal: (phone: string) => `/pay/${encodeURIComponent(phone)}`,
   products: "/products",
   productsCatalog: "/products/catalog",
   itemTypes: "/item-types",

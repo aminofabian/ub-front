@@ -76,6 +76,7 @@ export function surfaceFromPathname(pathname: string): string {
   if (path.startsWith("/marketplace")) return "marketplace";
   if (path.startsWith("/supplier-portal")) return "supplier-portal";
   if (path.startsWith("/payroll")) return "payroll";
+  if (path.startsWith("/fixed-costs")) return "fixed_costs";
   if (path.startsWith("/users")) return "users";
   return "app.general";
 }

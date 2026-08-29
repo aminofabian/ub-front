@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  Banknote,
   ChevronRight,
   Compass,
   Lock,
@@ -464,6 +465,8 @@ type TabletMoreSheetProps = {
   compactNav?: boolean;
   /** Live unread counts keyed by nav href (e.g. the support thread). */
   badgeByHref?: Readonly<Record<string, number>>;
+  /** Personal staff payslip portal link. */
+  myPayHref?: string | null;
 };
 
 const TILE_HUES = [0, 42, 84, 126, 168, 210, 252, 294] as const;
@@ -655,6 +658,7 @@ export function TabletMoreSheet({
   itemIsActive,
   compactNav = false,
   badgeByHref,
+  myPayHref,
 }: TabletMoreSheetProps) {
   const accent = primaryColor?.trim() || "#28a745";
   const greeting = greetingForHour(new Date().getHours());
@@ -815,6 +819,38 @@ export function TabletMoreSheet({
           </div>
         ) : null}
       </div>
+
+      {myPayHref ? (
+        <div className="relative shrink-0 px-4 pb-2 sm:px-5">
+          <Link
+            href={myPayHref}
+            onClick={onClose}
+            className="flex items-center gap-3 border px-3.5 py-3 transition-colors hover:bg-muted/40"
+            style={{
+              borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
+              background: `color-mix(in srgb, ${accent} 8%, transparent)`,
+            }}
+          >
+            <span
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl text-primary"
+              style={{
+                background: `color-mix(in srgb, ${accent} 14%, transparent)`,
+              }}
+            >
+              <Banknote className="size-5" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-foreground">
+                My pay
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Salary, advances, and payslips
+              </span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </Link>
+        </div>
+      ) : null}
 
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-4 sm:px-5">
         <MoreWorkspaceConsole

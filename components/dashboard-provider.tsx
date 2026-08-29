@@ -133,6 +133,9 @@ type DashboardContextValue = {
   canViewPayroll: boolean;
   canManagePayroll: boolean;
   canRunPayroll: boolean;
+  canViewPayrollSelf: boolean;
+  canReadFinanceExpenses: boolean;
+  canWriteFinanceExpenses: boolean;
   canReadStaffProfile: boolean;
   canUpdateStaffHr: boolean;
   canManageCustomers: boolean;
@@ -604,6 +607,18 @@ export function DashboardProvider({
       canRunPayroll: hasPermission(
         effectiveMe?.permissions,
         Permission.PayrollRun,
+      ),
+      canViewPayrollSelf: hasPermission(
+        effectiveMe?.permissions,
+        Permission.PayrollSelfRead,
+      ),
+      canReadFinanceExpenses: hasPermission(
+        effectiveMe?.permissions,
+        Permission.FinanceExpensesRead,
+      ),
+      canWriteFinanceExpenses: hasPermission(
+        effectiveMe?.permissions,
+        Permission.FinanceExpensesWrite,
       ),
       canReadStaffProfile: hasPermission(
         effectiveMe?.permissions,

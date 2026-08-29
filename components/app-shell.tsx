@@ -345,6 +345,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     entryHref: APP_ROUTES.paymentsDayLedger,
     items: [
       { href: APP_ROUTES.paymentsDayLedger, label: "Today's takings" },
+      { href: APP_ROUTES.fixedCosts, label: "Fixed costs" },
       { href: APP_ROUTES.paymentsKioskPay, label: "Kiosk Pay" },
       { href: APP_ROUTES.airtime, label: "Airtime" },
       { href: APP_ROUTES.onlineAirtime, label: "Online airtime" },
@@ -448,6 +449,7 @@ type NavGate = {
   featureFlags: Record<string, boolean> | undefined;
   canListUsers: boolean;
   canViewPayroll: boolean;
+  canReadFinanceExpenses: boolean;
   canManageBusinessSettings: boolean;
   canViewAuditLog: boolean;
   canViewCategories: boolean;
@@ -606,6 +608,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canManageBusinessSettings;
   if (item.href === APP_ROUTES.users) return gate.canListUsers;
   if (item.href === APP_ROUTES.payroll) return gate.canViewPayroll;
+  if (item.href === APP_ROUTES.fixedCosts) return gate.canReadFinanceExpenses;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
   if (item.href === APP_ROUTES.inventoryStockTakeDailyAuditReview)
     return gate.canApproveStockTake;
@@ -836,6 +839,8 @@ export function AppShell({ children }: AppShellProps) {
     loading,
     canListUsers,
     canViewPayroll,
+    canViewPayrollSelf,
+    canReadFinanceExpenses,
     canManageBusinessSettings,
     canViewAuditLog,
     canViewCategories,
@@ -930,6 +935,7 @@ export function AppShell({ children }: AppShellProps) {
       featureFlags: mergedFeatureFlags,
       canListUsers,
       canViewPayroll,
+      canReadFinanceExpenses,
       canManageBusinessSettings,
       canViewAuditLog,
       canViewCategories,
@@ -977,9 +983,10 @@ export function AppShell({ children }: AppShellProps) {
     }).filter((s) => s.items.length > 0);
   }, [
     mergedFeatureFlags,
-    canListUsers,
-    canViewPayroll,
-    canManageBusinessSettings,
+      canListUsers,
+      canViewPayroll,
+      canReadFinanceExpenses,
+      canManageBusinessSettings,
     canViewAuditLog,
     canViewCategories,
     canViewPurchasingIntelligence,
@@ -1561,6 +1568,7 @@ export function AppShell({ children }: AppShellProps) {
             itemIsActive={itemIsActive}
             compactNav={isStockManager || isCashier || isButcherCashier || isGroceryClerk}
             badgeByHref={navBadgeByHref}
+            myPayHref={canViewPayrollSelf ? APP_ROUTES.myPay : null}
           />
         </div>
       </div>
