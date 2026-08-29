@@ -863,20 +863,27 @@ function LandingBody({
 
   if (layout === "shop-window") {
     return (
-      <div className="flex min-h-0 flex-1 flex-col justify-end px-[1.1em] pb-[1.1em] pt-[0.5em]">
-        <p
-          className="text-[0.55em] font-bold uppercase tracking-[0.18em]"
-          style={{ color: skin.accent }}
-        >
-          Open the door
-        </p>
-        <p className="mt-[0.35em] text-[1.35em] font-bold leading-[0.95]">
+      <div className="relative flex min-h-0 flex-1 flex-col justify-end overflow-hidden px-[1.1em] pb-[1.1em]">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `radial-gradient(ellipse 90% 70% at 50% 18%, color-mix(in srgb, ${skin.accent} 32%, ${skin.card}), ${skin.surface} 72%)`,
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-[0.55em] border"
+          style={{ borderColor: "color-mix(in srgb, white 18%, transparent)" }}
+        />
+        <p className="relative text-[1.35em] font-bold leading-[0.95] tracking-tight">
           {storeName}
         </p>
-        <p className="mt-[0.45em] text-[0.62em] leading-snug" style={{ color: skin.muted }}>
+        <p
+          className="relative mt-[0.45em] text-[0.62em] leading-snug"
+          style={{ color: skin.muted }}
+        >
           {addressText}
         </p>
-        <div className="mt-[0.7em]">
+        <div className="relative mt-[0.7em]">
           <Cta skin={skin}>Visit us</Cta>
         </div>
       </div>
