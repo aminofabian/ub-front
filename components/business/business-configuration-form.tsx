@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Loader2,
   Moon,
+  Package,
   PackageX,
   Save,
   ScanLine,
@@ -625,6 +626,28 @@ export function BusinessConfigurationForm({
             icon={<ShoppingCart className="size-4" aria-hidden />}
             title="Allow selling when out of stock"
             description="Cashiers can complete sales when on-hand is zero. Stock goes negative until you receive more."
+          />
+        </PolicyPanel>
+      ) : null}
+
+      {visibleIds.has("settings-catalog") ? (
+        <PolicyPanel
+          id="settings-catalog"
+          title="Product names"
+          hint="How product titles read on Products, Stock, and POS."
+          accent="amber"
+        >
+          <PolicySwitch
+            checked={inventory.preserveProductNameCasing}
+            onChange={(checked) =>
+              setInventory((previous) => ({
+                ...previous,
+                preserveProductNameCasing: checked,
+              }))
+            }
+            icon={<Package className="size-4" aria-hidden />}
+            title="Use names exactly as entered"
+            description="Keeps codes like BL CVD-12 unchanged everywhere. Turn off to title-case names (Coca Cola style) on save and display."
           />
         </PolicyPanel>
       ) : null}
