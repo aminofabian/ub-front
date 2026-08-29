@@ -38,6 +38,7 @@ import { boutiqueShelfFontVariables } from "@/components/storefront/templates/st
 import boutiqueShelfStyles from "@/components/storefront/templates/store/boutique-shelf.module.css";
 import { ChemLabHeader } from "@/components/storefront/templates/store/chem-lab-header";
 import { ComilmartHeader } from "@/components/storefront/templates/store/comilmart-header";
+import { comilmartPaletteVars } from "@/components/storefront/templates/store/comilmart-palette";
 import { comilmartFontVariables } from "@/components/storefront/templates/store/comilmart-fonts";
 import comilmartStyles from "@/components/storefront/templates/store/comilmart.module.css";
 import { chemLabFontVariables } from "@/components/storefront/templates/store/chem-lab-fonts";
@@ -334,10 +335,7 @@ export function ShopStorefrontChrome({
                           ["--pc-ink" as string]: "#2B1520",
                         } as CSSProperties)
                       : isComilmart
-                        ? ({
-                            ["--cm-navy" as string]: primaryHex || "#0E1B2B",
-                            ["--cm-gold" as string]: accentHex || "#FFC20C",
-                          } as CSSProperties)
+                        ? comilmartPaletteVars(primaryHex, accentHex)
         : undefined;
 
   return (

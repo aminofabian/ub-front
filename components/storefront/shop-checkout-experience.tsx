@@ -7,9 +7,14 @@ import ShopCheckoutForm from "@/components/storefront/shop-checkout-form";
 import { ShopCheckoutDrawerChrome } from "@/components/storefront/shop-checkout-drawer-chrome";
 import { ShopSlideOver } from "@/components/storefront/shop-slide-over";
 import { BlankDropCheckout } from "@/components/storefront/templates/store/blank-drop-checkout";
+import { ComilmartCheckoutChrome } from "@/components/storefront/templates/store/comilmart-checkout-chrome";
 import { useShopCartOptional } from "@/hooks/use-shop-cart";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { APP_ROUTES } from "@/lib/config";
+import {
+  isBlankDropStoreTheme,
+  isComilmartStoreTheme,
+} from "@/lib/storefront-theme-detect";
 
 type Props = {
   slug: string;
@@ -17,18 +22,14 @@ type Props = {
   mode: "drawer" | "page";
 };
 
-function isBlankDropTheme(): boolean {
-  if (typeof document === "undefined") return false;
-  return Boolean(document.querySelector('[data-store-theme-id="blank-drop"]'));
-}
-
 export function ShopCheckoutExperience({ slug, mode }: Props) {
   const isMd = useMediaMd();
   const router = useRouter();
   const cart = useShopCartOptional();
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [thankYou, setThankYou] = useState(false);
-  const blankDrop = isBlankDropTheme();
+  const blankDrop = isBlankDropStoreTheme();
+  const comilmart = isComilmartStoreTheme();
 
   const onClose = () => {
     if (mode === "drawer") {
@@ -83,6 +84,10 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
     return null;
   }
 
+  const CheckoutChrome = comilmart
+    ? ComilmartCheckoutChrome
+    : ShopCheckoutDrawerChrome;
+
   return (
     <ShopSlideOver
       variant="panel"
@@ -90,14 +95,15 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
       onClose={onClose}
       ariaLabel="Checkout"
       zIndex={74}
+      className={comilmart ? "cm-slide-over" : undefined}
     >
-      <ShopCheckoutDrawerChrome
+      <CheckoutChrome
         onClose={onClose}
         orderPlaced={orderPlaced}
         thankYou={thankYou}
       >
         {form}
-      </ShopCheckoutDrawerChrome>
+      </CheckoutChrome>
     </ShopSlideOver>
   );
 }

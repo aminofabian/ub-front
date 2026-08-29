@@ -49,9 +49,11 @@ type Props = {
   compactHeader?: boolean;
   /** Desktop float: expand into the full slide-over drawer. */
   onExpand?: () => void;
+  /** Comilmart (and other themed shells) supply their own header rail. */
+  hideHeader?: boolean;
 };
 
-export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
+export function ShopCartPanelBody({ onClose, compactHeader, onExpand, hideHeader }: Props) {
   const {
     slug,
     cart,
@@ -132,6 +134,7 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
         compactHeader ? "h-full max-h-full" : "h-full",
       )}
     >
+      {!hideHeader ? (
       <div
         className={cn(
           "flex shrink-0 items-center justify-between gap-2 border-b",
@@ -216,6 +219,7 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
           <X className="size-4" aria-hidden />
         </button>
       </div>
+      ) : null}
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {loading && !cart ? (

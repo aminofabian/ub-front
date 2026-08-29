@@ -11,7 +11,7 @@ import styles from "@/components/storefront/templates/store/comilmart.module.css
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES, apiUrl } from "@/lib/config";
 import type { PublicCatalogType, PublicCategory } from "@/lib/public-storefront";
-import { shopListPath } from "@/lib/shop-url";
+import { shopListPath, storefrontCategoryPathSlug } from "@/lib/shop-url";
 import { cn } from "@/lib/utils";
 
 function LiveClock() {
@@ -116,6 +116,9 @@ function ComilmartHeaderView({
   const { itemCount, openDrawer } = useShopCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const [types, setTypes] = useState<PublicCatalogType[]>([]);
+  const categoryPathSlug = pathname.startsWith("/shop/c/")
+    ? pathname.slice("/shop/c/".length).split("/")[0]
+    : undefined;
   const wa = whatsapp?.replace(/\D/g, "") || "";
   const locality =
     [areaLabel?.trim(), branchHint?.trim()].filter(Boolean).join(" · ") ||
@@ -187,14 +190,16 @@ function ComilmartHeaderView({
 
       <div className={styles.mainBar}>
         <Link href={APP_ROUTES.shop} className={styles.logo}>
-          <StorefrontEditableLogoMark
-            logoUrl={logoUrl}
-            alt={storeName}
-            width={240}
-            height={56}
-            className={styles.logoImg}
-            fallback={<span className={styles.logoText}>{storeName}</span>}
-          />
+          <span className={styles.logoShell}>
+            <StorefrontEditableLogoMark
+              logoUrl={logoUrl}
+              alt={storeName}
+              width={240}
+              height={56}
+              className={styles.logoImg}
+              fallback={<span className={styles.logoText}>{storeName}</span>}
+            />
+          </span>
         </Link>
 
         <button
@@ -253,7 +258,10 @@ function ComilmartHeaderView({
           {visibleCategories.map((cat) => (
             <Link
               key={cat.id}
-              href={shopListPath({ categoryId: cat.id })}
+              href={shopListPath({
+                categoryPathSlug: storefrontCategoryPathSlug(cat),
+                typeId: undefined,
+              })}
               className={styles.drawerLink}
               onClick={() => setMenuOpen(false)}
             >
@@ -263,7 +271,10 @@ function ComilmartHeaderView({
           {visibleTypes.map((type) => (
             <Link
               key={type.id}
-              href={shopListPath({ typeId: type.id })}
+              href={shopListPath({
+                categoryPathSlug,
+                typeId: type.id,
+              })}
               className={styles.drawerLink}
               onClick={() => setMenuOpen(false)}
             >

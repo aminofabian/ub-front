@@ -2581,6 +2581,43 @@ html:has([data-store-theme-id="chem-lab"][data-cl-mode="light"]) {
     color-scheme: light;
 }
 
+/* Comilmart — portaled dialogs (sign-in) and slide-overs inherit navy + gold. */
+html:has([data-store-theme-id="comilmart"]) {
+    background-color: #f6f4ef;
+    color-scheme: light;
+    --primary: #0e1b2b;
+    --primary-foreground: #ffffff;
+    --ring: #ffc20c;
+    --background: #ffffff;
+    --foreground: #0e1b2b;
+    --muted-foreground: #4a5568;
+    --border: color-mix(in srgb, #0e1b2b 11%, transparent);
+}
+
+html:has([data-store-theme-id="comilmart"]) .cm-slide-over > aside[role="dialog"] {
+    border-color: color-mix(in srgb, #0e1b2b 12%, transparent);
+    box-shadow:
+        0 2px 4px color-mix(in srgb, #0e1b2b 8%, transparent),
+        0 12px 28px color-mix(in srgb, #0e1b2b 11%, transparent),
+        -32px 0 100px -24px color-mix(in srgb, #0e1b2b 18%, transparent);
+}
+
+html:has([data-store-theme-id="comilmart"]) [data-slot="dialog-content"],
+html:has([data-store-theme-id="comilmart"]) [role="dialog"].max-w-md {
+    border-color: color-mix(in srgb, #0e1b2b 12%, transparent);
+}
+
+html:has([data-store-theme-id="comilmart"]) [data-slot="dialog-content"] button[type="submit"],
+html:has([data-store-theme-id="comilmart"]) .storefront-browse button.bg-primary {
+    background-color: #ffc20c;
+    color: #0e1b2b;
+}
+
+html:has([data-store-theme-id="comilmart"]) ::selection {
+    background: color-mix(in srgb, #ffc20c 45%, white);
+    color: #0e1b2b;
+}
+
 .landing-page {
     overflow: clip;
 }

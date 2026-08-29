@@ -7,6 +7,10 @@ import { StorefrontThemeScope } from "@/components/storefront/storefront-theme-s
 import { StorefrontSupportLauncher } from "@/components/support/storefront-support-launcher";
 import { resolveStoreChromeVariant } from "@/components/storefront/templates/registry";
 import {
+  COMILMART_GOLD,
+  COMILMART_NAVY,
+} from "@/components/storefront/templates/store/comilmart-palette";
+import {
   fetchPublicCategories,
   fetchPublicStorefront,
   fetchTenantContext,
@@ -101,6 +105,10 @@ export async function StorefrontShell({
     preview.themeId ?? tenant?.storeThemeId,
   );
   const chromeVariant = resolveStoreChromeVariant(storeThemeId);
+  const themeScopePrimary =
+    chromeVariant === "comilmart" ? COMILMART_NAVY : primary;
+  const themeScopeAccent =
+    chromeVariant === "comilmart" ? COMILMART_GOLD : accent;
   const previewLookName = preview.landingId
     ? landingTemplateMeta(preview.landingId).name
     : preview.themeId
@@ -132,8 +140,8 @@ export async function StorefrontShell({
 
   return (
     <StorefrontThemeScope
-      primaryHex={primary}
-      accentHex={accent}
+      primaryHex={themeScopePrimary}
+      accentHex={themeScopeAccent}
       design={designOverride ?? tenant?.design ?? null}
       logoScale={tenant?.branding?.logoScale}
       className={cn(

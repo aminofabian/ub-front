@@ -14,6 +14,7 @@ import {
 } from "@/components/storefront/storefront-native-hero-copy";
 import { ComilmartCatalog, ComilmartProductRail } from "@/components/storefront/templates/store/comilmart-catalog";
 import { ComilmartFloats } from "@/components/storefront/templates/store/comilmart-floats";
+import { comilmartPaletteVars } from "@/components/storefront/templates/store/comilmart-palette";
 import { comilmartFontVariables } from "@/components/storefront/templates/store/comilmart-fonts";
 import styles from "@/components/storefront/templates/store/comilmart.module.css";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
@@ -24,7 +25,7 @@ import {
   type StorefrontHeroSectionSettings,
 } from "@/lib/storefront-design";
 import { themeOptionVars } from "@/lib/storefront-theme-options";
-import { shopListPath } from "@/lib/shop-url";
+import { shopListPath, storefrontCategoryPathSlug } from "@/lib/shop-url";
 import { cn } from "@/lib/utils";
 import { usePathname, useSearchParams } from "next/navigation";
 
@@ -64,9 +65,7 @@ function ComilmartHomeBody(props: StoreHomeTemplateProps) {
   } = props;
   const design = useStorefrontLiveDesign(designProp ?? null);
   const optionVars = themeOptionVars(themeId, design?.theme ?? null);
-
-  const gold = accentHex?.trim() || "#FFC20C";
-  const navy = primaryHex?.trim() || "#0E1B2B";
+  const paletteVars = comilmartPaletteVars(primaryHex, accentHex);
   const heroSection = storefrontSectionConfig(design, "hero");
   const heroOn = heroSection?.enabled === true;
   const heroSettings = heroSection?.settings as
@@ -149,13 +148,7 @@ function ComilmartHomeBody(props: StoreHomeTemplateProps) {
     <div
       className={cn(styles.root, styles.body, comilmartFontVariables)}
       data-store-theme-id="comilmart"
-      style={
-        {
-          ["--cm-gold" as string]: gold,
-          ["--cm-navy" as string]: navy,
-          ...optionVars,
-        } as CSSProperties
-      }
+      style={{ ...paletteVars, ...optionVars } as CSSProperties}
     >
       {listing ? (
         <ComilmartCatalog
@@ -300,7 +293,9 @@ function ComilmartHomeBody(props: StoreHomeTemplateProps) {
                 {categories.slice(0, 12).map((cat) => (
                   <Link
                     key={cat.id}
-                    href={shopListPath({ categoryId: cat.id })}
+                    href={shopListPath({
+                      categoryPathSlug: storefrontCategoryPathSlug(cat),
+                    })}
                     className={styles.categoryChip}
                   >
                     {cat.name}
@@ -372,7 +367,11 @@ function ComilmartHomeBody(props: StoreHomeTemplateProps) {
                   </p>
                   {spotlightCategory ? (
                     <Link
-                      href={shopListPath({ categoryId: spotlightCategory.id })}
+                      href={shopListPath({
+                        categoryPathSlug: storefrontCategoryPathSlug(
+                          spotlightCategory,
+                        ),
+                      })}
                       className={styles.spotlightLink}
                     >
                       Browse category →
