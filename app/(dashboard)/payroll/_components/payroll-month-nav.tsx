@@ -9,6 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   PAYROLL_MONTHS,
+  defaultPayrollPeriod,
+  isPayrollFocusPeriod,
   payrollMonthLabel,
   shiftPayrollMonth,
 } from "@/lib/payroll-utils";
@@ -21,9 +23,8 @@ type Props = {
 };
 
 export function PayrollMonthNav({ year, month, onChange, onRefresh }: Props) {
-  const now = new Date();
-  const isCurrentMonth =
-    year === now.getFullYear() && month === now.getMonth() + 1;
+  const focus = defaultPayrollPeriod();
+  const isFocusPeriod = isPayrollFocusPeriod(year, month);
 
   return (
     <div className="flex flex-wrap items-end gap-3">
@@ -89,16 +90,19 @@ export function PayrollMonthNav({ year, month, onChange, onRefresh }: Props) {
         />
       </label>
 
-      {!isCurrentMonth ? (
+      {!isFocusPeriod ? (
         <Button
           type="button"
           variant="outline"
           className="h-[42px]"
           onClick={() => {
-            onChange(now.getFullYear(), now.getMonth() + 1);
+            onChange(focus.year, focus.month);
           }}
         >
-          This month
+          {focus.month !== new Date().getMonth() + 1 ||
+          focus.year !== new Date().getFullYear()
+            ? `Focus · ${payrollMonthLabel(focus.year, focus.month)}`
+            : "This month"}
         </Button>
       ) : null}
 

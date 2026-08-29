@@ -5,7 +5,9 @@ import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
+  defaultPayrollPeriod,
   formatPayrollMoney,
+  isPayrollFocusPeriod,
   payrollMonthLabel,
   shiftPayrollMonth,
 } from "@/lib/payroll-utils";
@@ -16,6 +18,8 @@ type Summary = {
   pendingCount: number;
   totalNetPending: number;
   totalBase: number;
+  totalArrears: number;
+  staffWithArrears: number;
   totalAdvances: number;
 };
 
@@ -38,9 +42,8 @@ export function PayrollRunHeader({
   onMonthChange,
   onRefresh,
 }: Props) {
-  const now = new Date();
-  const isCurrentMonth =
-    year === now.getFullYear() && month === now.getMonth() + 1;
+  const focus = defaultPayrollPeriod();
+  const isFocusPeriod = isPayrollFocusPeriod(year, month);
   const progress =
     summary.headcount > 0
       ? Math.round((summary.paidCount / summary.headcount) * 100)
@@ -88,14 +91,17 @@ export function PayrollRunHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {!isCurrentMonth ? (
+          {!isFocusPeriod ? (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => onMonthChange(now.getFullYear(), now.getMonth() + 1)}
+              onClick={() => onMonthChange(focus.year, focus.month)}
             >
-              This month
+              {focus.month !== new Date().getMonth() + 1 ||
+              focus.year !== new Date().getFullYear()
+                ? `Focus · ${payrollMonthLabel(focus.year, focus.month)}`
+                : "This month"}
             </Button>
           ) : null}
           {onRefresh ? (
@@ -119,7 +125,16 @@ export function PayrollRunHeader({
             <p className="mt-1 text-sm text-muted-foreground">
               {summary.pendingCount} staff awaiting payment
               {summary.paidCount > 0 ? ` · ${summary.paidCount} already paid` : ""}
+              {summary.staffWithArrears > 0
+                ? ` · ${summary.staffWithArrears} with arrears`
+                : ""}
             </p>
+            {summary.totalArrears > 0 ? (
+              <p className="mt-2 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-950 dark:text-violet-100">
+                {formatPayrollMoney(summary.totalArrears)} in unpaid prior months is rolled into
+                this run — paying now clears those periods too.
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
@@ -151,22 +166,33 @@ export function PayrollRunHeader({
         <dl className="grid grid-cols-2 gap-2 sm:grid-cols-2">
           <MetricTile label="Staff" value={String(summary.headcount)} />
           <MetricTile
-            label="Gross base"
+            label="Gross (incl. arrears)"
             value={`KES ${formatPayrollMoney(summary.totalBase)}`}
           />
+          {summary.totalArrears > 0 ? (
+            <MetricTile
+              label="Arrears"
+              value={`KES ${formatPayrollMoney(summary.totalArrears)}`}
+              warn
+            />
+          ) : (
+            <MetricTile
+              label="Advances owed"
+              value={`KES ${formatPayrollMoney(summary.totalAdvances)}`}
+              warn={summary.totalAdvances > 0}
+            />
+          )}
           <MetricTile
-            label="Advances owed"
-            value={`KES ${formatPayrollMoney(summary.totalAdvances)}`}
-            warn={summary.totalAdvances > 0}
-          />
-          <MetricTile
-            label="Statutory"
+            label={summary.totalArrears > 0 ? "Advances owed" : "Statutory"}
             value={
-              applyStatutory
-                ? `KES ${formatPayrollMoney(totalStatutory)}`
-                : "Not applied"
+              summary.totalArrears > 0
+                ? `KES ${formatPayrollMoney(summary.totalAdvances)}`
+                : applyStatutory
+                  ? `KES ${formatPayrollMoney(totalStatutory)}`
+                  : "Not applied"
             }
-            muted={!applyStatutory}
+            warn={summary.totalArrears > 0 && summary.totalAdvances > 0}
+            muted={summary.totalArrears === 0 && !applyStatutory}
           />
         </dl>
       </div>

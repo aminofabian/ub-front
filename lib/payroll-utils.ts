@@ -226,6 +226,138 @@ export function scheduledAdvanceDeduction(
   );
 }
 
+export type StaffAdvancePayPreviewLine = {
+  id: string;
+  advancedOn: string;
+  originalAmount: number;
+  amountRepaid: number;
+  balanceOutstanding: number;
+  arrangementCap: number;
+  allocatedThisRun: number;
+  repaymentMode: string;
+  repaymentValue: number | null;
+  status: string;
+};
+
+export type StaffAdvancePayPreview = {
+  lines: StaffAdvancePayPreviewLine[];
+  totalOutstanding: number;
+  totalArrangementCap: number;
+  totalAllocatedThisRun: number;
+  payPool: number;
+  poolLimited: boolean;
+  netAfterAdvances: number;
+};
+
+/** Realistic pay-run preview: pool-limited, oldest advance first. */
+export function buildStaffAdvancePayPreview(
+  baseSalary: number,
+  statutoryTotal: number,
+  otherDeductions: number,
+  advances: Array<{
+    id: string;
+    amount: number;
+    amountRepaid: number;
+    balanceOutstanding: number;
+    advancedOn: string;
+    repaymentMode?: string | null;
+    repaymentValue?: number | null;
+    status: string;
+  }>,
+): StaffAdvancePayPreview {
+  const open = advances
+    .filter(
+      (a) =>
+        (a.status === "outstanding" || Number(a.balanceOutstanding) > 0) &&
+        Number(a.balanceOutstanding) > 0,
+    )
+    .map((a) => ({
+      id: a.id,
+      amount: Number(a.amount),
+      amountRepaid: Number(a.amountRepaid) || 0,
+      balanceOutstanding: roundMoney(Number(a.balanceOutstanding)),
+      advancedOn: a.advancedOn,
+      repaymentMode: a.repaymentMode,
+      repaymentValue: a.repaymentValue,
+      status: a.status,
+    }));
+
+  const payPool = roundMoney(
+    Math.max(0, Number(baseSalary) - Number(statutoryTotal) - Number(otherDeductions)),
+  );
+
+  const inputs: AdvanceRepaymentInput[] = open.map((a) => ({
+    id: a.id,
+    amount: a.amount,
+    balanceOutstanding: a.balanceOutstanding,
+    repaymentMode: a.repaymentMode,
+    repaymentValue: a.repaymentValue,
+    advancedOn: a.advancedOn,
+  }));
+
+  const { allocations, total: totalAllocatedThisRun } = allocateAdvanceRepayments(
+    payPool,
+    inputs,
+    false,
+  );
+  const allocationById = new Map(allocations.map((a) => [a.advanceId, a.amount]));
+
+  const lines: StaffAdvancePayPreviewLine[] = open
+    .sort((a, b) => a.advancedOn.localeCompare(b.advancedOn))
+    .map((a) => ({
+      id: a.id,
+      advancedOn: a.advancedOn,
+      originalAmount: a.amount,
+      amountRepaid: a.amountRepaid,
+      balanceOutstanding: a.balanceOutstanding,
+      arrangementCap: advanceRepaymentCap(
+        {
+          amount: a.amount,
+          balanceOutstanding: a.balanceOutstanding,
+          repaymentMode: a.repaymentMode,
+          repaymentValue: a.repaymentValue,
+        },
+        false,
+      ),
+      allocatedThisRun: allocationById.get(a.id) ?? 0,
+      repaymentMode: a.repaymentMode ?? "full_balance",
+      repaymentValue: a.repaymentValue ?? null,
+      status: a.status,
+    }));
+
+  const totalOutstanding = roundMoney(
+    open.reduce((sum, a) => sum + a.balanceOutstanding, 0),
+  );
+  const totalArrangementCap = roundMoney(
+    lines.reduce((sum, line) => sum + line.arrangementCap, 0),
+  );
+  const poolLimited = totalArrangementCap > payPool && totalAllocatedThisRun < totalArrangementCap;
+
+  return {
+    lines,
+    totalOutstanding,
+    totalArrangementCap,
+    totalAllocatedThisRun,
+    payPool,
+    poolLimited,
+    netAfterAdvances: roundMoney(Math.max(0, payPool - totalAllocatedThisRun)),
+  };
+}
+
+export function advanceBalanceLabel(
+  originalAmount: number,
+  amountRepaid: number,
+  balanceOutstanding: number,
+): string {
+  if (amountRepaid > 0 && balanceOutstanding > 0) {
+    return `${formatPayrollMoney(balanceOutstanding)} left · repaid ${formatPayrollMoney(amountRepaid)} of ${formatPayrollMoney(originalAmount)}`;
+  }
+  if (balanceOutstanding <= 0) {
+    return "Cleared";
+  }
+  return formatPayrollMoney(balanceOutstanding);
+}
+
 export function formatPayrollMoney(n: number): string {
   return Number(n).toLocaleString(undefined, {
     minimumFractionDigits: 2,
@@ -254,6 +386,69 @@ export function shiftPayrollMonth(
 ): { year: number; month: number } {
   const d = new Date(year, month - 1 + delta, 1);
   return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
+
+/** After this day of the month, payroll UI defaults to the next pay period. */
+export const PAYROLL_FOCUS_DAY = 15;
+
+/** Default pay period when opening payroll — next month after the 15th. */
+export function defaultPayrollPeriod(from: Date = new Date()): {
+  year: number;
+  month: number;
+} {
+  if (from.getDate() > PAYROLL_FOCUS_DAY) {
+    return shiftPayrollMonth(from.getFullYear(), from.getMonth() + 1, 1);
+  }
+  return { year: from.getFullYear(), month: from.getMonth() + 1 };
+}
+
+export function isPayrollFocusPeriod(year: number, month: number, from: Date = new Date()): boolean {
+  const focus = defaultPayrollPeriod(from);
+  return year === focus.year && month === focus.month;
+}
+
+export type PayrollArrearPeriod = {
+  year: number;
+  month: number;
+  baseSalary: number;
+  statutoryTotal: number;
+  payeSuggested: number;
+  nssfSuggested: number;
+  shifSuggested: number;
+  housingLevySuggested: number;
+  netBeforeAdvances: number;
+};
+
+export function payrollCombinedBase(row: {
+  baseSalary: number;
+  arrearsBaseTotal?: number;
+}): number {
+  return Number(row.baseSalary) + Number(row.arrearsBaseTotal ?? 0);
+}
+
+export function payrollArrearsNet(row: {
+  arrearPeriods?: PayrollArrearPeriod[];
+}): number {
+  return (row.arrearPeriods ?? []).reduce(
+    (sum, period) => sum + Number(period.netBeforeAdvances),
+    0,
+  );
+}
+
+export function payrollArrearMonthsLabel(periods: PayrollArrearPeriod[]): string {
+  if (!periods.length) return "";
+  return periods.map((p) => payrollShortMonth(p.year, p.month)).join(" + ");
+}
+
+export function payrollArrearSummary(row: {
+  arrearPeriods?: PayrollArrearPeriod[];
+  arrearsBaseTotal?: number;
+}): string | null {
+  const periods = row.arrearPeriods ?? [];
+  if (!periods.length) return null;
+  const total = Number(row.arrearsBaseTotal ?? 0);
+  const label = payrollArrearMonthsLabel(periods);
+  return `${label} · ${formatPayrollMoney(total)} gross`;
 }
 
 export function formatPayrollDate(value: string | null | undefined): string {
@@ -438,6 +633,8 @@ export function exportPayrollRunCsv(
     branchName: string | null;
     employmentStatus: string;
     baseSalary: number;
+    arrearsBaseTotal?: number;
+    arrearPeriods?: PayrollArrearPeriod[];
     advancesOutstanding: number;
     suggestedNet: number;
     alreadyPaid: boolean;
@@ -454,6 +651,8 @@ export function exportPayrollRunCsv(
       "Branch",
       "Status",
       "Base",
+      "Arrears",
+      "Arrear months",
       "Advances",
       "Net",
       "Run status",
@@ -465,6 +664,8 @@ export function exportPayrollRunCsv(
       row.branchName ?? "",
       employmentStatusLabel(row.employmentStatus),
       row.baseSalary.toFixed(2),
+      Number(row.arrearsBaseTotal ?? 0).toFixed(2),
+      payrollArrearMonthsLabel(row.arrearPeriods ?? []),
       row.advancesOutstanding.toFixed(2),
       row.suggestedNet.toFixed(2),
       row.alreadyPaid ? "Paid" : "Pending",

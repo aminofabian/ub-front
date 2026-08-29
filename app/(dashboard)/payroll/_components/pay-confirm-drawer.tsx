@@ -12,12 +12,16 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fetchStaffAdvances, type PayrollRunRow, type SalaryAdvanceRecord } from "@/lib/api";
 import {
+  advanceBalanceLabel,
   advanceRepaymentCap,
   advanceRepaymentModeSummary,
   allocateAdvanceRepayments,
+  buildStaffAdvancePayPreview,
   formatPayrollMoney,
+  payrollArrearMonthsLabel,
+  payrollArrearsNet,
+  payrollCombinedBase,
   payrollMonthLabel,
-  scheduledAdvanceDeduction,
 } from "@/lib/payroll-utils";
 
 const DEDUCTION_TEMPLATES = [
@@ -88,18 +92,35 @@ export function PayConfirmDrawer({
   }, [open, row, applyStatutoryDefault, postExpenseDefault]);
 
   const other = Number(otherDeductions) || 0;
-  const statutory = applyStatutory ? Number(row?.statutoryTotal) || 0 : 0;
+  const combinedBase = row ? payrollCombinedBase(row) : 0;
+  const currentStatutory = applyStatutory ? Number(row?.statutoryTotal) || 0 : 0;
+  const arrearsStatutory = applyStatutory ? Number(row?.arrearsStatutoryTotal ?? 0) : 0;
+  const combinedStatutory = currentStatutory + arrearsStatutory;
+  const statutory = combinedStatutory;
   const advancePool = row
-    ? Math.max(0, Number(row.baseSalary) - statutory - other)
+    ? Math.max(0, combinedBase - combinedStatutory - other)
     : 0;
 
-  const scheduledThisRun = useMemo(
-    () =>
-      row
-        ? Number(row.advancesScheduledThisRun) || scheduledAdvanceDeduction(advances)
-        : 0,
-    [row, advances],
-  );
+  const payPreview = useMemo(() => {
+    if (!row) return null;
+    return buildStaffAdvancePayPreview(
+      combinedBase,
+      combinedStatutory,
+      other,
+      advances.map((a) => ({
+        id: a.id,
+        amount: Number(a.amount),
+        amountRepaid: Number(a.amountRepaid) || 0,
+        balanceOutstanding: Number(a.balanceOutstanding),
+        advancedOn: a.advancedOn,
+        repaymentMode: a.repaymentMode,
+        repaymentValue: a.repaymentValue,
+        status: a.status,
+      })),
+    );
+  }, [row, combinedBase, combinedStatutory, other, advances]);
+
+  const scheduledThisRun = payPreview?.totalAllocatedThisRun ?? 0;
 
   const fullDeductCap = useMemo(() => {
     if (!row || advances.length === 0) {
@@ -160,9 +181,11 @@ export function PayConfirmDrawer({
       amount: item.amount,
     }));
   }, [advancesApplied, advances, includeManualAdvances]);
-  const net = row
-    ? Math.max(0, Number(row.baseSalary) - statutory - advancesApplied - other)
+  const currentPeriodNet = row
+    ? Math.max(0, Number(row.baseSalary) - currentStatutory - advancesApplied - other)
     : 0;
+  const arrearNet = row ? payrollArrearsNet(row) : 0;
+  const cashOut = arrearNet + currentPeriodNet;
 
   const statutoryLines = useMemo(
     () =>
@@ -234,6 +257,15 @@ export function PayConfirmDrawer({
         </p>
       ) : null}
 
+      {row.arrearPeriods?.length ? (
+        <p className="mb-4 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-sm text-violet-950 dark:text-violet-100">
+          Includes arrears from{" "}
+          <span className="font-medium">{payrollArrearMonthsLabel(row.arrearPeriods)}</span>
+          {" "}({formatPayrollMoney(row.arrearsBaseTotal)} gross). Paying now creates payslips for
+          each missed month plus {payrollMonthLabel(year, month)}.
+        </p>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <FormDrawerFields
           legend="Deductions"
@@ -274,35 +306,45 @@ export function PayConfirmDrawer({
               <Loader2 className="size-3.5 animate-spin" aria-hidden />
               Loading advance arrangements…
             </p>
-          ) : advances.length > 0 ? (
+          ) : advances.length > 0 && payPreview ? (
             <div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3">
               <p className="text-xs font-medium text-muted-foreground">
                 Repayment plan this run
+                {payPreview.poolLimited ? (
+                  <span className="font-normal text-muted-foreground">
+                    {" "}
+                    · pool {formatPayrollMoney(payPreview.payPool)}, oldest first
+                  </span>
+                ) : null}
               </p>
-              {advances.map((advance) => {
-                const scheduled = Number(advance.scheduledDeductionThisRun ?? 0);
+              {payPreview.lines.map((line) => {
                 const applied =
-                  allocationPreview.find((line) => line.advance?.id === advance.id)?.amount ?? 0;
+                  allocationPreview.find((item) => item.advance?.id === line.id)?.amount ??
+                  line.allocatedThisRun;
                 return (
-                  <div key={advance.id} className="rounded-md bg-background/60 px-2.5 py-2 text-xs">
+                  <div key={line.id} className="rounded-md bg-background/60 px-2.5 py-2 text-xs">
                     <div className="flex justify-between gap-3">
-                      <span className="font-medium tabular-nums">
-                        {formatPayrollMoney(Number(advance.balanceOutstanding))}
-                      </span>
+                      <span className="font-medium">{formatPayrollDateShort(line.advancedOn)}</span>
                       <span className="tabular-nums font-semibold text-amber-800 dark:text-amber-200">
                         {applied > 0
                           ? `− ${formatPayrollMoney(applied)}`
-                          : scheduled > 0
-                            ? `sched. ${formatPayrollMoney(scheduled)}`
+                          : line.balanceOutstanding > 0
+                            ? "Later"
                             : "—"}
                       </span>
                     </div>
                     <p className="mt-0.5 text-muted-foreground">
-                      {formatPayrollDateShort(advance.advancedOn)} ·{" "}
+                      {advanceBalanceLabel(
+                        line.originalAmount,
+                        line.amountRepaid,
+                        line.balanceOutstanding,
+                      )}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
                       {advanceRepaymentModeSummary(
-                        advance.repaymentMode,
-                        advance.repaymentValue,
-                        Number(advance.amount),
+                        line.repaymentMode,
+                        line.repaymentValue,
+                        line.originalAmount,
                       )}
                     </p>
                   </div>
@@ -382,13 +424,27 @@ export function PayConfirmDrawer({
         <FormDrawerFields legend="Summary & finance">
           <dl className="space-y-2 rounded-xl border border-border/50 bg-muted/25 p-4 text-sm">
             <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Base salary</dt>
+              <dt className="text-muted-foreground">This period</dt>
               <dd className="tabular-nums font-medium">{formatPayrollMoney(row.baseSalary)}</dd>
             </div>
-            {statutory > 0 ? (
+            {(row.arrearPeriods?.length ?? 0) > 0 ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">
+                  Arrears · {payrollArrearMonthsLabel(row.arrearPeriods!)}
+                </dt>
+                <dd className="tabular-nums font-medium text-violet-800 dark:text-violet-200">
+                  + {formatPayrollMoney(row.arrearsBaseTotal)}
+                </dd>
+              </div>
+            ) : null}
+            <div className="flex justify-between gap-4 border-b border-border/40 pb-2">
+              <dt className="text-muted-foreground">Combined gross</dt>
+              <dd className="tabular-nums font-semibold">{formatPayrollMoney(combinedBase)}</dd>
+            </div>
+            {combinedStatutory > 0 ? (
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Statutory</dt>
-                <dd className="tabular-nums">− {formatPayrollMoney(statutory)}</dd>
+                <dd className="tabular-nums">− {formatPayrollMoney(combinedStatutory)}</dd>
               </div>
             ) : null}
             <div className="flex justify-between gap-4">
@@ -427,8 +483,14 @@ export function PayConfirmDrawer({
             ) : null}
             <div className="flex justify-between gap-4 border-t border-border/50 pt-2">
               <dt className="font-medium">Net to pay</dt>
-              <dd className="text-lg font-semibold tabular-nums">{formatPayrollMoney(net)}</dd>
+              <dd className="text-lg font-semibold tabular-nums">{formatPayrollMoney(cashOut)}</dd>
             </div>
+            {(row.arrearPeriods?.length ?? 0) > 0 ? (
+              <p className="text-[11px] text-muted-foreground">
+                Creates {row.arrearPeriods!.length + 1} payslips — arrears months plus{" "}
+                {payrollMonthLabel(year, month)}
+              </p>
+            ) : null}
           </dl>
 
           <label className="mt-2 flex items-center gap-2 text-xs">

@@ -13,6 +13,8 @@ import {
   employmentStatusLabel,
   formatPayrollDate,
   formatPayrollMoney,
+  payrollArrearSummary,
+  payrollShortMonth,
 } from "@/lib/payroll-utils";
 
 type StatusFilter = "all" | "pending" | "paid" | "attention";
@@ -43,7 +45,8 @@ export function PayrollRunPanel({
       const attention =
         row.employmentStatus === "on_leave" ||
         Number(row.baseSalary) <= 0 ||
-        Number(row.advancesOutstanding) > 0;
+        Number(row.advancesOutstanding) > 0 ||
+        (row.arrearPeriods?.length ?? 0) > 0;
       const pending =
         !row.alreadyPaid &&
         row.employmentStatus !== "on_leave" &&
@@ -72,7 +75,8 @@ export function PayrollRunPanel({
         !r.alreadyPaid &&
         (r.employmentStatus === "on_leave" ||
           Number(r.baseSalary) <= 0 ||
-          Number(r.advancesOutstanding) > 0),
+          Number(r.advancesOutstanding) > 0 ||
+          (r.arrearPeriods?.length ?? 0) > 0),
     ).length;
     return { all: rows.length, pending, paid, attention };
   }, [rows]);
@@ -177,6 +181,7 @@ export function PayrollRunPanel({
               <tr className="border-b border-border/60 bg-muted/20 text-xs text-muted-foreground">
                 <th className="px-4 py-2 font-medium" colSpan={2} />
                 <th className="px-4 py-2 text-right font-medium">Base</th>
+                <th className="px-4 py-2 text-right font-medium">Arrears</th>
                 <th className="px-4 py-2 text-right font-medium">Advances</th>
                 <th className="px-4 py-2 text-right font-medium">Statutory</th>
                 <th className="px-4 py-2" colSpan={3} />
@@ -185,7 +190,7 @@ export function PayrollRunPanel({
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12">
+                  <td colSpan={9} className="px-4 py-12">
                     <EmptyFilter message="No staff match your search or filter." />
                   </td>
                 </tr>
@@ -212,6 +217,18 @@ export function PayrollRunPanel({
                         formatPayrollMoney(row.baseSalary)
                       ) : (
                         <span className="text-amber-700 dark:text-amber-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {(row.arrearPeriods?.length ?? 0) > 0 ? (
+                        <span className="font-medium text-violet-800 dark:text-violet-200">
+                          +{formatPayrollMoney(row.arrearsBaseTotal)}
+                          <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                            {row.arrearPeriods!.map((p) => payrollShortMonth(p.year, p.month)).join(" · ")}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
@@ -311,6 +328,11 @@ function StaffRunCard({
         </p>
         <p className="mt-1 text-sm font-semibold tabular-nums">
           Net {formatPayrollMoney(row.suggestedNet)}
+          {(row.arrearPeriods?.length ?? 0) > 0 ? (
+            <span className="ml-2 text-xs font-normal text-violet-800 dark:text-violet-200">
+              incl. arrears
+            </span>
+          ) : null}
           {applyStatutoryPreview && row.statutoryTotal > 0 ? (
             <span className="ml-2 text-xs font-normal text-muted-foreground">
               · stat −{formatPayrollMoney(row.statutoryTotal)}
@@ -353,6 +375,21 @@ function RunStatusBadge({ row }: { row: PayrollRunRow }) {
     return (
       <span className="rounded-full bg-red-500/15 px-2.5 py-0.5 text-[11px] font-medium text-red-900 dark:text-red-200">
         No salary
+      </span>
+    );
+  }
+  if ((row.arrearPeriods?.length ?? 0) > 0) {
+    const summary = payrollArrearSummary(row);
+    return (
+      <span className="inline-flex flex-col items-end gap-0.5 sm:items-start">
+        <span className="rounded-full bg-violet-500/15 px-2.5 py-0.5 text-[11px] font-medium text-violet-950 dark:text-violet-100">
+          Arrears
+        </span>
+        {summary ? (
+          <span className="max-w-[9rem] truncate text-[10px] text-muted-foreground">
+            {summary}
+          </span>
+        ) : null}
       </span>
     );
   }

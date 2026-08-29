@@ -30,7 +30,10 @@ import {
 } from "@/lib/api";
 import {
   exportPayrollRunCsv,
+  defaultPayrollPeriod,
   formatPayrollMoney,
+  payrollArrearMonthsLabel,
+  payrollCombinedBase,
   payrollMonthLabel,
 } from "@/lib/payroll-utils";
 
@@ -62,10 +65,10 @@ export default function PayrollPage() {
     branches,
   } = useDashboard();
 
-  const now = useMemo(() => new Date(), []);
+  const defaultPeriod = useMemo(() => defaultPayrollPeriod(), []);
   const [tab, setTab] = useState<Tab>("run");
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(defaultPeriod.year);
+  const [month, setMonth] = useState(defaultPeriod.month);
   const [rows, setRows] = useState<PayrollRunRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +133,12 @@ export default function PayrollPage() {
       headcount: rows.length,
       pendingCount: pending.length,
       paidCount: paid.length,
-      totalBase: rows.reduce((s, r) => s + Number(r.baseSalary), 0),
+      totalBase: rows.reduce(
+        (s, r) => s + payrollCombinedBase(r),
+        0,
+      ),
+      totalArrears: rows.reduce((s, r) => s + Number(r.arrearsBaseTotal ?? 0), 0),
+      staffWithArrears: rows.filter((r) => (r.arrearPeriods?.length ?? 0) > 0).length,
       totalAdvances: rows.reduce(
         (s, r) => s + Number(r.advancesOutstanding),
         0,
@@ -273,13 +281,18 @@ export default function PayrollPage() {
         paymentMethod: payload.postExpense ? payload.paymentMethod : undefined,
         branchId: branchFilter || undefined,
         advancesToDeduct: payload.advancesToDeduct,
+        includeArrears: true,
       });
       setPayConfirmOpen(false);
+      const arrearNote =
+        payRow.arrearPeriods?.length
+          ? ` (incl. ${payrollArrearMonthsLabel(payRow.arrearPeriods)} arrears)`
+          : "";
       setPayRow(null);
       setStaffDrawerOpen(false);
       setFeedback({
         kind: "success",
-        text: `Paid ${payRow.displayName} for ${payrollMonthLabel(year, month)}.`,
+        text: `Paid ${payRow.displayName} for ${payrollMonthLabel(year, month)}${arrearNote}.`,
       });
       await load();
     } catch (err) {

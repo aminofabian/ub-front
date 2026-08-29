@@ -11770,6 +11770,18 @@ export type PayslipRecord = {
   paymentMethod: string | null;
 };
 
+export type PayrollArrearPeriod = {
+  year: number;
+  month: number;
+  baseSalary: number;
+  statutoryTotal: number;
+  payeSuggested: number;
+  nssfSuggested: number;
+  shifSuggested: number;
+  housingLevySuggested: number;
+  netBeforeAdvances: number;
+};
+
 export type PayrollRunRow = {
   userId: string;
   staffProfileId: string;
@@ -11779,12 +11791,15 @@ export type PayrollRunRow = {
   branchName: string | null;
   branchId: string | null;
   baseSalary: number;
+  arrearsBaseTotal: number;
+  arrearPeriods: PayrollArrearPeriod[];
   advancesOutstanding: number;
   statutoryTotal: number;
   payeSuggested: number;
   nssfSuggested: number;
   shifSuggested: number;
   housingLevySuggested: number;
+  arrearsStatutoryTotal: number;
   advancesScheduledThisRun: number;
   suggestedNet: number;
   alreadyPaid: boolean;
@@ -12016,6 +12031,7 @@ export async function payStaffPayroll(
     paymentMethod?: string;
     branchId?: string;
     advancesToDeduct?: number;
+    includeArrears?: boolean;
   },
 ): Promise<PayslipRecord> {
   return request<PayslipRecord>(
