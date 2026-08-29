@@ -214,6 +214,64 @@ export function billingPhoneInputClass(disabled?: boolean) {
   return dashboardInputClass(disabled);
 }
 
+export function BillingUsageMeter({
+  label,
+  used,
+  limit,
+  unit,
+}: {
+  label: string;
+  used: number;
+  limit: number | null;
+  unit: string;
+}) {
+  const unlimited = limit == null;
+  const over = !unlimited && used > limit;
+  const pct = unlimited
+    ? 8
+    : Math.min(100, (used / Math.max(1, limit)) * 100);
+  const tone = over
+    ? "bg-red-500"
+    : pct >= 80
+      ? "bg-amber-500"
+      : "bg-emerald-500";
+  const usedLabel = used.toLocaleString("en-US");
+  const capLabel = unlimited ? "unlimited" : limit.toLocaleString("en-US");
+
+  return (
+    <div className="min-w-[9.5rem] space-y-1.5">
+      <div className="flex items-baseline justify-between gap-3 text-xs">
+        <span className="font-medium text-foreground">{label}</span>
+        <span
+          className={cn(
+            "tabular-nums",
+            over ? "font-semibold text-red-700 dark:text-red-300" : "text-muted-foreground",
+          )}
+        >
+          {usedLabel}
+          <span className="text-muted-foreground"> / {capLabel}</span>
+        </span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/80">
+        <div
+          className={cn(
+            "h-full rounded-full transition-[width] duration-300 ease-out",
+            tone,
+          )}
+          style={{ width: `${over ? 100 : pct}%` }}
+        />
+      </div>
+      <p className="text-[11px] leading-snug text-muted-foreground">
+        {over
+          ? `${(used - (limit ?? 0)).toLocaleString("en-US")} over the ${unit} cap`
+          : unlimited
+            ? `No ${unit} cap on this plan`
+            : `${Math.max(0, (limit ?? 0) - used).toLocaleString("en-US")} ${unit} left`}
+      </p>
+    </div>
+  );
+}
+
 export function BillingProgressBar({
   value,
   className,

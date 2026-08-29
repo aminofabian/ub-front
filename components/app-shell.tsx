@@ -29,6 +29,7 @@ import { BranchRequiredBanner } from "@/components/branch-required-banner";
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { SubscriptionGraceBanner } from "@/components/subscription-grace-banner";
+import { SubscriptionPlanFitBanner } from "@/components/subscription-plan-fit-banner";
 import { SetupProgressContextStrip } from "@/components/setup-progress/setup-progress-context-strip";
 import { DesktopReadOnlyOverlay } from "@/components/desktop/desktop-read-only-overlay";
 import { KioskPayHeaderBalance } from "@/components/payments/kiosk-pay-header-balance";
@@ -1533,6 +1534,7 @@ export function AppShell({ children }: AppShellProps) {
         {IS_DESKTOP ? <DesktopLicenseBanner /> : null}
         <ImpersonationBanner />
         <SubscriptionGraceBanner />
+        <SubscriptionPlanFitBanner />
         <BranchRequiredBanner />
         {canManageBusinessSettings ? <SetupProgressContextStrip /> : null}
 

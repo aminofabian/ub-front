@@ -11453,6 +11453,22 @@ export type KioskPayWithdrawalRecord = {
 
 export type SubscriptionBillingStatusValue = "ACTIVE" | "GRACE" | "SUSPENDED";
 
+export type SubscriptionPlanFitRecord = {
+  productCount: number;
+  userCount: number;
+  productLimit: number | null;
+  userLimit: number | null;
+  overProductLimit: boolean;
+  overUserLimit: boolean;
+  needsUpgrade: boolean;
+  negotiable: boolean;
+  talkToUs: boolean;
+  recommendedTier: string | null;
+  recommendedDisplayName: string | null;
+  recommendedPriceKes: number | null;
+  reasons: string[];
+};
+
 export type SubscriptionBillingStatusRecord = {
   status: SubscriptionBillingStatusValue;
   tier: string;
@@ -11466,7 +11482,27 @@ export type SubscriptionBillingStatusRecord = {
   daysRemainingInGrace: number;
   renewalUrl: string;
   billingEnabled: boolean;
+  planFit?: SubscriptionPlanFitRecord | null;
 };
+
+export type SubscriptionPlanRecord = {
+  tierCode: string;
+  displayName: string;
+  monthlyPriceKes: number;
+  annualPriceKes?: number | null;
+  graceDays: number;
+  productLimit: number | null;
+  cashierLimit: number | null;
+  active: boolean;
+  sortOrder: number;
+};
+
+export async function fetchSubscriptionPlans(): Promise<SubscriptionPlanRecord[]> {
+  const row = await request<{ plans: SubscriptionPlanRecord[] }>(
+    API_ROUTES.subscriptionPlans,
+  );
+  return Array.isArray(row.plans) ? row.plans : [];
+}
 
 export async function fetchSubscriptionBillingStatus(): Promise<SubscriptionBillingStatusRecord> {
   return request<SubscriptionBillingStatusRecord>(API_ROUTES.subscriptionBillingStatus);

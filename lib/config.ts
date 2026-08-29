@@ -306,6 +306,7 @@ export const API_ROUTES = {
   smsCreditsPurchase: "/api/v1/sms-credits/purchase",
   smsCreditsPurchaseStatus: (id: string) => `/api/v1/sms-credits/purchases/${id}`,
   subscriptionBillingStatus: "/api/v1/subscription/billing-status",
+  subscriptionPlans: "/api/v1/subscription/plans",
   subscriptionRenewalQuote: "/api/v1/subscription/renewal-quote",
   subscriptionRenew: "/api/v1/subscription/renew",
   subscriptionRenewalOrder: (id: string) =>
