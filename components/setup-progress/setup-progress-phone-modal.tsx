@@ -16,7 +16,9 @@ import {
   fetchOpsAlertSettings,
   sendOpsAlertPhoneVerification,
   verifyOpsAlertPhone,
+  ApiRequestError,
 } from "@/lib/api";
+import { formatOperatorApiProblemMessage } from "@/lib/problem";
 import { cn } from "@/lib/utils";
 
 type SetupProgressPhoneModalProps = {
@@ -25,6 +27,16 @@ type SetupProgressPhoneModalProps = {
   /** Called after successful verification so setup progress can refetch. */
   onVerified?: () => void;
 };
+
+function operatorErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiRequestError) {
+    return formatOperatorApiProblemMessage(err.payload) || fallback;
+  }
+  if (err instanceof Error && err.message.trim()) {
+    return err.message;
+  }
+  return fallback;
+}
 
 export function SetupProgressPhoneModal({
   open,
@@ -54,7 +66,7 @@ export function SetupProgressPhoneModal({
         setPhoneInput(settings.phone);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load phone settings");
+      setError(operatorErrorMessage(err, "Could not load phone settings"));
     } finally {
       setLoading(false);
     }
@@ -83,7 +95,7 @@ export function SetupProgressPhoneModal({
       setCodeInput("");
       setHint(`Code sent via ${result.channel} to ${result.phoneMasked}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send code");
+      setError(operatorErrorMessage(err, "Failed to send code"));
     } finally {
       setSendingCode(false);
     }
@@ -98,7 +110,7 @@ export function SetupProgressPhoneModal({
       onOpenChange(false);
       onVerified?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Verification failed");
+      setError(operatorErrorMessage(err, "Verification failed"));
     } finally {
       setVerifying(false);
     }

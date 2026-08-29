@@ -75,6 +75,21 @@ export function parseProblemValidationErrors(
  * User-visible message from an RFC 7807 / problem+json body, including `errors` for validation.
  */
 export function formatApiProblemMessage(payload: unknown): string {
+  return formatApiProblemMessageInternal(payload, { maskOtpSetup: true });
+}
+
+/**
+ * Same as {@link formatApiProblemMessage} but keeps SMS/WhatsApp setup detail for
+ * authenticated operators (settings / setup-progress), instead of the shopper-facing mask.
+ */
+export function formatOperatorApiProblemMessage(payload: unknown): string {
+  return formatApiProblemMessageInternal(payload, { maskOtpSetup: false });
+}
+
+function formatApiProblemMessageInternal(
+  payload: unknown,
+  options: { maskOtpSetup: boolean },
+): string {
   const problem = parseProblem(payload);
   const validation = parseProblemValidationErrors(payload);
   const title =
@@ -95,11 +110,17 @@ export function formatApiProblemMessage(payload: unknown): string {
       GENERIC_PROBLEM_TITLES.has(title) || detail === title
         ? detail
         : `${title}\n${detail}`;
-    return friendlyOtpDeliveryMessage(combined) ?? combined;
+    if (options.maskOtpSetup) {
+      return friendlyOtpDeliveryMessage(combined) ?? combined;
+    }
+    return combined;
   }
 
   if (title.length > 0) {
-    return friendlyOtpDeliveryMessage(title) ?? title;
+    if (options.maskOtpSetup) {
+      return friendlyOtpDeliveryMessage(title) ?? title;
+    }
+    return title;
   }
   return DEFAULT_PROBLEM_TITLE.replace(/\.$/, "");
 }

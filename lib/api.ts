@@ -11020,6 +11020,8 @@ export async function sendOpsAlertPhoneVerification(
     {
       method: "POST",
       body: { phone },
+      // Inline UI shows the operator-facing error; avoid shopper OTP toast mask.
+      toast: false,
     },
   );
 }
@@ -11039,6 +11041,7 @@ export async function verifyOpsAlertPhone(
     {
       method: "POST",
       body: { phone, code },
+      toast: false,
     },
   );
 }

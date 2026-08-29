@@ -20,6 +20,7 @@ import {
 import { SmsCreditsDepletedBanner } from "@/components/messaging/sms-credits-header";
 import { Button } from "@/components/ui/button";
 import {
+  ApiRequestError,
   clearOpsAlertPhone,
   fetchOpsAlertSettings,
   sendOpsAlertPhoneVerification,
@@ -28,11 +29,22 @@ import {
   verifyOpsAlertPhone,
   type OpsAlertSettingsRecord,
 } from "@/lib/api";
+import { formatOperatorApiProblemMessage } from "@/lib/problem";
 import { cn } from "@/lib/utils";
 
 type Props = {
   canEdit: boolean;
 };
+
+function operatorErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiRequestError) {
+    return formatOperatorApiProblemMessage(err.payload) || fallback;
+  }
+  if (err instanceof Error && err.message.trim()) {
+    return err.message;
+  }
+  return fallback;
+}
 
 function ToggleRow({
   checked,
@@ -150,7 +162,7 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
       });
     } catch (err) {
       setMessage({
-        text: err instanceof Error ? err.message : "Failed to send code",
+        text: operatorErrorMessage(err, "Failed to send code"),
         kind: "error",
       });
     } finally {
@@ -173,7 +185,7 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
       await load();
     } catch (err) {
       setMessage({
-        text: err instanceof Error ? err.message : "Verification failed",
+        text: operatorErrorMessage(err, "Verification failed"),
         kind: "error",
       });
     } finally {
