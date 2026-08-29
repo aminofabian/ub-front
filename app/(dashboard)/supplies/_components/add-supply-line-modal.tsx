@@ -17,6 +17,7 @@ import {
   type ItemSummaryRecord,
 } from "@/lib/api";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { cn } from "@/lib/utils";
 
 import { ProductPickCell } from "./product-pick-cell";
@@ -198,7 +199,7 @@ export function LinkSupplierProductModal({
             <DialogDescription className="text-xs sm:text-sm">
               Add a catalog product to{" "}
               {supplierName ? (
-                <span className="font-medium text-foreground">{supplierName}</span>
+                <SupplierDisplayName name={supplierName} />
               ) : (
                 "this supplier"
               )}

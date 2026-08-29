@@ -5,6 +5,8 @@ import Link from "next/link";
 import { APP_ROUTES } from "@/lib/config";
 import { fmtMoney } from "@/lib/business-hub/formatters";
 import type { PathBSupplyListRowRecord } from "@/lib/api";
+import { displaySupplierName } from "@/lib/supplier-display";
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { HUB_RAIL } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 import {
@@ -111,6 +113,10 @@ export function SupplyBillsRail({
               const label = paymentLabel(bill.paymentStatus, unpaid);
               const total = supplyN(bill.grandTotal);
               const payEnabled = Boolean(onPayBill);
+              const supplierLabel = displaySupplierName({
+                name: bill.supplierName,
+                fallback: "Supplier",
+              });
               return (
                 <li
                   key={bill.supplierInvoiceId}
@@ -128,7 +134,10 @@ export function SupplyBillsRail({
                   </time>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12px] font-medium text-[#141414]">
-                      {bill.supplierName || "Supplier"}
+                      <SupplierDisplayName
+                        name={bill.supplierName}
+                        className="truncate"
+                      />
                     </p>
                   </div>
                   {payEnabled ? (
@@ -144,13 +153,13 @@ export function SupplyBillsRail({
                       )}
                       title={
                         unpaid
-                          ? `Pay ${bill.supplierName || "supplier"}`
-                          : `Payment details · ${bill.supplierName || "supplier"}`
+                          ? `Pay ${supplierLabel}`
+                          : `Payment details · ${supplierLabel}`
                       }
                       aria-label={
                         unpaid
-                          ? `Pay bill for ${bill.supplierName || "supplier"} (${label})`
-                          : `View payment details for ${bill.supplierName || "supplier"}`
+                          ? `Pay bill for ${supplierLabel} (${label})`
+                          : `View payment details for ${supplierLabel}`
                       }
                     >
                       {unpaid ? (label === "Partial" ? "Pay · Partial" : "Pay") : label}

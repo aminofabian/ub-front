@@ -35,6 +35,7 @@ import {
   type SupplyPaymentHistoryRecord,
 } from "@/lib/api";
 import { extractFirstKenyanMobile, toKenyanLocal07, toKenyanMsisdn254 } from "@/lib/kenyan-phone";
+import { displaySupplierName } from "@/lib/supplier-display";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
@@ -440,7 +441,7 @@ export function PaySupplyDrawer({
       setKopokopoMessage(status.message ?? "Payment confirmed.");
       toast.success("Supplier paid via M-Pesa", {
         description: row
-          ? `${formatSupplyMoney(rowBalanceOpen)} sent to ${row.supplierName || "supplier"}.`
+          ? `${formatSupplyMoney(rowBalanceOpen)} sent to ${displaySupplierName({ name: row.supplierName, fallback: "supplier" })}.`
           : undefined,
         duration: 8000,
       });
@@ -554,8 +555,8 @@ export function PaySupplyDrawer({
             : "Marked as paid",
         {
           description: opts.notify
-            ? `${formatSupplyMoney(totalAlloc)} recorded for ${row.supplierName || "supplier"}.`
-            : `${formatSupplyMoney(totalAlloc)} recorded for ${row.supplierName || "supplier"} — no SMS sent.`,
+            ? `${formatSupplyMoney(totalAlloc)} recorded for ${displaySupplierName({ name: row.supplierName, fallback: "supplier" })}.`
+            : `${formatSupplyMoney(totalAlloc)} recorded for ${displaySupplierName({ name: row.supplierName, fallback: "supplier" })} — no SMS sent.`,
           duration: 8000,
         },
       );
@@ -882,8 +883,8 @@ export function PaySupplyDrawer({
       title={
         row
           ? viewingPaymentDetailsOnly
-            ? `Payment details · ${row.supplierName}`
-            : `Pay ${row.supplierName}`
+            ? `Payment details · ${displaySupplierName({ name: row.supplierName })}`
+            : `Pay ${displaySupplierName({ name: row.supplierName })}`
           : viewingPaymentDetailsOnly
             ? "Payment details"
             : "Pay supply"

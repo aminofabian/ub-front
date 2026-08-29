@@ -4,6 +4,7 @@ import { CreditCard, FileEdit, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { PathBSupplyListRowRecord } from "@/lib/api";
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { cn } from "@/lib/utils";
 
 import {
@@ -74,7 +75,10 @@ export function SupplyReceiptCard({
         <div className="flex min-w-0 items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-[13px] font-semibold leading-tight text-foreground">
-              {row.supplierName || "Unknown supplier"}
+              <SupplierDisplayName
+                name={row.supplierName}
+                fallback="Unknown supplier"
+              />
             </h3>
             <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
               {row.invoiceNumber}

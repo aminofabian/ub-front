@@ -3,6 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { Check, Loader2, Search } from "lucide-react";
 
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { cn } from "@/lib/utils";
 
 import {
@@ -263,7 +264,7 @@ export function SupplyContextStrip({
     <div className={nsdContextStrip}>
       <span className="inline-flex min-w-0 items-center gap-1.5">
         <span className="font-semibold text-foreground">
-          {supplierName ?? "No supplier"}
+          <SupplierDisplayName name={supplierName} fallback="No supplier" />
         </span>
         {branchName ? (
           <>

@@ -42,6 +42,7 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { canAdminEditOnHandStock } from "@/lib/set-on-hand-stock";
 import { canLinkSupplierProducts } from "@/lib/supplier-access";
+import { displaySupplierName } from "@/lib/supplier-display";
 import { getSessionTenantId } from "@/lib/auth";
 import {
   clearNewSupplyDraft,
@@ -1790,7 +1791,7 @@ export function NewSupplyDrawer({
             </div>
             <p className="truncate text-[11px] text-muted-foreground sm:text-[10px]">
               {lineStats.valid} of {lineStats.totalRows} ready
-              {supplier ? ` · ${supplier.name}` : ""}
+              {supplier ? ` · ${displaySupplierName({ name: supplier.name, code: supplier.code })}` : ""}
               {canPost ? (
                 <span className="ml-1 font-semibold text-primary">· Ready</span>
               ) : null}

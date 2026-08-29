@@ -2,6 +2,7 @@
 
 import { PackagePlus, Truck } from "lucide-react";
 
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { cn } from "@/lib/utils";
 
 import {
@@ -87,7 +88,7 @@ export function SupplyDrawerSummaryPanel({
           <Truck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-foreground">
-              {supplierName ?? "No supplier"}
+              <SupplierDisplayName name={supplierName ?? null} fallback="No supplier" />
             </p>
             <p className="truncate text-[10px] text-muted-foreground">
               {branchName || "No branch"}

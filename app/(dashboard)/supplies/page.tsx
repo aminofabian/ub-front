@@ -20,6 +20,8 @@ import {
   type PathBSupplyListRowRecord,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { displaySupplierName } from "@/lib/supplier-display";
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
@@ -121,7 +123,7 @@ export default function SuppliesPage() {
       showThemedConfirmToast({
         id: `delete-supply-${row.supplierInvoiceId}`,
         title: `Delete supply ${row.invoiceNumber}?`,
-        description: `From ${row.supplierName || "supplier"}. This reverses stock and cannot be undone.`,
+        description: `From ${displaySupplierName({ name: row.supplierName, fallback: "supplier" })}. This reverses stock and cannot be undone.`,
         confirmLabel: "Delete",
         onConfirm: async () => {
           setDeletingId(row.supplierInvoiceId);
@@ -523,7 +525,10 @@ export default function SuppliesPage() {
                         >
                           <td className="max-w-[14rem] truncate px-3 py-1.5 font-medium text-foreground">
                             <span className="block truncate">
-                              {r.supplierName || "—"}
+                              <SupplierDisplayName
+                                name={r.supplierName}
+                                fallback="—"
+                              />
                             </span>
                             {showPayAll ? (
                               <span className="mt-0.5 block text-[10px] font-medium text-amber-700 dark:text-amber-300">

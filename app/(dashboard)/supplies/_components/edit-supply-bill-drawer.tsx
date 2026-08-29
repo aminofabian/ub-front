@@ -16,6 +16,7 @@ import {
   type PatchPathBSupplyInvoiceLinePayload,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { cn } from "@/lib/utils";
 
 import {
@@ -423,7 +424,7 @@ export function EditSupplyBillDrawer({
                   Supplier
                 </span>
                 <span className="mt-1 block text-sm font-semibold">
-                  {detail.supplierName || "—"}
+                  <SupplierDisplayName name={detail.supplierName} fallback="—" />
                 </span>
               </div>
               <div className={supStatTile}>
