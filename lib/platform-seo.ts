@@ -4,6 +4,7 @@ import {
   PLATFORM_FAQS,
   type PlatformFaq,
 } from "@/lib/platform-seo-content";
+import { KIOSK_PLATFORM_CONTACT } from "@/lib/platform-contact";
 
 export type { PlatformFaq };
 export { PLATFORM_FAQS };
@@ -85,6 +86,7 @@ export function platformOrganizationJsonLd(siteUrl: string) {
           "@type": "Place",
           address: {
             "@type": "PostalAddress",
+            postalCode: KIOSK_PLATFORM_CONTACT.postalAddress,
             addressLocality: "Nairobi",
             addressCountry: "KE",
           },
@@ -96,6 +98,8 @@ export function platformOrganizationJsonLd(siteUrl: string) {
         contactPoint: {
           "@type": "ContactPoint",
           contactType: "customer support",
+          telephone: KIOSK_PLATFORM_CONTACT.phoneTel,
+          email: KIOSK_PLATFORM_CONTACT.email,
           areaServed: "KE",
           availableLanguage: ["English", "Swahili"],
         },

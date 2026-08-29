@@ -9,7 +9,7 @@ Mobile-first daily verification workflow. Each morning the system picks **25 uni
 
 **Status:** Implemented (Phase 1–5). Run migration `V133__daily_stock_audit.sql` on deploy.
 
-**Backend spec:** [`backend/docs/stocktake/DAILY_AUDIT.md`](../../../../backend/docs/stocktake/DAILY_AUDIT.md)
+**Backend spec:** [`docs/stocktake/DAILY_AUDIT.md`](../../../../../docs/stocktake/DAILY_AUDIT.md)
 
 ---
 

@@ -23,6 +23,7 @@ import {
 import { persistTenantHostAfterAuth } from "@/lib/auth";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import { isGroceryOperationsBusiness } from "@/lib/business-store-type";
+import { syncCatalogDisplayPolicyFromBusiness } from "@/lib/catalog-display-policy";
 import { confirmScopeChange } from "@/lib/scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canReceiveStock } from "@/lib/receive-stock-access";
@@ -220,6 +221,10 @@ export function DashboardProvider({
   const effectiveBranches = branches.length > 0 ? branches : bootstrap.branches;
   const effectiveBranchId = branchId || bootstrap.me?.branchId?.trim() || "";
   const effectiveLoading = loading && !bootstrap.me && !bootstrap.business;
+
+  useEffect(() => {
+    syncCatalogDisplayPolicyFromBusiness(effectiveBusiness?.inventory);
+  }, [effectiveBusiness?.inventory]);
 
   const refreshBranches = useCallback(async () => {
     setBranchesLoading(true);

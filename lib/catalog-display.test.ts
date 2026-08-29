@@ -3,8 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   joinProductNameParts,
   normalizeProductDisplayName,
+  resolveCatalogItemName,
   resolveCatalogVariantListTitle,
+  trimCatalogLabel,
+  formatProductNameForCatalog,
 } from "./catalog-display";
+import {
+  setCatalogDisplayPolicy,
+} from "./catalog-display-policy";
 
 describe("normalizeProductDisplayName", () => {
   it("title-cases all-lower and all-upper names", () => {
@@ -24,6 +30,38 @@ describe("normalizeProductDisplayName", () => {
 
   it("keeps known acronyms", () => {
     expect(normalizeProductDisplayName("LED TV 32")).toBe("LED TV 32");
+  });
+});
+
+describe("trimCatalogLabel", () => {
+  it("preserves entered casing and collapses whitespace", () => {
+    expect(trimCatalogLabel("  BL CVD-12  ")).toBe("BL CVD-12");
+    expect(trimCatalogLabel("BL   DRY-10")).toBe("BL DRY-10");
+  });
+});
+
+describe("resolveCatalogItemName", () => {
+  it("shows inventory codes exactly as stored when policy preserves casing", () => {
+    setCatalogDisplayPolicy({ preserveProductNameCasing: true });
+    expect(resolveCatalogItemName({ name: "BL CVD-12" }).label).toBe("BL CVD-12");
+    expect(resolveCatalogItemName({ name: "CLUB SODA" }).label).toBe("CLUB SODA");
+  });
+
+  it("title-cases names when policy allows formatting", () => {
+    setCatalogDisplayPolicy({ preserveProductNameCasing: false });
+    expect(resolveCatalogItemName({ name: "BL CVD-12" }).label).toBe("Bl Cvd-12");
+    expect(resolveCatalogItemName({ name: "CLUB SODA" }).label).toBe("Club Soda");
+    setCatalogDisplayPolicy({ preserveProductNameCasing: true });
+  });
+});
+
+describe("formatProductNameForCatalog", () => {
+  it("follows the active display policy", () => {
+    setCatalogDisplayPolicy({ preserveProductNameCasing: true });
+    expect(formatProductNameForCatalog("BL CVD-12")).toBe("BL CVD-12");
+    setCatalogDisplayPolicy({ preserveProductNameCasing: false });
+    expect(formatProductNameForCatalog("BL CVD-12")).toBe("Bl Cvd-12");
+    setCatalogDisplayPolicy({ preserveProductNameCasing: true });
   });
 });
 

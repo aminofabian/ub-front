@@ -9,7 +9,7 @@
  * - Automatic re-auth when JWT access token nears expiry
  * - Graceful fallback to REST polling when WS is unavailable
  *
- * @see docs/REALTIME_WEBSOCKET_PLAN.md
+ * @see docs/architecture/REALTIME_WEBSOCKET_PLAN.md
  */
 
 import {
@@ -60,6 +60,7 @@ export type RealtimeEventType =
   | "payment.confirmed"
   | "stk.payment.settled"
   | "kiosk_pay.balance.updated"
+  | "sms_credits.balance.updated"
   | "airtime.order.updated"
   | "sale.completed"
   | "supply.posted"
@@ -86,6 +87,7 @@ export type RealtimeEventType =
   | "support.typing"
   | "support.conversation"
   | "support.presence"
+  | "setup_progress.updated"
   | "catch-up.overflow"
   | "error"
   | "ping";
@@ -129,6 +131,7 @@ export interface RealtimeClientOptions {
   onPaymentConfirmed?: FrameHandler;
   onStkPaymentSettled?: FrameHandler;
   onKioskPayBalanceUpdated?: FrameHandler;
+  onSmsCreditsUpdated?: FrameHandler;
   onAirtimeOrderUpdated?: FrameHandler;
   onSaleCompleted?: FrameHandler;
   onSupplyPosted?: FrameHandler;
@@ -152,6 +155,7 @@ export interface RealtimeClientOptions {
   onSupportTyping?: FrameHandler;
   onSupportConversation?: FrameHandler;
   onSupportPresence?: FrameHandler;
+  onSetupProgressUpdated?: FrameHandler;
   onError?: ErrorHandler;
   onConnectionStateChange?: ConnectionStateHandler;
 }
@@ -174,6 +178,7 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "payment.confirmed": "onPaymentConfirmed",
   "stk.payment.settled": "onStkPaymentSettled",
   "kiosk_pay.balance.updated": "onKioskPayBalanceUpdated",
+  "sms_credits.balance.updated": "onSmsCreditsUpdated",
   "airtime.order.updated": "onAirtimeOrderUpdated",
   "sale.completed": "onSaleCompleted",
   "supply.posted": "onSupplyPosted",
@@ -197,6 +202,7 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "support.typing": "onSupportTyping",
   "support.conversation": "onSupportConversation",
   "support.presence": "onSupportPresence",
+  "setup_progress.updated": "onSetupProgressUpdated",
 };
 
 // ── WS URL Resolution ──
@@ -374,6 +380,7 @@ export type RealtimeListenerOptions = Pick<
   | "onPaymentConfirmed"
   | "onStkPaymentSettled"
   | "onKioskPayBalanceUpdated"
+  | "onSmsCreditsUpdated"
   | "onAirtimeOrderUpdated"
   | "onSaleCompleted"
   | "onSupplyPosted"
@@ -397,6 +404,7 @@ export type RealtimeListenerOptions = Pick<
   | "onSupportTyping"
   | "onSupportConversation"
   | "onSupportPresence"
+  | "onSetupProgressUpdated"
   | "onError"
   | "onConnectionStateChange"
 >;
@@ -408,6 +416,7 @@ const LISTENER_HANDLER_KEYS = [
   "onPaymentConfirmed",
   "onStkPaymentSettled",
   "onKioskPayBalanceUpdated",
+  "onSmsCreditsUpdated",
   "onAirtimeOrderUpdated",
   "onSaleCompleted",
   "onSupplyPosted",
@@ -431,6 +440,7 @@ const LISTENER_HANDLER_KEYS = [
   "onSupportTyping",
   "onSupportConversation",
   "onSupportPresence",
+  "onSetupProgressUpdated",
   "onError",
   "onConnectionStateChange",
 ] as const satisfies readonly (keyof RealtimeListenerOptions)[];

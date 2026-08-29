@@ -2,6 +2,7 @@ export const Permission = {
   /** CSV / legacy JSON imports under Integrations (Phase 8). */
   IntegrationsImportsManage: "integrations.imports.manage",
   BusinessManageSettings: "business.manage_settings",
+  BusinessManageSubscription: "business.manage_subscription",
   /** View the unified activity / audit log portal. */
   AuditRead: "audit.read",
   UsersList: "users.list",
@@ -64,6 +65,8 @@ export const Permission = {
   PaymentsGatewaysRead: "payments.gateways.read",
   PaymentsGatewaysWrite: "payments.gateways.write",
   PaymentsPlatformManage: "payments.platform.manage",
+  SmsCreditsPurchase: "sms.credits.purchase",
+  SmsCreditsLedgerRead: "sms.credits.ledger.read",
   AirtimeRead: "airtime.read",
   AirtimeSell: "airtime.sell",
   AirtimeManage: "airtime.manage",

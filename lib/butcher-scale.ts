@@ -1,6 +1,6 @@
 /**
  * v1 butcher counter scale — generic continuous ASCII over Web Serial.
- * See backend/docs/BUTCHERY_SCALE_V1.md for supported hardware notes.
+ * See docs/architecture/BUTCHERY_SCALE_V1.md for supported hardware notes.
  */
 
 export type ButcherScaleConfig = {

@@ -225,8 +225,8 @@ Daily audit types: see [DAILY_AUDIT.md](./DAILY_AUDIT.md#data-model).
 | Service | `backend/src/main/java/zelisline/ub/inventory/application/StockTakeService.java` |
 | Controller | `backend/src/main/java/zelisline/ub/inventory/api/StockTakeController.java` |
 | Migrations | `backend/src/main/resources/db/migration/V73__*`, `V74__*`, `V80__*` |
-| Improvements doc | `backend/docs/stocktake/STOCKTAKE_IMPROVEMENTS.md` |
-| Daily audit spec | `backend/docs/stocktake/DAILY_AUDIT.md` |
+| Improvements doc | `docs/stocktake/STOCKTAKE_IMPROVEMENTS.md` |
+| Daily audit spec | `docs/stocktake/DAILY_AUDIT.md` |
 
 ---
 

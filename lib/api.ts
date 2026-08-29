@@ -259,6 +259,7 @@ type LoginResponse = {
   accessToken?: string;
   refreshToken?: string;
   session?: { exp?: number; businessId?: string; sub?: string };
+  billing?: import("@/lib/auth").AuthBillingGate | null;
 };
 
 /** Send httpOnly refresh cookie on auth/session API calls. */
@@ -1078,12 +1079,18 @@ export type CreditTabsSettingsRecord = {
   allowCashierSearchCustomersByName?: boolean;
 };
 
+export type CatalogSettingsRecord = {
+  /** When true (default), product names show exactly as entered on Products, Stock, and POS. */
+  preserveProductNameCasing?: boolean;
+};
+
 export type InventorySettingsRecord = {
   stocktake?: StocktakeSettingsRecord;
   stockLevels?: StockLevelsSettingsRecord;
   suppliers?: SuppliersAccessSettingsRecord;
   receiveStock?: ReceiveStockSettingsRecord;
   creditTabs?: CreditTabsSettingsRecord;
+  catalog?: CatalogSettingsRecord;
 };
 
 export type BusinessRecord = {
@@ -1288,12 +1295,17 @@ export type CreditTabsPatchPayload = {
   allowCashierSearchCustomersByName?: boolean;
 };
 
+export type CatalogPatchPayload = {
+  preserveProductNameCasing?: boolean;
+};
+
 export type InventoryPatchPayload = {
   stocktake?: StocktakePatchPayload;
   stockLevels?: StockLevelsPatchPayload;
   suppliers?: SuppliersAccessPatchPayload;
   receiveStock?: ReceiveStockPatchPayload;
   creditTabs?: CreditTabsPatchPayload;
+  catalog?: CatalogPatchPayload;
 };
 
 export type PosDraftsFeatureFlagsPatch = {
@@ -11066,6 +11078,53 @@ export async function muteOnboardingSequenceTips(): Promise<OnboardingSequenceSt
   });
 }
 
+export type SetupProgressSubMilestoneRecord = {
+  key: string;
+  label: string;
+  points: number;
+  completed: boolean;
+};
+
+export type SetupProgressStepRecord = {
+  key: string;
+  label: string;
+  status: "completed" | "current" | "pending";
+  required: boolean;
+  earnedPoints: number;
+  maxPoints: number;
+  actionUrl: string | null;
+  recommendedSubKey: string | null;
+  subMilestones: SetupProgressSubMilestoneRecord[];
+};
+
+export type SetupProgressRecord = {
+  visible: boolean;
+  percentComplete: number;
+  earnedPoints: number;
+  maxPoints: number;
+  shopReady: boolean;
+  currentStepKey: string | null;
+  snoozedUntil: string | null;
+  steps: SetupProgressStepRecord[];
+};
+
+export async function fetchSetupProgress(): Promise<SetupProgressRecord> {
+  return request<SetupProgressRecord>("/api/v1/me/setup-progress");
+}
+
+export async function snoozeSetupProgress(hours = 24): Promise<SetupProgressRecord> {
+  return request<SetupProgressRecord>("/api/v1/me/setup-progress/snooze", {
+    method: "POST",
+    body: { hours },
+  });
+}
+
+export async function dismissSetupProgress(): Promise<SetupProgressRecord> {
+  return request<SetupProgressRecord>("/api/v1/me/setup-progress/dismiss", {
+    method: "POST",
+  });
+}
+
 // ─── Phase 9 Sync Conflicts ─────────────────────────────────────────────
 
 export type SyncConflictRecord = {
@@ -11385,6 +11444,80 @@ export type KioskPayWithdrawalRecord = {
   completedAt: string | null;
 };
 
+export type SubscriptionBillingStatusValue = "ACTIVE" | "GRACE" | "SUSPENDED";
+
+export type SubscriptionBillingStatusRecord = {
+  status: SubscriptionBillingStatusValue;
+  tier: string;
+  tierDisplayName: string;
+  amountDueKes: number;
+  currency: string;
+  currentPeriodEnd: string | null;
+  graceStartedAt: string | null;
+  graceEndsAt: string | null;
+  daysSinceExpiry: number;
+  daysRemainingInGrace: number;
+  renewalUrl: string;
+  billingEnabled: boolean;
+};
+
+export async function fetchSubscriptionBillingStatus(): Promise<SubscriptionBillingStatusRecord> {
+  return request<SubscriptionBillingStatusRecord>(API_ROUTES.subscriptionBillingStatus);
+}
+
+export type SubscriptionRenewalQuoteRecord = {
+  tier: string;
+  tierDisplayName: string;
+  periodMonths: number;
+  amountKes: number;
+  listPriceKes?: number | null;
+  savingsKes?: number | null;
+  currency: string;
+  currentPeriodEnd: string | null;
+  graceEndsAt: string | null;
+};
+
+export async function fetchSubscriptionRenewalQuote(
+  periodMonths = 1,
+  tier?: string,
+): Promise<SubscriptionRenewalQuoteRecord> {
+  const params = new URLSearchParams({ periodMonths: String(periodMonths) });
+  if (tier?.trim()) {
+    params.set("tier", tier.trim());
+  }
+  return request<SubscriptionRenewalQuoteRecord>(
+    `${API_ROUTES.subscriptionRenewalQuote}?${params}`,
+  );
+}
+
+export async function initiateSubscriptionRenewal(body: {
+  phone: string;
+  periodMonths?: number;
+  tier?: string;
+}): Promise<{
+  orderId: string;
+  status: string;
+  amountKes: number;
+  phoneNumber: string;
+  message: string;
+}> {
+  return request(API_ROUTES.subscriptionRenew, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function fetchSubscriptionRenewalOrderStatus(orderId: string): Promise<{
+  orderId: string;
+  status: string;
+  amountKes: number;
+  mpesaReceipt: string | null;
+  paidAt: string | null;
+  needsRetry: boolean;
+}> {
+  return request(API_ROUTES.subscriptionRenewalOrder(orderId));
+}
+
 export async function fetchKioskPayAccount(): Promise<KioskPayAccountRecord> {
   return request<KioskPayAccountRecord>(API_ROUTES.paymentKioskPay);
 }
@@ -11424,6 +11557,81 @@ export async function requestKioskPayWithdraw(body: {
   return request<KioskPayWithdrawalRecord>(
     `${API_ROUTES.paymentKioskPay}/withdrawals`,
     { method: "POST", body },
+  );
+}
+
+// ── SMS credits & quotas ────────────────────────────────────────────────────
+
+export type SmsCreditBalanceRecord = {
+  available: number;
+  includedRemaining: number;
+  includedAllowance: number;
+  purchasedBalance: number;
+  cycleEndsAt: string | null;
+  unitPriceKes: number;
+  lowBalance: boolean;
+  meteringEnabled: boolean;
+  minPurchaseCredits: number;
+  maxPurchaseCredits: number;
+};
+
+export type SmsCreditLedgerRow = {
+  id: string;
+  delta: number;
+  balanceAfter: number;
+  kind: string;
+  reason: string | null;
+  referenceId: string | null;
+  createdAt: string;
+  createdByUserId: string | null;
+};
+
+export type SmsCreditPurchaseRecord = {
+  id: string;
+  credits: number;
+  amountKes: number;
+  status: "PENDING" | "PAID" | "FAILED" | "EXPIRED";
+  phoneNumber: string | null;
+  message: string | null;
+};
+
+export type SmsCreditPurchaseStatusRecord = {
+  id: string;
+  status: "PENDING" | "PAID" | "FAILED" | "EXPIRED";
+  amountKes: number;
+  mpesaReceipt: string | null;
+  paidAt: string | null;
+  needsRetry: boolean;
+};
+
+export async function fetchSmsCreditBalance(): Promise<SmsCreditBalanceRecord> {
+  return request<SmsCreditBalanceRecord>(API_ROUTES.smsCreditsBalance);
+}
+
+export async function fetchSmsCreditLedger(
+  limit = 50,
+): Promise<SmsCreditLedgerRow[]> {
+  const res = await request<{ rows: SmsCreditLedgerRow[] }>(
+    `${API_ROUTES.smsCreditsLedger}?limit=${limit}`,
+  );
+  return res.rows ?? [];
+}
+
+export async function purchaseSmsCredits(body: {
+  credits: number;
+  phone?: string;
+}): Promise<SmsCreditPurchaseRecord> {
+  return request<SmsCreditPurchaseRecord>(API_ROUTES.smsCreditsPurchase, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function fetchSmsCreditPurchaseStatus(
+  purchaseId: string,
+): Promise<SmsCreditPurchaseStatusRecord> {
+  return request<SmsCreditPurchaseStatusRecord>(
+    API_ROUTES.smsCreditsPurchaseStatus(purchaseId),
   );
 }
 

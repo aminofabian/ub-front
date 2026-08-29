@@ -1,5 +1,7 @@
 /** Shared catalog labeling — UUID product names and import placeholder categories. */
 
+import { shouldPreserveProductNameCasing } from "@/lib/catalog-display-policy";
+
 const UUID_RE = /^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/i;
 const IMP_UUID_RE =
   /^IMP-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -44,9 +46,25 @@ function normalizeUnitSuffix(raw: string): string {
   return "ml";
 }
 
+/** Trim and collapse whitespace; preserves caller casing (inventory codes, imports). */
+export function trimCatalogLabel(value: string | null | undefined): string {
+  const t = value?.trim().replace(/\s+/g, " ");
+  return t ?? "";
+}
+
 /**
- * Title-case shelf labels for consistent list/detail display.
- * Does not mutate stored data — display-only.
+ * Display/save formatter for product names — exact when the business setting is on,
+ * otherwise legacy title-case normalization.
+ */
+export function formatProductNameForCatalog(name: string): string {
+  const t = trimCatalogLabel(name);
+  if (!t) return t;
+  return shouldPreserveProductNameCasing() ? t : normalizeProductDisplayName(t);
+}
+
+/**
+ * Title-case shelf labels for consumer-facing copy (categories, storefront teasers).
+ * Product names use {@link trimCatalogLabel} so codes like `BL CVD-12` stay exact.
  * Also normalizes size tokens: 2Litres → 2L, 350ML → 350ml, 90G → 90g, "2 litre" → 2L.
  */
 export function normalizeProductDisplayName(name: string): string {
@@ -187,9 +205,9 @@ export function withProductCode(name: string, code: string): string {
 }
 
 function usableLabel(value: string | null | undefined): string | null {
-  const t = value?.trim();
+  const t = trimCatalogLabel(value);
   if (!t || isGarbageProductName(t)) return null;
-  return normalizeProductDisplayName(t);
+  return formatProductNameForCatalog(t);
 }
 
 /** Human-readable product title; never surfaces a raw UUID or IMP-{uuid} as the name. */

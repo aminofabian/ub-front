@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, MessageSquare, Send, Users } from "lucide-react";
 
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
+import { SmsCreditsDepletedBanner } from "@/components/messaging/sms-credits-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -255,6 +256,8 @@ export function StaffSmsDrawer({
         {previewing ? (
           <p className="text-xs text-muted-foreground">Refreshing preview…</p>
         ) : null}
+
+        <SmsCreditsDepletedBanner className="w-full" />
       </FormDrawerFields>
     </FormDrawer>
   );

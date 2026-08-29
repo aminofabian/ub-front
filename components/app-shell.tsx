@@ -28,8 +28,11 @@ import {
 import { BranchRequiredBanner } from "@/components/branch-required-banner";
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
+import { SubscriptionGraceBanner } from "@/components/subscription-grace-banner";
+import { SetupProgressContextStrip } from "@/components/setup-progress/setup-progress-context-strip";
 import { DesktopReadOnlyOverlay } from "@/components/desktop/desktop-read-only-overlay";
 import { KioskPayHeaderBalance } from "@/components/payments/kiosk-pay-header-balance";
+import { SmsCreditsHeader } from "@/components/messaging/sms-credits-header";
 import { SokoMindGuide } from "@/components/sokomind-guide";
 import { DesktopNavRail } from "@/components/shell/desktop-nav-rail";
 import {
@@ -899,6 +902,14 @@ export function AppShell({ children }: AppShellProps) {
     me?.permissions,
     Permission.PaymentsGatewaysWrite,
   );
+  const canBuySmsCredits = hasPermission(
+    me?.permissions,
+    Permission.SmsCreditsPurchase,
+  );
+  const canViewSmsCreditLedger = hasPermission(
+    me?.permissions,
+    Permission.SmsCreditsLedgerRead,
+  );
   const canViewAirtime =
     hasPermission(me?.permissions, Permission.AirtimeRead) ||
     hasPermission(me?.permissions, Permission.AirtimeSell);
@@ -1394,6 +1405,12 @@ export function AppShell({ children }: AppShellProps) {
                 variant="desktop"
               />
             ) : null}
+            <SmsCreditsHeader
+              canBuy={canBuySmsCredits}
+              canViewLedger={canViewSmsCreditLedger}
+              defaultPhone={me?.phone}
+              variant="desktop"
+            />
             <NotificationBell />
             {/* Phase 9: Branch selector — hidden for stock managers, cashiers and grocery clerks who are locked to their assigned branch */}
             {isStockManager || isCashier || isButcherCashier || isGroceryClerk ? (
@@ -1492,13 +1509,21 @@ export function AppShell({ children }: AppShellProps) {
             departmentName={currentItemType?.label ?? ALL_DEPARTMENTS_LABEL}
             userInitial={userInitial}
             headerTools={
-              showOwnerKioskPay ? (
-                <KioskPayHeaderBalance
-                  canWithdraw={canWritePaymentGateways}
-                  currencyFallback={business?.currency?.trim() || "KES"}
+              <>
+                {showOwnerKioskPay ? (
+                  <KioskPayHeaderBalance
+                    canWithdraw={canWritePaymentGateways}
+                    currencyFallback={business?.currency?.trim() || "KES"}
+                    variant="tablet"
+                  />
+                ) : null}
+                <SmsCreditsHeader
+                  canBuy={canBuySmsCredits}
+                  canViewLedger={canViewSmsCreditLedger}
+                  defaultPhone={me?.phone}
                   variant="tablet"
                 />
-              ) : null
+              </>
             }
             posLinks={headerPosLinks}
             onOpenMore={() => setMoreOpen(true)}
@@ -1507,7 +1532,9 @@ export function AppShell({ children }: AppShellProps) {
 
         {IS_DESKTOP ? <DesktopLicenseBanner /> : null}
         <ImpersonationBanner />
+        <SubscriptionGraceBanner />
         <BranchRequiredBanner />
+        {canManageBusinessSettings ? <SetupProgressContextStrip /> : null}
 
         {/* ── Main content ───────────────────────────────────────────────────── */}
         <main

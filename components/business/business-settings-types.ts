@@ -87,6 +87,8 @@ export type InventoryForm = {
   allowCashierTabClearance: boolean;
   requirePhoneVerificationForNewTabCustomers: boolean;
   allowCashierSearchCustomersByName: boolean;
+  /** When true, product names show exactly as entered on Products, Stock, and POS. */
+  preserveProductNameCasing: boolean;
 };
 
 export type PosDraftsForm = {
@@ -235,6 +237,8 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   requirePhoneVerificationForNewTabCustomers: true,
   /** Match backend: name search on Tab checkout defaults off. */
   allowCashierSearchCustomersByName: false,
+  /** Match backend: exact product names default on. */
+  preserveProductNameCasing: true,
 };
 
 export const DEFAULT_POS_DRAFTS: PosDraftsForm = {
@@ -478,6 +482,8 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
     allowCashierSearchCustomersByName: Boolean(
       b?.inventory?.creditTabs?.allowCashierSearchCustomersByName,
     ),
+    preserveProductNameCasing:
+      b?.inventory?.catalog?.preserveProductNameCasing !== false,
   };
 }
 

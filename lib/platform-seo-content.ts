@@ -3,6 +3,8 @@
  * Kept free of `server-only` so client landing sections can import it.
  */
 
+import { KIOSK_PLATFORM_CONTACT } from "@/lib/platform-contact";
+
 export const PLATFORM_FAQS = [
   {
     question: "What is the best POS system in Kenya for small shops?",
@@ -26,8 +28,7 @@ export const PLATFORM_FAQS = [
   },
   {
     question: "How long does it take to set up POS software in Kenya?",
-    answer:
-      "Most shops claim a subdomain, add products, and take their first sale the same day — typically under 10 minutes to open the till. No consultants or long rollout required.",
+    answer: `Most shops claim a subdomain, add products, and take their first sale the same day — typically under 10 minutes to open the till. For hands-on help with installation, barcode scanners, or M-Pesa setup, call ${KIOSK_PLATFORM_CONTACT.phoneDisplay} or email ${KIOSK_PLATFORM_CONTACT.email}.`,
   },
   {
     question: "Is Kiosk POS good for mini-marts and dukas?",

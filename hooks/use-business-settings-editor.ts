@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { frontWindowFieldsForLandingContent } from "@/lib/front-window-landing";
 import { brandPosterFieldsForLandingContent } from "@/lib/brand-poster-landing";
+import { syncCatalogDisplayPolicyFromBusiness } from "@/lib/catalog-display-policy";
 import {
   applyBusinessSnapshot,
   clampDailyAuditSampleSize,
@@ -420,6 +421,9 @@ export function useBusinessSettingsEditor() {
               allowCashierSearchCustomersByName:
                 inventory.allowCashierSearchCustomersByName,
             },
+            catalog: {
+              preserveProductNameCasing: inventory.preserveProductNameCasing,
+            },
           };
           body.featureFlags = {
             posDrafts: {
@@ -464,6 +468,7 @@ export function useBusinessSettingsEditor() {
         setEditable(applied.editable);
         setStorefront(applied.storefront);
         setInventory(applied.inventory);
+        syncCatalogDisplayPolicyFromBusiness(next.inventory);
         setPosDrafts(applied.posDrafts);
         setCashierCapabilities(applied.cashierCapabilities);
         setShiftSettings(applied.shiftSettings);

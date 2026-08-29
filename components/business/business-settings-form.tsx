@@ -15,6 +15,7 @@ import {
   Truck,
   Users,
   Warehouse,
+  Package,
 } from "lucide-react";
 
 import { FormDrawerFields } from "@/components/form-drawer";
@@ -1073,6 +1074,27 @@ export function BusinessSettingsForm({
                 icon={<ShoppingCart className="size-4 text-muted-foreground" />}
                 title="Allow selling when out of stock"
                 description="Cashiers can complete sales when on-hand is zero. Stock goes negative until you receive more."
+              />
+            </FormDrawerFields>
+          </SettingsAnchor>
+
+          <SettingsAnchor id="settings-catalog">
+            <FormDrawerFields
+              compact
+              legend="Product names"
+              hint="How product titles read on Products, Stock, and POS."
+            >
+              <ToggleRow
+                checked={inventory.preserveProductNameCasing}
+                onChange={(checked) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    preserveProductNameCasing: checked,
+                  }))
+                }
+                icon={<Package className="size-4 text-muted-foreground" />}
+                title="Use names exactly as entered"
+                description="Keeps codes like BL CVD-12 unchanged everywhere. Turn off to title-case names (Coca Cola style) on save and display."
               />
             </FormDrawerFields>
           </SettingsAnchor>

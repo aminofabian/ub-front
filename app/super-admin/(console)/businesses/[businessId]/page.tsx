@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { Check, Copy, ExternalLink, Globe, Mail, MessageCircle, Plus, Users } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { SaSmsCreditsPanel } from "@/components/super-admin/sa-sms-credits-panel";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { showThemedConfirmToast, showThemedErrorToast, showThemedSuccessToast } from "@/components/super-admin/themed-confirm-toast";
 import { Badge } from "@/components/ui/badge";
@@ -816,8 +817,15 @@ function BusinessDetailInner() {
                 value={bizTier}
                 onChange={(ev) => setBizTier(ev.target.value)}
                 placeholder="starter"
+                list="sa-tier-suggestions"
                 disabled={locked}
               />
+              <datalist id="sa-tier-suggestions">
+                <option value="starter" />
+                <option value="business" />
+                <option value="growth" />
+                <option value="enterprise" />
+              </datalist>
             </div>
             <div className="space-y-2">
               <Label htmlFor="sa-biz-country">Country</Label>
@@ -1086,6 +1094,9 @@ function BusinessDetailInner() {
           </>
         )}
       </section>
+
+      {/* SMS credits & quotas */}
+      {businessId ? <SaSmsCreditsPanel businessId={businessId} /> : null}
     </div>
   );
 }

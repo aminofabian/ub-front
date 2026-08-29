@@ -36,6 +36,8 @@ export const APP_ROUTES = {
   superAdminCampaignNew: "/super-admin/campaigns/new",
   superAdminSettings: "/super-admin/settings",
   superAdminPlatformIntegrations: "/super-admin/platform/integrations",
+  superAdminPlatformSmsCredits: "/super-admin/platform/sms-credits",
+  superAdminPlatformSubscription: "/super-admin/platform/subscription",
   superAdminPlatformSokoMind: "/super-admin/platform/sokomind",
   superAdminPlatformDomains: "/super-admin/platform/domains",
   superAdminPlatformSupplierPortal: "/super-admin/platform/supplier-portal",
@@ -55,6 +57,7 @@ export const APP_ROUTES = {
   businessMobile: "/business/mobile",
   businessDomains: "/business/domains",
   businessImport: "/business/import",
+  billingRenew: "/business/billing/renew",
   branches: "/branches",
   users: "/users",
   /** Open staff profile drawer on Users (`?profile=<userId>`). */
@@ -269,6 +272,14 @@ export const API_ROUTES = {
   superAdminPlatformDomains: "/api/v1/super-admin/platform/domains",
   superAdminPlatformDomainOrders: "/api/v1/super-admin/platform/domain-orders",
   superAdminPlatformOverview: "/api/v1/super-admin/platform/overview",
+  superAdminSmsCreditsSettings: "/api/v1/super-admin/platform/sms-credits/settings",
+  superAdminSmsCreditsTiers: "/api/v1/super-admin/platform/sms-credits/tiers",
+  superAdminSmsCreditsUsage: "/api/v1/super-admin/platform/sms-credits/usage",
+  superAdminSmsCreditsBusiness: (businessId: string) =>
+    `/api/v1/super-admin/businesses/${businessId}/sms-credits`,
+  superAdminSubscriptionSettings: "/api/v1/super-admin/platform/subscription/settings",
+  superAdminSubscriptionPlans: "/api/v1/super-admin/platform/subscription/plans",
+  superAdminSubscriptionDunning: "/api/v1/super-admin/platform/subscription/dunning",
   superAdminPlatformSupplierPortal: "/api/v1/super-admin/platform/supplier-portal",
   superAdminMarketplaceSuppliers: "/api/v1/super-admin/marketplace/suppliers",
   superAdminGlobalCatalog: "/api/v1/super-admin/global-catalog",
@@ -290,6 +301,15 @@ export const API_ROUTES = {
   paymentGatewaysAvailable: "/api/v1/payments/gateways/available",
   paymentGateways: "/api/v1/payments/gateways",
   paymentKioskPay: "/api/v1/payments/kiosk-pay",
+  smsCreditsBalance: "/api/v1/sms-credits/balance",
+  smsCreditsLedger: "/api/v1/sms-credits/ledger",
+  smsCreditsPurchase: "/api/v1/sms-credits/purchase",
+  smsCreditsPurchaseStatus: (id: string) => `/api/v1/sms-credits/purchases/${id}`,
+  subscriptionBillingStatus: "/api/v1/subscription/billing-status",
+  subscriptionRenewalQuote: "/api/v1/subscription/renewal-quote",
+  subscriptionRenew: "/api/v1/subscription/renew",
+  subscriptionRenewalOrder: (id: string) =>
+    `/api/v1/subscription/renewal-orders/${encodeURIComponent(id.trim())}`,
   airtime: "/api/v1/airtime",
   paymentSupplierPayout: "/api/v1/payments/supplier-payout",
   paymentDisplayInstructions: "/api/v1/payments/display-instructions",
@@ -309,6 +329,8 @@ export const STORAGE_KEYS = {
   supplierPortalSessionId: "ub.sp.sessionId",
   /** Set on tenant origin after SA impersonation handoff; drives the support banner. */
   impersonationSession: "ub.impersonation",
+  /** Billing-suspended login gate — cleared after successful renewal. */
+  billingGate: "ub.billingGate",
   /** Client-side ops errors (API unreachable / proxy config) — admin logs page. */
   opsClientLog: "ub.opsClientLog",
 } as const;

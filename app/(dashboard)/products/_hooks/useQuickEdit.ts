@@ -21,7 +21,7 @@ import {
   type ItemSupplierLinkRecord,
   type PatchItemPayload,
 } from "@/lib/api";
-import { isGarbageProductName, normalizeProductDisplayName } from "@/lib/catalog-display";
+import { formatProductNameForCatalog, isGarbageProductName } from "@/lib/catalog-display";
 import { type QuickEditKey } from "../_types";
 import {
   effectiveOnHand,
@@ -255,7 +255,7 @@ export function useQuickEdit({
   }, [quickEdit, detail, quickStockBranchId]);
 
   const saveQuickProductName = useCallback(() => {
-    const n = normalizeProductDisplayName(quickProductName);
+    const n = formatProductNameForCatalog(quickProductName);
     if (!n) {
       setMessage("Display name is required.");
       return;

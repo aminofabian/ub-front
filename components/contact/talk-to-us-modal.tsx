@@ -17,6 +17,7 @@ import {
   type ContactMessageDestination,
   type ContactTillChallenge,
 } from "@/lib/contact-messages";
+import { KIOSK_PLATFORM_CONTACT } from "@/lib/platform-contact";
 import { cn } from "@/lib/utils";
 
 type TalkToUsModalProps = {
@@ -217,6 +218,24 @@ export function TalkToUsModal({
                 className="space-y-2.5"
                 onSubmit={(e) => void onSubmit(e)}
               >
+                {destination === "platform" ? (
+                  <p className="rounded border border-dashed border-[var(--kiosk-border)] bg-[color-mix(in_srgb,var(--kiosk-surface)_75%,white)] px-3 py-2 text-[12px] leading-relaxed text-[var(--kiosk-text-muted)]">
+                    Prefer to talk now? POS setup &amp; installation:{" "}
+                    <a
+                      href={`tel:${KIOSK_PLATFORM_CONTACT.phoneTel}`}
+                      className="font-medium text-[var(--kiosk-gold)]"
+                    >
+                      {KIOSK_PLATFORM_CONTACT.phoneDisplay}
+                    </a>
+                    {" · "}
+                    <a
+                      href={`mailto:${KIOSK_PLATFORM_CONTACT.email}`}
+                      className="font-medium text-[var(--kiosk-gold)]"
+                    >
+                      {KIOSK_PLATFORM_CONTACT.email}
+                    </a>
+                  </p>
+                ) : null}
                 <div className="grid gap-2.5 sm:grid-cols-2">
                   <Field
                     label="Name"

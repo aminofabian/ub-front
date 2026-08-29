@@ -30,7 +30,7 @@ import {
 } from "@/lib/api";
 import {
   isGarbageProductName,
-  normalizeProductDisplayName,
+  formatProductNameForCatalog,
 } from "@/lib/catalog-display";
 import { isSystemUnassignedSupplier } from "@/lib/supplier-display";
 import {
@@ -389,7 +389,7 @@ export function useProductMutations(d: Dependencies) {
 
       try {
         const isCreatingGroup = parentDraft.productStructure === "group";
-        const displayName = normalizeProductDisplayName(parentDraft.name);
+        const displayName = formatProductNameForCatalog(parentDraft.name);
         if (!displayName || isGarbageProductName(displayName)) {
           setMessage("Enter a real product name — not a UUID or import id.");
           return;

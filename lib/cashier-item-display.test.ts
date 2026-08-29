@@ -159,7 +159,7 @@ describe("cashier labels", () => {
         name: "3 for 20",
         sku: "TOMATO-10002-3-FOR-20",
       }),
-    ).toBe("Tomatoes 3 For 20");
+    ).toBe("Tomatoes 3 for 20");
     expect(
       cashierItemPrimaryLabel({
         id: "f",
@@ -245,5 +245,19 @@ describe("cashier labels", () => {
         packageUnitsPerSale: 30,
       }),
     ).toEqual({ primary: "Eggs", option: "Tray of 30" });
+  });
+
+  it("keeps coded inventory names exact on POS tiles", () => {
+    const row: ItemSummaryRecord = {
+      id: "hook",
+      name: "BL CVD-12",
+      sku: "CVDBR-12",
+      categoryName: "DRY HOOKS BR",
+    };
+    expect(cashierItemPrimaryLabel(row)).toBe("BL CVD-12");
+    expect(cashierItemTitleParts(row)).toEqual({
+      primary: "BL CVD-12",
+      option: null,
+    });
   });
 });

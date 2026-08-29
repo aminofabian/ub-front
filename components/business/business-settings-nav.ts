@@ -6,6 +6,7 @@ import {
   ClipboardList,
   MessageCircle,
   MonitorSmartphone,
+  Package,
   ShoppingCart,
   Store,
   Truck,
@@ -30,6 +31,7 @@ export const BUSINESS_PROFILE_NAV: BusinessSettingsNavItem[] = [
 export const BUSINESS_CONFIGURATION_NAV: BusinessSettingsNavItem[] = [
   { id: "settings-stock-take", label: "Stock take", group: "Inventory", icon: ClipboardList },
   { id: "settings-stock-levels", label: "Stock levels", group: "Inventory", icon: Warehouse },
+  { id: "settings-catalog", label: "Product names", group: "Inventory", icon: Package },
   { id: "settings-receive", label: "Receive stock", group: "Inventory", icon: Truck },
   { id: "settings-credit-tabs", label: "Credit tabs", group: "Inventory", icon: Users },
   { id: "settings-suppliers", label: "Suppliers", group: "Inventory", icon: Truck },

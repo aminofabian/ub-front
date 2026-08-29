@@ -29,9 +29,8 @@ import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer
 import { CommandGrid, type CommandLink } from "@/components/business-hub/command-grid";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
-import { PostSetupChecklist } from "@/components/business-hub/post-setup-checklist";
-import { StockShelvesBanner } from "@/components/business-hub/stock-shelves-banner";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
+import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
 import { CreditTabsRail } from "@/components/business-hub/credit-tabs-rail";
 import { SupplyBillsRail } from "@/components/business-hub/supply-bills-rail";
@@ -1149,6 +1148,10 @@ export function BusinessHubWorkspace() {
         )}
       >
         <div className="flex flex-col gap-3">
+          {canManageBusinessSettings ? (
+            <SetupProgressBanner />
+          ) : null}
+
           {showTillStage ? (
             <CashierStageTabs
               cashiers={cashierNames}
@@ -1327,13 +1330,6 @@ export function BusinessHubWorkspace() {
               )}
 
               {shopNotReady ? null : <CommandGrid links={commandLinks} />}
-
-              {shopNotReady ? null : (
-              <div className="space-y-2 xl:hidden">
-                <StockShelvesBanner catalogueCount={catalogueCount} />
-                <PostSetupChecklist catalogueCount={catalogueCount} />
-              </div>
-              )}
             </div>
 
             {showTillStage && !galleryOpen

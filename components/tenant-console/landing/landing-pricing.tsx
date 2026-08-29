@@ -1,6 +1,7 @@
 "use client";
 
 import { LandingSectionHeader } from "./landing-section-header";
+import { LandingSetupContact } from "./landing-setup-contact";
 import {
   goldCtaClass,
   ghostCtaClass,
@@ -94,10 +95,10 @@ const PLANS: readonly Plan[] = [
     features: [
       { qty: "∞", label: "Products" },
       { qty: "∞", label: "Cashiers" },
+      { qty: "·", label: "On-site POS installation" },
       { qty: "·", label: "Custom setup & onboarding" },
       { qty: "·", label: "Multi-location support" },
       { qty: "·", label: "Dedicated assistance" },
-      { qty: "·", label: "Priority support" },
     ],
     cta: "Talk to us",
     talkToUs: true,
@@ -166,7 +167,7 @@ function PlanCard({ plan, onCreateShop, onTalkToUs }: PlanCardProps) {
 
       <div className="landing-plan-dash" aria-hidden />
 
-      <ul className="landing-plan-lines">
+      <ul className="landing-plan-lines flex-1">
         {features.map((f) => (
           <li key={f.label} className="landing-plan-line">
             <span className="landing-plan-qty">{f.qty}</span>
@@ -176,7 +177,7 @@ function PlanCard({ plan, onCreateShop, onTalkToUs }: PlanCardProps) {
         ))}
       </ul>
 
-      <div className="landing-plan-rule" aria-hidden />
+      <div className="landing-plan-rule mt-auto" aria-hidden />
 
       {talkToUs ? (
         <button type="button" className={ctaClass} onClick={onTalkToUs}>
@@ -231,6 +232,12 @@ export function LandingPricing({ onCreateShop, onTalkToUs }: LandingPricingProps
             Talk to us &rarr;
           </button>
         </p>
+
+        <LandingSetupContact
+          className="mt-10"
+          onTalkToUs={onTalkToUs}
+          asSection
+        />
       </div>
     </section>
   );

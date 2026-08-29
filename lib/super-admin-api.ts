@@ -3181,3 +3181,220 @@ export async function fetchSaSupportUnreadCount(): Promise<number> {
   return typeof payload?.count === "number" ? payload.count : 0;
 }
 
+
+// ── SMS credits & quotas (Super Admin) ───────────────────────────────────────
+
+export type PlatformSmsCreditSettingsRecord = {
+  enabled: boolean;
+  unitPriceKes: number;
+  minPurchaseCredits: number;
+  maxPurchaseCredits: number;
+  lowBalanceThreshold: number;
+  cycleTimezone: string;
+  updatedAt: string | null;
+};
+
+export type SmsTierAllowanceRecord = {
+  tierCode: string;
+  includedSmsPerMonth: number;
+  active: boolean;
+};
+
+export type SaSmsCreditLedgerRow = {
+  id: string;
+  delta: number;
+  balanceAfter: number;
+  kind: string;
+  reason: string | null;
+  referenceId: string | null;
+  createdAt: string;
+  createdByUserId: string | null;
+};
+
+export type SaSmsCreditPurchaseRow = {
+  id: string;
+  credits: number;
+  amountKes: number;
+  status: string;
+  phoneNumber: string | null;
+  message: string | null;
+};
+
+export type SaSmsCreditAccountRecord = {
+  businessId: string;
+  includedUsed: number;
+  includedOverride: number | null;
+  includedAllowance: number;
+  includedRemaining: number;
+  purchasedBalance: number;
+  available: number;
+  cycleStartedAt: string | null;
+  recentLedger: SaSmsCreditLedgerRow[];
+  recentPurchases: SaSmsCreditPurchaseRow[];
+};
+
+export async function fetchPlatformSmsCreditSettings(): Promise<PlatformSmsCreditSettingsRecord> {
+  return saRequest<PlatformSmsCreditSettingsRecord>(
+    API_ROUTES.superAdminSmsCreditsSettings,
+  );
+}
+
+export async function updatePlatformSmsCreditSettings(body: {
+  enabled?: boolean;
+  unitPriceKes?: number;
+  minPurchaseCredits?: number;
+  maxPurchaseCredits?: number;
+  lowBalanceThreshold?: number;
+  cycleTimezone?: string;
+}): Promise<PlatformSmsCreditSettingsRecord> {
+  return saRequest<PlatformSmsCreditSettingsRecord>(
+    API_ROUTES.superAdminSmsCreditsSettings,
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
+export async function fetchSmsTierAllowances(): Promise<SmsTierAllowanceRecord[]> {
+  const payload = await saRequest<{ tiers: SmsTierAllowanceRecord[] }>(
+    API_ROUTES.superAdminSmsCreditsTiers,
+  );
+  return payload.tiers ?? [];
+}
+
+export async function upsertSmsTierAllowance(
+  tierCode: string,
+  body: { includedSmsPerMonth?: number; active?: boolean },
+): Promise<SmsTierAllowanceRecord[]> {
+  const payload = await saRequest<{ tiers: SmsTierAllowanceRecord[] }>(
+    `${API_ROUTES.superAdminSmsCreditsTiers}/${encodeURIComponent(tierCode)}`,
+    { method: "PUT", body: JSON.stringify(body) },
+  );
+  return payload.tiers ?? [];
+}
+
+export async function fetchSaSmsCreditAccount(
+  businessId: string,
+): Promise<SaSmsCreditAccountRecord> {
+  return saRequest<SaSmsCreditAccountRecord>(
+    API_ROUTES.superAdminSmsCreditsBusiness(businessId),
+  );
+}
+
+export async function grantSaSmsCredits(
+  businessId: string,
+  body: { credits: number; note?: string | null },
+): Promise<SaSmsCreditAccountRecord> {
+  return saRequest<SaSmsCreditAccountRecord>(
+    `${API_ROUTES.superAdminSmsCreditsBusiness(businessId)}/grant`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function updateSaSmsCreditAccount(
+  businessId: string,
+  body: { includedOverride?: number | null },
+): Promise<SaSmsCreditAccountRecord> {
+  return saRequest<SaSmsCreditAccountRecord>(
+    API_ROUTES.superAdminSmsCreditsBusiness(businessId),
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
+export type SaSubscriptionSettingsRecord = {
+  billingEnabled: boolean;
+  defaultGraceDays: number;
+  renewalBaseUrl: string;
+  notificationCadenceDays: string;
+  preExpiryReminderDays: number;
+  updatedAt: string;
+};
+
+export type SaSubscriptionPlanRecord = {
+  tierCode: string;
+  displayName: string;
+  monthlyPriceKes: number;
+  annualPriceKes: number | null;
+  graceDays: number;
+  productLimit: number | null;
+  cashierLimit: number | null;
+  active: boolean;
+  sortOrder: number;
+};
+
+export type SaSubscriptionDunningRecord = {
+  billingEnabled: boolean;
+  tenantsInGrace: number;
+  tenantsSuspended: number;
+  monthlyRevenueAtRiskKes: number;
+  graceRecoveryRatePercent: number;
+  graceEpisodesLast90d: number;
+  renewalsLast30d: number;
+  renewalRevenueLast30dKes: number;
+  preExpiryRemindersLast30d: number;
+  generatedAt: string;
+};
+
+export async function fetchSaSubscriptionSettings(): Promise<SaSubscriptionSettingsRecord> {
+  return saRequest<SaSubscriptionSettingsRecord>(API_ROUTES.superAdminSubscriptionSettings);
+}
+
+export async function updateSaSubscriptionSettings(
+  body: Partial<{
+    billingEnabled: boolean;
+    defaultGraceDays: number;
+    renewalBaseUrl: string;
+    notificationCadenceDays: string;
+    preExpiryReminderDays: number;
+  }>,
+): Promise<SaSubscriptionSettingsRecord> {
+  return saRequest<SaSubscriptionSettingsRecord>(API_ROUTES.superAdminSubscriptionSettings, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function fetchSaSubscriptionPlans(): Promise<SaSubscriptionPlanRecord[]> {
+  const payload = await saRequest<{ plans: SaSubscriptionPlanRecord[] }>(
+    API_ROUTES.superAdminSubscriptionPlans,
+  );
+  return payload.plans ?? [];
+}
+
+export async function upsertSaSubscriptionPlan(
+  tierCode: string,
+  body: Partial<{
+    displayName: string;
+    monthlyPriceKes: number;
+    annualPriceKes: number | null;
+    graceDays: number;
+    active: boolean;
+  }>,
+): Promise<SaSubscriptionPlanRecord[]> {
+  const payload = await saRequest<{ plans: SaSubscriptionPlanRecord[] }>(
+    `${API_ROUTES.superAdminSubscriptionPlans}/${encodeURIComponent(tierCode)}`,
+    { method: "PUT", body: JSON.stringify(body) },
+  );
+  return payload.plans ?? [];
+}
+
+export async function fetchSaSubscriptionDunning(): Promise<SaSubscriptionDunningRecord> {
+  return saRequest<SaSubscriptionDunningRecord>(API_ROUTES.superAdminSubscriptionDunning);
+}
+
+export type SaSmsCreditUsageRecord = {
+  cycleStartedAt: string;
+  totalSentThisCycle: number;
+  includedSentThisCycle: number;
+  purchasedSentThisCycle: number;
+  depletedCount: number;
+  topTenants: {
+    businessId: string;
+    name: string;
+    tier: string;
+    sentThisCycle: number;
+    available: number;
+  }[];
+};
+
+export async function fetchSmsCreditUsage(): Promise<SaSmsCreditUsageRecord> {
+  return saRequest<SaSmsCreditUsageRecord>(API_ROUTES.superAdminSmsCreditsUsage);
+}

@@ -22,7 +22,14 @@ export function LandingCta({ onCreateShop, onTalkToUs }: LandingCtaProps) {
           </h2>
           <p className="relative z-[1] mx-auto mb-8 max-w-md text-base leading-[1.65] text-[var(--kiosk-text-soft)] sm:mb-10">
             Start free on Kiosk.ke — Kenya&apos;s point of sale with M-Pesa,
-            offline sales, and a storefront. No credit card.
+            offline sales, and a storefront. No credit card. Need setup help?{" "}
+            <a
+              href="#contact"
+              className="font-medium text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
+            >
+              Call our team
+            </a>
+            .
           </p>
           <div className="relative z-[1] flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4">
             <button

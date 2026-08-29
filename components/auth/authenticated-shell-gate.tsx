@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { AuthRecoveryPanel } from "@/components/auth/auth-recovery-panel";
 import { DashboardAppShellSkeleton } from "@/components/dashboard/dashboard-app-shell-skeleton";
+import { SubscriptionRenewalWall } from "@/components/subscription-renewal-wall";
 import { StaleClientReload } from "@/components/stale-client-reload";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
 
@@ -41,6 +42,7 @@ export function AuthenticatedShellGate({ children }: AuthenticatedShellGateProps
   return (
     <>
       {body}
+      <SubscriptionRenewalWall />
       <StaleClientReload />
     </>
   );

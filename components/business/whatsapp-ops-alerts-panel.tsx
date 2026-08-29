@@ -17,6 +17,7 @@ import {
   dashboardInputClass,
   dashboardLabelClass,
 } from "@/components/dashboard-page-ui";
+import { SmsCreditsDepletedBanner } from "@/components/messaging/sms-credits-header";
 import { Button } from "@/components/ui/button";
 import {
   clearOpsAlertPhone,
@@ -277,6 +278,8 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
         {message ? (
           <DashboardFeedback kind={message.kind} text={message.text} />
         ) : null}
+
+        <SmsCreditsDepletedBanner />
 
         {!settings?.messagingReady ? (
           <p className="rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-3.5 py-3 text-xs text-amber-950 dark:text-amber-100">

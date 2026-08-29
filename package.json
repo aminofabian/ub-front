@@ -16,7 +16,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "bun test",
-    "codegen": "openapi-typescript ../backend/docs/openapi/phase-1.yaml -o lib/generated/phase-1-api.ts"
+    "codegen": "openapi-typescript ../docs/openapi/phase-1.yaml -o lib/generated/phase-1-api.ts"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.3.5",

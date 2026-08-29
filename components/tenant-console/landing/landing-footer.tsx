@@ -6,6 +6,7 @@ import Link from "next/link";
 import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { TalkToUsModal } from "@/components/contact/talk-to-us-modal";
 import { PLATFORM_DOMAIN } from "@/lib/config";
+import { KIOSK_PLATFORM_CONTACT } from "@/lib/platform-contact";
 
 import { goldCtaClass } from "./landing-styles";
 
@@ -47,7 +48,15 @@ const FOOTER_COLS = [
       { label: "Help", href: "/help" },
       { label: "Merchants", href: "/help/merchants" },
       { label: "Shoppers", href: "/help/shoppers" },
-      { label: "Contact", href: "#contact", action: "talk" as const },
+      {
+        label: KIOSK_PLATFORM_CONTACT.phoneDisplay,
+        href: `tel:${KIOSK_PLATFORM_CONTACT.phoneTel}`,
+      },
+      {
+        label: KIOSK_PLATFORM_CONTACT.email,
+        href: `mailto:${KIOSK_PLATFORM_CONTACT.email}`,
+      },
+      { label: "Contact form", href: "#contact" },
     ],
   },
 ] as const;
@@ -135,9 +144,26 @@ export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
 
               <div className="landing-footer-meta shrink-0 text-left font-mono text-[10px] uppercase leading-relaxed tracking-[0.12em] text-[var(--kiosk-text-faint)] sm:text-right">
                 <p>Kiosk Technologies Ltd</p>
-                <p>Nairobi · Kenya</p>
-                <p className="mt-1 text-[var(--kiosk-gold)]">{PLATFORM_DOMAIN}</p>
-                <p className="mt-3 tabular-nums">Rcpt #{year}-KE</p>
+                <p>{KIOSK_PLATFORM_CONTACT.postalAddress}</p>
+                <p>{KIOSK_PLATFORM_CONTACT.postalCity}</p>
+                <p className="mt-2 normal-case tracking-normal">
+                  <a
+                    href={`tel:${KIOSK_PLATFORM_CONTACT.phoneTel}`}
+                    className="text-[var(--kiosk-text-muted)] transition-colors hover:text-[var(--kiosk-gold)]"
+                  >
+                    {KIOSK_PLATFORM_CONTACT.phoneDisplay}
+                  </a>
+                </p>
+                <p className="normal-case tracking-normal">
+                  <a
+                    href={`mailto:${KIOSK_PLATFORM_CONTACT.email}`}
+                    className="text-[var(--kiosk-text-muted)] transition-colors hover:text-[var(--kiosk-gold)]"
+                  >
+                    {KIOSK_PLATFORM_CONTACT.email}
+                  </a>
+                </p>
+                <p className="mt-2 text-[var(--kiosk-gold)]">{PLATFORM_DOMAIN}</p>
+                <p className="mt-1 tabular-nums">Rcpt #{year}-KE</p>
               </div>
             </div>
 

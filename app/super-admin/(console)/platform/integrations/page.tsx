@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SaSection, SaToggleRow, saSelectClass } from "@/components/super-admin/sa-section";
@@ -802,6 +804,13 @@ export default function SuperAdminPlatformIntegrationsPage() {
         </SaSection>
 
         <div className="flex justify-end">
+          <Link
+            href="/super-admin/platform/sms-credits"
+            className="mr-auto inline-flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-2 hover:underline"
+          >
+            SMS credits &amp; limits
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
           <Button type="submit" disabled={busy || !settings}>
             {busy ? "Saving…" : "Save settings"}
           </Button>

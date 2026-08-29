@@ -1643,6 +1643,126 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
     opacity: 0.16;
 }
 
+/* ── Landing setup contact — pricing footer panel ── */
+.landing-page .landing-setup-contact {
+    padding: 1.5rem 1.35rem;
+    border: 1px solid var(--kiosk-border);
+    background:
+        linear-gradient(
+            165deg,
+            color-mix(in srgb, var(--kiosk-gold) 5%, transparent),
+            transparent 48%
+        ),
+        color-mix(in srgb, var(--kiosk-elevated) 96%, #f3efe6);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.85) inset,
+        0 14px 36px -24px rgba(20, 20, 18, 0.18);
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-setup-contact {
+        padding: 1.75rem 1.65rem;
+    }
+}
+
+.landing-page .landing-setup-contact-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+}
+
+.landing-page .landing-setup-contact-eyebrow {
+    margin-bottom: 0.35rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-setup-contact-title {
+    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(1.5rem, 3.5vw, 1.85rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-setup-contact-blurb {
+    margin-top: 0.55rem;
+    max-width: 34rem;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--kiosk-text-dim);
+}
+
+.landing-page .landing-setup-contact-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-setup-contact-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.25rem;
+    }
+}
+
+.landing-page .landing-setup-contact-cell {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    min-height: 100%;
+    padding: 0.85rem 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--kiosk-border) 85%, transparent);
+    background: color-mix(in srgb, var(--kiosk-elevated) 88%, #fff);
+}
+
+.landing-page .landing-setup-contact-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--kiosk-gold-border);
+    background: var(--kiosk-gold-soft);
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-setup-contact-label {
+    margin-bottom: 0.2rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-faint);
+}
+
+.landing-page .landing-setup-contact-value {
+    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-setup-contact-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s ease-out;
+}
+
+.landing-page .landing-setup-contact-link:hover {
+    color: var(--kiosk-gold);
+}
+
 /* ── Tenant dynamic logo ── */
 @property --tenant-logo-shine-angle {
     syntax: "<angle>";

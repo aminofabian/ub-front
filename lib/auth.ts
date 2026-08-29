@@ -388,14 +388,58 @@ export function hasAccessSession(): boolean {
   return Boolean(claims && (claims.exp != null || claims.businessId || claims.sub));
 }
 
-/**
- * Apply login/refresh/restore payloads after Gap G3 redaction.
- * Prefers `session` claims; falls back to raw accessToken (desktop / legacy).
- */
+export type AuthBillingGate = {
+  subscriptionBillingStatus: "ACTIVE" | "GRACE" | "SUSPENDED";
+  suspensionReason: string | null;
+  renewalQuote: {
+    tier: string;
+    tierDisplayName: string;
+    periodMonths: number;
+    amountKes: number;
+    currency: string;
+    currentPeriodEnd: string | null;
+    graceEndsAt: string | null;
+  };
+};
+
+export function persistLoginBillingGate(gate: AuthBillingGate | null | undefined): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  if (!gate || gate.subscriptionBillingStatus !== "SUSPENDED") {
+    window.sessionStorage.removeItem(STORAGE_KEYS.billingGate);
+    return;
+  }
+  window.sessionStorage.setItem(STORAGE_KEYS.billingGate, JSON.stringify(gate));
+}
+
+export function getLoginBillingGate(): AuthBillingGate | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const raw = window.sessionStorage.getItem(STORAGE_KEYS.billingGate);
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as AuthBillingGate;
+  } catch {
+    return null;
+  }
+}
+
+export function clearLoginBillingGate(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.sessionStorage.removeItem(STORAGE_KEYS.billingGate);
+}
+
 export function applyAuthSessionPayload(payload: {
   accessToken?: string;
   refreshToken?: string;
   session?: AuthSessionClaims;
+  billing?: AuthBillingGate | null;
 }): boolean {
   const access = payload.accessToken?.trim();
   if (access) {
@@ -403,10 +447,12 @@ export function applyAuthSessionPayload(payload: {
       accessToken: access,
       refreshToken: payload.refreshToken,
     });
+    persistLoginBillingGate(payload.billing);
     return true;
   }
   if (payload.session) {
     setSessionClaims(payload.session);
+    persistLoginBillingGate(payload.billing);
     return true;
   }
   return false;
@@ -441,6 +487,7 @@ export function clearAllSessionData(): void {
   clearPersistedTillLock();
   // Super-admin support session banner
   window.sessionStorage.removeItem(STORAGE_KEYS.impersonationSession);
+  clearLoginBillingGate();
   // Tenant context (session + durable copy)
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantHost);
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantId);
