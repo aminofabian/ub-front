@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { SetupProgressGuideDrawer } from "@/components/setup-progress/setup-progress-guide-drawer";
+import { SetupProgressPhoneModal } from "@/components/setup-progress/setup-progress-phone-modal";
 import { useSetupProgress } from "@/hooks/use-setup-progress";
 import { setupStepMatchesPath } from "@/lib/setup-progress-routes";
 import { cn } from "@/lib/utils";
@@ -22,8 +23,9 @@ export function SetupProgressContextStrip({
 }: SetupProgressContextStripProps) {
   const pathname = usePathname();
   const onHub = pathname === "/business";
-  const { data } = useSetupProgress({ enabled: enabled && !onHub });
+  const { data, reload } = useSetupProgress({ enabled: enabled && !onHub });
   const [guideOpen, setGuideOpen] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
 
   if (!enabled || onHub || !data?.visible || !data.currentStepKey) {
     return null;
@@ -36,6 +38,7 @@ export function SetupProgressContextStrip({
   const current = data.steps.find((s) => s.status === "current");
   const actionUrl = current?.actionUrl ?? "/business";
   const label = current?.label ?? "Continue setup";
+  const isPhoneStep = data.currentStepKey === "phone_verified";
 
   return (
     <>
@@ -71,15 +74,28 @@ export function SetupProgressContextStrip({
           >
             How?
           </button>
-          <Link
-            href={actionUrl}
-            className={cn(
-              "shrink-0 text-[11px] font-semibold underline underline-offset-2 sm:text-xs",
-              "decoration-[#B08D48]/50 hover:decoration-[#8A6B2E]",
-            )}
-          >
-            Continue →
-          </Link>
+          {isPhoneStep ? (
+            <button
+              type="button"
+              className={cn(
+                "shrink-0 text-[11px] font-semibold underline underline-offset-2 sm:text-xs",
+                "decoration-[#B08D48]/50 hover:decoration-[#8A6B2E]",
+              )}
+              onClick={() => setPhoneOpen(true)}
+            >
+              Add phone →
+            </button>
+          ) : (
+            <Link
+              href={actionUrl}
+              className={cn(
+                "shrink-0 text-[11px] font-semibold underline underline-offset-2 sm:text-xs",
+                "decoration-[#B08D48]/50 hover:decoration-[#8A6B2E]",
+              )}
+            >
+              Continue →
+            </Link>
+          )}
         </div>
       </div>
 
@@ -88,6 +104,15 @@ export function SetupProgressContextStrip({
         onOpenChange={setGuideOpen}
         stepKey={data.currentStepKey}
         recommendedSubKey={current?.recommendedSubKey}
+        onDoIt={isPhoneStep ? () => setPhoneOpen(true) : undefined}
+      />
+
+      <SetupProgressPhoneModal
+        open={phoneOpen}
+        onOpenChange={setPhoneOpen}
+        onVerified={() => {
+          void reload();
+        }}
       />
     </>
   );

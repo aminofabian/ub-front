@@ -116,7 +116,7 @@ export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide
   },
   phone_verified: {
     title: "How to add your shop phone",
-    doItUrl: "/business/settings",
+    doItUrl: "/business",
     shots: [
       {
         src: `${SP}/phone-01-settings.png`,

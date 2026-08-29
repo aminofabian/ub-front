@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { SetupProgressGuideDrawer } from "@/components/setup-progress/setup-progress-guide-drawer";
+import { SetupProgressPhoneModal } from "@/components/setup-progress/setup-progress-phone-modal";
 import { useSetupProgress } from "@/hooks/use-setup-progress";
 import { dismissSetupProgress, snoozeSetupProgress } from "@/lib/api";
 import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
@@ -30,6 +31,7 @@ export function SetupProgressBanner({
   const { data, reload } = useSetupProgress({ enabled });
   const [expanded, setExpanded] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   if (!enabled || !data?.visible) {
@@ -39,6 +41,14 @@ export function SetupProgressBanner({
   const current = data.steps.find((s) => s.status === "current") ?? null;
   const currentLabel = current?.label ?? "Getting your shop ready";
   const actionUrl = current?.actionUrl ?? "/business";
+  const isPhoneStep = data.currentStepKey === "phone_verified";
+
+  const openPrimaryAction = () => {
+    if (isPhoneStep) {
+      setPhoneOpen(true);
+      return;
+    }
+  };
 
   const onSnooze = async () => {
     setBusy(true);
@@ -61,6 +71,9 @@ export function SetupProgressBanner({
       setBusy(false);
     }
   };
+
+  const primaryCtaClass =
+    "inline-flex h-8 items-center gap-1 bg-[#141414] px-2.5 text-xs font-semibold text-[#F5E6C8] hover:bg-[#2A2A2A]";
 
   return (
     <>
@@ -108,13 +121,21 @@ export function SetupProgressBanner({
               >
                 How?
               </button>
-              <Link
-                href={actionUrl}
-                className="inline-flex h-8 items-center gap-1 bg-[#141414] px-2.5 text-xs font-semibold text-[#F5E6C8] hover:bg-[#2A2A2A]"
-              >
-                <span className="hidden sm:inline">Go</span>
-                <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
+              {isPhoneStep ? (
+                <button
+                  type="button"
+                  className={primaryCtaClass}
+                  onClick={openPrimaryAction}
+                >
+                  <span className="hidden sm:inline">Add phone</span>
+                  <ArrowRight className="size-3.5" aria-hidden />
+                </button>
+              ) : (
+                <Link href={actionUrl} className={primaryCtaClass}>
+                  <span className="hidden sm:inline">Go</span>
+                  <ArrowRight className="size-3.5" aria-hidden />
+                </Link>
+              )}
             </div>
           </div>
 
@@ -179,13 +200,24 @@ export function SetupProgressBanner({
                     Dismiss
                   </button>
                 ) : null}
-                <Link
-                  href={actionUrl}
-                  className="inline-flex h-8 items-center gap-1 bg-[#141414] px-3 text-xs font-semibold text-[#F5E6C8] hover:bg-[#2A2A2A]"
-                >
-                  Do this
-                  <ArrowRight className="size-3.5" aria-hidden />
-                </Link>
+                {isPhoneStep ? (
+                  <button
+                    type="button"
+                    className="inline-flex h-8 items-center gap-1 bg-[#141414] px-3 text-xs font-semibold text-[#F5E6C8] hover:bg-[#2A2A2A]"
+                    onClick={openPrimaryAction}
+                  >
+                    Add phone
+                    <ArrowRight className="size-3.5" aria-hidden />
+                  </button>
+                ) : (
+                  <Link
+                    href={actionUrl}
+                    className="inline-flex h-8 items-center gap-1 bg-[#141414] px-3 text-xs font-semibold text-[#F5E6C8] hover:bg-[#2A2A2A]"
+                  >
+                    Do this
+                    <ArrowRight className="size-3.5" aria-hidden />
+                  </Link>
+                )}
               </div>
             </div>
           ) : null}
@@ -197,6 +229,21 @@ export function SetupProgressBanner({
         onOpenChange={setGuideOpen}
         stepKey={data.currentStepKey}
         recommendedSubKey={current?.recommendedSubKey}
+        onDoIt={
+          isPhoneStep
+            ? () => {
+                setPhoneOpen(true);
+              }
+            : undefined
+        }
+      />
+
+      <SetupProgressPhoneModal
+        open={phoneOpen}
+        onOpenChange={setPhoneOpen}
+        onVerified={() => {
+          void reload();
+        }}
       />
     </>
   );

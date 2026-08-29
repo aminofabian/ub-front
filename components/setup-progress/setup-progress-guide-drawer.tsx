@@ -19,6 +19,8 @@ type SetupProgressGuideDrawerProps = {
   onOpenChange: (open: boolean) => void;
   stepKey: string | null;
   recommendedSubKey?: string | null;
+  /** When set, last-step "Do it" runs this instead of navigating. */
+  onDoIt?: () => void;
 };
 
 export function SetupProgressGuideDrawer({
@@ -26,6 +28,7 @@ export function SetupProgressGuideDrawer({
   onOpenChange,
   stepKey,
   recommendedSubKey,
+  onDoIt,
 }: SetupProgressGuideDrawerProps) {
   const guide: SetupGuide | null = stepKey
     ? resolveSetupGuide(stepKey, recommendedSubKey)
@@ -79,12 +82,27 @@ export function SetupProgressGuideDrawer({
             ))}
           </div>
           {last ? (
-            <Button type="button" size="sm" className="h-8" asChild>
-              <Link href={guide.doItUrl} onClick={() => onOpenChange(false)}>
+            onDoIt ? (
+              <Button
+                type="button"
+                size="sm"
+                className="h-8"
+                onClick={() => {
+                  onOpenChange(false);
+                  onDoIt();
+                }}
+              >
                 Do it
                 <ArrowRight className="ml-1 size-3.5" aria-hidden />
-              </Link>
-            </Button>
+              </Button>
+            ) : (
+              <Button type="button" size="sm" className="h-8" asChild>
+                <Link href={guide.doItUrl} onClick={() => onOpenChange(false)}>
+                  Do it
+                  <ArrowRight className="ml-1 size-3.5" aria-hidden />
+                </Link>
+              </Button>
+            )
           ) : (
             <Button
               type="button"
