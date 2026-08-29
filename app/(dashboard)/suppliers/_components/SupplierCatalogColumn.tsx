@@ -43,6 +43,8 @@ import {
 
 import { joinProductNameParts } from "@/lib/catalog-display";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
+import { displaySupplierName } from "@/lib/supplier-display";
 import { sortCatalogRowsParentFirst } from "../../products/_components/catalog-list-styles";
 import { SupEmptyState, SupSection } from "./supplier-layout-primitives";
 import {
@@ -1565,8 +1567,16 @@ export function SupplierCatalogColumn({
             setLinkFormError(null);
           }
         }}
-        title={detail ? `Link · ${detail.name}` : "Browse catalog"}
-        contextLabel={detail?.name ? undefined : "Supplier links"}
+        title={
+          detail
+            ? `Link · ${displaySupplierName({ name: detail.name, code: detail.code })}`
+            : "Browse catalog"
+        }
+        contextLabel={
+          detail?.name
+            ? displaySupplierName({ name: detail.name, code: detail.code })
+            : "Supplier links"
+        }
         width="large"
         appearance="sharp"
         banner={

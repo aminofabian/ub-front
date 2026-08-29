@@ -32,6 +32,7 @@ import {
   isGarbageProductName,
   normalizeProductDisplayName,
 } from "@/lib/catalog-display";
+import { isSystemUnassignedSupplier } from "@/lib/supplier-display";
 import {
   type ParentDraft,
   type ProductDrawerId,
@@ -200,7 +201,11 @@ export function useProductMutations(d: Dependencies) {
     if (!canListSuppliers) return;
     setSuppliersLoading(true);
     try {
-      setSuppliersForLink(await fetchSuppliers());
+      setSuppliersForLink(
+        (await fetchSuppliers()).filter(
+          (supplier) => !isSystemUnassignedSupplier(supplier),
+        ),
+      );
     } catch (e) {
       if (!(e instanceof ApiRequestError))
         setMessage(

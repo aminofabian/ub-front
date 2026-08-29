@@ -1,4 +1,5 @@
 import type { RestockSuggestionRecord } from "@/lib/api";
+import { displaySupplierName } from "@/lib/supplier-display";
 
 import { deptKey, deptName, UNCATEGORISED_KEY } from "./digest-format";
 
@@ -47,7 +48,9 @@ export function buildDepartments(
         lines,
         supplierGroups: [...supplierMap.entries()].map(([supplierId, groupLines]) => ({
           supplierId,
-          supplierName: groupLines[0]?.supplierName?.trim() || "Supplier",
+          supplierName: displaySupplierName({
+            name: groupLines[0]?.supplierName,
+          }),
           lines: groupLines,
         })),
         padLines,

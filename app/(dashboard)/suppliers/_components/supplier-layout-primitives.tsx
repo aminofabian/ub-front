@@ -195,7 +195,7 @@ export function SupMobileSelectionBar({
   name,
   children,
 }: {
-  name: string;
+  name: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (

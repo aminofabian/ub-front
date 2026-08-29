@@ -12,6 +12,7 @@ import {
 
 import type { SupplierRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -178,7 +179,10 @@ export function SupplierWorkspaceEmpty({
                       aria-hidden
                     />
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--order-ink,#15231f)]">
-                      {row.name}
+                      <SupplierDisplayName
+                        name={row.name}
+                        code={row.code}
+                      />
                     </span>
                     {row.code ? (
                       <span className="hidden shrink-0 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] sm:inline">

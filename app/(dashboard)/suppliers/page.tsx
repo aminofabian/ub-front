@@ -30,6 +30,8 @@ import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-
 import { APP_ROUTES } from "@/lib/config";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { supplierReceivePath } from "@/lib/supplier-slug";
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
+import { displaySupplierName, isSystemUnassignedSupplier } from "@/lib/supplier-display";
 import { toast } from "sonner";
 import {
   addItemSupplierLink,
@@ -1053,7 +1055,14 @@ export default function SuppliersPage() {
 
             {!isLg && detail ? (
               <div className="border-t border-border/50 p-3">
-                <SupMobileSelectionBar name={detail.name}>
+                <SupMobileSelectionBar
+                  name={
+                    <SupplierDisplayName
+                      name={detail.name}
+                      code={detail.code}
+                    />
+                  }
+                >
                   <Button
                     type="button"
                     size="sm"
@@ -1151,7 +1160,10 @@ export default function SuppliersPage() {
                           Profile
                         </p>
                         <p className="truncate text-xs font-semibold leading-tight text-foreground">
-                          {detail.name}
+                          <SupplierDisplayName
+                            name={detail.name}
+                            code={detail.code}
+                          />
                         </p>
                       </div>
                       {!isXl && canReadCatalog ? (

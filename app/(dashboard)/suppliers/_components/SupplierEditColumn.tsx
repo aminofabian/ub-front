@@ -10,6 +10,8 @@ import type {
   SupplierRecord,
 } from "@/lib/api";
 import { inviteSupplierToPortal } from "@/lib/api";
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
+import { isSystemUnassignedSupplier } from "@/lib/supplier-display";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TelLink } from "@/components/tel-link";
@@ -108,6 +110,10 @@ export function SupplierEditColumn({
   }
 
   const primaryContact = contacts.find((c) => c.primaryContact);
+  const isPlaceholderSupplier = isSystemUnassignedSupplier({
+    code: detail.code,
+    name: detail.name,
+  });
   const hasPrimaryContact = Boolean(
     primaryContact?.name?.trim() ||
     primaryContact?.email?.trim() ||
@@ -132,12 +138,20 @@ export function SupplierEditColumn({
         <div className="space-y-0">
           <SupFieldTable
             rows={[
-              { label: "Name", value: detail.name },
+              {
+                label: "Name",
+                value: (
+                  <SupplierDisplayName
+                    name={detail.name}
+                    code={detail.code}
+                  />
+                ),
+              },
               {
                 label: "Code",
                 value: (
                   <span className="font-mono">
-                    {detail.code?.trim() || "—"}
+                    {isPlaceholderSupplier ? "—" : detail.code?.trim() || "—"}
                   </span>
                 ),
               },
@@ -164,7 +178,7 @@ export function SupplierEditColumn({
               },
             ]}
           />
-          {canWrite && onEditProfile && onAddContact ? (
+          {canWrite && onEditProfile && onAddContact && !isPlaceholderSupplier ? (
             <div className="flex flex-wrap gap-1 border-x border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1.5">
               <Button
                 type="button"
@@ -229,14 +243,19 @@ export function SupplierEditColumn({
                 <th scope="row" className={supKvLabel}>
                   Name
                 </th>
-                <td className={cn(supKvValue, "font-semibold")}>{detail.name}</td>
+                <td className={cn(supKvValue, "font-semibold")}>
+                  <SupplierDisplayName
+                    name={detail.name}
+                    code={detail.code}
+                  />
+                </td>
               </tr>
               <tr>
                 <th scope="row" className={supKvLabel}>
                   Code
                 </th>
                 <td className={cn(supKvValue, "font-mono")}>
-                  {detail.code?.trim() || "—"}
+                  {isPlaceholderSupplier ? "—" : detail.code?.trim() || "—"}
                 </td>
               </tr>
               <tr>
@@ -309,7 +328,7 @@ export function SupplierEditColumn({
               ) : null}
             </tbody>
           </table>
-          {canWrite && onEditProfile && onAddContact ? (
+          {canWrite && onEditProfile && onAddContact && !isPlaceholderSupplier ? (
             <div className="flex flex-wrap gap-1 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1.5">
               <Button
                 type="button"

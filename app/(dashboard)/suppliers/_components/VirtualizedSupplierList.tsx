@@ -4,7 +4,12 @@ import { useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { BookUser, Loader2, Pencil, Trash2 } from "lucide-react";
 
+import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import type { SupplierRecord } from "@/lib/api";
+import {
+  displaySupplierName,
+  isSystemUnassignedSupplier,
+} from "@/lib/supplier-display";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -178,7 +183,14 @@ export function VirtualizedSupplierList({
               const row = rows[vi.index];
               const active = selectedId === row.id;
               const code = row.code?.trim();
-              const isSystem = code === "SYS-UNASSIGNED";
+              const isSystem = isSystemUnassignedSupplier({
+                code: row.code,
+                name: row.name,
+              });
+              const displayName = displaySupplierName({
+                name: row.name,
+                code: row.code,
+              });
               return (
                 <div
                   key={row.id}
@@ -186,7 +198,7 @@ export function VirtualizedSupplierList({
                   tabIndex={0}
                   data-index={vi.index}
                   ref={virtualizer.measureElement}
-                  aria-label={`Supplier ${row.name}`}
+                  aria-label={`Supplier ${displayName}`}
                   aria-selected={active}
                   className={cn(
                     "absolute left-0 top-0 grid w-full min-w-0 items-stretch border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] text-left",
@@ -222,7 +234,11 @@ export function VirtualizedSupplierList({
                       active ? "text-foreground" : "text-foreground",
                     )}
                   >
-                    {row.name}
+                    <SupplierDisplayName
+                      name={row.name}
+                      code={row.code}
+                      className="truncate"
+                    />
                   </span>
                   {!compact ? (
                     <span
@@ -232,7 +248,7 @@ export function VirtualizedSupplierList({
                         "flex min-w-0 items-center truncate font-mono text-[11px] text-muted-foreground",
                       )}
                     >
-                      {code || "—"}
+                      {isSystem ? "—" : code || "—"}
                     </span>
                   ) : null}
                   <span
@@ -264,7 +280,7 @@ export function VirtualizedSupplierList({
                           size="icon"
                           variant="ghost"
                           className="size-6 rounded-md text-muted-foreground hover:text-foreground"
-                          aria-label={`Edit ${row.name}`}
+                          aria-label={`Edit ${displayName}`}
                           onClick={() => onEdit(row.id)}
                         >
                           <Pencil className="size-3" aria-hidden />
@@ -276,7 +292,7 @@ export function VirtualizedSupplierList({
                           size="icon"
                           variant="ghost"
                           className="size-6 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          aria-label={`Delete ${row.name}`}
+                          aria-label={`Delete ${displayName}`}
                           disabled={deletingId === row.id}
                           onClick={() => onDelete(row)}
                         >

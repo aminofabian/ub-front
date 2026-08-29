@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   Boxes,
   Building2,
@@ -23,6 +23,11 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  SupplierDisplayName,
+  UnlinkedSupplierBadge,
+} from "@/components/suppliers/supplier-display-name";
+import { isRealSupplierLink } from "@/lib/supplier-display";
 import { cn } from "@/lib/utils";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import {
@@ -276,6 +281,13 @@ export function ProductDetailPanel(props: Props) {
     supplierLinks.length > 0 && supplierLinks.length <= 3,
   );
   const [variantsOpen, setVariantsOpen] = useState(true);
+
+  const visibleSupplierLinks = useMemo(
+    () => supplierLinks.filter((link) => isRealSupplierLink(link)),
+    [supplierLinks],
+  );
+  const hasOnlyPlaceholderSupplier =
+    supplierLinks.length > 0 && visibleSupplierLinks.length === 0;
 
   const panelKind = detailPanelKind(detail, variantRows.length);
   const isChildVariant = !!detail.variantOfItemId?.trim();
@@ -1074,16 +1086,32 @@ export function ProductDetailPanel(props: Props) {
             ) : null}
           </div>
         ) : null}
-        {supplierLinks.length === 0 && canCatalogWrite ? (
+        {visibleSupplierLinks.length === 0 && canCatalogWrite ? (
           <p className="border-t border-border/40 px-3 py-1.5 text-[11px] text-muted-foreground">
-            <button
-              type="button"
-              className="font-medium text-primary transition-colors hover:text-primary/80"
-              onClick={() => setActiveDrawer("edit-product")}
-            >
-              Link a supplier
-            </button>{" "}
-            for cost &amp; margin.
+            {hasOnlyPlaceholderSupplier ? (
+              <>
+                <UnlinkedSupplierBadge className="mr-1 align-middle" />
+                <button
+                  type="button"
+                  className="font-medium text-primary transition-colors hover:text-primary/80"
+                  onClick={() => setActiveDrawer("edit-product")}
+                >
+                  Link a supplier
+                </button>{" "}
+                to replace the placeholder and track cost &amp; margin.
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="font-medium text-primary transition-colors hover:text-primary/80"
+                  onClick={() => setActiveDrawer("edit-product")}
+                >
+                  Link a supplier
+                </button>{" "}
+                for cost &amp; margin.
+              </>
+            )}
           </p>
         ) : null}
       </section>
@@ -1681,7 +1709,7 @@ export function ProductDetailPanel(props: Props) {
       ) : null}
 
       {/* Suppliers */}
-      {supplierLinks.length > 0 ? (
+      {visibleSupplierLinks.length > 0 ? (
         <section className={detailSectionClass}>
           <div className={cn(detailCollapsibleTriggerClass, "cursor-default hover:bg-transparent")}>
             <button
@@ -1695,7 +1723,7 @@ export function ProductDetailPanel(props: Props) {
                 aria-hidden
               />
               <span className={detailSectionLabelClass}>
-                Suppliers · {supplierLinks.length}
+                Suppliers · {visibleSupplierLinks.length}
               </span>
               {suppliersOpen ? (
                 <ChevronUp className="ml-1 size-4 text-muted-foreground" aria-hidden />
@@ -1713,16 +1741,17 @@ export function ProductDetailPanel(props: Props) {
           </div>
           {suppliersOpen ? (
             <div className="divide-y divide-border/40 border-t border-border/40 bg-background/50">
-              {supplierLinks.map((link) => (
+              {visibleSupplierLinks.map((link) => (
                 <div
                   key={link.id}
                   className="flex items-center justify-between gap-2 px-3 py-2.5"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1">
-                      <span className="truncate text-xs font-medium text-foreground">
-                        {link.supplierName}
-                      </span>
+                      <SupplierDisplayName
+                        name={link.supplierName}
+                        className="truncate text-xs font-medium text-foreground"
+                      />
                       {link.primary && (
                         <span className="shrink-0 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                           Primary
@@ -1747,6 +1776,27 @@ export function ProductDetailPanel(props: Props) {
               ))}
             </div>
           ) : null}
+        </section>
+      ) : hasOnlyPlaceholderSupplier ? (
+        <section className={detailSectionClass}>
+          <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <Building2
+                className="size-3.5 shrink-0 text-muted-foreground/70"
+                aria-hidden
+              />
+              <UnlinkedSupplierBadge />
+            </div>
+            {canCatalogWrite ? (
+              <button
+                type="button"
+                className="shrink-0 text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
+                onClick={() => setActiveDrawer("edit-product")}
+              >
+                Link supplier
+              </button>
+            ) : null}
+          </div>
         </section>
       ) : null}
 
