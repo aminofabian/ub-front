@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Clock, MapPin, MessageCircle } from "lucide-react";
 
 import type { CSSProperties, MouseEvent } from "react";
+import { useEffect } from "react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { frontWindowFontVariables } from "@/components/storefront/templates/landing/front-window-fonts";
@@ -100,6 +101,76 @@ function buildDisplay(
   }));
 }
 
+const SECTION_IDS = ["story", "carry", "visit", "contact"] as const;
+
+function useFrontWindowScrollEffects() {
+  useEffect(() => {
+    const root = document.querySelector(
+      '[data-landing-template-id="front-window"]',
+    );
+    if (!root) return;
+
+    const nav = root.querySelector("nav");
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const onScroll = () => {
+      nav?.toggleAttribute("data-scrolled", window.scrollY > 32);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    const revealTargets = root.querySelectorAll("[data-fw-reveal]");
+    if (reduced) {
+      revealTargets.forEach((el) => el.setAttribute("data-fw-visible", ""));
+    } else {
+      const revealObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.setAttribute("data-fw-visible", "");
+              revealObserver.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.14, rootMargin: "0px 0px -8% 0px" },
+      );
+      revealTargets.forEach((el) => revealObserver.observe(el));
+
+      const navLinks = root.querySelectorAll("[data-fw-nav]");
+      const sectionObserver = new IntersectionObserver(
+        (entries) => {
+          const visible = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort(
+              (a, b) => b.intersectionRatio - a.intersectionRatio,
+            )[0];
+          if (!visible) return;
+          const id = visible.target.id;
+          navLinks.forEach((link) => {
+            link.toggleAttribute(
+              "data-active",
+              link.getAttribute("href") === `#${id}`,
+            );
+          });
+        },
+        { rootMargin: "-42% 0px -48% 0px", threshold: [0, 0.25, 0.5] },
+      );
+      SECTION_IDS.forEach((id) => {
+        const section = root.querySelector(`#${id}`);
+        if (section) sectionObserver.observe(section);
+      });
+
+      return () => {
+        window.removeEventListener("scroll", onScroll);
+        revealObserver.disconnect();
+        sectionObserver.disconnect();
+      };
+    }
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+}
+
 export function FrontWindowLanding(props: LandingTemplateProps) {
   const accent = props.primaryHex || props.accentHex || "#2F6F6A";
   const brand = props.accentHex || props.primaryHex || accent;
@@ -122,6 +193,8 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
   const closeMenu = (event: MouseEvent<HTMLAnchorElement>) => {
     event.currentTarget.closest("details")?.removeAttribute("open");
   };
+
+  useFrontWindowScrollEffects();
 
   return (
     <LandingShell
@@ -151,22 +224,22 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
           </a>
           <ul className={styles.navLinks}>
             <li>
-              <a href="#story" className={styles.navLink}>
+              <a href="#story" className={styles.navLink} data-fw-nav>
                 Our story
               </a>
             </li>
             <li>
-              <a href="#carry" className={styles.navLink}>
+              <a href="#carry" className={styles.navLink} data-fw-nav>
                 What we carry
               </a>
             </li>
             <li>
-              <a href="#visit" className={styles.navLink}>
+              <a href="#visit" className={styles.navLink} data-fw-nav>
                 Visit
               </a>
             </li>
             <li>
-              <a href="#contact" className={styles.navLink}>
+              <a href="#contact" className={styles.navLink} data-fw-nav>
                 Contact
               </a>
             </li>
@@ -250,7 +323,7 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
       </header>
 
       <section id="story" className={styles.story}>
-        <div className={styles.storyPhoto}>
+        <div className={styles.storyPhoto} data-fw-reveal="left">
           <Image
             src={COUNTER_SRC}
             alt=""
@@ -260,7 +333,7 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
             sizes="(max-width: 860px) 100vw, 60vw"
           />
         </div>
-        <div className={styles.storyCopy}>
+        <div className={styles.storyCopy} data-fw-reveal="right">
           <h2 className={styles.storyTitle}>
             A counter you can actually walk up to.
           </h2>
@@ -280,14 +353,19 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
 
       <section id="carry" className={styles.carry}>
         <div className={styles.carryHeader}>
-          <h2 className={styles.carryTitle}>Stocked for desk, school and gift.</h2>
-          <p className={styles.carryLead}>
+          <h2 className={styles.carryTitle} data-fw-reveal="up">
+            Stocked for desk, school and gift.
+          </h2>
+          <p className={styles.carryLead} data-fw-reveal="up" data-fw-reveal-delay="1">
             Walk the aisles in person. These are the counters our regulars come
             back for. Ask if you need something specific; we reorder fast.
           </p>
         </div>
         <div className={styles.carryGrid}>
-          <article className={styles.carryFeatured}>
+          <article
+            className={styles.carryFeatured}
+            data-fw-reveal="scale"
+          >
             {featured.imageUrl ? (
               <div className={styles.carryShot}>
                 <Image
@@ -314,6 +392,8 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
                 styles.carryCell,
                 index % 2 === 0 && styles.carryCellTint,
               )}
+              data-fw-reveal="up"
+              data-fw-reveal-delay={String(Math.min(index + 1, 5))}
             >
               <h3>{item.title}</h3>
               {item.note ? <p>{item.note}</p> : null}
@@ -324,7 +404,7 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
 
       <section id="visit" className={styles.visit}>
         <div className={styles.visitInner}>
-          <div className={styles.visitVisual}>
+          <div className={styles.visitVisual} data-fw-reveal="scale">
             <Image
               src={STREET_SRC}
               alt=""
@@ -334,7 +414,7 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
               sizes="(max-width: 860px) 100vw, 45vw"
             />
           </div>
-          <div className={styles.visitContent}>
+          <div className={styles.visitContent} data-fw-reveal="right">
             <h2 className={styles.visitTitle}>Find us on the street.</h2>
             <dl className={styles.visitFacts}>
               <div className={styles.visitFact}>
@@ -373,7 +453,7 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
       </section>
 
       <section id="contact" className={styles.contact}>
-        <div className={styles.contactPanel}>
+        <div className={styles.contactPanel} data-fw-reveal="up">
           <div>
             <h2 className={styles.contactTitle}>Say hello from the sidewalk.</h2>
             <p className={styles.contactBody}>
