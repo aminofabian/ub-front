@@ -430,6 +430,9 @@ export default function SuperAdminBusinessesPage() {
       <Button variant="outline" size="sm" type="button" asChild>
         <Link href={tenantManageHref(b)}>Manage</Link>
       </Button>
+      <Button variant="ghost" size="sm" type="button" asChild>
+        <Link href={`${tenantManageHref(b)}#sa-subscription`}>Plan</Link>
+      </Button>
       <Button
         variant="ghost"
         size="icon-sm"

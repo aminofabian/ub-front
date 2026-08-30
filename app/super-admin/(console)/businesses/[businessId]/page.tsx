@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, ExternalLink, Globe, Mail, MessageCircle, Plus, Users } from "lucide-react";
+import { Check, Copy, CreditCard, ExternalLink, Globe, Mail, MessageCircle, Plus, Users } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SaSmsCreditsPanel } from "@/components/super-admin/sa-sms-credits-panel";
@@ -521,6 +521,12 @@ function BusinessDetailInner() {
         }
         actions={
           <>
+            <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
+              <a href="#sa-subscription">
+                <CreditCard className="size-3.5" />
+                Override plan
+              </a>
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -614,6 +620,12 @@ function BusinessDetailInner() {
           <span className="text-xs text-muted-foreground">No primary domain</span>
         ) : null}
       </div>
+
+      {businessId ? (
+        <div id="sa-subscription" className="scroll-mt-20">
+          <SaSubscriptionPanel businessId={businessId} onTierChange={setBizTier} />
+        </div>
+      ) : null}
 
       {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
       <p className="sr-only" aria-live="polite">
@@ -1079,11 +1091,6 @@ function BusinessDetailInner() {
           </>
         )}
       </section>
-
-      {/* Subscription billing */}
-      {businessId ? (
-        <SaSubscriptionPanel businessId={businessId} onTierChange={setBizTier} />
-      ) : null}
 
       {/* SMS credits & quotas */}
       {businessId ? <SaSmsCreditsPanel businessId={businessId} /> : null}

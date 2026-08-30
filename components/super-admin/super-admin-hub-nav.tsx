@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
+  CreditCard,
   Headset,
   LayoutDashboard,
   Mail,
@@ -40,6 +41,13 @@ const HUB_TABS: HubTab[] = [
       p.startsWith(`${APP_ROUTES.superAdminBusinesses}/`),
   },
   {
+    href: APP_ROUTES.superAdminPlatformSubscription,
+    label: "Subscriptions",
+    hint: "Plans & billing",
+    icon: CreditCard,
+    match: (p) => p === APP_ROUTES.superAdminPlatformSubscription,
+  },
+  {
     href: APP_ROUTES.superAdminAdoptions,
     label: "Adoptions",
     hint: "Kiosk Pay & domains",
@@ -72,7 +80,7 @@ export function SuperAdminHubNav({
   return (
     <nav
       className={cn(
-        "grid grid-cols-2 gap-1 p-1 sm:grid-cols-3 lg:grid-cols-5",
+        "grid grid-cols-2 gap-1 p-1 sm:grid-cols-3 lg:grid-cols-6",
         className,
       )}
       aria-label="Console pages"

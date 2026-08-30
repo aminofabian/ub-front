@@ -99,7 +99,7 @@ export default function SuperAdminSubscriptionPage() {
     <div className="space-y-6">
       <SuperAdminPageHeader
         title="Subscription billing"
-        description="Plans, grace period, pre-expiry reminders, and dunning metrics."
+        description="Platform plans, grace, and dunning. To change one shop’s plan or payment status, open the tenant and use Override plan."
       />
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}

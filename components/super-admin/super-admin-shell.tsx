@@ -7,6 +7,7 @@ import {
   Bell,
   Building2,
   ChevronDown,
+  CreditCard,
   Gauge,
   Headset,
   Inbox,
@@ -68,7 +69,7 @@ function crumbsFor(pathname: string): Crumb[] {
     return [{ label: "Platform" }, { label: "SMS credits & limits" }];
   }
   if (pathname === APP_ROUTES.superAdminPlatformSubscription) {
-    return [{ label: "Platform" }, { label: "Subscription billing" }];
+    return [{ label: "Subscriptions" }];
   }
   if (pathname === APP_ROUTES.superAdminPlatformSokoMind) {
     return [{ label: "Platform" }, { label: "SokoMind" }];
@@ -231,6 +232,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain p-3" aria-label="Super admin">
         <NavItem href={APP_ROUTES.superAdminDashboard} label="Overview" icon={LayoutDashboard} />
         <NavItem href={APP_ROUTES.superAdminBusinesses} label="Tenants" icon={Building2} match="prefix" />
+        <NavItem href={APP_ROUTES.superAdminPlatformSubscription} label="Subscriptions" icon={CreditCard} />
         <NavItem href={APP_ROUTES.superAdminAdoptions} label="Adoptions" icon={Sparkles} />
         <NavItem href={APP_ROUTES.superAdminCampaigns} label="Campaigns" icon={Mail} match="prefix" />
         <NavItem href={APP_ROUTES.superAdminMessages} label="Messages" icon={Inbox} />
@@ -274,7 +276,6 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               <NavGroupLabel>Connect</NavGroupLabel>
               <NavItem href={APP_ROUTES.superAdminPlatformIntegrations} label="Integrations" />
               <NavItem href={APP_ROUTES.superAdminPlatformSmsCredits} label="SMS credits & limits" />
-              <NavItem href={APP_ROUTES.superAdminPlatformSubscription} label="Subscription billing" />
               <NavItem href={APP_ROUTES.superAdminPlatformSokoMind} label="SokoMind" />
               <NavGroupLabel>Ops</NavGroupLabel>
               <NavItem href={APP_ROUTES.superAdminPlatformDomains} label="Domains" />
