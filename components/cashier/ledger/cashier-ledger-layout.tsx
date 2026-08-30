@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import {
   Banknote,
   Camera,
@@ -50,6 +51,7 @@ import {
   type ItemSummaryRecord,
 } from "@/lib/api";
 import type { TopProductRecord } from "@/lib/top-products";
+import { APP_ROUTES } from "@/lib/config";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import {
@@ -155,6 +157,8 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   const tillLock = useOptionalPosTillLock();
   const tillLocked = tillLock?.locked === true;
   const scanToCartEnabled = useFeatureFlag(POS_CASHIER_CAPABILITY_FLAGS.scanToCart);
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const showOwnerNav = roleKey !== "cashier";
 
   const [tillLabel, setTillLabel] = useState("");
   const [tab, setTab] = useState<LedgerTab>("sale");
@@ -1062,6 +1066,38 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   </button>
                 }
               />
+              {showOwnerNav ? (
+                <>
+                  <Link
+                    href={APP_ROUTES.paymentsDayLedger}
+                    className={MORE_CHIP}
+                    onClick={() => setMoreOpen(false)}
+                  >
+                    Ledger
+                  </Link>
+                  <Link
+                    href={APP_ROUTES.sales}
+                    className={MORE_CHIP}
+                    onClick={() => setMoreOpen(false)}
+                  >
+                    Sales
+                  </Link>
+                  <Link
+                    href={APP_ROUTES.business}
+                    className={MORE_CHIP}
+                    onClick={() => setMoreOpen(false)}
+                  >
+                    Business
+                  </Link>
+                  <Link
+                    href={APP_ROUTES.salesQuick}
+                    className={MORE_CHIP}
+                    onClick={() => setMoreOpen(false)}
+                  >
+                    Admin sale
+                  </Link>
+                </>
+              ) : null}
               <button
                 type="button"
                 className={MORE_CHIP}

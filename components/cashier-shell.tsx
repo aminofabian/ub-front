@@ -292,7 +292,7 @@ export function CashierShell({ children }: CashierShellProps) {
                   size="sm"
                   className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
                 >
-                  <Link href={APP_ROUTES.salesQuick}>Admin sale</Link>
+                  <Link href={APP_ROUTES.paymentsDayLedger}>Ledger</Link>
                 </Button>
                 <Button
                   asChild
@@ -300,7 +300,23 @@ export function CashierShell({ children }: CashierShellProps) {
                   size="sm"
                   className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
                 >
-                  <Link href={APP_ROUTES.business}>Full app</Link>
+                  <Link href={APP_ROUTES.sales}>Sales</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Link href={APP_ROUTES.business}>Business</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Link href={APP_ROUTES.salesQuick}>Admin sale</Link>
                 </Button>
               </>
             ) : null}
