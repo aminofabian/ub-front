@@ -191,6 +191,12 @@ public class PalmartRawPrintV5 {
 "@
 }
 
+function Test-LooksLikeRawPort([string]$Name) {
+  if (-not $Name) { return $false }
+  $p = $Name.Trim().TrimEnd(':')
+  return [bool]($p -match '^(USB|COM|LPT)\d+$' -or $p -match '^(DOT4|ESDPRT|TMUSB|USBPRINT)')
+}
+
 function Get-PrinterWmi([string]$Name) {
   $safe = $Name -replace "'", "''"
   try {
@@ -348,6 +354,15 @@ function Send-ViaShareCopy([string]$ShareName, [string]$BinPath) {
     return ("copy /b exit " + $p.ExitCode + " " + $errOut)
   } catch {
     return $_.Exception.Message
+  }
+}
+
+# Device Manager / Detect may pass USB001 or COM3 when no queue exists yet.
+if (Test-LooksLikeRawPort $PrinterName) {
+  $err = [PalmartRawPrintV5]::SendViaPortDevice($PrinterName, $bytes)
+  if (-not $err) {
+    Write-Output ("OK port " + $PrinterName + " engine=" + $script:PrintEngine)
+    exit 0
   }
 }
 

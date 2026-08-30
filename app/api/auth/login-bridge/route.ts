@@ -6,9 +6,13 @@ import {
   SESSION_PRESENCE_MAX_AGE_SEC,
 } from "@/lib/auth-route-guard";
 import { APP_ROUTES, getServerApiOrigin } from "@/lib/config";
-import { type LoginAudience } from "@/lib/login-audience";
+import { type LoginAudience, loginHrefForDestination } from "@/lib/login-audience";
 import { fetchTenantContext } from "@/lib/public-storefront";
 import { formatApiProblemMessage } from "@/lib/problem";
+import {
+  readSetCookieHeaders,
+  rewriteSetCookieForFrontend,
+} from "@/lib/rewrite-set-cookie";
 import {
   buildSessionFinalizeHtml,
   newLoginIdempotencyKey,
@@ -37,8 +41,24 @@ function loginErrorRedirect(
   request: NextRequest,
   message: string,
   audience: LoginAudience,
+  requestedNext = "",
+  office = false,
 ): NextResponse {
-  const url = new URL(loginPathForAudience(audience), request.url);
+  const href =
+    audience === "staff"
+      ? loginHrefForDestination(requestedNext)
+      : loginPathForAudience(audience);
+  const url = new URL(href, request.url);
+  if (
+    audience === "customer" &&
+    requestedNext.startsWith("/") &&
+    !requestedNext.startsWith("//")
+  ) {
+    url.searchParams.set("next", requestedNext);
+  }
+  if (office && audience === "staff") {
+    url.searchParams.set("mode", "office");
+  }
   url.searchParams.set("error", message);
   return NextResponse.redirect(url, 303);
 }
@@ -67,6 +87,8 @@ export async function POST(request: NextRequest) {
   const email = String(form.get("email") ?? "").trim();
   const password = String(form.get("password") ?? "");
   const requestedNext = String(form.get("next") ?? "");
+  const office =
+    String(form.get("mode") ?? "").trim().toLowerCase() === "office";
   const audience = parseAudience(String(form.get("audience") ?? "customer"));
   const tenantHost = resolveTenantHost(request);
   const tenantId = await resolveTenantId(
@@ -74,12 +96,11 @@ export async function POST(request: NextRequest) {
     tenantHost,
   );
 
+  const fail = (message: string) =>
+    loginErrorRedirect(request, message, audience, requestedNext, office);
+
   if (!email || !password) {
-    return loginErrorRedirect(
-      request,
-      "Email and password are required.",
-      audience,
-    );
+    return fail("Email and password are required.");
   }
   const backendOrigin = getServerApiOrigin();
   const upstreamUrl = `${backendOrigin}/api/v1/auth/login`;
@@ -104,17 +125,13 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({ email, password }),
     });
   } catch {
-    return loginErrorRedirect(
-      request,
-      "Could not reach the server. Check your connection and try again.",
-      audience,
-    );
+    return fail("Could not reach the server. Check your connection and try again.");
   }
 
   if (!upstream.ok) {
-    const payload = await upstream.json().catch(() => ({}));
-    const message = formatApiProblemMessage(payload) || "Login failed.";
-    return loginErrorRedirect(request, message, audience);
+    const errorPayload = await upstream.json().catch(() => ({}));
+    const message = formatApiProblemMessage(errorPayload) || "Login failed.";
+    return fail(message);
   }
 
   const payload = (await upstream.json()) as {
@@ -124,11 +141,7 @@ export async function POST(request: NextRequest) {
   };
   const accessToken = payload.accessToken?.trim();
   if (!accessToken) {
-    return loginErrorRedirect(
-      request,
-      "Login failed: no access token returned.",
-      audience,
-    );
+    return fail("Login failed: no access token returned.");
   }
   const sessionTenantId = tenantId || payload.user?.businessId?.trim() || "";
 
@@ -144,11 +157,13 @@ export async function POST(request: NextRequest) {
     bootstrap.me,
     requestedNext,
     bootstrap.business,
+    { office },
   );
 
+  const refreshToken = payload.refreshToken?.trim();
   const html = buildSessionFinalizeHtml({
     accessToken,
-    refreshToken: payload.refreshToken?.trim(),
+    refreshToken,
     tenantId: sessionTenantId,
     tenantHost,
     nextPath,
@@ -160,12 +175,8 @@ export async function POST(request: NextRequest) {
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });
 
-  upstream.headers.forEach((value, key) => {
-    if (key.toLowerCase() === "set-cookie") {
-      response.headers.append("Set-Cookie", value);
-    }
-  });
-
+  // cookies.set first — Next rebuilds Set-Cookie from its jar and would drop
+  // previously appended upstream cookies (httpOnly ub.refresh).
   const secure = new URL(request.url).protocol === "https:";
   response.cookies.set({
     name: SESSION_PRESENCE_COOKIE,
@@ -177,6 +188,32 @@ export async function POST(request: NextRequest) {
     httpOnly: false,
   });
   applyAccessTokenCookie(response, accessToken, { secure });
+
+  const upstreamCookies = readSetCookieHeaders(upstream.headers).map(
+    rewriteSetCookieForFrontend,
+  );
+  const hasRefreshCookie = upstreamCookies.some((cookie) =>
+    cookie.toLowerCase().startsWith("ub.refresh="),
+  );
+  if (refreshToken && !hasRefreshCookie) {
+    response.cookies.set({
+      name: "ub.refresh",
+      value: refreshToken,
+      path: "/api",
+      maxAge: 30 * 24 * 60 * 60,
+      sameSite: "lax",
+      secure,
+      httpOnly: true,
+    });
+    const secureAttr = secure ? "; Secure" : "";
+    response.headers.append(
+      "Set-Cookie",
+      `ub.refresh=; Path=/api/v1/auth; Max-Age=0; HttpOnly; SameSite=Lax${secureAttr}`,
+    );
+  }
+  for (const cookie of upstreamCookies) {
+    response.headers.append("Set-Cookie", cookie);
+  }
 
   return response;
 }

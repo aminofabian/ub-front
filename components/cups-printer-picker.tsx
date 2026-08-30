@@ -38,7 +38,7 @@ function platformLabel(platform: string | null | undefined): string {
 function emptyPrintersMessage(platform: string | null | undefined): string {
   switch (platform) {
     case "win32":
-      return "No print queues found on Windows. The device must appear under Settings → Printers & scanners (not only in Device Manager). Install/add the printer, set it Online, restart Print Spooler if needed, then Detect again. Skip Microsoft Print to PDF / Fax.";
+      return "No print queues found. Detect now adds USB/COM Xprinters that only show in Device Manager. If this is still empty: printer ON, data USB cable, Print Spooler running, then Detect again. Skip Microsoft Print to PDF / Fax.";
     case "linux":
       return "No CUPS printers found on Linux. Install cups, add the printer, then retry Detect.";
     case "darwin":

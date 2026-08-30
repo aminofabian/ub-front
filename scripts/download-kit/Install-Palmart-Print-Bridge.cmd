@@ -1,6 +1,6 @@
 @echo off
-REM One-time install for Windows 10/11 (Node bridge).
-REM On Windows 7 this launcher switches to the no-Node Win7 installer when present.
+REM One-time install for Windows 10/11 (PowerShell bridge, no Node.js).
+REM On Windows 7 this launcher switches to the Win7 installer when present.
 cd /d "%~dp0"
 
 REM Windows 7 / Server 2008 R2 = version 6.1
@@ -9,37 +9,28 @@ if not errorlevel 1 goto :win7
 
 echo === Palmart Till Print Bridge (Windows 10 / 11) ===
 echo Install once. After this it runs in the background at every sign-in.
-echo You do NOT need to keep a window open while cashiering.
+echo No Node.js required. You do NOT need to keep a window open.
 echo.
 
-where node >nul 2>&1
-if errorlevel 1 (
-  if exist "%ProgramFiles%\nodejs\node.exe" goto :haveNode
-  if exist "%LocalAppData%\Programs\node\node.exe" goto :haveNode
-  echo.
-  echo Node.js is required on Windows 10/11 but was not found.
-  echo Opening https://nodejs.org/ - install the LTS build, then run this installer again.
-  echo.
-  echo On Windows 7: use Install-Palmart-Print-Bridge-Win7.cmd instead (no Node.js).
-  start "" "https://nodejs.org/en/download"
+if not exist "%~dp0Install-Palmart-Print-Bridge.ps1" goto :missing
+if not exist "%~dp0till-print-bridge-windows.ps1" goto :missing
+if not exist "%~dp0windows-raw-print.ps1" goto :missing
+
+if not exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
+  echo PowerShell not found. Windows 10 / 11 needs Windows PowerShell 5.1.
   pause
-  where node >nul 2>&1
-  if errorlevel 1 (
-    if exist "%ProgramFiles%\nodejs\node.exe" goto :haveNode
-    echo Still no node in PATH. Close this window, reopen after installing Node, and run again.
-    pause
-    exit /b 1
-  )
+  exit /b 1
 )
 
-:haveNode
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-Palmart-Print-Bridge.ps1"
 if errorlevel 1 (
   echo.
-  echo Install failed. If SmartScreen blocked PowerShell, right-click this .cmd and Run as administrator
-  echo or open PowerShell in this folder and run:
+  echo Install failed. If SmartScreen blocked it, right-click this .cmd and Run anyway.
+  echo Or open PowerShell in this folder and run:
   echo   Set-ExecutionPolicy -Scope Process Bypass
   echo   .\Install-Palmart-Print-Bridge.ps1
+  echo.
+  echo Log: %LOCALAPPDATA%\Palmart\till-print-bridge\bridge.log
   pause
   exit /b 1
 )
@@ -48,6 +39,15 @@ echo Done. Close this window - the bridge keeps running in the background.
 echo Next: Palmart Cashier - open Printer - Detect printers.
 pause
 exit /b 0
+
+:missing
+echo.
+echo ERROR: Required files are not next to this .cmd
+echo This folder: %CD%
+echo Need: Install-Palmart-Print-Bridge.ps1, till-print-bridge-windows.ps1, windows-raw-print.ps1
+echo Unzip the full Windows folder and run the .cmd from THERE.
+pause
+exit /b 1
 
 :win7
 echo === Windows 7 detected ===

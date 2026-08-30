@@ -48,7 +48,11 @@ import {
   resolveTenantIdForStaffDestination,
 } from "@/lib/staff-tenant-resolve";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
-import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
+import {
+  isOwnerOrAdminRole,
+  resolvePostAuthDestination,
+} from "@/lib/post-auth-destination";
+import { isOfficeLoginMode } from "@/lib/login-audience";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass = authPrimaryCtaClass;
@@ -90,7 +94,8 @@ function LoginPageContent() {
   const { countries } = useSelfServeCountries();
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
-  const secretIsPin = looksLikeStaffPin(secret);
+  const isOffice = isOfficeLoginMode(searchParams);
+  const secretIsPin = !isOffice && looksLikeStaffPin(secret);
 
   useEffect(() => {
     if (searchParams.get("switch") === "1") {
@@ -108,8 +113,21 @@ function LoginPageContent() {
         return;
       }
       const next = searchParams.get("next")?.trim();
+      const safeNext =
+        next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+      const office = isOfficeLoginMode(searchParams);
+      const me = await fetchMe().catch(() => null);
+      const business = await fetchBusiness().catch(() => null);
+      if (!me) {
+        window.location.replace(
+          safeNext ?? (office ? APP_ROUTES.overview : APP_ROUTES.business),
+        );
+        return;
+      }
       window.location.replace(
-        next && next.startsWith("/") ? next : APP_ROUTES.business,
+        resolvePostAuthDestination(me, safeNext, business, {
+          office: office || isOwnerOrAdminRole(me),
+        }),
       );
     })();
     return () => {
@@ -119,11 +137,13 @@ function LoginPageContent() {
 
   /**
    * Password: honor `?next=` (including shop account). PIN: role home only —
-   * till sign-in should not bounce to the storefront.
+   * till sign-in should not bounce to the storefront. Office login ignores
+   * leftover storefront next and lands owners on the console.
    */
   const resolveAfterStaffAuth = useCallback(
-    async (opts?: { honorNext?: boolean }): Promise<string> => {
+    async (opts?: { honorNext?: boolean; office?: boolean }): Promise<string> => {
       const honorNext = opts?.honorNext !== false;
+      const office = opts?.office === true;
       const requestedNext = honorNext ? searchParams.get("next") : null;
       let me: Awaited<ReturnType<typeof fetchMe>>;
       try {
@@ -133,7 +153,9 @@ function LoginPageContent() {
         return requestedNext?.trim() ?? "";
       }
       const business = await fetchBusiness().catch(() => null);
-      return resolvePostAuthDestination(me, requestedNext, business);
+      return resolvePostAuthDestination(me, requestedNext, business, {
+        office: office || isOwnerOrAdminRole(me),
+      });
     },
     [searchParams],
   );
@@ -152,6 +174,7 @@ function LoginPageContent() {
       destination,
       email,
       loginNextHint || null,
+      { office: isOffice },
     );
     if (url) {
       window.location.assign(url);
@@ -164,7 +187,7 @@ function LoginPageContent() {
     const usePin = looksLikeStaffPin(secret);
     persistTenantId(tenantId);
 
-    if (usePin) {
+    if (usePin && !isOffice) {
       await loginWithPin(email, secret.trim());
       const pinDest = await resolveAfterStaffAuth({ honorNext: false });
       const pinPath =
@@ -173,12 +196,16 @@ function LoginPageContent() {
       return;
     }
 
-    await loginWithPassword(email, secret);
+    if (usePin) {
+      await loginWithPin(email, secret.trim());
+    } else {
+      await loginWithPassword(email, secret);
+    }
     // A fresh desktop install (or a staff account with no PIN yet) has
     // no till PIN — prompt to set one before entering the counter. The
     // cloud web app does not force this: password-only sign-in is valid
-    // there.
-    if (IS_DESKTOP) {
+    // there. Office web login skips this — owners go straight to the hub.
+    if (IS_DESKTOP && !isOffice) {
       const me = await fetchMe().catch(() => null);
       if (me && me.hasPin === false) {
         setSecret("");
@@ -186,8 +213,11 @@ function LoginPageContent() {
         return;
       }
     }
-    const dest = await resolveAfterStaffAuth();
-    await completeAuthAndNavigate(dest, tenant?.slug);
+    const dest = await resolveAfterStaffAuth({
+      office: isOffice,
+      honorNext: isOffice || !usePin,
+    });
+    await completeAuthAndNavigate(dest, tenant?.slug, { office: isOffice });
   };
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -281,8 +311,8 @@ function LoginPageContent() {
     setPinSaving(true);
     try {
       await setOwnPin(pin);
-      const dest = await resolveAfterStaffAuth();
-      await completeAuthAndNavigate(dest, tenant?.slug);
+      const dest = await resolveAfterStaffAuth({ office: isOffice });
+      await completeAuthAndNavigate(dest, tenant?.slug, { office: isOffice });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Could not save your PIN.",
@@ -387,18 +417,22 @@ function LoginPageContent() {
         }}
       />
       <AuthPageHeader
-        title="Staff sign-in"
+        title={isOffice ? "Office sign-in" : "Staff sign-in"}
         description={
-          tenantGreeting
-            ? `Sign in with email and your till PIN or office password. Your branch at ${shortBrandName(tenantGreeting)} is applied automatically.`
-            : "Sign in with email and your till PIN or office password. Your branch is applied automatically."
+          isOffice
+            ? tenantGreeting
+              ? `Use your email and office password to run ${shortBrandName(tenantGreeting)}.`
+              : "Use your email and office password to run your shop."
+            : tenantGreeting
+              ? `Sign in with email and your till PIN or office password. Your branch at ${shortBrandName(tenantGreeting)} is applied automatically.`
+              : "Sign in with email and your till PIN or office password. Your branch is applied automatically."
         }
       />
 
       {/* Onboarding CTA — only on landing page. */}
       {/* Hidden on desktop because the SKU is single-tenant: the first business is */}
       {/* created by the /setup first-run wizard, not from the login screen. */}
-      {!tenant && !showOnboarding && !IS_DESKTOP ? (
+      {!tenant && !showOnboarding && !isOffice && !IS_DESKTOP ? (
         <button
           type="button"
           className="mt-5 flex w-full items-center gap-3 rounded-lg border border-[var(--auth-accent)]/35 bg-[color-mix(in_srgb,var(--auth-accent)_6%,white)] px-4 py-3.5 text-left transition-[background-color,border-color] duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--auth-accent)_11%,white)] dark:bg-[color-mix(in_srgb,var(--auth-accent)_10%,#18181b)] dark:hover:bg-[color-mix(in_srgb,var(--auth-accent)_16%,#18181b)]"
@@ -570,6 +604,7 @@ function LoginPageContent() {
             />
             <input type="hidden" name="next" value={loginNextHint} />
             <input type="hidden" name="audience" value="staff" />
+            {isOffice ? <input type="hidden" name="mode" value="office" /> : null}
             <div>
               <label className={fieldLabelClass} htmlFor="login-email">
                 Email
@@ -593,7 +628,7 @@ function LoginPageContent() {
                   className="text-[13px] font-medium text-foreground"
                   htmlFor="login-secret"
                 >
-                  PIN or password
+                  {isOffice ? "Password" : "PIN or password"}
                 </label>
                 <Link
                   href={APP_ROUTES.forgotPassword}
@@ -613,7 +648,13 @@ function LoginPageContent() {
                   )}
                   type={showSecret ? "text" : "password"}
                   name="password"
-                  placeholder={secretIsPin ? "••••" : "PIN or password"}
+                  placeholder={
+                    isOffice
+                      ? "Office password"
+                      : secretIsPin
+                        ? "••••"
+                        : "PIN or password"
+                  }
                   value={secret}
                   onChange={(event) => setSecret(event.target.value)}
                   autoComplete="current-password"
@@ -634,9 +675,11 @@ function LoginPageContent() {
                 </button>
               </div>
               <p className="mt-1.5 text-xs text-muted-foreground">
-                {secretIsPin
-                  ? "Recognized as a till PIN — your assigned branch is used automatically."
-                  : "4–6 digit PIN for the till, or your office password."}
+                {isOffice
+                  ? "Cashiers at the counter can still enter a 4–6 digit till PIN here."
+                  : secretIsPin
+                    ? "Recognized as a till PIN — your assigned branch is used automatically."
+                    : "4–6 digit PIN for the till, or your office password."}
               </p>
             </div>
             {errorMessage ? (
@@ -660,6 +703,17 @@ function LoginPageContent() {
           </form>
 
           <div className="mt-10 space-y-2.5 border-t border-black/[0.06] pt-6 text-center dark:border-white/10">
+            {isOffice ? (
+              <p className="text-[13px] text-muted-foreground">
+                Working the till?{" "}
+                <Link
+                  href={`${APP_ROUTES.staffLogin}?switch=1`}
+                  className="font-medium text-foreground underline decoration-[var(--auth-accent)] decoration-2 underline-offset-[3px] transition-opacity duration-200 ease-out hover:opacity-80"
+                >
+                  Staff PIN sign-in
+                </Link>
+              </p>
+            ) : null}
             <p className="text-[13px] text-muted-foreground">
               Shopping online?{" "}
               <Link

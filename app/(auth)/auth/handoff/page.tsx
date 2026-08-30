@@ -20,7 +20,7 @@ import {
 import { refreshAccessToken } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { setImpersonationSession } from "@/lib/impersonation-session";
-import { loginPathForNext } from "@/lib/login-audience";
+import { isOfficeConsolePath, loginHrefForDestination } from "@/lib/login-audience";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
 
@@ -29,7 +29,7 @@ function AuthHandoffInner() {
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const nextHint = searchParams.get("next")?.trim() ?? "";
-  const fallbackLogin = loginPathForNext(nextHint);
+  const fallbackLogin = loginHrefForDestination(nextHint);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,9 +67,7 @@ function AuthHandoffInner() {
         }
         if (!restored && !hasAccessSession()) {
           clearAuthHandoffFragment();
-          setError(
-            "Missing session. Return to sign in and try again. If this keeps happening, confirm APP_AUTH_REFRESH_COOKIE_DOMAIN covers shop subdomains.",
-          );
+          setError("Could not finish sign-in. Return to sign in and try again.");
           return;
         }
         if (data?.tenantId?.trim()) {
@@ -83,7 +81,7 @@ function AuthHandoffInner() {
           return;
         }
         if (outcome.kind === "rejected" && !hasAccessSession()) {
-          setError("Session transfer failed. Sign in again.");
+          setError("Could not finish sign-in. Return to sign in and try again.");
           return;
         }
         const cookieOk = await ensureSessionPresenceCookie();
@@ -95,9 +93,11 @@ function AuthHandoffInner() {
         }
 
         const nextRaw =
-          searchParams.get("next") ?? data?.nextPath ?? APP_ROUTES.business;
-        const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.business;
-        submitStoreSessionNavigate(next);
+          searchParams.get("next") ?? data?.nextPath ?? APP_ROUTES.overview;
+        const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.overview;
+        submitStoreSessionNavigate(next, {
+          office: isOfficeConsolePath(next),
+        });
         return;
       }
 
@@ -132,12 +132,13 @@ function AuthHandoffInner() {
         return;
       }
 
-      const nextRaw = searchParams.get("next") ?? data.nextPath ?? APP_ROUTES.business;
-      const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.business;
+      const nextRaw = searchParams.get("next") ?? data.nextPath ?? APP_ROUTES.overview;
+      const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.overview;
       submitStoreSessionNavigate(next, {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
         tenantId: data.tenantId,
+        office: isOfficeConsolePath(next),
       });
     })();
 

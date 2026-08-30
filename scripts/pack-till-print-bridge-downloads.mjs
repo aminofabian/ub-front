@@ -24,6 +24,7 @@ const OUT = join(FRONTEND, "public", "downloads");
 const KIT = join(__dirname, "download-kit");
 const BRIDGE = join(__dirname, "till-print-bridge.mjs");
 const WIN_RAW = join(__dirname, "windows-raw-print.ps1");
+const WIN_BRIDGE_PS1 = join(__dirname, "till-print-bridge-windows.ps1");
 const WIN_RAW_EMBED = join(__dirname, "windows-raw-print-embed.mjs");
 const STAGE = join(OUT, ".stage-till-print-bridge");
 
@@ -56,6 +57,7 @@ function writeWindowsRawEmbed() {
 
 mustExist(BRIDGE);
 mustExist(WIN_RAW);
+mustExist(WIN_BRIDGE_PS1);
 mustExist(KIT);
 writeWindowsRawEmbed();
 mustExist(WIN_RAW_EMBED);
@@ -92,6 +94,10 @@ const packages = [
     files: [
       ...common,
       ["windows-raw-print.ps1", WIN_RAW],
+      [
+        "till-print-bridge-windows.ps1",
+        WIN_BRIDGE_PS1,
+      ],
       [
         "Install-Palmart-Print-Bridge.cmd",
         join(KIT, "Install-Palmart-Print-Bridge.cmd"),

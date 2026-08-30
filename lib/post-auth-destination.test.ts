@@ -310,6 +310,55 @@ describe("resolvePostAuthDestination", () => {
       ),
     ).toBe(APP_ROUTES.shop);
   });
+
+  it("ignores storefront next on office login for configured owners", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        APP_ROUTES.shopAccount,
+        completedOnboarding,
+        { office: true },
+      ),
+    ).toBe(APP_ROUTES.overview);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "admin" } },
+        APP_ROUTES.shop,
+        dismissedOnboarding,
+        { office: true },
+      ),
+    ).toBe(APP_ROUTES.overview);
+  });
+
+  it("honours the business hub next on office login", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        APP_ROUTES.business,
+        completedOnboarding,
+        { office: true },
+      ),
+    ).toBe(APP_ROUTES.business);
+  });
+
+  it("sends cashiers to the till even from office login", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "cashier" } },
+        APP_ROUTES.business,
+        completedOnboarding,
+        { office: true },
+      ),
+    ).toBe(APP_ROUTES.cashier);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "cashier" } },
+        APP_ROUTES.shopAccount,
+        completedOnboarding,
+        { office: true },
+      ),
+    ).toBe(APP_ROUTES.cashier);
+  });
 });
 
 describe("roleLandingRedirect", () => {

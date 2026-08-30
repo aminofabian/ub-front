@@ -7,13 +7,15 @@
  *
  * Platforms:
  *   macOS / Linux — CUPS (`lp` / `lpstat`)
- *   Windows       — spooler RAW via PowerShell Win32 WritePrinter
+ *   Windows 10/11 — PowerShell listener (Install-Palmart-Print-Bridge.cmd, no Node)
+ *   Windows 7     — PowerShell listener (Install-Palmart-Print-Bridge-Win7.cmd)
  *   All           — Ethernet/Wi‑Fi ESC/POS on TCP port 9100 (X-Printer-Host)
  *
  * Also: POST /drawer/kick — ESC/POS cash-drawer pulse (same printer target headers).
  *
  * Usage:
- *   Windows (recommended): run Install-Palmart-Print-Bridge.cmd once — autostarts hidden.
+ *   Windows 10/11 (recommended): run Install-Palmart-Print-Bridge.cmd once — autostarts hidden, no Node.
+ *   Windows 7: Install-Palmart-Print-Bridge-Win7.cmd
  *   Dev / manual: node scripts/till-print-bridge.mjs
  *   pnpm till-print-bridge
  *
@@ -73,7 +75,7 @@ const DRAWER_KICK = Buffer.from([
 
 /** Names that look like retail/thermal receipt printers (prefer when auto-picking). */
 const THERMAL_HINT_RE =
-  /caysn|xprinter|epson.?tm|tm-|tm_|star.?tsp|bixolon|citizen|pos[-_ ]?80|receipt|thermal|cn\d{2,}|rp[-_]?\d|tsp\d*|tsp100|tsp143|rongta|gprinter|munbyn|rpp0|rp58|rp80/i;
+  /caysn|xprinter|x-printer|epson.?tm|tm-|tm_|star.?tsp|bixolon|citizen|pos[-_ ]?80|pos80|receipt|thermal|cn\d{2,}|rp[-_]?\d|tsp\d*|tsp100|tsp143|rongta|gprinter|munbyn|rpp0|rp58|rp80|xp-?\d+|usb.?print|generic.?\/?\s*text|palmart/i;
 
 /** Virtual / non-receipt devices to deprioritize (esp. Windows). */
 const NOISE_PRINTER_RE =
@@ -86,6 +88,7 @@ const CORS = {
     "Content-Type, X-Printer-Cups-Name, X-Printer-Host, X-Printer-Port",
   // Chrome Private Network Access: HTTPS cloud cashier → http://127.0.0.1
   "Access-Control-Allow-Private-Network": "true",
+  "Access-Control-Max-Age": "86400",
 };
 
 function send(res, status, body, type = "text/plain") {
@@ -107,6 +110,28 @@ function readRequest(req) {
   });
 }
 
+function decodePsStdout(buf) {
+  if (!buf || buf.length === 0) return "";
+  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
+    return buf.toString("utf16le").replace(/^\uFEFF/, "");
+  }
+  if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
+    return buf.swap16().toString("utf16le").replace(/^\uFEFF/, "");
+  }
+  if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+    return buf.slice(3).toString("utf8");
+  }
+  let nulPairs = 0;
+  const sample = Math.min(buf.length, 80);
+  for (let i = 1; i < sample; i += 2) {
+    if (buf[i] === 0) nulPairs += 1;
+  }
+  if (sample >= 8 && nulPairs >= sample / 4) {
+    return buf.toString("utf16le").replace(/^\uFEFF/, "");
+  }
+  return buf.toString("utf8").replace(/^\uFEFF/, "");
+}
+
 function runCmd(bin, args, opts = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(bin, args, {
@@ -114,16 +139,18 @@ function runCmd(bin, args, opts = {}) {
       windowsHide: true,
       ...opts,
     });
-    let stdout = "";
-    let stderr = "";
+    const outChunks = [];
+    const errChunks = [];
     child.stdout.on("data", (c) => {
-      stdout += c.toString();
+      outChunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
     });
     child.stderr.on("data", (c) => {
-      stderr += c.toString();
+      errChunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
     });
     child.on("error", reject);
     child.on("close", (code) => {
+      const stdout = decodePsStdout(Buffer.concat(outChunks));
+      const stderr = decodePsStdout(Buffer.concat(errChunks));
       if (code === 0) resolve(stdout);
       else reject(new Error(stderr.trim() || `${bin} exited ${code}`));
     });
@@ -199,34 +226,107 @@ async function listCupsPrinters() {
   return rankAndSuggest(printers, defaultName);
 }
 
+function printersFromBridgeJson(parsed) {
+  const rows = Array.isArray(parsed?.printers)
+    ? parsed.printers
+    : Array.isArray(parsed)
+      ? parsed
+      : parsed
+        ? [parsed]
+        : [];
+  const printers = [];
+  let defaultName =
+    typeof parsed?.defaultName === "string" ? parsed.defaultName : null;
+  for (const row of rows) {
+    const name = String(row?.name ?? row?.Name ?? "").trim();
+    if (!name || !WIN_NAME_RE.test(name)) continue;
+    const uri = String(
+      row?.uri ?? row?.PortName ?? row?.DriverName ?? "",
+    ).trim();
+    const isDefault = Boolean(row?.isDefault ?? row?.Default);
+    if (isDefault) defaultName = name;
+    printers.push({
+      name,
+      uri,
+      isDefault,
+      likelyThermal:
+        typeof row?.likelyThermal === "boolean"
+          ? row.likelyThermal
+          : isLikelyThermal(name, uri),
+    });
+  }
+  return rankAndSuggest(printers, defaultName);
+}
+
 /**
  * List Windows printers via PowerShell.
- * Prefer Get-Printer; fall back to Win32_Printer (WMI) when Get-Printer is
- * missing/empty (common on locked-down or older Windows installs).
+ * Prefer the Win10 helper (USB auto-queue + WMI). Fall back to WMI JSON.
  */
 async function listWindowsPrinters() {
+  const helper = join(SCRIPT_DIR, "till-print-bridge-windows.ps1");
+  if (existsSync(helper)) {
+    try {
+      const out = await runCmd("powershell.exe", [
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        helper,
+        "-ListOnly",
+      ]);
+      const trimmed = out.trim();
+      if (!trimmed) return rankAndSuggest([], null);
+      return printersFromBridgeJson(JSON.parse(trimmed));
+    } catch (e) {
+      logLine(
+        "Windows ListOnly helper failed, falling back to WMI:",
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+
   const ps = `
-$ErrorActionPreference = 'Stop'
-function Emit-PrinterJson($rows) {
-  if (-not $rows -or $rows.Count -eq 0) { return '' }
-  if ($rows.Count -eq 1) { return ($rows | ConvertTo-Json -Compress) }
-  return ($rows | ConvertTo-Json -Compress)
-}
+$ProgressPreference = 'SilentlyContinue'
+$WarningPreference = 'SilentlyContinue'
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
+$OutputEncoding = [Console]::OutputEncoding
 $rows = @()
 try {
-  $rows = @(Get-Printer | Select-Object Name, PortName, DriverName, Default)
+  $rows = @(Get-WmiObject -Class Win32_Printer -ErrorAction Stop)
 } catch {
-  $rows = @()
+  try { $rows = @(Get-Printer -ErrorAction Stop) } catch { $rows = @() }
 }
-if ($rows.Count -eq 0) {
-  $rows = @(Get-CimInstance -ClassName Win32_Printer -ErrorAction SilentlyContinue |
-    Select-Object Name, PortName, DriverName, @{n='Default';e={$_.Default}})
-  if (-not $rows -or $rows.Count -eq 0) {
-    $rows = @(Get-WmiObject -Class Win32_Printer -ErrorAction SilentlyContinue |
-      Select-Object Name, PortName, DriverName, @{n='Default';e={$_.Default}})
-  }
+$parts = @()
+$suggested = $null
+$defaultName = $null
+function Esc([string]$s) {
+  if ($null -eq $s) { return '' }
+  return $s.Replace('\\','\\\\').Replace('"','\\"')
 }
-Emit-PrinterJson $rows
+foreach ($p in $rows) {
+  $name = [string]$p.Name
+  if (-not $name) { continue }
+  $port = [string]$p.PortName
+  $def = $false
+  try { $def = [bool]$p.Default } catch { }
+  if ($def) { $defaultName = $name }
+  $blob = ($name + ' ' + $port).ToLower()
+  $lt = $blob -match 'caysn|xprinter|epson|pos.?80|thermal|receipt|xp-?\\d+|usb.?print|generic.?/?\\s*text|usb\\d+|com\\d+'
+  $noise = $blob -match 'fax|onenote|print to pdf|xps'
+  if ($lt -and -not $suggested) { $suggested = $name }
+  $defJson = 'false'
+  if ($def) { $defJson = 'true' }
+  $ltJson = 'false'
+  if ($lt -and -not $noise) { $ltJson = 'true' }
+  $parts += ('{"name":"' + (Esc $name) + '","uri":"' + (Esc $port) + '","isDefault":' + $defJson + ',"likelyThermal":' + $ltJson + '}')
+}
+$arr = '[' + ([string]::Join(',', $parts)) + ']'
+$sug = 'null'
+if ($suggested) { $sug = '"' + (Esc $suggested) + '"' }
+$defj = 'null'
+if ($defaultName) { $defj = '"' + (Esc $defaultName) + '"' }
+Write-Output ('{"ok":true,"platform":"win32","printers":' + $arr + ',"suggested":' + $sug + ',"defaultName":' + $defj + '}')
 `.trim();
 
   let out;
@@ -248,37 +348,15 @@ Emit-PrinterJson $rows
   }
 
   const trimmed = out.trim();
-  if (!trimmed) {
-    return rankAndSuggest([], null);
-  }
+  if (!trimmed) return rankAndSuggest([], null);
 
-  let parsed;
   try {
-    parsed = JSON.parse(trimmed);
+    return printersFromBridgeJson(JSON.parse(trimmed));
   } catch {
     throw new Error(
       "Could not parse Windows printer list from PowerShell. Try restarting the Print Spooler service.",
     );
   }
-  const rows = Array.isArray(parsed) ? parsed : [parsed];
-
-  const printers = [];
-  let defaultName = null;
-  for (const row of rows) {
-    const name = String(row?.Name ?? "").trim();
-    if (!name || !WIN_NAME_RE.test(name)) continue;
-    const uri = String(row?.PortName ?? row?.DriverName ?? "").trim();
-    const isDefault = Boolean(row?.Default);
-    if (isDefault) defaultName = name;
-    printers.push({
-      name,
-      uri,
-      isDefault,
-      likelyThermal: isLikelyThermal(name, uri),
-    });
-  }
-
-  return rankAndSuggest(printers, defaultName);
 }
 
 async function listPrinters() {
@@ -569,7 +647,7 @@ server.listen(PORT, HOST, () => {
     logLine(`CUPS lp: ${LP_BIN ?? "NOT FOUND"}`);
     logLine(`CUPS lpstat: ${LPSTAT_BIN ?? "NOT FOUND"}`);
   } else if (IS_WIN) {
-    logLine("Windows spooler: PowerShell Get-Printer / WritePrinter (RAW)");
+    logLine("Windows: PowerShell WMI / USB auto-queue / WritePrinter (RAW)");
   }
   logLine("Network ESC/POS: X-Printer-Host (+ optional X-Printer-Port, default 9100)");
   logLine("Cash drawer: POST /drawer/kick (same printer headers as /print)");

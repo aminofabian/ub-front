@@ -361,6 +361,14 @@ function CustomerLoginPageContent() {
         >
           Staff sign-in
         </Link>
+        {" · "}
+        Owner?{" "}
+        <Link
+          href={`${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.overview)}`}
+          className="font-medium text-[var(--auth-accent)] hover:underline"
+        >
+          Office sign-in
+        </Link>
       </p>
       {!tenant ? (
         <button

@@ -28,7 +28,7 @@ function toastForOs(os: TillBridgeDownloadOs): string {
     return "Download started. Unzip and run the Windows 7 installer, then Detect printers.";
   }
   if (os === "windows") {
-    return "Download started. Unzip and run the installer, then Detect printers.";
+    return "Download started. Unzip and run Install-Palmart-Print-Bridge.cmd (no Node.js), then Detect printers.";
   }
   return "Download started. Unzip, run the installer once, then Detect printers.";
 }

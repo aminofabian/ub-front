@@ -15,7 +15,7 @@ import {
   type AuthSessionClaims,
 } from "@/lib/auth-session-claims";
 import { businessIdFromAccessToken } from "@/lib/jwt-client";
-import { loginPathForNext } from "@/lib/login-audience";
+import { loginHrefForDestination } from "@/lib/login-audience";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { clearAllSessionBootstrap } from "@/lib/session-bootstrap";
 import { clearPersistedTillLock } from "@/lib/till-lock-persist";
@@ -640,12 +640,7 @@ export function signOutClientAndRedirectToLogin(
   signOutInProgress = true;
   finalizeClientSignOut();
   const next = options?.nextPath?.trim();
-  const baseLogin = loginPathForNext(next);
-  const loginUrl =
-    next && next.startsWith("/")
-      ? `${baseLogin}?next=${encodeURIComponent(next)}`
-      : baseLogin;
-  window.location.assign(loginUrl);
+  window.location.assign(loginHrefForDestination(next));
 }
 
 function readStoredTenantId(): string | null {

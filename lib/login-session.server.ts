@@ -2,9 +2,11 @@ import { randomUUID } from "crypto";
 
 import { getServerApiOrigin, STORAGE_KEYS } from "@/lib/config";
 import { isBuyerAccount } from "@/lib/buyer-role";
+import { claimsFromAccessToken } from "@/lib/auth-session-claims";
 import {
   applyShopperTabHint,
   resolvePostAuthDestination,
+  type ResolvePostAuthOptions,
 } from "@/lib/post-auth-destination";
 import { SESSION_BOOTSTRAP_KEYS } from "@/lib/session-bootstrap";
 import type { BusinessRecord, MeResponse } from "@/lib/api";
@@ -95,7 +97,7 @@ export function buildSessionFinalizeHtml(input: SessionFinalizeInput): string {
 
   // Gap G: do not persist access/refresh JWTs in web storage. httpOnly
   // `ub.access` was set on this response; the next page restores into memory.
-  void accessToken;
+  // Non-secret claims stay in sessionStorage so the first paint looks signed in.
   void refreshToken;
   const scriptLines = [
     `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.accessToken)});`,
@@ -103,6 +105,12 @@ export function buildSessionFinalizeHtml(input: SessionFinalizeInput): string {
     `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
     `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
   ];
+  const claims = claimsFromAccessToken(accessToken);
+  if (claims) {
+    scriptLines.push(
+      `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.sessionClaims)}, ${JSON.stringify(JSON.stringify(claims))});`,
+    );
+  }
 
   if (tenantId) {
     scriptLines.push(
@@ -170,11 +178,13 @@ export function resolveFinalizeDestination(
   me: unknown,
   requestedNext?: string | null,
   business?: unknown | null,
+  options?: ResolvePostAuthOptions,
 ): string {
   return resolvePostAuthDestination(
     me as Parameters<typeof resolvePostAuthDestination>[0],
     safeAuthNextPath(requestedNext ?? null) || null,
     (business as BusinessRecord | null) ?? null,
+    options,
   );
 }
 

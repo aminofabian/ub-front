@@ -10,10 +10,15 @@ import {
   slugDerivedShopUrl,
 } from "@/lib/config";
 import { IS_DESKTOP } from "@/lib/runtime";
+import { isOfficeConsolePath } from "@/lib/login-audience";
 import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
 import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
 
-function navigateAfterAuth(path: string): void {
+export type CompleteAuthNavigateOptions = {
+  office?: boolean;
+};
+
+function navigateAfterAuth(path: string, office?: boolean): void {
   // The desktop SKU has no Next.js server route for `/api/auth/store-session`
   // (that prefetch/cookie-mint endpoint is cloud-only). It also has no
   // cross-subdomain handoff — the till stays on one origin — so navigate
@@ -22,15 +27,18 @@ function navigateAfterAuth(path: string): void {
     window.location.assign(path || "/");
     return;
   }
-  submitStoreSessionNavigate(path);
+  submitStoreSessionNavigate(path, {
+    office: office || isOfficeConsolePath(path),
+  });
 }
 
 async function syncSlugAndNavigate(
   nextHint: string,
   knownSlug?: string | null,
+  office?: boolean,
 ): Promise<void> {
   if (IS_DESKTOP) {
-    navigateAfterAuth(nextHint);
+    navigateAfterAuth(nextHint, office);
     return;
   }
 
@@ -55,12 +63,12 @@ async function syncSlugAndNavigate(
 
   if (normalizedPrimary && tenantHostsMatch(currentHost, normalizedPrimary)) {
     persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateAfterAuth(nextHint);
+    navigateAfterAuth(nextHint, office);
     return;
   }
   if (slug && currentHost.startsWith(`${slug.toLowerCase()}.`)) {
     persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateAfterAuth(nextHint);
+    navigateAfterAuth(nextHint, office);
     return;
   }
 
@@ -77,7 +85,7 @@ async function syncSlugAndNavigate(
 
   if (!slug || targetOrigin === window.location.origin) {
     persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateAfterAuth(nextHint);
+    navigateAfterAuth(nextHint, office);
     return;
   }
 
@@ -101,6 +109,7 @@ async function syncSlugAndNavigate(
 export async function completeAuthAndNavigate(
   dest: string,
   knownSlug?: string | null,
+  opts?: CompleteAuthNavigateOptions,
 ): Promise<void> {
-  await syncSlugAndNavigate(dest, knownSlug);
+  await syncSlugAndNavigate(dest, knownSlug, opts?.office);
 }

@@ -12,6 +12,10 @@ import {
   authJsonBodyForClient,
   isNativeKioskClient,
 } from "@/lib/auth-session-claims";
+import {
+  readSetCookieHeaders,
+  rewriteSetCookieForFrontend,
+} from "@/lib/rewrite-set-cookie";
 
 const HEADER_ALLOWLIST = [
   "authorization",
@@ -129,23 +133,6 @@ function requestIsHttps(req: NextRequest): boolean {
     return proto.toLowerCase() === "https";
   }
   return req.nextUrl.protocol === "https:";
-}
-
-/**
- * Strip {@code Domain=} from upstream Set-Cookie so the browser stores the cookie
- * on the Next.js frontend host (e.g. palmart.co.ke), not the Java API host
- * (kiosk.zelisline.com) the BFF calls server-side.
- */
-function rewriteSetCookieForFrontend(setCookie: string): string {
-  return setCookie.replace(/;\s*Domain=[^;]*/gi, "");
-}
-
-function readSetCookieHeaders(from: Headers): string[] {
-  if (typeof from.getSetCookie === "function") {
-    return from.getSetCookie();
-  }
-  const combined = from.get("set-cookie");
-  return combined ? [combined] : [];
 }
 
 function copyUpstreamHeaders(from: Headers, to: NextResponse): void {

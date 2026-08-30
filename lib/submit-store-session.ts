@@ -1,6 +1,10 @@
 "use client";
 
-import { getSessionTenantId, hasAccessSession } from "@/lib/auth";
+import {
+  getSessionClaims,
+  getSessionTenantId,
+  hasAccessSession,
+} from "@/lib/auth";
 
 const STORE_SESSION_PATH = "/api/auth/store-session";
 
@@ -9,6 +13,8 @@ export type StoreSessionNavigateOptions = {
   accessToken?: string;
   refreshToken?: string;
   tenantId?: string;
+  /** Office console login — store-session ignores leftover storefront next. */
+  office?: boolean;
 };
 
 /**
@@ -23,7 +29,10 @@ export function submitStoreSessionNavigate(
   opts?: StoreSessionNavigateOptions,
 ): void {
   const tenantId =
-    opts?.tenantId?.trim() || getSessionTenantId()?.trim() || "";
+    opts?.tenantId?.trim() ||
+    getSessionTenantId()?.trim() ||
+    getSessionClaims()?.businessId?.trim() ||
+    "";
   const accessToken = opts?.accessToken?.trim() || "";
   const refreshToken = opts?.refreshToken?.trim() || "";
 
@@ -40,6 +49,9 @@ export function submitStoreSessionNavigate(
     tenantId,
     next: nextPath,
   };
+  if (opts?.office) {
+    fields.office = "1";
+  }
   if (accessToken) {
     fields.accessToken = accessToken;
   }

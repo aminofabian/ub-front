@@ -8,7 +8,7 @@ import {
   SESSION_PRESENCE_COOKIE,
   SESSION_PRESENCE_MAX_AGE_SEC,
 } from "@/lib/auth-route-guard";
-import { loginPathForNext } from "@/lib/login-audience";
+import { loginHrefForDestination } from "@/lib/login-audience";
 import {
   buildSessionFinalizeHtml,
   prefetchSessionBootstrap,
@@ -29,7 +29,7 @@ function loginErrorRedirect(
   message: string,
   requestedNext = "",
 ): NextResponse {
-  const url = new URL(loginPathForNext(requestedNext), request.url);
+  const url = new URL(loginHrefForDestination(requestedNext), request.url);
   url.searchParams.set("error", message);
   return NextResponse.redirect(url, 303);
 }
@@ -53,6 +53,9 @@ export async function POST(request: NextRequest) {
   const refreshToken = readField(form, "refreshToken");
   const tenantId = readField(form, "tenantId");
   const requestedNext = String(form.get("next") ?? "");
+  const office =
+    String(form.get("office") ?? "").trim() === "1" ||
+    String(form.get("mode") ?? "").trim().toLowerCase() === "office";
   const tenantHost = resolveTenantHost(request);
 
   if (!accessToken || !tenantId) {
@@ -80,6 +83,7 @@ export async function POST(request: NextRequest) {
     bootstrap.me,
     requestedNext,
     bootstrap.business,
+    { office },
   );
 
   const html = buildSessionFinalizeHtml({

@@ -34,6 +34,16 @@ function roleKeyOf(me: PostAuthMe | null | undefined): string {
   return me?.role?.key?.trim().toLowerCase() ?? "";
 }
 
+export function isOwnerOrAdminRole(me: PostAuthMe | null | undefined): boolean {
+  const roleKey = roleKeyOf(me);
+  return roleKey === "owner" || roleKey === "admin";
+}
+
+export type ResolvePostAuthOptions = {
+  /** Office / owner console login — do not land on the storefront. */
+  office?: boolean;
+};
+
 /**
  * Storefront destinations from `?next=` — password login should honor these.
  *
@@ -133,17 +143,21 @@ export function isOnboardingIncomplete(
  * admin dashboard before their shop is configured, and a failed business fetch
  * must not fall through to generic defaults. Staff/POS roles keep their
  * dedicated homes (cashiers on /cashier, grocery clerks on /grocery…). Configured
- * owners/admins land on the admin dashboard (/overview). The onboarding gate is
- * cloud-only (`!IS_DESKTOP`): the desktop SKU uses its own `/setup` first-run
- * wizard and should keep its prior routing. Otherwise role homes beat generic
- * defaults; tenant default is the storefront for roles without a dedicated home.
+ * owners/admins land on the admin dashboard (/overview). Office login
+ * (`options.office`) ignores leftover storefront `?next=` so owners stay in the
+ * console. The onboarding gate is cloud-only (`!IS_DESKTOP`): the desktop SKU
+ * uses its own `/setup` first-run wizard and should keep its prior routing.
+ * Otherwise role homes beat generic defaults; tenant default is the storefront
+ * for roles without a dedicated home.
  */
 export function resolvePostAuthDestination(
   me: PostAuthMe | null | undefined,
   requestedNext?: string | null,
   business?: BusinessRecord | null,
+  options?: ResolvePostAuthOptions,
 ): string {
   const requested = requestedNext?.trim() ?? "";
+  const office = options?.office === true;
 
   if (me && isBuyerAccount(me)) {
     if (isShopNextPath(requested) || isCustomerTabPath(requested)) {
@@ -155,23 +169,24 @@ export function resolvePostAuthDestination(
     return buyerHomePath();
   }
 
-  const roleKey = roleKeyOf(me);
+  const isOwnerAdmin = isOwnerOrAdminRole(me);
   if (
     !IS_DESKTOP &&
-    (roleKey === "owner" || roleKey === "admin") &&
+    isOwnerAdmin &&
     (isOnboardingIncomplete(business) || !business)
   ) {
     return APP_ROUTES.business;
   }
 
-  if (isShopNextPath(requested) || isCustomerTabPath(requested)) {
+  const shopOrTabNext =
+    isShopNextPath(requested) || isCustomerTabPath(requested);
+  // Office login is the console door. A leftover storefront `?next=` must not
+  // pull an owner or cashier onto the shop after they signed in to operate.
+  if (shopOrTabNext && !office) {
     return requested;
   }
 
-  if (
-    isSafeAppPath(requested) &&
-    (roleKey === "owner" || roleKey === "admin")
-  ) {
+  if (isSafeAppPath(requested) && isOwnerAdmin && !shopOrTabNext) {
     return requested;
   }
 

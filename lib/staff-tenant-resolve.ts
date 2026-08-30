@@ -28,12 +28,14 @@ export function buildStaffDestinationLoginUrl(
   row: PublicSignInDestination,
   email: string,
   next?: string | null,
+  extras?: { office?: boolean },
 ): string {
   const params = new URLSearchParams();
   const normalizedEmail = email.trim().toLowerCase();
   if (normalizedEmail) params.set("email", normalizedEmail);
   const normalizedNext = next?.trim();
   if (normalizedNext) params.set("next", normalizedNext);
+  if (extras?.office) params.set("mode", "office");
   const qs = params.toString();
   const path = `${APP_ROUTES.staffLogin}${qs ? `?${qs}` : ""}`;
   if (!row.slug?.trim()) return "";

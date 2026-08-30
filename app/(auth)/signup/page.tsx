@@ -510,7 +510,7 @@ function SignupPageContent() {
       <div className="mt-10 flex items-center justify-between gap-4 border-t border-black/[0.06] pt-6 text-sm dark:border-white/10">
         <span className="text-muted-foreground">Already have an account?</span>
         <Link
-          href={APP_ROUTES.login}
+          href={`${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`}
           className="font-semibold underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
         >
           Sign in

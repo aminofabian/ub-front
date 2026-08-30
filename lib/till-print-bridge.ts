@@ -4,7 +4,7 @@
  * Cloud Palmart cannot print to USB printers — the browser must POST raw bytes to
  * a process on the till machine (this bridge or Palmart Desktop's device server).
  *
- * Supports macOS/Linux (CUPS), Windows (spooler RAW), and network ESC/POS (TCP 9100).
+ * Supports macOS/Linux (CUPS), Windows (PowerShell till bridge), and network ESC/POS (TCP 9100).
  */
 
 export const TILL_PRINT_BRIDGE_URL =
@@ -316,4 +316,4 @@ export async function kickCashDrawerViaTillBridge(
 }
 
 export const TILL_BRIDGE_START_HINT =
-  "The bridge must run on THIS computer (the one with the printer), not another PC. Windows 10/11: Install-Palmart-Print-Bridge.cmd. Windows 7: download the Windows 7 package and run Install-Palmart-Print-Bridge-Win7.cmd (no Node.js). macOS: Install Palmart Print Bridge.command. Linux: bash install-palmart-print-bridge.sh.";
+  "The bridge must run on THIS computer (the one with the printer), not another PC. Windows 10/11: unzip and run Install-Palmart-Print-Bridge.cmd (no Node.js). Windows 7: download the Windows 7 package and run Install-Palmart-Print-Bridge-Win7.cmd. macOS: Install Palmart Print Bridge.command. Linux: bash install-palmart-print-bridge.sh.";

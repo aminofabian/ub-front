@@ -1,81 +1,101 @@
-# Install Palmart Till Print Bridge once on Windows.
-# ASCII-only so Windows PowerShell 5.1 parses this file reliably.
+# Install Palmart Till Print Bridge once on Windows 10 / 11.
+# ASCII-only. PowerShell listener - no Node.js.
 # Copies into %LOCALAPPDATA%, starts hidden, auto-starts at every logon.
 $ErrorActionPreference = "Stop"
 
 $PkgDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $InstallDir = Join-Path $env:LOCALAPPDATA "Palmart\till-print-bridge"
-$BridgeSrc = Join-Path $PkgDir "till-print-bridge.mjs"
-$BridgeDst = Join-Path $InstallDir "till-print-bridge.mjs"
+$BridgeSrc = Join-Path $PkgDir "till-print-bridge-windows.ps1"
+if (-not (Test-Path $BridgeSrc)) {
+  $BridgeSrc = Join-Path $PkgDir "..\till-print-bridge-windows.ps1"
+}
+$BridgeDst = Join-Path $InstallDir "till-print-bridge-windows.ps1"
 $HelperSrc = Join-Path $PkgDir "windows-raw-print.ps1"
+if (-not (Test-Path $HelperSrc)) {
+  $HelperSrc = Join-Path $PkgDir "..\windows-raw-print.ps1"
+}
 $HelperDst = Join-Path $InstallDir "windows-raw-print.ps1"
-$EmbedSrc = Join-Path $PkgDir "windows-raw-print-embed.mjs"
-$EmbedDst = Join-Path $InstallDir "windows-raw-print-embed.mjs"
 $VbsPath = Join-Path $InstallDir "run-hidden.vbs"
 $LogPath = Join-Path $InstallDir "bridge.log"
 $StartCmdPath = Join-Path $InstallDir "start-till-print-bridge.cmd"
 $UninstallPath = Join-Path $InstallDir "Uninstall-Palmart-Print-Bridge.ps1"
 $TaskName = "PalmartTillPrintBridge"
 $StartupName = "Palmart-Till-Print-Bridge.vbs"
-$HealthUrl = "http://127.0.0.1:19500/health"
 $Port = 19500
 
 function Write-Step([string]$Message) {
   Write-Host (" - " + $Message)
 }
 
-function Find-NodeExe {
-  $cmd = Get-Command node -ErrorAction SilentlyContinue
-  if ($cmd -and $cmd.Source -and (Test-Path $cmd.Source)) {
-    return $cmd.Source
-  }
-  $pf86 = [Environment]::GetEnvironmentVariable("ProgramFiles(x86)")
-  $candidates = @(
-    (Join-Path $env:ProgramFiles "nodejs\node.exe"),
-    (Join-Path $env:LOCALAPPDATA "Programs\node\node.exe")
-  )
-  if ($pf86) {
-    $candidates += (Join-Path $pf86 "nodejs\node.exe")
-  }
-  foreach ($c in $candidates) {
-    if ($c -and (Test-Path $c)) { return $c }
-  }
-  return $null
-}
-
 function Test-BridgeHealth {
+  # Direct TCP so a system HTTP proxy cannot swallow 127.0.0.1
   try {
-    return Invoke-RestMethod -Uri $HealthUrl -TimeoutSec 2
+    $client = New-Object System.Net.Sockets.TcpClient
+    $iar = $client.BeginConnect("127.0.0.1", $Port, $null, $null)
+    $ok = $iar.AsyncWaitHandle.WaitOne(1500, $false)
+    if (-not $ok) {
+      try { $client.Close() } catch { }
+      return $false
+    }
+    $client.EndConnect($iar)
+    $stream = $client.GetStream()
+    $req = [System.Text.Encoding]::ASCII.GetBytes("GET /health HTTP/1.1`r`nHost: 127.0.0.1`r`nConnection: close`r`n`r`n")
+    $stream.Write($req, 0, $req.Length)
+    $stream.Flush()
+    $buf = New-Object byte[] 2048
+    Start-Sleep -Milliseconds 200
+    $n = 0
+    try { $n = $stream.Read($buf, 0, $buf.Length) } catch { $n = 0 }
+    try { $client.Close() } catch { }
+    if ($n -le 0) { return $false }
+    $text = [System.Text.Encoding]::ASCII.GetString($buf, 0, $n)
+    return [bool]($text -match '"ok"\s*:\s*true')
   } catch {
-    return $null
+    return $false
   }
 }
 
-function Stop-BridgeOnPort {
+function Wait-BridgeHealth([int]$Attempts = 25) {
+  for ($i = 0; $i -lt $Attempts; $i++) {
+    if (Test-BridgeHealth) { return $true }
+    Start-Sleep -Milliseconds 700
+  }
+  return $false
+}
+
+function Stop-OldBridge {
   try {
     $conns = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
     foreach ($c in $conns) {
       if ($c.OwningProcess -and $c.OwningProcess -gt 0) {
         Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
+        Write-Step ("Stopped process on port " + $Port + " PID " + $c.OwningProcess)
       }
     }
-  } catch {
-    # Older Windows without Get-NetTCPConnection - ignore.
-  }
+  } catch { }
+
+  try {
+    $procs = Get-WmiObject Win32_Process -ErrorAction SilentlyContinue
+    foreach ($p in @($procs)) {
+      $cmd = [string]$p.CommandLine
+      $name = [string]$p.Name
+      if (-not $cmd) { continue }
+      $hit = $false
+      if ($cmd -match "till-print-bridge") { $hit = $true }
+      if ($name -eq "node.exe" -and $cmd -match "till-print") { $hit = $true }
+      if ($hit) {
+        try {
+          Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+          Write-Step ("Stopped old bridge PID " + $p.ProcessId)
+        } catch { }
+      }
+    }
+  } catch { }
+  Start-Sleep -Milliseconds 600
 }
 
-function Wait-BridgeHealth([int]$Attempts = 15) {
-  for ($i = 0; $i -lt $Attempts; $i++) {
-    $health = Test-BridgeHealth
-    if ($health -and $health.ok) { return $health }
-    Start-Sleep -Milliseconds 700
-  }
-  return $null
-}
-
-function Write-HiddenVbs([string]$NodeExe, [string]$BridgeFile, [string]$WorkDir, [string]$OutVbs, [string]$OutLog) {
-  # Use Chr(34) for quotes - nested """ quoting is fragile in VBScript.
-  $nodeLit = $NodeExe.Replace('"', '')
+function Write-HiddenVbs([string]$PowerShellExe, [string]$BridgeFile, [string]$WorkDir, [string]$OutVbs, [string]$OutLog) {
+  $psLit = $PowerShellExe.Replace('"', '')
   $bridgeLit = $BridgeFile.Replace('"', '')
   $workLit = $WorkDir.Replace('"', '')
   $logLit = $OutLog.Replace('"', '')
@@ -84,9 +104,9 @@ function Write-HiddenVbs([string]$NodeExe, [string]$BridgeFile, [string]$WorkDir
     'Set sh = CreateObject("WScript.Shell")',
     ('sh.CurrentDirectory = "' + $workLit + '"'),
     ('sh.Environment("Process")("TILL_PRINT_BRIDGE_LOG") = "' + $logLit + '"'),
-    ('nodeExe = "' + $nodeLit + '"'),
+    ('ps = "' + $psLit + '"'),
     ('bridge = "' + $bridgeLit + '"'),
-    'cmd = Chr(34) & nodeExe & Chr(34) & " " & Chr(34) & bridge & Chr(34)',
+    'cmd = Chr(34) & ps & Chr(34) & " -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File " & Chr(34) & bridge & Chr(34)',
     "' 0 = hidden window, False = do not wait",
     "sh.Run cmd, 0, False"
   )
@@ -107,7 +127,6 @@ function Install-LogonTask([string]$WscriptExe, [string]$VbsFile, [string]$WorkD
   $action = New-ScheduledTaskAction -Execute $WscriptExe -Argument ('"' + $VbsFile + '"') -WorkingDirectory $WorkDir
   $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 
-  # ExecutionTimeLimit Zero = run forever (default ~72h would kill the bridge).
   try {
     $settings = New-ScheduledTaskSettingsSet `
       -AllowStartIfOnBatteries `
@@ -133,66 +152,63 @@ function Install-LogonTask([string]$WscriptExe, [string]$VbsFile, [string]$WorkD
     -Trigger $trigger `
     -Settings $settings `
     -Principal $principal `
-    -Description "Palmart Till Print Bridge (127.0.0.1:19500) - background, no window" `
+    -Description "Palmart Till Print Bridge (127.0.0.1:19500) - PowerShell, no Node, no window" `
     -Force | Out-Null
 
   try {
     Start-ScheduledTask -TaskName $TaskName -ErrorAction Stop
-  } catch {
-    # Task may refuse Start if already running; VBS start below covers it.
-  }
+  } catch { }
 }
 
-# Preconditions
-$Node = Find-NodeExe
-if (-not $Node) {
-  throw "Node.js not found. Install the LTS build from https://nodejs.org/ then run this installer again."
+function Start-BridgeHidden([string]$WscriptExe, [string]$VbsFile) {
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $WscriptExe
+  $psi.Arguments = '"' + $VbsFile + '"'
+  $psi.WorkingDirectory = (Split-Path -Parent $VbsFile)
+  $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+  $psi.UseShellExecute = $true
+  [void][System.Diagnostics.Process]::Start($psi)
 }
+
 if (-not (Test-Path $BridgeSrc)) {
-  throw "Missing till-print-bridge.mjs next to this installer."
+  throw "Missing till-print-bridge-windows.ps1 next to this installer. Re-download the Windows zip."
 }
 if (-not (Test-Path $HelperSrc)) {
   throw "Missing windows-raw-print.ps1 next to this installer. Re-download the full Windows zip."
 }
-if (-not (Test-Path $EmbedSrc)) {
-  throw "Missing windows-raw-print-embed.mjs next to this installer. Re-download the full Windows zip."
-}
 
+$psExe = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+if (-not (Test-Path $psExe)) {
+  $psExe = "powershell.exe"
+}
 $Wscript = Join-Path $env:SystemRoot "System32\wscript.exe"
 if (-not (Test-Path $Wscript)) {
   $Wscript = "wscript.exe"
 }
 
 Write-Host ""
-Write-Host "=== Palmart Till Print Bridge - Windows install ==="
-Write-Step ("Node: " + $Node)
+Write-Host "=== Palmart Till Print Bridge - Windows 10 / 11 install ==="
+Write-Step ("PowerShell: " + $psExe)
 Write-Step ("Install dir: " + $InstallDir)
+Write-Step "No Node.js required."
 
-# Copy files
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 Copy-Item -Force $BridgeSrc $BridgeDst
 Copy-Item -Force $HelperSrc $HelperDst
-Copy-Item -Force $EmbedSrc $EmbedDst
-Write-HiddenVbs -NodeExe $Node -BridgeFile $BridgeDst -WorkDir $InstallDir -OutVbs $VbsPath -OutLog $LogPath
+Write-HiddenVbs -PowerShellExe $psExe -BridgeFile $BridgeDst -WorkDir $InstallDir -OutVbs $VbsPath -OutLog $LogPath
+if (-not (Test-Path $VbsPath)) {
+  throw ("Failed to write launcher: " + $VbsPath)
+}
+Write-Step ("Launcher: " + $VbsPath)
 
-$startCmdLines = @(
+[System.IO.File]::WriteAllLines($StartCmdPath, @(
   "@echo off",
   "REM Ensures the background bridge is running (no keep-open window).",
   'cd /d "%~dp0"',
-  "powershell -NoProfile -ExecutionPolicy Bypass -Command ^",
-  '  "try { $h = Invoke-RestMethod -Uri http://127.0.0.1:19500/health -TimeoutSec 2; if ($h.ok) { Write-Host ''Till Print Bridge already running.''; exit 0 } } catch {}"',
   'start "" /B wscript.exe "%~dp0run-hidden.vbs"',
-  "timeout /t 2 /nobreak >nul",
-  "powershell -NoProfile -ExecutionPolicy Bypass -Command ^",
-  '  "try { $h = Invoke-RestMethod -Uri http://127.0.0.1:19500/health -TimeoutSec 3; if ($h.ok) { Write-Host ''Till Print Bridge started in the background.''; exit 0 } else { exit 1 } } catch { Write-Host ''Bridge did not become healthy. See bridge.log''; exit 1 }"',
-  "if errorlevel 1 (",
-  "  echo See %LOCALAPPDATA%\Palmart\till-print-bridge\bridge.log",
-  "  pause",
-  "  exit /b 1",
-  ")",
-  "timeout /t 2 /nobreak >nul"
-)
-[System.IO.File]::WriteAllLines($StartCmdPath, $startCmdLines, [System.Text.Encoding]::ASCII)
+  "echo Started Till Print Bridge in the background.",
+  "ping -n 3 127.0.0.1 >nul"
+), [System.Text.Encoding]::ASCII)
 
 $uninstallLines = @(
   '$ErrorActionPreference = "SilentlyContinue"',
@@ -201,12 +217,11 @@ $uninstallLines = @(
   '$Startup = Join-Path ([Environment]::GetFolderPath("Startup")) "Palmart-Till-Print-Bridge.vbs"',
   'Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false',
   'Remove-Item -Force $Startup',
-  'Get-NetTCPConnection -LocalPort 19500 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }',
+  'Get-WmiObject Win32_Process | Where-Object { $_.CommandLine -match "till-print-bridge" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }',
   'Write-Host "Stopped autostart. Remove folder to fully uninstall:" $InstallDir'
 )
 [System.IO.File]::WriteAllLines($UninstallPath, $uninstallLines, [System.Text.Encoding]::ASCII)
 
-# Autostart: Startup folder (most reliable for till users)
 $startupPath = $null
 try {
   $startupPath = Install-StartupEntry -SourceVbs $VbsPath
@@ -215,7 +230,6 @@ try {
   Write-Warning ("Could not add Startup folder entry: " + $_.Exception.Message)
 }
 
-# Autostart: Scheduled Task (restart-on-crash, unlimited runtime)
 $taskOk = $false
 try {
   Install-LogonTask -WscriptExe $Wscript -VbsFile $VbsPath -WorkDir $InstallDir
@@ -225,20 +239,15 @@ try {
   Write-Warning ("Scheduled task not registered (Startup folder still used): " + $_.Exception.Message)
 }
 
-# Always restart so updated bridge + windows-raw-print.ps1 are loaded.
-Stop-BridgeOnPort
-Start-Sleep -Milliseconds 500
-Start-Process -FilePath $Wscript -ArgumentList ('"' + $VbsPath + '"') -WindowStyle Hidden | Out-Null
+Stop-OldBridge
+Start-BridgeHidden -WscriptExe $Wscript -VbsFile $VbsPath
 Write-Step "Started bridge in background (no window)"
 
-$health = Wait-BridgeHealth
+$ok = Wait-BridgeHealth
 Write-Host ""
-if ($health -and $health.ok) {
-  $engine = [string]$health.printEngine
-  Write-Host ("OK - installed once and running at http://127.0.0.1:19500 (platform=" + $health.platform + ", printEngine=" + $engine + ")")
-  if ($engine -ne "v5-bypass-epson") {
-    Write-Warning "printEngine is not v5-bypass-epson. Old bridge may still be running. Reboot the PC or run Uninstall-Autostart.ps1 then install again."
-  }
+if ($ok) {
+  Write-Host "OK - installed once and running at http://127.0.0.1:19500"
+  Write-Step "printEngine=v5-bypass-epson (PowerShell, no Node.js)"
   Write-Host "It starts automatically when you sign in to Windows. You do NOT need to keep a window open."
   if ($taskOk) {
     Write-Host ("Autostart: Startup folder + Task Scheduler (" + $TaskName + ")")
@@ -249,11 +258,13 @@ if ($health -and $health.ok) {
   Write-Host ("To remove autostart later: " + $UninstallPath)
   Write-Host ""
   Write-Host "Go back to Palmart Cashier and click Detect printers."
-  Write-Host "Confirm in browser: http://127.0.0.1:19500/health shows printEngine v5-bypass-epson"
-} else {
-  Write-Warning "Files installed, but health check failed."
-  Write-Warning ('Check Node.js works: "' + $Node + '" -v')
-  Write-Warning ("Log file: " + $LogPath)
-  Write-Warning ("Try: " + $StartCmdPath)
-  throw "Bridge did not become healthy on http://127.0.0.1:19500"
+  Write-Host "Detect will add the Xprinter if Windows only shows it in Device Manager."
+  Write-Host "Confirm in browser: http://127.0.0.1:19500/health"
+  exit 0
 }
+
+Write-Warning "Files installed, but health check failed."
+Write-Warning ("Log file: " + $LogPath)
+Write-Warning ("Try: " + $StartCmdPath)
+Write-Warning "Then open: http://127.0.0.1:19500/health"
+throw "Bridge did not become healthy on http://127.0.0.1:19500"

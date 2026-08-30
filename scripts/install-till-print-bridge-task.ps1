@@ -8,22 +8,25 @@
 
 $ErrorActionPreference = "Stop"
 
-$FrontendDir = Split-Path -Parent $PSScriptRoot
-$Bridge = Join-Path $FrontendDir "scripts\till-print-bridge.mjs"
+$Bridge = Join-Path $PSScriptRoot "till-print-bridge-windows.ps1"
+$Raw = Join-Path $PSScriptRoot "windows-raw-print.ps1"
+$KitInstaller = Join-Path $PSScriptRoot "download-kit\Install-Palmart-Print-Bridge.ps1"
+
 if (-not (Test-Path $Bridge)) {
   throw "Missing $Bridge"
 }
-
-$KitInstaller = Join-Path $PSScriptRoot "download-kit\Install-Palmart-Print-Bridge.ps1"
-if (Test-Path $KitInstaller) {
-  # Stage like a download package so the real installer path is used.
-  $Stage = Join-Path $env:TEMP "palmart-till-print-bridge-dev-stage"
-  New-Item -ItemType Directory -Force -Path $Stage | Out-Null
-  Copy-Item -Force $Bridge (Join-Path $Stage "till-print-bridge.mjs")
-  Copy-Item -Force $KitInstaller (Join-Path $Stage "Install-Palmart-Print-Bridge.ps1")
-  Copy-Item -Force (Join-Path $PSScriptRoot "start-till-print-bridge.cmd") (Join-Path $Stage "start-till-print-bridge.cmd") -ErrorAction SilentlyContinue
-  & (Join-Path $Stage "Install-Palmart-Print-Bridge.ps1")
-  exit $LASTEXITCODE
+if (-not (Test-Path $Raw)) {
+  throw "Missing $Raw"
+}
+if (-not (Test-Path $KitInstaller)) {
+  throw "Missing download-kit installer at $KitInstaller"
 }
 
-throw "Missing download-kit installer at $KitInstaller"
+$Stage = Join-Path $env:TEMP "palmart-till-print-bridge-dev-stage"
+New-Item -ItemType Directory -Force -Path $Stage | Out-Null
+Copy-Item -Force $Bridge (Join-Path $Stage "till-print-bridge-windows.ps1")
+Copy-Item -Force $Raw (Join-Path $Stage "windows-raw-print.ps1")
+Copy-Item -Force $KitInstaller (Join-Path $Stage "Install-Palmart-Print-Bridge.ps1")
+Copy-Item -Force (Join-Path $PSScriptRoot "start-till-print-bridge.cmd") (Join-Path $Stage "start-till-print-bridge.cmd") -ErrorAction SilentlyContinue
+& (Join-Path $Stage "Install-Palmart-Print-Bridge.ps1")
+exit $LASTEXITCODE
