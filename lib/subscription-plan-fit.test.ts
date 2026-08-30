@@ -6,6 +6,9 @@ import {
   planFitHeadline,
   planFitsUsage,
   planFitSevere,
+  remainingShare,
+  remainingUntil,
+  planLockDeadline,
 } from "./subscription-plan-fit";
 
 type Fit = Parameters<typeof planFitCta>[0];
@@ -70,5 +73,49 @@ describe("subscription-plan-fit", () => {
     expect(planFitsUsage(1000, 3, 3142, 2)).toBe(false);
     expect(planFitsUsage(5000, 10, 3142, 2)).toBe(true);
     expect(planFitsUsage(null, null, 80_000, 40)).toBe(true);
+  });
+
+  it("splits remaining time until lock", () => {
+    const now = Date.parse("2026-08-30T07:00:00.000Z");
+    expect(remainingUntil("2026-09-02T10:00:00.000Z", now)).toEqual({
+      totalMs: 3 * 86400000 + 3 * 3600000,
+      days: 3,
+      hours: 3,
+      minutes: 0,
+      seconds: 0,
+      locked: false,
+    });
+    expect(remainingUntil("2026-08-30T06:00:00.000Z", now).locked).toBe(true);
+  });
+
+  it("prefers grace end as the lock deadline", () => {
+    expect(
+      planLockDeadline({
+        status: "GRACE",
+        graceEndsAt: "2026-09-14T06:00:00.000Z",
+        currentPeriodEnd: "2026-08-30T00:00:00.000Z",
+      }),
+    ).toEqual({
+      at: "2026-09-14T06:00:00.000Z",
+      kind: "lock",
+    });
+    expect(
+      planLockDeadline({
+        status: "ACTIVE",
+        graceEndsAt: null,
+        currentPeriodEnd: "2026-09-01T00:00:00.000Z",
+      })?.kind,
+    ).toBe("grace");
+  });
+
+  it("measures remaining share of the grace window", () => {
+    const now = Date.parse("2026-09-07T00:00:00.000Z");
+    expect(
+      remainingShare(
+        "2026-09-01T00:00:00.000Z",
+        "2026-09-16T00:00:00.000Z",
+        now,
+      ),
+    ).toBeCloseTo(9 / 15);
   });
 });

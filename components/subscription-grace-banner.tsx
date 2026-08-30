@@ -43,6 +43,10 @@ export function SubscriptionGraceBanner() {
     return null;
   }
 
+  if (status.planFit?.needsUpgrade) {
+    return null;
+  }
+
   const urgent = status.daysRemainingInGrace <= 3;
   const daysAgo = Math.max(1, status.daysSinceExpiry);
   const daysRemaining = Math.max(1, status.daysRemainingInGrace);
