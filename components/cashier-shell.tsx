@@ -52,6 +52,7 @@ export function CashierShell({ children }: CashierShellProps) {
     setItemTypeId,
     itemTypesLoading,
     refreshSession,
+    refreshBranches,
   } = useDashboard();
   const { lock: lockTill, locked: tillLocked } = usePosTillLock();
   const { isLedger: tillWantsLedger } = useCashierTemplate(branchId);
@@ -325,7 +326,7 @@ export function CashierShell({ children }: CashierShellProps) {
                   className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
                   onClick={() => setReceiptShopOpen(true)}
                 >
-                  Receipt & shop
+                  Receipt details
                 </Button>
                 <Button
                   asChild
@@ -420,9 +421,15 @@ export function CashierShell({ children }: CashierShellProps) {
           onOpenChange={setReceiptShopOpen}
           brandTheme={brandTheme}
           shopName={business?.name?.trim() || ""}
+          branchId={branchId}
+          branchName={currentBranch?.name}
+          branchAddress={currentBranch?.address}
+          branchReceipt={currentBranch?.receipt}
           lastReceiptNo={business?.lastReceiptNo}
           nextReceiptNo={business?.nextReceiptNo}
-          onSaved={() => refreshSession()}
+          onSaved={async () => {
+            await Promise.all([refreshSession(), refreshBranches()]);
+          }}
         />
       ) : null}
     </div>

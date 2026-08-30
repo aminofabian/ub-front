@@ -1097,7 +1097,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                       window.dispatchEvent(new Event("ub:open-receipt-shop"));
                     }}
                   >
-                    Receipt & shop
+                    Receipt details
                   </button>
                   <Link
                     href={APP_ROUTES.salesQuick}
