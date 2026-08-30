@@ -9,6 +9,7 @@ import {
   remainingShare,
   remainingUntil,
   planLockDeadline,
+  isBillingAccessLocked,
 } from "./subscription-plan-fit";
 
 type Fit = Parameters<typeof planFitCta>[0];
@@ -106,6 +107,85 @@ describe("subscription-plan-fit", () => {
         currentPeriodEnd: "2026-09-01T00:00:00.000Z",
       })?.kind,
     ).toBe("grace");
+  });
+
+  it("counts the 15-day grace window when the period has already ended", () => {
+    const now = Date.parse("2026-08-30T07:00:00.000Z");
+    expect(
+      planLockDeadline(
+        {
+          status: "ACTIVE",
+          graceEndsAt: null,
+          currentPeriodEnd: "2026-08-30T00:00:00.000Z",
+        },
+        now,
+      ),
+    ).toEqual({
+      at: "2026-09-14T00:00:00.000Z",
+      kind: "lock",
+    });
+  });
+
+  it("hides the clock when even grace has elapsed", () => {
+    const now = Date.parse("2026-10-01T00:00:00.000Z");
+    expect(
+      planLockDeadline(
+        {
+          status: "ACTIVE",
+          graceEndsAt: null,
+          currentPeriodEnd: "2026-08-01T00:00:00.000Z",
+        },
+        now,
+      ),
+    ).toBeNull();
+  });
+
+  it("locks access once grace has elapsed", () => {
+    const now = Date.parse("2026-08-30T07:00:00.000Z");
+    expect(
+      isBillingAccessLocked(
+        {
+          status: "ACTIVE",
+          billingEnabled: true,
+          graceEndsAt: null,
+          currentPeriodEnd: "2026-08-30T00:00:00.000Z",
+        },
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      isBillingAccessLocked(
+        {
+          status: "ACTIVE",
+          billingEnabled: true,
+          graceEndsAt: null,
+          currentPeriodEnd: "2026-08-01T00:00:00.000Z",
+        },
+        Date.parse("2026-08-16T00:00:00.000Z"),
+      ),
+    ).toBe(true);
+    expect(
+      isBillingAccessLocked(
+        {
+          status: "SUSPENDED",
+          billingEnabled: true,
+          graceEndsAt: "2026-09-14T00:00:00.000Z",
+          currentPeriodEnd: "2026-08-30T00:00:00.000Z",
+        },
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      isBillingAccessLocked(
+        {
+          status: "ACTIVE",
+          billingEnabled: false,
+          graceEndsAt: null,
+          currentPeriodEnd: "2026-01-01T00:00:00.000Z",
+        },
+        now,
+      ),
+    ).toBe(false);
   });
 
   it("measures remaining share of the grace window", () => {

@@ -67,6 +67,31 @@ export function planFitSevere(fit: SubscriptionPlanFitRecord): boolean {
   return fit.overProductLimit || fit.overUserLimit;
 }
 
+/** Scope default: 15 days of full access after the paid period ends. */
+export const DEFAULT_GRACE_DAYS = 15;
+
+export function parseInstant(value: unknown): number {
+  if (value == null || value === "") return Number.NaN;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value < 1e12 ? value * 1000 : value;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (/^\d+(\.\d+)?$/.test(trimmed)) {
+      const n = Number(trimmed);
+      return n < 1e12 ? n * 1000 : n;
+    }
+    const parsed = Date.parse(trimmed);
+    if (Number.isFinite(parsed)) return parsed;
+    return Date.parse(trimmed.replace(" ", "T"));
+  }
+  if (Array.isArray(value) && value.length >= 3) {
+    const [year, month, day, hour = 0, minute = 0, second = 0] = value as number[];
+    return Date.UTC(year, month - 1, day, hour, minute, second);
+  }
+  return Number.NaN;
+}
+
 export function remainingUntil(
   iso: string,
   now = Date.now(),
@@ -78,7 +103,7 @@ export function remainingUntil(
   seconds: number;
   locked: boolean;
 } {
-  const end = Date.parse(iso);
+  const end = parseInstant(iso);
   const totalMs = Number.isFinite(end) ? Math.max(0, end - now) : 0;
   const totalSec = Math.floor(totalMs / 1000);
   return {
@@ -92,7 +117,7 @@ export function remainingUntil(
 }
 
 export function formatLockInstant(iso: string): string {
-  const at = Date.parse(iso);
+  const at = parseInstant(iso);
   if (!Number.isFinite(at)) return "";
   return new Date(at).toLocaleString("en-KE", {
     timeZone: "Africa/Nairobi",
@@ -103,18 +128,66 @@ export function formatLockInstant(iso: string): string {
   });
 }
 
-export function planLockDeadline(status: {
-  status: string;
+export function planLockDeadline(
+  status: {
+    status: string;
+    graceEndsAt: string | null;
+    currentPeriodEnd: string | null;
+    daysRemainingInGrace?: number;
+  },
+  now = Date.now(),
+): { at: string; kind: "lock" | "grace" } | null {
+  const graceEnd = parseInstant(status.graceEndsAt);
+  if (Number.isFinite(graceEnd) && graceEnd > now) {
+    return { at: new Date(graceEnd).toISOString(), kind: "lock" };
+  }
+
+  if (status.status === "GRACE" && (status.daysRemainingInGrace ?? 0) > 0) {
+    const at = now + status.daysRemainingInGrace! * 86_400_000;
+    return { at: new Date(at).toISOString(), kind: "lock" };
+  }
+
+  const periodEnd = parseInstant(status.currentPeriodEnd);
+  if (Number.isFinite(periodEnd) && periodEnd > now) {
+    return { at: new Date(periodEnd).toISOString(), kind: "grace" };
+  }
+
+  if (Number.isFinite(periodEnd)) {
+    const lockAt = periodEnd + DEFAULT_GRACE_DAYS * 86_400_000;
+    if (lockAt > now) {
+      return { at: new Date(lockAt).toISOString(), kind: "lock" };
+    }
+  }
+
+  return null;
+}
+
+export function billingLockInstant(status: {
   graceEndsAt: string | null;
   currentPeriodEnd: string | null;
-}): { at: string; kind: "lock" | "grace" } | null {
-  if (status.graceEndsAt) {
-    return { at: status.graceEndsAt, kind: "lock" };
-  }
-  if (status.currentPeriodEnd) {
-    return { at: status.currentPeriodEnd, kind: "grace" };
+}): number | null {
+  const graceEnd = parseInstant(status.graceEndsAt);
+  if (Number.isFinite(graceEnd)) return graceEnd;
+  const periodEnd = parseInstant(status.currentPeriodEnd);
+  if (Number.isFinite(periodEnd)) {
+    return periodEnd + DEFAULT_GRACE_DAYS * 86_400_000;
   }
   return null;
+}
+
+export function isBillingAccessLocked(
+  status: {
+    status: string;
+    billingEnabled?: boolean;
+    graceEndsAt: string | null;
+    currentPeriodEnd: string | null;
+  },
+  now = Date.now(),
+): boolean {
+  if (status.billingEnabled === false) return false;
+  if (status.status === "SUSPENDED") return true;
+  const at = billingLockInstant(status);
+  return at != null && now >= at;
 }
 
 export function remainingShare(
@@ -122,8 +195,8 @@ export function remainingShare(
   endsAt: string,
   now = Date.now(),
 ): number {
-  const end = Date.parse(endsAt);
-  const start = startedAt ? Date.parse(startedAt) : Number.NaN;
+  const end = parseInstant(endsAt);
+  const start = startedAt ? parseInstant(startedAt) : Number.NaN;
   if (!Number.isFinite(end)) return 0;
   if (!Number.isFinite(start) || end <= start) {
     return remainingUntil(endsAt, now).locked ? 0 : 1;

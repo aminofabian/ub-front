@@ -7,6 +7,7 @@ import { Check, Copy, ExternalLink, Globe, Mail, MessageCircle, Plus, Users } fr
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SaSmsCreditsPanel } from "@/components/super-admin/sa-sms-credits-panel";
+import { SaSubscriptionPanel } from "@/components/super-admin/sa-subscription-panel";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { showThemedConfirmToast, showThemedErrorToast, showThemedSuccessToast } from "@/components/super-admin/themed-confirm-toast";
 import { Badge } from "@/components/ui/badge";
@@ -797,7 +798,8 @@ function BusinessDetailInner() {
           <div className="border-b border-border/60 px-4 py-4 sm:px-5">
             <h2 className="font-heading text-lg font-semibold tracking-tight">Settings</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Display name, plan, region, and catalog override.
+              Display name, region, and catalog override. Plan and grace live in
+              Subscription below.
             </p>
           </div>
           <form className="grid gap-4 px-4 py-5 sm:grid-cols-2 sm:px-5" onSubmit={onSaveBusiness}>
@@ -809,23 +811,6 @@ function BusinessDetailInner() {
                 onChange={(ev) => setBizName(ev.target.value)}
                 disabled={locked}
               />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="sa-biz-tier">Subscription tier</Label>
-              <Input
-                id="sa-biz-tier"
-                value={bizTier}
-                onChange={(ev) => setBizTier(ev.target.value)}
-                placeholder="starter"
-                list="sa-tier-suggestions"
-                disabled={locked}
-              />
-              <datalist id="sa-tier-suggestions">
-                <option value="starter" />
-                <option value="business" />
-                <option value="growth" />
-                <option value="enterprise" />
-              </datalist>
             </div>
             <div className="space-y-2">
               <Label htmlFor="sa-biz-country">Country</Label>
@@ -1094,6 +1079,11 @@ function BusinessDetailInner() {
           </>
         )}
       </section>
+
+      {/* Subscription billing */}
+      {businessId ? (
+        <SaSubscriptionPanel businessId={businessId} onTierChange={setBizTier} />
+      ) : null}
 
       {/* SMS credits & quotas */}
       {businessId ? <SaSmsCreditsPanel businessId={businessId} /> : null}

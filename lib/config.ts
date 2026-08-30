@@ -280,6 +280,8 @@ export const API_ROUTES = {
   superAdminSubscriptionSettings: "/api/v1/super-admin/platform/subscription/settings",
   superAdminSubscriptionPlans: "/api/v1/super-admin/platform/subscription/plans",
   superAdminSubscriptionDunning: "/api/v1/super-admin/platform/subscription/dunning",
+  superAdminBusinessSubscription: (businessId: string) =>
+    `/api/v1/super-admin/businesses/${businessId}/subscription`,
   superAdminPlatformSupplierPortal: "/api/v1/super-admin/platform/supplier-portal",
   superAdminMarketplaceSuppliers: "/api/v1/super-admin/marketplace/suppliers",
   superAdminGlobalCatalog: "/api/v1/super-admin/global-catalog",

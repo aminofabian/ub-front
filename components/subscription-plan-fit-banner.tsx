@@ -18,6 +18,7 @@ import {
   planFitSevere,
   planLockDeadline,
   remainingUntil,
+  isBillingAccessLocked,
 } from "@/lib/subscription-plan-fit";
 import { cn } from "@/lib/utils";
 
@@ -151,7 +152,18 @@ export function SubscriptionPlanFitBanner() {
   }, []);
 
   const fit = status?.planFit;
-  if (!fit?.needsUpgrade) {
+  if (!status || !fit?.needsUpgrade) {
+    return null;
+  }
+
+  if (
+    isBillingAccessLocked({
+      status: status.status,
+      billingEnabled: status.billingEnabled,
+      graceEndsAt: status.graceEndsAt,
+      currentPeriodEnd: status.currentPeriodEnd,
+    })
+  ) {
     return null;
   }
 
@@ -169,6 +181,7 @@ export function SubscriptionPlanFitBanner() {
         status: status.status,
         graceEndsAt: status.graceEndsAt,
         currentPeriodEnd: status.currentPeriodEnd,
+        daysRemainingInGrace: status.daysRemainingInGrace,
       })
     : null;
 

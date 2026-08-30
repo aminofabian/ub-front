@@ -1,32 +1,48 @@
 "use client";
 
-import { CreditCard, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { BillingSurface } from "@/components/billing/billing-ui";
 import { SubscriptionRenewalForm } from "@/components/subscription-renewal-form";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   fetchMe,
   fetchSubscriptionBillingStatus,
   fetchSubscriptionRenewalQuote,
   logoutRemoteAndRedirectToLogin,
+  type SubscriptionBillingStatusRecord,
+  type SubscriptionRenewalQuoteRecord,
 } from "@/lib/api";
 import {
   clearLoginBillingGate,
   getLoginBillingGate,
-  type AuthBillingGate,
 } from "@/lib/auth";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { isBillingAccessLocked } from "@/lib/subscription-plan-fit";
 
 /**
- * Full-screen renewal wall when the tenant is billing-suspended
- * (SUBSCRIPTION_BILLING_SCOPE.md §8).
+ * Blocking renewal modal when grace ends or the tenant is already
+ * billing-suspended (SUBSCRIPTION_BILLING_SCOPE.md §8).
  */
 export function SubscriptionRenewalWall() {
-  const [gate, setGate] = useState<AuthBillingGate | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<SubscriptionBillingStatusRecord | null>(
+    null,
+  );
+  const [quote, setQuote] = useState<SubscriptionRenewalQuoteRecord | null>(
+    null,
+  );
   const [canPay, setCanPay] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const [loginSuspended] = useState(() => {
+    const stored = getLoginBillingGate();
+    return stored?.subscriptionBillingStatus === "SUSPENDED";
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +50,9 @@ export function SubscriptionRenewalWall() {
       try {
         const me = await fetchMe();
         if (!cancelled) {
-          setCanPay(hasPermission(me.permissions, Permission.BusinessManageSubscription));
+          setCanPay(
+            hasPermission(me.permissions, Permission.BusinessManageSubscription),
+          );
         }
       } catch {
         if (!cancelled) setCanPay(false);
@@ -51,31 +69,14 @@ export function SubscriptionRenewalWall() {
       const stored = getLoginBillingGate();
       if (stored?.subscriptionBillingStatus === "SUSPENDED") {
         if (!cancelled) {
-          setGate(stored);
-          setLoading(false);
+          setQuote(stored.renewalQuote);
         }
-        return;
       }
       try {
-        const status = await fetchSubscriptionBillingStatus();
-        if (
-          !cancelled &&
-          status.billingEnabled &&
-          status.status === "SUSPENDED"
-        ) {
-          const quote = await fetchSubscriptionRenewalQuote(1);
-          setGate({
-            subscriptionBillingStatus: "SUSPENDED",
-            suspensionReason: "BILLING_UNPAID",
-            renewalQuote: quote,
-          });
-        } else if (!cancelled) {
-          setGate(null);
-        }
+        const row = await fetchSubscriptionBillingStatus();
+        if (!cancelled) setStatus(row);
       } catch {
-        if (!cancelled) setGate(null);
-      } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setStatus(null);
       }
     })();
     return () => {
@@ -83,62 +84,98 @@ export function SubscriptionRenewalWall() {
     };
   }, []);
 
-  if (loading || !gate || gate.subscriptionBillingStatus !== "SUSPENDED") {
+  const locked =
+    loginSuspended ||
+    (status != null &&
+      isBillingAccessLocked(
+        {
+          status: status.status,
+          billingEnabled: status.billingEnabled,
+          graceEndsAt: status.graceEndsAt,
+          currentPeriodEnd: status.currentPeriodEnd,
+        },
+        now,
+      ));
+
+  useEffect(() => {
+    if (locked) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [locked]);
+
+  useEffect(() => {
+    if (!locked || quote) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const row = await fetchSubscriptionRenewalQuote(1);
+        if (!cancelled) setQuote(row);
+      } catch {
+        if (!cancelled) setQuote(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [locked, quote]);
+
+  if (!locked) {
     return null;
   }
 
-  const quote = gate.renewalQuote;
-
   return (
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-background/80 p-4 backdrop-blur-md"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="subscription-renewal-title"
-    >
-      <BillingSurface className="w-full max-w-md shadow-xl ring-1 ring-black/5 dark:ring-white/10">
-        <div className="mb-5 flex items-start gap-3.5">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive ring-1 ring-destructive/15">
-            <CreditCard className="size-5" aria-hidden />
-          </span>
-          <div className="min-w-0 pt-0.5">
-            <h2
-              id="subscription-renewal-title"
-              className="font-heading text-xl font-semibold tracking-tight"
-            >
-              Subscription suspended
-            </h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-              Grace has ended and Kiosk is paused for this business. Renew to
-              restore access — your data is safe.
-            </p>
-          </div>
+    <Dialog open>
+      <DialogContent
+        showCloseButton={false}
+        overlayClassName="z-[200]"
+        className="z-[201] gap-5 border-orange-200/80 bg-orange-50 p-5 sm:p-6 dark:border-orange-500/25 dark:bg-orange-950/90"
+        onPointerDownOutside={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
+        onEscapeKeyDown={(event) => event.preventDefault()}
+      >
+        <div>
+          <DialogTitle className="font-sans text-lg font-semibold tracking-[-0.02em] text-orange-950 dark:text-orange-50">
+            Your subscription has expired
+          </DialogTitle>
+          <DialogDescription className="mt-1.5 text-sm leading-relaxed text-orange-950/65 dark:text-orange-100/70">
+            The 15-day grace period has ended and Kiosk is paused for this
+            shop. Renew to restore access — your data is safe.
+          </DialogDescription>
         </div>
 
-        <SubscriptionRenewalForm
-          quote={quote}
-          canPay={canPay}
-          compact
-          onPaid={() => {
-            clearLoginBillingGate();
-            setGate(null);
-          }}
-        />
+        {quote ? (
+          <SubscriptionRenewalForm
+            quote={quote}
+            canPay={canPay}
+            compact
+            onPaid={() => {
+              clearLoginBillingGate();
+              setStatus(null);
+              setQuote(null);
+            }}
+          />
+        ) : (
+          <p className="text-sm text-orange-950/60 dark:text-orange-100/65">
+            Loading the amount due…
+          </p>
+        )}
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-orange-950/10 pt-4 dark:border-orange-100/10">
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="text-muted-foreground active:scale-[0.98]"
+            className="text-orange-950/60 hover:bg-orange-950/5 hover:text-orange-950 dark:text-orange-100/60"
             onClick={() => void logoutRemoteAndRedirectToLogin()}
           >
             <LogOut className="size-3.5" aria-hidden />
             Log out
           </Button>
-          <p className="text-xs text-muted-foreground">Need help? Contact support.</p>
+          <p className="text-xs text-orange-950/50 dark:text-orange-100/50">
+            Need help? Contact support.
+          </p>
         </div>
-      </BillingSurface>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

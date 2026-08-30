@@ -3380,6 +3380,66 @@ export async function fetchSaSubscriptionDunning(): Promise<SaSubscriptionDunnin
   return saRequest<SaSubscriptionDunningRecord>(API_ROUTES.superAdminSubscriptionDunning);
 }
 
+export type SaBusinessSubscriptionRecord = {
+  businessId: string;
+  tier: string;
+  tierDisplayName: string;
+  billingStatus: "ACTIVE" | "GRACE" | "SUSPENDED";
+  currentPeriodEnd: string | null;
+  graceStartedAt: string | null;
+  graceEndsAt: string | null;
+  billingSuspendedAt: string | null;
+  suspensionReason: string | null;
+  amountDueKes: number;
+};
+
+export async function fetchSaBusinessSubscription(
+  businessId: string,
+): Promise<SaBusinessSubscriptionRecord> {
+  return saRequest<SaBusinessSubscriptionRecord>(
+    API_ROUTES.superAdminBusinessSubscription(businessId),
+  );
+}
+
+export async function extendSaBusinessSubscription(
+  businessId: string,
+  body: { months: number; note?: string | null },
+): Promise<SaBusinessSubscriptionRecord> {
+  return saRequest<SaBusinessSubscriptionRecord>(
+    `${API_ROUTES.superAdminBusinessSubscription(businessId)}/extend`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function extendSaBusinessGrace(
+  businessId: string,
+  body: { days: number; note?: string | null },
+): Promise<SaBusinessSubscriptionRecord> {
+  return saRequest<SaBusinessSubscriptionRecord>(
+    `${API_ROUTES.superAdminBusinessSubscription(businessId)}/extend-grace`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function assignSaBusinessPlan(
+  businessId: string,
+  body: { tierCode: string; note?: string | null },
+): Promise<SaBusinessSubscriptionRecord> {
+  return saRequest<SaBusinessSubscriptionRecord>(
+    `${API_ROUTES.superAdminBusinessSubscription(businessId)}/plan`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function reactivateSaBusinessSubscription(
+  businessId: string,
+): Promise<SaBusinessSubscriptionRecord> {
+  return saRequest<SaBusinessSubscriptionRecord>(
+    `${API_ROUTES.superAdminBusinessSubscription(businessId)}/reactivate`,
+    { method: "POST" },
+  );
+}
+
 export type SaSmsCreditUsageRecord = {
   cycleStartedAt: string;
   totalSentThisCycle: number;
