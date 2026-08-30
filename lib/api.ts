@@ -9485,6 +9485,25 @@ export async function patchPathAPurchaseOrderLine(
   );
 }
 
+export async function deletePathAPurchaseOrderLine(
+  purchaseOrderId: string,
+  lineId: string,
+): Promise<void> {
+  await request<void>(
+    `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/lines/${encodeURIComponent(lineId.trim())}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function postPathAPurchaseOrderCancel(
+  purchaseOrderId: string,
+): Promise<PathAPurchaseOrderDetailRecord> {
+  return request<PathAPurchaseOrderDetailRecord>(
+    `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/cancel`,
+    { method: "POST" },
+  );
+}
+
 export async function postPathAPurchaseOrderSend(
   purchaseOrderId: string,
 ): Promise<PathAPurchaseOrderDetailRecord> {

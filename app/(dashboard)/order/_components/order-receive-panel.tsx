@@ -14,7 +14,9 @@ import {
   Minus,
   Package,
   Plus,
+  Save,
   Search,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,7 +37,9 @@ import {
   fetchSupplierContacts,
   fetchSupplierItemLinks,
   fetchSuppliers,
+  deletePathAPurchaseOrderLine,
   patchPathAPurchaseOrderLine,
+  postPathAPurchaseOrderCancel,
   postPathAGoodsReceipt,
   postPathAGrnSupplierInvoice,
   postPathAPurchaseOrderLine,
@@ -65,6 +69,7 @@ function todayIsoDate(): string {
 
 type ReceiveQty = Record<string, number>;
 type ReceivePrice = Record<string, number>;
+type OrderQty = Record<string, number>;
 type ItemMeta = {
   name: string;
   thumbnailUrl: string | null;
@@ -118,6 +123,23 @@ async function copyText(value: string, label: string) {
   }
 }
 
+function lineDraftsFromPo(po: PathAPurchaseOrderDetailRecord) {
+  const nextQty: ReceiveQty = {};
+  const nextOrderQty: OrderQty = {};
+  const nextPrice: ReceivePrice = {};
+  const nextSel: Record<string, boolean> = {};
+  for (const line of po.lines) {
+    nextOrderQty[line.id] = toNum(line.qtyOrdered);
+    nextPrice[line.id] = toNum(line.unitEstimatedCost);
+    const remaining = toNum(line.qtyOrdered) - toNum(line.qtyReceived);
+    if (remaining > 0) {
+      nextQty[line.id] = remaining;
+      nextSel[line.id] = true;
+    }
+  }
+  return { nextQty, nextOrderQty, nextPrice, nextSel };
+}
+
 export function OrderReceivePanel({
   embedded = false,
   onConfirmed,
@@ -139,6 +161,7 @@ export function OrderReceivePanel({
   const [itemMeta, setItemMeta] = useState<Record<string, ItemMeta>>({});
   const [contacts, setContacts] = useState<SupplierContactRecord[]>([]);
   const [qtyByLine, setQtyByLine] = useState<ReceiveQty>({});
+  const [orderQtyByLine, setOrderQtyByLine] = useState<OrderQty>({});
   const [priceByLine, setPriceByLine] = useState<ReceivePrice>({});
   const [selectedLines, setSelectedLines] = useState<Record<string, boolean>>(
     {},
@@ -150,6 +173,9 @@ export function OrderReceivePanel({
   const [addItemQuery, setAddItemQuery] = useState("");
   const [addingItemId, setAddingItemId] = useState<string | null>(null);
   const [savingLineId, setSavingLineId] = useState<string | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [deletingLineId, setDeletingLineId] = useState<string | null>(null);
+  const [deletingOrder, setDeletingOrder] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [sharing, setSharing] = useState<"whatsapp" | "pdf" | "copy" | null>(
@@ -207,21 +233,11 @@ export function OrderReceivePanel({
       .then(async (po) => {
         if (cancelled) return;
         setDetail(po);
-        const openLines = po.lines.filter(
-          (l) => toNum(l.qtyOrdered) > toNum(l.qtyReceived),
-        );
-        const nextQty: ReceiveQty = {};
-        const nextPrice: ReceivePrice = {};
-        const nextSel: Record<string, boolean> = {};
-        for (const line of openLines) {
-          const remaining = toNum(line.qtyOrdered) - toNum(line.qtyReceived);
-          nextQty[line.id] = remaining;
-          nextPrice[line.id] = toNum(line.unitEstimatedCost);
-          nextSel[line.id] = true;
-        }
-        setQtyByLine(nextQty);
-        setPriceByLine(nextPrice);
-        setSelectedLines(nextSel);
+        const drafts = lineDraftsFromPo(po);
+        setQtyByLine(drafts.nextQty);
+        setOrderQtyByLine(drafts.nextOrderQty);
+        setPriceByLine(drafts.nextPrice);
+        setSelectedLines(drafts.nextSel);
         setAddItemOpen(false);
         setAddItemQuery("");
 
@@ -319,6 +335,26 @@ export function OrderReceivePanel({
     [detail],
   );
 
+  const displayLines = useMemo(
+    () =>
+      [...(detail?.lines ?? [])].sort(
+        (a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id),
+      ),
+    [detail],
+  );
+
+  const orderDirty = useMemo(() => {
+    if (!detail) return false;
+    return detail.lines.some((line) => {
+      const orderQty = orderQtyByLine[line.id] ?? toNum(line.qtyOrdered);
+      const price = priceByLine[line.id] ?? toNum(line.unitEstimatedCost);
+      return (
+        orderQty !== toNum(line.qtyOrdered) ||
+        price !== toNum(line.unitEstimatedCost)
+      );
+    });
+  }, [detail, orderQtyByLine, priceByLine]);
+
   const selectedTotal = useMemo(() => {
     let sum = 0;
     for (const line of openLines) {
@@ -355,16 +391,17 @@ export function OrderReceivePanel({
     return detail.lines.map((line) => {
       const meta = itemMeta[line.itemId];
       const unit = priceByLine[line.id] ?? toNum(line.unitEstimatedCost);
+      const qty = orderQtyByLine[line.id] ?? toNum(line.qtyOrdered);
       return {
         name: meta?.name ?? line.itemId.slice(0, 8),
         sku: meta?.sku,
         barcode: meta?.barcode,
-        qty: toNum(line.qtyOrdered),
+        qty,
         unitPrice: unit || null,
         currency: ORDER_CURRENCY,
       };
     });
-  }, [detail, itemMeta, priceByLine]);
+  }, [detail, itemMeta, priceByLine, orderQtyByLine]);
 
   const selectedOrderCreatedAt = useMemo(() => {
     if (detail?.createdAt) return detail.createdAt;
@@ -420,19 +457,181 @@ export function OrderReceivePanel({
     };
   };
 
-  const persistLinePrice = async (lineId: string, unitCost: number) => {
-    if (!detail || unitCost <= 0) return;
+  const persistLine = async (
+    lineId: string,
+    opts?: { qtyOrdered?: number; unitEstimatedCost?: number },
+  ) => {
+    if (!detail) return false;
+    const line = detail.lines.find((l) => l.id === lineId);
+    if (!line) return false;
+
+    const qtyOrdered = opts?.qtyOrdered ?? orderQtyByLine[lineId] ?? toNum(line.qtyOrdered);
+    const unitEstimatedCost =
+      opts?.unitEstimatedCost ?? priceByLine[lineId] ?? toNum(line.unitEstimatedCost);
+    const received = toNum(line.qtyReceived);
+
+    if (qtyOrdered <= 0 || unitEstimatedCost <= 0) {
+      toast.error("Quantity and price must be greater than zero");
+      return false;
+    }
+    if (qtyOrdered < received) {
+      toast.error("Order quantity cannot be less than already received");
+      return false;
+    }
+    if (
+      qtyOrdered === toNum(line.qtyOrdered) &&
+      unitEstimatedCost === toNum(line.unitEstimatedCost)
+    ) {
+      return true;
+    }
+
     setSavingLineId(lineId);
     try {
-      await patchPathAPurchaseOrderLine(detail.id, lineId, {
-        unitEstimatedCost: unitCost,
+      const updated = await patchPathAPurchaseOrderLine(detail.id, lineId, {
+        qtyOrdered,
+        unitEstimatedCost,
       });
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              lines: prev.lines.map((l) =>
+                l.id === lineId
+                  ? {
+                      ...l,
+                      qtyOrdered: updated.qtyOrdered,
+                      unitEstimatedCost: updated.unitEstimatedCost,
+                    }
+                  : l,
+              ),
+            }
+          : prev,
+      );
+      setOrderQtyByLine((prev) => ({
+        ...prev,
+        [lineId]: toNum(updated.qtyOrdered),
+      }));
+      setPriceByLine((prev) => ({
+        ...prev,
+        [lineId]: toNum(updated.unitEstimatedCost),
+      }));
+      const remaining =
+        toNum(updated.qtyOrdered) - toNum(line.qtyReceived);
+      if (remaining > 0) {
+        setQtyByLine((prev) => ({
+          ...prev,
+          [lineId]: Math.min(prev[lineId] ?? remaining, remaining),
+        }));
+      }
+      return true;
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Could not save price",
+        error instanceof Error ? error.message : "Could not save line",
       );
+      return false;
     } finally {
       setSavingLineId(null);
+    }
+  };
+
+  const saveOrder = async () => {
+    if (!detail) return;
+    if (!orderDirty) {
+      toast.message("Nothing to save");
+      return;
+    }
+    setSavingOrder(true);
+    try {
+      for (const line of detail.lines) {
+        const orderQty = orderQtyByLine[line.id] ?? toNum(line.qtyOrdered);
+        const price = priceByLine[line.id] ?? toNum(line.unitEstimatedCost);
+        if (
+          orderQty === toNum(line.qtyOrdered) &&
+          price === toNum(line.unitEstimatedCost)
+        ) {
+          continue;
+        }
+        const ok = await persistLine(line.id, {
+          qtyOrdered: orderQty,
+          unitEstimatedCost: price,
+        });
+        if (!ok) return;
+      }
+      toast.success("Order saved");
+      await refreshOrders();
+      const po = await fetchPathAPurchaseOrder(detail.id);
+      setDetail(po);
+      const drafts = lineDraftsFromPo(po);
+      setQtyByLine(drafts.nextQty);
+      setOrderQtyByLine(drafts.nextOrderQty);
+      setPriceByLine(drafts.nextPrice);
+      setSelectedLines(drafts.nextSel);
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
+  const removeLine = async (lineId: string) => {
+    if (!detail) return;
+    const line = detail.lines.find((l) => l.id === lineId);
+    if (!line) return;
+    if (toNum(line.qtyReceived) > 0) {
+      toast.error("Cannot remove a line that has already been received");
+      return;
+    }
+    const meta = itemMeta[line.itemId];
+    const name = meta?.name ?? "this item";
+    if (
+      !window.confirm(
+        `Remove ${name} from ${detail.poNumber}? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    setDeletingLineId(lineId);
+    try {
+      await deletePathAPurchaseOrderLine(detail.id, lineId);
+      toast.success("Line removed");
+      const po = await fetchPathAPurchaseOrder(detail.id);
+      setDetail(po);
+      const drafts = lineDraftsFromPo(po);
+      setQtyByLine(drafts.nextQty);
+      setOrderQtyByLine(drafts.nextOrderQty);
+      setPriceByLine(drafts.nextPrice);
+      setSelectedLines(drafts.nextSel);
+      await refreshOrders();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not remove line",
+      );
+    } finally {
+      setDeletingLineId(null);
+    }
+  };
+
+  const removeOrder = async () => {
+    if (!detail) return;
+    if (
+      !window.confirm(
+        `Delete order ${detail.poNumber}? This cancels the purchase order.`,
+      )
+    ) {
+      return;
+    }
+    setDeletingOrder(true);
+    try {
+      await postPathAPurchaseOrderCancel(detail.id);
+      toast.success("Order deleted");
+      setDetail(null);
+      setSelectedId(null);
+      await refreshOrders();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not delete order",
+      );
+    } finally {
+      setDeletingOrder(false);
     }
   };
 
@@ -450,23 +649,11 @@ export function OrderReceivePanel({
       setAddItemQuery("");
       const po = await fetchPathAPurchaseOrder(detail.id);
       setDetail(po);
-      const open = po.lines.filter(
-        (l) => toNum(l.qtyOrdered) > toNum(l.qtyReceived),
-      );
-      const nextQty = { ...qtyByLine };
-      const nextPrice = { ...priceByLine };
-      const nextSel = { ...selectedLines };
-      for (const line of open) {
-        if (!(line.id in nextQty)) {
-          nextQty[line.id] =
-            toNum(line.qtyOrdered) - toNum(line.qtyReceived);
-          nextPrice[line.id] = toNum(line.unitEstimatedCost);
-          nextSel[line.id] = true;
-        }
-      }
-      setQtyByLine(nextQty);
-      setPriceByLine(nextPrice);
-      setSelectedLines(nextSel);
+      const drafts = lineDraftsFromPo(po);
+      setQtyByLine((prev) => ({ ...drafts.nextQty, ...prev }));
+      setOrderQtyByLine((prev) => ({ ...prev, ...drafts.nextOrderQty }));
+      setPriceByLine((prev) => ({ ...prev, ...drafts.nextPrice }));
+      setSelectedLines((prev) => ({ ...prev, ...drafts.nextSel }));
       setItemMeta((prev) => ({
         ...prev,
         [link.itemId]: {
@@ -589,6 +776,20 @@ export function OrderReceivePanel({
 
     setConfirming(true);
     try {
+      if (orderDirty) {
+        for (const line of openLines.filter((l) => selectedLines[l.id])) {
+          const ok = await persistLine(line.id, {
+            qtyOrdered: orderQtyByLine[line.id] ?? toNum(line.qtyOrdered),
+            unitEstimatedCost:
+              priceByLine[line.id] ?? toNum(line.unitEstimatedCost),
+          });
+          if (!ok) {
+            toast.error("Save order changes before confirming");
+            return;
+          }
+        }
+      }
+
       const grn = await postPathAGoodsReceipt(
         {
           purchaseOrderId: detail.id,
@@ -775,12 +976,80 @@ export function OrderReceivePanel({
             )}
           </div>
           {!embedded ? (
-            <Link
-              href={APP_ROUTES.order}
-              className="inline-flex h-9 shrink-0 items-center rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]"
-            >
-              New order
-            </Link>
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              {detail ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={
+                      savingOrder ||
+                      deletingOrder ||
+                      confirming ||
+                      !orderDirty
+                    }
+                    onClick={() => void saveOrder()}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] disabled:opacity-50"
+                  >
+                    {savingOrder ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Save className="size-3.5" />
+                    )}
+                    Save order
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deletingOrder || savingOrder || confirming}
+                    onClick={() => void removeOrder()}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {deletingOrder ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-3.5" />
+                    )}
+                    Delete order
+                  </button>
+                </>
+              ) : null}
+              <Link
+                href={APP_ROUTES.order}
+                className="inline-flex h-9 shrink-0 items-center rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]"
+              >
+                New order
+              </Link>
+            </div>
+          ) : detail ? (
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={
+                  savingOrder || deletingOrder || confirming || !orderDirty
+                }
+                onClick={() => void saveOrder()}
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] disabled:opacity-50"
+              >
+                {savingOrder ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Save className="size-3.5" />
+                )}
+                Save
+              </button>
+              <button
+                type="button"
+                disabled={deletingOrder || savingOrder || confirming}
+                onClick={() => void removeOrder()}
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+              >
+                {deletingOrder ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="size-3.5" />
+                )}
+                Delete
+              </button>
+            </div>
           ) : null}
         </div>
 
@@ -800,49 +1069,58 @@ export function OrderReceivePanel({
                 Select an open order to adjust prices, quantities, and confirm delivery.
               </p>
             </div>
-          ) : openLines.length === 0 ? (
+          ) : displayLines.length === 0 ? (
             <div className="flex h-full min-h-[14rem] flex-col items-center justify-center gap-2 px-6 text-center">
-              <Check className="size-8 text-[var(--pos-primary,#0f766e)]/50" />
+              <Package className="size-8 text-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]" />
               <p className="text-[13px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
-                All lines received
+                No items on this order
               </p>
               <p className="text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                This purchase order is fully received.
+                Add items from the supplier catalog below, then save the order.
               </p>
             </div>
           ) : (
             <>
-              <div className="sticky top-0 z-[2] hidden grid-cols-[minmax(0,1fr)_7rem_6.5rem_5.5rem] gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_88%,transparent)] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] backdrop-blur-sm lg:grid">
+              <div className="sticky top-0 z-[2] hidden grid-cols-[minmax(0,1fr)_5.5rem_6rem_6.5rem_5.5rem_2rem] gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_88%,transparent)] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] backdrop-blur-sm lg:grid">
                 <span>Item</span>
                 <span className="text-center">Unit price</span>
+                <span className="text-center">Order qty</span>
                 <span className="text-center">Receive qty</span>
                 <span className="text-right">Line total</span>
+                <span className="sr-only">Remove</span>
               </div>
               <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]">
-              {openLines.map((line) => {
+              {displayLines.map((line) => {
                 const remaining =
                   toNum(line.qtyOrdered) - toNum(line.qtyReceived);
-                const checked = Boolean(selectedLines[line.id]);
-                const qty = qtyByLine[line.id] ?? remaining;
+                const canReceive = remaining > 0;
+                const checked = canReceive && Boolean(selectedLines[line.id]);
+                const receiveQty = qtyByLine[line.id] ?? remaining;
+                const orderQty = orderQtyByLine[line.id] ?? toNum(line.qtyOrdered);
                 const unit = priceByLine[line.id] ?? toNum(line.unitEstimatedCost);
-                const amount = qty * unit;
+                const amount = (canReceive ? receiveQty : orderQty) * unit;
                 const meta = itemMeta[line.itemId];
                 const name = meta?.name ?? line.itemId.slice(0, 8);
                 const thumb = posTileThumbUrl(name, meta?.thumbnailUrl);
+                const lineBusy =
+                  savingLineId === line.id || deletingLineId === line.id;
+                const canDelete = toNum(line.qtyReceived) === 0;
                 return (
                   <li
                     key={line.id}
                     className={cn(
-                      "grid gap-3 px-3 py-3 transition-colors sm:px-4 lg:grid-cols-[minmax(0,1fr)_7rem_6.5rem_5.5rem] lg:items-center lg:gap-3 lg:py-2.5",
+                      "grid gap-3 px-3 py-3 transition-colors sm:px-4 lg:grid-cols-[minmax(0,1fr)_5.5rem_6rem_6.5rem_5.5rem_2rem] lg:items-center lg:gap-3 lg:py-2.5",
                       checked
                         ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)]"
                         : "bg-transparent",
+                      !canReceive ? "opacity-80" : "",
                     )}
                   >
                     <div className="flex min-w-0 items-start gap-3 lg:col-span-1">
                       <button
                         type="button"
                         aria-pressed={checked}
+                        disabled={!canReceive}
                         onClick={() =>
                           setSelectedLines((prev) => ({
                             ...prev,
@@ -851,9 +1129,11 @@ export function OrderReceivePanel({
                         }
                         className={cn(
                           "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-[4px] border transition-colors",
-                          checked
-                            ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white",
+                          !canReceive
+                            ? "cursor-not-allowed border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] opacity-40"
+                            : checked
+                              ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white",
                         )}
                       >
                         {checked ? <Check className="size-3" /> : null}
@@ -879,8 +1159,8 @@ export function OrderReceivePanel({
                           {name}
                         </p>
                         <p className="mt-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                          Ordered {toNum(line.qtyOrdered)} · received{" "}
-                          {toNum(line.qtyReceived)}
+                          Received {toNum(line.qtyReceived)}
+                          {!canReceive ? " · fully received" : ""}
                         </p>
                       </div>
                     </div>
@@ -890,7 +1170,7 @@ export function OrderReceivePanel({
                         <span className="lg:hidden">Unit</span>
                         <input
                           className="h-8 w-[4.5rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)] disabled:opacity-40"
-                          disabled={!checked || savingLineId === line.id}
+                          disabled={lineBusy}
                           value={unit}
                           onChange={(e) => {
                             const n = Number.parseFloat(e.target.value);
@@ -904,58 +1184,108 @@ export function OrderReceivePanel({
                           onBlur={(e) => {
                             const n = Number.parseFloat(e.target.value);
                             if (Number.isFinite(n) && n > 0) {
-                              void persistLinePrice(line.id, n);
+                              void persistLine(line.id, { unitEstimatedCost: n });
                             }
                           }}
                         />
                       </label>
 
-                      <div className="inline-flex items-center overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white lg:justify-self-center">
-                        <button
-                          type="button"
-                          className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
-                          disabled={!checked}
-                          onClick={() =>
-                            setQtyByLine((prev) => ({
-                              ...prev,
-                              [line.id]: Math.max(0, qty - 1),
-                            }))
-                          }
-                        >
-                          <Minus className="size-3.5" />
-                        </button>
+                      <label className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] lg:justify-center">
+                        <span className="lg:hidden">Order</span>
                         <input
-                          className="w-11 border-x border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-transparent text-center font-mono text-[13px] tabular-nums outline-none disabled:opacity-40"
-                          disabled={!checked}
-                          value={qty}
+                          className="h-8 w-[4.5rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)] disabled:opacity-40"
+                          disabled={lineBusy}
+                          value={orderQty}
                           onChange={(e) => {
                             const n = Number.parseFloat(e.target.value);
-                            setQtyByLine((prev) => ({
+                            setOrderQtyByLine((prev) => ({
                               ...prev,
                               [line.id]: Number.isFinite(n)
                                 ? Math.max(0, n)
                                 : 0,
                             }));
                           }}
+                          onBlur={(e) => {
+                            const n = Number.parseFloat(e.target.value);
+                            if (Number.isFinite(n) && n > 0) {
+                              void persistLine(line.id, { qtyOrdered: n });
+                            }
+                          }}
                         />
-                        <button
-                          type="button"
-                          className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
-                          disabled={!checked}
-                          onClick={() =>
-                            setQtyByLine((prev) => ({
-                              ...prev,
-                              [line.id]: qty + 1,
-                            }))
-                          }
-                        >
-                          <Plus className="size-3.5" />
-                        </button>
-                      </div>
+                      </label>
+
+                      {canReceive ? (
+                        <div className="inline-flex items-center overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white lg:justify-self-center">
+                          <button
+                            type="button"
+                            className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
+                            disabled={!checked || lineBusy}
+                            onClick={() =>
+                              setQtyByLine((prev) => ({
+                                ...prev,
+                                [line.id]: Math.max(0, receiveQty - 1),
+                              }))
+                            }
+                          >
+                            <Minus className="size-3.5" />
+                          </button>
+                          <input
+                            className="w-11 border-x border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-transparent text-center font-mono text-[13px] tabular-nums outline-none disabled:opacity-40"
+                            disabled={!checked || lineBusy}
+                            value={receiveQty}
+                            onChange={(e) => {
+                              const n = Number.parseFloat(e.target.value);
+                              setQtyByLine((prev) => ({
+                                ...prev,
+                                [line.id]: Number.isFinite(n)
+                                  ? Math.max(0, n)
+                                  : 0,
+                              }));
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
+                            disabled={!checked || lineBusy}
+                            onClick={() =>
+                              setQtyByLine((prev) => ({
+                                ...prev,
+                                [line.id]: receiveQty + 1,
+                              }))
+                            }
+                          >
+                            <Plus className="size-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="hidden text-center font-mono text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] lg:block">
+                          —
+                        </span>
+                      )}
 
                       <p className="pl-8 text-right font-mono text-[13px] font-bold tabular-nums text-[var(--order-ink,#15231f)] lg:pl-0">
                         {formatMoney(amount, ORDER_CURRENCY)}
                       </p>
+
+                      <div className="flex justify-end pl-8 lg:pl-0">
+                        <button
+                          type="button"
+                          disabled={!canDelete || lineBusy}
+                          onClick={() => void removeLine(line.id)}
+                          className="inline-flex size-8 items-center justify-center rounded-md border border-transparent text-red-600 transition hover:border-red-100 hover:bg-red-50 disabled:opacity-30"
+                          title={
+                            canDelete
+                              ? "Remove line"
+                              : "Cannot remove received lines"
+                          }
+                        >
+                          {deletingLineId === line.id ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="size-3.5" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </li>
                 );
