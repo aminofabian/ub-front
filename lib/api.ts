@@ -1137,6 +1137,13 @@ export type BusinessRecord = {
   primaryDomain?: string | null;
   /** Optional override of regional global-catalog resolution. */
   globalCatalogCode?: string | null;
+  /** Highest receipt number already issued, if any. */
+  lastReceiptNo?: number | null;
+  /**
+   * Configured floor for the next POS receipt number. Allocation uses
+   * max((lastReceiptNo ?? 0) + 1, nextReceiptNo).
+   */
+  nextReceiptNo?: number | null;
 };
 
 export type BranchRecord = {
@@ -1365,6 +1372,8 @@ export type PatchBusinessPayload = {
   currency?: string;
   countryCode?: string;
   timezone?: string;
+  /** Floor for the next POS receipt number (must be > last issued). */
+  nextReceiptNo?: number;
 };
 
 export type BrandingPatchPayload = {

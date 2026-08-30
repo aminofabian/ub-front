@@ -1089,6 +1089,16 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   >
                     Business
                   </Link>
+                  <button
+                    type="button"
+                    className={MORE_CHIP}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      window.dispatchEvent(new Event("ub:open-receipt-shop"));
+                    }}
+                  >
+                    Receipt & shop
+                  </button>
                   <Link
                     href={APP_ROUTES.salesQuick}
                     className={MORE_CHIP}

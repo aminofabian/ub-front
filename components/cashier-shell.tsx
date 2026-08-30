@@ -8,6 +8,7 @@ import { Lock, LockKeyhole, MapPin, Settings2 } from "lucide-react";
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
 import { RegisterTillControl } from "@/components/auth/register-till-control";
 import { CashierAdminCapabilitiesModal } from "@/components/cashier/cashier-admin-capabilities-modal";
+import { CashierReceiptShopModal } from "@/components/cashier/cashier-receipt-shop-modal";
 import { BranchRequiredBanner } from "@/components/branch-required-banner";
 import { PosReadinessBanner } from "@/components/pos-readiness-banner";
 import { PushNotificationsEnable } from "@/components/push-notifications-enable";
@@ -56,6 +57,7 @@ export function CashierShell({ children }: CashierShellProps) {
   const { isLedger: tillWantsLedger } = useCashierTemplate(branchId);
   const featureFlags = useFeatureFlags();
   const [capsOpen, setCapsOpen] = useState(false);
+  const [receiptShopOpen, setReceiptShopOpen] = useState(false);
   const lastFlagRefreshAt = useRef(0);
   const [tillLabel, setTillLabel] = useState("");
   const cashierName = me?.name?.trim() || me?.email?.trim() || "";
@@ -141,6 +143,12 @@ export function CashierShell({ children }: CashierShellProps) {
     const onOpen = () => setCapsOpen(true);
     window.addEventListener("ub:open-till-settings", onOpen);
     return () => window.removeEventListener("ub:open-till-settings", onOpen);
+  }, []);
+
+  useEffect(() => {
+    const onOpen = () => setReceiptShopOpen(true);
+    window.addEventListener("ub:open-receipt-shop", onOpen);
+    return () => window.removeEventListener("ub:open-receipt-shop", onOpen);
   }, []);
 
   return (
@@ -311,6 +319,15 @@ export function CashierShell({ children }: CashierShellProps) {
                   <Link href={APP_ROUTES.business}>Business</Link>
                 </Button>
                 <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setReceiptShopOpen(true)}
+                >
+                  Receipt & shop
+                </Button>
+                <Button
                   asChild
                   variant="ghost"
                   size="sm"
@@ -393,6 +410,18 @@ export function CashierShell({ children }: CashierShellProps) {
             featureFlags[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true
           }
           branchId={branchId}
+          onSaved={() => refreshSession()}
+        />
+      ) : null}
+
+      {roleKey !== "cashier" ? (
+        <CashierReceiptShopModal
+          open={receiptShopOpen}
+          onOpenChange={setReceiptShopOpen}
+          brandTheme={brandTheme}
+          shopName={business?.name?.trim() || ""}
+          lastReceiptNo={business?.lastReceiptNo}
+          nextReceiptNo={business?.nextReceiptNo}
           onSaved={() => refreshSession()}
         />
       ) : null}
