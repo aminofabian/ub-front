@@ -114,6 +114,20 @@ export default function SuperAdminPlatformIntegrationsPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
+    if (smsProvider === "textsms") {
+      const hasStoredKey = Boolean(settings?.hasTextsmsApiKey);
+      if (
+        !textsmsPartnerId.trim() ||
+        !textsmsShortcode.trim() ||
+        (!textsmsApiKey.trim() && !hasStoredKey)
+      ) {
+        setError(
+          "TextSMS needs partner ID, shortcode, and API key before you can save. " +
+            "If a key is already stored, partner ID and shortcode must still be filled in.",
+        );
+        return;
+      }
+    }
     setBusy(true);
     try {
       const body: Parameters<typeof updatePlatformIntegrations>[0] = {
