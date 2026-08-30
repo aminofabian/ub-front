@@ -15,6 +15,7 @@ import {
   isPosSoftAuthActive,
   notifyPosSessionExpired,
 } from "@/lib/pos-soft-auth";
+import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { tryRecoverSessionBeforeSignOut } from "@/lib/session-recovery";
 
 /*
@@ -42,11 +43,14 @@ import { tryRecoverSessionBeforeSignOut } from "@/lib/session-recovery";
  */
 
 const REFRESH_MARGIN_MS = 2 * 60 * 1000; // refresh 2 min before expiry
-const ACTIVITY_REFRESH_THRESHOLD_MS = 5 * 60 * 1000; // refresh on activity if < 5 min left
+const ACTIVITY_REFRESH_THRESHOLD_MS = 20 * 60 * 1000; // refresh on activity if < 20 min left
 const ACTIVITY_DEBOUNCE_MS = 30_000; // max one activity-triggered refresh per 30s
 const EAGER_REFRESH_THRESHOLD_MS = 60_000; // on mount: refresh now if <60s left
+/** While the tab is visible, poke the session so owners aren't surprised. */
+const HEARTBEAT_MS = 3 * 60 * 1000;
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let lastActivityRefresh = 0;
 let consecutiveRefreshRejections = 0;
 
@@ -146,6 +150,39 @@ function clearRefreshTimer() {
   }
 }
 
+function clearHeartbeatTimer() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+/**
+ * Presence tick: restore claims if Fast Refresh wiped them, and slide the
+ * access token while the dashboard is in the foreground. Failures never
+ * sign the user out — scheduled refresh / 401 recovery still own that.
+ */
+async function heartbeat(): Promise<void> {
+  if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+    return;
+  }
+  if (!hasAccessSession()) {
+    const restored = await restoreClientSessionFromCookie({ force: true });
+    if (restored) {
+      scheduleNextRefresh();
+    }
+    return;
+  }
+  const exp = getAccessTokenExpiry();
+  if (exp === null || exp - Date.now() < ACTIVITY_REFRESH_THRESHOLD_MS) {
+    const outcome = await refreshAccessToken();
+    if (outcome.kind === "ok") {
+      consecutiveRefreshRejections = 0;
+      scheduleNextRefresh();
+    }
+  }
+}
+
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false;
@@ -235,9 +272,15 @@ export function startSessionRefresh(): () => void {
   const visibilityHandler = () => {
     if (document.visibilityState === "visible") {
       onActivity();
+      void heartbeat();
     }
   };
   document.addEventListener("visibilitychange", visibilityHandler);
+
+  clearHeartbeatTimer();
+  heartbeatTimer = setInterval(() => {
+    void heartbeat();
+  }, HEARTBEAT_MS);
 
   /*
    * Coming back online: always attempt a refresh (not only when near expiry).
@@ -254,6 +297,7 @@ export function startSessionRefresh(): () => void {
 
   return () => {
     clearRefreshTimer();
+    clearHeartbeatTimer();
     for (const event of ACTIVITY_EVENTS) {
       window.removeEventListener(event, handler);
     }

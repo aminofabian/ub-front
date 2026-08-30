@@ -28,7 +28,12 @@ import { Button } from "@/components/ui/button";
 import { useSaSupportUnread } from "@/hooks/use-sa-support-unread";
 import { APP_ROUTES } from "@/lib/config";
 import { getSuperAdminRealtimeClient } from "@/lib/realtime";
-import { logoutSuperAdmin, fetchSuperAdminMe, type SuperAdminMe } from "@/lib/super-admin-api";
+import {
+  logoutSuperAdmin,
+  fetchSuperAdminMe,
+  startSaSessionKeepAlive,
+  type SuperAdminMe,
+} from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
 type Crumb = { label: string; href?: string };
@@ -194,6 +199,10 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (isPlatformPath(pathname)) setOpenPlatform(true);
   }, [pathname]);
+
+  React.useEffect(() => {
+    return startSaSessionKeepAlive();
+  }, []);
 
   React.useEffect(() => {
     let cancelled = false;

@@ -72,11 +72,70 @@ function applyMemoryAccessToken(accessToken: string | null | undefined): void {
   memoryAccessToken = trimmed || null;
 }
 
+function persistSessionClaims(claims: AuthSessionClaims | null): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    if (!claims) {
+      window.sessionStorage.removeItem(STORAGE_KEYS.sessionClaims);
+      return;
+    }
+    window.sessionStorage.setItem(
+      STORAGE_KEYS.sessionClaims,
+      JSON.stringify(claims),
+    );
+  } catch {
+    /* private mode */
+  }
+}
+
+function readPersistedSessionClaims(): AuthSessionClaims | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEYS.sessionClaims);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as AuthSessionClaims;
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+    if (parsed.exp == null && !parsed.businessId && !parsed.sub) {
+      return null;
+    }
+    return {
+      exp: parsed.exp,
+      businessId: parsed.businessId,
+      sub: parsed.sub,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Fast Refresh / remount wipes module memory; sessionStorage keeps the hint. */
+function hydrateSessionClaimsFromStorage(): void {
+  if (memorySessionClaims) {
+    return;
+  }
+  const persisted = readPersistedSessionClaims();
+  if (persisted) {
+    memorySessionClaims = persisted;
+    if (persisted.businessId && typeof window !== "undefined") {
+      persistTenantIdToStorage(persisted.businessId);
+    }
+  }
+}
+
 function applyMemorySessionClaims(
   claims: AuthSessionClaims | null | undefined,
 ): void {
   if (!claims || (claims.exp == null && !claims.businessId && !claims.sub)) {
     memorySessionClaims = null;
+    persistSessionClaims(null);
     return;
   }
   memorySessionClaims = {
@@ -84,6 +143,7 @@ function applyMemorySessionClaims(
     businessId: claims.businessId,
     sub: claims.sub,
   };
+  persistSessionClaims(memorySessionClaims);
   // The session's own tenant is the most reliable source of `X-Tenant-Id`:
   // hosts without a domain mapping (platform apex, localhost) have no other one.
   if (claims.businessId && typeof window !== "undefined") {
@@ -376,6 +436,7 @@ export function setSessionClaims(claims: AuthSessionClaims): void {
 }
 
 export function getSessionClaims(): AuthSessionClaims | null {
+  hydrateSessionClaimsFromStorage();
   return memorySessionClaims;
 }
 
@@ -384,6 +445,7 @@ export function hasAccessSession(): boolean {
   if (getSessionTokens()?.accessToken) {
     return true;
   }
+  hydrateSessionClaimsFromStorage();
   const claims = memorySessionClaims;
   return Boolean(claims && (claims.exp != null || claims.businessId || claims.sub));
 }

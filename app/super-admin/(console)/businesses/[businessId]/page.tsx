@@ -770,7 +770,7 @@ function BusinessDetailInner() {
 
       <section className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:px-5">
         <p className="min-w-0 flex-1 text-sm leading-relaxed text-muted-foreground">
-          A support session lasts 15 minutes, is audit-logged, and leaves this console for the tenant host.
+          A support session lasts four hours, stays alive while the tab is open, is audit-logged, and leaves this console for the tenant host.
         </p>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
           <label className="sr-only" htmlFor="sa-impersonate-user">

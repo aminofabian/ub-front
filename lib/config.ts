@@ -328,6 +328,8 @@ export const STORAGE_KEYS = {
   tenantHost: "ub.tenantHost",
   tenantId: "ub.tenantId",
   superAdminAccessToken: "ub.sa.accessToken",
+  /** Non-secret session hints (exp / businessId / sub) — survive HMR, not the JWT. */
+  sessionClaims: "ub.sessionClaims",
   supplierPortalAccessToken: "ub.sp.accessToken",
   supplierPortalSessionId: "ub.sp.sessionId",
   /** Set on tenant origin after SA impersonation handoff; drives the support banner. */

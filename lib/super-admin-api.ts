@@ -138,7 +138,8 @@ export function logoutSuperAdmin(): void {
 }
 
 /** Refresh when less than this remains, so long jobs (promotes) never hit expiry. */
-const SA_TOKEN_REFRESH_WINDOW_MS = 15 * 60 * 1000;
+const SA_TOKEN_REFRESH_WINDOW_MS = 60 * 60 * 1000;
+const SA_KEEPALIVE_MS = 4 * 60 * 1000;
 
 function saTokenExpiresAtMs(token: string): number | null {
   const parts = token.split(".");
@@ -157,6 +158,26 @@ function saTokenExpiresAtMs(token: string): number | null {
 
 let saRefreshInFlight: Promise<string | null> | null = null;
 
+async function postSaTokenRefresh(token: string): Promise<string | null> {
+  try {
+    const response = await fetch(apiUrl(API_ROUTES.superAdminAuthRefresh), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const payload = (await response.json()) as { accessToken?: string };
+    if (!payload.accessToken) {
+      return null;
+    }
+    setSuperAdminAccessToken(payload.accessToken);
+    return payload.accessToken;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Sliding session: while the portal keeps making requests (e.g. polling a
  * promote job), swap the token for a fresh one before it expires.
@@ -166,31 +187,50 @@ export async function refreshSaTokenIfNeeded(token: string): Promise<string> {
   if (expiresAt === null || expiresAt - Date.now() > SA_TOKEN_REFRESH_WINDOW_MS) {
     return token;
   }
-  saRefreshInFlight ??= (async () => {
-    try {
-      const response = await fetch(apiUrl(API_ROUTES.superAdminAuthRefresh), {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        return null;
-      }
-      const payload = (await response.json()) as { accessToken?: string };
-      if (!payload.accessToken) {
-        return null;
-      }
-      setSuperAdminAccessToken(payload.accessToken);
-      return payload.accessToken;
-    } catch {
-      return null;
-    } finally {
-      saRefreshInFlight = null;
-    }
-  })();
+  saRefreshInFlight ??= postSaTokenRefresh(token).finally(() => {
+    saRefreshInFlight = null;
+  });
   const refreshed = await saRefreshInFlight;
   // On refresh failure keep the current token; the request may still land
   // before expiry, and a real 401 is handled by the caller.
   return refreshed ?? token;
+}
+
+/** Refresh regardless of remaining TTL — used after a 401 before giving up. */
+async function forceRefreshSaToken(token: string): Promise<string | null> {
+  saRefreshInFlight ??= postSaTokenRefresh(token).finally(() => {
+    saRefreshInFlight = null;
+  });
+  return saRefreshInFlight;
+}
+
+/**
+ * While the console tab is visible, slide the SA token so sitting on a page
+ * without API traffic does not expire the session.
+ */
+export function startSaSessionKeepAlive(): () => void {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const tick = () => {
+    if (document.visibilityState !== "visible") {
+      return;
+    }
+    const token = getSuperAdminAccessToken();
+    if (!token) {
+      return;
+    }
+    void refreshSaTokenIfNeeded(token);
+  };
+
+  tick();
+  const id = window.setInterval(tick, SA_KEEPALIVE_MS);
+  document.addEventListener("visibilitychange", tick);
+  return () => {
+    window.clearInterval(id);
+    document.removeEventListener("visibilitychange", tick);
+  };
 }
 
 /** Current token, refreshed if it is close to expiry. Throws when signed out. */
@@ -202,7 +242,11 @@ async function saAuthToken(): Promise<string> {
   return refreshSaTokenIfNeeded(token);
 }
 
-async function saRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function saRequest<T>(
+  path: string,
+  init: RequestInit = {},
+  retried = false,
+): Promise<T> {
   const token = await saAuthToken();
   const method = (init.method ?? "GET").toUpperCase();
   const headers: Record<string, string> = {
@@ -228,6 +272,13 @@ async function saRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
     throwNetworkError(path);
   }
   if (response.status === 401) {
+    if (!retried) {
+      const current = getSuperAdminAccessToken();
+      const refreshed = current ? await forceRefreshSaToken(current) : null;
+      if (refreshed) {
+        return saRequest<T>(path, init, true);
+      }
+    }
     clearSuperAdminSession();
     if (typeof window !== "undefined") {
       window.location.assign(APP_ROUTES.superAdminLogin);

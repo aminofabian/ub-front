@@ -134,6 +134,29 @@ describe("clearSessionTokens / clearAllSessionData", () => {
     expect(getSessionTokens()).toBeNull();
   });
 
+  it("persists claims so a memory wipe still looks signed in", () => {
+    applyAuthSessionPayload({
+      session: { exp: 1_700_000_000, businessId: "biz-1", sub: "u1" },
+    });
+    expect(window.sessionStorage.getItem(STORAGE_KEYS.sessionClaims)).toContain(
+      "biz-1",
+    );
+
+    // Fast Refresh remounts the module (memory gone) but sessionStorage stays.
+    __resetMemoryAccessTokenForTests();
+    expect(hasAccessSession()).toBe(true);
+    expect(getSessionTokens()).toBeNull();
+  });
+
+  it("clearSessionTokens drops persisted claims", () => {
+    applyAuthSessionPayload({
+      session: { exp: 1_700_000_000, businessId: "biz-1" },
+    });
+    clearSessionTokens();
+    expect(window.sessionStorage.getItem(STORAGE_KEYS.sessionClaims)).toBeNull();
+    expect(hasAccessSession()).toBe(false);
+  });
+
   it("clearAllSessionData clears bootstrap and till unlock context", () => {
     setSessionTokens({ accessToken: "mem-access" });
     writeSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me, {
