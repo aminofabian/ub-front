@@ -434,9 +434,9 @@ function SaleGroup({
             >
               <span className="min-w-0 truncate">
                 <span className="tabular-nums opacity-70">
-                  {formatQty(line.quantity)}
+                  {formatQty(line.quantity)} × {fmtKes(line.unitPrice)}
                 </span>
-                <span className="mx-1 opacity-40">×</span>
+                <span className="mx-1 opacity-40">·</span>
                 <span className={lineRefunded ? "line-through opacity-70" : ""}>
                   {line.itemName}
                 </span>

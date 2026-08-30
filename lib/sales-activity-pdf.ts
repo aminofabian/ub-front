@@ -433,7 +433,7 @@ export function buildSalesActivityPdf(input: SalesActivityPdfInput): Blob {
         page = ensureSpace(pages, page, 12, input);
         y = page.cursorY;
         const item = truncate(
-          `${formatQty(line.quantity)} × ${line.itemName}`,
+          `${formatQty(line.quantity)} × ${fmtKes(toNum(line.unitPrice))} · ${line.itemName}`,
           62,
         );
         page.stream.text(COL.time, y, item, { size: 8, color: C.faint });
