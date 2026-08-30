@@ -16,7 +16,6 @@ import {
   getSessionTenantHost,
   getSessionTenantId,
   getSessionTokens,
-  signOutClientAndRedirectToLogin,
   registerRealtimeDisconnect,
 } from "./auth";
 import { refreshAccessToken } from "./api";
@@ -24,6 +23,7 @@ import {
   isPosSoftAuthActive,
   notifyPosSessionExpired,
 } from "./pos-soft-auth";
+import { beginSessionReconnect } from "./session-reconnect";
 import { tryRecoverSessionBeforeSignOut } from "./session-recovery";
 import {
   apiUrl,
@@ -911,7 +911,7 @@ export class RealtimeClient {
           notifyPosSessionExpired();
           return;
         }
-        signOutClientAndRedirectToLogin("realtime reauth: refresh rejected");
+        beginSessionReconnect("realtime reauth: refresh rejected");
         return;
       }
       // network: keep the session, try to reconnect later with current tokens

@@ -3,7 +3,7 @@
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
@@ -18,8 +18,11 @@ import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
   clearSessionTenantId,
   getSessionTenantId,
+  hasAccessSession,
+  hasSessionPresenceCookie,
   setSessionTenantId,
 } from "@/lib/auth";
+import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { looksLikeStaffPin } from "@/lib/auth-secret";
 import {
   AUTH_TENANT_RESOLVE_ERROR,
@@ -88,6 +91,31 @@ function LoginPageContent() {
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
   const secretIsPin = looksLikeStaffPin(secret);
+
+  useEffect(() => {
+    if (searchParams.get("switch") === "1") {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      if (!hasAccessSession() && !hasSessionPresenceCookie()) {
+        return;
+      }
+      const ok =
+        hasAccessSession() ||
+        (await restoreClientSessionFromCookie({ force: true }));
+      if (!ok || cancelled) {
+        return;
+      }
+      const next = searchParams.get("next")?.trim();
+      window.location.replace(
+        next && next.startsWith("/") ? next : APP_ROUTES.business,
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
 
   /**
    * Password: honor `?next=` (including shop account). PIN: role home only —

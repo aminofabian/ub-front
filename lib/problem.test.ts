@@ -158,10 +158,7 @@ describe("isSessionRelatedProblem", () => {
     ).toBe(false);
   });
 
-  // Missing tenant context on authenticated calls means stored tenant routing
-  // was lost while tokens remain — sign out instead of surfacing a toast.
-  // Public/unauthenticated calls still treat it as a configuration error.
-  it("treats missing tenant context on authenticated calls as session failure", () => {
+  it("does not sign out when tenant context is missing", () => {
     expect(
       isSessionRelatedProblem(400, {
         title: "Bad Request",
@@ -169,7 +166,7 @@ describe("isSessionRelatedProblem", () => {
         detail:
           "Tenant context missing. Provide mapped Host header or X-Tenant-Id.",
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("ignores missing tenant context on public calls", () => {

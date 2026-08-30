@@ -108,17 +108,23 @@ export async function POST(request: NextRequest) {
   });
   applyAccessTokenCookie(response, accessToken, { secure });
   // Cross-origin handoff (SA impersonation) brings refresh in the form — mint
-  // the same Path=/api/v1/auth cookie Spring would have set on a normal login.
+  // the same Path=/api cookie Spring sets so restore-session can see it.
   if (refreshToken) {
     response.cookies.set({
       name: "ub.refresh",
       value: refreshToken,
-      path: "/api/v1/auth",
+      path: "/api",
       maxAge: 30 * 24 * 60 * 60,
       sameSite: "lax",
       secure,
       httpOnly: true,
     });
+    // Next keys cookies by name — append the legacy-path clear as a raw header.
+    const secureAttr = secure ? "; Secure" : "";
+    response.headers.append(
+      "Set-Cookie",
+      `ub.refresh=; Path=/api/v1/auth; Max-Age=0; HttpOnly; SameSite=Lax${secureAttr}`,
+    );
   }
 
   return response;

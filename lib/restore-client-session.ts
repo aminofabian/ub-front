@@ -64,9 +64,8 @@ export function restoreClientSessionFromCookie(
           return true;
         }
 
-        // Prefer /api/auth/restore-session (reads ub.access). If that 401s —
-        // often because Spring's ub.refresh is path-scoped to /api/v1/auth and
-        // was not sent to /api/auth/* — fall back to the BFF refresh path.
+        // Prefer /api/auth/restore-session (reads ub.access + ub.refresh on /api).
+        // Fall back to the BFF refresh path if restore 401s.
         let response = await fetch("/api/auth/restore-session", {
           method: "POST",
           credentials: "include",

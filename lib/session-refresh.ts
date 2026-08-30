@@ -4,10 +4,10 @@ import {
   getSessionClaims,
   getSessionTokens,
   hasAccessSession,
-  signOutClientAndRedirectToLogin,
   subscribeToAuthBroadcasts,
   syncSessionPresenceCookie,
 } from "@/lib/auth";
+import { beginSessionReconnect } from "@/lib/session-reconnect";
 import { refreshAccessToken } from "@/lib/api";
 import { STORAGE_KEYS } from "@/lib/config";
 import { parseAccessTokenClaims } from "@/lib/jwt-client";
@@ -125,7 +125,7 @@ async function performRefresh(): Promise<void> {
       );
       return;
     }
-    signOutClientAndRedirectToLogin(
+    beginSessionReconnect(
       outcome.definitive
         ? "background refresh rejected (definitive)"
         : "background refresh rejected after retries",

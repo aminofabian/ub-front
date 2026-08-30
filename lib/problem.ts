@@ -169,13 +169,9 @@ export function isItemNotFoundProblem(payload: unknown): boolean {
  * <p>401 from an authenticated call is treated as a session failure. 403 only
  * signs out when the problem body carries an auth signal (tenant token mismatch,
  * expired token, etc.) — generic permission-denied keeps the session and
- * surfaces a toast. Other 4xx/5xx responses (404 tenant-not-found, etc.) are
- * (404 tenant-not-found, etc.) are treated as normal request failures - the
- * user keeps their session and sees a toast. Authenticated calls that return
- * 400 tenant-context-missing also sign out: the JWT filter rejects the request
- * before session-revocation checks when {@code X-Tenant-Id} / host mapping is
- * absent, which commonly happens once stored tenant context is lost while
- * tokens remain in {@code localStorage}.
+ * surfaces a toast. Other 4xx/5xx responses (404 tenant-not-found, tenant
+ * context missing, etc.) are treated as normal request failures — the user
+ * keeps their session and sees a toast.
  *
  * <p>Note: {@link TENANT_TOKEN_MISMATCH_TITLE}, {@link UNAUTHORIZED_PROBLEM_TYPE},
  * {@link SESSION_AUTH_TITLES}, {@link PROBLEM_TITLES.invalidOrExpiredAccessToken},
@@ -239,9 +235,8 @@ export function isSessionRelatedProblem(
   if (problem.title === TENANT_TOKEN_MISMATCH_TITLE) {
     return true;
   }
-  if (isTenantContextMissingProblem(payload)) {
-    return true;
-  }
+  // Tenant-context-missing is a routing header problem, not a dead session.
+  // Treating it as logout bounced owners to login whenever X-Tenant-Id dropped.
 
   return false;
 }

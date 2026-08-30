@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import {
@@ -8,12 +7,11 @@ import {
   useClientSessionReady,
 } from "@/hooks/use-client-session";
 import { hasAccessSession, syncSessionPresenceCookie } from "@/lib/auth";
-import { APP_ROUTES } from "@/lib/config";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { startSessionRefresh } from "@/lib/session-refresh";
 
 type UseAuthenticatedSessionOptions = {
-  /** Redirect to login when tokens are absent. */
+  /** Keep retrying cookie restore instead of rendering the app unauthenticated. */
   requireAuth?: boolean;
   loginPath?: string;
 };
@@ -23,14 +21,13 @@ type UseAuthenticatedSessionOptions = {
  * routes that require authentication.
  *
  * Session is detected synchronously via {@link useClientHasSession} so iPad
- * Safari does not sit on a skeleton waiting for useEffect. When localStorage
- * is empty, attempts cookie-based restore once before redirecting to login.
+ * Safari does not sit on a skeleton waiting for useEffect. When claims are
+ * empty, attempts cookie-based restore and retries — never redirects to login.
  */
 export function useAuthenticatedSession(
   options: UseAuthenticatedSessionOptions = {},
 ): { ready: boolean; hasSession: boolean; restoring: boolean } {
-  const { requireAuth = false, loginPath = APP_ROUTES.staffLogin } = options;
-  const router = useRouter();
+  const { requireAuth = false } = options;
   const clientReady = useClientSessionReady();
   const hasSession = useClientHasSession();
   const [restoreDone, setRestoreDone] = useState(() => {
@@ -68,18 +65,21 @@ export function useAuthenticatedSession(
     if (!ready) {
       return;
     }
+    // Never hard-redirect to login here. A failed restore used to bounce
+    // owners to /login while the refresh cookie was still valid. Keep
+    // retrying; the shell shows a recovery panel until claims return.
     if (requireAuth && !hasSession && !hasAccessSession()) {
-      router.replace(loginPath);
-      return;
+      const retry = window.setInterval(() => {
+        void restoreClientSessionFromCookie({ force: true });
+      }, 4_000);
+      return () => window.clearInterval(retry);
     }
-    // Bootstrap-only hints are not enough to refresh — wait until Gap G claims
-    // (or a memory JWT) exist, otherwise refresh failure signs the user out.
     if (!hasAccessSession()) {
       return;
     }
     syncSessionPresenceCookie();
     return startSessionRefresh();
-  }, [ready, hasSession, requireAuth, loginPath, router]);
+  }, [ready, hasSession, requireAuth]);
 
   return {
     ready,

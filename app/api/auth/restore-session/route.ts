@@ -48,9 +48,8 @@ function sessionJsonResponse(params: {
  * Restore JS session claims from httpOnly cookies when memory is empty.
  *
  * Prefer existing `ub.access` (path `/api`, sent to this route). Fall back to
- * refresh via the Java API. Note: Spring's `ub.refresh` is path-scoped to
- * `/api/v1/auth`, so it is often absent here — clients should also try
- * `POST /api/v1/auth/refresh` directly when this returns 401.
+ * refresh via the Java API. `ub.refresh` is also path `/api` so this route
+ * receives it. Clients still try `POST /api/v1/auth/refresh` on 401.
  *
  * Gap G3: response omits the raw JWT — only session claims + bootstrap.
  */

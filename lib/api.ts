@@ -33,6 +33,7 @@ import {
   TILL_DEVICE_HEADER,
 } from "@/lib/till-device";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
+import { beginSessionReconnect } from "@/lib/session-reconnect";
 import {
   delay,
   isRefreshAlreadyRotatedProblem,
@@ -178,7 +179,7 @@ function signOutClientForProblem(
     notifyPosSessionExpired(formatApiProblemMessage(payload));
     return false;
   }
-  signOutClientAndRedirectToLogin("session-related API problem");
+  beginSessionReconnect("session-related API problem");
   return true;
 }
 
@@ -236,8 +237,10 @@ async function resolveUnauthorizedResponse(
       notifyPosSessionExpired(formatApiProblemMessage(payload));
       failRequest(response.status, payload, { ...options, toast: false });
     }
-    // Refresh token itself is invalid/revoked/expired - session is unrecoverable.
-    signOutClientAndRedirectToLogin("401 after refresh rejected");
+    // Do not wipe cookies or bounce to login — the refresh cookie is often
+    // still valid and a later restore will recover. Hard logout is reserved
+    // for dead accounts (above) and the explicit Sign out button.
+    beginSessionReconnect("401 after refresh rejected");
     throw new ApiRequestError(
       formatApiProblemMessage(payload),
       response.status,
