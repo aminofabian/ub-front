@@ -23,7 +23,11 @@ That:
     the device in Device Manager (Generic / Text Only)
 
 You do NOT need to keep a window open while cashiering.
-Manual start (only if needed): start-till-print-bridge.cmd
+If http://127.0.0.1:19500/health says site can't be reached, double-click
+Start-Bridge-Window.cmd and leave that window open, then try health again
+on THIS PC (not another computer).
+
+Manual start: start-till-print-bridge.cmd
 Uninstall autostart: run Uninstall-Palmart-Print-Bridge.ps1 in the install folder.
 
 Confirm: open http://127.0.0.1:19500/health in the browser on this PC.

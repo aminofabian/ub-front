@@ -99,6 +99,10 @@ const packages = [
         WIN_BRIDGE_PS1,
       ],
       [
+        "Start-Bridge-Window.cmd",
+        join(KIT, "Start-Bridge-Window.cmd"),
+      ],
+      [
         "Install-Palmart-Print-Bridge.cmd",
         join(KIT, "Install-Palmart-Print-Bridge.cmd"),
       ],

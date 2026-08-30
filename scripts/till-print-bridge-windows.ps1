@@ -8,11 +8,11 @@ param(
   [switch]$ListOnly
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $ProgressPreference = "SilentlyContinue"
 $WarningPreference = "SilentlyContinue"
 $Port = 19500
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ScriptDir = $PSScriptRoot
 if (-not $ScriptDir) {
   try { $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path } catch { }
 }
@@ -592,37 +592,38 @@ if ($ListOnly) {
   }
 }
 
-$listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback, $Port)
 try {
+  Write-BridgeLog ("starting TcpListener 127.0.0.1:" + $Port)
+  $listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback, $Port)
   $listener.Start()
-} catch {
-  Write-BridgeLog ("FATAL: cannot bind 127.0.0.1:$Port - " + $_.Exception.Message)
-  Write-BridgeLog "Is another Palmart bridge already running? Check Task Manager for powershell / node."
-  exit 1
-}
+  Write-BridgeLog "Till Print Bridge (Windows 10/PowerShell) listening on http://127.0.0.1:$Port/"
+  Write-BridgeLog "No Node.js required. Log: $LogFile"
 
-Write-BridgeLog "Till Print Bridge (Windows 10/PowerShell) listening on http://127.0.0.1:$Port/"
-Write-BridgeLog "No Node.js required. Log: $LogFile"
-
-while ($true) {
-  $client = $null
-  $stream = $null
-  try {
-    $client = $listener.AcceptTcpClient()
-    $stream = $client.GetStream()
-    $stream.ReadTimeout = 15000
-    $stream.WriteTimeout = 15000
-    $req = Read-HttpRequest $stream
-    Handle-Request $req $stream
-  } catch {
-    Write-BridgeLog ("Request error: " + $_.Exception.Message)
+  while ($true) {
+    $client = $null
+    $stream = $null
     try {
-      if ($stream) {
-        Write-HttpResponse $stream 500 $_.Exception.Message "text/plain"
-      }
-    } catch { }
-  } finally {
-    try { if ($stream) { $stream.Close() } } catch { }
-    try { if ($client) { $client.Close() } } catch { }
+      $client = $listener.AcceptTcpClient()
+      $stream = $client.GetStream()
+      $stream.ReadTimeout = 15000
+      $stream.WriteTimeout = 15000
+      $req = Read-HttpRequest $stream
+      Handle-Request $req $stream
+    } catch {
+      Write-BridgeLog ("Request error: " + $_.Exception.Message)
+      try {
+        if ($stream) {
+          Write-HttpResponse $stream 500 $_.Exception.Message "text/plain"
+        }
+      } catch { }
+    } finally {
+      try { if ($stream) { $stream.Close() } } catch { }
+      try { if ($client) { $client.Close() } } catch { }
+    }
   }
+} catch {
+  Write-BridgeLog ("FATAL: " + $_.Exception.Message)
+  try { Write-BridgeLog ([string]$_.ScriptStackTrace) } catch { }
+  Write-BridgeLog "If this PC blocked the script, Unblock-File the .ps1 or re-run Install-Palmart-Print-Bridge.cmd"
+  exit 1
 }

@@ -25,11 +25,8 @@ if not exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-Palmart-Print-Bridge.ps1"
 if errorlevel 1 (
   echo.
-  echo Install failed. If SmartScreen blocked it, right-click this .cmd and Run anyway.
-  echo Or open PowerShell in this folder and run:
-  echo   Set-ExecutionPolicy -Scope Process Bypass
-  echo   .\Install-Palmart-Print-Bridge.ps1
-  echo.
+  echo Install failed. Open Start-Bridge-Window.cmd from this folder and leave it open.
+  echo Then on THIS same PC open: http://127.0.0.1:19500/health
   echo Log: %LOCALAPPDATA%\Palmart\till-print-bridge\bridge.log
   pause
   exit /b 1
