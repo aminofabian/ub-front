@@ -10,23 +10,55 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  assignSaBusinessPlan,
   extendSaBusinessGrace,
   extendSaBusinessSubscription,
   fetchSaBusinessSubscription,
   fetchSaSubscriptionPlans,
+  overrideSaBusinessSubscription,
   reactivateSaBusinessSubscription,
   type SaBusinessSubscriptionRecord,
   type SaSubscriptionPlanRecord,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
+const NAIROBI = "Africa/Nairobi";
+
+function toLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: NAIROBI,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(d)
+      .map((p) => [p.type, p.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
+function fromLocalInput(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const m = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const d = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00+03:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 function fmtWhen(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString("en-KE", {
-    timeZone: "Africa/Nairobi",
+    timeZone: NAIROBI,
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -54,6 +86,11 @@ export function SaSubscriptionPanel({
   const [plans, setPlans] = useState<SaSubscriptionPlanRecord[]>([]);
   const [loadError, setLoadError] = useState("");
   const [tier, setTier] = useState("");
+  const [billingStatus, setBillingStatus] = useState<
+    SaBusinessSubscriptionRecord["billingStatus"]
+  >("ACTIVE");
+  const [periodLocal, setPeriodLocal] = useState("");
+  const [graceLocal, setGraceLocal] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -66,6 +103,9 @@ export function SaSubscriptionPanel({
       setSnap(row);
       setPlans(catalogue.filter((p) => p.active).sort((a, b) => a.sortOrder - b.sortOrder));
       setTier(row.tier);
+      setBillingStatus(row.billingStatus);
+      setPeriodLocal(toLocalInput(row.currentPeriodEnd));
+      setGraceLocal(toLocalInput(row.graceEndsAt));
       setLoadError("");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Could not load subscription.");
@@ -89,6 +129,9 @@ export function SaSubscriptionPanel({
       const row = await work();
       setSnap(row);
       setTier(row.tier);
+      setBillingStatus(row.billingStatus);
+      setPeriodLocal(toLocalInput(row.currentPeriodEnd));
+      setGraceLocal(toLocalInput(row.graceEndsAt));
       onTierChange?.(row.tier);
       setNote("");
       toast.success(ok);
@@ -103,7 +146,7 @@ export function SaSubscriptionPanel({
   return (
     <SaSection
       title="Subscription"
-      description="Override the plan, extend paid time or grace, and unsuspend a shop that hit the lock."
+      description="Override plan and payment status, then extend paid time or grace if needed."
     >
       {loadError ? (
         <p className="text-sm text-destructive">{loadError}</p>
@@ -142,9 +185,9 @@ export function SaSubscriptionPanel({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="min-w-48 flex-1 space-y-1.5">
-              <Label htmlFor="sa-sub-plan">Plan override</Label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-sub-plan">Plan</Label>
               <select
                 id="sa-sub-plan"
                 className={saSelectClass}
@@ -163,21 +206,48 @@ export function SaSubscriptionPanel({
                 ) : null}
               </select>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy != null || !tier || tier === s.tier}
-              onClick={() =>
-                void run(
-                  "plan",
-                  () => assignSaBusinessPlan(businessId, { tierCode: tier, note: note.trim() || null }),
-                  `Plan set to ${tier}.`,
-                )
-              }
-            >
-              {busy === "plan" ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-              Apply plan
-            </Button>
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-sub-status">Payment status</Label>
+              <select
+                id="sa-sub-status"
+                className={saSelectClass}
+                value={billingStatus}
+                disabled={busy != null}
+                onChange={(e) =>
+                  setBillingStatus(e.target.value as SaBusinessSubscriptionRecord["billingStatus"])
+                }
+              >
+                <option value="ACTIVE">ACTIVE — paid, full access</option>
+                <option value="GRACE">GRACE — expired, still open</option>
+                <option value="SUSPENDED">SUSPENDED — locked out</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-sub-period">Period ends</Label>
+              <Input
+                id="sa-sub-period"
+                type="datetime-local"
+                value={periodLocal}
+                disabled={busy != null}
+                onChange={(e) => setPeriodLocal(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">Nairobi time. Paid access until this instant.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-sub-grace">Grace ends</Label>
+              <Input
+                id="sa-sub-grace"
+                type="datetime-local"
+                value={graceLocal}
+                disabled={busy != null || billingStatus === "ACTIVE"}
+                onChange={(e) => setGraceLocal(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                {billingStatus === "ACTIVE"
+                  ? "Cleared when status is ACTIVE."
+                  : "Shop locks at this instant. Blank uses the plan default."}
+              </p>
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -190,6 +260,29 @@ export function SaSubscriptionPanel({
               placeholder="Why this override"
             />
           </div>
+
+          <Button
+            type="button"
+            disabled={busy != null}
+            onClick={() =>
+              void run(
+                "save",
+                () =>
+                  overrideSaBusinessSubscription(businessId, {
+                    tierCode: tier || null,
+                    billingStatus,
+                    currentPeriodEnd: fromLocalInput(periodLocal),
+                    graceEndsAt:
+                      billingStatus === "ACTIVE" ? null : fromLocalInput(graceLocal),
+                    note: note.trim() || null,
+                  }),
+                "Subscription override saved.",
+              )
+            }
+          >
+            {busy === "save" ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            Save overrides
+          </Button>
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground">Add paid time</span>

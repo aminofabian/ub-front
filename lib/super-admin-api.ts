@@ -3431,6 +3431,22 @@ export async function assignSaBusinessPlan(
   );
 }
 
+export async function overrideSaBusinessSubscription(
+  businessId: string,
+  body: {
+    tierCode?: string | null;
+    billingStatus?: "ACTIVE" | "GRACE" | "SUSPENDED" | null;
+    currentPeriodEnd?: string | null;
+    graceEndsAt?: string | null;
+    note?: string | null;
+  },
+): Promise<SaBusinessSubscriptionRecord> {
+  return saRequest<SaBusinessSubscriptionRecord>(
+    API_ROUTES.superAdminBusinessSubscription(businessId),
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
 export async function reactivateSaBusinessSubscription(
   businessId: string,
 ): Promise<SaBusinessSubscriptionRecord> {
