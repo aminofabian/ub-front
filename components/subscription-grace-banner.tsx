@@ -71,9 +71,7 @@ export function SubscriptionGraceBanner() {
       action={
         <Button
           type="button"
-          size="sm"
-          variant={urgent ? "destructive" : "secondary"}
-          className="h-8 active:scale-[0.98]"
+          className="h-8 w-full rounded-md bg-foreground px-3 text-background hover:bg-foreground/90 hover:text-background active:scale-[0.97] sm:w-auto"
           asChild
         >
           <Link href={APP_ROUTES.billingRenew}>Renew subscription</Link>

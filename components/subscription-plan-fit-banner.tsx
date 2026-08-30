@@ -70,19 +70,21 @@ export function SubscriptionPlanFitBanner() {
 
   return (
     <BillingAlertBanner
-      variant={severe ? "critical" : "warning"}
+      variant="orange"
       icon={Package}
       title={planFitHeadline(currentName, fit)}
       description={planFitBody(currentName, fit)}
       meta={
         <>
           <BillingUsageMeter
+            compact
             label="Products"
             used={fit.productCount}
             limit={fit.productLimit}
             unit="products"
           />
           <BillingUsageMeter
+            compact
             label="People"
             used={fit.userCount}
             limit={fit.userLimit}
@@ -91,13 +93,13 @@ export function SubscriptionPlanFitBanner() {
         </>
       }
       action={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full items-center gap-1 sm:w-auto">
           {!severe ? (
             <Button
               type="button"
               size="sm"
               variant="ghost"
-              className="h-8"
+              className="h-7 px-2 text-orange-950/65 hover:bg-orange-950/5 hover:text-orange-950"
               onClick={() => {
                 try {
                   sessionStorage.setItem(DISMISS_KEY, recommendedKey);
@@ -112,9 +114,7 @@ export function SubscriptionPlanFitBanner() {
           ) : null}
           <Button
             type="button"
-            size="sm"
-            variant={severe ? "destructive" : "secondary"}
-            className="h-8 active:scale-[0.98]"
+            className="h-7 w-full rounded-md bg-orange-700 px-2.5 text-xs font-semibold text-white shadow-none transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-orange-800 hover:text-white focus-visible:ring-orange-700/35 active:scale-[0.97] sm:w-auto"
             asChild
           >
             <Link href={href}>{planFitCta(fit)}</Link>

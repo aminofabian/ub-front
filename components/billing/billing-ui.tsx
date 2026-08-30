@@ -219,11 +219,13 @@ export function BillingUsageMeter({
   used,
   limit,
   unit,
+  compact = false,
 }: {
   label: string;
   used: number;
   limit: number | null;
   unit: string;
+  compact?: boolean;
 }) {
   const unlimited = limit == null;
   const over = !unlimited && used > limit;
@@ -231,43 +233,65 @@ export function BillingUsageMeter({
     ? 8
     : Math.min(100, (used / Math.max(1, limit)) * 100);
   const tone = over
-    ? "bg-red-500"
+    ? "bg-red-600 dark:bg-red-400"
     : pct >= 80
       ? "bg-amber-500"
-      : "bg-emerald-500";
+      : "bg-emerald-600";
   const usedLabel = used.toLocaleString("en-US");
   const capLabel = unlimited ? "unlimited" : limit.toLocaleString("en-US");
+  const overBy = over ? used - (limit ?? 0) : 0;
 
   return (
-    <div className="min-w-[9.5rem] space-y-1.5">
-      <div className="flex items-baseline justify-between gap-3 text-xs">
-        <span className="font-medium text-foreground">{label}</span>
+    <div
+      className={cn(
+        compact
+          ? "flex min-w-0 flex-col gap-0.5 sm:min-w-[7.25rem]"
+          : "w-full space-y-1",
+      )}
+    >
+      <span className="text-[11px] font-medium leading-none text-current/60">
+        {label}
+      </span>
+      <p
+        className={cn(
+          "tabular-nums tracking-tight leading-none",
+          compact ? "text-[13px]" : "text-xs",
+        )}
+      >
         <span
           className={cn(
-            "tabular-nums",
-            over ? "font-semibold text-red-700 dark:text-red-300" : "text-muted-foreground",
+            over
+              ? "font-semibold text-orange-700 dark:text-orange-300"
+              : "font-medium text-current/85",
           )}
         >
           {usedLabel}
-          <span className="text-muted-foreground"> / {capLabel}</span>
         </span>
-      </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/80">
-        <div
-          className={cn(
-            "h-full rounded-full transition-[width] duration-300 ease-out",
-            tone,
-          )}
-          style={{ width: `${over ? 100 : pct}%` }}
-        />
-      </div>
-      <p className="text-[11px] leading-snug text-muted-foreground">
-        {over
-          ? `${(used - (limit ?? 0)).toLocaleString("en-US")} over the ${unit} cap`
-          : unlimited
-            ? `No ${unit} cap on this plan`
-            : `${Math.max(0, (limit ?? 0) - used).toLocaleString("en-US")} ${unit} left`}
+        <span className="font-normal text-current/50"> / {capLabel}</span>
       </p>
+      {compact ? null : (
+        <>
+          <div
+            className="h-1 w-full overflow-hidden rounded-full bg-current/15"
+            aria-hidden
+          >
+            <div
+              className={cn(
+                "h-full rounded-full transition-[width] duration-300 ease-out",
+                tone,
+              )}
+              style={{ width: `${over ? 100 : pct}%` }}
+            />
+          </div>
+          <p className="text-xs leading-tight text-current/55">
+            {over
+              ? `${overBy.toLocaleString("en-US")} over the ${unit} cap`
+              : unlimited
+                ? `No ${unit} cap on this plan`
+                : `${Math.max(0, (limit ?? 0) - used).toLocaleString("en-US")} ${unit} left`}
+          </p>
+        </>
+      )}
     </div>
   );
 }
@@ -426,7 +450,7 @@ export function BillingAlertBanner({
   action,
   className,
 }: {
-  variant: "warning" | "critical";
+  variant: "warning" | "critical" | "orange";
   icon: LucideIcon;
   title: ReactNode;
   description?: ReactNode;
@@ -437,49 +461,79 @@ export function BillingAlertBanner({
   const shell =
     variant === "critical"
       ? {
-          bar: "border-red-500/30 bg-red-500/[0.07] text-red-950 dark:text-red-50",
-          icon: "bg-red-500/15 text-red-700 dark:text-red-300",
-          body: "text-[color-mix(in_srgb,var(--foreground)_72%,var(--destructive))] dark:text-red-100/80",
+          bar: "border-red-500/25 bg-red-500/[0.08] text-red-950 dark:text-red-50",
+          iconWrap: "bg-red-600/12 text-red-800 dark:text-red-200",
+          iconLoose: "text-red-800 dark:text-red-200",
+          body: "text-red-950/70 dark:text-red-100/70",
         }
-      : {
-          bar: "border-amber-500/30 bg-amber-500/[0.07] text-amber-950 dark:text-amber-50",
-          icon: "bg-amber-500/15 text-amber-800 dark:text-amber-300",
-          body: "text-[color-mix(in_srgb,var(--foreground)_72%,var(--primary))] dark:text-amber-100/80",
-        };
+      : variant === "orange"
+        ? {
+            bar: "border-orange-200/90 bg-orange-50 text-orange-950 selection:bg-orange-200/80 dark:border-orange-500/25 dark:bg-orange-950/35 dark:text-orange-50",
+            iconWrap: "bg-orange-500/12 text-orange-800 dark:text-orange-200",
+            iconLoose: "text-orange-700 dark:text-orange-300",
+            body: "text-orange-950/65 dark:text-orange-100/70",
+          }
+        : {
+            bar: "border-amber-500/25 bg-amber-50 text-amber-950 dark:border-amber-500/25 dark:bg-amber-950/35 dark:text-amber-50",
+            iconWrap: "bg-amber-500/15 text-amber-800 dark:text-amber-200",
+            iconLoose: "text-amber-800 dark:text-amber-200",
+            body: "text-amber-950/70 dark:text-amber-100/70",
+          };
+
+  const orange = variant === "orange";
 
   return (
     <div
       role="status"
       aria-live="polite"
       className={cn(
-        "shrink-0 border-b px-4 py-2.5 sm:px-6",
+        "shrink-0 border-b px-4 py-2.5 sm:px-5",
         shell.bar,
         className,
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <span
-            className={cn(
-              "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg",
-              shell.icon,
-            )}
-          >
-            <Icon className="size-4" aria-hidden />
-          </span>
-          <div className="min-w-0 space-y-1">
-            <p className="font-heading text-[1.02rem] font-semibold leading-tight tracking-tight">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          {orange ? (
+            <Icon
+              className={cn("size-4 shrink-0", shell.iconLoose)}
+              aria-hidden
+            />
+          ) : (
+            <span
+              className={cn(
+                "flex size-7 shrink-0 items-center justify-center rounded-md",
+                shell.iconWrap,
+              )}
+            >
+              <Icon className="size-3.5" aria-hidden />
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="font-sans text-[13px] font-semibold leading-snug tracking-[-0.015em]">
               {title}
             </p>
             {description ? (
-              <p className={cn("max-w-xl text-[13px] leading-snug", shell.body)}>
+              <p className={cn("mt-0.5 max-w-xl text-xs leading-snug", shell.body)}>
                 {description}
               </p>
             ) : null}
-            {meta ? <div className="flex flex-wrap gap-2 pt-0.5">{meta}</div> : null}
           </div>
         </div>
-        {action ? <div className="shrink-0 self-center">{action}</div> : null}
+        {meta || action ? (
+          <div className="flex w-full flex-wrap items-center gap-x-5 gap-y-2 sm:ml-auto sm:w-auto">
+            {meta ? (
+              <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 sm:flex sm:flex-none sm:gap-6">
+                {meta}
+              </div>
+            ) : null}
+            {action ? (
+              <div className="w-full shrink-0 sm:w-auto sm:border-l sm:border-current/12 sm:pl-5">
+                {action}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
