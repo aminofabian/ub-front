@@ -13,10 +13,15 @@ import {
   isNativeKioskClient,
 } from "@/lib/auth-session-claims";
 import {
+  hostOnlyRefreshCookieClears,
   readSetCookieHeaders,
   rewriteSetCookieForFrontend,
 } from "@/lib/rewrite-set-cookie";
-import { requestHostname, sessionCookieDomain } from "@/lib/tenant-host";
+import {
+  cookieDomainForHost,
+  requestHostname,
+  sessionCookieDomain,
+} from "@/lib/tenant-host";
 
 const HEADER_ALLOWLIST = [
   "authorization",
@@ -140,13 +145,14 @@ function copyUpstreamHeaders(
   from: Headers,
   to: NextResponse,
   hostname: string,
+  secure: boolean,
 ): void {
   from.forEach((value, key) => {
     const lower = key.toLowerCase();
     if (SKIP_OUT_HEADERS.has(lower) || lower === "set-cookie") return;
     to.headers.set(key, value);
   });
-  appendUpstreamSetCookies(from, to, hostname);
+  appendUpstreamSetCookies(from, to, hostname, secure);
 }
 
 /**
@@ -158,12 +164,22 @@ function appendUpstreamSetCookies(
   from: Headers,
   to: NextResponse,
   hostname: string,
+  secure: boolean,
 ): void {
+  let wroteRefresh = false;
   for (const cookie of readSetCookieHeaders(from)) {
     to.headers.append(
       "Set-Cookie",
       rewriteSetCookieForFrontend(cookie, hostname),
     );
+    if (cookie.toLowerCase().startsWith("ub.refresh=")) {
+      wroteRefresh = true;
+    }
+  }
+  if (wroteRefresh && cookieDomainForHost(hostname)) {
+    for (const clear of hostOnlyRefreshCookieClears(secure)) {
+      to.headers.append("Set-Cookie", clear);
+    }
   }
 }
 
@@ -322,7 +338,7 @@ export async function proxyToBackend(
         domain: cookieDomain,
       });
     }
-    appendUpstreamSetCookies(upstream.headers, out, hostname);
+    appendUpstreamSetCookies(upstream.headers, out, hostname, secure);
     return out;
   }
 
@@ -341,9 +357,9 @@ export async function proxyToBackend(
       out.headers.set(key, value);
     });
     clearAccessTokenCookies(out, { secure, domain: cookieDomain });
-    appendUpstreamSetCookies(upstream.headers, out, hostname);
+    appendUpstreamSetCookies(upstream.headers, out, hostname, secure);
     return out;
   }
-  copyUpstreamHeaders(upstream.headers, out, hostname);
+  copyUpstreamHeaders(upstream.headers, out, hostname, secure);
   return out;
 }

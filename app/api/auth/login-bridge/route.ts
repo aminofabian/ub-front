@@ -10,6 +10,7 @@ import { type LoginAudience, loginHrefForDestination } from "@/lib/login-audienc
 import { fetchTenantContext } from "@/lib/public-storefront";
 import { formatApiProblemMessage } from "@/lib/problem";
 import {
+  hostOnlyRefreshCookieClears,
   readSetCookieHeaders,
   rewriteSetCookieForFrontend,
 } from "@/lib/rewrite-set-cookie";
@@ -221,6 +222,11 @@ export async function POST(request: NextRequest) {
   }
   for (const cookie of upstreamCookies) {
     response.headers.append("Set-Cookie", cookie);
+  }
+  if (cookieDomain) {
+    for (const clear of hostOnlyRefreshCookieClears(secure)) {
+      response.headers.append("Set-Cookie", clear);
+    }
   }
 
   return response;

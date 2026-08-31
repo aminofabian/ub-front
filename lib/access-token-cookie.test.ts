@@ -39,6 +39,16 @@ describe("access-token-cookie", () => {
     expect(readAccessTokenFromCookieHeader("")).toBeNull();
   });
 
+  it("prefers the ub.access JWT with the later exp when both are sent", () => {
+    const older = makeJwt(60);
+    const newer = makeJwt(600);
+    expect(
+      readAccessTokenFromCookieHeader(
+        `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(older)}; ${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(newer)}`,
+      ),
+    ).toBe(newer);
+  });
+
   it("derives max-age from JWT exp", () => {
     const token = makeJwt(120);
     const maxAge = accessTokenMaxAgeSec(token);
@@ -98,6 +108,34 @@ describe("access-token-cookie", () => {
     expect(appended).toHaveLength(1);
     expect(appended[0]).toContain(`Path=${ACCESS_TOKEN_COOKIE_LEGACY_PATH}`);
     expect(appended[0]).toContain("Max-Age=0");
+  });
+
+  it("applyAccessTokenCookie with Domain also expires host-only leftovers", () => {
+    const token = makeJwt(600);
+    const appended: string[] = [];
+    applyAccessTokenCookie(
+      {
+        cookies: { set: () => {} },
+        headers: {
+          append: (_name, value) => {
+            appended.push(value);
+          },
+        },
+      },
+      token,
+      { secure: true, domain: ".kiosk.ke" },
+    );
+    expect(appended.some((line) => line.includes("Domain=.kiosk.ke"))).toBe(
+      true,
+    );
+    expect(
+      appended.some(
+        (line) =>
+          line.includes("Max-Age=0") &&
+          line.includes("Path=/api") &&
+          !line.includes("Domain="),
+      ),
+    ).toBe(true);
   });
 
   it("clearAccessTokenCookies clears current and legacy paths", () => {

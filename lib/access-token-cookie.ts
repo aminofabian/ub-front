@@ -36,12 +36,27 @@ export function accessTokenMaxAgeSec(accessToken: string): number {
   return Math.min(seconds, 24 * 60 * 60);
 }
 
+function decodeCookieValue(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+/**
+ * Read {@code ub.access}. When the browser sends both a host-only leftover and
+ * a parent-domain cookie, prefer the JWT with the latest {@code exp} so a
+ * 3-minute refresh cannot keep injecting a revoked jti.
+ */
 export function readAccessTokenFromCookieHeader(
   cookieHeader: string | null | undefined,
 ): string | null {
   if (!cookieHeader) {
     return null;
   }
+  let best: string | null = null;
+  let bestExp = Number.NEGATIVE_INFINITY;
   for (const part of cookieHeader.split(";")) {
     const trimmed = part.trim();
     if (!trimmed.startsWith(`${ACCESS_TOKEN_COOKIE}=`)) {
@@ -49,15 +64,17 @@ export function readAccessTokenFromCookieHeader(
     }
     const raw = trimmed.slice(ACCESS_TOKEN_COOKIE.length + 1).trim();
     if (!raw) {
-      return null;
+      continue;
     }
-    try {
-      return decodeURIComponent(raw);
-    } catch {
-      return raw;
+    const token = decodeCookieValue(raw);
+    const exp = parseAccessTokenClaims(token)?.exp;
+    const score = typeof exp === "number" && Number.isFinite(exp) ? exp : 0;
+    if (best === null || score > bestExp) {
+      best = token;
+      bestExp = score;
     }
   }
-  return null;
+  return best;
 }
 
 export type AccessTokenCookieOptions = {
@@ -159,6 +176,25 @@ export function applyAccessTokenCookie(
       }),
     ),
   );
+  // Host-only cookies beat parent-domain ones in Chrome. Expire leftovers so
+  // the next request does not keep the pre-refresh (revoked) jti.
+  if (opts.domain) {
+    response.headers.append(
+      "Set-Cookie",
+      serializeAccessTokenCookie(
+        accessTokenCookieClearOptions({ secure: opts.secure }),
+      ),
+    );
+    response.headers.append(
+      "Set-Cookie",
+      serializeAccessTokenCookie(
+        accessTokenCookieClearOptions({
+          secure: opts.secure,
+          path: ACCESS_TOKEN_COOKIE_LEGACY_PATH,
+        }),
+      ),
+    );
+  }
 }
 
 /** Clear `ub.access` on current + legacy paths (parent-domain and host-only leftovers). */

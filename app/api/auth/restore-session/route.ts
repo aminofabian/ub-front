@@ -9,6 +9,7 @@ import { getServerApiOrigin } from "@/lib/config";
 import { businessIdFromAccessToken } from "@/lib/jwt-client";
 import { prefetchSessionBootstrap } from "@/lib/login-session.server";
 import {
+  hostOnlyRefreshCookieClears,
   readSetCookieHeaders,
   rewriteSetCookieForFrontend,
 } from "@/lib/rewrite-set-cookie";
@@ -140,6 +141,11 @@ export async function POST(request: NextRequest) {
       "Set-Cookie",
       rewriteSetCookieForFrontend(cookie, hostname),
     );
+  }
+  if (cookieDomain) {
+    for (const clear of hostOnlyRefreshCookieClears(secure)) {
+      response.headers.append("Set-Cookie", clear);
+    }
   }
 
   return response;

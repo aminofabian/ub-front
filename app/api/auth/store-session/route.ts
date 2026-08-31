@@ -15,6 +15,7 @@ import {
   prefetchSessionBootstrap,
   resolveFinalizeDestination,
 } from "@/lib/login-session.server";
+import { hostOnlyRefreshCookieClears } from "@/lib/rewrite-set-cookie";
 import {
   isSameSiteHandoffOrigin,
   requestHostname,
@@ -131,6 +132,11 @@ export async function POST(request: NextRequest) {
         "Set-Cookie",
         `ub.refresh=; Path=/api/v1/auth; Max-Age=0; HttpOnly; SameSite=Lax${secureAttr}${domainAttr}`,
       );
+      if (cookieDomain) {
+        for (const clear of hostOnlyRefreshCookieClears(secure)) {
+          response.headers.append("Set-Cookie", clear);
+        }
+      }
     }
   };
 

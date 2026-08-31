@@ -173,8 +173,18 @@ async function heartbeat(): Promise<void> {
     }
     return;
   }
-  const exp = getAccessTokenExpiry();
-  if (exp === null || exp - Date.now() < ACTIVITY_REFRESH_THRESHOLD_MS) {
+  let exp = getAccessTokenExpiry();
+  if (exp === null) {
+    // Claims without exp (businessId/sub only) used to rotate refresh every
+    // 3 minutes. That revoked the access jti and — with a leftover host-only
+    // cookie — made every request fail as "Session is no longer active".
+    const restored = await restoreClientSessionFromCookie({ force: true });
+    if (restored) {
+      scheduleNextRefresh();
+    }
+    return;
+  }
+  if (exp - Date.now() < ACTIVITY_REFRESH_THRESHOLD_MS) {
     const outcome = await refreshAccessToken();
     if (outcome.kind === "ok") {
       consecutiveRefreshRejections = 0;
@@ -244,7 +254,11 @@ export function startSessionRefresh(): () => void {
       scheduleNextRefresh();
     }
   } else {
-    scheduleNextRefresh();
+    void restoreClientSessionFromCookie({ force: true }).then((restored) => {
+      if (restored) {
+        scheduleNextRefresh();
+      }
+    });
   }
 
   /*

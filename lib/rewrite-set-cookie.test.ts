@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
-import { rewriteSetCookieForFrontend } from "@/lib/rewrite-set-cookie";
+import {
+  hostOnlyRefreshCookieClears,
+  rewriteSetCookieForFrontend,
+} from "@/lib/rewrite-set-cookie";
 
 describe("rewriteSetCookieForFrontend", () => {
   it("strips the API Domain and applies the frontend parent domain", () => {
@@ -18,5 +21,16 @@ describe("rewriteSetCookieForFrontend", () => {
       "localhost",
     );
     expect(line).not.toMatch(/Domain=/i);
+  });
+
+  it("hostOnlyRefreshCookieClears expires both refresh paths without Domain", () => {
+    const lines = hostOnlyRefreshCookieClears(true);
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+      expect(line).toContain("ub.refresh=");
+      expect(line).toContain("Max-Age=0");
+      expect(line).toContain("Secure");
+      expect(line).not.toMatch(/Domain=/i);
+    }
   });
 });
