@@ -3,24 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
 import { SessionEndedScreen } from "@/components/auth/session-ended-screen";
+import { SessionWaitScreen } from "@/components/auth/session-wait-screen";
+import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import { hasAccessSession } from "@/lib/auth";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 
-type AuthRecoveryPanelProps = {
-  title?: string;
-  message?: string;
-};
-
 /** Failed restore attempts before we stop promising a silent recovery. */
 const ENDED_AFTER_ATTEMPTS = 3;
 
-export function AuthRecoveryPanel({
-  title = "Reconnecting your session",
-  message = "We could not reach the server for a moment. We will keep trying in the background.",
-}: AuthRecoveryPanelProps) {
+export function AuthRecoveryPanel() {
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -46,28 +39,25 @@ export function AuthRecoveryPanel({
     };
   }, []);
 
-  // A session that still will not restore after several tries is dead — show
-  // the calm "sign in again" state instead of an endless spinner.
   if (attempt >= ENDED_AFTER_ATTEMPTS) {
     return <SessionEndedScreen />;
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-muted/30 p-6">
-      <div className="w-full max-w-md rounded-2xl border bg-background p-8 text-center shadow-sm">
-        <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          {message}
-        </p>
-        <p className="mt-2 text-xs text-muted-foreground">
-          {attempt > 0 ? `Still trying… (${attempt})` : "Trying now…"}
-        </p>
-        <Button asChild variant="ghost" className="mt-6 w-full">
+    <SessionWaitScreen
+      title="Still packing up"
+      message={
+        attempt > 0
+          ? "Drag a crate while we reconnect — you're still signed in on this device."
+          : "Drag a crate if you like. We're reconnecting in the background."
+      }
+      footer={
+        <Button asChild variant="ghost" className="w-full">
           <Link href={`${APP_ROUTES.staffLogin}?switch=1`}>
             Sign in with a different account
           </Link>
         </Button>
-      </div>
-    </div>
+      }
+    />
   );
 }

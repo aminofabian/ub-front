@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AuthRecoveryPanel } from "@/components/auth/auth-recovery-panel";
 import { SessionEndedScreen } from "@/components/auth/session-ended-screen";
 import { SessionReconnectBanner } from "@/components/auth/session-reconnect-banner";
-import { DashboardAppShellSkeleton } from "@/components/dashboard/dashboard-app-shell-skeleton";
+import { SessionWaitScreen } from "@/components/auth/session-wait-screen";
 import { SubscriptionRenewalWall } from "@/components/subscription-renewal-wall";
 import { StaleClientReload } from "@/components/stale-client-reload";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
@@ -47,9 +47,21 @@ export function AuthenticatedShellGate({ children }: AuthenticatedShellGateProps
     // Session is definitively dead — calm full-screen sign-in prompt, no toasts.
     body = <SessionEndedScreen />;
   } else if (!ready || restoring) {
-    body = <DashboardAppShellSkeleton />;
+    body = (
+      <SessionWaitScreen
+        title="Hold on a moment"
+        message="Drag a crate if you like — this only takes a second."
+      />
+    );
   } else if (!hasSession) {
-    body = timedOut ? <AuthRecoveryPanel /> : <DashboardAppShellSkeleton />;
+    body = timedOut ? (
+      <AuthRecoveryPanel />
+    ) : (
+      <SessionWaitScreen
+        title="Hold on a moment"
+        message="Drag a crate if you like — this only takes a second."
+      />
+    );
   } else {
     body = children;
   }

@@ -3,6 +3,7 @@
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { WaitingBoxes } from "@/components/auth/waiting-boxes";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,9 @@ export function StaleClientReload() {
         onInteractOutside={(event) => event.preventDefault()}
         onEscapeKeyDown={(event) => event.preventDefault()}
       >
+        <div className="mb-4 flex flex-col items-center">
+          <WaitingBoxes size="compact" />
+        </div>
         <div className="mb-3 flex items-center gap-2 text-foreground">
           <RefreshCw className="size-5 shrink-0" aria-hidden />
           <DialogTitle

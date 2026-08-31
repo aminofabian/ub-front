@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 
+import { WaitingBoxes } from "@/components/auth/waiting-boxes";
 import { isPosSoftAuthActive } from "@/lib/pos-soft-auth";
 import {
   isSessionReconnecting,
@@ -38,13 +38,13 @@ export function SessionReconnectBanner() {
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200",
       )}
     >
-      <div className="flex items-center gap-2 text-sm">
-        <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
-        <p>
+      <div className="flex items-center gap-3">
+        <WaitingBoxes size="mini" className="shrink-0" />
+        <p className="min-w-0 text-sm">
           <span className="font-medium">Reconnecting</span>
           <span className="text-muted-foreground">
             {" "}
-            — still signed in on this device.
+            — drag a crate, or just wait. Still signed in.
           </span>
         </p>
       </div>
