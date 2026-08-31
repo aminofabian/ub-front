@@ -60,13 +60,22 @@ const CLOUD_ONLY_PATHS = [
   // Customer-facing storefront pages (server components with generateMetadata
   // calling `headers()`); the desktop SKU explicitly hides the storefront.
   "app/[sku]",
+  // Accidental Finder duplicate of `app/[sku]`; must not ship.
+  "app/[sku] 2",
   "app/shop",
   // Public supplier passport short links (e.g. /s/robinson).
   "app/s",
   // Cloud marketplace storefront pages (dynamic slugs).
   "app/marketplace/s",
+  // Public product-detail landing page (storefront); the desktop SKU hides the
+  // storefront and the page is a dynamic route with no static params.
+  "app/products",
   // Public supplier landing pages.
   "app/supplier",
+  // Per-supplier OG/Twitter cards (next/og ImageResponse) — dynamic route
+  // handlers aren't statically exportable in this Next canary; cards are
+  // cloud/SEO only and never rendered on a localhost till.
+  "app/og",
   // Accidental Finder duplicate — same routes as `app/shop`; must not ship.
   "app/shop 2",
   // Accidental Finder duplicate of `app/icon.tsx`; must not ship (breaks the
@@ -81,6 +90,9 @@ const CLOUD_ONLY_PATHS = [
   // Public payment-claim link landing page (sent via email). Desktop has no
   // outbound email, so this URL is never produced.
   "app/public/credits/payment-claims/[token]",
+  // Public "pay by phone" link landing page (sent via SMS). Desktop has no
+  // SMS outbound, so this URL is never produced.
+  "app/pay",
   // Dashboard dynamic routes that are reached via SPA navigation. Spring's
   // SPA fallback serves `/index.html` for hard refreshes on these paths and
   // the client router takes over. `output: 'export'` requires every dynamic
@@ -91,6 +103,9 @@ const CLOUD_ONLY_PATHS = [
   // Restock-digest review page — same client-only dynamic-route pattern as
   // customers/[id]; the parent list page stays in the export.
   "app/(dashboard)/inventory/restock-digest/[runId]",
+  // Supply-batch detail page (and its Finder duplicate `[id] 2`) — same
+  // client-only dynamic-route pattern as customers/[id].
+  "app/(dashboard)/inventory/supply-batches",
   // Supplier portal shop detail — multi-tenant cloud only.
   "app/(supplier-portal)/supplier-portal/shops/[localSupplierId]",
   // Payment-gateway settings (KopoKopo STK config + simulator). The nav entry
