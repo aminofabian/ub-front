@@ -1,0 +1,269 @@
+/* Till unlock CTA. Local tokens so the overlay does not fork global motion. */
+
+.btn {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ink: #f7f3eb;
+  --plate: color-mix(in srgb, var(--pos-ink, #1c1915) 88%, var(--primary));
+  --open: var(--primary);
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  width: 100%;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--plate);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    0 10px 22px -12px rgb(0 0 0 / 0.45);
+  outline: none;
+  transition:
+    transform 160ms var(--ease-out),
+    box-shadow 200ms ease,
+    filter 160ms ease,
+    opacity 220ms var(--ease-out),
+    background-color 220ms ease;
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.btn[data-ready]:not([data-busy]) {
+  background: var(--open);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 12px 24px -12px color-mix(in srgb, var(--open) 55%, transparent);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:focus-visible {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    0 0 0 3px color-mix(in srgb, var(--open) 45%, transparent);
+}
+
+.btn:disabled:not([data-busy]) {
+  cursor: not-allowed;
+  opacity: 0.48;
+  filter: grayscale(0.18);
+}
+
+.btn[data-busy] {
+  cursor: progress;
+}
+
+.bolt,
+.sheen,
+.face {
+  pointer-events: none;
+}
+
+/* Deadbolt retracting: the open face is revealed left-to-right. */
+.bolt {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--open) 78%, white) 0%,
+      var(--open) 42%,
+      color-mix(in srgb, var(--open) 82%, #0b1a10) 100%
+    );
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 200ms var(--ease-out);
+}
+
+.btn:active:not(:disabled) .bolt {
+  clip-path: inset(0 55% 0 0);
+}
+
+.btn[data-busy] .bolt {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 280ms var(--ease-out);
+}
+
+.sheen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  opacity: 0;
+}
+
+.sheen::after {
+  content: "";
+  position: absolute;
+  top: -30%;
+  bottom: -30%;
+  left: 0;
+  width: 46%;
+  background: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0) 0%,
+    rgb(255 255 255 / 0.1) 40%,
+    rgb(255 255 255 / 0.4) 50%,
+    rgb(255 255 255 / 0.1) 60%,
+    rgb(255 255 255 / 0) 100%
+  );
+  transform: translateX(-120%) skewX(-18deg);
+}
+
+.btn[data-ready]:not([data-busy]) .sheen {
+  animation: arm-glow 640ms var(--ease-out) 40ms 1;
+}
+
+.btn[data-ready]:not([data-busy]) .sheen::after {
+  animation: arm-sheen 640ms var(--ease-out) 40ms 1;
+}
+
+.face {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.shackle {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  transition: transform 220ms var(--ease-out);
+}
+
+.btn[data-ready]:not([data-busy]) .shackle {
+  transform: rotate(-16deg);
+}
+
+.btn[data-busy] .shackle {
+  transform: rotate(-42deg);
+  transition: transform 280ms var(--ease-out);
+}
+
+.keyhole {
+  fill: rgb(0 0 0 / 0.38);
+  transition: fill 200ms ease;
+}
+
+.btn[data-ready] .keyhole,
+.btn[data-busy] .keyhole {
+  fill: rgb(0 0 0 / 0.28);
+}
+
+.copy {
+  display: grid;
+  justify-items: start;
+}
+
+.idle,
+.working {
+  grid-area: 1 / 1;
+  transition:
+    opacity 200ms ease,
+    filter 200ms ease;
+}
+
+.working {
+  opacity: 0;
+  filter: blur(2px);
+}
+
+.btn[data-busy] .idle {
+  opacity: 0;
+  filter: blur(2px);
+}
+
+.btn[data-busy] .working {
+  opacity: 1;
+  filter: blur(0);
+}
+
+@keyframes arm-sheen {
+  from {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(160%) skewX(-18deg);
+  }
+}
+
+@keyframes arm-glow {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  24% {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn[data-ready]:not(:disabled):not([data-busy]):hover {
+    filter: brightness(1.05);
+  }
+
+  .btn[data-ready]:not(:disabled):not([data-busy]):hover .shackle {
+    transform: rotate(-26deg);
+  }
+
+  .btn[data-ready]:not(:disabled):not([data-busy]):hover .bolt {
+    clip-path: inset(0 86% 0 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .bolt,
+  .shackle,
+  .idle,
+  .working {
+    animation: none !important;
+    transition:
+      opacity 160ms ease,
+      background-color 160ms ease,
+      color 160ms ease !important;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+
+  .shackle {
+    transform: none !important;
+  }
+
+  .bolt {
+    clip-path: none;
+    opacity: 0;
+  }
+
+  .btn[data-busy] .bolt {
+    opacity: 1;
+  }
+
+  .idle,
+  .working {
+    filter: none !important;
+  }
+}

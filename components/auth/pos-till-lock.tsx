@@ -13,9 +13,9 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { Loader2, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { TillUnlockButton } from "@/components/auth/till-unlock-button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   ApiRequestError,
@@ -28,6 +28,7 @@ import {
 import { signOutClientAndRedirectToLogin } from "@/lib/auth";
 import { isApiReachable } from "@/lib/browser-network";
 import { APP_ROUTES } from "@/lib/config";
+import { inertBodySiblingsOf } from "@/lib/inert-body-siblings";
 import { POS_TILL_IDLE_LOCK_MS } from "@/lib/pos-till-lock-constants";
 import { createPosTillIdleController } from "@/lib/pos-till-idle";
 import { POS_SESSION_EXPIRED_EVENT } from "@/lib/pos-soft-auth";
@@ -166,6 +167,10 @@ export function PosTillLockProvider({ children }: PosTillLockProviderProps) {
   }, [branchId, me?.branchId, locked]);
 
   const lock = useCallback((opts?: LockOptions) => {
+    if (lockedRef.current) {
+      return;
+    }
+    lockedRef.current = true;
     const reason = opts?.reason ?? "manual";
     // Drop focus from search / shelf so PIN digits are not eaten underneath.
     if (typeof document !== "undefined") {
@@ -183,6 +188,7 @@ export function PosTillLockProvider({ children }: PosTillLockProviderProps) {
   }, []);
 
   const unlockLocal = useCallback(() => {
+    lockedRef.current = false;
     setLocked(false);
     setLockReason(null);
     clearPersistedTillLock();
@@ -387,6 +393,16 @@ function PosTillLockOverlay() {
   const pinInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+
+  // Radix dialogs portal to body with a focus trap and pointer-events:none on
+  // body. Inert every other body child so PIN input works without closing them.
+  useLayoutEffect(() => {
+    if (!locked) {
+      return;
+    }
+    return inertBodySiblingsOf(hostRef.current);
+  }, [locked]);
 
   useEffect(() => {
     if (!locked) {
@@ -533,10 +549,14 @@ function PosTillLockOverlay() {
   );
 
   const overlay = (
-    <>
-      <div className="fixed inset-0 z-[200] bg-black/50" aria-hidden />
+    <div
+      ref={hostRef}
+      data-pos-till-lock-host=""
+      className="pointer-events-auto"
+    >
+      <div className="fixed inset-0 z-[500] bg-black/50" aria-hidden />
       <div
-        className="fixed top-1/2 left-1/2 z-[210] w-[min(24rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card p-5 shadow-xl"
+        className="pointer-events-auto fixed top-1/2 left-1/2 z-[510] w-[min(24rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card p-5 shadow-xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="pos-till-lock-title"
@@ -654,19 +674,12 @@ function PosTillLockOverlay() {
               {error}
             </p>
           ) : null}
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={busy || !secretReady || !switchReady}
-          >
-            {busy ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : mode === "switch" ? (
-              "Switch & unlock"
-            ) : (
-              "Unlock"
-            )}
-          </Button>
+          <TillUnlockButton
+            ready={secretReady && switchReady}
+            busy={busy}
+            idleLabel={mode === "switch" ? "Switch & unlock" : "Unlock"}
+            busyLabel={mode === "switch" ? "Switching" : "Unlocking"}
+          />
         </form>
 
         <button
@@ -703,7 +716,7 @@ function PosTillLockOverlay() {
           Full sign out
         </button>
       </div>
-    </>
+    </div>
   );
 
   if (typeof document === "undefined") {

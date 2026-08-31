@@ -1,7 +1,14 @@
 "use client";
 
-import { useEffect, useId, useState, type CSSProperties } from "react";
-import { Layers, PackagePlus, Plus, Trash2, X } from "lucide-react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+} from "react";
+import { Check, Layers, PackagePlus, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +28,7 @@ import {
 } from "@/lib/api";
 import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
 import { cn } from "@/lib/utils";
+import styles from "./cashier-create-product-modal.module.css";
 
 type CreateMode = "single" | "group";
 
@@ -48,7 +56,7 @@ type CashierCreateProductModalProps = {
 
 function relatedLinkHint(related: ItemSummaryRecord): string {
   if (related.variantOfItemId?.trim()) {
-    return `Sibling of “${cashierItemPrimaryLabel(related)}” — same parent product.`;
+    return `Sibling of “${cashierItemPrimaryLabel(related)}”. Same parent product.`;
   }
   return `Child of “${cashierItemPrimaryLabel(related)}”.`;
 }
@@ -100,6 +108,12 @@ export function CashierCreateProductModal({
   purpose = "cart",
 }: CashierCreateProductModalProps) {
   const modeId = useId();
+  const pendingOptionFocus = useRef<string | null>(null);
+  const skipEnter = useRef<Set<string>>(new Set());
+  const prevReady = useRef(0);
+  const prevArmed = useRef(false);
+  const [inviteOn, setInviteOn] = useState(false);
+  const [stamp, setStamp] = useState(0);
   const [mode, setMode] = useState<CreateMode>("single");
   const forReceive = purpose === "receive";
 
@@ -136,10 +150,15 @@ export function CashierCreateProductModal({
     setRelatedHits([]);
     setRelatedItem(null);
     setVariantName("");
-    setGroupVariants([
-      newVariantRow({ stock: purpose === "receive" ? "0" : "1" }),
-      newVariantRow({ stock: purpose === "receive" ? "0" : "1" }),
-    ]);
+    const stockSeed = purpose === "receive" ? "0" : "1";
+    const first = newVariantRow({ stock: stockSeed });
+    const second = newVariantRow({ stock: stockSeed });
+    skipEnter.current = new Set([first.key, second.key]);
+    setGroupVariants([first, second]);
+    prevReady.current = 0;
+    prevArmed.current = false;
+    setInviteOn(false);
+    setStamp(0);
     const preferred = preferredItemTypeId?.trim();
     const fallback =
       preferred && itemTypes.some((t) => t.id === preferred)
@@ -179,6 +198,13 @@ export function CashierCreateProductModal({
       window.clearTimeout(t);
     };
   }, [open, mode, linkAsVariant, relatedQuery, relatedItem]);
+
+  useEffect(() => {
+    const key = pendingOptionFocus.current;
+    if (!key) return;
+    pendingOptionFocus.current = null;
+    document.getElementById(`${modeId}-opt-${key}`)?.focus();
+  }, [groupVariants, modeId]);
 
   const priceNum = Number(unitPrice);
   const buyingNum = buyingPrice.trim() === "" ? null : Number(buyingPrice);
@@ -228,6 +254,17 @@ export function CashierCreateProductModal({
       groupVariants.filter((r) => r.label.trim() || r.unitPrice.trim()).length;
 
   const canSubmit = canSubmitSingle || canSubmitGroup;
+
+  useEffect(() => {
+    const n = readyGroupVariants.length;
+    if (n > prevReady.current) setInviteOn(true);
+    prevReady.current = n;
+  }, [readyGroupVariants.length]);
+
+  useEffect(() => {
+    if (canSubmit && !prevArmed.current) setStamp((s) => s + 1);
+    prevArmed.current = canSubmit;
+  }, [canSubmit]);
 
   const patchVariant = (key: string, patch: Partial<VariantRow>) => {
     setGroupVariants((prev) =>
@@ -319,56 +356,132 @@ export function CashierCreateProductModal({
     }
   };
 
+  const labelClass = "block text-[12px] font-medium text-zinc-600";
   const fieldClass = cn(
-    "h-10 w-full rounded-xl border border-border/55 bg-background px-3 text-sm shadow-sm",
-    "focus:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_40%,var(--border))] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)]",
+    "h-10 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm",
+    "focus:outline-none focus-visible:border-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
+  );
+  const cellClass = cn(
+    "h-9 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm",
+    "focus:outline-none focus-visible:border-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
   );
   const currencySuffix = currency ? ` (${currency})` : "";
+
+  const addOptionRow = () => {
+    if (busy || groupVariants.length >= 24) return;
+    const row = newVariantRow({ stock: forReceive ? "0" : "1" });
+    pendingOptionFocus.current = row.key;
+    setGroupVariants((prev) => [...prev, row]);
+  };
+
+  const removeOption = (key: string) => {
+    if (busy || groupVariants.length <= 1) return;
+    const go = () =>
+      setGroupVariants((prev) =>
+        prev.length <= 1 ? prev : prev.filter((r) => r.key !== key),
+      );
+    const el = document.getElementById(`${modeId}-row-${key}`);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!el || reduce) {
+      go();
+      return;
+    }
+    const anim = el.animate(
+      [
+        { opacity: 1, transform: "translateX(0)" },
+        { opacity: 0, transform: "translateX(12px)" },
+      ],
+      {
+        duration: 160,
+        easing: "cubic-bezier(0.23, 1, 0.32, 1)",
+        fill: "forwards",
+      },
+    );
+    void anim.finished.then(go).catch(go);
+  };
+
+  const submitOnEnter = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && canSubmit && !busy) {
+      e.preventDefault();
+      void onSubmit();
+    }
+  };
+
+  const handleOptionEnter = (index: number, row: VariantRow) => {
+    const isLast = index === groupVariants.length - 1;
+    const started = Boolean(row.label.trim() || row.unitPrice.trim());
+    if (isLast && started) {
+      addOptionRow();
+      return;
+    }
+    if (isLast && canSubmit && !busy) {
+      void onSubmit();
+      return;
+    }
+    if (!isLast) {
+      const next = groupVariants[index + 1];
+      document.getElementById(`${modeId}-opt-${next.key}`)?.focus();
+    }
+  };
+
+  const startedGroupCount = groupVariants.filter(
+    (r) => r.label.trim() || r.unitPrice.trim(),
+  ).length;
+  const incompleteGroupCount = startedGroupCount - readyGroupVariants.length;
+  const groupStatus =
+    startedGroupCount === 0
+      ? "Each option needs a name and sell price"
+      : incompleteGroupCount > 0
+        ? `${incompleteGroupCount} still need a name and sell price`
+        : readyGroupVariants.length === 1
+          ? "1 ready to create"
+          : `${readyGroupVariants.length} ready to create`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side="center"
+        side="right"
+        overlayClassName="bg-black/40 supports-[backdrop-filter]:backdrop-blur-[2px]"
         className={cn(
-          "max-h-[min(94dvh,44rem)] gap-0 overflow-hidden p-0",
-          mode === "group" ? "max-w-lg" : "max-w-md",
+          styles.root,
+          "gap-0 overflow-hidden p-0 sm:rounded-l-2xl",
+          "w-[min(100%,40rem)] max-w-[40rem]",
         )}
         style={brandTheme}
       >
-        <div className="border-b border-border/40 px-4 py-4">
+        <div className={styles.header}>
           <DialogHeader className="space-y-1 text-left">
             <DialogTitle className="flex items-center gap-2 text-lg">
-              <PackagePlus className="size-4 text-[var(--pos-primary)]" />
+              <span className={styles.iconMark}>
+                <PackagePlus className="size-3.5" />
+              </span>
               Add product
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDescription className="text-[13px] text-zinc-600">
               {mode === "group"
                 ? forReceive
-                  ? "Name the group, then add each sellable option. Opening stock can be 0 — receive qty on the supply grid."
-                  : "Name the group, then add each sellable option with its own price and stock."
+                  ? "Name the family, then each size or flavour. Stock can stay 0 until you receive."
+                  : "Name the family, then each size or flavour you sell."
                 : forReceive
-                  ? "Create a catalog product, then link it to this supplier and receive it on the grid."
-                  : "Create a sellable item and add it to the cart. Optionally link it as a variant."}
+                  ? "Creates a catalog item you can receive on the supply grid."
+                  : "Creates the item and adds it to this sale."}
             </DialogDescription>
           </DialogHeader>
 
           <div
-            className="mt-3 grid grid-cols-2 gap-1 rounded-xl border border-border/50 bg-muted/25 p-1"
+            className={styles.modeTrack}
+            data-mode={mode}
             role="tablist"
             aria-label="Product shape"
           >
+            <div className={styles.modeThumb} aria-hidden />
             <button
               type="button"
               role="tab"
               id={`${modeId}-single`}
               aria-selected={mode === "single"}
               disabled={busy}
-              className={cn(
-                "flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition-colors",
-                mode === "single"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
+              className={styles.modeBtn}
               onClick={() => {
                 setMode("single");
               }}
@@ -382,12 +495,7 @@ export function CashierCreateProductModal({
               id={`${modeId}-group`}
               aria-selected={mode === "group"}
               disabled={busy}
-              className={cn(
-                "flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition-colors",
-                mode === "group"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
+              className={styles.modeBtn}
               onClick={() => {
                 setMode("group");
                 setLinkAsVariant(false);
@@ -400,9 +508,9 @@ export function CashierCreateProductModal({
           </div>
         </div>
 
-        <div className="max-h-[min(62dvh,30rem)] space-y-3 overflow-y-auto px-4 py-4">
+        <div className={styles.body}>
           <label className="block space-y-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className={labelClass}>
               {mode === "group" ? "Group name" : "Name"}
             </span>
             <input
@@ -419,9 +527,7 @@ export function CashierCreateProductModal({
           </label>
 
           <label className="block space-y-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Department
-            </span>
+            <span className={labelClass}>Department</span>
             <select
               className={fieldClass}
               value={itemTypeId}
@@ -442,35 +548,79 @@ export function CashierCreateProductModal({
               )}
             </select>
             {mode === "single" && linkAsVariant && relatedItem != null ? (
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-[11px] text-zinc-500">
                 Department is inherited from the parent product.
               </span>
             ) : mode === "group" ? (
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-[11px] text-zinc-500">
                 Options inherit this department.
               </span>
             ) : null}
           </label>
 
           {mode === "single" ? (
-            <>
+            <div className={cn("flex flex-col gap-3", styles.enter)}>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block space-y-1.5">
+                  <span className={labelClass}>
+                    Sell price{currencySuffix}
+                  </span>
+                  <input
+                    className={cn(
+                      fieldClass,
+                      "text-right font-semibold tabular-nums",
+                    )}
+                    inputMode="decimal"
+                    value={unitPrice}
+                    onChange={(e) => setUnitPrice(e.target.value)}
+                    placeholder="0.00"
+                    onKeyDown={submitOnEnter}
+                  />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className={labelClass}>Stock</span>
+                  <input
+                    className={cn(fieldClass, "text-right tabular-nums")}
+                    inputMode="decimal"
+                    value={initialStockQty}
+                    onChange={(e) => setInitialStockQty(e.target.value)}
+                    placeholder={forReceive ? "0" : "1"}
+                    onKeyDown={submitOnEnter}
+                  />
+                  <span className="text-[11px] text-zinc-500">
+                    {forReceive
+                      ? "Can stay 0. You'll receive qty on the supply grid."
+                      : "Stocked at this till so it can sell right away."}
+                  </span>
+                </label>
+              </div>
+
               <label className="block space-y-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Barcode (optional)
-                </span>
+                <span className={labelClass}>Barcode (optional)</span>
                 <input
                   className={fieldClass}
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
-                  placeholder="Scan or type barcode"
+                  placeholder="Scan or type"
+                  onKeyDown={submitOnEnter}
                 />
               </label>
 
-              <label
-                className={cn(
-                  "flex cursor-pointer items-start gap-2.5 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5",
-                )}
-              >
+              <label className="block space-y-1.5">
+                <span className={labelClass}>
+                  Buy price{currencySuffix}
+                </span>
+                <input
+                  className={cn(fieldClass, "text-right tabular-nums")}
+                  inputMode="decimal"
+                  value={buyingPrice}
+                  onChange={(e) => setBuyingPrice(e.target.value)}
+                  placeholder="0.00"
+                  onKeyDown={submitOnEnter}
+                />
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2.5">
                 <input
                   type="checkbox"
                   className="mt-0.5 size-4 accent-[var(--pos-primary)]"
@@ -488,30 +638,30 @@ export function CashierCreateProductModal({
                   }}
                 />
                 <span className="min-w-0 space-y-0.5">
-                  <span className="block text-sm font-medium text-foreground">
+                  <span className="block text-sm font-medium text-zinc-900">
                     Add as a variant
                   </span>
-                  <span className="block text-[11px] text-muted-foreground">
+                  <span className="block text-[11px] text-zinc-500">
                     Link under an existing product or sibling option.
                   </span>
                 </span>
               </label>
 
               {linkAsVariant ? (
-                <div className="space-y-2 rounded-xl border border-border/50 bg-card/60 p-3">
+                <div className="space-y-2 rounded-md border border-zinc-200 bg-white p-3">
                   {relatedItem ? (
-                    <div className="flex items-start gap-2 rounded-lg border border-border/45 bg-background px-2.5 py-2">
+                    <div className="flex items-start gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2">
                       <div className="min-w-0 flex-1 space-y-0.5">
-                        <p className="truncate text-sm font-medium">
+                        <p className="truncate text-sm font-medium text-zinc-900">
                           {cashierItemPrimaryLabel(relatedItem)}
                         </p>
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-[11px] text-zinc-500">
                           {relatedLinkHint(relatedItem)}
                         </p>
                       </div>
                       <button
                         type="button"
-                        className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
                         aria-label="Clear related product"
                         onClick={() => {
                           setRelatedItem(null);
@@ -523,9 +673,7 @@ export function CashierCreateProductModal({
                     </div>
                   ) : (
                     <label className="block space-y-1.5">
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                        Find parent or sibling
-                      </span>
+                      <span className={labelClass}>Find parent or sibling</span>
                       <input
                         className={fieldClass}
                         value={relatedQuery}
@@ -533,17 +681,15 @@ export function CashierCreateProductModal({
                         placeholder="Search name, SKU, or barcode"
                       />
                       {relatedBusy ? (
-                        <p className="text-[11px] text-muted-foreground">
-                          Searching…
-                        </p>
+                        <p className="text-[11px] text-zinc-500">Searching…</p>
                       ) : null}
                       {relatedHits.length > 0 ? (
-                        <ul className="max-h-36 overflow-y-auto rounded-lg border border-border/50 divide-y divide-border/40">
+                        <ul className="max-h-36 divide-y divide-zinc-100 overflow-y-auto rounded-md border border-zinc-200">
                           {relatedHits.map((hit) => (
                             <li key={hit.id}>
                               <button
                                 type="button"
-                                className="flex w-full flex-col items-start gap-0.5 px-2.5 py-2 text-left hover:bg-muted/50"
+                                className="flex w-full flex-col items-start gap-0.5 px-2.5 py-2 text-left hover:bg-zinc-50"
                                 onClick={() => {
                                   setRelatedItem(hit);
                                   setRelatedQuery("");
@@ -553,12 +699,12 @@ export function CashierCreateProductModal({
                                   }
                                 }}
                               >
-                                <span className="text-sm font-medium">
+                                <span className="text-sm font-medium text-zinc-900">
                                   {cashierItemPrimaryLabel(hit)}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className="text-[11px] text-zinc-500">
                                   {hit.variantOfItemId?.trim()
-                                    ? "Variant — add as sibling"
+                                    ? "Sibling variant"
                                     : hit.groupLabelOnly
                                       ? "Parent group"
                                       : "Parent / product"}
@@ -568,17 +714,13 @@ export function CashierCreateProductModal({
                           ))}
                         </ul>
                       ) : relatedQuery.trim().length >= 2 && !relatedBusy ? (
-                        <p className="text-[11px] text-muted-foreground">
-                          No matches.
-                        </p>
+                        <p className="text-[11px] text-zinc-500">No matches.</p>
                       ) : null}
                     </label>
                   )}
 
                   <label className="block space-y-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                      Variant label
-                    </span>
+                    <span className={labelClass}>Variant label</span>
                     <input
                       className={fieldClass}
                       value={variantName}
@@ -588,233 +730,184 @@ export function CashierCreateProductModal({
                   </label>
                 </div>
               ) : null}
-
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block space-y-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    Buying price{currencySuffix}
-                  </span>
-                  <input
-                    className={cn(fieldClass, "text-right tabular-nums")}
-                    inputMode="decimal"
-                    value={buyingPrice}
-                    onChange={(e) => setBuyingPrice(e.target.value)}
-                    placeholder="0.00"
-                  />
-                </label>
-                <label className="block space-y-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    Sell price{currencySuffix}
-                  </span>
-                  <input
-                    className={cn(
-                      fieldClass,
-                      "text-right font-semibold tabular-nums",
-                    )}
-                    inputMode="decimal"
-                    value={unitPrice}
-                    onChange={(e) => setUnitPrice(e.target.value)}
-                    placeholder="0.00"
-                  />
-                </label>
-              </div>
-              <label className="block space-y-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Opening stock
-                </span>
-                <input
-                  className={cn(fieldClass, "text-right tabular-nums")}
-                  inputMode="decimal"
-                  value={initialStockQty}
-                  onChange={(e) => setInitialStockQty(e.target.value)}
-                  placeholder="1"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && canSubmit && !busy) {
-                      e.preventDefault();
-                      void onSubmit();
-                    }
-                  }}
-                />
-                <span className="text-[11px] text-muted-foreground">
-                  Received at this till branch so the item can be sold right
-                  away.
-                </span>
-              </label>
-            </>
+            </div>
           ) : (
             <section className="space-y-2">
               <div className="flex items-end justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Options
+                <p className="text-[13px] font-medium text-zinc-800">
+                  Options{currency ? ` · ${currency}` : ""}
                 </p>
-                <span className="text-[10px] text-muted-foreground">
-                  {readyGroupVariants.length} ready
+                <span
+                  key={readyGroupVariants.length}
+                  className={cn(
+                    styles.tick,
+                    readyGroupVariants.length > 0 && styles.tickHot,
+                  )}
+                >
+                  {groupStatus}
                 </span>
               </div>
 
-              <ul className="space-y-2">
+              <div className={styles.pad}>
+                <div className={styles.head}>
+                  <span className={styles.headNum}>#</span>
+                  <span className={styles.headOpt}>Option</span>
+                  <span className={styles.headSell}>Sell</span>
+                  <span className={styles.headStock}>Stock</span>
+                  <span className={styles.headCost}>Cost</span>
+                  <span className={styles.headCode}>Barcode</span>
+                  <span className={styles.headRemove} />
+                </div>
                 {groupVariants.map((row, index) => {
                   const sellOk = parsePosMoney(row.unitPrice) != null;
                   const labelOk = row.label.trim().length > 0;
-                  const active = labelOk || row.unitPrice.trim().length > 0;
+                  const started = labelOk || row.unitPrice.trim().length > 0;
+                  const rowReady = sellOk && labelOk;
+                  const onRowEnter = (
+                    e: KeyboardEvent<HTMLInputElement>,
+                  ) => {
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    handleOptionEnter(index, row);
+                  };
                   return (
-                    <li
+                    <div
                       key={row.key}
-                      className={cn(
-                        "rounded-2xl border px-3 py-2.5 transition-colors",
-                        sellOk && labelOk
-                          ? "border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_5%,transparent)]"
-                          : "border-border/60 bg-card",
-                      )}
+                      id={`${modeId}-row-${row.key}`}
+                      className={styles.row}
+                      data-ready={rowReady ? "" : undefined}
+                      data-enter={
+                        skipEnter.current.has(row.key) ? undefined : ""
+                      }
                     >
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                          Option {index + 1}
-                        </span>
+                      <div className={styles.wash} aria-hidden />
+                      <div className={styles.num}>
+                        <span className={styles.index}>{index + 1}</span>
+                        <Check className={cn(styles.check, "size-3.5")} />
+                      </div>
+                      <div className={styles.cell}>
+                        <input
+                          id={`${modeId}-opt-${row.key}`}
+                          className={cellClass}
+                          value={row.label}
+                          disabled={busy}
+                          onChange={(e) =>
+                            patchVariant(row.key, {
+                              label: e.target.value,
+                            })
+                          }
+                          onKeyDown={onRowEnter}
+                          placeholder={
+                            index === 0 ? "500ml, Red…" : undefined
+                          }
+                          aria-label={`Option ${index + 1} name`}
+                        />
+                      </div>
+                      <div className={cn(styles.cell, styles.cellSell)}>
+                        <input
+                          className={cn(
+                            cellClass,
+                            "text-right font-semibold tabular-nums",
+                            started && !sellOk && "border-red-300",
+                            rowReady &&
+                              "border-[color-mix(in_srgb,var(--pos-primary)_40%,#d4d4d8)]",
+                          )}
+                          inputMode="decimal"
+                          value={row.unitPrice}
+                          disabled={busy}
+                          onChange={(e) =>
+                            patchVariant(row.key, {
+                              unitPrice: e.target.value,
+                            })
+                          }
+                          onKeyDown={onRowEnter}
+                          placeholder="0.00"
+                          aria-label={`Option ${index + 1} sell price`}
+                        />
+                      </div>
+                      <div className={cn(styles.cell, styles.cellStock)}>
+                        <input
+                          className={cn(cellClass, "text-right tabular-nums")}
+                          inputMode="decimal"
+                          value={row.stock}
+                          disabled={busy}
+                          onChange={(e) =>
+                            patchVariant(row.key, {
+                              stock: e.target.value,
+                            })
+                          }
+                          onKeyDown={onRowEnter}
+                          placeholder={forReceive ? "0" : "1"}
+                          aria-label={`Option ${index + 1} stock`}
+                        />
+                      </div>
+                      <div className={cn(styles.cell, styles.cellCost)}>
+                        <input
+                          className={cn(cellClass, "text-right tabular-nums")}
+                          inputMode="decimal"
+                          value={row.buyingPrice}
+                          disabled={busy}
+                          onChange={(e) =>
+                            patchVariant(row.key, {
+                              buyingPrice: e.target.value,
+                            })
+                          }
+                          onKeyDown={onRowEnter}
+                          placeholder="0.00"
+                          aria-label={`Option ${index + 1} cost`}
+                        />
+                      </div>
+                      <div className={cn(styles.cell, styles.cellCode)}>
+                        <input
+                          className={cellClass}
+                          value={row.barcode}
+                          disabled={busy}
+                          onChange={(e) =>
+                            patchVariant(row.key, {
+                              barcode: e.target.value,
+                            })
+                          }
+                          onKeyDown={onRowEnter}
+                          placeholder="Scan"
+                          aria-label={`Option ${index + 1} barcode`}
+                        />
+                      </div>
+                      <div className={cn(styles.cell, styles.cellRemove)}>
                         {groupVariants.length > 1 ? (
                           <button
                             type="button"
-                            className="rounded-md p-1 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                            className={styles.remove}
                             aria-label={`Remove option ${index + 1}`}
                             disabled={busy}
-                            onClick={() =>
-                              setGroupVariants((prev) =>
-                                prev.filter((r) => r.key !== row.key),
-                              )
-                            }
+                            onClick={() => removeOption(row.key)}
                           >
                             <Trash2 className="size-3.5" />
                           </button>
                         ) : null}
                       </div>
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-[1fr_auto] gap-2">
-                          <label className="block space-y-0.5">
-                            <span className="block text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                              Label
-                            </span>
-                            <input
-                              className={fieldClass}
-                              value={row.label}
-                              disabled={busy}
-                              onChange={(e) =>
-                                patchVariant(row.key, {
-                                  label: e.target.value,
-                                })
-                              }
-                              placeholder="e.g. 500ml, Red, Large"
-                            />
-                          </label>
-                          <label className="block space-y-0.5">
-                            <span className="block text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                              Stock
-                            </span>
-                            <input
-                              className={cn(
-                                fieldClass,
-                                "w-[4.5rem] text-center font-mono tabular-nums",
-                              )}
-                              inputMode="decimal"
-                              value={row.stock}
-                              disabled={busy}
-                              onChange={(e) =>
-                                patchVariant(row.key, {
-                                  stock: e.target.value,
-                                })
-                              }
-                              placeholder="1"
-                            />
-                          </label>
-                        </div>
-                        <label className="block space-y-0.5">
-                          <span className="block text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                            Barcode (optional)
-                          </span>
-                          <input
-                            className={fieldClass}
-                            value={row.barcode}
-                            disabled={busy}
-                            onChange={(e) =>
-                              patchVariant(row.key, {
-                                barcode: e.target.value,
-                              })
-                            }
-                            placeholder="Scan or type"
-                          />
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <label className="block space-y-0.5">
-                            <span className="block text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                              Buy{currencySuffix}
-                            </span>
-                            <input
-                              className={cn(
-                                fieldClass,
-                                "text-right font-mono tabular-nums",
-                              )}
-                              inputMode="decimal"
-                              value={row.buyingPrice}
-                              disabled={busy}
-                              onChange={(e) =>
-                                patchVariant(row.key, {
-                                  buyingPrice: e.target.value,
-                                })
-                              }
-                              placeholder="0.00"
-                            />
-                          </label>
-                          <label className="block space-y-0.5">
-                            <span className="block text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                              Sell{currencySuffix}
-                            </span>
-                            <input
-                              className={cn(
-                                fieldClass,
-                                "text-right font-mono font-semibold tabular-nums",
-                                active &&
-                                  !sellOk &&
-                                  "border-destructive/40",
-                              )}
-                              inputMode="decimal"
-                              value={row.unitPrice}
-                              disabled={busy}
-                              onChange={(e) =>
-                                patchVariant(row.key, {
-                                  unitPrice: e.target.value,
-                                })
-                              }
-                              placeholder="0.00"
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    </li>
+                    </div>
                   );
                 })}
-              </ul>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full rounded-xl gap-1.5"
-                disabled={busy || groupVariants.length >= 24}
-                onClick={() =>
-                  setGroupVariants((prev) => [...prev, newVariantRow()])
-                }
-              >
-                <Plus className="size-3.5" />
-                Add another option
-              </Button>
-              <p className="text-[11px] text-muted-foreground">
-                Fill label + sell price on each option you want. Empty rows are
-                ignored if you leave them blank — or remove them.
-              </p>
+                {groupVariants.length < 24 ? (
+                  <button
+                    type="button"
+                    className={cn(styles.ghost, inviteOn && styles.ghostInvite)}
+                    disabled={busy}
+                    onClick={addOptionRow}
+                    onAnimationEnd={() => setInviteOn(false)}
+                  >
+                    <span className={styles.ghostIcon}>
+                      <Plus className="size-3.5" />
+                    </span>
+                    Next size or flavour
+                  </button>
+                ) : null}
+              </div>
             </section>
           )}
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border/40 px-4 py-3">
+        <DialogFooter className="shrink-0 gap-2 border-t border-zinc-200 px-4 py-3 sm:justify-between">
           <Button
             type="button"
             variant="ghost"
@@ -823,18 +916,27 @@ export function CashierCreateProductModal({
           >
             Cancel
           </Button>
-          <Button
+          <button
             type="button"
+            className={styles.create}
             disabled={!canSubmit || busy}
-            className="bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90"
+            data-armed={canSubmit ? "true" : "false"}
+            data-busy={busy ? "true" : undefined}
+            data-stamp={canSubmit && stamp > 0 ? stamp : undefined}
             onClick={() => void onSubmit()}
           >
             {busy
               ? "Creating…"
               : mode === "group"
-                ? `Create group${readyGroupVariants.length ? ` · ${readyGroupVariants.length}` : ""}`
-                : "Create & add to cart"}
-          </Button>
+                ? readyGroupVariants.length === 0
+                  ? "Create group"
+                  : readyGroupVariants.length === 1
+                    ? "Create 1 option"
+                    : `Create ${readyGroupVariants.length} options`
+                : forReceive
+                  ? "Create product"
+                  : "Create & add to sale"}
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
