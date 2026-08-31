@@ -1,16 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
-
+import { StorefrontCatalogSentinel } from "@/components/storefront/storefront-catalog-sentinel";
 import { ChemLabCard } from "@/components/storefront/templates/store/chem-lab-card";
 import { useChemLabCopy } from "@/components/storefront/templates/store/chem-lab-mode";
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
 import { StorefrontInlineText } from "@/components/storefront/storefront-inline-text";
-import { apiUrl } from "@/lib/config";
-import type {
-  PublicCatalogItemCard,
-  PublicCatalogListPayload,
-} from "@/lib/public-storefront";
+import { useStorefrontCatalogPages } from "@/hooks/use-storefront-catalog-pages";
+import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 
 export function ChemLabCatalog({
   slug,
@@ -25,43 +21,16 @@ export function ChemLabCatalog({
   initialNextCursor: string | null;
   totalCount?: number;
 }) {
-  const [items, setItems] = useState(initialItems);
-  const [cursor, setCursor] = useState(initialNextCursor);
-  const [loading, setLoading] = useState(false);
+  const pages = useStorefrontCatalogPages({
+    slug,
+    initialItems,
+    initialNextCursor,
+  });
+  const items = pages.items;
   const copy = useChemLabCopy();
   const inventoryTitle = copy?.inventory || "Inventory";
   const emptyLabel =
     copy?.empty || "Nothing here yet — new items arriving soon.";
-  const loadMoreLabel = copy?.loadMore || "Load more";
-  const loadingLabel = copy?.loading || "Loading…";
-
-  const loadMore = useCallback(async () => {
-    if (!cursor || loading) return;
-    setLoading(true);
-    try {
-      const url = new URL(
-        apiUrl(
-          `/api/v1/public/businesses/${encodeURIComponent(slug)}/catalog/items`,
-        ),
-        typeof window !== "undefined" ? window.location.origin : undefined,
-      );
-      url.searchParams.set("limit", "24");
-      url.searchParams.set("cursor", cursor);
-      const res = await fetch(url.toString(), {
-        headers: { Accept: "application/json" },
-        cache: "no-store",
-      });
-      if (!res.ok) return;
-      const payload = (await res.json()) as PublicCatalogListPayload;
-      setItems((prev) => {
-        const seen = new Set(prev.map((i) => i.id));
-        return [...prev, ...payload.items.filter((i) => !seen.has(i.id))];
-      });
-      setCursor(payload.nextCursor);
-    } finally {
-      setLoading(false);
-    }
-  }, [cursor, loading, slug]);
 
   const countLabel =
     totalCount != null
@@ -94,18 +63,16 @@ export function ChemLabCatalog({
         </div>
       )}
 
-      {cursor ? (
-        <div className={styles.loadMore}>
-          <button
-            type="button"
-            className={styles.loadMoreBtn}
-            disabled={loading}
-            onClick={() => void loadMore()}
-          >
-            {loading ? loadingLabel : loadMoreLabel}
-          </button>
-        </div>
-      ) : null}
+      <StorefrontCatalogSentinel
+        sentinelRef={pages.sentinelRef}
+        hasMore={pages.hasMore}
+        loading={pages.loading}
+        error={pages.error}
+        willAutoRetry={pages.willAutoRetry}
+        exhausted={!pages.hasMore && items.length > 0}
+        onRetry={pages.retry}
+        onRequestMore={() => void pages.loadMore()}
+      />
     </section>
   );
 }

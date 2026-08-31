@@ -1,0 +1,171 @@
+.aisle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 1.35rem 0 1.1rem;
+  color: var(--cm-navy, var(--storefront-ink, #141816));
+}
+
+.shelf {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  width: min(100%, 13.5rem);
+}
+
+.slot {
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--cm-line, var(--storefront-card-border, #e2e5e2));
+  background: var(--cm-cream, var(--storefront-paper, #f4f5f4));
+  border-radius: 2px;
+}
+
+.aisle[data-loading="true"] .slot {
+  animation: slotPulse 1.1s cubic-bezier(0.23, 1, 0.32, 1) infinite alternate;
+}
+
+.aisle[data-loading="true"] .slot:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.aisle[data-loading="true"] .slot:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+.aisle[data-loading="true"] .slot:nth-child(4) {
+  animation-delay: 0.24s;
+}
+
+.ticker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.35rem;
+  height: 2px;
+  transform-origin: left center;
+  background: var(--cm-gold, var(--storefront-ink, currentColor));
+  transform: scaleX(0.18);
+  opacity: 0.35;
+}
+
+.aisle[data-loading="true"] .ticker {
+  animation: tickerWalk 1.15s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+  opacity: 1;
+}
+
+.status {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cm-muted, var(--storefront-ink-quiet, #5c6560));
+}
+
+.end {
+  margin: 0;
+  padding: 0.85rem 0 0.4rem;
+  font-size: 0.78rem;
+  color: var(--cm-muted, var(--storefront-ink-quiet, #5c6560));
+  text-align: center;
+}
+
+.more {
+  appearance: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.more:focus-visible {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  clip: auto;
+  overflow: visible;
+  white-space: normal;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  outline: 2px solid var(--cm-gold, var(--storefront-ink, currentColor));
+  outline-offset: 3px;
+}
+
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.retry {
+  appearance: none;
+  border: 1px solid var(--cm-line, var(--storefront-card-border, #e2e5e2));
+  background: var(--cm-cream, var(--storefront-paper-elevated, #fff));
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--cm-gold, var(--storefront-ink, currentColor));
+  outline-offset: 3px;
+}
+
+.retry:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.quiet {
+  min-height: 2px;
+  width: 100%;
+}
+
+@keyframes slotPulse {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tickerWalk {
+  from {
+    transform: scaleX(0.12);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aisle[data-loading="true"] .slot,
+  .aisle[data-loading="true"] .ticker {
+    animation: none;
+  }
+
+  .aisle[data-loading="true"] .ticker {
+    transform: scaleX(1);
+  }
+}

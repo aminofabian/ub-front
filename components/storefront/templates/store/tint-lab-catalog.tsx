@@ -2,17 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/tint-lab.module.css";
 import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
-import { APP_ROUTES, apiUrl } from "@/lib/config";
+import { StorefrontCatalogSentinel } from "@/components/storefront/storefront-catalog-sentinel";
+import { useStorefrontCatalogPages } from "@/hooks/use-storefront-catalog-pages";
+import { APP_ROUTES } from "@/lib/config";
 import {
   formatDisplayPrice,
   type PublicCatalogItemCard,
-  type PublicCatalogListPayload,
 } from "@/lib/public-storefront";
 import { shopItemPathFromCard } from "@/lib/shop-item-url";
 import { cn } from "@/lib/utils";
@@ -109,37 +110,12 @@ export function TintLabCatalog({
   initialItems: PublicCatalogItemCard[];
   initialNextCursor: string | null;
 }) {
-  const [items, setItems] = useState(initialItems);
-  const [cursor, setCursor] = useState(initialNextCursor);
-  const [loading, setLoading] = useState(false);
-
-  const loadMore = useCallback(async () => {
-    if (!cursor || loading) return;
-    setLoading(true);
-    try {
-      const url = new URL(
-        apiUrl(
-          `/api/v1/public/businesses/${encodeURIComponent(slug)}/catalog/items`,
-        ),
-        typeof window !== "undefined" ? window.location.origin : undefined,
-      );
-      url.searchParams.set("limit", "24");
-      url.searchParams.set("cursor", cursor);
-      const res = await fetch(url.toString(), {
-        headers: { Accept: "application/json" },
-        cache: "no-store",
-      });
-      if (!res.ok) return;
-      const payload = (await res.json()) as PublicCatalogListPayload;
-      setItems((prev) => {
-        const seen = new Set(prev.map((i) => i.id));
-        return [...prev, ...payload.items.filter((i) => !seen.has(i.id))];
-      });
-      setCursor(payload.nextCursor);
-    } finally {
-      setLoading(false);
-    }
-  }, [cursor, loading, slug]);
+  const pages = useStorefrontCatalogPages({
+    slug,
+    initialItems,
+    initialNextCursor,
+  });
+  const items = pages.items;
 
   return (
     <section className={styles.section} id="edit">
@@ -180,18 +156,16 @@ export function TintLabCatalog({
           );
         })}
       </div>
-      {cursor ? (
-        <div className={styles.loadMore}>
-          <button
-            type="button"
-            className={styles.btn}
-            disabled={loading}
-            onClick={() => void loadMore()}
-          >
-            {loading ? "Loading…" : "Load more →"}
-          </button>
-        </div>
-      ) : null}
+      <StorefrontCatalogSentinel
+        sentinelRef={pages.sentinelRef}
+        hasMore={pages.hasMore}
+        loading={pages.loading}
+        error={pages.error}
+        willAutoRetry={pages.willAutoRetry}
+        exhausted={!pages.hasMore && items.length > 0}
+        onRetry={pages.retry}
+        onRequestMore={() => void pages.loadMore()}
+      />
     </section>
   );
 }

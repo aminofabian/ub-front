@@ -1,14 +1,10 @@
 "use client";
 
-import { useCallback, useState } from "react";
-
 import { ScentStoryCard } from "@/components/storefront/templates/store/scent-story-card";
 import styles from "@/components/storefront/templates/store/scent-story.module.css";
-import { apiUrl } from "@/lib/config";
-import type {
-  PublicCatalogItemCard,
-  PublicCatalogListPayload,
-} from "@/lib/public-storefront";
+import { StorefrontCatalogSentinel } from "@/components/storefront/storefront-catalog-sentinel";
+import { useStorefrontCatalogPages } from "@/hooks/use-storefront-catalog-pages";
+import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 
 export function ScentStoryCatalog({
   slug,
@@ -23,37 +19,12 @@ export function ScentStoryCatalog({
   initialNextCursor: string | null;
   totalCount?: number;
 }) {
-  const [items, setItems] = useState(initialItems);
-  const [cursor, setCursor] = useState(initialNextCursor);
-  const [loading, setLoading] = useState(false);
-
-  const loadMore = useCallback(async () => {
-    if (!cursor || loading) return;
-    setLoading(true);
-    try {
-      const url = new URL(
-        apiUrl(
-          `/api/v1/public/businesses/${encodeURIComponent(slug)}/catalog/items`,
-        ),
-        typeof window !== "undefined" ? window.location.origin : undefined,
-      );
-      url.searchParams.set("limit", "24");
-      url.searchParams.set("cursor", cursor);
-      const res = await fetch(url.toString(), {
-        headers: { Accept: "application/json" },
-        cache: "no-store",
-      });
-      if (!res.ok) return;
-      const payload = (await res.json()) as PublicCatalogListPayload;
-      setItems((prev) => {
-        const seen = new Set(prev.map((i) => i.id));
-        return [...prev, ...payload.items.filter((i) => !seen.has(i.id))];
-      });
-      setCursor(payload.nextCursor);
-    } finally {
-      setLoading(false);
-    }
-  }, [cursor, loading, slug]);
+  const pages = useStorefrontCatalogPages({
+    slug,
+    initialItems,
+    initialNextCursor,
+  });
+  const items = pages.items;
 
   const countLabel =
     totalCount != null ? `${totalCount} products` : `${items.length} products`;
@@ -75,18 +46,16 @@ export function ScentStoryCatalog({
         </div>
       )}
 
-      {cursor ? (
-        <div className={styles.loadMore}>
-          <button
-            type="button"
-            className={styles.loadMoreBtn}
-            disabled={loading}
-            onClick={() => void loadMore()}
-          >
-            {loading ? "Loading…" : "Load more"}
-          </button>
-        </div>
-      ) : null}
+      <StorefrontCatalogSentinel
+        sentinelRef={pages.sentinelRef}
+        hasMore={pages.hasMore}
+        loading={pages.loading}
+        error={pages.error}
+        willAutoRetry={pages.willAutoRetry}
+        exhausted={!pages.hasMore && items.length > 0}
+        onRetry={pages.retry}
+        onRequestMore={() => void pages.loadMore()}
+      />
     </section>
   );
 }
