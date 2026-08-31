@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  FileSpreadsheet,
   ImageOff,
   Loader2,
   Package,
@@ -29,7 +30,10 @@ import {
   patchItem,
   getCloudinarySignature,
   uploadToCloudinary,
+  postBulkItemImageImport,
+  postBulkItemImageUpload,
   type BranchRecord,
+  type BulkItemImageImportResponse,
   type CategoryRecord,
   type ItemsPageResult,
   type ItemSummaryRecord,
@@ -119,6 +123,226 @@ function QuickUpload({
         onChange={handle}
       />
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Bulk import (CSV of sku,image_url, or SKU-named image files)       */
+/* ------------------------------------------------------------------ */
+type BulkMode = "files" | "csv";
+
+function BulkImageImport({ onDone }: { onDone: () => void }) {
+  const [mode, setMode] = useState<BulkMode>("files");
+  const [files, setFiles] = useState<File[]>([]);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<BulkItemImageImportResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const pickRef = useRef<HTMLInputElement>(null);
+
+  const submit = async () => {
+    if (busy) return;
+    if (mode === "files") {
+      if (files.length === 0) return;
+      setBusy(true);
+      setError(null);
+      setResult(null);
+      try {
+        const res = await postBulkItemImageUpload(files);
+        setResult(res);
+        onDone();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Upload failed.");
+      } finally {
+        setBusy(false);
+        setFiles([]);
+        if (pickRef.current) pickRef.current.value = "";
+      }
+      return;
+    }
+    if (!csvFile) return;
+    setBusy(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await postBulkItemImageImport(csvFile);
+      setResult(res);
+      onDone();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Bulk import failed.");
+    } finally {
+      setBusy(false);
+      setCsvFile(null);
+      if (pickRef.current) pickRef.current.value = "";
+    }
+  };
+
+  const issues = (result?.notFound ?? []).concat(result?.invalid ?? []);
+  const readyCount = mode === "files" ? files.length : csvFile ? 1 : 0;
+
+  return (
+    <div className="rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <FileSpreadsheet className="size-4 shrink-0 text-primary" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] font-semibold text-foreground/90">
+            Bulk add images by SKU
+          </p>
+          <p className="text-[10px] leading-relaxed text-muted-foreground/60">
+            {mode === "files"
+              ? "Pick image files named by SKU (e.g. SKU-001.jpg) — each becomes that product's photo."
+              : "CSV with columns sku, image_url — a public image URL or Cloudinary key. Existing images are replaced; unknown SKUs are reported, not skipped silently."}
+          </p>
+        </div>
+      </div>
+
+      {/* Mode toggle */}
+      <div className="mt-2.5 flex items-center gap-1 rounded-lg bg-muted/30 p-0.5">
+        {(
+          [
+            { key: "files", label: "Files (named by SKU)" },
+            { key: "csv", label: "URL list (CSV)" },
+          ] as { key: BulkMode; label: string }[]
+        ).map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setMode(opt.key);
+              setFiles([]);
+              setCsvFile(null);
+              setResult(null);
+              setError(null);
+              if (pickRef.current) pickRef.current.value = "";
+            }}
+            className={cn(
+              "flex-1 rounded-md px-2 py-1 text-[10px] font-semibold transition-colors",
+              mode === opt.key
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {mode === "files" ? (
+        <input
+          ref={pickRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            setFiles(Array.from(e.target.files ?? []));
+            setResult(null);
+            setError(null);
+          }}
+        />
+      ) : (
+        <input
+          ref={pickRef}
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          onChange={(e) => {
+            setCsvFile(e.target.files?.[0] ?? null);
+            setResult(null);
+            setError(null);
+          }}
+        />
+      )}
+
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => pickRef.current?.click()}
+          className={cn(
+            "inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[10px] font-semibold transition-all",
+            "border border-primary/25 bg-primary/5 text-primary hover:bg-primary/10 active:scale-95",
+            busy && "opacity-50",
+          )}
+        >
+          {mode === "files" ? "Choose image files…" : "Choose CSV…"}
+        </button>
+        <button
+          type="button"
+          disabled={busy || readyCount === 0}
+          onClick={() => void submit()}
+          className={cn(
+            "inline-flex h-7 items-center gap-1 rounded-lg px-3 text-[10px] font-semibold transition-all",
+            "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95",
+            (busy || readyCount === 0) && "opacity-50",
+          )}
+        >
+          {busy ? (
+            <Loader2 className="size-3 animate-spin" aria-hidden />
+          ) : (
+            <Upload className="size-3" aria-hidden />
+          )}
+          {busy
+            ? mode === "files"
+              ? "Uploading…"
+              : "Importing…"
+            : readyCount === 0
+              ? "Nothing selected"
+              : mode === "files"
+                ? `Upload ${readyCount}`
+                : "Import"}
+        </button>
+      </div>
+
+      {mode === "files" && files.length > 0 ? (
+        <ul className="mt-2 max-h-28 space-y-0.5 overflow-y-auto rounded-lg border border-border/40 bg-muted/15 px-2.5 py-1.5">
+          {files.slice(0, 12).map((f, i) => (
+            <li
+              key={`${f.name}-${i}`}
+              className="truncate font-mono text-[10px] text-foreground/75"
+              title={f.name}
+            >
+              {f.name}
+            </li>
+          ))}
+          {files.length > 12 ? (
+            <li className="text-[10px] text-muted-foreground/60">
+              …and {files.length - 12} more
+            </li>
+          ) : null}
+        </ul>
+      ) : null}
+
+      {mode === "csv" && csvFile ? (
+        <div className="mt-2 truncate rounded-lg border border-border/40 bg-muted/15 px-2.5 py-1.5 font-mono text-[10px] text-foreground/75">
+          {csvFile.name}
+        </div>
+      ) : null}
+
+      {error ? (
+        <p className="mt-2 text-[11px] text-destructive">{error}</p>
+      ) : null}
+
+      {result ? (
+        <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2">
+          <p className="text-[11px] font-semibold text-emerald-900 dark:text-emerald-100">
+            {result.updated} image(s) set · {result.notFound.length} SKU(s) not found ·{" "}
+            {result.invalid.length} file(s)/row(s) invalid
+          </p>
+          {issues.length > 0 ? (
+            <ul className="mt-1 max-h-32 list-inside list-disc space-y-0.5 overflow-y-auto text-[10px] text-muted-foreground">
+              {issues.map((iss, i) => (
+                <li key={`${iss.line}-${i}`}>
+                  <span className="font-mono text-foreground/80">{iss.sku || `item ${iss.line}`}</span>
+                  : {iss.message}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -362,6 +586,9 @@ export default function InventoryMissingImagesPage() {
             </select>
           </div>
         </div>
+
+        {/* ── Bulk import ── */}
+        <BulkImageImport onDone={() => void load()} />
 
         {/* ── Content ── */}
         {error ? <DashboardFeedback kind="error" text={error} /> : null}

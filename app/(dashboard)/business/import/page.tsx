@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   AlertCircle,
+  AlertTriangle,
   Boxes,
   Building2,
   Check,
@@ -82,6 +83,9 @@ const CSV_COLUMNS: Record<CsvTemplateKind, string[]> = {
     "on_hand",
     "min_stock_level",
     "reorder_level",
+    "supplier_name",
+    "supplier_code",
+    "image_url",
   ],
   suppliers: ["name", "code", "supplier_type", "vat_pin", "status", "notes"],
   "opening-stock": ["branch_name", "sku", "quantity", "unit_cost", "notes"],
@@ -115,6 +119,7 @@ function ImportResultCard({
   failureMessage?: string | null;
 }) {
   const failed = result.errors.length > 0 || Boolean(failureMessage);
+  const warnings = result.warnings ?? [];
   return (
     <div
       role="status"
@@ -128,6 +133,8 @@ function ImportResultCard({
       <div className="flex items-start gap-3">
         {failed ? (
           <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+        ) : warnings.length > 0 ? (
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
         ) : (
           <CheckCircle2
             className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
@@ -142,7 +149,7 @@ function ImportResultCard({
           {result.errors.length > 0 ? (
             <ul className="mt-3 max-h-64 list-inside list-disc space-y-1 overflow-y-auto text-xs text-muted-foreground">
               {result.errors.map((err, i) => (
-                <li key={`${err.line}-${i}`}>
+                <li key={`err-${err.line}-${i}`}>
                   <span className="font-mono text-foreground">Line {err.line}</span>: {err.message}
                 </li>
               ))}
@@ -154,6 +161,24 @@ function ImportResultCard({
               {successMessage}
             </p>
           )}
+          {warnings.length > 0 ? (
+            <div className="mt-3 rounded-lg border border-amber-600/25 bg-amber-500/[0.06] px-3 py-2">
+              <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                {warnings.length} non-blocking note(s)
+              </p>
+              <ul className="mt-1 max-h-40 list-inside list-disc space-y-1 overflow-y-auto text-xs text-muted-foreground">
+                {warnings.map((w, i) => (
+                  <li key={`warn-${w.line}-${i}`}>
+                    {w.line > 0 ? (
+                      <span className="font-mono text-foreground">Line {w.line}</span>
+                    ) : null}
+                    {w.line > 0 ? ": " : null}
+                    {w.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -440,6 +465,7 @@ export default function BusinessImportPage() {
             dryRun: job.dryRun,
             rowsParsed: job.rowsTotal ?? job.rowsProcessed,
             errors: job.errors ?? [],
+            warnings: job.warnings ?? [],
             rowsCommitted: job.rowsCommitted ?? null,
           };
           if (job.status === "completed") {
@@ -461,6 +487,7 @@ export default function BusinessImportPage() {
           dryRun,
           rowsParsed: 0,
           errors: [],
+          warnings: [],
           rowsCommitted: null,
         });
         setCsvFailure(
@@ -702,7 +729,11 @@ export default function BusinessImportPage() {
                       {" "}
                       — only <code className="rounded bg-muted px-1">sku</code> and{" "}
                       <code className="rounded bg-muted px-1">name</code> are required; leave the rest blank or omit
-                      them
+                      them. Optional{" "}
+                      <code className="rounded bg-muted px-1">supplier_name</code> /{" "}
+                      <code className="rounded bg-muted px-1">supplier_code</code> link the item to an existing
+                      supplier (matched by exact code, then exact name); unmatched values are reported as notes.
+                      Optional <code className="rounded bg-muted px-1">image_url</code> sets the product image.
                     </>
                   ) : null}
                   :

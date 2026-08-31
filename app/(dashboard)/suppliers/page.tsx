@@ -793,6 +793,57 @@ export default function SuppliersPage() {
     }
   };
 
+  /** Bulk-move items out of the "Suppliers Not Linked" bucket to a chosen real supplier. */
+  const onMoveUnassignedItems = async (
+    itemIds: string[],
+    targetSupplierId: string,
+  ) => {
+    if (itemIds.length === 0) {
+      throw new Error("Nothing to move.");
+    }
+    if (!targetSupplierId.trim()) {
+      throw new Error("Choose a supplier first.");
+    }
+    if (!canLinkProducts) {
+      throw new Error("Not allowed.");
+    }
+    setLinksBusy(true);
+    setFeedback(null);
+    try {
+      for (const itemId of itemIds) {
+        const link = itemLinks.find((l) => l.itemId === itemId);
+        const costRaw = link?.defaultCostPrice;
+        const defaultCostPrice =
+          costRaw == null || String(costRaw).trim() === ""
+            ? undefined
+            : Number(costRaw);
+        await addItemSupplierLink(itemId, {
+          supplierId: targetSupplierId.trim(),
+          supplierSku: link?.supplierSku?.trim() || undefined,
+          defaultCostPrice:
+            defaultCostPrice != null && Number.isFinite(defaultCostPrice)
+              ? defaultCostPrice
+              : undefined,
+          setPrimary: true,
+        });
+      }
+      await refreshItemLinks();
+      setFeedback({
+        text:
+          itemIds.length === 1
+            ? "Item moved to the selected supplier."
+            : `Moved ${itemIds.length} items to the selected supplier.`,
+        kind: "success",
+      });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Move failed.";
+      setFeedback({ text: msg, kind: "error" });
+      throw error instanceof Error ? error : new Error(msg);
+    } finally {
+      setLinksBusy(false);
+    }
+  };
+
   const onRemoveLink = async (row: SupplierItemLinkRecord) => {
     if (!canLinkProducts) {
       return;
@@ -1276,6 +1327,7 @@ export default function SuppliersPage() {
                           onRemoveLink={onRemoveLink}
                           onSetPrimaryLink={onSetPrimaryLink}
                           onLinkCatalogItems={onLinkCatalogItems}
+                          onMoveUnassignedItems={onMoveUnassignedItems}
                           onRefreshLinks={refreshItemLinks}
                         />
                       )}
@@ -1400,6 +1452,7 @@ export default function SuppliersPage() {
               onRemoveLink={onRemoveLink}
               onSetPrimaryLink={onSetPrimaryLink}
               onLinkCatalogItems={onLinkCatalogItems}
+              onMoveUnassignedItems={onMoveUnassignedItems}
               onRefreshLinks={refreshItemLinks}
             />
           </FormDrawer>

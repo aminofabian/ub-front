@@ -76,6 +76,7 @@ import {
   canWriteSuppliers,
 } from "@/lib/supplier-access";
 import { canCashierClearTabs, canSearchCustomersByName, phoneVerificationRequiredForNewTab } from "@/lib/credit-tabs-access";
+import { captureCustomerForCashAndMpesa } from "@/lib/checkout-access";
 import {
   countPendingSales,
   enqueuePendingSale,
@@ -404,6 +405,7 @@ export function QuickSaleWorkspace({
   const allowAirtime = hasPermission(me?.permissions, Permission.AirtimeSell);
   const requirePhoneVerification = phoneVerificationRequiredForNewTab(business);
   const allowSearchCustomersByName = canSearchCustomersByName(business);
+  const captureCustomerAtCheckout = captureCustomerForCashAndMpesa(business);
 
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
@@ -1682,7 +1684,11 @@ export function QuickSaleWorkspace({
     }
     const tabOrWalletLookup =
       payMethod === "customer_credit" || creditChangeToWallet;
-    const useNameSearch = tabOrWalletLookup && allowSearchCustomersByName;
+    // Capture on cash/M-Pesa is phone-first; when the shop enables name search,
+    // repeat customers can also be found by name at checkout.
+    const useNameSearch =
+      (tabOrWalletLookup || captureCustomerAtCheckout) &&
+      allowSearchCustomersByName;
     if (tabOrWalletLookup && !useNameSearch) {
       const phoneErr = customerPhoneValidationMessage(q);
       if (phoneErr) {
@@ -1723,6 +1729,7 @@ export function QuickSaleWorkspace({
     payMethod,
     creditChangeToWallet,
     allowSearchCustomersByName,
+    captureCustomerAtCheckout,
     resetPhoneVerification,
     setCustomerHits,
     updateActiveCart,
@@ -1800,6 +1807,11 @@ export function QuickSaleWorkspace({
     const phone = customerPhoneQuery.trim();
     const name = customerRegisterName.trim();
     const code = phoneVerificationCode.trim();
+    // OTP stays reserved for credit / wallet registration; cash and M-Pesa
+    // capture registers silently so the till is never blocked.
+    const registerNeedsOtp =
+      requirePhoneVerification &&
+      (payMethod === "customer_credit" || creditChangeToWallet);
     if (!phone) {
       setError("Enter a phone number first.");
       setNotice("");
@@ -1816,7 +1828,7 @@ export function QuickSaleWorkspace({
       setNotice("");
       return;
     }
-    if (requirePhoneVerification) {
+    if (registerNeedsOtp) {
       if (!phoneVerificationSent) {
         setError("Send a verification code first.");
         setNotice("");
@@ -1842,7 +1854,7 @@ export function QuickSaleWorkspace({
     setError("");
     try {
       let phoneVerificationToken: string | undefined;
-      if (requirePhoneVerification) {
+      if (registerNeedsOtp) {
         const verified = await verifyCustomerPhoneVerification(phone, code);
         phoneVerificationToken = verified.phoneVerificationToken;
       }
@@ -1861,7 +1873,9 @@ export function QuickSaleWorkspace({
       setNotice(
         creditChangeToWallet
           ? `${created.name} registered — wallet ready (tab credit considered if they owe).`
-          : `${created.name} registered — tab ready for credit.`,
+          : payMethod === "customer_credit"
+            ? `${created.name} registered — tab ready for credit.`
+            : `${created.name} added — purchase history will be linked to them.`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not register customer.");
@@ -1873,6 +1887,7 @@ export function QuickSaleWorkspace({
     customerPhoneQuery,
     customerRegisterName,
     online,
+    payMethod,
     phoneVerificationCode,
     phoneVerificationSent,
     requirePhoneVerification,
@@ -4568,6 +4583,7 @@ export function QuickSaleWorkspace({
           phoneVerificationCooldownUntil,
           requirePhoneVerificationForNewTabCustomers: requirePhoneVerification,
           allowSearchCustomersByName,
+          captureCustomerForCashAndMpesa: captureCustomerAtCheckout,
           onSearchCustomers: () => void onSearchCustomers(),
           onSendPhoneVerification: () => void onSendPhoneVerification(),
           onRegisterCustomer: () => void onRegisterCustomer(),

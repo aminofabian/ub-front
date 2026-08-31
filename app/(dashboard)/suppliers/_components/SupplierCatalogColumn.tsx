@@ -11,6 +11,7 @@ import {
   Pencil,
   Star,
   Trash2,
+  ArrowRight,
 } from "lucide-react";
 
 import {
@@ -20,6 +21,7 @@ import {
   fetchItemById,
   fetchItemPackOptions,
   fetchItemsPage,
+  fetchSuppliers,
   patchItemPackOption,
   patchItemSupplierLink,
   type CategoryRecord,
@@ -44,7 +46,10 @@ import {
 import { joinProductNameParts } from "@/lib/catalog-display";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
-import { displaySupplierName } from "@/lib/supplier-display";
+import {
+  displaySupplierName,
+  isSystemUnassignedSupplier,
+} from "@/lib/supplier-display";
 import { sortCatalogRowsParentFirst } from "../../products/_components/catalog-list-styles";
 import { SupEmptyState, SupSection } from "./supplier-layout-primitives";
 import {
@@ -205,6 +210,7 @@ export function SupplierCatalogColumn({
   onRemoveLink,
   onSetPrimaryLink,
   onLinkCatalogItems,
+  onMoveUnassignedItems,
   onRefreshLinks,
 }: {
   detail: SupplierRecord | null;
@@ -218,6 +224,8 @@ export function SupplierCatalogColumn({
     itemIds: string[],
     opts: { supplierSku?: string; defaultCostPrice?: number; setPrimaryForFirst?: boolean },
   ) => Promise<void>;
+  /** Bulk-assign items out of the "Suppliers Not Linked" bucket to a real supplier. */
+  onMoveUnassignedItems: (itemIds: string[], targetSupplierId: string) => Promise<void>;
   onRefreshLinks?: () => void;
 }) {
   // Scope the product picker to the department chosen in the app header.
@@ -263,10 +271,22 @@ export function SupplierCatalogColumn({
   const [editLinkPacksOriginals, setEditLinkPacksOriginals] = useState<
     Record<string, PackOptionDraft>
   >({});
+  /** "Suppliers Not Linked" bucket — items can be bulk-moved to a real supplier. */
+  const [supplierChoices, setSupplierChoices] = useState<SupplierRecord[]>([]);
+  const [moveTargetSupplierId, setMoveTargetSupplierId] = useState("");
+  const [moveSelectedIds, setMoveSelectedIds] = useState<Set<string>>(() => new Set());
+  const [moveFormError, setMoveFormError] = useState<string | null>(null);
 
   const loadGen = useRef(0);
 
+  const isUnassignedBucket = isSystemUnassignedSupplier({
+    code: detail?.code,
+    name: detail?.name,
+  });
+
   const linkedIds = useMemo(() => new Set(itemLinks.map((l) => l.itemId)), [itemLinks]);
+  const allMoveSelected =
+    itemLinks.length > 0 && itemLinks.every((l) => moveSelectedIds.has(l.itemId));
 
   const sortedCategoryOptions = useMemo(
     () => [...categories].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
@@ -327,10 +347,36 @@ export function SupplierCatalogColumn({
     setCatalogScope("ALL");
     setSortPreset("name-asc");
     setVariantIdsByParentId({});
+    setMoveSelectedIds(new Set());
+    setMoveTargetSupplierId("");
+    setMoveFormError(null);
   }, [supplierId]);
 
+  // Target supplier choices for the unassigned bucket (real suppliers only).
   useEffect(() => {
-    if (!supplierId || !canReadCatalog) {
+    if (!isUnassignedBucket || !canLinkProducts) {
+      setSupplierChoices([]);
+      return;
+    }
+    let cancelled = false;
+    fetchSuppliers()
+      .then((list) => {
+        if (!cancelled) {
+          setSupplierChoices(list.filter((s) => !isSystemUnassignedSupplier(s)));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSupplierChoices([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isUnassignedBucket, canLinkProducts]);
+
+  useEffect(() => {
+    if (!supplierId || !canReadCatalog || isUnassignedBucket) {
       setCatalogRows([]);
       setCatalogMeta(null);
       return;
@@ -375,6 +421,7 @@ export function SupplierCatalogColumn({
   }, [
     supplierId,
     canReadCatalog,
+    isUnassignedBucket,
     debouncedCatalogSearch,
     categoryFilterId,
     categoryIncludeDescendants,
@@ -559,6 +606,41 @@ export function SupplierCatalogColumn({
         next.delete(itemId);
         return next;
       });
+    }
+  };
+
+  const toggleMoveRow = (itemId: string) => {
+    setMoveSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
+
+  const toggleMoveAll = () => {
+    setMoveSelectedIds((prev) => {
+      const allOn = itemLinks.length > 0 && itemLinks.every((l) => prev.has(l.itemId));
+      return allOn ? new Set() : new Set(itemLinks.map((l) => l.itemId));
+    });
+  };
+
+  const onSubmitMove = async () => {
+    setMoveFormError(null);
+    const ids = Array.from(moveSelectedIds);
+    if (ids.length === 0 || !moveTargetSupplierId.trim()) {
+      setMoveFormError("Choose a supplier and select at least one item.");
+      return;
+    }
+    try {
+      await onMoveUnassignedItems(ids, moveTargetSupplierId);
+      setMoveSelectedIds(new Set());
+      setMoveTargetSupplierId("");
+    } catch {
+      /* feedback from page */
     }
   };
 
@@ -1135,7 +1217,7 @@ export function SupplierCatalogColumn({
     <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden">
       <SupSection
         compact
-        title="Linked"
+        title={isUnassignedBucket ? "Unassigned items" : "Linked"}
         action={
           <div className="flex items-center gap-1">
             {itemLinks.length > 0 ? (
@@ -1143,15 +1225,17 @@ export function SupplierCatalogColumn({
                 {itemLinks.length}
               </span>
             ) : null}
-            <Button
-              type="button"
-              size="sm"
-              className="h-6 gap-0.5 rounded-md bg-[var(--order-ink,#15231f)] px-1.5 text-xs font-semibold text-white shadow-none hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,#000)]"
-              onClick={() => setCatalogBrowserOpen(true)}
-            >
-              <Link2 className="size-2.5" aria-hidden />
-              Browse
-            </Button>
+            {!isUnassignedBucket ? (
+              <Button
+                type="button"
+                size="sm"
+                className="h-6 gap-0.5 rounded-md bg-[var(--order-ink,#15231f)] px-1.5 text-xs font-semibold text-white shadow-none hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,#000)]"
+                onClick={() => setCatalogBrowserOpen(true)}
+              >
+                <Link2 className="size-2.5" aria-hidden />
+                Browse
+              </Button>
+            ) : null}
           </div>
         }
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
@@ -1159,16 +1243,32 @@ export function SupplierCatalogColumn({
       >
         {itemLinks.length === 0 ? (
           <p className="px-2 py-3 text-center text-sm text-muted-foreground">
-            No links yet. Browse to attach products.
+            {isUnassignedBucket
+              ? "No unassigned items — every product has a real supplier."
+              : "No links yet. Browse to attach products."}
           </p>
         ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <table className="w-full border-collapse text-left text-xs">
-              <thead className={cn("sticky top-0 z-10", supTableHead)}>
-                <tr>
-                  <th className="border border-border px-1.5 py-1 font-semibold">
-                    Product
-                  </th>
+          <>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <table className="w-full border-collapse text-left text-xs">
+                <thead className={cn("sticky top-0 z-10", supTableHead)}>
+                  <tr>
+                    {isUnassignedBucket && canLinkProducts ? (
+                      <th className="w-8 border border-border px-1.5 py-1 font-semibold">
+                        <input
+                          type="checkbox"
+                          className="size-3 rounded-sm border border-border"
+                          checked={allMoveSelected}
+                          onChange={toggleMoveAll}
+                          disabled={linksBusy}
+                          title="Select all unassigned items"
+                          aria-label="Select all unassigned items"
+                        />
+                      </th>
+                    ) : null}
+                    <th className="border border-border px-1.5 py-1 font-semibold">
+                      Product
+                    </th>
                   <th className="w-[4.25rem] border border-border px-1.5 py-1 text-right font-semibold">
                     Stock
                   </th>
@@ -1205,6 +1305,18 @@ export function SupplierCatalogColumn({
                     const sell = resolveLinkShelfPrice(row);
                     return (
                   <tr key={row.id} className={supTableRow}>
+                    {isUnassignedBucket && canLinkProducts ? (
+                      <td className="border border-border/70 px-1.5 py-0.5 align-middle">
+                        <input
+                          type="checkbox"
+                          className="size-3 rounded-sm border border-border"
+                          checked={moveSelectedIds.has(row.itemId)}
+                          onChange={() => toggleMoveRow(row.itemId)}
+                          disabled={linksBusy}
+                          aria-label={`Select ${row.itemName || row.itemId}`}
+                        />
+                      </td>
+                    ) : null}
                     <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
                       <div className="flex min-w-0 flex-col gap-0.5">
                         <div className="flex min-w-0 items-center gap-1">
@@ -1390,6 +1502,54 @@ export function SupplierCatalogColumn({
               </tbody>
             </table>
           </div>
+          {isUnassignedBucket && canLinkProducts ? (
+            <div className="shrink-0 border-t border-border/70 bg-muted/20 px-2 py-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="min-w-0 flex-1 text-xs text-muted-foreground">
+                  <span className="font-mono font-bold tabular-nums text-foreground">
+                    {moveSelectedIds.size}
+                  </span>{" "}
+                  selected — assign to a supplier to remove them from this bucket
+                </span>
+                <select
+                  className={cn(nsdSelect, "h-7 min-w-[9rem] text-xs")}
+                  value={moveTargetSupplierId}
+                  onChange={(e) => setMoveTargetSupplierId(e.target.value)}
+                  disabled={linksBusy || supplierChoices.length === 0}
+                  aria-label="Move to supplier"
+                >
+                  <option value="">Move to supplier…</option>
+                  {supplierChoices.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-7 shrink-0 gap-1 rounded-lg px-2.5 text-xs font-semibold"
+                  disabled={
+                    linksBusy ||
+                    moveSelectedIds.size === 0 ||
+                    !moveTargetSupplierId.trim()
+                  }
+                  onClick={() => void onSubmitMove()}
+                >
+                  <ArrowRight className="size-3" aria-hidden />
+                  {linksBusy
+                    ? "Moving…"
+                    : moveSelectedIds.size <= 1
+                      ? "Move"
+                      : `Move ${moveSelectedIds.size}`}
+                </Button>
+              </div>
+              {moveFormError ? (
+                <p className="mt-1 text-[11px] text-destructive">{moveFormError}</p>
+              ) : null}
+            </div>
+          ) : null}
+          </>
         )}
       </SupSection>
 

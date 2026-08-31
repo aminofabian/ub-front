@@ -17,6 +17,7 @@ import {
   Smartphone,
   Sun,
   Truck,
+  UserRound,
   Users,
   Warehouse,
 } from "lucide-react";
@@ -822,6 +823,28 @@ export function BusinessConfigurationForm({
             icon={<Banknote className="size-4" aria-hidden />}
             title="Prefill opening float from last close"
             description="Fill denomination quantities from the previous closing count so the cashier can review and edit."
+          />
+        </PolicyPanel>
+      ) : null}
+
+      {visibleIds.has("settings-checkout") ? (
+        <PolicyPanel
+          id="settings-checkout"
+          title="Checkout"
+          hint="Optional customer capture on cash and M-Pesa sales, so purchases build customer history."
+          accent="teal"
+        >
+          <PolicySwitch
+            checked={inventory.captureCustomerForCashAndMpesa}
+            onChange={(checked) =>
+              setInventory((previous) => ({
+                ...previous,
+                captureCustomerForCashAndMpesa: checked,
+              }))
+            }
+            icon={<UserRound className="size-4" aria-hidden />}
+            title="Capture customer at checkout"
+            description="Show an optional add/select customer step on cash and M-Pesa sales so purchases build customer history. Off until a shop turns it on."
           />
         </PolicyPanel>
       ) : null}

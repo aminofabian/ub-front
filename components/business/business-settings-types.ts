@@ -87,6 +87,8 @@ export type InventoryForm = {
   allowCashierTabClearance: boolean;
   requirePhoneVerificationForNewTabCustomers: boolean;
   allowCashierSearchCustomersByName: boolean;
+  /** When true, POS shows an optional add/select customer step on cash/M-Pesa sales. Default off. */
+  captureCustomerForCashAndMpesa: boolean;
   /** When true, product names show exactly as entered on Products, Stock, and POS. */
   preserveProductNameCasing: boolean;
 };
@@ -237,6 +239,8 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   requirePhoneVerificationForNewTabCustomers: true,
   /** Match backend: name search on Tab checkout defaults off. */
   allowCashierSearchCustomersByName: false,
+  /** Match backend: customer capture on cash/M-Pesa checkout defaults off. */
+  captureCustomerForCashAndMpesa: false,
   /** Match backend: exact product names default on. */
   preserveProductNameCasing: true,
 };
@@ -481,6 +485,9 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
       false,
     allowCashierSearchCustomersByName: Boolean(
       b?.inventory?.creditTabs?.allowCashierSearchCustomersByName,
+    ),
+    captureCustomerForCashAndMpesa: Boolean(
+      b?.inventory?.checkout?.captureCustomerForCashAndMpesa,
     ),
     preserveProductNameCasing:
       b?.inventory?.catalog?.preserveProductNameCasing !== false,

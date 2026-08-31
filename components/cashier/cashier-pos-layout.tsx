@@ -326,6 +326,7 @@ export type CashierPosLayoutProps = {
     | "phoneVerificationCooldownUntil"
     | "requirePhoneVerificationForNewTabCustomers"
     | "allowSearchCustomersByName"
+    | "captureCustomerForCashAndMpesa"
     | "onSearchCustomers"
     | "onSendPhoneVerification"
     | "onRegisterCustomer"

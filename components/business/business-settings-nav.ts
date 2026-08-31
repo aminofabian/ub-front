@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   Store,
   Truck,
+  UserRound,
   Users,
   Warehouse,
 } from "lucide-react";
@@ -36,6 +37,7 @@ export const BUSINESS_CONFIGURATION_NAV: BusinessSettingsNavItem[] = [
   { id: "settings-credit-tabs", label: "Credit tabs", group: "Inventory", icon: Users },
   { id: "settings-suppliers", label: "Suppliers", group: "Inventory", icon: Truck },
   { id: "settings-shifts", label: "Shifts & cash", group: "Till", icon: Banknote },
+  { id: "settings-checkout", label: "Checkout", group: "Till", icon: UserRound },
   { id: "settings-cashier", label: "Cashier", group: "Till", icon: ShoppingCart },
   { id: "settings-pos-drafts", label: "Pending carts", group: "Till", icon: ClipboardList },
   {

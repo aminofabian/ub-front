@@ -1117,6 +1117,11 @@ export type CreditTabsSettingsRecord = {
   allowCashierSearchCustomersByName?: boolean;
 };
 
+export type CheckoutSettingsRecord = {
+  /** When true, the POS checkout drawer shows an optional add/select customer step on cash and M-Pesa sales. Default off. */
+  captureCustomerForCashAndMpesa?: boolean;
+};
+
 export type CatalogSettingsRecord = {
   /** When true (default), product names show exactly as entered on Products, Stock, and POS. */
   preserveProductNameCasing?: boolean;
@@ -1128,6 +1133,7 @@ export type InventorySettingsRecord = {
   suppliers?: SuppliersAccessSettingsRecord;
   receiveStock?: ReceiveStockSettingsRecord;
   creditTabs?: CreditTabsSettingsRecord;
+  checkout?: CheckoutSettingsRecord;
   catalog?: CatalogSettingsRecord;
 };
 
@@ -1340,6 +1346,10 @@ export type CreditTabsPatchPayload = {
   allowCashierSearchCustomersByName?: boolean;
 };
 
+export type CheckoutPatchPayload = {
+  captureCustomerForCashAndMpesa?: boolean;
+};
+
 export type CatalogPatchPayload = {
   preserveProductNameCasing?: boolean;
 };
@@ -1350,6 +1360,7 @@ export type InventoryPatchPayload = {
   suppliers?: SuppliersAccessPatchPayload;
   receiveStock?: ReceiveStockPatchPayload;
   creditTabs?: CreditTabsPatchPayload;
+  checkout?: CheckoutPatchPayload;
   catalog?: CatalogPatchPayload;
 };
 
@@ -2208,6 +2219,8 @@ export type JsonImportResponse = {
   rowsParsed: number;
   errors: CsvImportLineErrorRecord[];
   rowsCommitted: number | null;
+  /** Non-blocking per-row / file-level notices (e.g. supplier not found). */
+  warnings?: CsvImportLineErrorRecord[];
 };
 
 /** @deprecated Use JsonImportResponse; kept for callers that still reference the old name. */
@@ -2385,6 +2398,7 @@ export type CsvImportJobRecord = {
   rowsProcessed: number;
   rowsCommitted: number | null;
   errors: CsvImportLineErrorRecord[];
+  warnings: CsvImportLineErrorRecord[];
   statusMessage: string | null;
   createdAt: string;
   completedAt: string | null;
@@ -4520,6 +4534,50 @@ export async function patchItem(
   const { notifyTenantCatalogChanged } =
     await import("@/lib/tenant-catalog-events");
   notifyTenantCatalogChanged();
+}
+
+export type BulkItemImageImportResponse = {
+  rowsParsed: number;
+  updated: number;
+  notFound: { line: number; sku: string; message: string }[];
+  invalid: { line: number; sku: string; message: string }[];
+};
+
+/** Bulk-set item images from a CSV of {@code sku,image_url} (missing-images page). */
+export async function postBulkItemImageImport(
+  file: File,
+): Promise<BulkItemImageImportResponse> {
+  const form = new FormData();
+  form.append("file", file);
+  const result = await requestMultipartJson<BulkItemImageImportResponse>(
+    `${API_ROUTES.items}/images/import`,
+    form,
+  );
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
+  return result;
+}
+
+/**
+ * Bulk-upload SKU-named image files ({@code SKU-001.jpg} → SKU {@code SKU-001})
+ * to the missing-images page. Each file becomes the item's cover image.
+ */
+export async function postBulkItemImageUpload(
+  files: File[],
+): Promise<BulkItemImageImportResponse> {
+  const form = new FormData();
+  for (const f of files) {
+    form.append("files", f);
+  }
+  const result = await requestMultipartJson<BulkItemImageImportResponse>(
+    `${API_ROUTES.items}/images/upload-bulk`,
+    form,
+  );
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
+  return result;
 }
 
 /** Grocery / counter: set min + reorder + order-up-to without full catalog write. */

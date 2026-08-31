@@ -285,7 +285,7 @@ export function DesktopLicensesPage() {
 
       <SaSection
         title="License issuer key"
-        description="The Ed25519 private key that signs desktop licenses. Save it here (stored encrypted in the platform database, picked up immediately — no restart) or via APP_DESKTOP_LICENSE_PRIVATE_KEY on the deployment. The matching public key must ship inside the desktop app (app.desktop.license.public-key)."
+        description="The Ed25519 private key that signs desktop licenses. Save it here (stored encrypted in the platform database, picked up immediately — no restart) or via APP_DESKTOP_LICENSE_PRIVATE_KEY on the deployment. Tills fetch the matching public key automatically while online (Settings → License); a baked fallback ships inside the app for offline first use."
       >
         <div className="grid max-w-2xl gap-5">
           <div className="flex flex-wrap items-center gap-2 text-sm">

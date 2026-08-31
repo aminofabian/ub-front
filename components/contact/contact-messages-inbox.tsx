@@ -134,9 +134,16 @@ export function ContactMessagesInbox({
     setSending(true);
     setMessage(null);
     try {
-      await replyMessage(detail.id, { channel, body });
+      const response = await replyMessage(detail.id, { channel, body });
+      const outcome = (response as { outcome?: string } | null)?.outcome;
       setReplyBody("");
-      setMessage({ text: "Reply sent.", kind: "success" });
+      setMessage({
+        text:
+          outcome === "queued"
+            ? "Reply queued — sends when the till is online."
+            : "Reply sent.",
+        kind: "success",
+      });
       const refreshed = await getMessage(detail.id);
       setDetail(refreshed);
       setRefreshKey((k) => k + 1);
@@ -251,11 +258,24 @@ export function ContactMessagesInbox({
                         <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                           <span>{reply.channel}</span>
                           <span>·</span>
-                          <span>{reply.outcome}</span>
+                          {reply.outcome === "failed" ? (
+                            <span className="font-medium text-destructive">Failed</span>
+                          ) : reply.outcome === "queued" ? (
+                            <span>Queued — sends when online</span>
+                          ) : reply.outcome === "sent" || reply.outcome === "stub" ? (
+                            <span>Sent</span>
+                          ) : (
+                            <span>{reply.outcome}</span>
+                          )}
                           <span>·</span>
                           <span>{formatWhen(reply.createdAt)}</span>
                         </div>
                         <p className="whitespace-pre-wrap">{reply.body}</p>
+                        {reply.outcome === "failed" && reply.detail ? (
+                          <p className="mt-1 text-xs text-destructive/80">
+                            {reply.detail}
+                          </p>
+                        ) : null}
                       </li>
                     ))}
                   </ul>

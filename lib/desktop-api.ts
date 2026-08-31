@@ -12,6 +12,15 @@ export type DesktopLicenseStatus = {
   readOnly: boolean;
   /** This machine's fingerprint — send it to your vendor so they can issue a bound key. */
   machineId: string | null;
+  /**
+   * Which public key verification runs against: "synced" (console key synced
+   * from the platform), "baked" (in-app fallback), or "none" (trial-only).
+   */
+  keySource?: "synced" | "baked" | "none" | null;
+  /** When the till last attempted a key sync from the platform (ISO, null = never). */
+  keySyncedAt?: string | null;
+  /** Whether the last key-sync attempt reached the platform (null = never synced). */
+  keySyncOk?: boolean | null;
 };
 
 /** {@code GET /api/v1/desktop/lan/status} */
@@ -124,6 +133,18 @@ export type DesktopSyncPushResult = {
   configured: boolean;
 };
 
+/** Message-inbox pull counts of a finished sync (desktop ⇄ cloud relay). */
+export type DesktopMessagePullResult = {
+  messages: number;
+  replies: number;
+};
+
+/** Message-reply relay counts of a finished sync. */
+export type DesktopMessagePushResult = {
+  repliesPushed: number;
+  configured: boolean;
+};
+
 /** Live progress of the background full sync. */
 export type DesktopSyncStatus = {
   phase: "IDLE" | "DOWNLOADING" | "APPLYING" | "UPLOADING" | "DONE" | "ERROR";
@@ -134,6 +155,8 @@ export type DesktopSyncStatus = {
   itemsTotal: number;
   pull: DesktopSyncPullResult | null;
   push: DesktopSyncPushResult | null;
+  messagePull: DesktopMessagePullResult | null;
+  messagePush: DesktopMessagePushResult | null;
   error: string | null;
 };
 

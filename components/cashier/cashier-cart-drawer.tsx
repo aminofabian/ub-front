@@ -165,6 +165,8 @@ export type CashierCartDrawerProps = {
   requirePhoneVerificationForNewTabCustomers?: boolean;
   /** When true, Tab Find accepts name or phone. */
   allowSearchCustomersByName?: boolean;
+  /** When true, cash and M-Pesa sales show an optional add/select-customer step (tenant setting, off by default). */
+  captureCustomerForCashAndMpesa?: boolean;
   onSearchCustomers: () => void;
   onSendPhoneVerification: () => void;
   onRegisterCustomer: () => void;
@@ -328,6 +330,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     phoneVerificationCooldownUntil,
     requirePhoneVerificationForNewTabCustomers = true,
     allowSearchCustomersByName = false,
+    captureCustomerForCashAndMpesa = false,
     onSearchCustomers,
     onSendPhoneVerification,
     onRegisterCustomer,
@@ -388,12 +391,29 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     (!splitPay && payMethodNeedsCustomer(payMethod)) ||
     creditChangeToWallet ||
     splitUsesWallet;
+  const creditRegisterContext =
+    payMethod === "customer_credit" || creditChangeToWallet;
+  /** Optional customer capture on cash / M-Pesa sales (tenant setting, off by default). */
+  const captureCustomerSimple =
+    captureCustomerForCashAndMpesa &&
+    canLookupCustomers &&
+    !splitPay &&
+    !creditChangeToWallet &&
+    (payMethod === "cash" ||
+      payMethod === "mpesa_manual" ||
+      payMethod === "kiosk_pay");
+  const registerNeedsOtp =
+    requirePhoneVerificationForNewTabCustomers && creditRegisterContext;
+  const selectedPhone = selectedCustomer
+    ? customerPrimaryPhone(selectedCustomer.phones)
+    : null;
   const showCustomerPicker =
     (canLookupCustomers &&
       ((!splitPay && payMethodNeedsCustomer(payMethod)) ||
         creditChangeToWallet ||
         splitPay)) ||
-    payMethod === "remote_bill";
+    payMethod === "remote_bill" ||
+    captureCustomerSimple;
 
   const tenderNum = Number(cashTenderStr.trim());
   const cashChange =
@@ -1204,7 +1224,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             ? "Send bill to"
                             : splitPay
                               ? "Wallet customer"
-                              : "Customer"}
+                              : captureCustomerSimple
+                                ? "Customer (optional)"
+                                : "Customer"}
                       </p>
                       <div className="flex items-center gap-2">
                         <input
@@ -1221,8 +1243,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           }}
                           placeholder={
                             allowSearchCustomersByName &&
-                            (payMethod === "customer_credit" ||
-                              creditChangeToWallet)
+                            (creditRegisterContext || captureCustomerSimple)
                               ? "Name or phone…"
                               : "Phone 2547… or 07…"
                           }
@@ -1311,30 +1332,33 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           })}
                         </ul>
                       ) : null}
-                      {(payMethod === "customer_credit" ||
-                        creditChangeToWallet) &&
+                      {(creditRegisterContext || captureCustomerSimple) &&
                       customerNoPhoneMatch &&
                       !selectedCustomer &&
                       isValidCustomerPhone(customerPhoneQuery) ? (
                         <div className="space-y-3 rounded-xl border border-[color-mix(in_srgb,var(--pos-primary)_28%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_7%,transparent)] p-3.5">
                           <div className="space-y-1">
                             <p className="text-[13px] font-semibold tracking-tight text-foreground">
-                              {requirePhoneVerificationForNewTabCustomers
-                                ? creditChangeToWallet
-                                  ? "New number — verify before wallet credit"
-                                  : "New number — verify before credit"
-                                : creditChangeToWallet
-                                  ? "New number — register before wallet credit"
-                                  : "New number — register before credit"}
+                              {captureCustomerSimple
+                                ? "New number — add customer"
+                                : registerNeedsOtp
+                                  ? creditChangeToWallet
+                                    ? "New number — verify before wallet credit"
+                                    : "New number — verify before credit"
+                                  : creditChangeToWallet
+                                    ? "New number — register before wallet credit"
+                                    : "New number — register before credit"}
                             </p>
                             <p className="text-[12px] leading-snug text-muted-foreground">
-                              {requirePhoneVerificationForNewTabCustomers
-                                ? creditChangeToWallet
-                                  ? "A 4-digit code will be sent by SMS and WhatsApp. The customer must read it aloud so you can confirm the number before parking change on their wallet."
-                                  : "A 4-digit code will be sent by SMS and WhatsApp. The customer must read it aloud so you can confirm the number before opening a tab."
-                                : creditChangeToWallet
-                                  ? "Enter the customer's name to register this number and park change on their wallet."
-                                  : "Enter the customer's name to register this number and open a tab."}
+                              {captureCustomerSimple
+                                ? "Enter the customer's name to register this number and start their purchase history."
+                                : registerNeedsOtp
+                                  ? creditChangeToWallet
+                                    ? "A 4-digit code will be sent by SMS and WhatsApp. The customer must read it aloud so you can confirm the number before parking change on their wallet."
+                                    : "A 4-digit code will be sent by SMS and WhatsApp. The customer must read it aloud so you can confirm the number before opening a tab."
+                                  : creditChangeToWallet
+                                    ? "Enter the customer's name to register this number and park change on their wallet."
+                                    : "Enter the customer's name to register this number and open a tab."}
                             </p>
                           </div>
                           {canManageCustomers ? (
@@ -1353,12 +1377,11 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                   disabled={
                                     !online ||
                                     customerRegisterBusy ||
-                                    (requirePhoneVerificationForNewTabCustomers &&
-                                      phoneVerificationSent)
+                                    (registerNeedsOtp && phoneVerificationSent)
                                   }
                                 />
                               </label>
-                              {requirePhoneVerificationForNewTabCustomers ? (
+                              {registerNeedsOtp ? (
                                 !phoneVerificationSent ? (
                                   <Button
                                     type="button"
@@ -1470,7 +1493,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                     ? "Registering…"
                                     : creditChangeToWallet
                                       ? "Register & credit wallet"
-                                      : "Register & open tab"}
+                                      : captureCustomerSimple
+                                        ? "Add customer"
+                                        : "Register & open tab"}
                                 </Button>
                               )}
                             </>
@@ -1483,33 +1508,51 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       ) : null}
                       {selectedCustomer ? (
                         <div className="rounded-xl bg-muted/40 px-3 py-2 text-[13px]">
-                          <p>
-                            <span className="font-semibold">
-                              {selectedCustomer.name}
-                            </span>
-                            <span className="text-muted-foreground">
-                              {" "}
-                              · wallet{" "}
-                              {Number(
-                                selectedCustomer.credit.walletBalance,
-                              ).toFixed(2)}{" "}
-                              {currency}
-                            </span>
-                          </p>
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="min-w-0">
+                              <span className="font-semibold">
+                                {selectedCustomer.name}
+                              </span>
+                              {captureCustomerSimple ? (
+                                selectedPhone ? (
+                                  <span className="text-muted-foreground">
+                                    {" "}
+                                    · {selectedPhone}
+                                  </span>
+                                ) : null
+                              ) : (
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  · wallet{" "}
+                                  {Number(
+                                    selectedCustomer.credit.walletBalance,
+                                  ).toFixed(2)}{" "}
+                                  {currency}
+                                </span>
+                              )}
+                            </p>
+                            {captureCustomerSimple ? (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedCustomer(null)}
+                                className="shrink-0 rounded-lg px-2 py-0.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                              >
+                                Clear
+                              </button>
+                            ) : null}
+                          </div>
                           {(() => {
-                            const selectedPhone = customerPrimaryPhone(
-                              selectedCustomer.phones,
-                            );
                             if (!selectedPhone) {
                               return (
                                 <p className="mt-1 text-[11px] font-medium text-destructive">
-                                  No phone on file — add one before sending
-                                  reminders or STK.
+                                  {captureCustomerSimple
+                                    ? "No phone on file — history won't link to a number."
+                                    : "No phone on file — add one before sending reminders or STK."}
                                 </p>
                               );
                             }
                             if (!storedCustomerPhoneIssue(selectedPhone)) {
-                              return (
+                              return captureCustomerSimple ? null : (
                                 <p className="mt-0.5 text-[11px] text-muted-foreground">
                                   {selectedPhone}
                                 </p>
@@ -1517,9 +1560,11 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             }
                             return (
                               <div className="mt-1">
-                                <p className="text-[11px] font-medium text-destructive">
-                                  {selectedPhone}
-                                </p>
+                                {!captureCustomerSimple ? (
+                                  <p className="text-[11px] font-medium text-destructive">
+                                    {selectedPhone}
+                                  </p>
+                                ) : null}
                                 <CustomerPhoneFlag phone={selectedPhone} />
                               </div>
                             );

@@ -279,8 +279,15 @@ export default function DesktopSettingsPage() {
               status.push && status.push.shiftsPushed > 0
                 ? `Uploaded ${status.push.salesPushed} sale(s) from ${status.push.shiftsPushed} shift(s).`
                 : "No pending sales to upload.";
+            const inbox =
+              status.messagePull &&
+              (status.messagePull.messages > 0 || status.messagePull.replies > 0)
+                ? `${status.messagePull.messages} message(s), ${status.messagePull.replies} reply(ies) mirrored from your online shop.`
+                : status.messagePush && status.messagePush.repliesPushed > 0
+                  ? `${status.messagePush.repliesPushed} queued reply(ies) sent.`
+                  : "No new inbox messages.";
             toast.success(
-              `Synced — ${pull.items} item(s), ${pull.categories} categor(ies), ${pull.staff} staff, ${pull.images} image(s) refreshed. ${pushed}`,
+              `Synced — ${pull.items} item(s), ${pull.categories} categor(ies), ${pull.staff} staff, ${pull.images} image(s) refreshed. ${pushed} ${inbox}`,
             );
           }
           return false;
@@ -398,7 +405,12 @@ export default function DesktopSettingsPage() {
                   {syncStatus.pull.taxRates} tax rate(s),{" "}
                   {syncStatus.pull.staff} staff, {syncStatus.pull.images}{" "}
                   image(s) refreshed · {syncStatus.push?.salesPushed ?? 0} sale(s){" "}
-                  uploaded.
+                  uploaded · {syncStatus.messagePull?.messages ?? 0} message(s),{" "}
+                  {syncStatus.messagePull?.replies ?? 0} reply(ies) mirrored
+                  {syncStatus.messagePush?.repliesPushed
+                    ? ` · ${syncStatus.messagePush.repliesPushed} queued reply(ies) sent`
+                    : ""}
+                  .
                 </span>
               ) : null}
               {mediaStatus?.downloading ? (
@@ -491,6 +503,20 @@ export default function DesktopSettingsPage() {
                     {license.daysRemaining != null
                       ? ` · ${license.daysRemaining} day(s) left`
                       : null}
+                  </p>
+                ) : null}
+                {license.keySource ? (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Verification key:{" "}
+                    {license.keySource === "synced"
+                      ? "synced from platform"
+                      : license.keySource === "baked"
+                        ? "baked into this build"
+                        : "none (trial-only)"}
+                    {license.keySyncedAt
+                      ? ` · last synced ${new Date(license.keySyncedAt).toLocaleString()}`
+                      : null}
+                    {license.keySyncOk === false ? " · last sync failed" : null}
                   </p>
                 ) : null}
               </div>

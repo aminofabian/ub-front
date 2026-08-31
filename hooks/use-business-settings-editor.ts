@@ -421,6 +421,10 @@ export function useBusinessSettingsEditor() {
               allowCashierSearchCustomersByName:
                 inventory.allowCashierSearchCustomersByName,
             },
+            checkout: {
+              captureCustomerForCashAndMpesa:
+                inventory.captureCustomerForCashAndMpesa,
+            },
             catalog: {
               preserveProductNameCasing: inventory.preserveProductNameCasing,
             },
