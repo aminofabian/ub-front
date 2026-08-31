@@ -5,9 +5,13 @@ import type { NextConfig } from "next";
  * `unsafe-inline` / `unsafe-eval` remain for the App Router runtime; JWT theft
  * is mitigated by httpOnly cookies, not by blocking all inline scripts.
  */
+// Dev-only allowance so impeccable live mode can load. Guarded by NODE_ENV.
+const __impeccableLiveDev =
+  process.env.NODE_ENV === "development" ? " http://localhost:8400" : "";
+
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.googletagmanager.com",
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.googletagmanager.com${__impeccableLiveDev}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://*.google-analytics.com https://*.googletagmanager.com",
   "font-src 'self' data:",
@@ -15,7 +19,7 @@ const contentSecurityPolicy = [
   // must be allowed to fetch it; upgrade-insecure-requests exempts loopback.
   // CSP host-source grammar has no IPv6 literals, so [::1] is omitted — browsers
   // reject the whole source and warn.
-  "connect-src 'self' https: wss: ws: http://127.0.0.1:19500 http://localhost:19500",
+  `connect-src 'self' https: wss: ws: http://127.0.0.1:19500 http://localhost:19500${__impeccableLiveDev}`,
   "media-src 'self' blob:",
   "worker-src 'self' blob:",
   "frame-ancestors 'none'",
