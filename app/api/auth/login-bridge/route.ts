@@ -13,6 +13,7 @@ import {
   readSetCookieHeaders,
   rewriteSetCookieForFrontend,
 } from "@/lib/rewrite-set-cookie";
+import { requestHostname, sessionCookieDomain } from "@/lib/tenant-host";
 import {
   buildSessionFinalizeHtml,
   newLoginIdempotencyKey,
@@ -178,6 +179,8 @@ export async function POST(request: NextRequest) {
   // cookies.set first — Next rebuilds Set-Cookie from its jar and would drop
   // previously appended upstream cookies (httpOnly ub.refresh).
   const secure = new URL(request.url).protocol === "https:";
+  const cookieDomain = sessionCookieDomain(request) || undefined;
+  const hostname = requestHostname(request);
   response.cookies.set({
     name: SESSION_PRESENCE_COOKIE,
     value: "1",
@@ -186,11 +189,15 @@ export async function POST(request: NextRequest) {
     sameSite: "lax",
     secure,
     httpOnly: false,
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
   });
-  applyAccessTokenCookie(response, accessToken, { secure });
+  applyAccessTokenCookie(response, accessToken, {
+    secure,
+    domain: cookieDomain,
+  });
 
-  const upstreamCookies = readSetCookieHeaders(upstream.headers).map(
-    rewriteSetCookieForFrontend,
+  const upstreamCookies = readSetCookieHeaders(upstream.headers).map((cookie) =>
+    rewriteSetCookieForFrontend(cookie, hostname),
   );
   const hasRefreshCookie = upstreamCookies.some((cookie) =>
     cookie.toLowerCase().startsWith("ub.refresh="),
@@ -204,6 +211,7 @@ export async function POST(request: NextRequest) {
       sameSite: "lax",
       secure,
       httpOnly: true,
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
     });
     const secureAttr = secure ? "; Secure" : "";
     response.headers.append(

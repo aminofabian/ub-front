@@ -63,6 +63,8 @@ export function readAccessTokenFromCookieHeader(
 export type AccessTokenCookieOptions = {
   secure: boolean;
   maxAgeSec?: number;
+  /** Parent domain (e.g. `.kiosk.ke`) so apex → shop-subdomain handoff keeps the JWT. */
+  domain?: string;
 };
 
 type AccessCookieSetShape = {
@@ -73,6 +75,7 @@ type AccessCookieSetShape = {
   sameSite: "lax";
   secure: boolean;
   httpOnly: true;
+  domain?: string;
 };
 
 /** Cookie attributes for {@link NextResponse.cookies.set}. */
@@ -80,6 +83,7 @@ export function accessTokenCookieSetOptions(
   accessToken: string,
   opts: AccessTokenCookieOptions,
 ): AccessCookieSetShape {
+  const domain = opts.domain?.trim();
   return {
     name: ACCESS_TOKEN_COOKIE,
     value: accessToken,
@@ -88,13 +92,16 @@ export function accessTokenCookieSetOptions(
     sameSite: "lax",
     secure: opts.secure,
     httpOnly: true,
+    ...(domain ? { domain } : {}),
   };
 }
 
 export function accessTokenCookieClearOptions(opts: {
   secure: boolean;
   path?: string;
+  domain?: string;
 }): AccessCookieSetShape {
+  const domain = opts.domain?.trim();
   return {
     name: ACCESS_TOKEN_COOKIE,
     value: "",
@@ -103,6 +110,7 @@ export function accessTokenCookieClearOptions(opts: {
     sameSite: "lax",
     secure: opts.secure,
     httpOnly: true,
+    ...(domain ? { domain } : {}),
   };
 }
 
@@ -116,6 +124,9 @@ export function serializeAccessTokenCookie(
 ): string {
   const value = opts.value ? encodeURIComponent(opts.value) : "";
   let line = `${opts.name}=${value}; Path=${opts.path}; Max-Age=${opts.maxAge}; HttpOnly; SameSite=${opts.sameSite}`;
+  if (opts.domain) {
+    line += `; Domain=${opts.domain}`;
+  }
   if (opts.secure) {
     line += "; Secure";
   }
@@ -144,26 +155,50 @@ export function applyAccessTokenCookie(
       accessTokenCookieClearOptions({
         secure: opts.secure,
         path: ACCESS_TOKEN_COOKIE_LEGACY_PATH,
+        domain: opts.domain,
       }),
     ),
   );
 }
 
-/** Clear `ub.access` on current + legacy paths. */
+/** Clear `ub.access` on current + legacy paths (parent-domain and host-only leftovers). */
 export function clearAccessTokenCookies(
   response: CookieResponse,
-  opts: { secure: boolean },
+  opts: { secure: boolean; domain?: string },
 ): void {
-  response.cookies.set(accessTokenCookieClearOptions({ secure: opts.secure }));
+  response.cookies.set(
+    accessTokenCookieClearOptions({
+      secure: opts.secure,
+      domain: opts.domain,
+    }),
+  );
   response.headers.append(
     "Set-Cookie",
     serializeAccessTokenCookie(
       accessTokenCookieClearOptions({
         secure: opts.secure,
         path: ACCESS_TOKEN_COOKIE_LEGACY_PATH,
+        domain: opts.domain,
       }),
     ),
   );
+  if (opts.domain) {
+    response.headers.append(
+      "Set-Cookie",
+      serializeAccessTokenCookie(
+        accessTokenCookieClearOptions({ secure: opts.secure }),
+      ),
+    );
+    response.headers.append(
+      "Set-Cookie",
+      serializeAccessTokenCookie(
+        accessTokenCookieClearOptions({
+          secure: opts.secure,
+          path: ACCESS_TOKEN_COOKIE_LEGACY_PATH,
+        }),
+      ),
+    );
+  }
 }
 
 /** Tenant auth only — super-admin and supplier-portal keep Bearer tokens in sessionStorage. */
@@ -180,7 +215,8 @@ export function isAccessTokenMintPath(pathname: string): boolean {
     pathname.endsWith("/unlock-pin") ||
     pathname.endsWith("/refresh") ||
     pathname.endsWith("/register") ||
-    pathname.endsWith("/accept-invite")
+    pathname.endsWith("/accept-invite") ||
+    pathname.endsWith("/verify-email")
   );
 }
 

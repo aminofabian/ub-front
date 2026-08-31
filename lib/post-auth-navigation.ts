@@ -1,16 +1,8 @@
-import {
-  getSessionTenantId,
-  persistTenantHostAfterAuth,
-} from "@/lib/auth";
-import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
+import { persistTenantHostAfterAuth } from "@/lib/auth";
 import { fetchBusiness } from "@/lib/api";
-import {
-  APP_ROUTES,
-  hostDerivedShopUrl,
-  slugDerivedShopUrl,
-} from "@/lib/config";
-import { IS_DESKTOP } from "@/lib/runtime";
+import { hostDerivedShopUrl, slugDerivedShopUrl } from "@/lib/config";
 import { isOfficeConsolePath } from "@/lib/login-audience";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
 import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
 
@@ -89,20 +81,16 @@ async function syncSlugAndNavigate(
     return;
   }
 
-  const tenantId = getSessionTenantId();
+  persistTenantHostAfterAuth(slug, normalizedPrimary);
 
-  // Gap G: never put access/refresh JWTs in the URL. Shop host restores via
-  // shared httpOnly refresh cookie (APP_AUTH_REFRESH_COOKIE_DOMAIN) + restore-session.
-  // Optional fragment carries only non-secret tenant/next hints.
-  const fragment = encodeAuthHandoffPayload({
-    tenantId: tenantId ?? undefined,
-    nextPath: nextHint,
+  // Mint parent-domain cookies on this host, then 303 to the shop handoff.
+  // A raw location.assign skipped store-session, so owners who verified on
+  // the apex arrived at {slug}.kiosk.ke with no ub.access / ub.refresh.
+  submitStoreSessionNavigate(nextHint, {
+    office: office || isOfficeConsolePath(nextHint),
+    handoffOrigin: targetOrigin,
+    slug,
   });
-  const nextEnc = encodeURIComponent(nextHint);
-  const slugEnc = encodeURIComponent(slug);
-  window.location.assign(
-    `${shopBase}${APP_ROUTES.authHandoff}?next=${nextEnc}&slug=${slugEnc}#${fragment}`,
-  );
 }
 
 /** Persist session and navigate to the post-auth destination (with subdomain handoff). */

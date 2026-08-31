@@ -46,6 +46,16 @@ describe("access-token-cookie", () => {
     expect(maxAge).toBeLessThanOrEqual(120);
   });
 
+  it("includes parent Domain when set", () => {
+    const token = makeJwt(600);
+    const set = accessTokenCookieSetOptions(token, {
+      secure: true,
+      domain: ".kiosk.ke",
+    });
+    expect(set.domain).toBe(".kiosk.ke");
+    expect(serializeAccessTokenCookie(set)).toContain("Domain=.kiosk.ke");
+  });
+
   it("builds set/clear cookie options on /api", () => {
     const token = makeJwt(600);
     const set = accessTokenCookieSetOptions(token, { secure: true });
@@ -125,6 +135,7 @@ describe("access-token-cookie", () => {
     expect(isAccessTokenMintPath("/api/v1/auth/login")).toBe(true);
     expect(isAccessTokenMintPath("/api/v1/auth/login-pin")).toBe(true);
     expect(isAccessTokenMintPath("/api/v1/auth/refresh")).toBe(true);
+    expect(isAccessTokenMintPath("/api/v1/auth/verify-email")).toBe(true);
     expect(isAccessTokenMintPath("/api/v1/sales")).toBe(false);
     expect(isAccessTokenMintPath("/api/v1/super-admin/auth/login")).toBe(false);
     expect(isAccessTokenMintPath("/api/v1/supplier-portal/auth/login")).toBe(

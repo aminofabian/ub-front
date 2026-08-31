@@ -16,6 +16,7 @@ import {
   readSetCookieHeaders,
   rewriteSetCookieForFrontend,
 } from "@/lib/rewrite-set-cookie";
+import { requestHostname, sessionCookieDomain } from "@/lib/tenant-host";
 
 const HEADER_ALLOWLIST = [
   "authorization",
@@ -135,13 +136,17 @@ function requestIsHttps(req: NextRequest): boolean {
   return req.nextUrl.protocol === "https:";
 }
 
-function copyUpstreamHeaders(from: Headers, to: NextResponse): void {
+function copyUpstreamHeaders(
+  from: Headers,
+  to: NextResponse,
+  hostname: string,
+): void {
   from.forEach((value, key) => {
     const lower = key.toLowerCase();
     if (SKIP_OUT_HEADERS.has(lower) || lower === "set-cookie") return;
     to.headers.set(key, value);
   });
-  appendUpstreamSetCookies(from, to);
+  appendUpstreamSetCookies(from, to, hostname);
 }
 
 /**
@@ -149,9 +154,16 @@ function copyUpstreamHeaders(from: Headers, to: NextResponse): void {
  * Next rebuilds the Set-Cookie header from its cookie jar and would drop
  * previously appended upstream cookies (e.g. httpOnly `ub.refresh`).
  */
-function appendUpstreamSetCookies(from: Headers, to: NextResponse): void {
+function appendUpstreamSetCookies(
+  from: Headers,
+  to: NextResponse,
+  hostname: string,
+): void {
   for (const cookie of readSetCookieHeaders(from)) {
-    to.headers.append("Set-Cookie", rewriteSetCookieForFrontend(cookie));
+    to.headers.append(
+      "Set-Cookie",
+      rewriteSetCookieForFrontend(cookie, hostname),
+    );
   }
 }
 
@@ -281,6 +293,8 @@ export async function proxyToBackend(
     status >= 200 &&
     status < 300 &&
     isAccessTokenClearPath(url.pathname);
+  const hostname = requestHostname(req);
+  const cookieDomain = sessionCookieDomain(req) || undefined;
 
   if (mintAccess) {
     const rawBody = await upstream.text();
@@ -303,9 +317,12 @@ export async function proxyToBackend(
       out.headers.set(key, value);
     });
     if (accessToken) {
-      applyAccessTokenCookie(out, accessToken, { secure });
+      applyAccessTokenCookie(out, accessToken, {
+        secure,
+        domain: cookieDomain,
+      });
     }
-    appendUpstreamSetCookies(upstream.headers, out);
+    appendUpstreamSetCookies(upstream.headers, out, hostname);
     return out;
   }
 
@@ -323,10 +340,10 @@ export async function proxyToBackend(
       if (SKIP_OUT_HEADERS.has(lower) || lower === "set-cookie") return;
       out.headers.set(key, value);
     });
-    clearAccessTokenCookies(out, { secure });
-    appendUpstreamSetCookies(upstream.headers, out);
+    clearAccessTokenCookies(out, { secure, domain: cookieDomain });
+    appendUpstreamSetCookies(upstream.headers, out, hostname);
     return out;
   }
-  copyUpstreamHeaders(upstream.headers, out);
+  copyUpstreamHeaders(upstream.headers, out, hostname);
   return out;
 }

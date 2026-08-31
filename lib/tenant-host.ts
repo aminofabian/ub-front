@@ -34,3 +34,55 @@ export function cookieDomainForHost(hostname: string): string {
   }
   return "";
 }
+
+type HeaderReader = { get(name: string): string | null };
+
+/** Hostname from `x-forwarded-host` or `host`, without port. */
+export function requestHostname(request: { headers: HeaderReader }): string {
+  const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = (forwarded || request.headers.get("host") || "")
+    .split(":")[0]
+    ?.trim();
+  return host || "";
+}
+
+/** Parent cookie domain for the incoming request host, or `""` on localhost. */
+export function sessionCookieDomain(request: { headers: HeaderReader }): string {
+  return cookieDomainForHost(requestHostname(request));
+}
+
+/**
+ * True when {@code origin} is the same host or the same registrable parent as
+ * {@code currentHostname} (apex ↔ shop subdomain). Rejects open redirects.
+ */
+export function isSameSiteHandoffOrigin(
+  origin: string,
+  currentHostname: string,
+): boolean {
+  let target: URL;
+  try {
+    target = new URL(origin);
+  } catch {
+    return false;
+  }
+  if (target.protocol !== "http:" && target.protocol !== "https:") {
+    return false;
+  }
+  const current = stripLeadingWww(currentHostname);
+  const dest = stripLeadingWww(target.hostname);
+  if (!current || !dest) {
+    return false;
+  }
+  if (current === dest) {
+    return true;
+  }
+  const currentDomain = cookieDomainForHost(current);
+  const destDomain = cookieDomainForHost(dest);
+  if (currentDomain && destDomain && currentDomain === destDomain) {
+    return true;
+  }
+  const currentLocal =
+    current === "localhost" || current.endsWith(".localhost");
+  const destLocal = dest === "localhost" || dest.endsWith(".localhost");
+  return currentLocal && destLocal;
+}

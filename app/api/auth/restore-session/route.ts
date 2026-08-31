@@ -8,6 +8,11 @@ import { claimsFromAccessToken } from "@/lib/auth-session-claims";
 import { getServerApiOrigin } from "@/lib/config";
 import { businessIdFromAccessToken } from "@/lib/jwt-client";
 import { prefetchSessionBootstrap } from "@/lib/login-session.server";
+import {
+  readSetCookieHeaders,
+  rewriteSetCookieForFrontend,
+} from "@/lib/rewrite-set-cookie";
+import { requestHostname, sessionCookieDomain } from "@/lib/tenant-host";
 
 function resolveTenantHost(request: NextRequest): string | null {
   const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
@@ -59,6 +64,9 @@ export async function POST(request: NextRequest) {
   const cookieHeader = request.headers.get("cookie") ?? "";
   const secure = new URL(request.url).protocol === "https:";
 
+  const cookieDomain = sessionCookieDomain(request) || undefined;
+  const hostname = requestHostname(request);
+
   const existingAccess = readAccessTokenFromCookieHeader(cookieHeader);
   if (existingAccess) {
     const tenantId = businessIdFromAccessToken(existingAccess) ?? "";
@@ -70,7 +78,10 @@ export async function POST(request: NextRequest) {
       tenantHost,
       bootstrap,
     });
-    applyAccessTokenCookie(response, existingAccess, { secure });
+    applyAccessTokenCookie(response, existingAccess, {
+      secure,
+      domain: cookieDomain,
+    });
     return response;
   }
 
@@ -120,16 +131,15 @@ export async function POST(request: NextRequest) {
 
   // Apply access cookie first, then append upstream Set-Cookie (refresh) so
   // Next's cookie jar does not wipe the refresh cookie.
-  applyAccessTokenCookie(response, accessToken, { secure });
-  if (typeof refreshResponse.headers.getSetCookie === "function") {
-    for (const cookie of refreshResponse.headers.getSetCookie()) {
-      response.headers.append("Set-Cookie", cookie);
-    }
-  } else {
-    const combined = refreshResponse.headers.get("set-cookie");
-    if (combined) {
-      response.headers.append("Set-Cookie", combined);
-    }
+  applyAccessTokenCookie(response, accessToken, {
+    secure,
+    domain: cookieDomain,
+  });
+  for (const cookie of readSetCookieHeaders(refreshResponse.headers)) {
+    response.headers.append(
+      "Set-Cookie",
+      rewriteSetCookieForFrontend(cookie, hostname),
+    );
   }
 
   return response;

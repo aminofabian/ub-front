@@ -3,6 +3,7 @@
 import {
   getSessionClaims,
   getSessionTenantId,
+  getSessionTokens,
   hasAccessSession,
 } from "@/lib/auth";
 
@@ -15,6 +16,12 @@ export type StoreSessionNavigateOptions = {
   tenantId?: string;
   /** Office console login — store-session ignores leftover storefront next. */
   office?: boolean;
+  /**
+   * Same-site shop origin. store-session mints parent-domain cookies on this
+   * host, then 303s to `{handoffOrigin}/auth/handoff` (owner/admin signup).
+   */
+  handoffOrigin?: string;
+  slug?: string;
 };
 
 /**
@@ -33,8 +40,13 @@ export function submitStoreSessionNavigate(
     getSessionTenantId()?.trim() ||
     getSessionClaims()?.businessId?.trim() ||
     "";
-  const accessToken = opts?.accessToken?.trim() || "";
+  const accessToken =
+    opts?.accessToken?.trim() ||
+    getSessionTokens()?.accessToken?.trim() ||
+    "";
   const refreshToken = opts?.refreshToken?.trim() || "";
+  const handoffOrigin = opts?.handoffOrigin?.trim() || "";
+  const slug = opts?.slug?.trim() || "";
 
   if (!tenantId || (!accessToken && !hasAccessSession())) {
     window.location.assign(nextPath);
@@ -57,6 +69,12 @@ export function submitStoreSessionNavigate(
   }
   if (refreshToken) {
     fields.refreshToken = refreshToken;
+  }
+  if (handoffOrigin) {
+    fields.handoffOrigin = handoffOrigin;
+  }
+  if (slug) {
+    fields.slug = slug;
   }
 
   for (const [name, value] of Object.entries(fields)) {

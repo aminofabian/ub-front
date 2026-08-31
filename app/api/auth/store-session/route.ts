@@ -8,12 +8,18 @@ import {
   SESSION_PRESENCE_COOKIE,
   SESSION_PRESENCE_MAX_AGE_SEC,
 } from "@/lib/auth-route-guard";
+import { APP_ROUTES } from "@/lib/config";
 import { loginHrefForDestination } from "@/lib/login-audience";
 import {
   buildSessionFinalizeHtml,
   prefetchSessionBootstrap,
   resolveFinalizeDestination,
 } from "@/lib/login-session.server";
+import {
+  isSameSiteHandoffOrigin,
+  requestHostname,
+  sessionCookieDomain,
+} from "@/lib/tenant-host";
 
 function resolveTenantHost(request: NextRequest): string | null {
   const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
@@ -53,10 +59,13 @@ export async function POST(request: NextRequest) {
   const refreshToken = readField(form, "refreshToken");
   const tenantId = readField(form, "tenantId");
   const requestedNext = String(form.get("next") ?? "");
+  const handoffOrigin = readField(form, "handoffOrigin");
+  const slug = readField(form, "slug");
   const office =
     String(form.get("office") ?? "").trim() === "1" ||
     String(form.get("mode") ?? "").trim().toLowerCase() === "office";
   const tenantHost = resolveTenantHost(request);
+  const cookieDomain = sessionCookieDomain(request) || undefined;
 
   if (!accessToken || !tenantId) {
     return loginErrorRedirect(
@@ -86,6 +95,62 @@ export async function POST(request: NextRequest) {
     { office },
   );
 
+  const secure = new URL(request.url).protocol === "https:";
+  const applySessionCookies = (response: NextResponse) => {
+    response.cookies.set({
+      name: SESSION_PRESENCE_COOKIE,
+      value: "1",
+      path: "/",
+      maxAge: SESSION_PRESENCE_MAX_AGE_SEC,
+      sameSite: "lax",
+      secure,
+      httpOnly: false,
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
+    });
+    applyAccessTokenCookie(response, accessToken, {
+      secure,
+      domain: cookieDomain,
+    });
+    // Cross-origin handoff (SA impersonation) brings refresh in the form — mint
+    // the same Path=/api cookie Spring sets so restore-session can see it.
+    if (refreshToken) {
+      response.cookies.set({
+        name: "ub.refresh",
+        value: refreshToken,
+        path: "/api",
+        maxAge: 30 * 24 * 60 * 60,
+        sameSite: "lax",
+        secure,
+        httpOnly: true,
+        ...(cookieDomain ? { domain: cookieDomain } : {}),
+      });
+      // Next keys cookies by name — append the legacy-path clear as a raw header.
+      const secureAttr = secure ? "; Secure" : "";
+      const domainAttr = cookieDomain ? `; Domain=${cookieDomain}` : "";
+      response.headers.append(
+        "Set-Cookie",
+        `ub.refresh=; Path=/api/v1/auth; Max-Age=0; HttpOnly; SameSite=Lax${secureAttr}${domainAttr}`,
+      );
+    }
+  };
+
+  // Owner/admin signup often verifies on the platform apex, then must land on
+  // {slug}.kiosk.ke. Mint parent-domain cookies here, then 303 to the shop
+  // handoff so restore-session sees ub.access / ub.refresh.
+  if (
+    handoffOrigin &&
+    isSameSiteHandoffOrigin(handoffOrigin, requestHostname(request))
+  ) {
+    const dest = new URL(APP_ROUTES.authHandoff, handoffOrigin);
+    dest.searchParams.set("next", nextPath);
+    if (slug) {
+      dest.searchParams.set("slug", slug);
+    }
+    const redirect = NextResponse.redirect(dest, 303);
+    applySessionCookies(redirect);
+    return redirect;
+  }
+
   const html = buildSessionFinalizeHtml({
     accessToken,
     refreshToken: refreshToken || undefined,
@@ -99,37 +164,6 @@ export async function POST(request: NextRequest) {
     status: 200,
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });
-
-  const secure = new URL(request.url).protocol === "https:";
-  response.cookies.set({
-    name: SESSION_PRESENCE_COOKIE,
-    value: "1",
-    path: "/",
-    maxAge: SESSION_PRESENCE_MAX_AGE_SEC,
-    sameSite: "lax",
-    secure,
-    httpOnly: false,
-  });
-  applyAccessTokenCookie(response, accessToken, { secure });
-  // Cross-origin handoff (SA impersonation) brings refresh in the form — mint
-  // the same Path=/api cookie Spring sets so restore-session can see it.
-  if (refreshToken) {
-    response.cookies.set({
-      name: "ub.refresh",
-      value: refreshToken,
-      path: "/api",
-      maxAge: 30 * 24 * 60 * 60,
-      sameSite: "lax",
-      secure,
-      httpOnly: true,
-    });
-    // Next keys cookies by name — append the legacy-path clear as a raw header.
-    const secureAttr = secure ? "; Secure" : "";
-    response.headers.append(
-      "Set-Cookie",
-      `ub.refresh=; Path=/api/v1/auth; Max-Age=0; HttpOnly; SameSite=Lax${secureAttr}`,
-    );
-  }
-
+  applySessionCookies(response);
   return response;
 }
