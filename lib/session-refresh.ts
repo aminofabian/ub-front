@@ -15,7 +15,10 @@ import {
   isPosSoftAuthActive,
   notifyPosSessionExpired,
 } from "@/lib/pos-soft-auth";
-import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
+import {
+  hydrateSessionClaimsFromAccessCookie,
+  restoreClientSessionFromCookie,
+} from "@/lib/restore-client-session";
 import { tryRecoverSessionBeforeSignOut } from "@/lib/session-recovery";
 
 /*
@@ -175,16 +178,13 @@ async function heartbeat(): Promise<void> {
   }
   let exp = getAccessTokenExpiry();
   if (exp === null) {
-    // Claims without exp (businessId/sub only) used to rotate refresh every
-    // 3 minutes. That revoked the access jti and — with a leftover host-only
-    // cookie — made every request fail as "Session is no longer active".
-    const restored = await restoreClientSessionFromCookie({ force: true });
-    if (restored) {
+    const hydrated = await hydrateSessionClaimsFromAccessCookie();
+    if (hydrated) {
       scheduleNextRefresh();
     }
     return;
   }
-  if (exp - Date.now() < ACTIVITY_REFRESH_THRESHOLD_MS) {
+  if (exp - Date.now() < REFRESH_MARGIN_MS) {
     const outcome = await refreshAccessToken();
     if (outcome.kind === "ok") {
       consecutiveRefreshRejections = 0;
@@ -254,8 +254,8 @@ export function startSessionRefresh(): () => void {
       scheduleNextRefresh();
     }
   } else {
-    void restoreClientSessionFromCookie({ force: true }).then((restored) => {
-      if (restored) {
+    void hydrateSessionClaimsFromAccessCookie().then((hydrated) => {
+      if (hydrated) {
         scheduleNextRefresh();
       }
     });
@@ -305,7 +305,10 @@ export function startSessionRefresh(): () => void {
     if (!hasAccessSession()) {
       return;
     }
-    void performRefresh();
+    const exp = getAccessTokenExpiry();
+    if (exp === null || exp - Date.now() <= EAGER_REFRESH_THRESHOLD_MS) {
+      void performRefresh();
+    }
   };
   window.addEventListener("online", onlineHandler);
 

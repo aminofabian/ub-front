@@ -34,6 +34,31 @@ export type RestoreClientSessionOptions = {
   force?: boolean;
 };
 
+/** Read exp/businessId from httpOnly `ub.access` without rotating refresh. */
+export async function hydrateSessionClaimsFromAccessCookie(): Promise<boolean> {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  try {
+    const response = await fetch("/api/auth/session", {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      return false;
+    }
+    const payload = (await response.json()) as {
+      session?: AuthSessionClaims;
+    };
+    if (!payload.session) {
+      return false;
+    }
+    return applyAuthSessionPayload({ session: payload.session });
+  } catch {
+    return false;
+  }
+}
+
 /** Restore session from httpOnly cookies into JS claims (Gap G3: no JWT in JS). */
 export function restoreClientSessionFromCookie(
   options: RestoreClientSessionOptions = {},
