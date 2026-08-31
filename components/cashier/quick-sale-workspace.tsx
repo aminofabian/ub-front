@@ -4343,49 +4343,56 @@ export function QuickSaleWorkspace({
     );
   }
 
+  const pendingExtras = (
+    <>
+      {(posDraftsUi || posDraftsEnabled) && (
+        <PendingSalesPanel
+          onResumeDraft={(id) => void resumePosDraft(id)}
+          onDraftVoided={handleLocalDraftVoided}
+          openDraftIds={openDraftIds}
+          refreshKey={pendingSalesRefreshKey}
+        />
+      )}
+      <PendingInvoicesPanel
+        onLoadInvoice={(barcode, placement) =>
+          void loadGroceryInvoiceByBarcode(
+            barcode,
+            placement ? { placement } : undefined,
+          )
+        }
+        onInvoiceVoided={handleLocalInvoiceVoided}
+        openInvoiceIds={openInvoiceIds}
+        activeCartHasItems={activeCart.lines.length > 0}
+        refreshKey={invoiceRefreshKey}
+      />
+    </>
+  );
+
   return (
     <div
       className={cn(
         isCashier && "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
       )}
     >
-      <div
-        className={cn(
-          "flex items-center justify-between px-1",
-          isCashier ? "shrink-0 pb-0.5" : "pb-2",
-          isLedger && "hidden",
-        )}
-      >
-        {!isCashier ? (
-          <span className="text-[10px] font-medium text-muted-foreground">
-            {activeBranchName || "Point of sale"}
-          </span>
-        ) : (
-          <span className="sr-only">{activeBranchName || "Point of sale"}</span>
-        )}
-        <div className={cn("flex items-center gap-2", isCashier && "ml-auto")}>
-          {(posDraftsUi || posDraftsEnabled) && (
-            <PendingSalesPanel
-              onResumeDraft={(id) => void resumePosDraft(id)}
-              onDraftVoided={handleLocalDraftVoided}
-              openDraftIds={openDraftIds}
-              refreshKey={pendingSalesRefreshKey}
-            />
+      {!isLedger ? (
+        <div
+          className={cn(
+            "flex items-center justify-between px-1",
+            isCashier ? "shrink-0 pb-0.5" : "pb-2",
           )}
-          <PendingInvoicesPanel
-            onLoadInvoice={(barcode, placement) =>
-              void loadGroceryInvoiceByBarcode(
-                barcode,
-                placement ? { placement } : undefined,
-              )
-            }
-            onInvoiceVoided={handleLocalInvoiceVoided}
-            openInvoiceIds={openInvoiceIds}
-            activeCartHasItems={activeCart.lines.length > 0}
-            refreshKey={invoiceRefreshKey}
-          />
+        >
+          {!isCashier ? (
+            <span className="text-[10px] font-medium text-muted-foreground">
+              {activeBranchName || "Point of sale"}
+            </span>
+          ) : (
+            <span className="sr-only">{activeBranchName || "Point of sale"}</span>
+          )}
+          <div className={cn("flex items-center gap-2", isCashier && "ml-auto")}>
+            {pendingExtras}
+          </div>
         </div>
-      </div>
+      ) : null}
       <PosChrome
         checkoutDrawerOpen={checkoutDrawerOpen}
         onCheckoutDrawerOpenChange={setCheckoutDrawerOpen}
@@ -4393,6 +4400,7 @@ export function QuickSaleWorkspace({
         embeddedInDashboard={!isCashier}
         checkoutCompletedKey={checkoutCompletedKey}
         brandTheme={dialogBrandTheme}
+        toolbarExtras={isLedger ? pendingExtras : undefined}
         online={online}
         offlineBanner={posDraftOfflineBanner}
         currency={currency}

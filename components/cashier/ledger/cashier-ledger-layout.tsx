@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import Link from "next/link";
 import {
@@ -13,10 +14,13 @@ import {
   Camera,
   ClipboardCheck,
   CreditCard,
+  Lock,
   LockKeyhole,
+  MapPin,
   MoreHorizontal,
   PackagePlus,
   PlusCircle,
+  ScanLine,
   Settings2,
   Smartphone,
   Truck,
@@ -24,6 +28,7 @@ import {
   Wallet,
   Wifi,
   WifiOff,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -62,6 +67,8 @@ import {
 import { isPosPackageSellRow } from "@/lib/cashier-item-display";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import { tillDeviceDisplayName } from "@/lib/till-device";
+import { isBranchLockedRole } from "@/lib/branch-access";
+import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
 import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
 import { cn } from "@/lib/utils";
 
@@ -108,13 +115,38 @@ const MORE_CHIP = cn(
   "hover:bg-zinc-50",
 );
 
+const CASH_QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const;
+
+const HEADER_SELECT = cn(
+  "h-7 max-w-[9.5rem] rounded-md border border-white/25 bg-white/10 px-2 text-[11px] font-medium",
+  "text-inherit outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+  "disabled:opacity-50",
+);
+
+function MoreGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <p className="px-0.5 text-[11px] font-medium text-zinc-500">{label}</p>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  );
+}
+
 export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   const {
     brandTheme,
+    toolbarExtras,
     online,
     offlineBanner,
     currency,
     uiCopy,
+    activeBranchName,
     branchSelected,
     branchId,
     businessId,
@@ -153,12 +185,26 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     cart,
   } = props;
 
-  const { me, business } = useDashboard();
+  const {
+    me,
+    business,
+    branches,
+    setBranchId,
+    branchesLoading,
+    itemTypes: dashItemTypes,
+    itemTypeId,
+    setItemTypeId,
+    itemTypesLoading,
+  } = useDashboard();
   const tillLock = useOptionalPosTillLock();
   const tillLocked = tillLock?.locked === true;
   const scanToCartEnabled = useFeatureFlag(POS_CASHIER_CAPABILITY_FLAGS.scanToCart);
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const showOwnerNav = roleKey !== "cashier";
+  const branchLocked = isBranchLockedRole(roleKey);
+  const currentBranch =
+    branches.find((b) => b.id === branchId) ??
+    branches.find((b) => b.name === activeBranchName);
 
   const [tillLabel, setTillLabel] = useState("");
   const [tab, setTab] = useState<LedgerTab>("sale");
@@ -187,6 +233,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   } | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
   const barcodeBusyRef = useRef(false);
   const parentCheckCache = useRef(new Map<string, boolean>());
   const topIdsKey = topProducts.map((p) => p.id).join(",");
@@ -233,6 +280,33 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     tenderNum >= cart.payableTotal
       ? tenderNum - cart.payableTotal
       : 0;
+  const cashShort =
+    cart.payMethod === "cash" &&
+    Number.isFinite(tenderNum) &&
+    cart.payableTotal > 0 &&
+    tenderNum < cart.payableTotal;
+  const selectedLine = selectedKey
+    ? sheetLines.find((l) => l.key === selectedKey)
+    : null;
+  const keypadTargetLabel =
+    keyTarget === "tender"
+      ? "cash received"
+      : selectedLine && activeField === "qty"
+        ? `qty · ${selectedLine.item}`
+        : selectedLine && activeField === "price"
+          ? `price · ${selectedLine.item}`
+          : selectedLine && activeField === "disc"
+            ? `discount · ${selectedLine.item}`
+            : "find item";
+  const keypadEnterLabel =
+    keyTarget === "tender"
+      ? cart.canCompleteSale
+        ? "Pay"
+        : "Enter"
+      : selectedKey && activeField !== "code"
+        ? "Next"
+        : "Add";
+  const completeIdle = cart.lines.length === 0 && cart.lastSale != null;
 
   const cartQtyByItem = useMemo(() => {
     const map = new Map<string, number>();
@@ -464,15 +538,19 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     [cart, priceBaseByKey],
   );
 
-  const voidLine = useCallback(() => {
-    if (!selectedKey) {
-      toast.message("Select a line to void");
-      return;
-    }
-    cart.removeLine(selectedKey);
-    setSelectedKey(null);
-    focusSearch();
-  }, [selectedKey, cart, focusSearch]);
+  const voidLine = useCallback(
+    (key?: string) => {
+      const target = key ?? selectedKey;
+      if (!target) {
+        toast.message("Select a line to remove");
+        return;
+      }
+      cart.removeLine(target);
+      if (selectedKey === target) setSelectedKey(null);
+      focusSearch();
+    },
+    [selectedKey, cart, focusSearch],
+  );
 
   const holdSale = useCallback(() => {
     if (cart.lines.length === 0) {
@@ -605,9 +683,25 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   }, [keyTarget, activeField, selectedKey, cart, commitEntry, allowPriceEdit]);
 
   useEffect(() => {
+    if (!moreOpen) return;
+    const onPointer = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    window.addEventListener("mousedown", onPointer);
+    return () => window.removeEventListener("mousedown", onPointer);
+  }, [moreOpen]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target instanceof HTMLElement ? e.target : null;
       if (target?.closest('[role="dialog"]')) return;
+      if (e.key === "Escape" && moreOpen) {
+        e.preventDefault();
+        setMoreOpen(false);
+        return;
+      }
       if (e.key === "F1") {
         e.preventDefault();
         newSale();
@@ -633,7 +727,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [newSale, holdSale, voidLine, focusSearch, focusPay, recallSale]);
+  }, [newSale, holdSale, voidLine, focusSearch, focusPay, recallSale, moreOpen]);
 
   const payMethods = [
     { id: "cash" as const, label: "Cash", icon: Banknote },
@@ -646,62 +740,190 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
       className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-zinc-100 text-zinc-900"
       style={brandTheme}
     >
-      <header className="flex shrink-0 items-center gap-3 bg-[var(--pos-primary)] px-3 py-2 text-[var(--pos-primary-ink,#fff)]">
-        <p className="text-sm font-semibold tracking-tight">{shopName} Cashier</p>
-        <p className="truncate text-xs opacity-90">
-          {[tillLabel, cashierName].filter(Boolean).join(" · ")}
-        </p>
+      <header className="flex shrink-0 flex-wrap items-center gap-2 bg-[var(--pos-primary)] px-3 py-1.5 text-[var(--pos-primary-ink,#fff)]">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold tracking-tight">{shopName}</p>
+          <p className="truncate text-[11px] opacity-90">
+            {[tillLabel, cashierName].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+        {branchLocked ? (
+          currentBranch ? (
+            <span
+              className="inline-flex h-7 max-w-[9.5rem] items-center gap-1 truncate rounded-md border border-white/25 bg-white/10 px-2 text-[11px] font-medium"
+              title="Branch switching is disabled for your role"
+            >
+              <Lock className="size-3 shrink-0" aria-hidden />
+              <MapPin className="size-3 shrink-0" aria-hidden />
+              <span className="truncate">{currentBranch.name}</span>
+            </span>
+          ) : null
+        ) : (
+          <select
+            className={HEADER_SELECT}
+            value={branchId}
+            onChange={(e) => setBranchId(e.target.value)}
+            disabled={branchesLoading || branches.length === 0}
+            aria-label="Select branch"
+          >
+            {branches.length === 0 ? (
+              <option value="">{branchesLoading ? "Loading…" : "No branches"}</option>
+            ) : (
+              <>
+                {!branchId ? <option value="">Select branch…</option> : null}
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
+        )}
+        <select
+          className={HEADER_SELECT}
+          value={itemTypeId}
+          onChange={(e) => setItemTypeId(e.target.value)}
+          disabled={itemTypesLoading || dashItemTypes.length === 0}
+          aria-label="Select department"
+        >
+          {dashItemTypes.length === 0 ? (
+            <option value="">{itemTypesLoading ? "Loading…" : "No departments"}</option>
+          ) : (
+            <>
+              <option value="">{ALL_DEPARTMENTS_LABEL}</option>
+              {dashItemTypes.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                  {t.isDefault ? " ★" : ""}
+                </option>
+              ))}
+            </>
+          )}
+        </select>
         <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium">
           {online ? <Wifi className="size-3.5" aria-hidden /> : <WifiOff className="size-3.5" aria-hidden />}
           {online ? "Online" : "Offline"}
         </span>
+        <button
+          type="button"
+          disabled={tillLocked}
+          onClick={() => tillLock?.lock({ reason: "manual" })}
+          className="inline-flex h-7 items-center gap-1 rounded-md border border-white/25 bg-white/10 px-2 text-[11px] font-medium hover:bg-white/20 disabled:opacity-40"
+        >
+          <LockKeyhole className="size-3.5" aria-hidden />
+          Lock
+        </button>
       </header>
 
       {offlineBanner ? (
         <p className="shrink-0 bg-amber-100 px-3 py-1 text-[11px] text-amber-950">{offlineBanner}</p>
       ) : null}
 
+      {toolbarExtras ? (
+        <div className="flex shrink-0 items-center justify-end gap-2 border-b border-zinc-200 bg-white px-3 py-1">
+          {toolbarExtras}
+        </div>
+      ) : null}
+
       <div className="flex min-h-0 flex-1">
         <section className="relative flex min-w-0 flex-1 flex-col gap-2 p-2">
-          {tab === "sale" ? (
-            <>
-              <div className="flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-2 py-1.5">
-                <span className="text-[11px] font-semibold text-zinc-400">A2</span>
-                <span className="text-[11px] text-zinc-400">fx</span>
-                <input
-                  ref={searchInputRef}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onFocus={() => {
-                    setSelectedKey(null);
-                    setActiveField("code");
-                    setKeyTarget("sheet");
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      commitEntry();
-                    }
-                  }}
-                  placeholder="Scan barcode or type item code / name"
-                  className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-400"
-                />
-              </div>
-              <LedgerSheet
-                lines={sheetLines}
-                entryCode={search}
-                selectedKey={selectedKey}
-                activeField={activeField}
-                allowPriceEdit={allowPriceEdit}
-                onSelect={(key, field) => {
-                  setSelectedKey(key);
-                  setActiveField(field);
+          <div className="relative flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-zinc-300 bg-white px-2.5 py-2">
+              <ScanLine className="size-4 shrink-0 text-zinc-400" aria-hidden />
+              <input
+                ref={searchInputRef}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onFocus={() => {
+                  setSelectedKey(null);
+                  setActiveField("code");
                   setKeyTarget("sheet");
                 }}
-                onEntryCodeChange={setSearch}
-                onEntryCommit={commitEntry}
-                onLineChange={onLineChange}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    commitEntry();
+                  }
+                }}
+                placeholder="Scan barcode or type item name"
+                aria-label="Find item"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-400"
               />
+              {search ? (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearch("");
+                    focusSearch();
+                  }}
+                  className="flex size-6 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                >
+                  <X className="size-3.5" aria-hidden />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                aria-label="Open camera scanner"
+                onClick={() => setShowScanner(true)}
+                className="flex size-7 items-center justify-center rounded text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+              >
+                <Camera className="size-4" aria-hidden />
+              </button>
+            </div>
+            <nav
+              aria-label="Sale views"
+              className="flex shrink-0 rounded-md border border-zinc-300 bg-zinc-100 p-0.5"
+            >
+              {(
+                [
+                  ["sale", saleLabel],
+                  ["held", heldTabs.length ? `Held (${heldTabs.length})` : "Held"],
+                  ["receipts", "Receipt"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTab(id)}
+                  className={cn(
+                    "rounded px-2.5 py-1.5 text-xs font-medium",
+                    tab === id
+                      ? "bg-white text-zinc-900 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-800",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+            {search.trim() ? (
+              <div className="absolute left-0 top-full z-20 mt-1 max-h-[42vh] w-[min(44rem,calc(100%-11rem))] overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg">
+                {searchBanner ? (
+                  <p className="px-3 py-1.5 text-[11px] text-zinc-500">{searchBanner}</p>
+                ) : null}
+                {hits.length > 0 ? (
+                  <PosSearchHitList
+                    hits={hits}
+                    shelfPrices={shelfPrices}
+                    cartQtyByItem={cartQtyByItem}
+                    justAddedId={null}
+                    currency={currency}
+                    sharedCategoryLabel={null}
+                    onPick={pickItem}
+                  />
+                ) : (
+                  <p className="px-3 py-3 text-sm text-zinc-500">
+                    No item matches "{search.trim()}". Press Enter to look up as a barcode.
+                  </p>
+                )}
+              </div>
+            ) : null}
+          </div>
+
+          {tab === "sale" ? (
+            <>
               {alwaysShowTopProducts || topProducts.length > 0 ? (
                 <LedgerBestSellers
                   products={topProducts}
@@ -713,34 +935,20 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   onPick={pickTopProduct}
                 />
               ) : null}
-              {sheetLines.length === 0 && !search.trim() ? (
-                <CashierFirstSaleDrawer
-                  trigger={
-                    <button
-                      type="button"
-                      className="self-start text-[11px] font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline"
-                    >
-                      How to take your first sale
-                    </button>
-                  }
-                />
-              ) : null}
-              {search.trim() && hits.length > 0 ? (
-                <div className="absolute left-2 top-14 z-20 max-h-[42vh] w-[min(44rem,calc(100%-1rem))] overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg">
-                  {searchBanner ? (
-                    <p className="px-3 py-1.5 text-[11px] text-zinc-500">{searchBanner}</p>
-                  ) : null}
-                  <PosSearchHitList
-                    hits={hits}
-                    shelfPrices={shelfPrices}
-                    cartQtyByItem={cartQtyByItem}
-                    justAddedId={null}
-                    currency={currency}
-                    sharedCategoryLabel={null}
-                    onPick={pickItem}
-                  />
-                </div>
-              ) : null}
+              <LedgerSheet
+                lines={sheetLines}
+                selectedKey={selectedKey}
+                activeField={activeField}
+                allowPriceEdit={allowPriceEdit}
+                onSelect={(key, field) => {
+                  setSelectedKey(key);
+                  setActiveField(field);
+                  setKeyTarget("sheet");
+                }}
+                onFocusEntry={focusSearch}
+                onVoidLine={(key) => voidLine(key)}
+                onLineChange={onLineChange}
+              />
             </>
           ) : null}
 
@@ -748,7 +956,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
             <div className="flex min-h-0 flex-1 flex-col overflow-auto border border-zinc-300 bg-white">
               {heldTabs.length === 0 ? (
                 <p className="p-6 text-sm text-zinc-500">
-                  No held sales. F2 parks the current sale so you can start another.
+                  No held sales. Hold parks this sale so you can start another.
                 </p>
               ) : (
                 heldTabs.map((t) => (
@@ -798,38 +1006,23 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           ) : null}
         </section>
 
-        <aside className="flex w-[17.5rem] shrink-0 flex-col gap-2 border-l border-zinc-200 bg-white p-3">
-          <div>
-            <p className="text-[11px] font-medium text-zinc-500">Total due</p>
-            <p className="font-mono text-2xl font-semibold tabular-nums tracking-tight">
+        <aside className="flex min-h-0 w-[19.5rem] shrink-0 flex-col border-l border-zinc-200 bg-white">
+          <div className="shrink-0 px-3 pt-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-[11px] font-medium text-zinc-500">{saleLabel}</p>
+              <p className="text-[11px] tabular-nums text-zinc-400">
+                {cart.lines.length === 0
+                  ? "Empty"
+                  : `${cart.lines.length} ${cart.lines.length === 1 ? "line" : "lines"}`}
+              </p>
+            </div>
+            <p className="font-mono text-[1.65rem] font-semibold leading-tight tabular-nums tracking-tight">
               {currency} {cart.payableTotal.toFixed(2)}
             </p>
           </div>
-          <LedgerKeypad
-            onDigit={applyDigit}
-            onBackspace={applyBackspace}
-            onClear={applyClear}
-            onEnter={applyEnter}
-            disabled={tillLocked}
-          />
-          <label className="space-y-1 text-[11px] font-medium text-zinc-600">
-            Tendered ({currency})
-            <input
-              value={cart.cashTenderStr}
-              onFocus={focusPay}
-              onChange={(e) => cart.setCashTenderStr(e.target.value)}
-              placeholder="0.00"
-              inputMode="decimal"
-              className="h-9 w-full rounded-md border border-zinc-300 px-2 text-right font-mono text-sm outline-none focus:ring-2 focus:ring-[var(--pos-primary)]"
-            />
-          </label>
-          <p className="text-sm text-zinc-600">
-            Change{" "}
-            <span className="font-mono font-semibold tabular-nums text-zinc-900">
-              {currency} {changeDue.toFixed(2)}
-            </span>
-          </p>
-          <div className="grid gap-1.5">
+
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
+          <div className="grid grid-cols-3 gap-1">
             {payMethods.map((m) => {
               const Icon = m.icon;
               const active = cart.payMethod === m.id;
@@ -842,10 +1035,10 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                     if (m.id === "cash") focusPay();
                   }}
                   className={cn(
-                    "flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium",
+                    "flex flex-col items-center gap-1 rounded-md border px-1 py-2 text-[11px] font-medium",
                     active
-                      ? "border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_16%,white)]"
-                      : "border-zinc-200 bg-white hover:bg-zinc-50",
+                      ? "border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_16%,white)] text-zinc-900"
+                      : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50",
                   )}
                 >
                   <Icon className="size-4" aria-hidden />
@@ -854,6 +1047,73 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               );
             })}
           </div>
+
+          {cart.payMethod === "cash" ||
+          cart.payMethod === "mpesa_manual" ||
+          cart.payMethod === "card" ? (
+            <div className="grid grid-cols-2 gap-2">
+              <label className="space-y-1 text-[11px] font-medium text-zinc-600">
+                Received
+                <input
+                  value={cart.cashTenderStr}
+                  onFocus={focusPay}
+                  onChange={(e) => cart.setCashTenderStr(e.target.value)}
+                  placeholder="0.00"
+                  inputMode="decimal"
+                  aria-label={`Amount received in ${currency}`}
+                  className={cn(
+                    "h-10 w-full rounded-md border border-zinc-300 px-2 text-right font-mono text-sm outline-none",
+                    "focus:ring-2 focus:ring-[var(--pos-primary)]",
+                    keyTarget === "tender" && "ring-2 ring-[var(--pos-primary)]",
+                  )}
+                />
+              </label>
+              <div className="space-y-1 text-[11px] font-medium text-zinc-600">
+                Change
+                <p
+                  className={cn(
+                    "flex h-10 items-center justify-end rounded-md border px-2 font-mono text-sm tabular-nums",
+                    changeDue > 0
+                      ? "border-emerald-200 bg-emerald-50 font-semibold text-emerald-900"
+                      : cashShort
+                        ? "border-amber-200 bg-amber-50 text-amber-950"
+                        : "border-zinc-200 bg-zinc-50 text-zinc-800",
+                  )}
+                >
+                  {currency} {changeDue.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {cart.payMethod === "cash" ? (
+            <div className="flex flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  focusPay();
+                  cart.setCashTenderStr(cart.payableTotal.toFixed(2));
+                }}
+                className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                Exact
+              </button>
+              {CASH_QUICK_AMOUNTS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => {
+                    focusPay();
+                    cart.setCashTenderStr(n.toFixed(2));
+                  }}
+                  className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-semibold tabular-nums text-zinc-700 hover:bg-zinc-50"
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           {cart.payMethod === "mpesa_manual" ? (
             <div className="space-y-1.5">
               <div className="flex gap-1">
@@ -885,49 +1145,86 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               ) : null}
             </div>
           ) : null}
+
+          <LedgerKeypad
+            onDigit={applyDigit}
+            onBackspace={applyBackspace}
+            onClear={applyClear}
+            onEnter={applyEnter}
+            disabled={tillLocked}
+            targetLabel={keypadTargetLabel}
+            enterLabel={keypadEnterLabel}
+          />
+
           {cart.error ? <p className="text-[11px] text-red-700">{cart.error}</p> : null}
           {cart.notice ? <p className="text-[11px] text-emerald-800">{cart.notice}</p> : null}
+          </div>
+
+          <div className="shrink-0 border-t border-zinc-100 p-3">
           <button
             type="button"
-            disabled={!cart.canCompleteSale || cart.loading || tillLocked}
-            onClick={() => cart.onComplete()}
+            disabled={
+              completeIdle
+                ? tillLocked
+                : !cart.canCompleteSale || cart.loading || tillLocked
+            }
+            onClick={() => (completeIdle ? newSale() : cart.onComplete())}
             className={cn(
-              "mt-auto h-11 rounded-md bg-[var(--pos-primary)] text-sm font-semibold text-[var(--pos-primary-ink,#fff)]",
+              "h-12 w-full rounded-md bg-[var(--pos-primary)] text-sm font-semibold text-[var(--pos-primary-ink,#fff)]",
               "hover:opacity-95 active:scale-[0.99] disabled:opacity-40",
             )}
           >
-            {cart.loading ? "Completing…" : "Complete sale"}
+            {cart.loading ? "Completing…" : completeIdle ? "New sale" : "Complete sale"}
           </button>
+          </div>
         </aside>
       </div>
 
-      <footer className="relative flex shrink-0 items-center gap-1 border-t border-zinc-200 bg-zinc-50 px-2 py-1.5">
+      <footer
+        ref={moreRef}
+        className="relative flex shrink-0 items-center gap-1 border-t border-zinc-200 bg-zinc-50 px-2 py-1.5"
+      >
         <LedgerFunctionBar
           keys={[
-            { code: "F1", label: "New sale", onPress: newSale },
-            { code: "F2", label: "Hold", onPress: holdSale, disabled: cart.lines.length === 0 },
-            { code: "F3", label: "Void line", onPress: voidLine, disabled: !selectedKey },
-            { code: "F4", label: "Find item", onPress: focusSearch },
+            { code: "F1", label: "New", onPress: newSale },
+            {
+              code: "F2",
+              label: "Hold",
+              onPress: holdSale,
+              disabled: cart.lines.length === 0,
+            },
+            {
+              code: "F3",
+              label: "Remove",
+              onPress: () => voidLine(),
+              disabled: !selectedKey,
+            },
+            { code: "F4", label: "Find", onPress: focusSearch },
             { code: "F5", label: "Pay", onPress: focusPay },
             {
               code: "F6",
               label: "Recall",
-              hint: heldTabs.length ? `(${heldTabs.length})` : "(0)",
+              hint: heldTabs.length ? `${heldTabs.length}` : undefined,
               onPress: recallSale,
+              attention: heldTabs.length > 0,
             },
           ]}
         />
         <button
           type="button"
           onClick={() => setMoreOpen((v) => !v)}
-          className="ml-1 inline-flex h-10 items-center gap-1 rounded-md border border-zinc-200 bg-zinc-100 px-2.5 text-xs font-medium"
+          aria-expanded={moreOpen}
+          className="ml-1 inline-flex h-10 items-center gap-1 rounded-md border border-zinc-200 bg-white px-2.5 text-xs font-medium"
         >
           <MoreHorizontal className="size-4" aria-hidden />
           More
         </button>
         {moreOpen ? (
-          <div className="absolute bottom-full right-2 z-30 mb-1 w-72 rounded-md border border-zinc-200 bg-white p-2 shadow-lg">
-            <div className="flex flex-wrap gap-1.5">
+          <div className="absolute bottom-full right-2 z-30 mb-1 w-80 space-y-3 rounded-md border border-zinc-200 bg-white p-3 shadow-lg">
+            {(posShiftLinks?.canOpenShift && !posShiftLinks.hasOpenShift) ||
+            (posShiftLinks?.canDrawout && posShiftLinks.hasOpenShift) ||
+            (posShiftLinks?.canCloseShift && posShiftLinks.hasOpenShift) ? (
+            <MoreGroup label="Shift">
               {posShiftLinks?.canOpenShift && !posShiftLinks.hasOpenShift ? (
                 <button
                   type="button"
@@ -964,6 +1261,9 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   Close shift
                 </button>
               ) : null}
+            </MoreGroup>
+            ) : null}
+            <MoreGroup label="Catalog">
               {allowCreditTabs ? (
                 <button
                   type="button"
@@ -1045,16 +1345,6 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               >
                 <Camera className="size-3.5" aria-hidden /> Camera
               </button>
-              <button
-                type="button"
-                className={MORE_CHIP}
-                onClick={() => {
-                  setMoreOpen(false);
-                  onCheckoutDrawerOpenChange(true);
-                }}
-              >
-                Checkout details
-              </button>
               <CashierFirstSaleDrawer
                 trigger={
                   <button
@@ -1066,48 +1356,60 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   </button>
                 }
               />
-              {showOwnerNav ? (
-                <>
-                  <Link
-                    href={APP_ROUTES.paymentsDayLedger}
-                    className={MORE_CHIP}
-                    onClick={() => setMoreOpen(false)}
-                  >
-                    Ledger
-                  </Link>
-                  <Link
-                    href={APP_ROUTES.sales}
-                    className={MORE_CHIP}
-                    onClick={() => setMoreOpen(false)}
-                  >
-                    Sales
-                  </Link>
-                  <Link
-                    href={APP_ROUTES.business}
-                    className={MORE_CHIP}
-                    onClick={() => setMoreOpen(false)}
-                  >
-                    Business
-                  </Link>
-                  <button
-                    type="button"
-                    className={MORE_CHIP}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      window.dispatchEvent(new Event("ub:open-receipt-shop"));
-                    }}
-                  >
-                    Receipt details
-                  </button>
-                  <Link
-                    href={APP_ROUTES.salesQuick}
-                    className={MORE_CHIP}
-                    onClick={() => setMoreOpen(false)}
-                  >
-                    Admin sale
-                  </Link>
-                </>
-              ) : null}
+            </MoreGroup>
+            {showOwnerNav ? (
+              <MoreGroup label="Admin">
+                <Link
+                  href={APP_ROUTES.paymentsDayLedger}
+                  className={MORE_CHIP}
+                  onClick={() => setMoreOpen(false)}
+                >
+                  Day ledger
+                </Link>
+                <Link
+                  href={APP_ROUTES.sales}
+                  className={MORE_CHIP}
+                  onClick={() => setMoreOpen(false)}
+                >
+                  Sales
+                </Link>
+                <Link
+                  href={APP_ROUTES.business}
+                  className={MORE_CHIP}
+                  onClick={() => setMoreOpen(false)}
+                >
+                  Business
+                </Link>
+                <button
+                  type="button"
+                  className={MORE_CHIP}
+                  onClick={() => {
+                    setMoreOpen(false);
+                    window.dispatchEvent(new Event("ub:open-receipt-shop"));
+                  }}
+                >
+                  Receipt details
+                </button>
+                <Link
+                  href={APP_ROUTES.salesQuick}
+                  className={MORE_CHIP}
+                  onClick={() => setMoreOpen(false)}
+                >
+                  Admin sale
+                </Link>
+              </MoreGroup>
+            ) : null}
+            <MoreGroup label="This till">
+              <button
+                type="button"
+                className={MORE_CHIP}
+                onClick={() => {
+                  setMoreOpen(false);
+                  onCheckoutDrawerOpenChange(true);
+                }}
+              >
+                Checkout details
+              </button>
               <button
                 type="button"
                 className={MORE_CHIP}
@@ -1139,34 +1441,10 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               >
                 Log out
               </button>
-            </div>
+            </MoreGroup>
           </div>
         ) : null}
       </footer>
-
-      <nav className="flex shrink-0 border-t border-zinc-200 bg-white text-sm">
-        {(
-          [
-            ["sale", saleLabel],
-            ["held", `Held sales${heldTabs.length ? ` (${heldTabs.length})` : ""}`],
-            ["receipts", "Receipts"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={cn(
-              "px-4 py-2 font-medium",
-              tab === id
-                ? "border-b-2 border-[var(--pos-primary)] text-zinc-900"
-                : "text-zinc-500 hover:text-zinc-800",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
 
       <CashierProductModal
         item={pickedItem}

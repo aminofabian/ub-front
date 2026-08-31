@@ -163,6 +163,8 @@ export type CashierPosLayoutProps = {
   embeddedInDashboard?: boolean;
   /** Brand CSS variables on the layout root (POS primary colors). */
   brandTheme?: CSSProperties;
+  /** Compact pending-invoice / draft controls (ledger header). */
+  toolbarExtras?: ReactNode;
   online: boolean;
   /** Extra offline hint (e.g. draft mirror pending sync). */
   offlineBanner?: string | null;
