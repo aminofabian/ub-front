@@ -77,6 +77,7 @@ function LoginPageContent() {
   const [errorMessage, setErrorMessage] = useState(
     () => searchParams.get("error")?.trim() ?? "",
   );
+  const sessionEndedNotice = searchParams.get("notice")?.trim() === "session-ended";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pinSetup, setPinSetup] = useState(false);
   const [newPin, setNewPin] = useState("");
@@ -428,6 +429,14 @@ function LoginPageContent() {
               : "Sign in with email and your till PIN or office password. Your branch is applied automatically."
         }
       />
+
+      {sessionEndedNotice ? (
+        <div className="mt-6">
+          <AuthAlert variant="info">
+            Your session ended. Sign in again to continue.
+          </AuthAlert>
+        </div>
+      ) : null}
 
       {/* Onboarding CTA — only on landing page. */}
       {/* Hidden on desktop because the SKU is single-tenant: the first business is */}

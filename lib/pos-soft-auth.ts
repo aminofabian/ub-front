@@ -52,7 +52,7 @@ export function notifyPosSessionExpired(message?: string): void {
   const detail: PosSessionExpiredDetail = {
     message:
       message?.trim() ||
-      "Your session expired. Sign in again to keep selling — your cart is saved on this device.",
+      "Please sign in again to keep selling — your cart is saved on this device.",
   };
   window.dispatchEvent(
     new CustomEvent(POS_SESSION_EXPIRED_EVENT, { detail }),

@@ -233,14 +233,16 @@ async function resolveUnauthorizedResponse(
       return execute();
     }
     if (soft) {
-      // Keep the cashier on the till; POS shell shows a session-expired dialog.
-      notifyPosSessionExpired(formatApiProblemMessage(payload));
+      // Keep the cashier on the till; POS shell shows a reauth dialog.
+      notifyPosSessionExpired(
+        "Please sign in again to keep selling — your cart is saved on this device.",
+      );
       failRequest(response.status, payload, { ...options, toast: false });
     }
-    // Do not wipe cookies or bounce to login — the refresh cookie is often
-    // still valid and a later restore will recover. Hard logout is reserved
-    // for dead accounts (above) and the explicit Sign out button.
-    beginSessionReconnect("401 after refresh rejected");
+    // Refresh was explicitly rejected by the backend (and restore could not
+    // recover it) — the session is dead. Show the calm "session ended" screen
+    // instead of error toasts; never bounce through login mid-form.
+    beginSessionReconnect("401 after refresh rejected", { definitive: true });
     throw new ApiRequestError(
       formatApiProblemMessage(payload),
       response.status,
@@ -248,14 +250,11 @@ async function resolveUnauthorizedResponse(
     );
   }
   /*
-   * Network/server transient failure during refresh: do NOT sign out.
-   * Surfacing the original 401 lets the caller decide (toast, retry, etc.)
-   * and lets the next user action attempt refresh again. We may also have
-   * lost the single-flight race to a sibling tab that succeeded; in that
-   * case the broadcast listener has already updated localStorage and a
-   * retried call will pick up the new access token automatically.
+   * Network/server transient failure during refresh: do NOT sign out and do NOT
+   * toast a session error — the backend may simply be unreachable. The caller
+   * sees the original 401 and the next interaction retries refresh.
    */
-  failRequest(response.status, payload, options);
+  failRequest(response.status, payload, { ...options, toast: false });
 }
 
 type LoginResponse = {
@@ -2101,7 +2100,11 @@ async function request<T>(
         payload,
       );
     }
-    failRequest(response.status, payload, { toast: suppressToast });
+    // 401s that reach here are auth signals (e.g. refresh-already-rotated);
+    // they are recovered silently, never toasted as "request failed".
+    failRequest(response.status, payload, {
+      toast: response.status === 401 ? false : suppressToast,
+    });
   }
 
   if (response.status === 204) {
@@ -2158,7 +2161,10 @@ async function requestMultipartJson<T>(
         payload,
       );
     }
-    failRequest(response.status, payload);
+    // Auth 401s are recovered silently — never toast them.
+    failRequest(response.status, payload, {
+      toast: response.status === 401 ? false : undefined,
+    });
   }
 
   return (await readApiJson(response)) as T;
@@ -2234,7 +2240,10 @@ async function postIntegrationsJsonImport(
         payload,
       );
     }
-    failRequest(response.status, payload ?? {});
+    // Auth 401s are recovered silently — never toast them.
+    failRequest(response.status, payload ?? {}, {
+      toast: response.status === 401 ? false : undefined,
+    });
   }
   throw new ApiRequestError(
     "Unexpected response from import endpoint",
@@ -2408,7 +2417,10 @@ async function requestBinary(path: string): Promise<Blob> {
         payload,
       );
     }
-    failRequest(response.status, payload);
+    // Auth 401s are recovered silently — never toast them.
+    failRequest(response.status, payload, {
+      toast: response.status === 401 ? false : undefined,
+    });
   }
 
   return response.blob();

@@ -3,10 +3,15 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { AuthRecoveryPanel } from "@/components/auth/auth-recovery-panel";
+import { SessionEndedScreen } from "@/components/auth/session-ended-screen";
 import { DashboardAppShellSkeleton } from "@/components/dashboard/dashboard-app-shell-skeleton";
 import { SubscriptionRenewalWall } from "@/components/subscription-renewal-wall";
 import { StaleClientReload } from "@/components/stale-client-reload";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
+import {
+  subscribeSessionReconnect,
+  type SessionReconnectState,
+} from "@/lib/session-reconnect";
 
 const SESSION_WAIT_MS = 8_000;
 
@@ -20,6 +25,12 @@ export function AuthenticatedShellGate({ children }: AuthenticatedShellGateProps
     requireAuth: true,
   });
   const [timedOut, setTimedOut] = useState(false);
+  const [reconnectState, setReconnectState] =
+    useState<SessionReconnectState>("ok");
+
+  useEffect(() => {
+    return subscribeSessionReconnect(setReconnectState);
+  }, []);
 
   useEffect(() => {
     if (!ready || hasSession || restoring) {
@@ -31,7 +42,10 @@ export function AuthenticatedShellGate({ children }: AuthenticatedShellGateProps
   }, [ready, hasSession, restoring]);
 
   let body: ReactNode;
-  if (!ready || restoring) {
+  if (reconnectState === "ended") {
+    // Session is definitively dead — calm full-screen sign-in prompt, no toasts.
+    body = <SessionEndedScreen />;
+  } else if (!ready || restoring) {
     body = <DashboardAppShellSkeleton />;
   } else if (!hasSession) {
     body = timedOut ? <AuthRecoveryPanel /> : <DashboardAppShellSkeleton />;

@@ -911,7 +911,9 @@ export class RealtimeClient {
           notifyPosSessionExpired();
           return;
         }
-        beginSessionReconnect("realtime reauth: refresh rejected");
+        beginSessionReconnect("realtime reauth: refresh rejected", {
+          definitive: true,
+        });
         return;
       }
       // network: keep the session, try to reconnect later with current tokens

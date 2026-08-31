@@ -60,6 +60,7 @@ function CustomerLoginPageContent() {
   const [errorMessage, setErrorMessage] = useState(
     () => searchParams.get("error")?.trim() ?? "",
   );
+  const sessionEndedNotice = searchParams.get("notice")?.trim() === "session-ended";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
@@ -191,6 +192,14 @@ function CustomerLoginPageContent() {
             : "Your Kenyan mobile is your account. The same 4-digit PIN opens this shop and your tab."
         }
       />
+
+      {sessionEndedNotice ? (
+        <div className="mt-6">
+          <AuthAlert variant="info">
+            Your session ended. Sign in again to continue.
+          </AuthAlert>
+        </div>
+      ) : null}
 
       {useEmail ? (
       <form

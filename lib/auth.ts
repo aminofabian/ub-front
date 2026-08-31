@@ -623,7 +623,7 @@ export function finalizeClientSignOut(): void {
 /** Clears ALL session data, disconnects realtime, and sends the user to login (e.g. unusable access JWT). */
 export function signOutClientAndRedirectToLogin(
   reason?: string,
-  options?: { nextPath?: string },
+  options?: { nextPath?: string; notice?: string },
 ): void {
   if (typeof window === "undefined") {
     return;
@@ -640,7 +640,12 @@ export function signOutClientAndRedirectToLogin(
   signOutInProgress = true;
   finalizeClientSignOut();
   const next = options?.nextPath?.trim();
-  window.location.assign(loginHrefForDestination(next));
+  const base = loginHrefForDestination(next);
+  const notice = options?.notice?.trim();
+  const href = notice
+    ? `${base}${base.includes("?") ? "&" : "?"}notice=${encodeURIComponent(notice)}`
+    : base;
+  window.location.assign(href);
 }
 
 function readStoredTenantId(): string | null {

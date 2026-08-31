@@ -121,12 +121,13 @@ async function performRefresh(): Promise<void> {
         if (isPosSoftAuthActive()) {
           // Stay on the till; shell shows an explicit reauth dialog.
           notifyPosSessionExpired(
-            "Your session expired. Sign in again to keep selling — your cart is saved on this device.",
+            "Please sign in again to keep selling — your cart is saved on this device.",
           );
           return;
         }
         beginSessionReconnect(
           "background refresh rejected after restore-recovery",
+          { definitive: true },
         );
         return;
       }
@@ -147,7 +148,7 @@ async function performRefresh(): Promise<void> {
     if (isPosSoftAuthActive()) {
       // Stay on the till; shell shows an explicit reauth dialog.
       notifyPosSessionExpired(
-        "Your session expired. Sign in again to keep selling — your cart is saved on this device.",
+        "Please sign in again to keep selling — your cart is saved on this device.",
       );
       return;
     }
@@ -155,6 +156,7 @@ async function performRefresh(): Promise<void> {
       outcome.definitive
         ? "background refresh rejected (definitive)"
         : "background refresh rejected after retries",
+      { definitive: true },
     );
     return;
   }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { SessionEndedScreen } from "@/components/auth/session-ended-screen";
 import { APP_ROUTES } from "@/lib/config";
 import { hasAccessSession } from "@/lib/auth";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
@@ -13,9 +14,12 @@ type AuthRecoveryPanelProps = {
   message?: string;
 };
 
+/** Failed restore attempts before we stop promising a silent recovery. */
+const ENDED_AFTER_ATTEMPTS = 3;
+
 export function AuthRecoveryPanel({
   title = "Reconnecting your session",
-  message = "You are still signed in on this device. We are restoring the session — you should not need to type your password.",
+  message = "We could not reach the server for a moment. We will keep trying in the background.",
 }: AuthRecoveryPanelProps) {
   const [attempt, setAttempt] = useState(0);
 
@@ -42,8 +46,14 @@ export function AuthRecoveryPanel({
     };
   }, []);
 
+  // A session that still will not restore after several tries is dead — show
+  // the calm "sign in again" state instead of an endless spinner.
+  if (attempt >= ENDED_AFTER_ATTEMPTS) {
+    return <SessionEndedScreen />;
+  }
+
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 p-6">
+    <div className="flex min-h-dvh items-center justify-center bg-muted/30 p-6">
       <div className="w-full max-w-md rounded-2xl border bg-background p-8 text-center shadow-sm">
         <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
