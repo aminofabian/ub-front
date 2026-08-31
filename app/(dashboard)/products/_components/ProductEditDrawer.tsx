@@ -37,6 +37,7 @@ import { SearchableSelect } from "./SearchableSelect";
 import { categorySelectOptions } from "./category-select-options";
 import { useInlineCategoryCreate } from "../_hooks/useInlineCategoryCreate";
 import { ProductDescriptionField } from "./ProductDescriptionField";
+import { resolveGeneratedCatalogIds } from "@/lib/resolve-generated-catalog";
 import { ProductFormSectionToggle } from "./ProductFormSectionToggle";
 import { StockIncreaseFields } from "./StockIncreaseFields";
 import {
@@ -166,6 +167,17 @@ export function ProductEditDrawer({
   const handleCreateCategory = async (name: string) => {
     const created = await categoryCreate.create(name);
     detail.setPatchDraft((p) => ({ ...p, categoryId: created.id }));
+  };
+
+  const handleGenerated = async (
+    result: Parameters<typeof resolveGeneratedCatalogIds>[0],
+  ) => {
+    const ids = await resolveGeneratedCatalogIds(result, {
+      canCreateCategory,
+      createCategory: categoryCreate.create,
+    });
+    if (!ids.categoryId) return;
+    detail.setPatchDraft((p) => ({ ...p, categoryId: ids.categoryId }));
   };
 
   const descriptionCategoryName = useMemo(() => {
@@ -439,6 +451,7 @@ export function ProductEditDrawer({
                   detail.setPatchDraft((p) => ({ ...p, description }))
                 }
                 onError={setMessage}
+                onGenerated={handleGenerated}
                 context={{
                   name: dr.name?.trim() || d?.name?.trim() || "",
                   categoryName: descriptionCategoryName,

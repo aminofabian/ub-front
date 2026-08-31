@@ -4,7 +4,10 @@ import { useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { generateProductDescription } from "@/lib/catalog-description-api";
+import {
+  generateProductDescription,
+  type GenerateProductDescriptionResponse,
+} from "@/lib/catalog-description-api";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +17,7 @@ import { formatMutationError } from "../_utils";
 export type ProductDescriptionContext = {
   name: string;
   categoryName?: string;
+  itemTypeName?: string;
   brand?: string;
   size?: string;
   unitType?: string;
@@ -27,6 +31,7 @@ type Props = {
   onChange: (value: string) => void;
   context: ProductDescriptionContext;
   onError?: (message: string) => void;
+  onGenerated?: (result: GenerateProductDescriptionResponse) => void | Promise<void>;
   rows?: number;
   placeholder?: string;
   className?: string;
@@ -38,6 +43,7 @@ export function ProductDescriptionField({
   onChange,
   context,
   onError,
+  onGenerated,
   rows = 3,
   placeholder = "Optional",
   className,
@@ -53,16 +59,18 @@ export function ProductDescriptionField({
     }
     setGenerating(true);
     try {
-      const { description } = await generateProductDescription({
+      const result = await generateProductDescription({
         name,
         categoryName: context.categoryName?.trim() || undefined,
+        itemTypeName: context.itemTypeName?.trim() || undefined,
         brand: context.brand?.trim() || undefined,
         size: context.size?.trim() || undefined,
         unitType: context.unitType?.trim() || undefined,
         variantName: context.variantName?.trim() || undefined,
         sku: context.sku?.trim() || undefined,
       });
-      onChange(description);
+      onChange(result.description);
+      await onGenerated?.(result);
     } catch (e) {
       onError?.(
         formatMutationError(e, "Could not generate description. Try again."),

@@ -30,6 +30,8 @@ import {
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
 import type { BranchRecord, GlobalProductRecord, ItemTypeRecord } from "@/lib/api";
+import type { GenerateProductDescriptionResponse } from "@/lib/catalog-description-api";
+import { resolveGeneratedCatalogIds } from "@/lib/resolve-generated-catalog";
 
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
@@ -45,6 +47,7 @@ import {
   type SearchableSelectHandle,
 } from "./SearchableSelect";
 import { useInlineCategoryCreate } from "../_hooks/useInlineCategoryCreate";
+import { useInlineItemTypeCreate } from "../_hooks/useInlineItemTypeCreate";
 import {
   productFormHintClass,
   productFormInputClass,
@@ -57,7 +60,7 @@ type Props = {
   banner?: FormDrawerProps["banner"];
   catalog: Pick<
     CatalogListApi,
-    "itemTypes" | "sortedCategories" | "upsertCategory"
+    "itemTypes" | "sortedCategories" | "upsertCategory" | "upsertItemType"
   >;
   canCreateCategory?: boolean;
   m: Pick<
@@ -259,6 +262,7 @@ export function ProductCreateModal({
   const showButcherTemplates = isButcheryBusiness(business);
   const fileRef = useRef<HTMLInputElement>(null);
   const categorySelectRef = useRef<SearchableSelectHandle>(null);
+  const departmentSelectRef = useRef<SearchableSelectHandle>(null);
   const isGroup = m.parentDraft.productStructure === "group";
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [keepOpen, setKeepOpen] = useState(false);
@@ -267,6 +271,7 @@ export function ProductCreateModal({
   const [descGenError, setDescGenError] = useState("");
   const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(null);
   const categoryCreate = useInlineCategoryCreate(catalog.upsertCategory);
+  const departmentCreate = useInlineItemTypeCreate(catalog.upsertItemType);
 
   useEffect(() => {
     if (!open) return;
@@ -276,7 +281,8 @@ export function ProductCreateModal({
     setDescGenError("");
     setLinkedGlobalLabel(null);
     categoryCreate.clearError();
-  }, [open, categoryCreate.clearError]);
+    departmentCreate.clearError();
+  }, [open, categoryCreate.clearError, departmentCreate.clearError]);
 
   const setFamilyMode = useCallback(
     (next: boolean) => {
@@ -407,9 +413,24 @@ export function ProductCreateModal({
     return catalog.sortedCategories.find((c) => c.id === id)?.name;
   }, [catalog.sortedCategories, m.parentDraft.categoryId]);
 
+  const createDepartmentName = useMemo(() => {
+    const id = m.parentDraft.itemTypeId.trim();
+    if (!id) return undefined;
+    return catalog.itemTypes.find((t) => t.id === id)?.label;
+  }, [catalog.itemTypes, m.parentDraft.itemTypeId]);
+
   const categoryOptions = useMemo(
     () => categorySelectOptions(catalog.sortedCategories),
     [catalog.sortedCategories],
+  );
+
+  const departmentOptions = useMemo(
+    () =>
+      catalog.itemTypes.map((t) => ({
+        value: t.id,
+        label: t.label,
+      })),
+    [catalog.itemTypes],
   );
 
   const handleCreateCategory = useCallback(
@@ -418,6 +439,38 @@ export function ProductCreateModal({
       m.setParentDraft((p) => ({ ...p, categoryId: created.id }));
     },
     [categoryCreate.create, m],
+  );
+
+  const handleCreateDepartment = useCallback(
+    async (name: string) => {
+      const created = await departmentCreate.create(name);
+      m.setParentDraft((p) => ({ ...p, itemTypeId: created.id }));
+    },
+    [departmentCreate.create, m],
+  );
+
+  const handleGenerated = useCallback(
+    async (result: GenerateProductDescriptionResponse) => {
+      setMoreOpen(true);
+      const ids = await resolveGeneratedCatalogIds(result, {
+        canCreateCategory,
+        canCreateDepartment: canCreateCategory,
+        createCategory: categoryCreate.create,
+        createDepartment: departmentCreate.create,
+      });
+      if (!ids.categoryId && !ids.itemTypeId) return;
+      m.setParentDraft((p) => ({
+        ...p,
+        ...(ids.categoryId ? { categoryId: ids.categoryId } : {}),
+        ...(ids.itemTypeId ? { itemTypeId: ids.itemTypeId } : {}),
+      }));
+    },
+    [
+      canCreateCategory,
+      categoryCreate.create,
+      departmentCreate.create,
+      m,
+    ],
   );
 
   const currency = currencyCode.trim() || "KES";
@@ -530,8 +583,9 @@ export function ProductCreateModal({
 
             {catalog.itemTypes.length === 0 ? (
               <div className="mb-3 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
-                Add a department first (Your shop → Departments), then come back
-                here.
+                {canCreateCategory
+                  ? "Add a department under More details, or generate with AI."
+                  : "Add a department first (Your shop → Departments), then come back here."}
               </div>
             ) : null}
 
@@ -785,24 +839,49 @@ export function ProductCreateModal({
                 <div className="space-y-3 rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_45%,white)] p-3">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <span className={labelClass}>Department</span>
-                      <select
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className={labelClass}>Department</span>
+                        {canCreateCategory ? (
+                          <button
+                            type="button"
+                            disabled={
+                              m.parentCreateBusy || departmentCreate.busy
+                            }
+                            onClick={() => {
+                              setMoreOpen(true);
+                              departmentSelectRef.current?.openForCreate();
+                            }}
+                            aria-label="New department"
+                            className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)] transition-colors hover:text-[var(--catalog-ink,#15231f)] disabled:opacity-50"
+                          >
+                            <Plus className="size-3" aria-hidden />
+                            New
+                          </button>
+                        ) : null}
+                      </div>
+                      <SearchableSelect
+                        ref={departmentSelectRef}
                         className={cn(productFormInputClass, "h-10 rounded-lg")}
                         value={m.parentDraft.itemTypeId}
-                        onChange={(e) =>
-                          m.setParentDraft((p) => ({
-                            ...p,
-                            itemTypeId: e.target.value,
-                          }))
+                        onChange={(itemTypeId) =>
+                          m.setParentDraft((p) => ({ ...p, itemTypeId }))
+                        }
+                        options={departmentOptions}
+                        placeholder={
+                          canCreateCategory ? "Find or create…" : "Pick one"
                         }
                         required
-                      >
-                        {catalog.itemTypes.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.label}
-                          </option>
-                        ))}
-                      </select>
+                        disabled={m.parentCreateBusy}
+                        aria-label="Department"
+                        onCreate={
+                          canCreateCategory
+                            ? handleCreateDepartment
+                            : undefined
+                        }
+                        createBusy={departmentCreate.busy}
+                        createError={departmentCreate.error}
+                        createNoun="department"
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex items-baseline justify-between gap-2">
@@ -1034,11 +1113,13 @@ export function ProductCreateModal({
                       m.setParentDraft((p) => ({ ...p, description }))
                     }
                     onError={setDescGenError}
+                    onGenerated={handleGenerated}
                     rows={2}
                     textareaClassName="min-h-[2.5rem] rounded-lg"
                     context={{
                       name: m.parentDraft.name,
                       categoryName: createCategoryName,
+                      itemTypeName: createDepartmentName,
                       brand: m.parentDraft.brand,
                       size: m.parentDraft.size,
                       unitType: m.parentDraft.unitType,

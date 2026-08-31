@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/api";
 export type GenerateProductDescriptionPayload = {
   name: string;
   categoryName?: string;
+  itemTypeName?: string;
   brand?: string;
   size?: string;
   unitType?: string;
@@ -16,6 +17,12 @@ export type GenerateProductDescriptionPayload = {
 
 export type GenerateProductDescriptionResponse = {
   description: string;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  createCategory?: boolean;
+  itemTypeId?: string | null;
+  itemTypeName?: string | null;
+  createItemType?: boolean;
 };
 
 export async function generateProductDescription(
@@ -28,6 +35,7 @@ export async function generateProductDescription(
   const body: GenerateProductDescriptionPayload = { name };
   const optional = [
     "categoryName",
+    "itemTypeName",
     "brand",
     "size",
     "unitType",

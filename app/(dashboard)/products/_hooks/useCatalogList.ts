@@ -202,6 +202,16 @@ export function useCatalogList(
     });
   }, []);
 
+  const upsertItemType = useCallback((itemType: ItemTypeRecord) => {
+    setItemTypes((prev) => {
+      const i = prev.findIndex((t) => t.id === itemType.id);
+      if (i < 0) return [...prev, itemType];
+      const next = [...prev];
+      next[i] = itemType;
+      return next;
+    });
+  }, []);
+
   const refreshFullCatalog = useCallback(async () => {
     setListLoadingInitial(true);
     setMessage("");
@@ -497,7 +507,7 @@ export function useCatalogList(
     filterLowStock, setFilterLowStock,
     rowSelection, setRowSelection, onToggleRowSelect, variantIdsByParent,
     message, setMessage,
-    loadCategoriesAndTypes, upsertCategory, refreshFullCatalog, syncListRowFromDetail, loadMoreCatalog, jumpToLetter, resetFilters,
+    loadCategoriesAndTypes, upsertCategory, upsertItemType, refreshFullCatalog, syncListRowFromDetail, loadMoreCatalog, jumpToLetter, resetFilters,
   };
 }
 
