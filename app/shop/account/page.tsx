@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, LogOut } from "lucide-react";
 
 import { ShopAccountHub, SHOP_FLOOR_HREF } from "@/components/storefront/shop-account-hub";
@@ -12,11 +12,13 @@ import {
 } from "@/components/storefront/storefront-sign-in-sheet";
 import styles from "@/components/storefront/shop-account.module.css";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
-import { fetchMe, logoutRemote, type MeResponse } from "@/lib/api";
+import { fetchBusiness, fetchMe, logoutRemote, type MeResponse } from "@/lib/api";
 import { getSessionTokens, hasAccessSession } from "@/lib/auth";
+import { isBuyerAccount } from "@/lib/buyer-role";
 import { APP_ROUTES } from "@/lib/config";
+import { destinationForShopAccountSignIn } from "@/lib/post-auth-destination";
 
-type LoadState = "loading" | "guest" | "ready" | "error";
+type LoadState = "loading" | "guest" | "ready" | "error" | "routing";
 
 export default function ShopAccountPage() {
   const router = useRouter();
@@ -25,8 +27,23 @@ export default function ShopAccountPage() {
   });
   const [me, setMe] = useState<MeResponse | null>(null);
   const [state, setState] = useState<LoadState>("loading");
+  const routingRef = useRef(false);
 
   const sessionHint = hasSession;
+
+  const leaveForRole = useCallback(
+    async (profile: MeResponse) => {
+      const business = await fetchBusiness().catch(() => null);
+      const dest = destinationForShopAccountSignIn(profile, business);
+      if (dest && dest !== APP_ROUTES.shopAccount) {
+        routingRef.current = true;
+        router.replace(dest);
+        return true;
+      }
+      return false;
+    },
+    [router],
+  );
 
   const loadMe = useCallback(async () => {
     const live = hasAccessSession() || Boolean(getSessionTokens()) || hasSession;
@@ -38,6 +55,10 @@ export default function ShopAccountPage() {
     setState("loading");
     try {
       const profile = await fetchMe();
+      if (!isBuyerAccount(profile)) {
+        const left = await leaveForRole(profile);
+        if (left) return;
+      }
       setMe(profile);
       setState("ready");
     } catch {
@@ -49,9 +70,10 @@ export default function ShopAccountPage() {
       setMe(null);
       setState("error");
     }
-  }, [hasSession]);
+  }, [hasSession, leaveForRole]);
 
   useEffect(() => {
+    if (routingRef.current) return;
     if (!sessionHint) {
       setState("guest");
       return;
@@ -78,15 +100,20 @@ export default function ShopAccountPage() {
   };
 
   const loginHref = buildStorefrontSignInHref({ next: APP_ROUTES.shopAccount });
-  const waitingOnProfile = sessionHint && (state === "loading" || (!ready && state !== "guest"));
+  const waitingOnProfile =
+    state === "routing" ||
+    (sessionHint && (state === "loading" || (!ready && state !== "guest")));
 
   if (waitingOnProfile) {
     return (
       <div className={styles.page}>
         <div className={styles.passbook} aria-busy="true">
           <div className={styles.passHead}>
-            <h1 className={styles.hello}>Loading your orders</h1>
-            <p className={styles.lead}>This only takes a moment.</p>
+            <h1 className={styles.hello}>
+              {state === "routing" || (me && !isBuyerAccount(me))
+                ? "Taking you to the right place"
+                : "Loading your orders"}
+            </h1>
           </div>
           <div className={styles.skel} />
         </div>
@@ -108,8 +135,22 @@ export default function ShopAccountPage() {
           <div className={styles.guestBody}>
             <UnifiedSignInForm
               onSignedIn={() => {
-                void loadMe();
-                router.refresh();
+                void (async () => {
+                  routingRef.current = true;
+                  setState("routing");
+                  try {
+                    const profile = await fetchMe();
+                    const left = await leaveForRole(profile);
+                    if (left) return;
+                    routingRef.current = false;
+                    setMe(profile);
+                    setState("ready");
+                    router.refresh();
+                  } catch {
+                    routingRef.current = false;
+                    void loadMe();
+                  }
+                })();
               }}
             />
           </div>
@@ -155,12 +196,16 @@ export default function ShopAccountPage() {
     );
   }
 
-  if (!me) {
+  if (!me || !isBuyerAccount(me)) {
     return (
       <div className={styles.page}>
         <div className={styles.passbook} aria-busy="true">
           <div className={styles.passHead}>
-            <h1 className={styles.hello}>Loading your orders</h1>
+            <h1 className={styles.hello}>
+              {me && !isBuyerAccount(me)
+                ? "Taking you to the right place"
+                : "Loading your orders"}
+            </h1>
           </div>
           <div className={styles.skel} />
         </div>

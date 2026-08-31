@@ -53,17 +53,47 @@ export type ResolvePostAuthOptions = {
  * links never render on the apex), so the apex console stays unreachable via
  * this allowlist; Phase 4 adds the apex's own host-scoped forward building.
  */
+function pathnameOf(path: string): string {
+  return path.split(/[?#]/, 1)[0] || "/";
+}
+
 export function isShopNextPath(path?: string | null): boolean {
   const next = path?.trim() ?? "";
   if (!isSafeAppPath(next)) {
     return false;
   }
-  const pathname = next.split(/[?#]/, 1)[0] || "/";
+  const pathname = pathnameOf(next);
   return (
     pathname === APP_ROUTES.shop ||
     pathname === "/" ||
     pathname.startsWith(`${APP_ROUTES.shop}/`)
   );
+}
+
+/** Storefront account hub — a sign-in door, not a staff landing page. */
+export function isShopAccountPath(path?: string | null): boolean {
+  const next = path?.trim() ?? "";
+  if (!isSafeAppPath(next)) {
+    return false;
+  }
+  return pathnameOf(next) === APP_ROUTES.shopAccount;
+}
+
+/**
+ * After sign-in on `/shop/account`: shoppers to the shop floor, cashiers to
+ * the till, owners/admins to the business hub. Other staff keep their role home.
+ */
+export function destinationForShopAccountSignIn(
+  me: PostAuthMe | null | undefined,
+  business?: BusinessRecord | null,
+): string {
+  if (isBuyerAccount(me)) {
+    return "/";
+  }
+  if (isOwnerOrAdminRole(me)) {
+    return APP_ROUTES.business;
+  }
+  return resolvePostAuthDestination(me, null, business);
 }
 
 /**
@@ -137,7 +167,9 @@ export function isOnboardingIncomplete(
 /**
  * Where to send the user after sign-in.
  *
- * Buyers keep their storefront `?next=` / credit-tab paths. Owner/admin with an
+ * Buyers keep storefront `?next=` / credit-tab paths, except `/shop/account`
+ * which is a sign-in door and sends them to the shop floor (`/`). Staff are
+ * never pinned to `/shop/account`; they follow role homes. Owner/admin with an
  * unfinished business setup (or a missing business payload) go straight to the
  * business hub — `?next=` and role homes cannot pull a brand-new owner onto the
  * admin dashboard before their shop is configured, and a failed business fetch
@@ -160,6 +192,9 @@ export function resolvePostAuthDestination(
   const office = options?.office === true;
 
   if (me && isBuyerAccount(me)) {
+    if (isShopAccountPath(requested)) {
+      return "/";
+    }
     if (isShopNextPath(requested) || isCustomerTabPath(requested)) {
       return requested;
     }
@@ -180,9 +215,12 @@ export function resolvePostAuthDestination(
 
   const shopOrTabNext =
     isShopNextPath(requested) || isCustomerTabPath(requested);
+  // `/shop/account` is a sign-in door. Staff must not be pinned there.
+  const pinToStorefront =
+    shopOrTabNext && !office && !isShopAccountPath(requested);
   // Office login is the console door. A leftover storefront `?next=` must not
   // pull an owner or cashier onto the shop after they signed in to operate.
-  if (shopOrTabNext && !office) {
+  if (pinToStorefront) {
     return requested;
   }
 
@@ -202,7 +240,7 @@ export function resolvePostAuthDestination(
     return APP_ROUTES.overview;
   }
 
-  if (isSafeAppPath(requested)) {
+  if (isSafeAppPath(requested) && !isShopAccountPath(requested)) {
     return requested;
   }
 

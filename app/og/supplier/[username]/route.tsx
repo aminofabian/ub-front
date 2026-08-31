@@ -21,6 +21,15 @@ import {
  */
 export const revalidate = 3600;
 
+/**
+ * Supplier usernames are unbounded, so the static export cannot enumerate
+ * them — an empty set keeps the dynamic route out of the export build (it is
+ * served by the live server, which still resolves params at runtime).
+ */
+export function generateStaticParams() {
+  return [];
+}
+
 const CARD_SIZE = { width: 1200, height: 630 } as const;
 
 type RouteContext = { params: Promise<{ username: string }> };

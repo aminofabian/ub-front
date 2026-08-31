@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import { APP_ROUTES } from "@/lib/config";
 import {
   applyShopperTabHint,
+  destinationForShopAccountSignIn,
   isShopNextPath,
   resolvePostAuthDestination,
   roleLandingRedirect,
@@ -140,16 +141,47 @@ describe("resolvePostAuthDestination", () => {
     expect(
       resolvePostAuthDestination(
         { role: { key: "owner" } },
+        APP_ROUTES.shopCart,
+        completedOnboarding,
+      ),
+    ).toBe(APP_ROUTES.shopCart);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "grocery_clerk" } },
+        APP_ROUTES.shopCart,
+      ),
+    ).toBe(APP_ROUTES.shopCart);
+  });
+
+  it("does not pin staff to /shop/account", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
         APP_ROUTES.shopAccount,
         completedOnboarding,
       ),
-    ).toBe(APP_ROUTES.shopAccount);
+    ).toBe(APP_ROUTES.overview);
     expect(
       resolvePostAuthDestination(
         { role: { key: "grocery_clerk" } },
         APP_ROUTES.shopAccount,
       ),
-    ).toBe(APP_ROUTES.shopAccount);
+    ).toBe(APP_ROUTES.grocery);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "cashier" } },
+        APP_ROUTES.shopAccount,
+      ),
+    ).toBe(APP_ROUTES.cashier);
+  });
+
+  it("sends shoppers from /shop/account to the shop floor", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "buyer" } },
+        APP_ROUTES.shopAccount,
+      ),
+    ).toBe("/");
   });
 
   it("honours shop next for buyers", () => {
@@ -294,7 +326,7 @@ describe("resolvePostAuthDestination", () => {
         APP_ROUTES.shopAccount,
         completedOnboarding,
       ),
-    ).toBe(APP_ROUTES.shopAccount);
+    ).toBe(APP_ROUTES.overview);
     expect(
       resolvePostAuthDestination(
         { role: { key: "owner" } },
@@ -358,6 +390,38 @@ describe("resolvePostAuthDestination", () => {
         { office: true },
       ),
     ).toBe(APP_ROUTES.cashier);
+  });
+});
+
+describe("destinationForShopAccountSignIn", () => {
+  it("sends shoppers to the shop floor", () => {
+    expect(
+      destinationForShopAccountSignIn({ role: { key: "buyer" } }),
+    ).toBe("/");
+  });
+
+  it("sends cashiers to the till", () => {
+    expect(
+      destinationForShopAccountSignIn({ role: { key: "cashier" } }),
+    ).toBe(APP_ROUTES.cashier);
+    expect(
+      destinationForShopAccountSignIn({ role: { key: "butcher_cashier" } }),
+    ).toBe(APP_ROUTES.butcher);
+  });
+
+  it("sends owners and admins to the business hub", () => {
+    expect(
+      destinationForShopAccountSignIn(
+        { role: { key: "owner" } },
+        completedOnboarding,
+      ),
+    ).toBe(APP_ROUTES.business);
+    expect(
+      destinationForShopAccountSignIn(
+        { role: { key: "admin" } },
+        completedOnboarding,
+      ),
+    ).toBe(APP_ROUTES.business);
   });
 });
 

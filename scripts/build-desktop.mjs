@@ -69,6 +69,9 @@ const CLOUD_ONLY_PATHS = [
   "app/supplier",
   // Accidental Finder duplicate — same routes as `app/shop`; must not ship.
   "app/shop 2",
+  // Accidental Finder duplicate of `app/icon.tsx`; must not ship (breaks the
+  // static export with a missing revalidate on "/icon").
+  "app/icon 2.tsx",
   // Super-admin console — multi-tenant only.
   "app/super-admin",
   // Online-order dashboard for the storefront — irrelevant when the storefront
