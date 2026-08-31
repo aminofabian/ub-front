@@ -14,6 +14,9 @@ import { Eye, EyeOff } from "lucide-react";
 import { toast, Toaster } from "sonner";
 
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
+import { comilmartFontVariables } from "@/components/storefront/templates/store/comilmart-fonts";
+import { comilmartPaletteVars } from "@/components/storefront/templates/store/comilmart-palette";
+import cmStyles from "@/components/storefront/templates/store/comilmart.module.css";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useShopCartOptional } from "@/hooks/use-shop-cart";
+import { isComilmartStoreTheme } from "@/lib/storefront-theme-detect";
 import {
   completeShopperPhoneSession,
   fetchBusiness,
@@ -73,6 +77,12 @@ type StorefrontSignInEntry = {
 type StorefrontSignInContextValue = {
   /** False until the client has hydrated, or when no provider is mounted. */
   ready: boolean;
+  /**
+   * True as soon as `StorefrontSignInProvider` is mounted. Use this to intercept
+   * clicks and open the sheet — `ready` waits on hydration and was letting the
+   * first click navigate away to `/login` or `?signin=1`.
+   */
+  available: boolean;
   open: (entry: StorefrontSignInEntry) => void;
   close: () => void;
   /** D8: `ub.session` presence hint read in the RSC layer. Label-only, may be stale. */
@@ -83,9 +93,10 @@ const StorefrontSignInContext = createContext<StorefrontSignInContextValue | nul
   null,
 );
 
-/** Never mounted / not yet hydrated — callers fall back to plain navigation. */
+/** Never mounted — callers fall back to plain navigation. */
 const NOOP_SIGN_IN: StorefrontSignInContextValue = {
   ready: false,
+  available: false,
   open: () => {},
   close: () => {},
   hasPresence: false,
@@ -199,7 +210,13 @@ export function StorefrontSignInProvider({
   }, [hydrated, openSheet, router]);
 
   const value = useMemo<StorefrontSignInContextValue>(
-    () => ({ ready: hydrated, open: openSheet, close: closeSheet, hasPresence }),
+    () => ({
+      ready: hydrated,
+      available: true,
+      open: openSheet,
+      close: closeSheet,
+      hasPresence,
+    }),
     [hydrated, openSheet, closeSheet, hasPresence],
   );
 
@@ -249,6 +266,7 @@ function StorefrontSignInSheet({
   const pathname = usePathname();
   const cart = useShopCartOptional();
   const tenant = useOptionalTenant();
+  const comilmart = isComilmartStoreTheme();
 
   const displayName =
     storeName?.trim() ||
@@ -357,35 +375,74 @@ function StorefrontSignInSheet({
     entry?.reason,
   ]);
 
+  const shopLabel = displayName.split("|")[0]?.trim() || displayName;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side="bottom"
-        className={cn(
-          "z-[90] gap-0 overflow-hidden !rounded-none p-0",
-          "sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:max-h-none",
-          "sm:w-full sm:max-w-[420px] sm:-translate-x-1/2 sm:-translate-y-1/2",
-          "sm:rounded-none sm:border-b sm:pb-0",
-        )}
+        side={comilmart ? "center" : "bottom"}
+        className={
+          comilmart
+            ? cn(
+                cmStyles.signInSheet,
+                comilmartFontVariables,
+                "z-[90] max-h-[min(88dvh,36rem)] gap-0 overflow-hidden p-0 sm:max-w-[400px]",
+              )
+            : cn(
+                "z-[90] gap-0 overflow-hidden !rounded-none p-0",
+                "sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:max-h-none",
+                "sm:w-full sm:max-w-[420px] sm:-translate-x-1/2 sm:-translate-y-1/2",
+                "sm:rounded-none sm:border-b sm:pb-0",
+              )
+        }
+        style={comilmart ? comilmartPaletteVars() : undefined}
         overlayClassName="z-[89]"
       >
-        <div className="border-b border-border/60 px-5 pb-4 pt-5 sm:px-6">
+        <div
+          className={
+            comilmart
+              ? cmStyles.signInHead
+              : "border-b border-border/60 px-5 pb-4 pt-5 sm:px-6"
+          }
+        >
           <DialogHeader className="space-y-1.5 text-left">
-            {displayName ? (
+            {displayName && !comilmart ? (
               <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                {displayName.split("|")[0]?.trim() || displayName}
+                {shopLabel}
               </p>
             ) : null}
-            <DialogTitle className="font-heading text-xl tracking-tight">
-              Sign in
+            <DialogTitle
+              className={
+                comilmart
+                  ? cmStyles.signInTitle
+                  : "font-heading text-xl tracking-tight"
+              }
+            >
+              {comilmart ? "Welcome back" : "Sign in"}
             </DialogTitle>
-            <DialogDescription className="text-[14px] leading-relaxed">
-              Email or phone, then your PIN or password. That&apos;s it.
+            <DialogDescription
+              className={
+                comilmart
+                  ? cmStyles.signInLead
+                  : "text-[14px] leading-relaxed"
+              }
+            >
+              {comilmart
+                ? shopLabel
+                  ? `Log in to your ${shopLabel} account.`
+                  : "Log in to your account."
+                : "Email or phone, then your PIN or password. That's it."}
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <div className="overflow-y-auto px-5 py-5 sm:px-6">
+        <div
+          className={
+            comilmart
+              ? cmStyles.signInBody
+              : "overflow-y-auto px-5 py-5 sm:px-6"
+          }
+        >
           {open ? (
             <UnifiedSignInForm
               key={`${entry?.initialPhone ?? ""}:${entry?.initialEmail ?? ""}:${door}:${open}`}

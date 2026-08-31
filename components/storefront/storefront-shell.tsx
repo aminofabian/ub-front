@@ -100,7 +100,9 @@ export async function StorefrontShell({
     ? parseStorefrontDesignJson(preview.designJson)
     : null;
   const forceLandingPreview = Boolean(preview.landingId);
-  const isComingSoon = Boolean(slug && !storefront) || forceLandingPreview;
+  const isComingSoon =
+    forceLandingPreview ||
+    (Boolean(slug && !storefront) && !preview.themeId);
   const storeThemeId = normalizeStoreThemeId(
     preview.themeId ?? tenant?.storeThemeId,
   );

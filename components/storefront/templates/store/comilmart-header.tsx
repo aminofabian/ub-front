@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Menu, MessageCircle, Search, ShoppingBag, X } from "lucide-react";
+import { Suspense, useEffect, useState, type MouseEvent } from "react";
 
-import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
+import { useStorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import { StorefrontEditableLogoMark } from "@/components/storefront/storefront-editable-logo";
 import { filterShopperTypes } from "@/components/storefront/shop-type-filters";
 import styles from "@/components/storefront/templates/store/comilmart.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
+import { logoutRemote } from "@/lib/api";
+import { clearSessionTokens } from "@/lib/auth";
 import { APP_ROUTES, apiUrl } from "@/lib/config";
 import type { PublicCatalogType, PublicCategory } from "@/lib/public-storefront";
 import { shopListPath, storefrontCategoryPathSlug } from "@/lib/shop-url";
@@ -34,7 +37,7 @@ function LiveClock() {
     return () => window.clearInterval(id);
   }, []);
 
-  return <span className={styles.clock}>{time || "—:—:—"}</span>;
+  return <span className={styles.clock}>{time || "--:--:--"}</span>;
 }
 
 function SearchForm({ className }: { className?: string }) {
@@ -54,6 +57,9 @@ function SearchForm({ className }: { className?: string }) {
       <label className="sr-only" htmlFor="cm-search-q">
         Search products
       </label>
+      <span className={styles.searchGlyph} aria-hidden>
+        <Search size={16} strokeWidth={2} />
+      </span>
       <input
         id="cm-search-q"
         name="q"
@@ -114,6 +120,8 @@ function ComilmartHeaderView({
 }: ComilmartHeaderProps & { listing: boolean }) {
   const pathname = usePathname();
   const { itemCount, openDrawer } = useShopCart();
+  const { signedIn, href, label, signUpHref, onActivate } =
+    useStorefrontAccountLink();
   const [menuOpen, setMenuOpen] = useState(false);
   const [types, setTypes] = useState<PublicCatalogType[]>([]);
   const categoryPathSlug = pathname.startsWith("/shop/c/")
@@ -128,8 +136,8 @@ function ComilmartHeaderView({
     (pathname === "/" ||
       pathname === APP_ROUTES.shop ||
       pathname === `${APP_ROUTES.shop}/`);
-  const visibleCategories = categories.slice(0, 12);
-  const visibleTypes = filterShopperTypes(types).slice(0, 8);
+  const visibleCategories = categories.slice(0, 16);
+  const visibleTypes = filterShopperTypes(types).slice(0, 10);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,6 +159,34 @@ function ComilmartHeaderView({
     };
   }, [slug]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  const closeThen = (handler: (event: MouseEvent<HTMLAnchorElement>) => void) => {
+    return (event: MouseEvent<HTMLAnchorElement>) => {
+      setMenuOpen(false);
+      handler(event);
+    };
+  };
+
+  const onSignOut = async () => {
+    setMenuOpen(false);
+    await logoutRemote().catch(() => {});
+    clearSessionTokens();
+    window.location.reload();
+  };
+
   return (
     <header
       className={cn(styles.header, className)}
@@ -160,7 +196,7 @@ function ComilmartHeaderView({
       <div className={styles.promoBar}>
         <p>
           {announcement?.trim() ||
-            "Order online — pay by M-Pesa, card, or cash on delivery."}
+            "Order online - pay by M-Pesa, card, or cash on delivery."}
         </p>
         {wa ? (
           <a href={`https://wa.me/${wa}`} className={styles.promoCta}>
@@ -173,57 +209,48 @@ function ComilmartHeaderView({
         <div className={styles.utilityLeft}>
           <LiveClock />
           <span className={styles.utilityDot} aria-hidden />
-          <span className={styles.utilityLink}>Shop</span>
-          {wa ? (
-            <a href={`https://wa.me/${wa}`} className={styles.utilityLink}>
-              WhatsApp
-            </a>
-          ) : null}
+          <span className={styles.utilityLink}>{storeName}</span>
         </div>
         <div className={styles.utilityRight}>
-          <span className={styles.verified}>✓ Verified shop</span>
-          <StorefrontAccountLink className={styles.signIn}>
-            Sign in
-          </StorefrontAccountLink>
+          <span className={styles.verified}>Verified shop</span>
+          <Link
+            href={href}
+            className={styles.signIn}
+            onClick={onActivate}
+          >
+            {label}
+          </Link>
         </div>
       </div>
 
       <div className={styles.mainBar}>
-        <Link href={APP_ROUTES.shop} className={styles.logo}>
-          <span className={styles.logoShell}>
-            <StorefrontEditableLogoMark
-              logoUrl={logoUrl}
-              alt={storeName}
-              width={240}
-              height={56}
-              className={styles.logoImg}
-              fallback={<span className={styles.logoText}>{storeName}</span>}
-            />
-          </span>
-        </Link>
-
         <button
           type="button"
-          className={styles.categoriesBtn}
+          className={styles.menuBtn}
           aria-expanded={menuOpen}
+          aria-controls="cm-sidebar"
+          aria-label={menuOpen ? "Close menu" : "Menu"}
           onClick={() => setMenuOpen((v) => !v)}
         >
-          <span aria-hidden>☰</span> All categories
+          {menuOpen ? <X size={22} strokeWidth={2} /> : <Menu size={22} strokeWidth={2} />}
         </button>
+
+        <Link href={APP_ROUTES.shop} className={styles.logo}>
+          <StorefrontEditableLogoMark
+            logoUrl={logoUrl}
+            alt={storeName}
+            width={240}
+            height={56}
+            className={styles.logoImg}
+            fallback={<span className={styles.logoText}>{storeName}</span>}
+          />
+        </Link>
 
         <Suspense fallback={null}>
           <SearchForm className={styles.mainSearch} />
         </Suspense>
 
-        <div className={styles.deliverTo}>
-          <span className={styles.deliverLabel}>Deliver to:</span>
-          <span className={styles.deliverValue}>{locality}</span>
-        </div>
-
         <div className={styles.mainActions}>
-          <StorefrontAccountLink className={styles.signUpBtn}>
-            Sign up free
-          </StorefrontAccountLink>
           <button
             type="button"
             className={styles.cartBtn}
@@ -232,20 +259,7 @@ function ComilmartHeaderView({
               itemCount > 0 ? `Open cart, ${itemCount} items` : "Open cart"
             }
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M6 8h12l-1 11H7L6 8Z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M9 8V6.5a3 3 0 0 1 6 0V8"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
+            <ShoppingBag size={20} strokeWidth={1.75} aria-hidden />
             {itemCount > 0 ? (
               <span className={styles.cartCount}>{Math.min(itemCount, 99)}</span>
             ) : null}
@@ -253,8 +267,80 @@ function ComilmartHeaderView({
         </div>
       </div>
 
-      <div className={styles.drawer} hidden={!menuOpen}>
-        <div className={styles.drawerGrid}>
+      <div
+        className={styles.sidebarOverlay}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden={!menuOpen}
+      />
+      <aside
+        id="cm-sidebar"
+        className={styles.sidebar}
+        aria-hidden={!menuOpen}
+        aria-label="Shop menu"
+      >
+        <div className={styles.sidebarHead}>
+          <button
+            type="button"
+            className={styles.sidebarClose}
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            <X size={20} strokeWidth={2} />
+          </button>
+          <span className={styles.sidebarBrand}>
+            <span className={styles.sidebarBrandName}>{storeName}</span>
+            <span className={styles.sidebarBrandHint}>
+              Your online shopping center
+            </span>
+          </span>
+        </div>
+
+        {signedIn ? (
+          <Link
+            href={APP_ROUTES.shopAccount}
+            className={styles.sidebarAccount}
+            onClick={() => setMenuOpen(false)}
+          >
+            Account
+          </Link>
+        ) : (
+          <Link
+            href={signUpHref}
+            className={styles.sidebarSignup}
+            onClick={closeThen(onActivate)}
+          >
+            Sign up free
+          </Link>
+        )}
+
+        {!signedIn ? (
+          <Link
+            href={href}
+            className={styles.sidebarSignIn}
+            onClick={closeThen(onActivate)}
+          >
+            Sign in
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className={styles.sidebarSignIn}
+            onClick={() => void onSignOut()}
+          >
+            Sign out
+          </button>
+        )}
+
+        <p className={styles.sidebarDeliver}>Deliver to: {locality} ▾</p>
+
+        <nav className={styles.sidebarNav} aria-label="Categories">
+          <Link
+            href={APP_ROUTES.shop}
+            className={styles.sidebarLink}
+            onClick={() => setMenuOpen(false)}
+          >
+            All products
+          </Link>
           {visibleCategories.map((cat) => (
             <Link
               key={cat.id}
@@ -262,27 +348,42 @@ function ComilmartHeaderView({
                 categoryPathSlug: storefrontCategoryPathSlug(cat),
                 typeId: undefined,
               })}
-              className={styles.drawerLink}
+              className={styles.sidebarLink}
               onClick={() => setMenuOpen(false)}
             >
               {cat.name}
             </Link>
           ))}
-          {visibleTypes.map((type) => (
-            <Link
-              key={type.id}
-              href={shopListPath({
-                categoryPathSlug,
-                typeId: type.id,
-              })}
-              className={styles.drawerLink}
-              onClick={() => setMenuOpen(false)}
-            >
-              {type.label}
-            </Link>
-          ))}
-        </div>
-      </div>
+          {visibleCategories.length === 0
+            ? visibleTypes.map((type) => (
+                <Link
+                  key={type.id}
+                  href={shopListPath({
+                    categoryPathSlug,
+                    typeId: type.id,
+                  })}
+                  className={styles.sidebarLink}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {type.label}
+                </Link>
+              ))
+            : null}
+        </nav>
+
+        {wa ? (
+          <a
+            href={`https://wa.me/${wa}`}
+            className={styles.sidebarChat}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setMenuOpen(false)}
+          >
+            <MessageCircle size={16} strokeWidth={2} aria-hidden />
+            Chat on WhatsApp
+          </a>
+        ) : null}
+      </aside>
     </header>
   );
 }

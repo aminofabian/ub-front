@@ -163,9 +163,8 @@ export async function StorefrontCatalogHome({
     : null;
   const design = designOverride ?? tenant?.design ?? null;
   const showLanding =
-    tenant?.storefrontEnabled === false ||
     Boolean(preview.landingId) ||
-    !list;
+    (!preview.themeId && (tenant?.storefrontEnabled === false || !list));
 
   if (showLanding) {
     const Landing = resolveLandingPage(landingTemplateId);
@@ -207,9 +206,16 @@ export async function StorefrontCatalogHome({
     );
   }
 
-  if (!list) {
+  if (!list && !preview.themeId) {
     return null;
   }
+
+  const catalogList = list ?? {
+    currency: storefront?.currency ?? "KES",
+    items: [] as PublicCatalogItemCard[],
+    nextCursor: null,
+    totalCount: 0,
+  };
 
   const typeHeading =
     resolvedTypeId && !categoryHeading
@@ -219,7 +225,7 @@ export async function StorefrontCatalogHome({
   const heroTitle =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? "Browse products";
 
-  const catalogItems = orderCatalogLead(list.items, featured);
+  const catalogItems = orderCatalogLead(catalogList.items, featured);
 
   const showcaseImage =
     featured[0]?.imageUrl || storefront?.featured?.[0]?.imageUrl || null;
@@ -263,10 +269,10 @@ export async function StorefrontCatalogHome({
       <StoreHome
         themeId={themeId}
         slug={slug}
-        currency={list.currency}
+        currency={catalogList.currency}
         catalogItems={catalogItems}
-        nextCursor={list.nextCursor}
-        totalCount={list.totalCount ?? undefined}
+        nextCursor={catalogList.nextCursor}
+        totalCount={catalogList.totalCount ?? undefined}
         q={q}
         categoryId={categoryId}
         typeId={resolvedTypeId}

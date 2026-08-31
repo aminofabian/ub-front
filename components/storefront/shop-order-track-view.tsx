@@ -35,7 +35,7 @@ function maskPhone(phone: string | null | undefined): string {
 export default function ShopOrderTrackView({ slug }: { slug: string }) {
   const params = useParams<{ code: string }>();
   const code = decodeURIComponent(params?.code ?? "").trim();
-  const { ready: sheetReady, open } = useStorefrontSignIn();
+  const { available, open } = useStorefrontSignIn();
 
   const [last4, setLast4] = useState("");
   const [searching, setSearching] = useState(false);
@@ -123,7 +123,7 @@ export default function ShopOrderTrackView({ slug }: { slug: string }) {
 
   const continueToAccount = () => {
     if (!tracking?.customerPhone) return;
-    if (!sheetReady) {
+    if (!available) {
       window.location.assign(
         `${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}`,
       );

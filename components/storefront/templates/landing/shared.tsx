@@ -124,7 +124,7 @@ export function LandingAccountAction({
   const ready = useClientSessionReady();
   const hasSession = useClientHasSession();
   const restoreFailed = useSessionRestoreFailed();
-  const { ready: sheetReady, open, hasPresence } = useStorefrontSignIn();
+  const { available, open, hasPresence } = useStorefrontSignIn();
 
   // D8 (§10): the server-rendered presence hint shows "My orders" before
   // hydration; a failed cookie-only restore downgrades back to "Sign in".
@@ -133,7 +133,7 @@ export function LandingAccountAction({
   const label = isSignedIn ? "My orders" : "Sign in";
 
   const onActivate = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (clientSignedIn || !sheetReady) {
+    if (clientSignedIn || !available) {
       return;
     }
     event.preventDefault();

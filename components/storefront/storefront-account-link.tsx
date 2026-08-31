@@ -46,7 +46,7 @@ export function useStorefrontAccountLink(): {
   const hasSession = useClientHasSession();
   const restoreFailed = useSessionRestoreFailed();
   const pathname = usePathname();
-  const { ready: sheetReady, open, hasPresence } = useStorefrontSignIn();
+  const { available, open, hasPresence } = useStorefrontSignIn();
 
   // D8 (§10): the server-rendered presence hint keeps the signed-in label
   // through hydration; a failed cookie-only restore downgrades it to
@@ -60,7 +60,10 @@ export function useStorefrontAccountLink(): {
     // Signed-in shoppers go straight to the account page — no sheet. The
     // optimistic presence hint is not enough: clicks during the restore window
     // open the sheet, which is the right door for a possibly-stale hint.
-    if (clientSignedIn || !sheetReady) {
+    if (clientSignedIn) {
+      return;
+    }
+    if (!available) {
       return;
     }
     event.preventDefault();

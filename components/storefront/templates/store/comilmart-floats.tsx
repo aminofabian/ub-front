@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { LayoutGrid, MessageCircle, Search, ShoppingBag } from "lucide-react";
 
 import styles from "@/components/storefront/templates/store/comilmart.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
@@ -10,7 +12,7 @@ import { cn } from "@/lib/utils";
 type FloatAction = {
   id: string;
   label: string;
-  icon: string;
+  icon: ReactNode;
   href?: string;
   onClick?: () => void;
   active?: boolean;
@@ -25,6 +27,7 @@ export function ComilmartFloats({
   storeName: string;
 }) {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
   const {
     itemCount,
     checkoutOpen,
@@ -48,6 +51,7 @@ export function ComilmartFloats({
     : null;
 
   const focusSearch = () => {
+    setOpen(false);
     const input = document.getElementById("cm-search-q");
     if (input instanceof HTMLInputElement) {
       input.focus();
@@ -60,91 +64,97 @@ export function ComilmartFloats({
       ? {
           id: "chat",
           label: "Chat on WhatsApp",
-          icon: "💬",
+          icon: <MessageCircle size={18} strokeWidth={1.85} />,
           href: waHref,
           external: true,
         }
       : {
-          id: "chat",
+          id: "shop",
           label: "Browse catalog",
-          icon: "💬",
+          icon: <LayoutGrid size={18} strokeWidth={1.85} />,
           href: "#catalog",
         },
     {
       id: "search",
       label: "Search products",
-      icon: "🔍",
+      icon: <Search size={18} strokeWidth={1.85} />,
       onClick: focusSearch,
-    },
-    {
-      id: "categories",
-      label: "Shop by category",
-      icon: "📋",
-      href: "#categories",
     },
     {
       id: "cart",
       label: itemCount > 0 ? `Open cart (${itemCount})` : "Open cart",
-      icon: "🛍️",
-      onClick: toggleDrawer,
+      icon: <ShoppingBag size={18} strokeWidth={1.85} />,
+      onClick: () => {
+        setOpen(false);
+        toggleDrawer();
+      },
       active: itemCount > 0,
-    },
-    {
-      id: "shop",
-      label: "View all products",
-      icon: "🏪",
-      href: "#catalog",
-      active: true,
     },
   ];
 
   return (
-    <aside className={styles.floatDock} aria-label="Quick actions">
-      {actions.map((action) => {
-        const className = cn(
-          styles.floatBtn,
-          action.active && styles.floatBtnActive,
-        );
+    <aside
+      className={styles.floatDock}
+      data-open={open ? "true" : "false"}
+      aria-label="Quick actions"
+    >
+      <div className={styles.floatTools}>
+        {actions.map((action) => {
+          const className = cn(
+            styles.floatBtn,
+            action.active && styles.floatBtnActive,
+          );
 
-        if (action.href) {
+          if (action.href) {
+            return (
+              <a
+                key={action.id}
+                href={action.href}
+                className={className}
+                aria-label={action.label}
+                title={action.label}
+                target={action.external ? "_blank" : undefined}
+                rel={action.external ? "noopener noreferrer" : undefined}
+                onClick={() => setOpen(false)}
+              >
+                {action.icon}
+                {action.id === "cart" && itemCount > 0 ? (
+                  <span className={styles.floatBadge}>
+                    {itemCount > 99 ? "99+" : itemCount}
+                  </span>
+                ) : null}
+              </a>
+            );
+          }
+
           return (
-            <a
+            <button
               key={action.id}
-              href={action.href}
+              type="button"
               className={className}
               aria-label={action.label}
               title={action.label}
-              target={action.external ? "_blank" : undefined}
-              rel={action.external ? "noopener noreferrer" : undefined}
+              onClick={action.onClick}
             >
-              <span aria-hidden>{action.icon}</span>
+              {action.icon}
               {action.id === "cart" && itemCount > 0 ? (
                 <span className={styles.floatBadge}>
                   {itemCount > 99 ? "99+" : itemCount}
                 </span>
               ) : null}
-            </a>
+            </button>
           );
-        }
-
-        return (
-          <button
-            key={action.id}
-            type="button"
-            className={className}
-            aria-label={action.label}
-            title={action.label}
-            onClick={action.onClick}
-          >
-            <span aria-hidden>{action.icon}</span>
-            {action.id === "cart" && itemCount > 0 ? (
-              <span className={styles.floatBadge}>
-                {itemCount > 99 ? "99+" : itemCount}
-              </span>
-            ) : null}
-          </button>
-        );
-      })}
+        })}
+      </div>
+      <button
+        type="button"
+        className={cn(styles.floatBtn, styles.floatToggle)}
+        aria-expanded={open}
+        aria-label={open ? "Close quick actions" : "Open quick actions"}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {open ? "×" : "⋯"}
+      </button>
     </aside>
   );
 }

@@ -1,6 +1,6 @@
 import localFont from "next/font/local";
 
-/** Comilmart display voice — Space Grotesk headlines. */
+/** Comilmart display voice — Space Grotesk headlines, matching comilmart.com. */
 export const comilmartDisplay = localFont({
   src: [
     {
@@ -19,21 +19,26 @@ export const comilmartDisplay = localFont({
   fallback: ["system-ui", "Segoe UI", "sans-serif"],
 });
 
-/** Comilmart body — DM Sans for UI copy. */
+/** Comilmart body — IBM Plex Sans, the live shop's UI face. */
 export const comilmartSans = localFont({
   src: [
     {
-      path: "../../../../app/fonts/dm-sans/dm-sans-latin-400-normal.woff2",
+      path: "../../../../app/fonts/ibm-plex-sans/ibm-plex-sans-latin-400-normal.woff2",
       weight: "400",
       style: "normal",
     },
     {
-      path: "../../../../app/fonts/dm-sans/dm-sans-latin-500-normal.woff2",
+      path: "../../../../app/fonts/ibm-plex-sans/ibm-plex-sans-latin-500-normal.woff2",
       weight: "500",
       style: "normal",
     },
     {
-      path: "../../../../app/fonts/dm-sans/dm-sans-latin-700-normal.woff2",
+      path: "../../../../app/fonts/ibm-plex-sans/ibm-plex-sans-latin-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../../../app/fonts/ibm-plex-sans/ibm-plex-sans-latin-700-normal.woff2",
       weight: "700",
       style: "normal",
     },
@@ -43,7 +48,7 @@ export const comilmartSans = localFont({
   fallback: ["system-ui", "Segoe UI", "sans-serif"],
 });
 
-/** Utility bar clock / badges — IBM Plex Mono. */
+/** Utility bar clock — IBM Plex Mono. */
 export const comilmartMono = localFont({
   src: [
     {

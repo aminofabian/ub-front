@@ -261,11 +261,11 @@ function ComilmartHomeBody(props: StoreHomeTemplateProps) {
               <span>Buyer protection</span>
             </div>
             <div>
-              <strong>{productCount > 0 ? `${productCount}+` : "—"}</strong>
+              <strong>{productCount > 0 ? `${productCount}+` : "-"}</strong>
               <span>Products available</span>
             </div>
             <div>
-              <strong>{categories.length || shopperTypes.length || "—"}</strong>
+              <strong>{categories.length || shopperTypes.length || "-"}</strong>
               <span>Categories</span>
             </div>
             {locality ? (
@@ -363,7 +363,7 @@ function ComilmartHomeBody(props: StoreHomeTemplateProps) {
                   <p>
                     {locality
                       ? `Everyday items for ${locality}, delivered how this shop already serves you.`
-                      : "Everyday items from a shop you can trust — order online in minutes."}
+                      : "Everyday items from a shop you can trust. Order online in minutes."}
                   </p>
                   {spotlightCategory ? (
                     <Link
@@ -447,7 +447,7 @@ function ComilmartHomeBody(props: StoreHomeTemplateProps) {
               <strong>{heroTitle}</strong>
               <p>
                 {announcement?.trim() ||
-                  "Your neighborhood marketplace — order online, pay securely."}
+                  "Your neighborhood marketplace. Order online, pay securely."}
               </p>
             </div>
             {locality ? <p className={styles.footerMeta}>{locality}</p> : null}
