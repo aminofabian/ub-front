@@ -176,8 +176,9 @@ export function ProductEditDrawer({
       canCreateCategory,
       createCategory: categoryCreate.create,
     });
-    if (!ids.categoryId) return;
-    detail.setPatchDraft((p) => ({ ...p, categoryId: ids.categoryId }));
+    const categoryId = ids.categoryId;
+    if (!categoryId) return;
+    detail.setPatchDraft((p) => ({ ...p, categoryId }));
   };
 
   const descriptionCategoryName = useMemo(() => {
