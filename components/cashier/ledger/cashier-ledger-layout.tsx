@@ -6,23 +6,30 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
-import Link from "next/link";
 import {
   Banknote,
+  BookOpen,
+  Building2,
   Camera,
+  CircleHelp,
   ClipboardCheck,
+  ClipboardList,
+  Clock,
   CreditCard,
   Lock,
   LockKeyhole,
+  LogOut,
   MapPin,
   MoreHorizontal,
   PackagePlus,
   PlusCircle,
+  Receipt,
   ScanLine,
   Settings2,
+  ShoppingBag,
   Smartphone,
+  Store,
   Truck,
   Users,
   Wallet,
@@ -37,7 +44,6 @@ import { AirtimeQuickAction } from "@/components/airtime/airtime-quick-action";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { useDashboard } from "@/components/dashboard-provider";
 import { TenantOrderDrawer } from "@/components/order/tenant-order-drawer";
-import { PosSearchHitList } from "@/components/cashier/pos-search-hit-list";
 import { PosVariantPicker } from "@/components/cashier/pos-variant-picker";
 import { CashierCartDrawer } from "@/components/cashier/cashier-cart-drawer";
 import { CashierCreateProductModal } from "@/components/cashier/cashier-create-product-modal";
@@ -76,6 +82,8 @@ import type { CashierPosLayoutProps } from "../cashier-pos-layout";
 import { LedgerBestSellers } from "./ledger-best-sellers";
 import { LedgerFunctionBar } from "./ledger-function-bar";
 import { LedgerKeypad } from "./ledger-keypad";
+import { MORE_ROW, MoreRow, MoreSection } from "./ledger-more-menu";
+import { flattenLedgerSearchHits, LedgerSearchHits } from "./ledger-search-hits";
 import {
   LedgerSheet,
   type LedgerCellField,
@@ -110,11 +118,6 @@ function backspaceAmount(current: string): string {
   return current.slice(0, -1);
 }
 
-const MORE_CHIP = cn(
-  "inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-800",
-  "hover:bg-zinc-50",
-);
-
 const CASH_QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const;
 
 const HEADER_SELECT = cn(
@@ -122,21 +125,6 @@ const HEADER_SELECT = cn(
   "text-inherit outline-none focus-visible:ring-2 focus-visible:ring-white/70",
   "disabled:opacity-50",
 );
-
-function MoreGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <p className="px-0.5 text-[11px] font-medium text-zinc-500">{label}</p>
-      <div className="flex flex-wrap gap-1.5">{children}</div>
-    </div>
-  );
-}
 
 export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   const {
@@ -212,6 +200,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   const [activeField, setActiveField] = useState<LedgerCellField>("code");
   const [keyTarget, setKeyTarget] = useState<KeyTarget>("sheet");
   const [moreOpen, setMoreOpen] = useState(false);
+  const [firstSaleOpen, setFirstSaleOpen] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [discPctByKey, setDiscPctByKey] = useState<Record<string, string>>({});
   const [priceBaseByKey, setPriceBaseByKey] = useState<Record<string, number>>({});
@@ -501,8 +490,9 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
       applyBarcodeSearch(q);
       return;
     }
-    if (hits.length === 1 && !hits[0]?.groupLabelOnly) {
-      pickItem(hits[0]!);
+    const sellable = flattenLedgerSearchHits(hits).find((h) => !h.groupLabelOnly);
+    if (sellable) {
+      pickItem(sellable);
       return;
     }
     if (hits.length === 0) toast.message("No matching item");
@@ -843,6 +833,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
+                    if (hits.length > 0) return;
                     commitEntry();
                   }
                 }}
@@ -899,23 +890,24 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               ))}
             </nav>
             {search.trim() ? (
-              <div className="absolute left-0 top-full z-20 mt-1 max-h-[42vh] w-[min(44rem,calc(100%-11rem))] overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg">
+              <div className="absolute left-0 top-full z-20 mt-1 max-h-[min(56vh,32rem)] w-full overflow-auto rounded-md border border-zinc-200 bg-white shadow-[0_8px_28px_rgba(24,24,27,0.14)]">
                 {searchBanner ? (
-                  <p className="px-3 py-1.5 text-[11px] text-zinc-500">{searchBanner}</p>
+                  <p className="border-b border-zinc-100 px-3 py-1.5 text-[11px] text-zinc-500">
+                    {searchBanner}
+                  </p>
                 ) : null}
                 {hits.length > 0 ? (
-                  <PosSearchHitList
+                  <LedgerSearchHits
                     hits={hits}
                     shelfPrices={shelfPrices}
                     cartQtyByItem={cartQtyByItem}
-                    justAddedId={null}
-                    currency={currency}
-                    sharedCategoryLabel={null}
+                    searchInputRef={searchInputRef}
                     onPick={pickItem}
                   />
                 ) : (
                   <p className="px-3 py-3 text-sm text-zinc-500">
-                    No item matches "{search.trim()}". Press Enter to look up as a barcode.
+                    No item matches "{search.trim()}". Press Enter to look up as a
+                    barcode.
                   </p>
                 )}
               </div>
@@ -1220,231 +1212,230 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           More
         </button>
         {moreOpen ? (
-          <div className="absolute bottom-full right-2 z-30 mb-1 w-80 space-y-3 rounded-md border border-zinc-200 bg-white p-3 shadow-lg">
-            {(posShiftLinks?.canOpenShift && !posShiftLinks.hasOpenShift) ||
-            (posShiftLinks?.canDrawout && posShiftLinks.hasOpenShift) ||
-            (posShiftLinks?.canCloseShift && posShiftLinks.hasOpenShift) ? (
-            <MoreGroup label="Shift">
-              {posShiftLinks?.canOpenShift && !posShiftLinks.hasOpenShift ? (
-                <button
-                  type="button"
-                  className={MORE_CHIP}
+          <div className="absolute bottom-full right-2 z-30 mb-1 w-[17.5rem] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-[0_8px_28px_rgba(24,24,27,0.14)]">
+            <div className="flex items-center justify-between border-b border-zinc-100 px-2.5 py-2">
+              <p className="text-[13px] font-semibold text-zinc-900">More</p>
+              <span className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-[10px] font-semibold text-zinc-500">
+                F12
+              </span>
+            </div>
+            <div className="max-h-[min(70vh,28rem)] overflow-y-auto">
+              <MoreSection label="On this sale">
+                {allowCreditTabs ? (
+                  <MoreRow
+                    icon={Users}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      setCreditTabsOpen(true);
+                    }}
+                  >
+                    Credit tabs
+                  </MoreRow>
+                ) : null}
+                {allowAirtime ? (
+                  <AirtimeQuickAction
+                    triggerClassName={MORE_ROW}
+                    currency={currency}
+                    channel="POS"
+                    onTrigger={() => setMoreOpen(false)}
+                    onAddToCart={(payload) => {
+                      setMoreOpen(false);
+                      return onAddAirtimeToCart?.(payload) ?? false;
+                    }}
+                  />
+                ) : null}
+                {allowOrderPad ? (
+                  <MoreRow
+                    icon={ClipboardList}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      setOrderPadOpen(true);
+                    }}
+                  >
+                    Order pad
+                  </MoreRow>
+                ) : null}
+                {allowOrderConfirm ? (
+                  <MoreRow
+                    icon={ClipboardCheck}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      setOrderConfirmOpen(true);
+                    }}
+                  >
+                    Confirm orders
+                  </MoreRow>
+                ) : null}
+                <MoreRow
+                  icon={Camera}
                   onClick={() => {
                     setMoreOpen(false);
-                    posShiftLinks.onShortcut("open-shift");
+                    setShowScanner(true);
                   }}
                 >
-                  <PlusCircle className="size-3.5" aria-hidden /> Open shift
-                </button>
-              ) : null}
-              {posShiftLinks?.canDrawout && posShiftLinks.hasOpenShift ? (
-                <button
-                  type="button"
-                  className={MORE_CHIP}
+                  Camera scan
+                </MoreRow>
+                <MoreRow
+                  icon={CreditCard}
                   onClick={() => {
                     setMoreOpen(false);
-                    posShiftLinks.onShortcut("new-drawout");
+                    onCheckoutDrawerOpenChange(true);
                   }}
                 >
-                  <Wallet className="size-3.5" aria-hidden /> Drawout
-                </button>
-              ) : null}
-              {posShiftLinks?.canCloseShift && posShiftLinks.hasOpenShift ? (
-                <button
-                  type="button"
-                  className={MORE_CHIP}
-                  onClick={() => {
-                    setMoreOpen(false);
-                    posShiftLinks.onShortcut("close-shift");
-                  }}
-                >
-                  Close shift
-                </button>
-              ) : null}
-            </MoreGroup>
-            ) : null}
-            <MoreGroup label="Catalog">
-              {allowCreditTabs ? (
-                <button
-                  type="button"
-                  className={MORE_CHIP}
-                  onClick={() => {
-                    setMoreOpen(false);
-                    setCreditTabsOpen(true);
-                  }}
-                >
-                  <Users className="size-3.5" aria-hidden /> Credit tabs
-                </button>
-              ) : null}
-              {allowAirtime ? (
-                <AirtimeQuickAction
-                  triggerClassName={MORE_CHIP}
-                  currency={currency}
-                  channel="POS"
-                  onAddToCart={(payload) => {
-                    setMoreOpen(false);
-                    return onAddAirtimeToCart?.(payload) ?? false;
-                  }}
-                />
-              ) : null}
-              {allowCreateProduct ? (
-                <button
-                  type="button"
-                  className={MORE_CHIP}
-                  onClick={() => {
-                    setMoreOpen(false);
-                    setCreateProductOpen(true);
-                  }}
-                >
-                  <PackagePlus className="size-3.5" aria-hidden /> New product
-                </button>
-              ) : null}
-              {allowCreateSupplier || allowLinkSupplierProducts || allowReceiveSupply ? (
-                <button
-                  type="button"
-                  className={MORE_CHIP}
-                  onClick={() => {
-                    setMoreOpen(false);
-                    setSuppliersOpen(true);
-                  }}
-                >
-                  <Truck className="size-3.5" aria-hidden /> Receive
-                </button>
-              ) : null}
-              {allowOrderPad ? (
-                <button
-                  type="button"
-                  className={MORE_CHIP}
-                  onClick={() => {
-                    setMoreOpen(false);
-                    setOrderPadOpen(true);
-                  }}
-                >
-                  Order
-                </button>
-              ) : null}
-              {allowOrderConfirm ? (
-                <button
-                  type="button"
-                  className={MORE_CHIP}
-                  onClick={() => {
-                    setMoreOpen(false);
-                    setOrderConfirmOpen(true);
-                  }}
-                >
-                  <ClipboardCheck className="size-3.5" aria-hidden /> Confirm
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className={MORE_CHIP}
-                onClick={() => {
-                  setMoreOpen(false);
-                  setShowScanner(true);
-                }}
-              >
-                <Camera className="size-3.5" aria-hidden /> Camera
-              </button>
-              <CashierFirstSaleDrawer
-                trigger={
-                  <button
-                    type="button"
-                    className={MORE_CHIP}
+                  Checkout details
+                </MoreRow>
+              </MoreSection>
+              <MoreSection label="Stock">
+                {allowCreateProduct ? (
+                  <MoreRow
+                    icon={PackagePlus}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      setCreateProductOpen(true);
+                    }}
+                  >
+                    New product
+                  </MoreRow>
+                ) : null}
+                {allowCreateSupplier ||
+                allowLinkSupplierProducts ||
+                allowReceiveSupply ? (
+                  <MoreRow
+                    icon={Truck}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      setSuppliersOpen(true);
+                    }}
+                  >
+                    Receive supply
+                  </MoreRow>
+                ) : null}
+              </MoreSection>
+              <MoreSection label="Shift">
+                {posShiftLinks?.canOpenShift && !posShiftLinks.hasOpenShift ? (
+                  <MoreRow
+                    icon={PlusCircle}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      posShiftLinks.onShortcut("open-shift");
+                    }}
+                  >
+                    Open shift
+                  </MoreRow>
+                ) : null}
+                {posShiftLinks?.canDrawout && posShiftLinks.hasOpenShift ? (
+                  <MoreRow
+                    icon={Wallet}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      posShiftLinks.onShortcut("new-drawout");
+                    }}
+                  >
+                    Drawout
+                  </MoreRow>
+                ) : null}
+                {posShiftLinks?.canCloseShift && posShiftLinks.hasOpenShift ? (
+                  <MoreRow
+                    icon={Clock}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      posShiftLinks.onShortcut("close-shift");
+                    }}
+                  >
+                    Close shift
+                  </MoreRow>
+                ) : null}
+              </MoreSection>
+              {showOwnerNav ? (
+                <MoreSection label="Records">
+                  <MoreRow
+                    icon={BookOpen}
+                    href={APP_ROUTES.paymentsDayLedger}
                     onClick={() => setMoreOpen(false)}
                   >
-                    First sale
-                  </button>
-                }
-              />
-            </MoreGroup>
-            {showOwnerNav ? (
-              <MoreGroup label="Admin">
-                <Link
-                  href={APP_ROUTES.paymentsDayLedger}
-                  className={MORE_CHIP}
-                  onClick={() => setMoreOpen(false)}
-                >
-                  Day ledger
-                </Link>
-                <Link
-                  href={APP_ROUTES.sales}
-                  className={MORE_CHIP}
-                  onClick={() => setMoreOpen(false)}
-                >
-                  Sales
-                </Link>
-                <Link
-                  href={APP_ROUTES.business}
-                  className={MORE_CHIP}
-                  onClick={() => setMoreOpen(false)}
-                >
-                  Business
-                </Link>
-                <button
-                  type="button"
-                  className={MORE_CHIP}
+                    Day ledger
+                  </MoreRow>
+                  <MoreRow
+                    icon={ShoppingBag}
+                    href={APP_ROUTES.sales}
+                    onClick={() => setMoreOpen(false)}
+                  >
+                    Sales
+                  </MoreRow>
+                  <MoreRow
+                    icon={Building2}
+                    href={APP_ROUTES.business}
+                    onClick={() => setMoreOpen(false)}
+                  >
+                    Business
+                  </MoreRow>
+                  <MoreRow
+                    icon={Receipt}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      window.dispatchEvent(new Event("ub:open-receipt-shop"));
+                    }}
+                  >
+                    Receipt details
+                  </MoreRow>
+                  <MoreRow
+                    icon={Store}
+                    href={APP_ROUTES.salesQuick}
+                    onClick={() => setMoreOpen(false)}
+                  >
+                    Admin sale
+                  </MoreRow>
+                </MoreSection>
+              ) : null}
+              <MoreSection label="This till">
+                <MoreRow
+                  icon={Settings2}
                   onClick={() => {
                     setMoreOpen(false);
-                    window.dispatchEvent(new Event("ub:open-receipt-shop"));
+                    window.dispatchEvent(new Event("ub:open-till-settings"));
                   }}
                 >
-                  Receipt details
-                </button>
-                <Link
-                  href={APP_ROUTES.salesQuick}
-                  className={MORE_CHIP}
-                  onClick={() => setMoreOpen(false)}
+                  Till settings
+                </MoreRow>
+                <MoreRow
+                  icon={CircleHelp}
+                  onClick={() => {
+                    setMoreOpen(false);
+                    setFirstSaleOpen(true);
+                  }}
                 >
-                  Admin sale
-                </Link>
-              </MoreGroup>
-            ) : null}
-            <MoreGroup label="This till">
-              <button
-                type="button"
-                className={MORE_CHIP}
-                onClick={() => {
-                  setMoreOpen(false);
-                  onCheckoutDrawerOpenChange(true);
-                }}
-              >
-                Checkout details
-              </button>
-              <button
-                type="button"
-                className={MORE_CHIP}
-                onClick={() => {
-                  setMoreOpen(false);
-                  window.dispatchEvent(new Event("ub:open-till-settings"));
-                }}
-              >
-                <Settings2 className="size-3.5" aria-hidden /> Till settings
-              </button>
-              <button
-                type="button"
-                className={MORE_CHIP}
-                disabled={tillLocked}
-                onClick={() => {
-                  setMoreOpen(false);
-                  tillLock?.lock({ reason: "manual" });
-                }}
-              >
-                <LockKeyhole className="size-3.5" aria-hidden /> Lock till
-              </button>
-              <button
-                type="button"
-                className={MORE_CHIP}
-                onClick={() => {
-                  setMoreOpen(false);
-                  void logoutRemoteAndRedirectToLogin().catch(() => undefined);
-                }}
-              >
-                Log out
-              </button>
-            </MoreGroup>
+                  How to take a sale
+                </MoreRow>
+                <MoreRow
+                  icon={LockKeyhole}
+                  disabled={tillLocked}
+                  onClick={() => {
+                    setMoreOpen(false);
+                    tillLock?.lock({ reason: "manual" });
+                  }}
+                >
+                  Lock till
+                </MoreRow>
+                <MoreRow
+                  icon={LogOut}
+                  tone="leave"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    void logoutRemoteAndRedirectToLogin().catch(() => undefined);
+                  }}
+                >
+                  Log out
+                </MoreRow>
+              </MoreSection>
+            </div>
           </div>
         ) : null}
       </footer>
+
+      <CashierFirstSaleDrawer
+        open={firstSaleOpen}
+        onOpenChange={setFirstSaleOpen}
+      />
 
       <CashierProductModal
         item={pickedItem}

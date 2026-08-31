@@ -18,6 +18,8 @@ type Props = {
   currency?: string;
   channel?: "POS" | "DASHBOARD";
   onAddToCart?: (payload: AirtimeCartPayload) => boolean;
+  /** Fired when the cashier opens airtime (e.g. close a parent menu). */
+  onTrigger?: () => void;
 };
 
 /**
@@ -32,6 +34,7 @@ export function AirtimeQuickAction({
   currency,
   channel = "POS",
   onAddToCart,
+  onTrigger,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [availability, setAvailability] = useState<AirtimeAvailabilityRecord | null>(null);
@@ -61,7 +64,10 @@ export function AirtimeQuickAction({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          onTrigger?.();
+          setOpen(true);
+        }}
         className={cn(triggerClassName, "relative")}
         title={
           lowWallet

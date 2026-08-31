@@ -50,13 +50,21 @@ const STEPS = [
  * summarising how to take the first sale — the full guide link points at the
  * HOST help site (kiosk.ke), never the tenant subdomain.
  */
-export function CashierFirstSaleDrawer({ trigger }: { trigger?: ReactNode }) {
+export function CashierFirstSaleDrawer({
+  trigger,
+  open,
+  onOpenChange,
+}: {
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const cashierGuideUrl = helpHostUrl(APP_ROUTES.helpOpenCashier);
   const productsGuideUrl = helpHostUrl(APP_ROUTES.helpAddProducts);
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent side="right" className="gap-0 p-0">
         <div className="flex flex-col overflow-y-auto p-5 pb-6">
           <DialogHeader className="pr-10">
