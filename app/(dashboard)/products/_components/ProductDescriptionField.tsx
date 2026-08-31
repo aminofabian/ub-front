@@ -78,9 +78,7 @@ export function ProductDescriptionField({
         <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           Description
         </span>
-        {/* AI description posts to an external LLM (RapidAPI DeepSeek); */}
-        {/* the desktop SKU is offline so the button is hidden, leaving the */}
-        {/* manual textarea below as the only editor. */}
+        {/* SokoMind (same provider as theme AI). Hidden on desktop — that SKU is offline. */}
         {!IS_DESKTOP ? (
           <Button
             type="button"

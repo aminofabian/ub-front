@@ -387,7 +387,7 @@ export default function SuperAdminPlatformIntegrationsPage() {
       <form className="space-y-6" onSubmit={onSave}>
         <SaSection
           title="Product description AI"
-          description='DeepSeek via RapidAPI — powers "Generate with AI" on product forms.'
+          description='Legacy RapidAPI DeepSeek key. Product descriptions now use Super Admin → Platform → SokoMind, same as storefront theme AI.'
         >
           <div className="space-y-4">
             {settings ? (
