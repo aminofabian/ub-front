@@ -1,0 +1,339 @@
+.root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  caret-color: var(--catalog-primary, #0f766e);
+  box-shadow:
+    inset 0 2px 0 var(--catalog-primary, #0f766e),
+    0 24px 80px -28px rgba(21, 35, 31, 0.45);
+}
+
+.root ::selection {
+  background: color-mix(in srgb, var(--catalog-primary, #0f766e) 28%, white);
+  color: var(--catalog-ink, #15231f);
+}
+
+.header {
+  padding: 1.1rem 1.25rem 0.85rem;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--catalog-ink, #15231f) 8%, transparent);
+}
+
+.identity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.75rem;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.photo {
+  position: relative;
+  display: flex;
+  width: 4.75rem;
+  height: 4.75rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px dashed
+    color-mix(in srgb, var(--catalog-ink, #15231f) 20%, transparent);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--catalog-shelf, #f3f6f5) 75%, white);
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 160ms var(--ease-out);
+}
+
+.photo:active {
+  transform: scale(0.97);
+}
+
+.photo[data-over] {
+  border-color: var(--catalog-primary, #0f766e);
+  background: color-mix(in srgb, var(--catalog-primary, #0f766e) 10%, white);
+}
+
+.photo[data-filled] {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--catalog-ink, #15231f) 14%, transparent);
+}
+
+.photoBtn {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--catalog-ink, #15231f) 48%, transparent);
+  cursor: pointer;
+}
+
+.photoBtn span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--catalog-ink, #15231f) 55%, transparent);
+}
+
+.photoBar {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  background: color-mix(in srgb, var(--catalog-ink, #15231f) 62%, transparent);
+  padding: 0.15rem 0;
+}
+
+.photoBar button {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.priceWrap {
+  position: relative;
+}
+
+.priceInput {
+  padding-right: 2.85rem;
+}
+
+.priceSell {
+  font-weight: 600;
+}
+
+.priceCur {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  color: color-mix(in srgb, var(--catalog-ink, #15231f) 42%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.margin {
+  overflow: hidden;
+  color: color-mix(in srgb, var(--catalog-ink, #15231f) 58%, transparent);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 220ms var(--ease-out);
+}
+
+.margin[data-show] {
+  clip-path: inset(0 0 0 0);
+}
+
+.moreToggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--catalog-ink, #15231f) 58%, transparent);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.moreToggle:hover {
+  color: var(--catalog-ink, #15231f);
+}
+
+.morePanel {
+  animation: fadeUp 200ms var(--ease-out) both;
+}
+
+.keep {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.65rem 0.25rem 0.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--catalog-shelf, #f3f6f5) 88%, white);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--catalog-ink, #15231f) 12%, transparent);
+  color: color-mix(in srgb, var(--catalog-ink, #15231f) 68%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 160ms var(--ease-out);
+}
+
+.keep[aria-checked="true"] {
+  background: var(--catalog-ink, #15231f);
+  box-shadow: none;
+  color: #fff;
+}
+
+.keep:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.keep:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.keepDot {
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(21, 35, 31, 0.28);
+  transform: scale(0.92);
+  transition: transform 200ms var(--ease-out);
+}
+
+.keep[aria-checked="true"] .keepDot {
+  transform: scale(1);
+}
+
+.create {
+  position: relative;
+  overflow: hidden;
+  min-width: 8.5rem;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--catalog-ink, #15231f) 18%, #e8eeec);
+  color: color-mix(in srgb, var(--catalog-ink, #15231f) 55%, transparent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: not-allowed;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 160ms var(--ease-out);
+}
+
+.create:disabled {
+  opacity: 1;
+}
+
+.create[data-armed="true"] {
+  background: var(--catalog-ink, #15231f);
+  color: #fff;
+  cursor: pointer;
+}
+
+.create[data-armed="true"]:active {
+  transform: scale(0.97);
+}
+
+.create[data-stamp] {
+  animation: stampIn 240ms var(--ease-out);
+}
+
+.create[data-busy="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgb(255 255 255 / 0.22) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  animation: sheen 900ms linear infinite;
+}
+
+.fresh {
+  animation: freshIn 520ms var(--ease-out);
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes stampIn {
+  from {
+    transform: scale(0.96);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes freshIn {
+  from {
+    filter: blur(2px);
+    opacity: 0.65;
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .photo:hover:not([data-filled]) {
+    background: color-mix(in srgb, var(--catalog-shelf, #f3f6f5) 40%, white);
+    border-color: color-mix(in srgb, var(--catalog-ink, #15231f) 32%, transparent);
+  }
+
+  .keep:hover:not([aria-checked="true"]) {
+    color: var(--catalog-ink, #15231f);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo,
+  .keep,
+  .keepDot,
+  .create,
+  .margin,
+  .moreToggle {
+    transition: none;
+  }
+
+  .morePanel,
+  .create[data-stamp],
+  .fresh,
+  .create[data-busy="true"]::after {
+    animation: none;
+  }
+
+  .margin[data-show] {
+    clip-path: inset(0 0 0 0);
+  }
+
+  .photo:active,
+  .keep:active,
+  .create[data-armed="true"]:active {
+    transform: none;
+  }
+}

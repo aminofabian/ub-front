@@ -5,7 +5,6 @@ import Image from "next/image";
 import {
   ChevronDown,
   ImagePlus,
-  Loader2,
   Minus,
   Plus,
   ScanBarcode,
@@ -53,6 +52,7 @@ import {
   productFormInputClass,
   productFormLabelClass,
 } from "./product-form-styles";
+import styles from "./product-create-modal.module.css";
 
 type Props = {
   open: boolean;
@@ -268,6 +268,10 @@ export function ProductCreateModal({
   const [keepOpen, setKeepOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [photoOver, setPhotoOver] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const [stamp, setStamp] = useState(0);
+  const prevArmed = useRef(false);
   const [descGenError, setDescGenError] = useState("");
   const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(null);
   const categoryCreate = useInlineCategoryCreate(catalog.upsertCategory);
@@ -278,6 +282,10 @@ export function ProductCreateModal({
     setKeepOpen(false);
     setScannerOpen(false);
     setMoreOpen(false);
+    setPhotoOver(false);
+    setJustAdded(false);
+    setStamp(0);
+    prevArmed.current = false;
     setDescGenError("");
     setLinkedGlobalLabel(null);
     categoryCreate.clearError();
@@ -403,6 +411,7 @@ export function ProductCreateModal({
       if (file && file.type.startsWith("image/")) {
         m.setPendingCreateImage(file);
       }
+      setPhotoOver(false);
     },
     [m],
   );
@@ -475,6 +484,18 @@ export function ProductCreateModal({
 
   const currency = currencyCode.trim() || "KES";
 
+  const canArm =
+    catalog.itemTypes.length > 0 &&
+    m.parentDraft.name.trim().length > 0 &&
+    (isGroup ||
+      (Number.isFinite(Number(m.parentDraft.bundlePrice)) &&
+        Number(m.parentDraft.bundlePrice) > 0));
+
+  useEffect(() => {
+    if (canArm && !prevArmed.current) setStamp((s) => s + 1);
+    prevArmed.current = canArm;
+  }, [canArm]);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -524,6 +545,11 @@ export function ProductCreateModal({
       });
       m.setPendingCreateImage(null);
       setLinkedGlobalLabel(null);
+      setJustAdded(true);
+      window.setTimeout(() => {
+        document.getElementById("create-product-name")?.focus();
+      }, 0);
+      window.setTimeout(() => setJustAdded(false), 560);
     },
     [keepOpen, m],
   );
@@ -540,14 +566,17 @@ export function ProductCreateModal({
         side="center"
         data-onboarding-target={ONBOARDING_TARGETS.productsDrawer}
         style={PRODUCTS_CATALOG_VARS}
-        className="max-h-[min(92dvh,48rem)] w-[calc(100vw-1.25rem)] max-w-[34rem] gap-0 overflow-hidden p-0 shadow-[0_24px_80px_-28px_rgba(21,35,31,0.45)]"
+        className={cn(
+          styles.root,
+          "max-h-[min(92dvh,48rem)] w-[calc(100vw-1.25rem)] max-w-[34rem] gap-0 overflow-hidden p-0 shadow-none",
+        )}
       >
         <form
           id="create-parent-form"
           className="flex max-h-[min(92dvh,46rem)] min-h-0 flex-col overflow-hidden"
           onSubmit={handleSubmit}
         >
-          <header className="shrink-0 border-b border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] px-5 pb-3 pt-5">
+          <header className={styles.header}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1 pr-1">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -562,8 +591,10 @@ export function ProductCreateModal({
                 </div>
                 <DialogDescription className="mt-1.5 text-[13px] leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)]">
                   {isGroup
-                    ? "One name, then add sizes or packs after you save."
-                    : "Name, buying price, selling price, barcode, how many you have, and a photo."}
+                    ? "Name the family. You'll add each size or pack after this."
+                    : justAdded
+                      ? "Added. Name the next one."
+                      : "Name and selling price are enough to sell. Photo and barcode can wait."}
                 </DialogDescription>
               </div>
               <button
@@ -611,69 +642,80 @@ export function ProductCreateModal({
               </div>
             ) : null}
 
-            <div className="space-y-4">
-              {!isGroup ? (
-                <div
-                  onDrop={handleDrop}
-                  onDragOver={(e) => e.preventDefault()}
-                  className={cn(
-                    "relative flex h-[8.5rem] w-full overflow-hidden rounded-2xl border border-dashed",
-                    previewUrl
-                      ? "border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_14%,transparent)]"
-                      : "border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_18%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_70%,white)]",
-                  )}
-                >
-                  {previewUrl ? (
-                    <Image
-                      src={previewUrl}
-                      alt=""
-                      width={544}
-                      height={136}
-                      unoptimized
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => fileRef.current?.click()}
-                      className="flex h-full w-full flex-col items-center justify-center hover:bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_40%,white)]"
-                      aria-label="Add a photo"
-                    >
-                      <ImagePlus
-                        className="size-6 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]"
-                        aria-hidden
-                      />
-                      <span className="mt-1.5 text-[13px] font-medium text-[var(--catalog-ink,#15231f)]">
-                        Add a photo
-                      </span>
-                      <span className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
-                        Optional. Drop one here or click to choose.
-                      </span>
-                    </button>
-                  )}
-                  {previewUrl ? (
-                    <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1 bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_62%,transparent)] py-1">
-                      <button
-                        type="button"
-                        onClick={() => fileRef.current?.click()}
-                        className="px-2 py-0.5 text-[11px] font-medium text-white"
-                      >
-                        Change
-                      </button>
-                      <span className="text-white/50" aria-hidden>
-                        ·
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => m.setPendingCreateImage(null)}
-                        className="px-2 py-0.5 text-[11px] font-medium text-white"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : null}
+            <div className={cn("space-y-4", justAdded && styles.fresh)}>
+              <div className={cn(!isGroup && styles.identity)}>
+                <div className="space-y-1.5">
+                  <FieldLabel htmlFor="create-product-name">
+                    {isGroup ? "Family name" : "Product name"}
+                  </FieldLabel>
+                  <input
+                    id="create-product-name"
+                    className={fieldClass}
+                    placeholder={
+                      isGroup ? "e.g. Fresh milk" : "e.g. Brookside 500ml"
+                    }
+                    value={m.parentDraft.name}
+                    onChange={(e) =>
+                      m.setParentDraft((p) => ({ ...p, name: e.target.value }))
+                    }
+                    required
+                    autoFocus
+                  />
                 </div>
-              ) : null}
+                {!isGroup ? (
+                  <div className="space-y-1.5">
+                    <span className={labelClass}>Photo</span>
+                    <div
+                      onDrop={handleDrop}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setPhotoOver(true);
+                      }}
+                      onDragLeave={() => setPhotoOver(false)}
+                      className={styles.photo}
+                      data-filled={previewUrl ? "" : undefined}
+                      data-over={photoOver ? "" : undefined}
+                    >
+                      {previewUrl ? (
+                        <Image
+                          src={previewUrl}
+                          alt=""
+                          width={76}
+                          height={76}
+                          unoptimized
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => fileRef.current?.click()}
+                          className={styles.photoBtn}
+                          aria-label="Add a photo"
+                        >
+                          <ImagePlus className="size-5" aria-hidden />
+                          <span>Add</span>
+                        </button>
+                      )}
+                      {previewUrl ? (
+                        <div className={styles.photoBar}>
+                          <button
+                            type="button"
+                            onClick={() => fileRef.current?.click()}
+                          >
+                            Change
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => m.setPendingCreateImage(null)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
 
               <input
                 ref={fileRef}
@@ -686,23 +728,6 @@ export function ProductCreateModal({
                   if (file) m.setPendingCreateImage(file);
                 }}
               />
-
-              <div className="space-y-1.5">
-                <FieldLabel htmlFor="create-product-name">
-                  {isGroup ? "Family name" : "Product name"}
-                </FieldLabel>
-                <input
-                  id="create-product-name"
-                  className={fieldClass}
-                  placeholder={isGroup ? "e.g. Fresh milk" : "e.g. Brookside 500ml"}
-                  value={m.parentDraft.name}
-                  onChange={(e) =>
-                    m.setParentDraft((p) => ({ ...p, name: e.target.value }))
-                  }
-                  required
-                  autoFocus
-                />
-              </div>
 
               {!isGroup && !m.parentDraft.globalProductSourceId ? (
                 <ProductNameSuggestions
@@ -721,61 +746,90 @@ export function ProductCreateModal({
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <FieldLabel htmlFor="create-buying-price" hint={currency}>
-                        Buying price
-                      </FieldLabel>
-                      <input
-                        id="create-buying-price"
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="0.01"
-                        className={cn(fieldClass, "tabular-nums")}
-                        placeholder="0"
-                        value={m.parentDraft.buyingPrice}
-                        onChange={(e) =>
-                          m.setParentDraft((p) =>
-                            syncCostsFromBuyingPrice(e.target.value, p),
-                          )
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <FieldLabel htmlFor="create-selling-price" hint={currency}>
+                      <FieldLabel htmlFor="create-selling-price">
                         Selling price
                       </FieldLabel>
-                      <input
-                        id="create-selling-price"
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="0.01"
-                        className={cn(fieldClass, "tabular-nums")}
-                        placeholder="0"
-                        value={m.parentDraft.bundlePrice}
-                        onChange={(e) =>
-                          m.setParentDraft((p) => ({
-                            ...p,
-                            bundlePrice: e.target.value,
-                          }))
-                        }
-                        required
-                      />
+                      <div className={styles.priceWrap}>
+                        <input
+                          id="create-selling-price"
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.01"
+                          className={cn(
+                            fieldClass,
+                            styles.priceInput,
+                            styles.priceSell,
+                            "tabular-nums",
+                          )}
+                          placeholder="0"
+                          value={m.parentDraft.bundlePrice}
+                          onChange={(e) =>
+                            m.setParentDraft((p) => ({
+                              ...p,
+                              bundlePrice: e.target.value,
+                            }))
+                          }
+                          required
+                        />
+                        <span className={styles.priceCur}>{currency}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <FieldLabel htmlFor="create-buying-price">
+                        Buying price
+                      </FieldLabel>
+                      <div className={styles.priceWrap}>
+                        <input
+                          id="create-buying-price"
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.01"
+                          className={cn(
+                            fieldClass,
+                            styles.priceInput,
+                            "tabular-nums",
+                          )}
+                          placeholder="0"
+                          value={m.parentDraft.buyingPrice}
+                          onChange={(e) =>
+                            m.setParentDraft((p) =>
+                              syncCostsFromBuyingPrice(e.target.value, p),
+                            )
+                          }
+                        />
+                        <span className={styles.priceCur}>{currency}</span>
+                      </div>
                     </div>
                   </div>
-                  {marginInfo ? (
-                    <p
-                      className="text-[12px] tabular-nums text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_52%,transparent)]"
-                      aria-live="polite"
-                    >
-                      {marginInfo.margin.toFixed(0)}% margin
-                      {marginInfo.profit >= 0
-                        ? ` · ${formatAmount(marginInfo.profit)} ${currency} profit`
-                        : ` · selling below cost`}
-                    </p>
-                  ) : null}
+                  <p
+                    className={styles.margin}
+                    data-show={marginInfo ? "" : undefined}
+                    aria-live="polite"
+                  >
+                    {marginInfo
+                      ? `${marginInfo.margin.toFixed(0)}% margin${
+                          marginInfo.profit >= 0
+                            ? ` · ${formatAmount(marginInfo.profit)} ${currency} profit`
+                            : " · selling below cost"
+                        }`
+                      : "\u00a0"}
+                  </p>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <FieldLabel htmlFor="create-opening-qty" hint="On the shelf">
+                        Number of items
+                      </FieldLabel>
+                      <QtyStepper
+                        id="create-opening-qty"
+                        value={m.parentDraft.openingQty}
+                        onChange={(openingQty) =>
+                          m.setParentDraft((p) => ({ ...p, openingQty }))
+                        }
+                      />
+                    </div>
                     <div className="space-y-1.5">
                       <FieldLabel htmlFor="create-barcode" hint="Optional">
                         Barcode
@@ -803,18 +857,6 @@ export function ProductCreateModal({
                         </button>
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <FieldLabel htmlFor="create-opening-qty" hint="On the shelf">
-                        Number of items
-                      </FieldLabel>
-                      <QtyStepper
-                        id="create-opening-qty"
-                        value={m.parentDraft.openingQty}
-                        onChange={(openingQty) =>
-                          m.setParentDraft((p) => ({ ...p, openingQty }))
-                        }
-                      />
-                    </div>
                   </div>
                 </>
               ) : null}
@@ -822,7 +864,7 @@ export function ProductCreateModal({
               <button
                 type="button"
                 onClick={() => setMoreOpen((v) => !v)}
-                className="flex w-full items-center gap-2 py-1 text-left text-[13px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)] hover:text-[var(--catalog-ink,#15231f)]"
+                className={styles.moreToggle}
                 aria-expanded={moreOpen}
               >
                 <ChevronDown
@@ -836,7 +878,7 @@ export function ProductCreateModal({
               </button>
 
               {moreOpen ? (
-                <div className="space-y-3 rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_45%,white)] p-3">
+                <div className={cn(styles.morePanel, "space-y-3 rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_45%,white)] p-3")}>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <div className="flex items-baseline justify-between gap-2">
@@ -1137,15 +1179,18 @@ export function ProductCreateModal({
 
           <footer className="shrink-0 border-t border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-white px-5 py-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <label className="inline-flex cursor-pointer items-center gap-2 text-[12px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)]">
-                <input
-                  type="checkbox"
-                  checked={keepOpen}
-                  onChange={(e) => setKeepOpen(e.target.checked)}
-                  className="size-3.5 rounded border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_25%,transparent)]"
-                />
+              <button
+                type="button"
+                role="switch"
+                aria-checked={keepOpen}
+                aria-label="Keep adding after save"
+                disabled={isGroup || m.parentCreateBusy}
+                onClick={() => setKeepOpen((v) => !v)}
+                className={styles.keep}
+              >
+                <span className={styles.keepDot} aria-hidden />
                 Keep adding
-              </label>
+              </button>
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -1156,22 +1201,22 @@ export function ProductCreateModal({
                 >
                   Cancel
                 </Button>
-                <Button
+                <button
                   type="submit"
                   disabled={catalog.itemTypes.length === 0 || m.parentCreateBusy}
-                  className="h-10 gap-1.5 rounded-xl bg-[var(--catalog-ink,#15231f)] px-4 text-[13px] text-white shadow-none hover:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_88%,#000)]"
+                  data-armed={canArm ? "true" : "false"}
+                  data-busy={m.parentCreateBusy ? "true" : undefined}
+                  data-stamp={canArm && stamp > 0 ? stamp : undefined}
+                  className={styles.create}
                 >
-                  {m.parentCreateBusy ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" aria-hidden />
-                      Saving…
-                    </>
-                  ) : isGroup ? (
-                    "Create family"
-                  ) : (
-                    "Add product"
-                  )}
-                </Button>
+                  {m.parentCreateBusy
+                    ? "Saving…"
+                    : isGroup
+                      ? "Create family"
+                      : keepOpen
+                        ? "Add & next"
+                        : "Add product"}
+                </button>
               </div>
             </div>
           </footer>
