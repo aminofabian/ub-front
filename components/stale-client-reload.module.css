@@ -1,0 +1,240 @@
+/* Authored reload CTA. Tokens stay local so this rare overlay
+   does not fork the global motion scale. */
+
+.btn {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  width: 100%;
+  height: 3rem;
+  margin-top: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--pos-primary, var(--primary));
+  color: var(--pos-primary-ink, #fff);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 8px 18px -10px rgba(0, 0, 0, 0.4);
+  outline: none;
+  transition: transform 160ms var(--ease-out), filter 160ms ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:focus-visible {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 0 0 3px rgba(255, 255, 255, 0.42);
+}
+
+.btn:disabled {
+  cursor: progress;
+}
+
+.sheen,
+.face {
+  pointer-events: none;
+}
+
+.sheen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.sheen::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 42%;
+  transform: translateX(-140%) skewX(-18deg);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.08) 35%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(255, 255, 255, 0.08) 65%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: scan 2.8s var(--ease-out) 400ms infinite;
+}
+
+.btn[data-busy="true"] .sheen::after {
+  animation: scan 900ms linear infinite;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.14) 38%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.14) 62%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.face {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  transform-origin: 50% 50%;
+  animation: nudge 3.2s var(--ease-out) infinite;
+}
+
+.btn[data-busy="true"] .icon {
+  animation:
+    wind 450ms var(--ease-out),
+    spin 700ms linear 450ms infinite;
+}
+
+.label {
+  display: grid;
+  justify-items: start;
+}
+
+.idle,
+.busy {
+  grid-area: 1 / 1;
+  transition: opacity 200ms var(--ease-out);
+}
+
+.busy {
+  opacity: 0;
+}
+
+.btn[data-busy="true"] .idle {
+  opacity: 0;
+}
+
+.btn[data-busy="true"] .busy {
+  opacity: 1;
+}
+
+.dots {
+  display: inline-flex;
+  width: 0.95em;
+  justify-content: space-between;
+  margin-left: 0.05em;
+}
+
+.dots span {
+  opacity: 0.25;
+  animation: dot 1.05s linear infinite;
+}
+
+.dots span:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.dots span:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes scan {
+  from {
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(280%) skewX(-18deg);
+  }
+}
+
+@keyframes nudge {
+  0%,
+  68%,
+  100% {
+    transform: rotate(0deg);
+  }
+  76% {
+    transform: rotate(-26deg);
+  }
+  86% {
+    transform: rotate(10deg);
+  }
+  92% {
+    transform: rotate(-4deg);
+  }
+}
+
+@keyframes wind {
+  from {
+    transform: rotate(-80deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dot {
+  0%,
+  20% {
+    opacity: 0.25;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.25;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+
+  .btn:hover:not([data-busy="true"]) .sheen::after {
+    animation-duration: 1.6s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: filter 160ms ease;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+
+  .sheen::after,
+  .icon,
+  .dots span {
+    animation: none;
+  }
+
+  .idle,
+  .busy {
+    transition: opacity 160ms ease;
+  }
+
+  .dots span {
+    opacity: 1;
+  }
+}

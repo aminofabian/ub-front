@@ -3,7 +3,6 @@
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +16,8 @@ import {
   STALE_CLIENT_USER_MESSAGE,
   subscribeStaleClient,
 } from "@/lib/stale-client";
-import { cn } from "@/lib/utils";
+
+import styles from "./stale-client-reload.module.css";
 
 export function StaleClientReload() {
   const [open, setOpen] = useState(isStaleClientFlagged);
@@ -66,31 +66,33 @@ export function StaleClientReload() {
         >
           {STALE_CLIENT_USER_MESSAGE} Open tickets stay on this till after reload.
         </DialogDescription>
-        <Button
+        <button
           type="button"
+          className={styles.btn}
+          data-busy={busy ? "true" : "false"}
           disabled={busy}
           aria-busy={busy}
-          className={cn(
-            "mt-5 h-12 w-full gap-2 rounded-xl text-[15px] font-semibold tracking-tight",
-            "shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_8px_18px_-10px_rgba(0,0,0,0.4)]",
-            "hover:brightness-[1.06] active:scale-[0.99]",
-            "disabled:opacity-80",
-          )}
-          style={{
-            backgroundColor: "var(--pos-primary, var(--primary))",
-            color: "var(--pos-primary-ink, #fff)",
-          }}
           onClick={() => {
             setBusy(true);
             void hardReloadTill();
           }}
         >
-          <RefreshCw
-            className={cn("size-4", busy && "animate-spin")}
-            aria-hidden
-          />
-          {busy ? "Reloading…" : "Reload till"}
-        </Button>
+          <span className={styles.sheen} aria-hidden />
+          <span className={styles.face}>
+            <RefreshCw className={styles.icon} aria-hidden />
+            <span className={styles.label}>
+              <span className={styles.idle}>Reload till</span>
+              <span className={styles.busy} aria-hidden={!busy}>
+                Reloading
+                <span className={styles.dots} aria-hidden>
+                  <span>.</span>
+                  <span>.</span>
+                  <span>.</span>
+                </span>
+              </span>
+            </span>
+          </span>
+        </button>
       </DialogContent>
     </Dialog>
   );
