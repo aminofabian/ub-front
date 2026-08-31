@@ -40,7 +40,11 @@ import { PackageVariantsSection } from "./PackageVariantsSection";
 import { ProductDescriptionField } from "./ProductDescriptionField";
 import { ProductNameSuggestions } from "./ProductNameSuggestions";
 import { PRODUCTS_CATALOG_VARS } from "./products-page-layout";
-import { SearchableSelect } from "./SearchableSelect";
+import {
+  SearchableSelect,
+  type SearchableSelectHandle,
+} from "./SearchableSelect";
+import { useInlineCategoryCreate } from "../_hooks/useInlineCategoryCreate";
 import {
   productFormHintClass,
   productFormInputClass,
@@ -51,7 +55,11 @@ type Props = {
   open: boolean;
   onClose: () => void;
   banner?: FormDrawerProps["banner"];
-  catalog: Pick<CatalogListApi, "itemTypes" | "sortedCategories">;
+  catalog: Pick<
+    CatalogListApi,
+    "itemTypes" | "sortedCategories" | "upsertCategory"
+  >;
+  canCreateCategory?: boolean;
   m: Pick<
     ProductMutationsApi,
     | "parentDraft"
@@ -244,11 +252,13 @@ export function ProductCreateModal({
   currencyCode,
   branches,
   canGlobalCatalog = false,
+  canCreateCategory = false,
   onOpenExistingProduct,
 }: Props) {
   const { business } = useDashboard();
   const showButcherTemplates = isButcheryBusiness(business);
   const fileRef = useRef<HTMLInputElement>(null);
+  const categorySelectRef = useRef<SearchableSelectHandle>(null);
   const isGroup = m.parentDraft.productStructure === "group";
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [keepOpen, setKeepOpen] = useState(false);
@@ -256,6 +266,7 @@ export function ProductCreateModal({
   const [moreOpen, setMoreOpen] = useState(false);
   const [descGenError, setDescGenError] = useState("");
   const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(null);
+  const categoryCreate = useInlineCategoryCreate(catalog.upsertCategory);
 
   useEffect(() => {
     if (!open) return;
@@ -264,7 +275,8 @@ export function ProductCreateModal({
     setMoreOpen(false);
     setDescGenError("");
     setLinkedGlobalLabel(null);
-  }, [open]);
+    categoryCreate.clearError();
+  }, [open, categoryCreate.clearError]);
 
   const setFamilyMode = useCallback(
     (next: boolean) => {
@@ -398,6 +410,14 @@ export function ProductCreateModal({
   const categoryOptions = useMemo(
     () => categorySelectOptions(catalog.sortedCategories),
     [catalog.sortedCategories],
+  );
+
+  const handleCreateCategory = useCallback(
+    async (name: string) => {
+      const created = await categoryCreate.create(name);
+      m.setParentDraft((p) => ({ ...p, categoryId: created.id }));
+    },
+    [categoryCreate.create, m],
   );
 
   const currency = currencyCode.trim() || "KES";
@@ -785,8 +805,26 @@ export function ProductCreateModal({
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <span className={labelClass}>Category</span>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className={labelClass}>Category</span>
+                        {canCreateCategory ? (
+                          <button
+                            type="button"
+                            disabled={m.parentCreateBusy || categoryCreate.busy}
+                            onClick={() => {
+                              setMoreOpen(true);
+                              categorySelectRef.current?.openForCreate();
+                            }}
+                            aria-label="New category"
+                            className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)] transition-colors hover:text-[var(--catalog-ink,#15231f)] disabled:opacity-50"
+                          >
+                            <Plus className="size-3" aria-hidden />
+                            New
+                          </button>
+                        ) : null}
+                      </div>
                       <SearchableSelect
+                        ref={categorySelectRef}
                         className={cn(productFormInputClass, "h-10 rounded-lg")}
                         value={m.parentDraft.categoryId}
                         onChange={(categoryId) =>
@@ -794,9 +832,17 @@ export function ProductCreateModal({
                         }
                         options={categoryOptions}
                         noneLabel={isGroup ? "Pick one" : "None"}
-                        placeholder="Type to find…"
+                        placeholder={
+                          canCreateCategory ? "Find or create…" : "Type to find…"
+                        }
                         required={isGroup}
+                        disabled={m.parentCreateBusy}
                         aria-label="Category"
+                        onCreate={
+                          canCreateCategory ? handleCreateCategory : undefined
+                        }
+                        createBusy={categoryCreate.busy}
+                        createError={categoryCreate.error}
                       />
                     </div>
                   </div>

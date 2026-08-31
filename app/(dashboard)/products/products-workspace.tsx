@@ -77,6 +77,10 @@ export function ProductsWorkspace() {
     me?.permissions,
     Permission.CatalogGlobalAdopt,
   );
+  const canCreateCategory = hasPermission(
+    me?.permissions,
+    Permission.CatalogCategoriesWrite,
+  );
 
   const catalog = useCatalogList(branchId, dashboardItemTypeId);
   const detail = useProductDetail(branchId);
@@ -628,6 +632,7 @@ export function ProductsWorkspace() {
         currencyCode={business?.currency?.trim() || ""}
         branches={branches}
         canGlobalCatalog={canGlobalCatalog}
+        canCreateCategory={canCreateCategory}
         onOpenExistingProduct={(itemId) => {
           detail.selectProduct(itemId);
           setMobileDetailOpen(true);
@@ -652,6 +657,8 @@ export function ProductsWorkspace() {
         refreshSelectedDetail={detail.refreshSelectedDetail}
         setMessage={catalog.setMessage}
         onOpenPhotos={() => setActiveDrawer("photos")}
+        canCreateCategory={canCreateCategory}
+        upsertCategory={catalog.upsertCategory}
       />
 
       <ProductPhotosDrawer

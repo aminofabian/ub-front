@@ -22,7 +22,7 @@ import {
   type FormDrawerProps,
 } from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
-import { postStockIncrease, type ItemSummaryRecord } from "@/lib/api";
+import { postStockIncrease, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
 
 import type { ProductDetailApi } from "../_hooks/useProductDetail";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
@@ -35,6 +35,7 @@ import {
 import { ProductFormField } from "./ProductFormField";
 import { SearchableSelect } from "./SearchableSelect";
 import { categorySelectOptions } from "./category-select-options";
+import { useInlineCategoryCreate } from "../_hooks/useInlineCategoryCreate";
 import { ProductDescriptionField } from "./ProductDescriptionField";
 import { ProductFormSectionToggle } from "./ProductFormSectionToggle";
 import { StockIncreaseFields } from "./StockIncreaseFields";
@@ -49,7 +50,9 @@ import {
   productFormToggleCardClass,
 } from "./product-form-styles";
 
-type Cat = { id: string; name: string; active: boolean };
+type Cat = { id: string; name: string; active: boolean; parentId?: string | null };
+
+const NOOP_UPSERT_CATEGORY = (_category: CategoryRecord) => {};
 
 type SectionKey =
   | "basics"
@@ -73,6 +76,8 @@ export function ProductEditDrawer({
   onOpenPhotos,
   docked = false,
   dockRoot = null,
+  canCreateCategory = false,
+  upsertCategory,
 }: {
   open: boolean;
   onClose: () => void;
@@ -100,6 +105,8 @@ export function ProductEditDrawer({
   onOpenPhotos?: () => void;
   docked?: boolean;
   dockRoot?: HTMLElement | null;
+  canCreateCategory?: boolean;
+  upsertCategory?: (category: CategoryRecord) => void;
 }) {
   const d = detail.detail;
   const dr = detail.patchDraft;
@@ -152,6 +159,14 @@ export function ProductEditDrawer({
   }, [d, dr.name]);
 
   const categoryOptions = useMemo(() => categorySelectOptions(cats), [cats]);
+  const categoryCreate = useInlineCategoryCreate(
+    upsertCategory ?? NOOP_UPSERT_CATEGORY,
+  );
+
+  const handleCreateCategory = async (name: string) => {
+    const created = await categoryCreate.create(name);
+    detail.setPatchDraft((p) => ({ ...p, categoryId: created.id }));
+  };
 
   const descriptionCategoryName = useMemo(() => {
     const id = dr.categoryId?.trim();
@@ -405,8 +420,17 @@ export function ProductEditDrawer({
                   }
                   options={categoryOptions}
                   noneLabel="None"
-                  placeholder="Type to find…"
+                  placeholder={
+                    canCreateCategory ? "Find or create…" : "Type to find…"
+                  }
                   aria-label="Category"
+                  onCreate={
+                    canCreateCategory && upsertCategory
+                      ? handleCreateCategory
+                      : undefined
+                  }
+                  createBusy={categoryCreate.busy}
+                  createError={categoryCreate.error}
                 />
               </ProductFormField>
               <ProductDescriptionField

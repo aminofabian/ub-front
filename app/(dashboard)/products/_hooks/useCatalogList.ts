@@ -192,6 +192,16 @@ export function useCatalogList(
     setCategories(cats);
   }, []);
 
+  const upsertCategory = useCallback((category: CategoryRecord) => {
+    setCategories((prev) => {
+      const i = prev.findIndex((c) => c.id === category.id);
+      if (i < 0) return [...prev, category];
+      const next = [...prev];
+      next[i] = category;
+      return next;
+    });
+  }, []);
+
   const refreshFullCatalog = useCallback(async () => {
     setListLoadingInitial(true);
     setMessage("");
@@ -487,7 +497,7 @@ export function useCatalogList(
     filterLowStock, setFilterLowStock,
     rowSelection, setRowSelection, onToggleRowSelect, variantIdsByParent,
     message, setMessage,
-    loadCategoriesAndTypes, refreshFullCatalog, syncListRowFromDetail, loadMoreCatalog, jumpToLetter, resetFilters,
+    loadCategoriesAndTypes, upsertCategory, refreshFullCatalog, syncListRowFromDetail, loadMoreCatalog, jumpToLetter, resetFilters,
   };
 }
 
