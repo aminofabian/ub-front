@@ -31,11 +31,14 @@ import { tryRecoverSessionBeforeSignOut } from "@/lib/session-recovery";
  *     expires. This is the primary mechanism for active tabs.
  *
  *  2. ACTIVITY / VISIBILITY: if the user clicks/types/focuses the tab AND
- *     the token has < ACTIVITY_REFRESH_THRESHOLD_MS left, refresh
- *     opportunistically. This catches the "tab was backgrounded, timer was
- *     throttled by the browser, user comes back and we are nearly expired"
- *     case which is very common on mobile (iOS Safari pauses timers in
- *     background tabs).
+ *     the token has < ACTIVITY_REFRESH_THRESHOLD_MS left (same as the
+ *     scheduled margin), refresh opportunistically. This catches the
+ *     "tab was backgrounded, timer was throttled by the browser, user
+ *     comes back and we are nearly expired" case which is very common on
+ *     mobile (iOS Safari pauses timers in background tabs).
+ *
+ * Do not refresh on every click while 20+ minutes remain — that used to
+ * rotate the refresh cookie constantly and 401 in-flight requests.
  *
  * Both mechanisms route through refreshAccessToken(), which is single-flight:
  * concurrent calls share a single in-flight promise so we never POST the
@@ -46,10 +49,11 @@ import { tryRecoverSessionBeforeSignOut } from "@/lib/session-recovery";
  */
 
 const REFRESH_MARGIN_MS = 2 * 60 * 1000; // refresh 2 min before expiry
-const ACTIVITY_REFRESH_THRESHOLD_MS = 20 * 60 * 1000; // refresh on activity if < 20 min left
+/** Only refresh on user activity when the access token is this close to dying. */
+const ACTIVITY_REFRESH_THRESHOLD_MS = REFRESH_MARGIN_MS;
 const ACTIVITY_DEBOUNCE_MS = 30_000; // max one activity-triggered refresh per 30s
 const EAGER_REFRESH_THRESHOLD_MS = 60_000; // on mount: refresh now if <60s left
-/** While the tab is visible, poke the session so owners aren't surprised. */
+/** While the tab is visible, rehydrate claims — do not rotate the session. */
 const HEARTBEAT_MS = 3 * 60 * 1000;
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -106,7 +110,26 @@ async function performRefresh(): Promise<void> {
       getSessionTokens()?.accessToken,
     );
     if (recovered) {
-      consecutiveRefreshRejections = 0;
+      // Restore can succeed from a still-valid access cookie even when the
+      // refresh token is dead. Keep counting rejections so a dead session
+      // reaches the give-up below instead of re-scheduling a refresh that
+      // fails again every few seconds (the "session keeps expiring" loop).
+      const giveUp =
+        outcome.definitive === true ||
+        consecutiveRefreshRejections >= MAX_REFRESH_REJECT_BEFORE_LOGOUT;
+      if (giveUp) {
+        if (isPosSoftAuthActive()) {
+          // Stay on the till; shell shows an explicit reauth dialog.
+          notifyPosSessionExpired(
+            "Your session expired. Sign in again to keep selling — your cart is saved on this device.",
+          );
+          return;
+        }
+        beginSessionReconnect(
+          "background refresh rejected after restore-recovery",
+        );
+        return;
+      }
       scheduleNextRefresh();
       return;
     }
@@ -170,13 +193,18 @@ async function heartbeat(): Promise<void> {
     return;
   }
   if (!hasAccessSession()) {
-    const restored = await restoreClientSessionFromCookie({ force: true });
+    const hydrated = await hydrateSessionClaimsFromAccessCookie();
+    if (hydrated) {
+      scheduleNextRefresh();
+      return;
+    }
+    const restored = await restoreClientSessionFromCookie();
     if (restored) {
       scheduleNextRefresh();
     }
     return;
   }
-  let exp = getAccessTokenExpiry();
+  const exp = getAccessTokenExpiry();
   if (exp === null) {
     const hydrated = await hydrateSessionClaimsFromAccessCookie();
     if (hydrated) {
@@ -306,7 +334,11 @@ export function startSessionRefresh(): () => void {
       return;
     }
     const exp = getAccessTokenExpiry();
-    if (exp === null || exp - Date.now() <= EAGER_REFRESH_THRESHOLD_MS) {
+    if (exp === null) {
+      void hydrateSessionClaimsFromAccessCookie();
+      return;
+    }
+    if (exp - Date.now() <= EAGER_REFRESH_THRESHOLD_MS) {
       void performRefresh();
     }
   };

@@ -7,7 +7,10 @@ import {
   useClientSessionReady,
 } from "@/hooks/use-client-session";
 import { hasAccessSession, syncSessionPresenceCookie } from "@/lib/auth";
-import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
+import {
+  hydrateSessionClaimsFromAccessCookie,
+  restoreClientSessionFromCookie,
+} from "@/lib/restore-client-session";
 import { startSessionRefresh } from "@/lib/session-refresh";
 
 type UseAuthenticatedSessionOptions = {
@@ -70,8 +73,12 @@ export function useAuthenticatedSession(
     // retrying; the shell shows a recovery panel until claims return.
     if (requireAuth && !hasSession && !hasAccessSession()) {
       const retry = window.setInterval(() => {
-        void restoreClientSessionFromCookie({ force: true });
-      }, 4_000);
+        void hydrateSessionClaimsFromAccessCookie().then((ok) => {
+          if (!ok) {
+            void restoreClientSessionFromCookie();
+          }
+        });
+      }, 15_000);
       return () => window.clearInterval(retry);
     }
     if (!hasAccessSession()) {

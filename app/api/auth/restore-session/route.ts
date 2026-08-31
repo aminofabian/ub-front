@@ -74,6 +74,14 @@ export async function POST(request: NextRequest) {
     const bootstrap = tenantId
       ? await prefetchSessionBootstrap(existingAccess, tenantId, tenantHost)
       : { me: null, business: null, branches: null };
+    // A revoked / rotated-away access JWT still decodes, so the cookie alone
+    // cannot prove the session is alive. Require the backend to actually accept
+    // the token (bootstrap.me) before reporting a restored session; otherwise
+    // every restore "succeeds", the client reloads/retries, and the loop that
+    // kills admins/owners every few seconds repeats forever.
+    if (!bootstrap.me) {
+      return NextResponse.json({ error: "no_session" }, { status: 401 });
+    }
     const response = sessionJsonResponse({
       accessToken: existingAccess,
       tenantHost,
@@ -123,6 +131,9 @@ export async function POST(request: NextRequest) {
   const bootstrap = tenantId
     ? await prefetchSessionBootstrap(accessToken, tenantId, tenantHost)
     : { me: null, business: null, branches: null };
+  if (!bootstrap.me) {
+    return NextResponse.json({ error: "no_session" }, { status: 401 });
+  }
 
   const response = sessionJsonResponse({
     accessToken,

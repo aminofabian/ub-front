@@ -270,6 +270,13 @@ const AUTH_FETCH_CREDENTIALS: RequestCredentials = "include";
 
 const CLIENT_FETCH_TIMEOUT_MS = 25_000;
 
+/**
+ * Max 401 → refresh → restore → retry cycles per logical request.
+ * A dead refresh token with a still-present access cookie used to loop
+ * forever (restore "succeeded" from the cookie, the retry 401'd again).
+ */
+const MAX_UNAUTHORIZED_RECOVERY_ATTEMPTS = 2;
+
 function fetchWithClientTimeout(
   url: string,
   init: RequestInit,
@@ -2059,7 +2066,17 @@ async function request<T>(
   const soft = softAuth || isPosSoftAuthActive();
 
   let response = await execute();
-  if (requiresAuth && response.status === 401) {
+  // Bound the 401 recovery cycle. When the refresh token is dead but the
+  // access cookie is still present, restore keeps "succeeding" from the cookie
+  // while every retry 401s again — an unbounded loop every few seconds.
+  // After the cap the request fails normally and the recovery UI takes over.
+  for (
+    let recoveryAttempt = 0;
+    requiresAuth &&
+    response.status === 401 &&
+    recoveryAttempt < MAX_UNAUTHORIZED_RECOVERY_ATTEMPTS;
+    recoveryAttempt += 1
+  ) {
     if (signal?.aborted) {
       throw new DOMException("Aborted", "AbortError");
     }
