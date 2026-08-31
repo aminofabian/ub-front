@@ -213,13 +213,15 @@ function ComilmartHeaderView({
         </div>
         <div className={styles.utilityRight}>
           <span className={styles.verified}>Verified shop</span>
-          <Link
-            href={href}
-            className={styles.signIn}
-            onClick={onActivate}
-          >
-            {label}
-          </Link>
+          {pathname === APP_ROUTES.shopAccount ? null : (
+            <Link
+              href={href}
+              className={styles.signIn}
+              onClick={onActivate}
+            >
+              {label}
+            </Link>
+          )}
         </div>
       </div>
 

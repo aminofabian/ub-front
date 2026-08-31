@@ -127,8 +127,8 @@ export function ShopAccountPhone({ linkedPhone, accountPhone, onLinked }: Props)
     <div className={styles.stamp}>
       <h2 className={styles.linkLead}>Your number</h2>
       <p className={styles.linkCopy}>
-        We send a 4-digit code. After that, this phone is how you sign in — tab, wallet, and
-        receipts included.
+        We send a 4-digit code. After that, this phone is how you sign in. Tab,
+        store credit, and receipts included.
       </p>
 
       {step === "phone" ? (

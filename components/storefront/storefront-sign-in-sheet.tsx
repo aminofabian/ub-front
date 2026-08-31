@@ -722,7 +722,7 @@ export function UnifiedSignInForm({
     return (
       <form className="space-y-4" onSubmit={(e) => void onNewPinSubmit(e)}>
         <p className="text-[14px] text-muted-foreground">
-          {helloName ? `Hi ${helloName} — ` : ""}
+          {helloName ? `Hi ${helloName}. ` : ""}
           Confirm the 4-digit PIN you chose so we can save it for next time.
         </p>
         <label className="flex flex-col gap-1.5 text-sm">
@@ -883,7 +883,7 @@ export function UnifiedSignInForm({
 
       <p className="text-[12px] leading-relaxed text-muted-foreground">
         {kind === "phone"
-          ? "We'll text a one-time code after you continue — only to confirm it's your phone."
+          ? "We'll text a one-time code after you continue, only to confirm it's your phone."
           : kind === "email"
             ? "We'll open your account with this email and secret."
             : "Use the email or phone on your account."}

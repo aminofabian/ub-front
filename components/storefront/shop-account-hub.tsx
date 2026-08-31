@@ -92,7 +92,7 @@ function humanizeStatus(status?: string): string {
 function ledgerBadge(kind: string | undefined): { label: string; className: string } {
   const k = (kind ?? "").toLowerCase();
   if (k.startsWith("wallet")) {
-    return { label: "Wallet", className: styles.chip };
+    return { label: "Store credit", className: styles.chip };
   }
   if (k.startsWith("credit")) {
     return { label: "Tab", className: styles.chip };
@@ -261,10 +261,10 @@ export function ShopAccountHub({ me }: HubProps) {
         ) : (
           <dl className={styles.strip}>
             <div className={styles.cell}>
-              <dt>Wallet</dt>
+              <dt>Store credit</dt>
               <dd>
                 {fmtMoney(data.balances?.walletBalance, currency)}
-                <span className={styles.cellHint}>Store credit</span>
+                <span className={styles.cellHint}>Ready to spend here</span>
               </dd>
             </div>
             <div className={styles.cell}>
@@ -272,7 +272,7 @@ export function ShopAccountHub({ me }: HubProps) {
               <dd>
                 {(data.balances?.loyaltyPoints ?? 0).toLocaleString()}
                 <span className={styles.cellHint}>
-                  ≈ {fmtMoney(toNum(data.balances?.loyaltyPoints) * kesPerPt, currency)}
+                  About {fmtMoney(toNum(data.balances?.loyaltyPoints) * kesPerPt, currency)}
                 </span>
               </dd>
             </div>
@@ -284,7 +284,7 @@ export function ShopAccountHub({ me }: HubProps) {
                   {tabOwed > 0
                     ? "Owed at the till"
                     : data.linkedStorefrontProfile
-                      ? "Clear"
+                      ? "Nothing owed"
                       : "Add your number"}
                 </span>
               </dd>
@@ -295,7 +295,7 @@ export function ShopAccountHub({ me }: HubProps) {
         <div className={styles.actions}>
           <Link href={SHOP_FLOOR_HREF} className={styles.cta}>
             <ArrowLeft className="size-4" aria-hidden />
-            Continue shopping
+            Back to the shop
           </Link>
           <Link href={APP_ROUTES.shopCart} className={styles.ghost}>
             Cart
@@ -321,8 +321,8 @@ export function ShopAccountHub({ me }: HubProps) {
           <section className={styles.section}>
             <div className={styles.sectionHead}>
               <div>
-                <h2>Purchase history</h2>
-                <p>Online pickups and in-store till slips, newest first.</p>
+                <h2>Your orders</h2>
+                <p>Online and in-store, newest first.</p>
               </div>
               <div className={styles.tabs} role="tablist" aria-label="Purchase source">
                 {(
@@ -348,14 +348,14 @@ export function ShopAccountHub({ me }: HubProps) {
 
             {history.length === 0 ? (
               <div className={styles.empty}>
-                <h3>No purchases yet</h3>
+                <h3>No orders yet</h3>
                 <p>
                   {filter === "till" && !data.linkedStorefrontProfile
                     ? "Add your Kenyan mobile so till receipts from this shop can find you."
-                    : "When you check out online or pay at the till, the slip lands here."}
+                    : "Checkout online or pay at the till. The slip lands here."}
                 </p>
                 <Link href={SHOP_FLOOR_HREF} className={styles.ctaAccent}>
-                  Continue shopping
+                  Shop now
                 </Link>
               </div>
             ) : (
@@ -425,11 +425,11 @@ export function ShopAccountHub({ me }: HubProps) {
             <section className={styles.section}>
               <div className={styles.sectionHead}>
                 <div>
-                  <h2>Wallet & tab</h2>
+                  <h2>Store credit and tab</h2>
                   <p>
                     {(data.ledgerLinesTotal ?? 0).toLocaleString()} movement
                     {(data.ledgerLinesTotal ?? 0) === 1 ? "" : "s"}
-                    {data.ledgerTruncated ? " · latest shown" : ""}
+                    {data.ledgerTruncated ? ", latest shown" : ""}
                   </p>
                 </div>
               </div>
@@ -443,7 +443,7 @@ export function ShopAccountHub({ me }: HubProps) {
                 </ul>
               ) : (
                 <div className={styles.empty}>
-                  <p>No wallet or tab lines yet. The next till sale leaves the first one.</p>
+                  <p>No store-credit or tab lines yet. The next till sale leaves the first one.</p>
                 </div>
               )}
             </section>
@@ -452,12 +452,13 @@ export function ShopAccountHub({ me }: HubProps) {
       )}
 
       {shopper ? (
-        <div className={styles.notes}>
+        <details className={styles.notes}>
+          <summary className={styles.notesSummary}>Order updates</summary>
           <ShopNotificationsPanel />
-          <div style={{ marginTop: 16 }}>
+          <div className={styles.notesPrefs}>
             <ShopNotificationPreferences />
           </div>
-        </div>
+        </details>
       ) : null}
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
