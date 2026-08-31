@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { AuthRecoveryPanel } from "@/components/auth/auth-recovery-panel";
 import { SessionEndedScreen } from "@/components/auth/session-ended-screen";
+import { SessionReconnectBanner } from "@/components/auth/session-reconnect-banner";
 import { DashboardAppShellSkeleton } from "@/components/dashboard/dashboard-app-shell-skeleton";
 import { SubscriptionRenewalWall } from "@/components/subscription-renewal-wall";
 import { StaleClientReload } from "@/components/stale-client-reload";
@@ -55,6 +56,9 @@ export function AuthenticatedShellGate({ children }: AuthenticatedShellGateProps
 
   return (
     <>
+      {reconnectState === "reconnecting" && hasSession ? (
+        <SessionReconnectBanner />
+      ) : null}
       {body}
       <SubscriptionRenewalWall />
       <StaleClientReload />

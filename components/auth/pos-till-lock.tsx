@@ -468,7 +468,7 @@ function PosTillLockOverlay() {
   }
 
   const title =
-    lockReason === "session" ? "Session expired" : "Till locked";
+    lockReason === "session" ? "Unlock to keep selling" : "Till locked";
   const subtitle =
     mode === "switch"
       ? method === "password"

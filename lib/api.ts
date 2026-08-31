@@ -56,6 +56,7 @@ import {
   getBranchGuidanceKind,
   getPosGuidanceKind,
   isSessionRelatedProblem,
+  shouldOmitHttpErrorToast,
 } from "@/lib/problem";
 import { toast } from "sonner";
 import {
@@ -103,17 +104,42 @@ type RequestOptions = {
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly payload: unknown;
+  /** Session recovery owns the UX — callers must not toast this. */
+  readonly authRecovery: boolean;
 
-  constructor(message: string, status: number, payload: unknown) {
+  constructor(
+    message: string,
+    status: number,
+    payload: unknown,
+    options?: { authRecovery?: boolean },
+  ) {
     super(message);
     this.name = "ApiRequestError";
     this.status = status;
     this.payload = payload;
+    this.authRecovery = options?.authRecovery === true;
   }
 }
 
-function notifyHttpErrorToast(message: string) {
+export function isAuthRecoveryError(error: unknown): boolean {
+  if (error instanceof ApiRequestError && error.authRecovery) {
+    return true;
+  }
+  if (error instanceof Error && shouldOmitHttpErrorToast(error.message)) {
+    return true;
+  }
+  return false;
+}
+
+function notifyHttpErrorToast(
+  message: string,
+  status?: number,
+  payload?: unknown,
+) {
   if (typeof window === "undefined" || !message.trim()) {
+    return;
+  }
+  if (shouldOmitHttpErrorToast(message, status, payload)) {
     return;
   }
   if (isStaleClientFlagged()) {
@@ -151,10 +177,11 @@ function failRequest(
   options?: { toast?: boolean },
 ): never {
   const message = formatApiProblemMessage(payload);
-  if (options?.toast !== false) {
-    notifyHttpErrorToast(message);
+  const authRecovery = shouldOmitHttpErrorToast(message, status, payload);
+  if (options?.toast !== false && !authRecovery) {
+    notifyHttpErrorToast(message, status, payload);
   }
-  throw new ApiRequestError(message, status, payload);
+  throw new ApiRequestError(message, status, payload, { authRecovery });
 }
 
 function signOutClientForProblem(
@@ -214,6 +241,7 @@ async function resolveUnauthorizedResponse(
       formatApiProblemMessage(payload),
       response.status,
       payload,
+      { authRecovery: true },
     );
   }
 
@@ -247,6 +275,7 @@ async function resolveUnauthorizedResponse(
       formatApiProblemMessage(payload),
       response.status,
       payload,
+      { authRecovery: true },
     );
   }
   /*
@@ -2098,6 +2127,7 @@ async function request<T>(
         formatApiProblemMessage(payload),
         response.status,
         payload,
+        { authRecovery: true },
       );
     }
     // 401s that reach here are auth signals (e.g. refresh-already-rotated);
@@ -2159,6 +2189,7 @@ async function requestMultipartJson<T>(
         formatApiProblemMessage(payload),
         response.status,
         payload,
+        { authRecovery: true },
       );
     }
     // Auth 401s are recovered silently — never toast them.
@@ -2238,6 +2269,7 @@ async function postIntegrationsJsonImport(
         formatApiProblemMessage(payload),
         response.status,
         payload,
+        { authRecovery: true },
       );
     }
     // Auth 401s are recovered silently — never toast them.
@@ -2415,6 +2447,7 @@ async function requestBinary(path: string): Promise<Blob> {
         formatApiProblemMessage(payload),
         response.status,
         payload,
+        { authRecovery: true },
       );
     }
     // Auth 401s are recovered silently — never toast them.
@@ -9107,7 +9140,7 @@ export async function tryPostSale(
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Session expired. Sign in again.";
+            : "Please sign in to continue.";
       const status = err instanceof ApiRequestError ? err.status : 401;
       return { ok: false, status, message };
     }

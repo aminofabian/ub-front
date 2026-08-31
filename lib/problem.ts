@@ -408,6 +408,45 @@ export function isPosGuidanceMessage(text: string): boolean {
   return getPosGuidanceKind(text) != null;
 }
 
+/**
+ * Copy that means "the session needs recovery", not "the user did something
+ * wrong". Never toast these — reconnect / PIN / sign-in own the UX.
+ */
+export function isAuthRecoveryUserMessage(text: string): boolean {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  return (
+    normalized.includes("session expired") ||
+    normalized.includes("session ended") ||
+    normalized.includes("session is no longer active") ||
+    normalized.includes("session idle timeout") ||
+    normalized.includes("invalid or expired access token") ||
+    normalized.includes("invalid or expired token") ||
+    normalized.includes("sign in again")
+  );
+}
+
+/**
+ * HTTP failures that should stay silent: auth recovery, not a user-facing error.
+ * "Request failed" alone is still a real error; skip it only when paired with
+ * a session signal (status, problem body, or recovery copy).
+ */
+export function shouldOmitHttpErrorToast(
+  message: string,
+  status?: number,
+  payload?: unknown,
+): boolean {
+  if (
+    status != null &&
+    isSessionRelatedProblem(status, payload, { requiresAuth: true })
+  ) {
+    return true;
+  }
+  return isAuthRecoveryUserMessage(message);
+}
+
 /** Soften harsh branch-resolution copy into actionable guidance. */
 function friendlyBranchRequiredMessage(detail: string): string | null {
   const kind = getBranchGuidanceKind(detail);

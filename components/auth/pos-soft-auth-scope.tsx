@@ -49,7 +49,7 @@ function PosSessionExpiredModal() {
       const detail = (event as CustomEvent<PosSessionExpiredDetail>).detail;
       setMessage(
         detail?.message?.trim() ||
-          "Your session expired. Sign in again to keep selling — your cart is saved on this device.",
+          "Please sign in again to keep selling — your cart is saved on this device.",
       );
       setOpen(true);
     };
@@ -81,7 +81,7 @@ function PosSessionExpiredModal() {
           id="pos-session-expired-title"
           className="text-lg font-semibold text-foreground"
         >
-          Session expired
+          Sign in to keep selling
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {message}

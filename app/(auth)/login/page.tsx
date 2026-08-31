@@ -196,7 +196,7 @@ function CustomerLoginPageContent() {
       {sessionEndedNotice ? (
         <div className="mt-6">
           <AuthAlert variant="info">
-            Your session ended. Sign in again to continue.
+            Please sign in to continue. Nothing you saved is lost.
           </AuthAlert>
         </div>
       ) : null}

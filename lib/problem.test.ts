@@ -4,10 +4,12 @@ import {
   formatApiProblemMessage,
   getBranchGuidanceKind,
   getPosGuidanceKind,
+  isAuthRecoveryUserMessage,
   isItemNotFoundProblem,
   isSessionRelatedProblem,
   isTenantContextMissingProblem,
   isUnmappedTenantHostProblem,
+  shouldOmitHttpErrorToast,
 } from "@/lib/problem";
 
 describe("formatApiProblemMessage", () => {
@@ -303,5 +305,43 @@ describe("getBranchGuidanceKind", () => {
       getBranchGuidanceKind("Branch not found or not in this business"),
     ).toBe(null);
     expect(getBranchGuidanceKind("Branch is required to confirm")).toBe(null);
+  });
+});
+
+describe("auth recovery copy is never toasted", () => {
+  it("matches request-failed + session-expired combo", () => {
+    expect(
+      isAuthRecoveryUserMessage("Request failed.\nSession expired"),
+    ).toBe(true);
+    expect(
+      shouldOmitHttpErrorToast("Request failed.\nSession expired"),
+    ).toBe(true);
+  });
+
+  it("matches 401 session problems even without recovery copy", () => {
+    expect(
+      shouldOmitHttpErrorToast("Request failed.", 401, {
+        title: "Invalid or expired access token",
+        status: 401,
+        code: "token_expired",
+      }),
+    ).toBe(true);
+  });
+
+  it("still toasts ordinary request failures", () => {
+    expect(isAuthRecoveryUserMessage("Request failed.")).toBe(false);
+    expect(
+      shouldOmitHttpErrorToast("Could not save product.", 400, {
+        title: "Bad Request",
+        status: 400,
+        detail: "SKU already exists",
+      }),
+    ).toBe(false);
+  });
+
+  it("does not treat a wrong password as recovery copy", () => {
+    expect(
+      isAuthRecoveryUserMessage("Incorrect email or password."),
+    ).toBe(false);
   });
 });

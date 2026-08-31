@@ -10,10 +10,8 @@ import { signOutClientAndRedirectToLogin } from "@/lib/auth";
 const AUTO_REDIRECT_MS = 4_000;
 
 /**
- * Calm, full-screen state shown when the session is definitively dead
- * (refresh token revoked / expired / idle timeout / account locked).
- * Replaces error toasts and endless "Still trying…" spinners: a clear
- * explanation, one Sign in again action, and a soft auto-redirect.
+ * Full-screen sign-in prompt when the session cannot be restored.
+ * No error toast, no "expired" copy — just the next action.
  */
 export function SessionEndedScreen() {
   const [countdown, setCountdown] = useState(
@@ -44,19 +42,20 @@ export function SessionEndedScreen() {
     <div className="flex min-h-dvh items-center justify-center bg-muted/30 p-6">
       <div className="w-full max-w-md rounded-2xl border bg-background p-8 text-center shadow-sm">
         <h1 className="text-lg font-semibold tracking-tight">
-          Your session ended
+          Please sign in to continue
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          For your security, your session ended. Sign in again to continue —
-          nothing you saved is lost.
+          You&apos;ll pick up where you left off. Nothing you saved is lost.
         </p>
         <Button asChild className="mt-6 w-full">
           <Link href={`${APP_ROUTES.staffLogin}?notice=session-ended`}>
-            Sign in again
+            Sign in
           </Link>
         </Button>
         <p className="mt-3 text-xs text-muted-foreground" aria-live="polite">
-          {countdown > 0 ? `Redirecting to sign in in ${countdown}s…` : "Redirecting to sign in…"}
+          {countdown > 0
+            ? `Opening sign-in in ${countdown}s…`
+            : "Opening sign-in…"}
         </p>
       </div>
     </div>

@@ -236,7 +236,8 @@ export function ProductPolishDialog({
       toast.success(key === "all" ? "All suggestions applied." : "Suggestion applied.");
       onApplied?.();
     } catch (e) {
-      toast.error(formatMutationError(e, "Could not apply the suggestion."));
+      const msg = formatMutationError(e, "Could not apply the suggestion.");
+      if (msg) toast.error(msg);
     } finally {
       setApplying(null);
     }

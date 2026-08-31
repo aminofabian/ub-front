@@ -41,6 +41,7 @@ import {
   type SaleRecord,
   type ShiftRecord,
 } from "@/lib/api";
+import { isAuthRecoveryUserMessage } from "@/lib/problem";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import {
   readCachedItemsSearch,
@@ -4010,6 +4011,10 @@ export function QuickSaleWorkspace({
         } catch (e) {
           setError(e instanceof Error ? e.message : "Could not queue sale.");
         }
+        return;
+      }
+
+      if (failStatus === 401 || isAuthRecoveryUserMessage(failMsg)) {
         return;
       }
 

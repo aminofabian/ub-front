@@ -1,5 +1,6 @@
 import {
   ApiRequestError,
+  isAuthRecoveryError,
   type CreateVariantPayload,
   type ItemDetailRecord,
   type ItemImageRecord,
@@ -14,6 +15,7 @@ export function formatMutationError(
   error: unknown,
   fallback = "Request failed.",
 ): string {
+  if (isAuthRecoveryError(error)) return "";
   if (error instanceof ApiRequestError) return error.message;
   if (error instanceof Error && error.message.trim()) return error.message;
   return fallback;
