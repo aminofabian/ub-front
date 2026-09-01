@@ -55,6 +55,10 @@ import {
   ALL_SHELF_ZONES_LABEL,
   UNASSIGNED_SHELF_ZONE_VALUE,
 } from "@/hooks/use-session-scope";
+import {
+  headerAisleSelectionValid,
+  useHeaderShelfZoneOptions,
+} from "@/hooks/use-department-aisles";
 import { APP_ROUTES } from "@/lib/config";
 import { groceryClerkStockAccessEnabled, stockManagerActivityEnabled, stockManagerStockPageEnabled } from "@/lib/inventory-access";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
@@ -1276,18 +1280,28 @@ export function AppShell({ children }: AppShellProps) {
   // ── current selections for header display ─────────────────────────────────
   const currentBranch = branches.find((b) => b.id === branchId);
   const currentItemType = itemTypes.find((t) => t.id === itemTypeId);
-  const activeAisles = useMemo(
-    () =>
-      [...aisles]
-        .filter((a) => a.active)
-        .sort(
-          (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
-        ),
-    [aisles],
-  );
+  const {
+    activeAisles,
+    showUnassignedOption,
+    departmentScoped,
+  } = useHeaderShelfZoneOptions(aisles, itemTypeId);
   const showShelfZonePicker =
-    canViewCategories && (aislesLoading || activeAisles.length > 0);
+    canViewCategories &&
+    (aislesLoading ||
+      departmentScoped.loading ||
+      (aisles.some((a) => a.active) &&
+        (!itemTypeId.trim() ||
+          activeAisles.length > 0 ||
+          showUnassignedOption)));
   const departmentLocked = isGroceryClerk && itemTypes.length === 1;
+
+  useEffect(() => {
+    if (
+      !headerAisleSelectionValid(aisleId, itemTypeId, departmentScoped)
+    ) {
+      setAisleId("");
+    }
+  }, [aisleId, itemTypeId, departmentScoped, setAisleId]);
 
   // ── Auto-redirect restricted roles away from unauthorized pages ──────────
   useEffect(() => {
@@ -1527,22 +1541,38 @@ export function AppShell({ children }: AppShellProps) {
                 className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
                 value={aisleId}
                 onChange={(e) => setAisleId(e.target.value)}
-                disabled={aislesLoading || activeAisles.length === 0}
+                disabled={
+                  aislesLoading ||
+                  (itemTypeId.trim() ? departmentScoped.loading : false) ||
+                  activeAisles.length === 0
+                }
                 aria-label="Select shelf zone"
+                title={
+                  itemTypeId.trim() && !departmentScoped.loading
+                    ? "Zones with products in the selected department"
+                    : undefined
+                }
               >
                 {activeAisles.length === 0 ? (
                   <option value="">
-                    {aislesLoading ? "Loading…" : "No shelf zones"}
+                    {aislesLoading || departmentScoped.loading
+                      ? "Loading…"
+                      : itemTypeId.trim()
+                        ? "No zones in department"
+                        : "No shelf zones"}
                   </option>
                 ) : (
                   <>
                     <option value="">{ALL_SHELF_ZONES_LABEL}</option>
-                    <option value={UNASSIGNED_SHELF_ZONE_VALUE}>
-                      No shelf zone
-                    </option>
+                    {showUnassignedOption ? (
+                      <option value={UNASSIGNED_SHELF_ZONE_VALUE}>
+                        No shelf zone
+                      </option>
+                    ) : null}
                     {activeAisles.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.name} ({a.code})
+                        {itemTypeId.trim() ? ` · ${a.productCount}` : ""}
                       </option>
                     ))}
                   </>
@@ -1659,7 +1689,8 @@ export function AppShell({ children }: AppShellProps) {
             departmentLocked={departmentLocked}
             aisles={activeAisles}
             aisleId={aisleId}
-            aislesLoading={aislesLoading}
+            aislesLoading={aislesLoading || departmentScoped.loading}
+            showUnassignedAisleOption={showUnassignedOption}
             onAisleChange={setAisleId}
             showShelfZonePicker={showShelfZonePicker}
             onLogout={onLogout}

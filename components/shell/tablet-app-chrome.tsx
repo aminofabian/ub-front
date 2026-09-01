@@ -461,11 +461,12 @@ type TabletMoreSheetProps = {
   itemTypesLoading: boolean;
   onItemTypeChange: (id: string) => void;
   departmentLocked?: boolean;
-  aisles?: { id: string; name: string; code: string }[];
+  aisles?: { id: string; name: string; code: string; productCount?: number }[];
   aisleId?: string;
   aislesLoading?: boolean;
   onAisleChange?: (id: string) => void;
   showShelfZonePicker?: boolean;
+  showUnassignedAisleOption?: boolean;
   onLogout: () => void;
   itemIsActive: (pathname: string, href: string) => boolean;
   /** Cashier / stock manager / grocery: flat link list instead of launcher grid. */
@@ -523,6 +524,7 @@ function MoreWorkspaceConsole({
   aislesLoading = false,
   onAisleChange,
   showShelfZonePicker = false,
+  showUnassignedAisleOption = true,
 }: {
   accent: string;
   branchName?: string | null;
@@ -537,11 +539,12 @@ function MoreWorkspaceConsole({
   itemTypesLoading: boolean;
   onItemTypeChange: (id: string) => void;
   departmentLocked?: boolean;
-  aisles?: { id: string; name: string; code: string }[];
+  aisles?: { id: string; name: string; code: string; productCount?: number }[];
   aisleId?: string;
   aislesLoading?: boolean;
   onAisleChange?: (id: string) => void;
   showShelfZonePicker?: boolean;
+  showUnassignedAisleOption?: boolean;
 }) {
   const selectClass =
     "w-full appearance-none border border-border bg-background px-3 py-2 pr-8 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:opacity-50";
@@ -656,17 +659,22 @@ function MoreWorkspaceConsole({
             >
               {aisles.length === 0 ? (
                 <option value="">
-                  {aislesLoading ? "Loading…" : "No shelf zones"}
+                  {aislesLoading ? "Loading…" : itemTypeId.trim() ? "No zones in department" : "No shelf zones"}
                 </option>
               ) : (
                 <>
                   <option value="">{ALL_SHELF_ZONES_LABEL}</option>
-                  <option value={UNASSIGNED_SHELF_ZONE_VALUE}>
-                    No shelf zone
-                  </option>
+                  {showUnassignedAisleOption ? (
+                    <option value={UNASSIGNED_SHELF_ZONE_VALUE}>
+                      No shelf zone
+                    </option>
+                  ) : null}
                   {aisles.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name} ({a.code})
+                      {itemTypeId.trim() && a.productCount != null
+                        ? ` · ${a.productCount}`
+                        : ""}
                     </option>
                   ))}
                 </>
@@ -708,6 +716,7 @@ export function TabletMoreSheet({
   aislesLoading = false,
   onAisleChange,
   showShelfZonePicker = false,
+  showUnassignedAisleOption = true,
   onLogout,
   itemIsActive,
   compactNav = false,
@@ -926,6 +935,7 @@ export function TabletMoreSheet({
           aislesLoading={aislesLoading}
           onAisleChange={onAisleChange}
           showShelfZonePicker={showShelfZonePicker}
+          showUnassignedAisleOption={showUnassignedAisleOption}
         />
 
         <div className="relative mt-3 shrink-0">

@@ -1,25 +1,25 @@
 {
   "product": "Kiosk Desktop",
-  "version": "0.0.13",
-  "generatedAt": "2026-09-01T08:31:42.917Z",
+  "version": "0.0.14",
+  "generatedAt": "2026-09-01T19:58:12.295Z",
   "platforms": [
     {
       "id": "macos-aarch64",
       "os": "macos",
       "arch": "aarch64",
       "label": "macOS (Apple Silicon)",
-      "file": "kiosk-desktop-0.0.13-macos-aarch64.dmg",
+      "file": "kiosk-desktop-0.0.14-macos-aarch64.dmg",
       "sizeBytes": 285706321,
-      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.13/kiosk-desktop-0.0.13-macos-aarch64.dmg"
+      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.14/kiosk-desktop-0.0.14-macos-aarch64.dmg"
     },
     {
       "id": "windows-x86_64",
       "os": "windows",
       "arch": "x86_64",
       "label": "Windows (64-bit)",
-      "file": "kiosk-desktop-0.0.13-windows-x86_64.exe",
-      "sizeBytes": 466130881,
-      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.13/kiosk-desktop-0.0.13-windows-x86_64.exe"
+      "file": "kiosk-desktop-0.0.14-windows-x86_64.exe",
+      "sizeBytes": 466257280,
+      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.14/kiosk-desktop-0.0.14-windows-x86_64.exe"
     }
   ]
 }

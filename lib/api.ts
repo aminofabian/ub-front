@@ -3552,13 +3552,27 @@ export type CreateAislePayload = {
   sortOrder?: number;
 };
 
-export async function fetchAisles(): Promise<AisleRecord[]> {
-  return request<AisleRecord[]>(API_ROUTES.aisles);
+export async function fetchAisles(opts?: {
+  itemTypeId?: string | null;
+}): Promise<AisleRecord[]> {
+  const params = new URLSearchParams();
+  const itemTypeId = opts?.itemTypeId?.trim();
+  if (itemTypeId) params.set("itemTypeId", itemTypeId);
+  const suffix = params.toString();
+  return request<AisleRecord[]>(
+    `${API_ROUTES.aisles}${suffix ? `?${suffix}` : ""}`,
+  );
 }
 
-export async function fetchUnassignedAisleCount(): Promise<number> {
+export async function fetchUnassignedAisleCount(opts?: {
+  itemTypeId?: string | null;
+}): Promise<number> {
+  const params = new URLSearchParams();
+  const itemTypeId = opts?.itemTypeId?.trim();
+  if (itemTypeId) params.set("itemTypeId", itemTypeId);
+  const suffix = params.toString();
   const res = await request<{ count: number }>(
-    `${API_ROUTES.aisles}/unassigned-count`,
+    `${API_ROUTES.aisles}/unassigned-count${suffix ? `?${suffix}` : ""}`,
   );
   return res.count ?? 0;
 }

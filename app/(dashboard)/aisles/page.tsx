@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, MapPin, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, MapPin, Pencil, Plus, ChevronDown, ChevronUp } from "lucide-react";
 
 import {
   DashboardAccessDenied,
@@ -41,6 +41,10 @@ export default function AislesPage() {
   const [createCode, setCreateCode] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
   const [reorderBusy, setReorderBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCode, setEditCode] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
 
   const sortedAisles = useMemo(
     () =>
@@ -136,6 +140,44 @@ export default function AislesPage() {
         kind: "error",
         text: err instanceof Error ? err.message : "Could not update shelf zone.",
       });
+    }
+  };
+
+  const startEdit = (aisle: AisleRecord) => {
+    setEditingId(aisle.id);
+    setEditName(aisle.name);
+    setEditCode(aisle.code);
+    setFeedback(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName("");
+    setEditCode("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !canWrite) return;
+    const name = editName.trim();
+    const code = editCode.trim();
+    if (!name || !code) {
+      setFeedback({ kind: "error", text: "Name and code are required." });
+      return;
+    }
+    setEditBusy(true);
+    setFeedback(null);
+    try {
+      const updated = await updateAisle(editingId, { name, code });
+      setAisles((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      cancelEdit();
+      setFeedback({ kind: "success", text: `Updated ${updated.name}.` });
+    } catch (err) {
+      setFeedback({
+        kind: "error",
+        text: err instanceof Error ? err.message : "Could not update shelf zone.",
+      });
+    } finally {
+      setEditBusy(false);
     }
   };
 
@@ -261,6 +303,51 @@ export default function AislesPage() {
                   key={a.id}
                   className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
                 >
+                  {editingId === a.id && canWrite ? (
+                    <div className="grid w-full gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+                      <label className="block space-y-1 text-sm">
+                        <span className="text-muted-foreground">Name</span>
+                        <input
+                          className={dashboardInputClass()}
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          disabled={editBusy}
+                        />
+                      </label>
+                      <label className="block space-y-1 text-sm">
+                        <span className="text-muted-foreground">Code</span>
+                        <input
+                          className={dashboardInputClass()}
+                          value={editCode}
+                          onChange={(e) => setEditCode(e.target.value)}
+                          disabled={editBusy}
+                        />
+                      </label>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={editBusy}
+                          onClick={cancelEdit}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={editBusy}
+                          onClick={() => void saveEdit()}
+                        >
+                          {editBusy ? (
+                            <Loader2 className="size-4 animate-spin" aria-hidden />
+                          ) : null}
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
                   <div className="min-w-0">
                     <p className="font-medium text-foreground">
                       {a.name}
@@ -309,16 +396,30 @@ export default function AislesPage() {
                       </Link>
                     </Button>
                     {canWrite ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => void toggleActive(a)}
-                      >
-                        {a.active ? "Deactivate" : "Activate"}
-                      </Button>
+                      <>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1"
+                          onClick={() => startEdit(a)}
+                        >
+                          <Pencil className="size-3.5" aria-hidden />
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => void toggleActive(a)}
+                        >
+                          {a.active ? "Deactivate" : "Activate"}
+                        </Button>
+                      </>
                     ) : null}
                   </div>
+                    </>
+                  )}
                 </li>
               ))
             )}

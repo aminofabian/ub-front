@@ -2,305 +2,250 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, IdCard, Users } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  CreditCard,
+  Receipt,
+  User,
+  Wallet,
+} from "lucide-react";
 
 import {
   DASHBOARD_MAX,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
-  DashboardPageHero,
+  dashboardHintClass,
 } from "@/components/dashboard-page-ui";
-import { Button } from "@/components/ui/button";
-import { useDashboard } from "@/components/dashboard-provider";
-import { APP_ROUTES } from "@/lib/config";
-import {
-  fetchCustomerById,
-  fetchCustomerCreditStatement,
-  type CreditStatementRecord,
-  type CustomerRecord,
-} from "@/lib/api";
-import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import { CustomerEditCard } from "@/components/credits/customer-edit-card";
 import { CustomerPurchasesSection } from "@/components/credits/customer-purchases-section";
-import { LoyaltyCardPreview } from "@/components/credits/loyalty-card-preview";
-import { RevealCustomerPhoneCard } from "@/components/credits/reveal-customer-phone-card";
-import { TabPaymentActions } from "@/components/credits/tab-payment-actions";
+import { RemindPaymentButtons } from "@/components/credits/remind-payment-buttons";
+import { useDashboard } from "@/components/dashboard-provider";
+import { useFormatMoney } from "@/hooks/use-format-money";
+import { fetchCustomerById, type CustomerRecord } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
+import { cn } from "@/lib/utils";
 
-function fmtMoney(value: number | string | null | undefined): string {
+function toNum(value: number | string | null | undefined): number {
   const n = Number(value ?? 0);
-  return n.toLocaleString("en-KE", { style: "currency", currency: "KES" });
+  return Number.isFinite(n) ? n : 0;
+}
+
+function CustomerOriginBadge({ customer }: { customer: CustomerRecord }) {
+  const verified = customer.phones.some(
+    (p) => Boolean(p.verifiedAt) && Boolean(p.phone),
+  );
+  const inferred = customer.origin === "mpesa_inferred";
+
+  if (inferred && !verified) {
+    return (
+      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/50">
+        Inferred
+      </span>
+    );
+  }
+  if (verified) {
+    return (
+      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-800/50">
+        Verified
+      </span>
+    );
+  }
+  return null;
+}
+
+function SummaryStat({
+  label,
+  value,
+  icon: Icon,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  icon: typeof Wallet;
+  tone?: "default" | "warning" | "muted";
+}) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm">
+      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <Icon className="size-3.5 shrink-0" aria-hidden />
+        {label}
+      </div>
+      <p
+        className={cn(
+          "mt-1 text-lg font-semibold tabular-nums tracking-tight",
+          tone === "warning" && "text-amber-700 dark:text-amber-400",
+          tone === "muted" && "text-muted-foreground",
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
 }
 
 export default function CustomerDetailPage() {
-  const params = useParams<{ id: string }>();
-  const customerId = params?.id?.trim() ?? "";
-  const { loading, canViewCustomers, canManageCustomers, canReviewPaymentClaims } =
-    useDashboard();
+  const params = useParams();
+  const customerId = typeof params.id === "string" ? params.id : "";
+  const { loading, canViewCustomers, canManageCustomers } = useDashboard();
+  const { formatMoneyCompact: formatKes } = useFormatMoney();
 
   const [customer, setCustomer] = useState<CustomerRecord | null>(null);
-  const [statement, setStatement] = useState<CreditStatementRecord | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
-  const [cardOpen, setCardOpen] = useState(false);
   const [message, setMessage] = useState<{
     text: string;
     kind: "error" | "success";
   } | null>(null);
 
-  const refresh = useCallback(async () => {
-    // Keep the page visible; just re-pull customer + statement after a mutation.
+  const loadCustomer = useCallback(async () => {
+    if (!customerId) return;
+    setPageLoading(true);
+    setMessage(null);
     try {
-      const [cust, stmt] = await Promise.all([
-        fetchCustomerById(customerId),
-        fetchCustomerCreditStatement(customerId),
-      ]);
-      setCustomer(cust);
-      setStatement(stmt);
-    } catch (error) {
+      const row = await fetchCustomerById(customerId);
+      setCustomer(row);
+    } catch (e) {
+      setCustomer(null);
       setMessage({
-        text:
-          error instanceof Error ? error.message : "Failed to load customer.",
         kind: "error",
+        text: e instanceof Error ? e.message : "Could not load customer.",
       });
+    } finally {
+      setPageLoading(false);
     }
   }, [customerId]);
 
   useEffect(() => {
     if (loading || !canViewCustomers || !customerId) return;
+    void loadCustomer();
+  }, [loading, canViewCustomers, customerId, loadCustomer]);
 
-    let cancelled = false;
-    const run = async () => {
-      setPageLoading(true);
-      setMessage(null);
-      try {
-        const [cust, stmt] = await Promise.all([
-          fetchCustomerById(customerId),
-          fetchCustomerCreditStatement(customerId),
-        ]);
-        if (!cancelled) {
-          setCustomer(cust);
-          setStatement(stmt);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setCustomer(null);
-          setStatement(null);
-          setMessage({
-            text:
-              error instanceof Error
-                ? error.message
-                : "Failed to load customer.",
-            kind: "error",
-          });
-        }
-      } finally {
-        if (!cancelled) {
-          setPageLoading(false);
-        }
-      }
-    };
+  const owed = useMemo(
+    () => (customer ? toNum(customer.credit.balanceOwed) : 0),
+    [customer],
+  );
+  const wallet = useMemo(
+    () => (customer ? toNum(customer.credit.walletBalance) : 0),
+    [customer],
+  );
 
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [loading, canViewCustomers, customerId]);
-
-  if (loading) {
-    return <DashboardLoading label="Loading session…" />;
+  if (loading || pageLoading) {
+    return <DashboardLoading label="Loading customer…" />;
   }
 
   if (!canViewCustomers) {
     return (
       <DashboardAccessDenied
-        title="Credit customers"
-        description="You do not have access to this area."
-        backHref={APP_ROUTES.business}
-        backLabel="Business settings"
+        title="Customer"
+        description="You do not have access to customer records."
+        backHref={APP_ROUTES.customers}
+        backLabel="All customers"
       />
     );
   }
 
-  const statementLines = statement?.lines ?? [];
-  const paymentIndexes = statementLines.reduce<number[]>((acc, line, index) => {
-    if (line.kind === "credit_payment") acc.push(index);
-    return acc;
-  }, []);
-  const latestPaymentIndex =
-    paymentIndexes.length > 0 ? paymentIndexes[paymentIndexes.length - 1] : -1;
-  const latestPaymentLine =
-    latestPaymentIndex >= 0 ? statementLines[latestPaymentIndex] : null;
-  const latestPaymentReversed =
-    latestPaymentIndex >= 0 &&
-    statementLines
-      .slice(latestPaymentIndex + 1)
-      .some((line) => line.kind === "credit_payment_reversal");
+  if (!customer) {
+    return (
+      <div className={cn(DASHBOARD_MAX, "space-y-4")}>
+        <Link
+          href={APP_ROUTES.customers}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
+          All customers
+        </Link>
+        {message ? (
+          <DashboardFeedback kind={message.kind} text={message.text} />
+        ) : (
+          <p className="text-sm text-muted-foreground">Customer not found.</p>
+        )}
+      </div>
+    );
+  }
+
+  const customerLabel =
+    customer.customerNo != null ? `C-${customer.customerNo}` : "Customer";
 
   return (
-    <div className={DASHBOARD_MAX}>
-      <div className="mb-4">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link href={APP_ROUTES.customers}>
-            <ArrowLeft className="mr-1.5 size-4" />
-            All customers
-          </Link>
-        </Button>
+    <div className={cn(DASHBOARD_MAX, "space-y-5 pb-16")}>
+      <div className="space-y-4">
+        <Link
+          href={APP_ROUTES.customers}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
+          All customers
+        </Link>
+
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {customerLabel}
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                {customer.name}
+              </h1>
+              <CustomerOriginBadge customer={customer} />
+            </div>
+            <p className={cn(dashboardHintClass(), "mt-1.5 max-w-xl")}>
+              Profile, balances, and purchase history for this shopper.
+            </p>
+          </div>
+
+          {owed > 0 && canManageCustomers ? (
+            <RemindPaymentButtons
+              customerId={customer.id}
+              onResult={({ ok, text }) =>
+                setMessage({ kind: ok ? "success" : "error", text })
+              }
+            />
+          ) : null}
+        </header>
       </div>
 
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <DashboardPageHero
-          icon={Users}
-          eyebrow="Customer"
-          title={
-            customer?.name?.trim()
-              ? `${customer.customerNo != null ? `C-${customer.customerNo} · ` : ""}${customer.name.trim()}`
-              : "Customer"
-          }
-          description={
-            customerPrimaryPhone(customer?.phones)
-              ? `Primary ${customerPrimaryPhone(customer?.phones)}`
-              : "Tab, wallet, and loyalty activity"
-          }
-        />
-        {customer ? (
-          <Button type="button" variant="outline" onClick={() => setCardOpen(true)}>
-            <IdCard className="size-4" aria-hidden />
-            Print loyalty card
-          </Button>
-        ) : null}
-      </header>
-
-      {message ? <DashboardFeedback kind={message.kind} text={message.text} /> : null}
-
-      {pageLoading ? (
-        <DashboardLoading label="Loading customer…" />
-      ) : customer ? (
-        <>
-          <section className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <p className="text-xs font-medium text-muted-foreground">Owed on tab</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight">
-                {fmtMoney(customer.credit.balanceOwed)}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <p className="text-xs font-medium text-muted-foreground">Wallet</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight">
-                {fmtMoney(customer.credit.walletBalance)}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <p className="text-xs font-medium text-muted-foreground">Loyalty points</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight">
-                {customer.credit.loyaltyPoints}
-              </p>
-            </div>
-          </section>
-
-          <RevealCustomerPhoneCard
-            customer={customer}
-            canReveal={canManageCustomers}
-            onUpdated={setCustomer}
-          />
-
-          <CustomerEditCard
-            customer={customer}
-            canEdit={canManageCustomers}
-            onUpdated={setCustomer}
-            onFeedback={(kind, text) => setMessage({ kind, text })}
-          />
-
-          <CustomerPurchasesSection customerId={customerId} />
-
-          <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-            <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
-              <h2 className="text-sm font-semibold">Credit statement</h2>
-              <p className="text-xs text-muted-foreground">
-                Recent tab, wallet, and payment movements
-              </p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[36rem] text-left text-sm">
-                <thead className="border-b border-border/60 bg-muted/20">
-                  <tr>
-                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">
-                      When
-                    </th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">
-                      Type
-                    </th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">
-                      Debit
-                    </th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">
-                      Credit
-                    </th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">
-                      Memo
-                    </th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(statement?.lines ?? []).map((line, index) => (
-                    <tr
-                      key={`${line.at}-${line.kind}-${index}`}
-                      className="border-b border-border/40 last:border-0"
-                    >
-                      <td className="px-4 py-3 text-muted-foreground sm:px-5">
-                        {new Date(line.at).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 sm:px-5">{line.kind}</td>
-                      <td className="px-4 py-3 sm:px-5">{fmtMoney(line.debit)}</td>
-                      <td className="px-4 py-3 sm:px-5">{fmtMoney(line.credit)}</td>
-                      <td className="px-4 py-3 text-muted-foreground sm:px-5">
-                        {line.memo || "—"}
-                      </td>
-                      <td className="px-4 py-3 sm:px-5">
-                        {index === latestPaymentIndex &&
-                        latestPaymentLine &&
-                        canReviewPaymentClaims &&
-                        !latestPaymentReversed ? (
-                          <TabPaymentActions
-                            customerId={customerId}
-                            paymentAmount={latestPaymentLine.credit}
-                            paymentAt={latestPaymentLine.at}
-                            onChanged={() => void refresh()}
-                            onFeedback={(kind, text) =>
-                              setMessage({ kind, text })
-                            }
-                          />
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {!statement?.lines?.length ? (
-              <p className="border-t border-border/60 px-5 py-8 text-center text-sm text-muted-foreground">
-                No statement activity yet.
-              </p>
-            ) : null}
-          </section>
-        </>
+      {message ? (
+        <DashboardFeedback kind={message.kind} text={message.text} />
       ) : null}
 
-      {customer ? (
-        <LoyaltyCardPreview
-          customer={{
-            id: customer.id,
-            name: customer.name,
-            phone: customerPrimaryPhone(customer.phones),
-            loyaltyPoints: customer.credit.loyaltyPoints,
-          }}
-          open={cardOpen}
-          onOpenChange={setCardOpen}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <SummaryStat
+          label="Tab balance"
+          value={formatKes(owed)}
+          icon={CreditCard}
+          tone={owed > 0 ? "warning" : "muted"}
         />
-      ) : null}
+        <SummaryStat
+          label="Wallet"
+          value={formatKes(wallet)}
+          icon={Wallet}
+        />
+        <SummaryStat
+          label="Loyalty points"
+          value={String(customer.credit.loyaltyPoints ?? 0)}
+          icon={User}
+        />
+      </div>
+
+      <CustomerEditCard
+        customer={customer}
+        canEdit={canManageCustomers}
+        onUpdated={setCustomer}
+        onFeedback={(kind, text) => setMessage({ kind, text })}
+      />
+
+      <CustomerPurchasesSection customerId={customer.id} />
+
+      <div className="flex flex-wrap gap-2 pt-1">
+        <Link
+          href={APP_ROUTES.creditsOnTab}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-border/70 bg-card px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-muted/40"
+        >
+          <Receipt className="size-4 text-muted-foreground" aria-hidden />
+          Credit activity
+        </Link>
+      </div>
     </div>
   );
 }

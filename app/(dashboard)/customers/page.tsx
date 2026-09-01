@@ -32,6 +32,10 @@ import { cn } from "@/lib/utils";
 import { CreditSaleReminderSettings } from "@/components/credits/credit-sale-reminder-settings";
 import { CustomerBulkSmsDrawer } from "@/components/credits/customer-bulk-sms-drawer";
 import {
+  customerTableCheckboxClass,
+  customerTableRowClass,
+} from "@/components/credits/customer-crm-ui";
+import {
   LoyaltyCardLink,
   LoyaltyCardPreview,
 } from "@/components/credits/loyalty-card-preview";
@@ -345,7 +349,7 @@ export default function CustomersPage() {
                 type="checkbox"
                 checked={outstandingOnly}
                 onChange={(e) => setOutstandingOnly(e.target.checked)}
-                className="size-4 rounded border-input"
+                className={customerTableCheckboxClass()}
               />
               Outstanding only
             </label>
@@ -483,6 +487,7 @@ export default function CustomersPage() {
                         selectedIds.size === visibleRows.length
                       }
                       onChange={toggleAllVisible}
+                      className={customerTableCheckboxClass()}
                       aria-label="Select all visible customers"
                     />
                   </th>
@@ -524,17 +529,19 @@ export default function CustomersPage() {
                   (p) => Boolean(p.verifiedAt) && Boolean(p.phone),
                 );
                 const inferred = row.origin === "mpesa_inferred";
+                const selected = selectedIds.has(row.id);
                 return (
                   <tr
                     key={row.id}
-                    className="border-b border-border/40 last:border-0 hover:bg-muted/20"
+                    className={customerTableRowClass(selected)}
                   >
                     {canManageCustomers ? (
                       <td className="px-4 py-2.5 sm:px-5">
                         <input
                           type="checkbox"
-                          checked={selectedIds.has(row.id)}
+                          checked={selected}
                           onChange={() => toggleRow(row.id)}
+                          className={customerTableCheckboxClass()}
                           aria-label={`Select ${row.name}`}
                         />
                       </td>
@@ -619,6 +626,36 @@ export default function CustomersPage() {
           if (!next) setCardCustomer(null);
         }}
       />
+
+      {canManageCustomers && selectedIds.size > 0 ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-card/95 px-4 py-3 shadow-[0_-8px_30px_-12px_rgba(0,0,0,0.25)] backdrop-blur-md sm:px-6">
+          <div className={cn(DASHBOARD_MAX, "flex flex-wrap items-center justify-between gap-3 !space-y-0 !pb-0")}>
+            <p className="text-sm font-medium">
+              {selectedIds.size} selected
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="rounded-xl"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Clear
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="rounded-xl"
+                onClick={() => setSmsOpen(true)}
+              >
+                <MessageSquare className="mr-1.5 size-4" />
+                Message selected
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <CustomerBulkSmsDrawer
         open={smsOpen}

@@ -13,6 +13,10 @@ import {
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { CustomerBulkSmsDrawer } from "@/components/credits/customer-bulk-sms-drawer";
+import {
+  customerTableCheckboxClass,
+  customerTableRowClass,
+} from "@/components/credits/customer-crm-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFormatMoney } from "@/hooks/use-format-money";
@@ -184,7 +188,7 @@ export default function CustomerSegmentsPage() {
   }
 
   return (
-    <div className={DASHBOARD_MAX}>
+    <div className={cn(DASHBOARD_MAX, "space-y-5 pb-16")}>
       <DashboardPageHero
         icon={Filter}
         eyebrow="Customers"
@@ -246,12 +250,32 @@ export default function CustomerSegmentsPage() {
             </ul>
           ) : null}
           {selectedItem ? (
-            <p className="text-sm text-muted-foreground">
-              Showing buyers of{" "}
-              <span className="font-medium text-foreground">
-                {selectedItem.name}
-              </span>
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                Buyers of{" "}
+                <span className="font-medium text-foreground">
+                  {selectedItem.name}
+                </span>
+                {selectedItem.sku ? (
+                  <span className="ml-1 font-mono text-xs text-muted-foreground">
+                    ({selectedItem.sku})
+                  </span>
+                ) : null}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 rounded-lg px-2 text-xs"
+                onClick={() => {
+                  setSelectedItem(null);
+                  setRows([]);
+                  setProductQuery("");
+                }}
+              >
+                Clear
+              </Button>
+            </div>
           ) : null}
         </div>
 
@@ -330,6 +354,7 @@ export default function CustomerSegmentsPage() {
                             rows.length > 0 && selectedIds.size === rows.length
                           }
                           onChange={toggleAll}
+                          className={customerTableCheckboxClass()}
                           aria-label="Select all"
                         />
                       </th>
@@ -352,17 +377,20 @@ export default function CustomerSegmentsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => (
+                  {rows.map((row) => {
+                    const selected = selectedIds.has(row.customerId);
+                    return (
                     <tr
                       key={row.customerId}
-                      className="border-b border-border/40 last:border-0"
+                      className={customerTableRowClass(selected)}
                     >
                       {canManageCustomers ? (
                         <td className="px-4 py-3 sm:px-5">
                           <input
                             type="checkbox"
-                            checked={selectedIds.has(row.customerId)}
+                            checked={selected}
                             onChange={() => toggleRow(row.customerId)}
+                            className={customerTableCheckboxClass()}
                             aria-label={`Select ${row.name}`}
                           />
                         </td>
@@ -389,7 +417,8 @@ export default function CustomerSegmentsPage() {
                         {new Date(row.lastPurchaseAt).toLocaleDateString()}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { Loader2, MessageSquare, Send } from "lucide-react";
 
+import { dashboardTextareaClass } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { SmsCreditsDepletedBanner } from "@/components/messaging/sms-credits-header";
 import { Button } from "@/components/ui/button";
 import { bulkSendCustomerSms } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 type Props = {
   open: boolean;
@@ -71,7 +73,7 @@ export function CustomerBulkSmsDrawer({
         <label className="block space-y-1.5">
           <span className="text-sm font-medium">Message</span>
           <textarea
-            className="min-h-[140px] w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+            className={cn(dashboardTextareaClass(sending), "min-h-[140px]")}
             value={body}
             onChange={(e) => setBody(e.target.value)}
             disabled={sending}

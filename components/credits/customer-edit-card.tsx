@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Pencil, Plus, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { dashboardInputClass } from "@/components/dashboard-page-ui";
+import { CustomerPhoneFlag } from "@/components/credits/customer-phone-flag";
+import { dashboardInputClass, dashboardTextareaClass } from "@/components/dashboard-page-ui";
 import {
   addCustomerPhone,
   patchCustomer,
@@ -168,7 +169,7 @@ export function CustomerEditCard({
                 Notes
               </span>
               <textarea
-                className={cn(dashboardInputClass(), "min-h-[88px] w-full resize-y py-2.5")}
+                className={cn(dashboardTextareaClass(busy), "min-h-[88px]")}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 disabled={busy}
@@ -228,15 +229,16 @@ export function CustomerEditCard({
               {customer.phones.map((phone) => (
                 <li
                   key={phone.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/30 px-3 py-2 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5 text-sm"
                 >
-                  <span>
-                    {phone.phone}
+                  <span className="min-w-0">
+                    <span className="font-medium">{phone.phone}</span>
                     {phone.primary ? (
-                      <span className="ml-2 text-[11px] font-semibold uppercase text-emerald-700">
+                      <span className="ml-2 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-200">
                         Primary
                       </span>
                     ) : null}
+                    <CustomerPhoneFlag phone={phone.phone} className="block" />
                   </span>
                   {canEdit && !phone.primary ? (
                     <Button

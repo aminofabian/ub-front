@@ -37,11 +37,16 @@ import { resolveCatalogParentId } from "./_utils";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
 import { ProductEditDrawer } from "./_components/ProductEditDrawer";
 import {
+  readShelfZoneBannerDismissed,
+  UnassignedShelfZoneBanner,
+} from "./_components/UnassignedShelfZoneBanner";
+import {
   ProductPhotosDrawer,
   ProductQuickEditAllDrawer,
   ProductMobileDetailDrawer,
 } from "./_components/ProductDrawers";
 import { usePosEvents } from "@/hooks/use-pos-events";
+import { fetchUnassignedAisleCount } from "@/lib/api";
 
 export function ProductsWorkspace() {
   const router = useRouter();
@@ -117,6 +122,12 @@ export function ProductsWorkspace() {
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [variantParentPickBusy, setVariantParentPickBusy] = useState(false);
   const [bulkStockOpen, setBulkStockOpen] = useState(false);
+  const [unassignedAisleCount, setUnassignedAisleCount] = useState<number | null>(
+    null,
+  );
+  const [shelfZoneBannerDismissed, setShelfZoneBannerDismissed] = useState(
+    () => readShelfZoneBannerDismissed(business?.id),
+  );
   const didAutoOpenCreate = useRef(false);
 
   const openBaseStock = useCallback(async () => {
@@ -469,6 +480,29 @@ export function ProductsWorkspace() {
     !catalog.attentionFiltersActive;
 
   useEffect(() => {
+    if (!canCatalogWrite) return;
+    let cancelled = false;
+    void fetchUnassignedAisleCount()
+      .then((count) => {
+        if (!cancelled) setUnassignedAisleCount(count);
+      })
+      .catch(() => {
+        if (!cancelled) setUnassignedAisleCount(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canCatalogWrite, catalog.listTotalElements]);
+
+  const showShelfZoneBanner =
+    canCatalogWrite &&
+    !shelfZoneBannerDismissed &&
+    unassignedAisleCount != null &&
+    unassignedAisleCount > 0 &&
+    !dashboardAisleId &&
+    catalog.aisles.length > 0;
+
+  useEffect(() => {
     if (didAutoOpenCreate.current) return;
     if (!catalogEmpty) return;
     if (!canCatalogWrite || catalog.itemTypes.length === 0) return;
@@ -514,11 +548,20 @@ export function ProductsWorkspace() {
         }
         headerExtra={
           catalogEmpty ? undefined : (
-          <div className="hidden lg:block">
-            <ProductAttentionBar
-              attentionStats={attentionStats}
-              onAttentionToggle={onAttentionToggle}
-            />
+          <div className="space-y-2">
+            {showShelfZoneBanner ? (
+              <UnassignedShelfZoneBanner
+                count={unassignedAisleCount ?? 0}
+                businessId={business?.id}
+                onDismiss={() => setShelfZoneBannerDismissed(true)}
+              />
+            ) : null}
+            <div className="hidden lg:block">
+              <ProductAttentionBar
+                attentionStats={attentionStats}
+                onAttentionToggle={onAttentionToggle}
+              />
+            </div>
           </div>
           )
         }
