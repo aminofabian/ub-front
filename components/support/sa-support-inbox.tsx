@@ -1405,7 +1405,7 @@ export function SaSupportInbox() {
       ) : null}
 
       <div className="relative min-h-0 flex-1 support-chat-wallpaper">
-        <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto px-3 py-4 sm:px-5">
+        <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-5">
           {detailLoading ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               Loading conversation…
@@ -1473,6 +1473,7 @@ export function SaSupportInbox() {
         ) : null}
       </div>
 
+      <div className="min-w-0 shrink-0 overflow-hidden">
       <Composer
         value={draft}
         onChange={setDraft}
@@ -1483,6 +1484,7 @@ export function SaSupportInbox() {
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
       />
+      </div>
     </section>
   ) : (
     <div className="hidden min-h-0 flex-1 md:flex">

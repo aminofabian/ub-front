@@ -739,7 +739,7 @@ function GuestSupportPanel({
             <div
               ref={scrollRef}
               onScroll={onScroll}
-              className="h-full space-y-2.5 overflow-y-auto px-4 py-4"
+              className="h-full space-y-2.5 overflow-x-hidden overflow-y-auto px-4 py-4"
             >
               {loading ? (
                 <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
@@ -827,7 +827,7 @@ function GuestSupportPanel({
               </button>
             ) : null}
           </ChatThreadSurface>
-          <div className="border-t border-border/50 bg-background">
+          <div className="min-w-0 shrink-0 overflow-hidden border-t border-border/50 bg-background">
             <Composer
               value={draft}
               onChange={setDraft}

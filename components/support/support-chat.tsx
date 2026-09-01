@@ -568,7 +568,7 @@ export function SupportChat({
         <div
           ref={scrollRef}
           onScroll={onScroll}
-          className="h-full overflow-y-auto overscroll-contain px-3 py-5 sm:px-5"
+          className="h-full overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-5 sm:px-5"
         >
           {loading ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
@@ -662,7 +662,7 @@ export function SupportChat({
       </ChatThreadSurface>
 
       {/* Composer */}
-      <div className="border-t border-border/50">
+      <div className="min-w-0 shrink-0 overflow-hidden border-t border-border/50">
         <Composer
           value={draft}
           onChange={setDraft}

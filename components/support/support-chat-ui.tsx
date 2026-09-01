@@ -444,13 +444,12 @@ export function MessageBubble({
               onClick={() => onReply(message)}
               aria-label="Reply to this message"
               className={cn(
-                "absolute top-1/2 z-10 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-white text-slate-600 shadow-sm transition-all dark:bg-neutral-800 dark:text-neutral-300",
+                "absolute right-1 top-1 z-10 inline-flex size-6 items-center justify-center rounded-full border border-border/60 bg-white/95 text-slate-600 shadow-sm transition-all dark:bg-neutral-800/95 dark:text-neutral-300",
                 "opacity-0 group-hover/msg:opacity-100 focus-visible:opacity-100",
-                mine ? "-left-9" : "-right-9",
                 "hover:border-primary/35 hover:bg-primary/[0.08] hover:text-primary",
               )}
             >
-              <CornerUpLeft className="size-3.5" />
+              <CornerUpLeft className="size-3" />
             </button>
           ) : null}
           <div
@@ -886,6 +885,15 @@ export function Composer({
     return () => document.removeEventListener("mousedown", onDown);
   }, [emojiOpen]);
 
+  React.useEffect(() => {
+    if (!replyTo) return;
+    const timer = window.setTimeout(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [replyTo]);
+
   const canSend = (value.trim().length > 0 || file != null) && !disabled;
 
   const clearFile = () => {
@@ -915,13 +923,19 @@ export function Composer({
         : replyTo?.body?.trim() || "Message";
 
   return (
-    <div className="shrink-0 bg-gradient-to-t from-background via-background to-background/80 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+    <div className="w-full min-w-0 max-w-full shrink-0 overflow-hidden bg-gradient-to-t from-background via-background to-background/80 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
       {replyTo ? (
-        <div className="mb-2 flex items-stretch gap-2 rounded-2xl border border-primary/20 bg-primary/[0.05] px-3 py-2.5 shadow-sm">
-          <span className="w-1 shrink-0 rounded-full bg-primary" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold text-primary">
-              Replying to {replyTo.senderName?.trim() || (replyTo.senderType === "SUPER_ADMIN" ? "Kiosk Support" : replyTo.senderType === "GUEST" ? "Customer" : "You")}
+        <div className="mb-2 flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-xl border border-primary/20 bg-primary/[0.05] px-2.5 py-2 shadow-sm">
+          <span className="w-1 shrink-0 self-stretch rounded-full bg-primary" aria-hidden />
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <p className="truncate text-[11px] font-semibold text-primary">
+              Replying to{" "}
+              {replyTo.senderName?.trim() ||
+                (replyTo.senderType === "SUPER_ADMIN"
+                  ? "Kiosk Support"
+                  : replyTo.senderType === "GUEST"
+                    ? "Customer"
+                    : "You")}
             </p>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">{replyPreview}</p>
           </div>
@@ -929,7 +943,7 @@ export function Composer({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="size-8 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+            className="size-7 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
             aria-label="Cancel reply"
             onClick={onClearReply}
           >
@@ -970,7 +984,7 @@ export function Composer({
       ) : null}
       <div
         className={cn(
-          "flex items-end gap-1 rounded-[1.35rem] border border-border/70 bg-muted/25 py-1.5 pl-1.5 pr-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-[border-color,box-shadow,background-color] duration-200 focus-within:border-primary/35 focus-within:bg-background focus-within:shadow-[0_0_0_3px_rgba(40,167,69,0.12)]",
+          "flex w-full min-w-0 max-w-full items-end gap-1 overflow-hidden rounded-[1.35rem] border border-border/70 bg-muted/25 py-1.5 pl-1.5 pr-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-[border-color,box-shadow,background-color] duration-200 focus-within:border-primary/35 focus-within:bg-background focus-within:shadow-[0_0_0_3px_rgba(40,167,69,0.12)]",
           disabled && "opacity-60",
         )}
       >
@@ -1052,7 +1066,7 @@ export function Composer({
           value={value}
           disabled={disabled}
           placeholder={disabled ? (disabledHint ?? "This conversation is closed") : "Write a message…"}
-          className="max-h-[120px] min-h-[2.25rem] flex-1 resize-none bg-transparent px-1 py-1.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/80 focus:outline-none disabled:cursor-not-allowed"
+          className="max-h-[120px] min-h-[2.25rem] min-w-0 flex-1 basis-0 resize-none bg-transparent px-1 py-1.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/80 focus:outline-none disabled:cursor-not-allowed"
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -1081,9 +1095,9 @@ export function Composer({
           <Send className={cn("size-3.5 transition-transform", canSend && "-translate-x-px translate-y-px")} />
         </Button>
       </div>
-      <p className="mt-2 px-1 text-center text-[10px] tracking-wide text-muted-foreground/65">
-        Enter to send · Shift+Enter for a new line
-        {attachmentsEnabled ? " · Attach images, PDF, CSV, Excel" : ""}
+      <p className="mt-2 px-1 text-center text-[10px] leading-snug tracking-wide text-muted-foreground/65 [overflow-wrap:anywhere]">
+        Enter to send · Shift+Enter for new line
+        {attachmentsEnabled ? " · Attach files" : ""}
       </p>
     </div>
   );
