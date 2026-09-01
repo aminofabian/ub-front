@@ -1,8 +1,17 @@
 {
   "product": "Kiosk Desktop",
   "version": "0.0.12",
-  "generatedAt": "2026-09-01T05:05:36.448Z",
+  "generatedAt": "2026-09-01T05:18:00.140Z",
   "platforms": [
+    {
+      "id": "linux-x86_64",
+      "os": "linux",
+      "arch": "x86_64",
+      "label": "Linux (64-bit)",
+      "file": "kiosk-desktop-0.0.12-linux-x86_64.deb",
+      "sizeBytes": 483190038,
+      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.12/kiosk-desktop-0.0.12-linux-x86_64.deb"
+    },
     {
       "id": "macos-aarch64",
       "os": "macos",
