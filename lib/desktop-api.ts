@@ -140,10 +140,11 @@ export type DesktopSyncPullResult = {
   images: number;
 };
 
-/** Push counts of a finished sync. */
 export type DesktopSyncPushResult = {
   shiftsPushed: number;
   salesPushed: number;
+  suppliesPushed: number;
+  orderConfirmationsPushed: number;
   configured: boolean;
 };
 
@@ -167,6 +168,8 @@ export type DesktopSyncStatus = {
   finishedAt: number;
   itemsDone: number;
   itemsTotal: number;
+  suppliesPulled: number;
+  ordersPulled: number;
   pull: DesktopSyncPullResult | null;
   push: DesktopSyncPushResult | null;
   messagePull: DesktopMessagePullResult | null;

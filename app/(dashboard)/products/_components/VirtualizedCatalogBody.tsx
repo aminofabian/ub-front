@@ -576,6 +576,14 @@ export const VirtualizedCatalogBody = forwardRef<
                               Pack
                             </span>
                           ) : null}
+                          {row.aisleCode?.trim() ? (
+                            <span
+                              className="hidden shrink-0 rounded-none border border-border bg-muted/40 px-0.5 font-mono text-[8px] font-medium uppercase tracking-[0.06em] text-foreground/55 sm:inline-flex"
+                              title={row.aisleName?.trim() || row.aisleCode}
+                            >
+                              {row.aisleCode.trim()}
+                            </span>
+                          ) : null}
                           {isDuplicateName ? (
                             <span className="hidden shrink-0 rounded-none border border-red-500/30 bg-red-500/10 px-0.5 text-[8px] font-medium text-red-800 dark:text-red-300 sm:inline-flex">
                               Dup

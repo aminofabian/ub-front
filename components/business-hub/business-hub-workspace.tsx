@@ -949,16 +949,24 @@ export function BusinessHubWorkspace() {
     } else if (canViewCustomers) {
       links.push({
         href: APP_ROUTES.customers,
-        label: "Credit customers",
-        hint: "Balances and reminders",
+        label: "Customers",
+        hint: "Directory and purchase history",
+        icon: Users,
+      });
+    }
+    if (canViewAnalytics) {
+      links.push({
+        href: APP_ROUTES.customerSegments,
+        label: "Segments",
+        hint: "Shoppers who bought a product",
         icon: Users,
       });
     }
     if (canViewCustomers && canViewSalesIntelligence) {
       links.push({
-        href: APP_ROUTES.customers,
-        label: "Credit customers",
-        hint: "Balances and reminders",
+        href: APP_ROUTES.analyticsCustomers,
+        label: "Shoppers",
+        hint: "Spend and visit ranking",
         icon: Users,
       });
     }

@@ -10,7 +10,7 @@ import {
   DashboardFeedback,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
-import { useSyncBranchFilter } from "@/hooks/use-session-scope";
+import { useSyncBranchFilter, useSessionAisle } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
@@ -81,6 +81,7 @@ function RestockListSkeleton() {
 
 export default function InventoryRestockPage() {
   const { me, business, branches: dashboardBranches } = useDashboard();
+  const { aisleId: headerAisleId } = useSessionAisle();
   const canRead = canViewStockLevels(me, business);
   const canWrite = canEditStockLevels(me, business);
 
@@ -150,6 +151,11 @@ export default function InventoryRestockPage() {
         const res = await fetchItemsPage(undefined, {
           branchId: bid,
           catalogScope: "SKUS_ONLY",
+          aisleUnset: headerAisleId === "__unset__" ? true : undefined,
+          aisleId:
+            headerAisleId && headerAisleId !== "__unset__"
+              ? headerAisleId
+              : undefined,
           page,
           size: PAGE_SIZE,
         });
@@ -187,13 +193,13 @@ export default function InventoryRestockPage() {
     } finally {
       setLoading(false);
     }
-  }, [branchId, isBranchLockedRole]);
+  }, [branchId, headerAisleId, isBranchLockedRole]);
 
   useEffect(() => {
     if (!canRead || !branchId.trim()) return;
     void loadOutOfStock();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canRead, branchId]);
+  }, [canRead, branchId, headerAisleId]);
 
   const setRowField = useCallback(
     (id: string, field: "qty" | "cost", value: string) => {

@@ -72,6 +72,7 @@ export const APP_ROUTES = {
   products: "/products",
   productsCatalog: "/products/catalog",
   itemTypes: "/item-types",
+  aisles: "/aisles",
   categories: "/categories",
   suppliers: "/suppliers",
   /** Cashier-style receive-stock till for one tenant supplier (name slug). */
@@ -106,6 +107,7 @@ export const APP_ROUTES = {
   customers: "/customers",
   customer: (id: string) => `/customers/${encodeURIComponent(id)}`,
   customerPhones: "/customers/phones",
+  customerSegments: "/customers/segments",
   claimTab: "/claim-tab",
   messages: "/messages",
   /** Live support chat with the Kiosk platform team. */
@@ -228,6 +230,7 @@ export const API_ROUTES = {
   roles: "/api/v1/roles",
   items: "/api/v1/items",
   itemTypes: "/api/v1/item-types",
+  aisles: "/api/v1/aisles",
   categories: "/api/v1/categories",
   globalCatalog: "/api/v1/global-catalog",
   publicMarketplace: "/api/v1/public/marketplace",

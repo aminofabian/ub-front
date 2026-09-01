@@ -25,7 +25,7 @@ import {
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
-import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
+import { ALL_DEPARTMENTS_LABEL, ALL_SHELF_ZONES_LABEL, UNASSIGNED_SHELF_ZONE_VALUE } from "@/hooks/use-session-scope";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { shellPageTitle } from "@/lib/shell-page-titles";
 import { cn } from "@/lib/utils";
@@ -143,6 +143,7 @@ type TabletAppHeaderProps = {
   pageTitle?: string;
   branchName?: string | null;
   departmentName?: string | null;
+  shelfZoneName?: string | null;
   userInitial: string;
   /** Optional tools rendered before the notification bell (e.g. Kiosk Pay). */
   headerTools?: ReactNode;
@@ -159,6 +160,7 @@ export function TabletAppHeader({
   pageTitle,
   branchName,
   departmentName,
+  shelfZoneName,
   userInitial,
   headerTools,
   posLinks = [],
@@ -168,7 +170,7 @@ export function TabletAppHeader({
   const title = pageTitle ?? shellPageTitle(pathname);
   const accent = primaryColor?.trim() || "#0f766e";
 
-  const placeLine = [branchName?.trim(), departmentName?.trim()]
+  const placeLine = [branchName?.trim(), departmentName?.trim(), shelfZoneName?.trim()]
     .filter(Boolean)
     .join(" · ");
 
@@ -459,6 +461,11 @@ type TabletMoreSheetProps = {
   itemTypesLoading: boolean;
   onItemTypeChange: (id: string) => void;
   departmentLocked?: boolean;
+  aisles?: { id: string; name: string; code: string }[];
+  aisleId?: string;
+  aislesLoading?: boolean;
+  onAisleChange?: (id: string) => void;
+  showShelfZonePicker?: boolean;
   onLogout: () => void;
   itemIsActive: (pathname: string, href: string) => boolean;
   /** Cashier / stock manager / grocery: flat link list instead of launcher grid. */
@@ -511,6 +518,11 @@ function MoreWorkspaceConsole({
   itemTypesLoading,
   onItemTypeChange,
   departmentLocked = false,
+  aisles = [],
+  aisleId = "",
+  aislesLoading = false,
+  onAisleChange,
+  showShelfZonePicker = false,
 }: {
   accent: string;
   branchName?: string | null;
@@ -525,6 +537,11 @@ function MoreWorkspaceConsole({
   itemTypesLoading: boolean;
   onItemTypeChange: (id: string) => void;
   departmentLocked?: boolean;
+  aisles?: { id: string; name: string; code: string }[];
+  aisleId?: string;
+  aislesLoading?: boolean;
+  onAisleChange?: (id: string) => void;
+  showShelfZonePicker?: boolean;
 }) {
   const selectClass =
     "w-full appearance-none border border-border bg-background px-3 py-2 pr-8 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:opacity-50";
@@ -542,7 +559,7 @@ function MoreWorkspaceConsole({
         <Compass className="size-3" aria-hidden />
         Workspace
       </p>
-      <div className="relative grid gap-2 sm:grid-cols-2">
+      <div className="relative grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         <div>
           <label className="mb-1 block text-[10px] font-semibold text-muted-foreground">
             Branch
@@ -625,6 +642,38 @@ function MoreWorkspaceConsole({
           </select>
           )}
         </div>
+        {showShelfZonePicker && onAisleChange ? (
+          <div className="sm:col-span-2 lg:col-span-1">
+            <label className="mb-1 block text-[10px] font-semibold text-muted-foreground">
+              Shelf zone
+            </label>
+            <select
+              className={selectClass}
+              value={aisleId}
+              onChange={(e) => onAisleChange(e.target.value)}
+              disabled={aislesLoading || aisles.length === 0}
+              aria-label="Select shelf zone"
+            >
+              {aisles.length === 0 ? (
+                <option value="">
+                  {aislesLoading ? "Loading…" : "No shelf zones"}
+                </option>
+              ) : (
+                <>
+                  <option value="">{ALL_SHELF_ZONES_LABEL}</option>
+                  <option value={UNASSIGNED_SHELF_ZONE_VALUE}>
+                    No shelf zone
+                  </option>
+                  {aisles.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({a.code})
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -654,6 +703,11 @@ export function TabletMoreSheet({
   itemTypesLoading,
   onItemTypeChange,
   departmentLocked = false,
+  aisles = [],
+  aisleId = "",
+  aislesLoading = false,
+  onAisleChange,
+  showShelfZonePicker = false,
   onLogout,
   itemIsActive,
   compactNav = false,
@@ -867,6 +921,11 @@ export function TabletMoreSheet({
           itemTypesLoading={itemTypesLoading}
           onItemTypeChange={onItemTypeChange}
           departmentLocked={departmentLocked}
+          aisles={aisles}
+          aisleId={aisleId}
+          aislesLoading={aislesLoading}
+          onAisleChange={onAisleChange}
+          showShelfZonePicker={showShelfZonePicker}
         />
 
         <div className="relative mt-3 shrink-0">

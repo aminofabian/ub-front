@@ -223,6 +223,11 @@ export default function RestockPrepPage() {
             <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
               {item.reasonCode.split("+").map((r) => REASON_LABELS[r] ?? r).join(" · ")}
             </span>
+            {item.aisleCode ? (
+              <span className="rounded-md bg-muted/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                {item.aisleCode}
+              </span>
+            ) : null}
             <span className="rounded-md bg-muted/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               on hand {formatQty(item.onHand)} · par {formatQty(item.par)}
             </span>

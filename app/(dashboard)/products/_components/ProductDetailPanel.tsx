@@ -12,6 +12,7 @@ import {
   GitBranchPlus,
   Layers,
   Loader2,
+  MapPin,
   Package,
   PackagePlus,
   Pencil,
@@ -165,8 +166,12 @@ type Props = {
   onOpenAddVariant?: () => void;
   /** When provided, the panel shows a "Change department" quick action. */
   onOpenChangeItemType?: () => void;
+  /** When provided, the panel shows an "Assign shelf zone" quick action. */
+  onOpenChangeAisle?: () => void;
   /** Human-friendly label of the product's current department (item type). */
   itemTypeLabel?: string;
+  /** Human-friendly label of the product's shelf zone. */
+  aisleLabel?: string;
   isStorefrontFeatured?: boolean;
   canManageFeatured?: boolean;
   featuredBusy?: boolean;
@@ -258,7 +263,9 @@ export function ProductDetailPanel(props: Props) {
     onOpenBaseStock,
     onOpenAddVariant,
     onOpenChangeItemType,
+    onOpenChangeAisle,
     itemTypeLabel,
+    aisleLabel,
     isStorefrontFeatured = false,
     canManageFeatured = false,
     featuredBusy = false,
@@ -764,6 +771,23 @@ export function ProductDetailPanel(props: Props) {
             <Layers className="size-3" aria-hidden />
             <span className="max-w-[7rem] truncate">
               {itemTypeLabel ? itemTypeLabel : "Department"}
+            </span>
+          </button>
+        ) : null}
+        {canCatalogWrite && onOpenChangeAisle ? (
+          <button
+            type="button"
+            className={detailActionBtnPrimaryClass}
+            onClick={onOpenChangeAisle}
+            title={
+              aisleLabel
+                ? `Current shelf zone: ${aisleLabel}`
+                : "Assign shelf zone"
+            }
+          >
+            <MapPin className="size-3" aria-hidden />
+            <span className="max-w-[7rem] truncate">
+              {aisleLabel ? aisleLabel : "Shelf zone"}
             </span>
           </button>
         ) : null}

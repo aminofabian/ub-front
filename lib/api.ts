@@ -813,6 +813,10 @@ export type ItemSummaryRecord = {
    * rename shows on till before every child `name` copy is patched.
    */
   parentName?: string | null;
+  /** Optional shelf zone (aisle) on the product. */
+  aisleId?: string | null;
+  aisleCode?: string | null;
+  aisleName?: string | null;
 };
 
 /** Resolved HTTPS URL for catalog lists / quick sale (prefers {@link ItemSummaryRecord.thumbnailUrl}). */
@@ -850,6 +854,7 @@ export type ItemImageRecord = {
 export type ItemDetailRecord = ItemSummaryRecord & {
   description?: string;
   itemTypeId?: string;
+  aisleId?: string | null;
   categoryId?: string;
   unitType?: string;
   isWeighed?: boolean;
@@ -1476,6 +1481,8 @@ export type CreateItemPayload = {
   pluCode?: string;
   description?: string;
   categoryId?: string;
+  /** Optional shelf zone (aisle). */
+  aisleId?: string;
   brand?: string;
   size?: string;
   unitType?: string;
@@ -1560,6 +1567,8 @@ export type PatchItemPayload = {
   packagingUnitQty?: number | string | null;
   /** Move the SKU to a different department (item type). */
   itemTypeId?: string;
+  /** Optional shelf zone (aisle); empty string clears. */
+  aisleId?: string;
   /** Unit of measure (each, kg, g, lb, …). */
   unitType?: string;
   /** When true, sold by weight with fractional qty at the till. */
@@ -3528,6 +3537,54 @@ export async function deleteItemType(id: string): Promise<void> {
   });
 }
 
+export type AisleRecord = {
+  id: string;
+  name: string;
+  code: string;
+  sortOrder: number;
+  active: boolean;
+  productCount: number;
+};
+
+export type CreateAislePayload = {
+  name: string;
+  code: string;
+  sortOrder?: number;
+};
+
+export async function fetchAisles(): Promise<AisleRecord[]> {
+  return request<AisleRecord[]>(API_ROUTES.aisles);
+}
+
+export async function fetchUnassignedAisleCount(): Promise<number> {
+  const res = await request<{ count: number }>(
+    `${API_ROUTES.aisles}/unassigned-count`,
+  );
+  return res.count ?? 0;
+}
+
+export async function createAisle(
+  body: CreateAislePayload,
+): Promise<AisleRecord> {
+  return request<AisleRecord>(API_ROUTES.aisles, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function updateAisle(
+  id: string,
+  body: Partial<CreateAislePayload> & { active?: boolean },
+): Promise<AisleRecord> {
+  return request<AisleRecord>(
+    `${API_ROUTES.aisles}/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      body,
+    },
+  );
+}
+
 /** Uploads a custom department/type tile image and returns the Cloudinary HTTPS URL. */
 export async function uploadItemTypeIcon(
   itemTypeId: string,
@@ -3837,6 +3894,10 @@ export type FetchItemsOpts = {
   branchId?: string;
   /** When set, only items with this item type are returned. */
   itemTypeId?: string;
+  /** When set, only items in this shelf zone are returned. */
+  aisleId?: string;
+  /** When true, only items with no shelf zone are returned. */
+  aisleUnset?: boolean;
   /** When set, omits items that already have a non-deleted supplier link to this supplier (e.g. supplier catalog picker). */
   excludeLinkedSupplierId?: string;
   /** Spring Data sort tuples, e.g. `[{ property: 'name', direction: 'asc' }]`. */
@@ -3905,6 +3966,11 @@ export async function fetchItemsPage(
   }
   if (opts?.itemTypeId?.trim()) {
     params.set("itemTypeId", opts.itemTypeId.trim());
+  }
+  if (opts?.aisleUnset) {
+    params.set("aisleUnset", "true");
+  } else if (opts?.aisleId?.trim()) {
+    params.set("aisleId", opts.aisleId.trim());
   }
   const exSup = opts?.excludeLinkedSupplierId?.trim();
   if (exSup) {
@@ -3978,6 +4044,11 @@ export async function fetchCatalogListStats(
   }
   if (opts?.itemTypeId?.trim()) {
     params.set("itemTypeId", opts.itemTypeId.trim());
+  }
+  if (opts?.aisleUnset) {
+    params.set("aisleUnset", "true");
+  } else if (opts?.aisleId?.trim()) {
+    params.set("aisleId", opts.aisleId.trim());
   }
   const exSup = opts?.excludeLinkedSupplierId?.trim();
   if (exSup) {
@@ -10675,6 +10746,7 @@ export type OutstandingTabRowRecord = {
 
 export type TabPurchaseLineRecord = {
   itemName: string;
+  itemSku?: string | null;
   quantity: number | string;
   unitPrice: number | string;
   lineTotal: number | string;
@@ -10720,11 +10792,23 @@ export async function fetchCreditsActivitySummary(
   );
 }
 
+export type TabPurchasesPageRecord = {
+  rows: TabPurchaseRowRecord[];
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+};
+
 export async function fetchCustomerTabPurchases(
   customerId: string,
-): Promise<TabPurchaseRowRecord[]> {
-  return request<TabPurchaseRowRecord[]>(
-    `/api/v1/customers/${encodeURIComponent(customerId)}/tab-purchases`,
+  opts?: { offset?: number; limit?: number },
+): Promise<TabPurchasesPageRecord> {
+  const params = new URLSearchParams();
+  if (opts?.offset != null) params.set("offset", String(opts.offset));
+  if (opts?.limit != null) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  return request<TabPurchasesPageRecord>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/tab-purchases${qs ? `?${qs}` : ""}`,
   );
 }
 
@@ -10985,6 +11069,86 @@ export async function createCustomer(
   body: CreateCustomerPayload,
 ): Promise<CustomerRecord> {
   return request<CustomerRecord>("/api/v1/customers", {
+    method: "POST",
+    body,
+  });
+}
+
+export type PatchCustomerPayload = {
+  name?: string;
+  email?: string | null;
+  notes?: string | null;
+  creditLimit?: number | string | null;
+  version?: number;
+  creditAccountVersion?: number;
+};
+
+export async function patchCustomer(
+  customerId: string,
+  body: PatchCustomerPayload,
+): Promise<CustomerRecord> {
+  return request<CustomerRecord>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}`,
+    { method: "PATCH", body },
+  );
+}
+
+export async function addCustomerPhone(
+  customerId: string,
+  body: { phone: string; primary?: boolean },
+): Promise<CustomerRecord> {
+  return request<CustomerRecord>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/phones`,
+    { method: "POST", body },
+  );
+}
+
+export async function setPrimaryCustomerPhone(
+  customerId: string,
+  phoneId: string,
+): Promise<CustomerRecord> {
+  return request<CustomerRecord>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/phones/${encodeURIComponent(phoneId)}/set-primary`,
+    { method: "POST" },
+  );
+}
+
+export type CustomerProductSegmentRow = {
+  customerId: string;
+  customerNo: number | null;
+  name: string;
+  primaryPhone: string | null;
+  purchaseCount: number;
+  spendOnItem: number | string;
+  lastPurchaseAt: string;
+};
+
+export async function fetchCustomersByProduct(params: {
+  itemId: string;
+  from?: string;
+  to?: string;
+  branchId?: string;
+  limit?: number;
+}): Promise<CustomerProductSegmentRow[]> {
+  const qs = new URLSearchParams({ itemId: params.itemId });
+  if (params.from) qs.set("from", params.from);
+  if (params.to) qs.set("to", params.to);
+  if (params.branchId) qs.set("branchId", params.branchId);
+  if (params.limit != null) qs.set("limit", String(params.limit));
+  return request<CustomerProductSegmentRow[]>(
+    `/api/v1/sales/intelligence/customers-by-product?${qs}`,
+  );
+}
+
+export async function bulkSendCustomerSms(body: {
+  customerIds: string[];
+  body: string;
+}): Promise<{
+  sent: number;
+  skipped: number;
+  failures: Array<{ customerId: string; customerName: string; reason: string }>;
+}> {
+  return request("/api/v1/customers/bulk-message", {
     method: "POST",
     body,
   });
@@ -12661,6 +12825,9 @@ export type RestockSuggestionRecord = {
   thumbnailUrl?: string | null;
   itemTypeId: string | null;
   itemTypeName: string | null;
+  aisleId: string | null;
+  aisleCode: string | null;
+  aisleName: string | null;
   supplierId: string | null;
   supplierName: string | null;
   target: "po" | "pad";
@@ -12749,12 +12916,14 @@ export async function fetchRestockRunGroupPdf(
   opts?: {
     departmentId?: string | null;
     supplierId?: string | null;
+    aisleId?: string | null;
     pad?: boolean;
   },
 ): Promise<Blob> {
   const params = new URLSearchParams();
   if (opts?.departmentId?.trim()) params.set("departmentId", opts.departmentId.trim());
   if (opts?.supplierId?.trim()) params.set("supplierId", opts.supplierId.trim());
+  if (opts?.aisleId?.trim()) params.set("aisleId", opts.aisleId.trim());
   if (opts?.pad) params.set("pad", "true");
   const suffix = params.toString();
   return requestBinary(
@@ -12769,6 +12938,9 @@ export type RestockPrepItemRecord = {
   itemSku: string | null;
   itemTypeId: string | null;
   itemTypeName: string | null;
+  aisleId: string | null;
+  aisleCode: string | null;
+  aisleName: string | null;
   target: "po" | "pad";
   onHand: number | string;
   par: number | string;

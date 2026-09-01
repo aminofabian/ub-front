@@ -76,6 +76,7 @@ const CSV_COLUMNS: Record<CsvTemplateKind, string[]> = {
     "is_stocked",
     "is_sellable",
     "category_name",
+    "aisle_code",
     "brand",
     "size",
     "buying_price",

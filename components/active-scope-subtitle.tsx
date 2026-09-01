@@ -2,8 +2,10 @@
 
 import {
   ALL_DEPARTMENTS_LABEL,
+  ALL_SHELF_ZONES_LABEL,
   useSessionBranch,
   useSessionItemType,
+  useSessionAisle,
 } from "@/hooks/use-session-scope";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +20,7 @@ export function ActiveScopeSubtitle({
 }) {
   const { branchName } = useSessionBranch();
   const { itemTypeLabel } = useSessionItemType();
+  const { aisleLabel } = useSessionAisle();
 
   const parts: string[] = [];
   if (branchName) parts.push(branchName);
@@ -27,6 +30,9 @@ export function ActiveScopeSubtitle({
         ? ALL_DEPARTMENTS_LABEL
         : itemTypeLabel,
     );
+  }
+  if (aisleLabel && aisleLabel !== ALL_SHELF_ZONES_LABEL) {
+    parts.push(aisleLabel);
   }
 
   if (parts.length === 0) return null;

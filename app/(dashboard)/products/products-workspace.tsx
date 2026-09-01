@@ -31,6 +31,7 @@ import { VariantCreateDrawer } from "./_components/VariantCreateDrawer";
 import { VariantParentPickDrawer } from "./_components/VariantParentPickDrawer";
 import { AddPackageModal } from "./_components/AddPackageModal";
 import { ChangeItemTypeModal } from "./_components/ChangeItemTypeModal";
+import { ChangeAisleModal } from "./_components/ChangeAisleModal";
 import { BulkStockAdjustModal } from "./_components/BulkStockAdjustModal";
 import { resolveCatalogParentId } from "./_utils";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
@@ -51,6 +52,8 @@ export function ProductsWorkspace() {
     branchId,
     branches,
     itemTypeId: dashboardItemTypeId,
+    aisleId: dashboardAisleId,
+    setAisleId,
   } = useDashboard();
   const canCatalogWrite = hasPermission(
     me?.permissions,
@@ -82,7 +85,7 @@ export function ProductsWorkspace() {
     Permission.CatalogCategoriesWrite,
   );
 
-  const catalog = useCatalogList(branchId, dashboardItemTypeId);
+  const catalog = useCatalogList(branchId, dashboardItemTypeId, dashboardAisleId);
   const detail = useProductDetail(branchId);
   const featured = useStorefrontFeatured(catalog.setMessage);
   const quick = useQuickEdit({
@@ -107,6 +110,10 @@ export function ProductsWorkspace() {
   const [changeItemTypeMode, setChangeItemTypeMode] = useState<
     "single" | "bulk"
   >("single");
+  const [changeAisleOpen, setChangeAisleOpen] = useState(false);
+  const [changeAisleMode, setChangeAisleMode] = useState<"single" | "bulk">(
+    "single",
+  );
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [variantParentPickBusy, setVariantParentPickBusy] = useState(false);
   const [bulkStockOpen, setBulkStockOpen] = useState(false);
@@ -137,7 +144,14 @@ export function ProductsWorkspace() {
     if (searchParams.get("onboarding") === "create-product") {
       setActiveDrawer("create-parent");
     }
-  }, [searchParams]);
+    const aisleId = searchParams.get("aisleId")?.trim();
+    const aisleUnset = searchParams.get("aisleUnset");
+    if (aisleUnset === "1" || aisleUnset === "true") {
+      setAisleId("__unset__");
+    } else if (aisleId) {
+      setAisleId(aisleId);
+    }
+  }, [searchParams, setAisleId]);
 
   useEffect(() => {
     if (searchParams.get("action") === "global-catalog" && canGlobalCatalog) {
@@ -175,6 +189,7 @@ export function ProductsWorkspace() {
     activeDrawer,
     setActiveDrawer,
     itemTypes: catalog.itemTypes,
+    aisles: catalog.aisles,
     dashboardItemTypeId,
     headerBranchId: branchId,
   });
@@ -375,9 +390,19 @@ export function ProductsWorkspace() {
           setChangeItemTypeOpen(true);
         }
       : undefined,
+    onOpenChangeAisle: canCatalogWrite
+      ? () => {
+          setChangeAisleMode("single");
+          setChangeAisleOpen(true);
+        }
+      : undefined,
     onOpenAddVariant: canCatalogWrite ? handleOpenAddVariant : undefined,
     itemTypeLabel:
       catalog.itemTypes.find((t) => t.id === D?.itemTypeId)?.label?.trim() ||
+      undefined,
+    aisleLabel:
+      catalog.aisles.find((a) => a.id === D?.aisleId)?.name?.trim() ||
+      D?.aisleName?.trim() ||
       undefined,
     isStorefrontFeatured: D?.id
       ? featured.isFeatured(D.id)
@@ -546,6 +571,7 @@ export function ProductsWorkspace() {
                 canInventoryWrite={canInventoryWrite}
                 bulkDeleteBusy={m.bulkDeleteBusy}
                 bulkChangeDepartmentBusy={m.changeItemTypeBusy}
+                bulkChangeAisleBusy={m.changeAisleBusy}
                 bulkActivateBusy={m.bulkActivateBusy}
                 onBulkDelete={m.onBulkDeleteSelected}
                 onBulkActivate={
@@ -559,6 +585,14 @@ export function ProductsWorkspace() {
                     ? () => {
                         setChangeItemTypeMode("bulk");
                         setChangeItemTypeOpen(true);
+                      }
+                    : undefined
+                }
+                onBulkChangeAisle={
+                  canCatalogWrite
+                    ? () => {
+                        setChangeAisleMode("bulk");
+                        setChangeAisleOpen(true);
                       }
                     : undefined
                 }
@@ -659,6 +693,8 @@ export function ProductsWorkspace() {
         onOpenPhotos={() => setActiveDrawer("photos")}
         canCreateCategory={canCreateCategory}
         upsertCategory={catalog.upsertCategory}
+        aisles={catalog.aisles}
+        upsertAisle={catalog.upsertAisle}
       />
 
       <ProductPhotosDrawer
@@ -744,6 +780,27 @@ export function ProductsWorkspace() {
             changeItemTypeMode === "bulk"
               ? m.onBulkChangeItemType(nextId)
               : m.onChangeItemType(nextId)
+          }
+        />
+      ) : null}
+
+      {changeAisleOpen && (changeAisleMode === "bulk" || D) ? (
+        <ChangeAisleModal
+          open={changeAisleOpen}
+          onOpenChange={setChangeAisleOpen}
+          productName={D?.name?.trim() || "Product"}
+          aisles={catalog.aisles}
+          currentAisleId={
+            changeAisleMode === "bulk" ? null : (D?.aisleId ?? null)
+          }
+          selectionCount={
+            changeAisleMode === "bulk" ? catalog.rowSelection.size : undefined
+          }
+          busy={m.changeAisleBusy}
+          onSave={(nextId) =>
+            changeAisleMode === "bulk"
+              ? m.onBulkChangeAisle(nextId)
+              : m.onChangeAisle(nextId)
           }
         />
       ) : null}

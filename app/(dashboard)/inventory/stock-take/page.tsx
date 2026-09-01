@@ -41,6 +41,7 @@ import {
   fetchActiveStockTakeSession,
   fetchBranches,
   fetchCategories,
+  fetchAisles,
   fetchItemTypes,
   fetchItemsPage,
   fetchStockTakeSessions,
@@ -50,6 +51,7 @@ import {
   postStockTakeStart,
   recordItemScan,
   type BranchRecord,
+  type AisleRecord,
   type CategoryRecord,
   type ItemSummaryRecord,
   type StockTakeSessionRecord,
@@ -206,6 +208,7 @@ export default function StockTakePage() {
     [],
   );
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
+  const [shelfZones, setShelfZones] = useState<AisleRecord[]>([]);
 
   // ── Admin: pending sessions to review
   const [pendingSessions, setPendingSessions] = useState<
@@ -236,6 +239,12 @@ export default function StockTakePage() {
     fetchCategories()
       .then((cats) => {
         if (!cancelled) setCategories(cats);
+      })
+      .catch(() => {});
+
+    fetchAisles()
+      .then((zones) => {
+        if (!cancelled) setShelfZones(zones);
       })
       .catch(() => {});
 
@@ -297,7 +306,15 @@ export default function StockTakePage() {
         canSeeSystemStock ? item : { ...item, stockQty: undefined },
       );
       setCountQty(formatCountedQty(line));
-      setCountAisle(line?.aisle ?? "");
+      const zoneById = item.aisleId
+        ? shelfZones.find((z) => z.id === item.aisleId)
+        : undefined;
+      setCountAisle(
+        line?.aisle?.trim() ||
+          item.aisleName?.trim() ||
+          zoneById?.name?.trim() ||
+          "",
+      );
 
       const scanned = lastScannedBarcode.current?.trim();
       const itemBarcode = item.barcode?.trim();
@@ -317,7 +334,7 @@ export default function StockTakePage() {
         });
       }
     },
-    [session, canSeeSystemStock],
+    [session, canSeeSystemStock, shelfZones],
   );
 
   // ── Search (debounced)
@@ -1125,6 +1142,7 @@ export default function StockTakePage() {
             item={countItem}
             qty={countQty}
             aisle={countAisle}
+            shelfZones={shelfZones}
             loading={loading}
             confirmed={
               getLineStatus(checklistLines, countItem.id) === "confirmed"
@@ -1314,13 +1332,26 @@ export default function StockTakePage() {
                     </select>
                   </label>
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-sm font-medium">Aisle</span>
-                    <input
+                    <span className="text-sm font-medium">Shelf zone</span>
+                    <select
                       className="rounded-md border bg-background px-3 py-2 text-sm"
-                      placeholder="e.g. Aisle 3"
                       value={createAisle}
                       onChange={(e) => setCreateAisle(e.target.value)}
-                    />
+                    >
+                      <option value="">No shelf zone</option>
+                      {[...shelfZones]
+                        .filter((z) => z.active)
+                        .sort(
+                          (a, b) =>
+                            a.sortOrder - b.sortOrder ||
+                            a.name.localeCompare(b.name),
+                        )
+                        .map((z) => (
+                          <option key={z.id} value={z.name}>
+                            {z.code} · {z.name}
+                          </option>
+                        ))}
+                    </select>
                   </label>
                 </div>
                 <label className="flex flex-col gap-1.5">
@@ -1400,6 +1431,7 @@ function CountModal({
   item,
   qty,
   aisle,
+  shelfZones,
   loading,
   confirmed,
   canSeeSystemStock,
@@ -1411,6 +1443,7 @@ function CountModal({
   item: ItemSummaryRecord;
   qty: string;
   aisle: string;
+  shelfZones: AisleRecord[];
   loading: boolean;
   confirmed: boolean;
   canSeeSystemStock: boolean;
@@ -1419,6 +1452,16 @@ function CountModal({
   onSubmit: () => void;
   onClose: () => void;
 }) {
+  const zoneOptions = useMemo(
+    () =>
+      [...shelfZones]
+        .filter((z) => z.active)
+        .sort(
+          (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+        ),
+    [shelfZones],
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-t-xl sm:rounded-xl bg-background shadow-2xl">
@@ -1458,13 +1501,19 @@ function CountModal({
             {/* Body */}
             <div className="space-y-4 px-5 py-4">
               <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">Aisle</span>
-                <input
-                  className="rounded-md border bg-background px-3 py-2 text-sm"
-                  placeholder="e.g. Aisle 3"
+                <span className="text-sm font-medium">Shelf zone</span>
+                <select
+                  className={dashboardSelectClass()}
                   value={aisle}
                   onChange={(e) => onAisleChange(e.target.value)}
-                />
+                >
+                  <option value="">No shelf zone</option>
+                  {zoneOptions.map((z) => (
+                    <option key={z.id} value={z.name}>
+                      {z.code} · {z.name}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium">Count</span>

@@ -47,6 +47,7 @@ import {
 } from "./SearchableSelect";
 import { useInlineCategoryCreate } from "../_hooks/useInlineCategoryCreate";
 import { useInlineItemTypeCreate } from "../_hooks/useInlineItemTypeCreate";
+import { useInlineAisleCreate } from "../_hooks/useInlineAisleCreate";
 import {
   productFormHintClass,
   productFormInputClass,
@@ -60,7 +61,12 @@ type Props = {
   banner?: FormDrawerProps["banner"];
   catalog: Pick<
     CatalogListApi,
-    "itemTypes" | "sortedCategories" | "upsertCategory" | "upsertItemType"
+    | "itemTypes"
+    | "sortedCategories"
+    | "aisles"
+    | "upsertCategory"
+    | "upsertItemType"
+    | "upsertAisle"
   >;
   canCreateCategory?: boolean;
   m: Pick<
@@ -263,6 +269,7 @@ export function ProductCreateModal({
   const fileRef = useRef<HTMLInputElement>(null);
   const categorySelectRef = useRef<SearchableSelectHandle>(null);
   const departmentSelectRef = useRef<SearchableSelectHandle>(null);
+  const aisleSelectRef = useRef<SearchableSelectHandle>(null);
   const isGroup = m.parentDraft.productStructure === "group";
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [keepOpen, setKeepOpen] = useState(false);
@@ -276,6 +283,7 @@ export function ProductCreateModal({
   const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(null);
   const categoryCreate = useInlineCategoryCreate(catalog.upsertCategory);
   const departmentCreate = useInlineItemTypeCreate(catalog.upsertItemType);
+  const aisleCreate = useInlineAisleCreate(catalog.upsertAisle);
 
   useEffect(() => {
     if (!open) return;
@@ -290,7 +298,8 @@ export function ProductCreateModal({
     setLinkedGlobalLabel(null);
     categoryCreate.clearError();
     departmentCreate.clearError();
-  }, [open, categoryCreate.clearError, departmentCreate.clearError]);
+    aisleCreate.clearError();
+  }, [open, aisleCreate.clearError, categoryCreate.clearError, departmentCreate.clearError]);
 
   const setFamilyMode = useCallback(
     (next: boolean) => {
@@ -442,6 +451,17 @@ export function ProductCreateModal({
     [catalog.itemTypes],
   );
 
+  const aisleOptions = useMemo(
+    () =>
+      catalog.aisles
+        .filter((a) => a.active)
+        .map((a) => ({
+          value: a.id,
+          label: `${a.name} (${a.code})`,
+        })),
+    [catalog.aisles],
+  );
+
   const handleCreateCategory = useCallback(
     async (name: string) => {
       const created = await categoryCreate.create(name);
@@ -456,6 +476,14 @@ export function ProductCreateModal({
       m.setParentDraft((p) => ({ ...p, itemTypeId: created.id }));
     },
     [departmentCreate.create, m],
+  );
+
+  const handleCreateAisle = useCallback(
+    async (name: string) => {
+      const created = await aisleCreate.create(name);
+      m.setParentDraft((p) => ({ ...p, aisleId: created.id }));
+    },
+    [aisleCreate.create, m],
   );
 
   const handleGenerated = useCallback(
@@ -964,6 +992,47 @@ export function ProductCreateModal({
                         }
                         createBusy={categoryCreate.busy}
                         createError={categoryCreate.error}
+                      />
+                    </div>
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className={labelClass}>Shelf zone</span>
+                        {canCreateCategory ? (
+                          <button
+                            type="button"
+                            disabled={m.parentCreateBusy || aisleCreate.busy}
+                            onClick={() => {
+                              setMoreOpen(true);
+                              aisleSelectRef.current?.openForCreate();
+                            }}
+                            aria-label="New shelf zone"
+                            className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)] transition-colors hover:text-[var(--catalog-ink,#15231f)] disabled:opacity-50"
+                          >
+                            <Plus className="size-3" aria-hidden />
+                            New
+                          </button>
+                        ) : null}
+                      </div>
+                      <SearchableSelect
+                        ref={aisleSelectRef}
+                        className={cn(productFormInputClass, "h-10 rounded-lg")}
+                        value={m.parentDraft.aisleId}
+                        onChange={(aisleId) =>
+                          m.setParentDraft((p) => ({ ...p, aisleId }))
+                        }
+                        options={aisleOptions}
+                        noneLabel="None"
+                        placeholder={
+                          canCreateCategory ? "Find or create…" : "Type to find…"
+                        }
+                        disabled={m.parentCreateBusy}
+                        aria-label="Shelf zone"
+                        onCreate={
+                          canCreateCategory ? handleCreateAisle : undefined
+                        }
+                        createBusy={aisleCreate.busy}
+                        createError={aisleCreate.error}
+                        createNoun="shelf zone"
                       />
                     </div>
                   </div>

@@ -13,6 +13,7 @@ import {
   ScanLine,
   ShoppingCart,
   Truck,
+  UserRound,
   Users,
   Warehouse,
   Package,
@@ -1185,6 +1186,27 @@ export function BusinessSettingsForm({
                 icon={<Users className="size-4 text-muted-foreground" />}
                 title="Allow cashiers to search customers by name"
                 description="On Tab checkout, Find accepts a customer name as well as a phone number. Leave off to keep phone-only lookup."
+              />
+            </FormDrawerFields>
+          </SettingsAnchor>
+
+          <SettingsAnchor id="settings-checkout">
+            <FormDrawerFields
+              compact
+              legend="Checkout"
+              hint="Optional customer capture on cash and M-Pesa sales."
+            >
+              <ToggleRow
+                checked={inventory.captureCustomerForCashAndMpesa}
+                onChange={(checked) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    captureCustomerForCashAndMpesa: checked,
+                  }))
+                }
+                icon={<UserRound className="size-4 text-muted-foreground" />}
+                title="Capture customer at checkout"
+                description="Show an optional add/select customer step on cash and M-Pesa sales so purchases build customer history. Off until a shop turns it on."
               />
             </FormDrawerFields>
           </SettingsAnchor>

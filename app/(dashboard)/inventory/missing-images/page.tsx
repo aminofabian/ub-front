@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
-import { useSessionItemType } from "@/hooks/use-session-scope";
+import { useSessionItemType, useSessionAisle } from "@/hooks/use-session-scope";
 import {
   DashboardLoading,
   DashboardFeedback,
@@ -352,6 +352,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
 export default function InventoryMissingImagesPage() {
   const { setBranchId: setHeaderBranchId } = useDashboard();
   const { itemTypeId: headerItemTypeId } = useSessionItemType();
+  const { aisleId: headerAisleId } = useSessionAisle();
 
   // Data
   const [branches, setBranches] = useState<BranchRecord[]>([]);
@@ -408,6 +409,11 @@ export default function InventoryMissingImagesPage() {
             branchId: branchId || undefined,
             itemTypeId: itemTypeId || undefined,
             categoryId: categoryId || undefined,
+            aisleUnset: headerAisleId === "__unset__" ? true : undefined,
+            aisleId:
+              headerAisleId && headerAisleId !== "__unset__"
+                ? headerAisleId
+                : undefined,
             sort: [{ property: "name", direction: "asc" }],
           },
         );
@@ -441,7 +447,7 @@ export default function InventoryMissingImagesPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, branchId, itemTypeId, categoryId]);
+  }, [query, branchId, itemTypeId, categoryId, headerAisleId]);
 
   useEffect(() => {
     load();
@@ -604,7 +610,7 @@ export default function InventoryMissingImagesPage() {
             <div className="text-center">
               <p className="text-sm font-semibold text-foreground/80">All products have images</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {query || branchId || itemTypeId || categoryId
+                {query || branchId || itemTypeId || categoryId || headerAisleId
                   ? "No matching items found without images. Try adjusting your filters."
                   : "Every product in the catalog has a photo. Great job! ✨"}
               </p>

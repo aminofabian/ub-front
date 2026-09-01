@@ -284,6 +284,18 @@ export default function DesktopSettingsPage() {
               status.push && status.push.shiftsPushed > 0
                 ? `Uploaded ${status.push.salesPushed} sale(s) from ${status.push.shiftsPushed} shift(s).`
                 : "No pending sales to upload.";
+            const suppliesPart =
+              status.push && status.push.suppliesPushed > 0
+                ? ` ${status.push.suppliesPushed} supply receipt(s) sent to your online shop.`
+                : "";
+            const confirmationsPart =
+              status.push && status.push.orderConfirmationsPushed > 0
+                ? ` ${status.push.orderConfirmationsPushed} order confirmation(s) sent — customers notified.`
+                : "";
+            const pulledPart =
+              status.suppliesPulled > 0 || status.ordersPulled > 0
+                ? ` ${status.suppliesPulled} supply receipt(s) and ${status.ordersPulled} web order(s) downloaded.`
+                : "";
             const inbox =
               status.messagePull &&
               (status.messagePull.messages > 0 || status.messagePull.replies > 0)
@@ -292,7 +304,7 @@ export default function DesktopSettingsPage() {
                   ? `${status.messagePush.repliesPushed} queued reply(ies) sent.`
                   : "No new inbox messages.";
             toast.success(
-              `Synced — ${pull.items} item(s), ${pull.categories} categor(ies), ${pull.staff} staff, ${pull.images} image(s) refreshed. ${pushed} ${inbox}`,
+              `Synced — ${pull.items} item(s), ${pull.categories} categor(ies), ${pull.staff} staff, ${pull.images} image(s) refreshed.${pulledPart} ${pushed}${suppliesPart}${confirmationsPart} ${inbox}`,
             );
           }
           return false;
@@ -421,8 +433,18 @@ export default function DesktopSettingsPage() {
                   {syncStatus.pull.categories} categor(ies),{" "}
                   {syncStatus.pull.taxRates} tax rate(s),{" "}
                   {syncStatus.pull.staff} staff, {syncStatus.pull.images}{" "}
-                  image(s) refreshed · {syncStatus.push?.salesPushed ?? 0} sale(s){" "}
-                  uploaded · {syncStatus.messagePull?.messages ?? 0} message(s),{" "}
+                  image(s) refreshed
+                  {syncStatus.suppliesPulled || syncStatus.ordersPulled
+                    ? ` · ${syncStatus.suppliesPulled} supply receipt(s), ${syncStatus.ordersPulled} web order(s) downloaded`
+                    : ""}{" "}
+                  · {syncStatus.push?.salesPushed ?? 0} sale(s) uploaded
+                  {syncStatus.push?.suppliesPushed
+                    ? ` · ${syncStatus.push.suppliesPushed} supply receipt(s) sent`
+                    : ""}
+                  {syncStatus.push?.orderConfirmationsPushed
+                    ? ` · ${syncStatus.push.orderConfirmationsPushed} order confirmation(s) sent`
+                    : ""}{" "}
+                  · {syncStatus.messagePull?.messages ?? 0} message(s),{" "}
                   {syncStatus.messagePull?.replies ?? 0} reply(ies) mirrored
                   {syncStatus.messagePush?.repliesPushed
                     ? ` · ${syncStatus.messagePush.repliesPushed} queued reply(ies) sent`

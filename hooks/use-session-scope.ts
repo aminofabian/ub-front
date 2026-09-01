@@ -5,10 +5,16 @@ import { useEffect, useMemo, useRef } from "react";
 import { useDashboard } from "@/components/dashboard-provider";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import { resolveSyncBranchFilter } from "@/lib/sync-branch-filter";
-import type { BranchRecord, ItemTypeRecord } from "@/lib/api";
+import type { AisleRecord, BranchRecord, ItemTypeRecord } from "@/lib/api";
 
 /** Label shown when the header department is cleared (all departments). */
 export const ALL_DEPARTMENTS_LABEL = "All departments";
+
+/** Label shown when the header shelf zone is cleared (all zones). */
+export const ALL_SHELF_ZONES_LABEL = "All zones";
+
+/** Header value meaning “products with no shelf zone”. */
+export const UNASSIGNED_SHELF_ZONE_VALUE = "__unset__";
 
 /**
  * Global branch scope, sourced from the app header (`DashboardProvider`).
@@ -60,6 +66,29 @@ export function useSessionItemType(): SessionItemTypeScope {
     return itemTypes.find((t) => t.id === itemTypeId)?.label?.trim() ?? "";
   }, [itemTypes, itemTypeId]);
   return { itemTypeId, setItemTypeId, itemTypeLabel, itemTypes };
+}
+
+/**
+ * Global shelf zone scope, sourced from the app header.
+ */
+export type SessionAisleScope = {
+  aisleId: string;
+  setAisleId: (id: string) => void;
+  aisleLabel: string;
+  aisles: AisleRecord[];
+  aislesLoading: boolean;
+};
+
+export function useSessionAisle(): SessionAisleScope {
+  const { aisleId, setAisleId, aisles, aislesLoading } = useDashboard();
+  const aisleLabel = useMemo(() => {
+    if (!aisleId?.trim()) return ALL_SHELF_ZONES_LABEL;
+    if (aisleId === UNASSIGNED_SHELF_ZONE_VALUE) return "No shelf zone";
+    const zone = aisles.find((a) => a.id === aisleId);
+    if (!zone) return "";
+    return `${zone.name} (${zone.code})`;
+  }, [aisles, aisleId]);
+  return { aisleId, setAisleId, aisleLabel, aisles, aislesLoading };
 }
 
 type SyncBranchFilterOptions = {

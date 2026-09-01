@@ -20,6 +20,7 @@ import {
   Store,
   Tags,
   Truck,
+  Users,
   Wallet,
   Warehouse,
   type LucideIcon,
@@ -49,7 +50,11 @@ import { NotificationBell } from "@/components/notification-bell";
 import { useSupportUnread } from "@/hooks/use-support-unread";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
-import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
+import {
+  ALL_DEPARTMENTS_LABEL,
+  ALL_SHELF_ZONES_LABEL,
+  UNASSIGNED_SHELF_ZONE_VALUE,
+} from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import { groceryClerkStockAccessEnabled, stockManagerActivityEnabled, stockManagerStockPageEnabled } from "@/lib/inventory-access";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
@@ -205,6 +210,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: APP_ROUTES.products, label: "Add products" },
       { href: APP_ROUTES.itemTypes, label: "Departments" },
+      { href: APP_ROUTES.aisles, label: "Shelf zones" },
       { href: APP_ROUTES.categories, label: "Categories" },
     ],
   },
@@ -357,6 +363,20 @@ const NAV_SECTIONS: readonly NavSection[] = [
     ],
   },
   {
+    id: "customers",
+    title: "Customers",
+    shortLabel: "Customers",
+    blurb: "People who shop with you, history, and segments",
+    icon: Users,
+    entryHref: APP_ROUTES.customers,
+    items: [
+      { href: APP_ROUTES.customers, label: "All customers" },
+      { href: APP_ROUTES.customerSegments, label: "Segments" },
+      { href: APP_ROUTES.analyticsCustomers, label: "Shoppers" },
+      { href: APP_ROUTES.customerPhones, label: "Phone numbers" },
+    ],
+  },
+  {
     id: "credits",
     title: "On credit",
     shortLabel: "Credit",
@@ -365,8 +385,6 @@ const NAV_SECTIONS: readonly NavSection[] = [
     entryHref: APP_ROUTES.creditsOnTab,
     items: [
       { href: APP_ROUTES.creditsOnTab, label: "On tab" },
-      { href: APP_ROUTES.customers, label: "People on credit" },
-      { href: APP_ROUTES.customerPhones, label: "Phone numbers" },
       { href: APP_ROUTES.creditsPaymentClaims, label: "They say they paid" },
     ],
   },
@@ -398,11 +416,6 @@ const NAV_SECTIONS: readonly NavSection[] = [
       {
         href: APP_ROUTES.analyticsActivity,
         label: "Who did what",
-        group: "Reports",
-      },
-      {
-        href: APP_ROUTES.analyticsCustomers,
-        label: "Shoppers",
         group: "Reports",
       },
       {
@@ -631,6 +644,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewSalesIntelligence || gate.canViewCustomers;
   if (item.href === APP_ROUTES.customers) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.customerPhones) return gate.canViewCustomers;
+  if (item.href === APP_ROUTES.customerSegments) return gate.canViewAnalytics;
   if (item.href === APP_ROUTES.messages) return gate.canViewMessages;
   if (item.href === APP_ROUTES.businessLogs)
     return gate.canViewAuditLog;
@@ -878,6 +892,10 @@ export function AppShell({ children }: AppShellProps) {
     itemTypeId,
     setItemTypeId,
     itemTypesLoading,
+    aisles,
+    aisleId,
+    setAisleId,
+    aislesLoading,
   } = useDashboard();
 
   const isOwner = me?.role?.key === "owner";
@@ -1258,6 +1276,17 @@ export function AppShell({ children }: AppShellProps) {
   // ── current selections for header display ─────────────────────────────────
   const currentBranch = branches.find((b) => b.id === branchId);
   const currentItemType = itemTypes.find((t) => t.id === itemTypeId);
+  const activeAisles = useMemo(
+    () =>
+      [...aisles]
+        .filter((a) => a.active)
+        .sort(
+          (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+        ),
+    [aisles],
+  );
+  const showShelfZonePicker =
+    canViewCategories && (aislesLoading || activeAisles.length > 0);
   const departmentLocked = isGroceryClerk && itemTypes.length === 1;
 
   // ── Auto-redirect restricted roles away from unauthorized pages ──────────
@@ -1493,6 +1522,34 @@ export function AppShell({ children }: AppShellProps) {
             </select>
             )}
 
+            {showShelfZonePicker ? (
+              <select
+                className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                value={aisleId}
+                onChange={(e) => setAisleId(e.target.value)}
+                disabled={aislesLoading || activeAisles.length === 0}
+                aria-label="Select shelf zone"
+              >
+                {activeAisles.length === 0 ? (
+                  <option value="">
+                    {aislesLoading ? "Loading…" : "No shelf zones"}
+                  </option>
+                ) : (
+                  <>
+                    <option value="">{ALL_SHELF_ZONES_LABEL}</option>
+                    <option value={UNASSIGNED_SHELF_ZONE_VALUE}>
+                      No shelf zone
+                    </option>
+                    {activeAisles.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} ({a.code})
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+            ) : null}
+
             <Button variant="outline" onClick={onLogout}>
               Log out
             </Button>
@@ -1508,6 +1565,13 @@ export function AppShell({ children }: AppShellProps) {
             primaryColor={business?.branding?.primaryColor}
             branchName={currentBranch?.name}
             departmentName={currentItemType?.label ?? ALL_DEPARTMENTS_LABEL}
+            shelfZoneName={
+              aisleId === UNASSIGNED_SHELF_ZONE_VALUE
+                ? "No shelf zone"
+                : aisleId
+                  ? activeAisles.find((a) => a.id === aisleId)?.name
+                  : undefined
+            }
             userInitial={userInitial}
             headerTools={
               <>
@@ -1593,6 +1657,11 @@ export function AppShell({ children }: AppShellProps) {
             itemTypesLoading={itemTypesLoading}
             onItemTypeChange={setItemTypeId}
             departmentLocked={departmentLocked}
+            aisles={activeAisles}
+            aisleId={aisleId}
+            aislesLoading={aislesLoading}
+            onAisleChange={setAisleId}
+            showShelfZonePicker={showShelfZonePicker}
             onLogout={onLogout}
             itemIsActive={itemIsActive}
             compactNav={isStockManager || isCashier || isButcherCashier || isGroceryClerk}

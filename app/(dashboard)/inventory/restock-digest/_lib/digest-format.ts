@@ -1,6 +1,7 @@
 import type { RestockSuggestionRecord } from "@/lib/api";
 
 export const UNCATEGORISED_KEY = "uncategorised";
+export const UNASSIGNED_AISLE_KEY = "__unset__";
 
 export const REASON_LABELS: Record<string, string> = {
   BELOW_MIN: "Below min",
@@ -64,6 +65,22 @@ export function deptKey(s: RestockSuggestionRecord): string {
 
 export function deptName(s: RestockSuggestionRecord): string {
   return s.itemTypeName?.trim() || "Uncategorised";
+}
+
+export function aisleKey(s: RestockSuggestionRecord): string {
+  return s.aisleId?.trim() || UNASSIGNED_AISLE_KEY;
+}
+
+export function aisleName(s: RestockSuggestionRecord): string {
+  return s.aisleName?.trim() || s.aisleCode?.trim() || "No shelf zone";
+}
+
+export function matchesAisleFilter(
+  filter: string | null,
+  s: RestockSuggestionRecord,
+): boolean {
+  if (!filter) return true;
+  return aisleKey(s) === filter;
 }
 
 export function lineValue(

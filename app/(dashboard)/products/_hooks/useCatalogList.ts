@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ApiRequestError,
+  fetchAisles,
   fetchCatalogListStats,
   fetchCategories,
   fetchItemsPage,
   fetchItemTypes,
+  type AisleRecord,
   type CatalogListScope,
   type CatalogRowType,
   type CategoryRecord,
@@ -45,9 +47,11 @@ function catalogRowTypesForApi(
 export function useCatalogList(
   catalogBranchId?: string | null,
   catalogItemTypeId?: string | null,
+  catalogAisleId?: string | null,
 ) {
   const branchIdForStock = catalogBranchId?.trim() || undefined;
   const itemTypeIdForList = catalogItemTypeId?.trim() || undefined;
+  const aisleIdForList = catalogAisleId?.trim() || "";
   const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [listRows, setListRows] = useState<ItemSummaryRecord[]>([]);
@@ -68,6 +72,7 @@ export function useCatalogList(
   const [filterNoPrice, setFilterNoPrice] = useState(false);
   const [filterZeroStock, setFilterZeroStock] = useState(false);
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [aisles, setAisles] = useState<AisleRecord[]>([]);
 
   const [rowSelection, setRowSelection] = useState<Set<string>>(() => new Set());
   const [variantIdsByParentId, setVariantIdsByParentId] = useState<
@@ -134,6 +139,11 @@ export function useCatalogList(
       // Typed search should find the product even if it was created under a
       // different department than the header scope (common for POS quick-create).
       itemTypeId: debouncedSearch.trim() ? undefined : itemTypeIdForList,
+      aisleUnset: aisleIdForList === "__unset__" ? true : undefined,
+      aisleId:
+        aisleIdForList && aisleIdForList !== "__unset__"
+          ? aisleIdForList
+          : undefined,
     }),
     [
       filterCategoryId,
@@ -143,6 +153,7 @@ export function useCatalogList(
       branchIdForStock,
       itemTypeIdForList,
       debouncedSearch,
+      aisleIdForList,
     ],
   );
 
@@ -187,9 +198,24 @@ export function useCatalogList(
   }, [categories]);
 
   const loadCategoriesAndTypes = useCallback(async () => {
-    const [types, cats] = await Promise.all([fetchItemTypes(), fetchCategories()]);
+    const [types, cats, zoneList] = await Promise.all([
+      fetchItemTypes(),
+      fetchCategories(),
+      fetchAisles(),
+    ]);
     setItemTypes(types);
     setCategories(cats);
+    setAisles(zoneList);
+  }, []);
+
+  const upsertAisle = useCallback((aisle: AisleRecord) => {
+    setAisles((prev) => {
+      const i = prev.findIndex((a) => a.id === aisle.id);
+      if (i < 0) return [...prev, aisle];
+      const next = [...prev];
+      next[i] = aisle;
+      return next;
+    });
   }, []);
 
   const upsertCategory = useCallback((category: CategoryRecord) => {
@@ -481,7 +507,7 @@ export function useCatalogList(
   );
 
   return {
-    itemTypes, categories, sortedCategories, categoryById,
+    itemTypes, categories, aisles, sortedCategories, categoryById,
     listRows: catalogRows,
     displayRows: catalogRows,
     listRowsRaw: listRows,
@@ -507,7 +533,7 @@ export function useCatalogList(
     filterLowStock, setFilterLowStock,
     rowSelection, setRowSelection, onToggleRowSelect, variantIdsByParent,
     message, setMessage,
-    loadCategoriesAndTypes, upsertCategory, upsertItemType, refreshFullCatalog, syncListRowFromDetail, loadMoreCatalog, jumpToLetter, resetFilters,
+    loadCategoriesAndTypes, upsertCategory, upsertItemType, upsertAisle, refreshFullCatalog, syncListRowFromDetail, loadMoreCatalog, jumpToLetter, resetFilters,
   };
 }
 

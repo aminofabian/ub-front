@@ -21,6 +21,7 @@ import {
   postSellingPrice,
   postStockIncrease,
   uploadItemImageToCloudinary,
+  type AisleRecord,
   type BranchRecord,
   type ItemDetailRecord,
   type ItemSummaryRecord,
@@ -85,6 +86,7 @@ type Dependencies = {
   activeDrawer: ProductDrawerId | null;
   setActiveDrawer: (d: ProductDrawerId | null) => void;
   itemTypes: ItemTypeRecord[];
+  aisles: AisleRecord[];
   dashboardItemTypeId: string;
   headerBranchId: string;
 };
@@ -114,6 +116,7 @@ export function useProductMutations(d: Dependencies) {
     activeDrawer,
     setActiveDrawer,
     itemTypes,
+    aisles,
     dashboardItemTypeId,
     headerBranchId,
   } = d;
@@ -153,6 +156,7 @@ export function useProductMutations(d: Dependencies) {
   const [quickSavingVariant, setQuickSavingVariant] = useState(false);
   const [packageCreateBusy, setPackageCreateBusy] = useState(false);
   const [changeItemTypeBusy, setChangeItemTypeBusy] = useState(false);
+  const [changeAisleBusy, setChangeAisleBusy] = useState(false);
 
   const defaultBranchId = useMemo(
     () => headerBranchId.trim() || branches[0]?.id?.trim() || "",
@@ -407,6 +411,9 @@ export function useProductMutations(d: Dependencies) {
               ...(parentDraft.categoryId.trim()
                 ? { categoryId: parentDraft.categoryId.trim() }
                 : {}),
+              ...(parentDraft.aisleId.trim()
+                ? { aisleId: parentDraft.aisleId.trim() }
+                : {}),
               ...(parentDraft.brand.trim()
                 ? { brand: parentDraft.brand.trim() }
                 : {}),
@@ -431,6 +438,9 @@ export function useProductMutations(d: Dependencies) {
                 : {}),
               ...(parentDraft.categoryId.trim()
                 ? { categoryId: parentDraft.categoryId.trim() }
+                : {}),
+              ...(parentDraft.aisleId.trim()
+                ? { aisleId: parentDraft.aisleId.trim() }
                 : {}),
               ...(parentDraft.brand.trim()
                 ? { brand: parentDraft.brand.trim() }
@@ -582,6 +592,9 @@ export function useProductMutations(d: Dependencies) {
                 : {}),
               ...(parentDraft.itemTypeId.trim()
                 ? { itemTypeId: parentDraft.itemTypeId.trim() }
+                : {}),
+              ...(parentDraft.aisleId.trim()
+                ? { aisleId: parentDraft.aisleId.trim() }
                 : {}),
               isWeighed: parentDraft.isWeighed,
               isSellable: parentDraft.isSellable,
@@ -783,6 +796,7 @@ export function useProductMutations(d: Dependencies) {
         webPublished: patchDraft.webPublished ?? true,
         imageKey: patchDraft.imageKey,
         categoryId: patchDraft.categoryId.trim(),
+        aisleId: patchDraft.aisleId.trim(),
       };
       if (detail?.variantOfItemId?.trim()) {
         const vn = patchDraft.variantName?.trim() ?? "";
@@ -1672,6 +1686,118 @@ export function useProductMutations(d: Dependencies) {
     ],
   );
 
+  const onChangeAisle = useCallback(
+    async (nextAisleId: string): Promise<boolean> => {
+      if (!selectedId) {
+        setMessage("Select a product first.");
+        return false;
+      }
+      if (!canCatalogWrite) {
+        setMessage("You do not have permission to edit products.");
+        return false;
+      }
+      const aid = nextAisleId.trim();
+      const current = detail?.aisleId?.trim() || "";
+      if (aid === current) return true;
+
+      setChangeAisleBusy(true);
+      setMessage("");
+      try {
+        await patchItem(selectedId, { aisleId: aid || "" });
+        const updated = await refreshSelectedDetail();
+        if (updated) syncListRowFromDetail(updated);
+        await refreshFullCatalog();
+        const label = aid
+          ? aisles.find((a) => a.id === aid)?.name || "shelf zone"
+          : "no shelf zone";
+        setMessage(aid ? `Assigned to ${label}.` : "Shelf zone cleared.");
+        return true;
+      } catch (err) {
+        setMessage(formatMutationError(err, "Could not update shelf zone."));
+        return false;
+      } finally {
+        setChangeAisleBusy(false);
+      }
+    },
+    [
+      selectedId,
+      canCatalogWrite,
+      detail?.aisleId,
+      aisles,
+      refreshSelectedDetail,
+      syncListRowFromDetail,
+      refreshFullCatalog,
+      setMessage,
+    ],
+  );
+
+  const onBulkChangeAisle = useCallback(
+    async (nextAisleId: string): Promise<boolean> => {
+      if (rowSelection.size === 0) {
+        setMessage("Select products first.");
+        return false;
+      }
+      if (!canCatalogWrite) {
+        setMessage("You do not have permission to edit products.");
+        return false;
+      }
+      const aid = nextAisleId.trim();
+      if (aid) {
+        const known = aisles.find((a) => a.id === aid);
+        if (!known) {
+          setMessage("Selected shelf zone no longer exists.");
+          return false;
+        }
+      }
+
+      const ids = [...rowSelection];
+      const byId = new Map(listRows.map((r) => [r.id, r]));
+      setChangeAisleBusy(true);
+      setMessage("");
+      const failed: string[] = [];
+      try {
+        for (const id of ids) {
+          try {
+            await patchItem(id, { aisleId: aid || "" });
+          } catch {
+            failed.push(byId.get(id)?.name ?? id);
+          }
+        }
+        await refreshFullCatalog();
+        if (selectedId && rowSelection.has(selectedId)) {
+          await refreshSelectedDetail();
+        }
+        setRowSelection(new Set());
+        const zoneLabel = aid
+          ? aisles.find((a) => a.id === aid)?.name || "shelf zone"
+          : "no shelf zone";
+        if (failed.length === 0) {
+          setMessage(
+            `Updated shelf zone for ${ids.length} item${ids.length === 1 ? "" : "s"}${
+              aid ? ` (${zoneLabel})` : ""
+            }.`,
+          );
+          return true;
+        }
+        setMessage(`Partial success. Failed: ${failed.join(", ")}`);
+        return failed.length < ids.length;
+      } finally {
+        setChangeAisleBusy(false);
+      }
+    },
+    [
+      rowSelection,
+      canCatalogWrite,
+      aisles,
+      listRows,
+      refreshFullCatalog,
+      selectedId,
+      refreshSelectedDetail,
+      setRowSelection,
+      setMessage,
+    ],
+  );
+
   return {
     suppliersForLink,
     suppliersLoading,
@@ -1720,6 +1846,9 @@ export function useProductMutations(d: Dependencies) {
     onChangeItemType,
     onBulkChangeItemType,
     changeItemTypeBusy,
+    onChangeAisle,
+    onBulkChangeAisle,
+    changeAisleBusy,
     onToggleWeighed,
     weighedBusy,
   };

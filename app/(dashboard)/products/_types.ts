@@ -27,6 +27,7 @@ export type ProductEditDraft = {
   reorderQtyStr: string;
   imageKey: string;
   categoryId: string;
+  aisleId: string;
   /** Option / variant label (PATCH only for variant SKUs). */
   variantName: string;
   packageVariant: boolean;
@@ -46,6 +47,7 @@ export const EMPTY_EDIT_DRAFT: ProductEditDraft = {
   active: true,
   webPublished: true,
   categoryId: "",
+  aisleId: "",
   variantName: "",
   packageVariant: false,
   packagingUnitName: "",
@@ -62,6 +64,7 @@ export type ParentDraft = {
   pluCode: string;
   itemTypeId: string;
   categoryId: string;
+  aisleId: string;
   brand: string;
   size: string;
   description: string;
@@ -111,6 +114,7 @@ export const EMPTY_PARENT: ParentDraft = {
   pluCode: "",
   itemTypeId: "",
   categoryId: "",
+  aisleId: "",
   brand: "",
   size: "",
   description: "",

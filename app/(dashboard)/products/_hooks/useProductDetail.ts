@@ -64,6 +64,7 @@ export function useProductDetail(branchIdForPricing?: string | null) {
       reorderQtyStr: numStr(row.reorderQty),
       imageKey: row.imageKey ?? "",
       categoryId: row.categoryId ?? "",
+      aisleId: row.aisleId ?? "",
       variantName: row.variantName ?? "",
     }),
     [],

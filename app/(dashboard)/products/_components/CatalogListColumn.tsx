@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Layers, Loader2, Power, Trash2, Warehouse, X } from "lucide-react";
+import { Layers, Loader2, MapPin, Power, Trash2, Warehouse, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,9 +29,11 @@ type Props = {
   canInventoryWrite: boolean;
   bulkDeleteBusy: boolean;
   bulkChangeDepartmentBusy?: boolean;
+  bulkChangeAisleBusy?: boolean;
   bulkActivateBusy?: boolean;
   onBulkDelete: () => void | Promise<void>;
   onBulkChangeDepartment?: () => void;
+  onBulkChangeAisle?: () => void;
   onBulkActivate?: () => void;
   onBulkAdjustStock?: () => void;
   onAddFromCatalog?: () => void;
@@ -58,9 +60,11 @@ export function CatalogListColumn({
   canInventoryWrite,
   bulkDeleteBusy,
   bulkChangeDepartmentBusy = false,
+  bulkChangeAisleBusy = false,
   bulkActivateBusy = false,
   onBulkDelete,
   onBulkChangeDepartment,
+  onBulkChangeAisle,
   onBulkActivate,
   onBulkAdjustStock,
   onAddFromCatalog,
@@ -70,7 +74,11 @@ export function CatalogListColumn({
 }: Props) {
   const selectionCount = catalog.rowSelection.size;
   const hasSelection = selectionCount > 0;
-  const selectionBusy = bulkDeleteBusy || bulkChangeDepartmentBusy || bulkActivateBusy;
+  const selectionBusy =
+    bulkDeleteBusy ||
+    bulkChangeDepartmentBusy ||
+    bulkChangeAisleBusy ||
+    bulkActivateBusy;
   const listBodyRef = useRef<VirtualizedCatalogBodyHandle>(null);
   const pendingScrollIndexRef = useRef<number | null>(null);
   const [activeLetter, setActiveLetter] = useState<CatalogLetterKey | null>(
@@ -203,6 +211,24 @@ export function CatalogListColumn({
                 )}
                 <span className="sm:hidden">Department</span>
                 <span className="hidden sm:inline">Change department</span>
+              </Button>
+            ) : null}
+            {canCatalogWrite && onBulkChangeAisle ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1 border px-2 text-xs"
+                disabled={selectionBusy}
+                onClick={onBulkChangeAisle}
+              >
+                {bulkChangeAisleBusy ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <MapPin className="size-3.5" aria-hidden />
+                )}
+                <span className="sm:hidden">Zone</span>
+                <span className="hidden sm:inline">Shelf zone</span>
               </Button>
             ) : null}
             {canCatalogWrite ? (

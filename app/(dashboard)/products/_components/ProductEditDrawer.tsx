@@ -22,7 +22,7 @@ import {
   type FormDrawerProps,
 } from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
-import { postStockIncrease, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
+import { postStockIncrease, type AisleRecord, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
 
 import type { ProductDetailApi } from "../_hooks/useProductDetail";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
@@ -36,6 +36,7 @@ import { ProductFormField } from "./ProductFormField";
 import { SearchableSelect } from "./SearchableSelect";
 import { categorySelectOptions } from "./category-select-options";
 import { useInlineCategoryCreate } from "../_hooks/useInlineCategoryCreate";
+import { useInlineAisleCreate } from "../_hooks/useInlineAisleCreate";
 import { ProductDescriptionField } from "./ProductDescriptionField";
 import { resolveGeneratedCatalogIds } from "@/lib/resolve-generated-catalog";
 import { ProductFormSectionToggle } from "./ProductFormSectionToggle";
@@ -54,6 +55,7 @@ import {
 type Cat = { id: string; name: string; active: boolean; parentId?: string | null };
 
 const NOOP_UPSERT_CATEGORY = (_category: CategoryRecord) => {};
+const NOOP_UPSERT_AISLE = (_aisle: AisleRecord) => {};
 
 type SectionKey =
   | "basics"
@@ -79,6 +81,8 @@ export function ProductEditDrawer({
   dockRoot = null,
   canCreateCategory = false,
   upsertCategory,
+  aisles = [],
+  upsertAisle,
 }: {
   open: boolean;
   onClose: () => void;
@@ -108,6 +112,8 @@ export function ProductEditDrawer({
   dockRoot?: HTMLElement | null;
   canCreateCategory?: boolean;
   upsertCategory?: (category: CategoryRecord) => void;
+  aisles?: AisleRecord[];
+  upsertAisle?: (aisle: AisleRecord) => void;
 }) {
   const d = detail.detail;
   const dr = detail.patchDraft;
@@ -160,13 +166,29 @@ export function ProductEditDrawer({
   }, [d, dr.name]);
 
   const categoryOptions = useMemo(() => categorySelectOptions(cats), [cats]);
+  const aisleOptions = useMemo(
+    () =>
+      aisles
+        .filter((a) => a.active)
+        .map((a) => ({
+          value: a.id,
+          label: `${a.name} (${a.code})`,
+        })),
+    [aisles],
+  );
   const categoryCreate = useInlineCategoryCreate(
     upsertCategory ?? NOOP_UPSERT_CATEGORY,
   );
+  const aisleCreate = useInlineAisleCreate(upsertAisle ?? NOOP_UPSERT_AISLE);
 
   const handleCreateCategory = async (name: string) => {
     const created = await categoryCreate.create(name);
     detail.setPatchDraft((p) => ({ ...p, categoryId: created.id }));
+  };
+
+  const handleCreateAisle = async (name: string) => {
+    const created = await aisleCreate.create(name);
+    detail.setPatchDraft((p) => ({ ...p, aisleId: created.id }));
   };
 
   const handleGenerated = async (
@@ -444,6 +466,29 @@ export function ProductEditDrawer({
                   }
                   createBusy={categoryCreate.busy}
                   createError={categoryCreate.error}
+                />
+              </ProductFormField>
+              <ProductFormField label="Shelf zone">
+                <SearchableSelect
+                  className={productFormSelectClass}
+                  value={dr.aisleId}
+                  onChange={(aisleId) =>
+                    detail.setPatchDraft((p) => ({ ...p, aisleId }))
+                  }
+                  options={aisleOptions}
+                  noneLabel="None"
+                  placeholder={
+                    canCreateCategory ? "Find or create…" : "Type to find…"
+                  }
+                  aria-label="Shelf zone"
+                  onCreate={
+                    canCreateCategory && upsertAisle
+                      ? handleCreateAisle
+                      : undefined
+                  }
+                  createBusy={aisleCreate.busy}
+                  createError={aisleCreate.error}
+                  createNoun="shelf zone"
                 />
               </ProductFormField>
               <ProductDescriptionField

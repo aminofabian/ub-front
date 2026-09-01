@@ -11,10 +11,12 @@ import {
 } from "react";
 
 import {
+  fetchAisles,
   fetchBranches,
   fetchBusiness,
   fetchItemTypes,
   fetchMe,
+  type AisleRecord,
   type BranchRecord,
   type BusinessRecord,
   type ItemTypeRecord,
@@ -36,6 +38,7 @@ import { toast } from "sonner";
 
 const SELECTED_BRANCH_PREFIX = "palmart:selectedBranch:v1:";
 const SELECTED_ITEM_TYPE_PREFIX = "palmart:selectedItemType:v1:";
+const SELECTED_AISLE_PREFIX = "palmart:selectedAisle:v1:";
 
 function selectedBranchKey(businessId: string | undefined | null): string {
   return `${SELECTED_BRANCH_PREFIX}${businessId?.trim() || "default"}`;
@@ -80,6 +83,33 @@ function writePersistedItemType(
   }
 }
 
+function selectedAisleKey(businessId: string | undefined | null): string {
+  return `${SELECTED_AISLE_PREFIX}${businessId?.trim() || "default"}`;
+}
+
+function readPersistedAisle(
+  businessId: string | undefined | null,
+): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(selectedAisleKey(businessId));
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedAisle(
+  businessId: string | undefined | null,
+  aisleId: string,
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(selectedAisleKey(businessId), aisleId);
+  } catch {
+    /* ignore */
+  }
+}
+
 function writePersistedBranch(
   businessId: string | undefined | null,
   branchId: string,
@@ -115,7 +145,12 @@ type DashboardContextValue = {
   setItemTypeId: (id: string) => void;
   itemTypesLoading: boolean;
   refreshItemTypes: () => Promise<void>;
-  /** True once branch + department have finished their first load/seed for this business. */
+  aisles: AisleRecord[];
+  aisleId: string;
+  setAisleId: (id: string) => void;
+  aislesLoading: boolean;
+  refreshAisles: () => Promise<void>;
+  /** True once branch + department + shelf zone have finished their first load/seed for this business. */
   headerScopeReady: boolean;
   canListUsers: boolean;
   canViewCategories: boolean;
@@ -183,12 +218,18 @@ export function DashboardProvider({
   const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
   const [itemTypeId, setItemTypeIdState] = useState("");
   const [itemTypesLoading, setItemTypesLoading] = useState(true);
+  const [aisles, setAisles] = useState<AisleRecord[]>([]);
+  const [aisleId, setAisleIdState] = useState("");
+  const [aislesLoading, setAislesLoading] = useState(true);
   const [branchSeeded, setBranchSeeded] = useState(false);
   const [itemTypeSeeded, setItemTypeSeeded] = useState(false);
+  const [aisleSeeded, setAisleSeeded] = useState(false);
   const userTouchedBranchRef = useRef(false);
   const userTouchedItemTypeRef = useRef(false);
+  const userTouchedAisleRef = useRef(false);
   const staleBranchNoticeShownRef = useRef(false);
   const staleItemTypeNoticeShownRef = useRef(false);
+  const staleAisleNoticeShownRef = useRef(false);
   /** Guards against double-fetch when bootstrap seeds state then triggers a re-run. */
   const sessionFetchedRef = useRef(false);
 
@@ -273,6 +314,24 @@ export function DashboardProvider({
     }
   }, [isGroceryClerk, assignedItemTypeIds]);
 
+  const canViewCatalogItems = hasPermission(
+    effectiveMe?.permissions,
+    Permission.CatalogItemsRead,
+  );
+
+  const refreshAisles = useCallback(async () => {
+    setAislesLoading(true);
+    setAisleSeeded(false);
+    try {
+      const list = await fetchAisles();
+      setAisles(list);
+    } catch {
+      setAisles([]);
+    } finally {
+      setAislesLoading(false);
+    }
+  }, []);
+
   // ── Stock managers, cashiers and grocery clerks are locked to their assigned branch ─────
   const branchLockedRole = isBranchLockedRole(roleKey);
 
@@ -305,6 +364,20 @@ export function DashboardProvider({
       });
     },
     [effectiveBusiness?.id, itemTypeId],
+  );
+
+  const setAisleId = useCallback(
+    (id: string) => {
+      const next = id === "__unset__" ? id : id.trim();
+      const current = aisleId === "__unset__" ? aisleId : aisleId.trim();
+      if (next === current) return;
+      confirmScopeChange("shelf-zone", () => {
+        userTouchedAisleRef.current = true;
+        setAisleIdState(next);
+        writePersistedAisle(effectiveBusiness?.id ?? null, next);
+      });
+    },
+    [effectiveBusiness?.id, aisleId],
   );
 
   useEffect(() => {
@@ -351,7 +424,14 @@ export function DashboardProvider({
 
     void refreshBranches();
     void refreshItemTypes();
-  }, [effectiveMe, refreshBranches, refreshItemTypes]);
+    if (canViewCatalogItems) {
+      void refreshAisles();
+    } else {
+      setAisles([]);
+      setAislesLoading(false);
+      setAisleSeeded(true);
+    }
+  }, [effectiveMe, refreshBranches, refreshItemTypes, refreshAisles, canViewCatalogItems]);
 
   // ── seed branchId ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -512,11 +592,68 @@ export function DashboardProvider({
     isGroceryClerk,
   ]);
 
+  // ── seed aisleId ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (aislesLoading) return;
+
+    const activeAisles = aisles.filter((a) => a.active);
+    const aisleIsValid = (id: string) =>
+      id === "__unset__" || aisles.some((a) => a.id === id);
+
+    if (activeAisles.length === 0) {
+      if (aisleId !== "") setAisleIdState("");
+      setAisleSeeded(true);
+      return;
+    }
+
+    if (userTouchedAisleRef.current) {
+      if (!aisleId || aisleIsValid(aisleId)) {
+        setAisleSeeded(true);
+        return;
+      }
+    }
+
+    const persisted = readPersistedAisle(effectiveBusiness?.id ?? null);
+    const currentInvalid =
+      Boolean(aisleId?.trim()) && !aisleIsValid(aisleId);
+    const persistedInvalid =
+      persisted !== null &&
+      persisted !== "" &&
+      !aisleIsValid(persisted);
+
+    if (persisted !== null) {
+      if (persisted === "" || aisleIsValid(persisted)) {
+        if (persisted !== aisleId) setAisleIdState(persisted);
+        setAisleSeeded(true);
+        return;
+      }
+    }
+
+    if (currentInvalid || persistedInvalid) {
+      if (!staleAisleNoticeShownRef.current) {
+        staleAisleNoticeShownRef.current = true;
+        toast.info("Shelf zone selection updated", {
+          description: "Your previous shelf zone is no longer available. Showing all zones.",
+        });
+      }
+      writePersistedAisle(effectiveBusiness?.id ?? null, "");
+      if (aisleId !== "") setAisleIdState("");
+    }
+    setAisleSeeded(true);
+  }, [
+    aislesLoading,
+    aisles,
+    effectiveBusiness?.id,
+    aisleId,
+  ]);
+
   const headerScopeReady =
     branchSeeded &&
     itemTypeSeeded &&
+    aisleSeeded &&
     !branchesLoading &&
-    !itemTypesLoading;
+    !itemTypesLoading &&
+    !aislesLoading;
 
   const value = useMemo<DashboardContextValue>(
     () => ({
@@ -535,6 +672,11 @@ export function DashboardProvider({
       setItemTypeId,
       itemTypesLoading,
       refreshItemTypes,
+      aisles,
+      aisleId,
+      setAisleId,
+      aislesLoading,
+      refreshAisles,
       headerScopeReady,
       canListUsers: hasPermission(
         effectiveMe?.permissions,
@@ -715,6 +857,11 @@ export function DashboardProvider({
       setItemTypeId,
       itemTypesLoading,
       refreshItemTypes,
+      aisles,
+      aisleId,
+      setAisleId,
+      aislesLoading,
+      refreshAisles,
       headerScopeReady,
       canQuickSale,
       canAccessGrocery,

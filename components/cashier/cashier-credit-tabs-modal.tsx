@@ -133,7 +133,7 @@ export function CashierCreditTabsModal({
   const loadPurchases = useCallback(async (customerId: string) => {
     setPurchasesLoading(true);
     try {
-      setPurchases(await fetchCustomerTabPurchases(customerId));
+      setPurchases((await fetchCustomerTabPurchases(customerId)).rows);
     } catch (error) {
       setPurchases([]);
       toast.error(

@@ -19,6 +19,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
+  UNASSIGNED_SHELF_ZONE_VALUE,
+  useSessionAisle,
+} from "@/hooks/use-session-scope";
+import {
   fetchRestockRun,
   fetchRestockRunGroupPdf,
   postRestockRunAccept,
@@ -36,9 +40,12 @@ import {
   formatDate,
   formatMoney,
   formatQty,
+  matchesAisleFilter,
   slug,
+  UNASSIGNED_AISLE_KEY,
 } from "../_lib/digest-format";
 import { buildDepartments } from "../_lib/group-departments";
+import { buildShelfZoneFilters } from "../_lib/group-shelf-zones";
 import {
   buildSupplierRail,
   firstPendingRailKey,
@@ -51,6 +58,7 @@ export default function RestockDigestReviewPage() {
   const runId = params?.runId ?? "";
   const router = useRouter();
   const { me } = useDashboard();
+  const { aisleId: headerAisleId } = useSessionAisle();
 
   const canRead =
     hasPermission(me?.permissions, Permission.PurchasingPathARead) ||
@@ -66,6 +74,7 @@ export default function RestockDigestReviewPage() {
   const [qty, setQty] = useState<Record<string, string>>({});
   const [createdPos, setCreatedPos] = useState<RestockCreatedPoRecord[]>([]);
   const [deptFilter, setDeptFilter] = useState<string | null>(null);
+  const [aisleFilter, setAisleFilter] = useState<string | null>(null);
   const [supplierKey, setSupplierKey] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -98,9 +107,30 @@ export default function RestockDigestReviewPage() {
     void load();
   }, [load]);
 
-  const departments = useMemo(
-    () => buildDepartments(run?.suggestions ?? []),
+  useEffect(() => {
+    if (!headerAisleId) {
+      setAisleFilter(null);
+      return;
+    }
+    setAisleFilter(
+      headerAisleId === UNASSIGNED_SHELF_ZONE_VALUE
+        ? UNASSIGNED_AISLE_KEY
+        : headerAisleId,
+    );
+  }, [headerAisleId]);
+
+  const shelfZones = useMemo(
+    () => buildShelfZoneFilters(run?.suggestions ?? []),
     [run],
+  );
+  const aisleFilteredSuggestions = useMemo(
+    () =>
+      (run?.suggestions ?? []).filter((s) => matchesAisleFilter(aisleFilter, s)),
+    [run, aisleFilter],
+  );
+  const departments = useMemo(
+    () => buildDepartments(aisleFilteredSuggestions),
+    [aisleFilteredSuggestions],
   );
   const visibleDepartments = useMemo(
     () => (deptFilter ? departments.filter((d) => d.id === deptFilter) : departments),
@@ -136,6 +166,9 @@ export default function RestockDigestReviewPage() {
       run.status === "partially_accepted");
   const activeDept = deptFilter
     ? departments.find((d) => d.id === deptFilter)
+    : undefined;
+  const activeAisle = aisleFilter
+    ? shelfZones.find((z) => z.id === aisleFilter)
     : undefined;
 
   const overridesFor = useCallback(
@@ -244,6 +277,7 @@ export default function RestockDigestReviewPage() {
     filename: string;
     departmentId?: string;
     supplierId?: string;
+    aisleId?: string;
     pad?: boolean;
   }) {
     setPdfBusy(opts.key);
@@ -253,6 +287,7 @@ export default function RestockDigestReviewPage() {
         await fetchRestockRunGroupPdf(runId, {
           departmentId: opts.departmentId,
           supplierId: opts.supplierId,
+          aisleId: opts.aisleId,
           pad: opts.pad,
         }),
         opts.filename,
@@ -279,7 +314,12 @@ export default function RestockDigestReviewPage() {
   const currency = run?.currency ?? "KES";
   const dateLabel = run ? formatDate(run.runDate) : "";
   const pdfDate = run?.runDate ?? "list";
-  const filterPdfName = activeDept ? slug(activeDept.name) : "all";
+  const filterPdfName = activeDept
+    ? slug(activeDept.name)
+    : activeAisle
+      ? slug(activeAisle.name)
+      : "all";
+  const pdfAisleId = aisleFilter ?? undefined;
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_85%,transparent)] dark:bg-background">
@@ -301,7 +341,9 @@ export default function RestockDigestReviewPage() {
             </h1>
             <p className="truncate text-[12px] tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_58%,transparent)]">
               {run
-                ? `${run.branchName} · ${dateLabel} · ${run.lineCount} items · ${formatMoney(run.estTotal, currency)}`
+                ? `${run.branchName} · ${dateLabel} · ${
+                    aisleFilter ? aisleFilteredSuggestions.length : run.lineCount
+                  } items · ${formatMoney(run.estTotal, currency)}`
                 : "Loading…"}
             </p>
           </div>
@@ -319,6 +361,7 @@ export default function RestockDigestReviewPage() {
                     key: "filter",
                     filename: `restock-${pdfDate}-${filterPdfName}.pdf`,
                     departmentId: activeDept?.id,
+                    aisleId: pdfAisleId,
                   })
                 }
               >
@@ -404,6 +447,50 @@ export default function RestockDigestReviewPage() {
             ))}
           </nav>
         ) : null}
+        {shelfZones.length > 1 ? (
+          <nav
+            className="flex gap-0 overflow-x-auto border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]"
+            aria-label="Shelf zones"
+          >
+            <button
+              type="button"
+              aria-pressed={aisleFilter == null}
+              className={cn(
+                "shrink-0 border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-3.5 py-2 text-[12px] font-semibold",
+                aisleFilter == null
+                  ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                  : "bg-transparent text-muted-foreground hover:bg-background/70 hover:text-foreground",
+              )}
+              onClick={() => {
+                setAisleFilter(null);
+                setSupplierKey(null);
+              }}
+            >
+              All zones
+              <span className="ml-1.5 tabular-nums opacity-70">{run?.lineCount ?? 0}</span>
+            </button>
+            {shelfZones.map((z) => (
+              <button
+                key={z.id}
+                type="button"
+                aria-pressed={aisleFilter === z.id}
+                className={cn(
+                  "shrink-0 border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-3.5 py-2 text-[12px] font-medium",
+                  aisleFilter === z.id
+                    ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                    : "bg-transparent text-muted-foreground hover:bg-background/70 hover:text-foreground",
+                )}
+                onClick={() => {
+                  setAisleFilter(z.id === aisleFilter ? null : z.id);
+                  setSupplierKey(null);
+                }}
+              >
+                {z.name}
+                <span className="ml-1.5 tabular-nums opacity-70">{z.count}</span>
+              </button>
+            ))}
+          </nav>
+        ) : null}
       </header>
 
       {feedback ? (
@@ -478,6 +565,7 @@ export default function RestockDigestReviewPage() {
           onSelect={setSupplierKey}
           departmentId={activeDept?.id}
           departmentName={activeDept?.name}
+          aisleId={pdfAisleId}
           currency={currency}
           pdfDate={pdfDate}
           branchName={run.branchName}

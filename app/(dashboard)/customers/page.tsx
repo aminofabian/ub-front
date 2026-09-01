@@ -4,11 +4,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
+  Filter,
   MessageCircle,
+  MessageSquare,
   Phone,
   Plus,
   Receipt,
   Search,
+  TrendingUp,
   Users,
 } from "lucide-react";
 
@@ -27,6 +30,7 @@ import { useFormatMoney } from "@/hooks/use-format-money";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { CreditSaleReminderSettings } from "@/components/credits/credit-sale-reminder-settings";
+import { CustomerBulkSmsDrawer } from "@/components/credits/customer-bulk-sms-drawer";
 import {
   LoyaltyCardLink,
   LoyaltyCardPreview,
@@ -64,6 +68,7 @@ export default function CustomersPage() {
     canManageCustomers,
     canManageCreditSettings,
     canReviewPaymentClaims,
+    canViewAnalytics,
   } = useDashboard();
   const { formatMoneyCompact: formatKes } = useFormatMoney();
   const [rows, setRows] = useState<CustomerRecord[]>([]);
@@ -89,6 +94,8 @@ export default function CustomersPage() {
   } | null>(null);
   const [cardCustomer, setCardCustomer] =
     useState<LoyaltyCardCustomerInput | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [smsOpen, setSmsOpen] = useState(false);
 
   const dateRange = useMemo(() => {
     if (datePreset === "all") return null;
@@ -124,6 +131,7 @@ export default function CustomersPage() {
         });
         if (!cancelled) {
           setRows(data);
+          setSelectedIds(new Set());
         }
       } catch (error) {
         if (!cancelled) {
@@ -162,6 +170,23 @@ export default function CustomersPage() {
       rows.reduce((sum, row) => sum + Number(row.credit.balanceOwed ?? 0), 0),
     [rows],
   );
+
+  const toggleRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllVisible = () => {
+    if (selectedIds.size === visibleRows.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(visibleRows.map((row) => row.id)));
+    }
+  };
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,6 +233,22 @@ export default function CustomersPage() {
   }
 
   const quickLinks = [
+    ...(canViewAnalytics
+      ? [
+          {
+            href: APP_ROUTES.customerSegments,
+            label: "Segments",
+            desc: "By product",
+            icon: Filter,
+          },
+          {
+            href: APP_ROUTES.analyticsCustomers,
+            label: "Shoppers",
+            desc: "Spend ranking",
+            icon: TrendingUp,
+          },
+        ]
+      : []),
     {
       href: APP_ROUTES.creditsOnTab,
       label: "On tab",
@@ -238,9 +279,9 @@ export default function CustomersPage() {
         <DashboardPageHero
           compact
           icon={Users}
-          eyebrow="Credit & tabs"
-          title="Customers"
-          description="Directory, balances, and reminders."
+          eyebrow="Customers"
+          title="All customers"
+          description="Directory, balances, purchase history, and reminders."
         />
         {quickLinks.length > 0 ? (
           <DashboardQuickLinks compact links={quickLinks} />
@@ -350,6 +391,19 @@ export default function CustomersPage() {
                 <Button
                   type="button"
                   size="sm"
+                  variant="outline"
+                  disabled={selectedIds.size === 0}
+                  onClick={() => setSmsOpen(true)}
+                >
+                  <MessageSquare className="size-3.5" aria-hidden />
+                  Message ({selectedIds.size})
+                </Button>
+              ) : null}
+
+              {canManageCustomers ? (
+                <Button
+                  type="button"
+                  size="sm"
                   variant={showCreate ? "secondary" : "default"}
                   onClick={() => setShowCreate((v) => !v)}
                 >
@@ -420,6 +474,19 @@ export default function CustomersPage() {
           <table className="w-full min-w-[32rem] text-left text-sm">
             <thead className="border-b border-border/60 bg-muted/15">
               <tr>
+                {canManageCustomers ? (
+                  <th className="px-4 py-2.5 sm:px-5">
+                    <input
+                      type="checkbox"
+                      checked={
+                        visibleRows.length > 0 &&
+                        selectedIds.size === visibleRows.length
+                      }
+                      onChange={toggleAllVisible}
+                      aria-label="Select all visible customers"
+                    />
+                  </th>
+                ) : null}
                 <th className="px-4 py-2.5 font-medium text-muted-foreground sm:px-5">
                   #
                 </th>
@@ -462,6 +529,16 @@ export default function CustomersPage() {
                     key={row.id}
                     className="border-b border-border/40 last:border-0 hover:bg-muted/20"
                   >
+                    {canManageCustomers ? (
+                      <td className="px-4 py-2.5 sm:px-5">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(row.id)}
+                          onChange={() => toggleRow(row.id)}
+                          aria-label={`Select ${row.name}`}
+                        />
+                      </td>
+                    ) : null}
                     <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-muted-foreground sm:px-5">
                       {row.customerNo != null ? `C-${row.customerNo}` : "—"}
                     </td>
@@ -541,6 +618,14 @@ export default function CustomersPage() {
         onOpenChange={(next) => {
           if (!next) setCardCustomer(null);
         }}
+      />
+
+      <CustomerBulkSmsDrawer
+        open={smsOpen}
+        onOpenChange={setSmsOpen}
+        customerIds={Array.from(selectedIds)}
+        recipientLabel={`${selectedIds.size} selected`}
+        onSent={(text, kind = "success") => setMessage({ kind, text })}
       />
     </div>
   );

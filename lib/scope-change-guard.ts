@@ -5,7 +5,7 @@
 
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 
-export type ScopeChangeKind = "branch" | "department";
+export type ScopeChangeKind = "branch" | "department" | "shelf-zone";
 
 type ScopeGuard = {
   id: string;
@@ -35,7 +35,12 @@ export function confirmScopeChange(
     onConfirm();
     return;
   }
-  const label = kind === "branch" ? "branch" : "department";
+  const label =
+    kind === "branch"
+      ? "branch"
+      : kind === "department"
+        ? "department"
+        : "shelf zone";
   const detail = activeGuards.map((g) => `• ${g.message}`).join("\n");
   showThemedConfirmToast({
     id: `scope-change-${kind}`,

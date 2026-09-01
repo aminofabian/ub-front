@@ -52,6 +52,7 @@ export type PdfOpts = {
   filename: string;
   departmentId?: string;
   supplierId?: string;
+  aisleId?: string;
   pad?: boolean;
 };
 
@@ -198,6 +199,7 @@ export function DigestBoard({
   onSelect,
   departmentId,
   departmentName,
+  aisleId,
   currency,
   pdfDate,
   branchName,
@@ -218,6 +220,7 @@ export function DigestBoard({
   onSelect: (key: string) => void;
   departmentId?: string;
   departmentName?: string;
+  aisleId?: string;
   currency: string;
   pdfDate: string;
   branchName: string;
@@ -249,6 +252,7 @@ export function DigestBoard({
           item={selected}
           departmentId={departmentId}
           departmentName={departmentName}
+          aisleId={aisleId}
           currency={currency}
           pdfDate={pdfDate}
           branchName={branchName}
@@ -341,6 +345,7 @@ function SupplierStall({
   item,
   departmentId,
   departmentName,
+  aisleId,
   currency,
   pdfDate,
   branchName,
@@ -359,6 +364,7 @@ function SupplierStall({
   item: SupplierRailItem;
   departmentId?: string;
   departmentName?: string;
+  aisleId?: string;
   currency: string;
   pdfDate: string;
   branchName: string;
@@ -493,6 +499,7 @@ function SupplierStall({
       key: pdfKey,
       filename: `restock-${pdfDate}-${nameSlug}.pdf`,
       departmentId,
+      aisleId,
       supplierId:
         item.kind === "po" && item.supplierId !== "unassigned"
           ? (item.supplierId ?? undefined)

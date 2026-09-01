@@ -22,6 +22,8 @@ import {
   type CustomerRecord,
 } from "@/lib/api";
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
+import { CustomerEditCard } from "@/components/credits/customer-edit-card";
+import { CustomerPurchasesSection } from "@/components/credits/customer-purchases-section";
 import { LoyaltyCardPreview } from "@/components/credits/loyalty-card-preview";
 import { RevealCustomerPhoneCard } from "@/components/credits/reveal-customer-phone-card";
 import { TabPaymentActions } from "@/components/credits/tab-payment-actions";
@@ -141,7 +143,7 @@ export default function CustomerDetailPage() {
         <Button asChild variant="ghost" size="sm" className="-ml-2">
           <Link href={APP_ROUTES.customers}>
             <ArrowLeft className="mr-1.5 size-4" />
-            All credit customers
+            All customers
           </Link>
         </Button>
       </div>
@@ -149,7 +151,7 @@ export default function CustomerDetailPage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <DashboardPageHero
           icon={Users}
-          eyebrow="Credit account"
+          eyebrow="Customer"
           title={
             customer?.name?.trim()
               ? `${customer.customerNo != null ? `C-${customer.customerNo} · ` : ""}${customer.name.trim()}`
@@ -201,6 +203,15 @@ export default function CustomerDetailPage() {
             canReveal={canManageCustomers}
             onUpdated={setCustomer}
           />
+
+          <CustomerEditCard
+            customer={customer}
+            canEdit={canManageCustomers}
+            onUpdated={setCustomer}
+            onFeedback={(kind, text) => setMessage({ kind, text })}
+          />
+
+          <CustomerPurchasesSection customerId={customerId} />
 
           <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
             <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
