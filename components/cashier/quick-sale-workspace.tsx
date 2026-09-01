@@ -833,6 +833,7 @@ export function QuickSaleWorkspace({
   const customerHits = activeCart.customerHits;
   const customerNoPhoneMatch = activeCart.customerNoPhoneMatch;
   const customerRegisterName = activeCart.customerRegisterName;
+  const customerRegisterPhone = activeCart.customerRegisterPhone;
   const selectedCustomer = activeCart.selectedCustomer;
   const splitPay = activeCart.splitPay;
   const cashSplitStr = activeCart.cashSplitStr;
@@ -1019,6 +1020,7 @@ export function QuickSaleWorkspace({
         customerPhoneQuery: s,
         customerNoPhoneMatch: false,
         customerRegisterName: "",
+        customerRegisterPhone: "",
         customerHits: [],
         selectedCustomer: null,
       });
@@ -1027,6 +1029,10 @@ export function QuickSaleWorkspace({
   );
   const setCustomerRegisterName = useCallback(
     (s: string) => updateActiveCart({ customerRegisterName: s }),
+    [updateActiveCart],
+  );
+  const setCustomerRegisterPhone = useCallback(
+    (s: string) => updateActiveCart({ customerRegisterPhone: s }),
     [updateActiveCart],
   );
   const setCustomerHits = useCallback(
@@ -1701,6 +1707,24 @@ export function QuickSaleWorkspace({
       setError("Go online to search customers.");
       return;
     }
+    // Capture flow: a non-phone query (a name) can't match the phone index —
+    // skip the API call and go straight to the add-customer form, with the
+    // typed text prefilled as the name.
+    if (
+      captureCustomerAtCheckout &&
+      !tabOrWalletLookup &&
+      !isValidCustomerPhone(q)
+    ) {
+      setCustomerHits([]);
+      updateActiveCart({
+        customerNoPhoneMatch: true,
+        customerRegisterName: q,
+        customerRegisterPhone: "",
+        selectedCustomer: null,
+      });
+      setNotice("");
+      return;
+    }
     setCustomerSearchBusy(true);
     setError("");
     resetPhoneVerification();
@@ -1709,7 +1733,9 @@ export function QuickSaleWorkspace({
       setCustomerHits(rows);
       updateActiveCart({
         customerNoPhoneMatch: rows.length === 0,
-        customerRegisterName: "",
+        customerRegisterName:
+          rows.length === 0 && captureCustomerAtCheckout && useNameSearch ? q : "",
+        customerRegisterPhone: rows.length === 0 && isValidCustomerPhone(q) ? q : "",
         selectedCustomer: null,
       });
       setNotice("");
@@ -1718,6 +1744,7 @@ export function QuickSaleWorkspace({
       updateActiveCart({
         customerNoPhoneMatch: false,
         customerRegisterName: "",
+        customerRegisterPhone: "",
       });
       setError(e instanceof Error ? e.message : "Customer search failed.");
     } finally {
@@ -1804,7 +1831,6 @@ export function QuickSaleWorkspace({
   ]);
 
   const onRegisterCustomer = useCallback(async () => {
-    const phone = customerPhoneQuery.trim();
     const name = customerRegisterName.trim();
     const code = phoneVerificationCode.trim();
     // OTP stays reserved for credit / wallet registration; cash and M-Pesa
@@ -1812,21 +1838,32 @@ export function QuickSaleWorkspace({
     const registerNeedsOtp =
       requirePhoneVerification &&
       (payMethod === "customer_credit" || creditChangeToWallet);
-    if (!phone) {
-      setError("Enter a phone number first.");
-      setNotice("");
-      return;
-    }
-    const phoneErr = customerPhoneValidationMessage(phone);
-    if (phoneErr) {
-      setError(phoneErr);
-      setNotice("");
-      return;
-    }
+    // Capture flow may register a customer with a name only — phone optional.
+    const captureRegister =
+      !registerNeedsOtp &&
+      !creditChangeToWallet &&
+      payMethod !== "customer_credit";
+    const phone = (
+      customerRegisterPhone.trim() ||
+      (isValidCustomerPhone(customerPhoneQuery) ? customerPhoneQuery.trim() : "")
+    );
     if (!name) {
       setError("Enter the customer's name to register them.");
       setNotice("");
       return;
+    }
+    if (!captureRegister && !phone) {
+      setError("Enter a phone number first.");
+      setNotice("");
+      return;
+    }
+    if (phone) {
+      const phoneErr = customerPhoneValidationMessage(phone);
+      if (phoneErr) {
+        setError(phoneErr);
+        setNotice("");
+        return;
+      }
     }
     if (registerNeedsOtp) {
       if (!phoneVerificationSent) {
@@ -1860,7 +1897,7 @@ export function QuickSaleWorkspace({
       }
       const created = await createCustomer({
         name,
-        phones: [{ phone, primary: true }],
+        phones: phone ? [{ phone, primary: true }] : [],
         phoneVerificationToken,
       });
       setCustomerHits([created]);
@@ -1868,6 +1905,7 @@ export function QuickSaleWorkspace({
       updateActiveCart({
         customerNoPhoneMatch: false,
         customerRegisterName: "",
+        customerRegisterPhone: "",
       });
       resetPhoneVerification();
       setNotice(
@@ -1886,6 +1924,7 @@ export function QuickSaleWorkspace({
     canManageCustomers,
     customerPhoneQuery,
     customerRegisterName,
+    customerRegisterPhone,
     online,
     payMethod,
     phoneVerificationCode,
@@ -4574,6 +4613,8 @@ export function QuickSaleWorkspace({
           customerNoPhoneMatch,
           customerRegisterName,
           setCustomerRegisterName,
+          customerRegisterPhone,
+          setCustomerRegisterPhone,
           customerSearchBusy,
           customerRegisterBusy,
           phoneVerificationSent,

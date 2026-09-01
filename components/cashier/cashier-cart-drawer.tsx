@@ -154,6 +154,8 @@ export type CashierCartDrawerProps = {
   customerNoPhoneMatch: boolean;
   customerRegisterName: string;
   setCustomerRegisterName: (s: string) => void;
+  customerRegisterPhone: string;
+  setCustomerRegisterPhone: (s: string) => void;
   customerSearchBusy: boolean;
   customerRegisterBusy: boolean;
   phoneVerificationSent: boolean;
@@ -321,6 +323,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     customerNoPhoneMatch,
     customerRegisterName,
     setCustomerRegisterName,
+    customerRegisterPhone,
+    setCustomerRegisterPhone,
     customerSearchBusy,
     customerRegisterBusy,
     phoneVerificationSent,
@@ -1336,6 +1340,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       !selectedCustomer &&
                       customerPhoneQuery.trim() &&
                       !isValidCustomerPhone(customerPhoneQuery) &&
+                      !captureCustomerSimple &&
                       (!creditRegisterContext || allowSearchCustomersByName) ? (
                         <p className="rounded-lg bg-muted/40 px-2.5 py-2 text-[12px] text-muted-foreground">
                           No customer found for that search. Check the spelling,
@@ -1343,15 +1348,17 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           them.
                         </p>
                       ) : null}
-                      {(creditRegisterContext || captureCustomerSimple) &&
+                      {((creditRegisterContext &&
+                        isValidCustomerPhone(customerPhoneQuery)) ||
+                        captureCustomerSimple) &&
                       customerNoPhoneMatch &&
                       !selectedCustomer &&
-                      isValidCustomerPhone(customerPhoneQuery) ? (
+                      customerPhoneQuery.trim() ? (
                         <div className="space-y-3 rounded-xl border border-[color-mix(in_srgb,var(--pos-primary)_28%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_7%,transparent)] p-3.5">
                           <div className="space-y-1">
                             <p className="text-[13px] font-semibold tracking-tight text-foreground">
                               {captureCustomerSimple
-                                ? "New number — add customer"
+                                ? "Not in the directory — add customer"
                                 : registerNeedsOtp
                                   ? creditChangeToWallet
                                     ? "New number — verify before wallet credit"
@@ -1362,7 +1369,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             </p>
                             <p className="text-[12px] leading-snug text-muted-foreground">
                               {captureCustomerSimple
-                                ? "Enter the customer's name to register this number and start their purchase history."
+                                ? "Enter their name to add them and start their purchase history — phone optional."
                                 : registerNeedsOtp
                                   ? creditChangeToWallet
                                     ? "A 4-digit code will be sent by SMS and WhatsApp. The customer must read it aloud so you can confirm the number before parking change on their wallet."
@@ -1392,6 +1399,37 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                   }
                                 />
                               </label>
+                              {captureCustomerSimple ? (
+                                <label className="block space-y-1.5">
+                                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                    Phone (optional)
+                                  </span>
+                                  <input
+                                    className={fieldClass("h-11 w-full")}
+                                    value={customerRegisterPhone}
+                                    onChange={(e) =>
+                                      setCustomerRegisterPhone(e.target.value)
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        onRegisterCustomer();
+                                      }
+                                    }}
+                                    inputMode="tel"
+                                    placeholder="2547… or 07… — leave blank if unknown"
+                                    disabled={!online || customerRegisterBusy}
+                                  />
+                                  {customerRegisterPhone.trim() &&
+                                  !isValidCustomerPhone(customerRegisterPhone) ? (
+                                    <span className="block text-[11px] text-destructive">
+                                      {customerPhoneValidationMessage(
+                                        customerRegisterPhone,
+                                      ) ?? "Enter a valid phone number."}
+                                    </span>
+                                  ) : null}
+                                </label>
+                              ) : null}
                               {registerNeedsOtp ? (
                                 !phoneVerificationSent ? (
                                   <Button
@@ -1496,7 +1534,11 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                   disabled={
                                     !online ||
                                     customerRegisterBusy ||
-                                    !customerRegisterName.trim()
+                                    !customerRegisterName.trim() ||
+                                    (customerRegisterPhone.trim().length > 0 &&
+                                      !isValidCustomerPhone(
+                                        customerRegisterPhone,
+                                      ))
                                   }
                                   onClick={onRegisterCustomer}
                                 >

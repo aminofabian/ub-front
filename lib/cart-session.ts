@@ -35,6 +35,8 @@ export type CartSession = {
   customerNoPhoneMatch: boolean;
   /** Name for quick-register when no phone match (credit tab). */
   customerRegisterName: string;
+  /** Optional phone for quick-register (may be empty — name-only registration). */
+  customerRegisterPhone: string;
   selectedCustomer: CustomerRecord | null;
   splitPay: boolean;
   cashSplitStr: string;
@@ -166,6 +168,7 @@ export function createEmptyCartSession(): CartSession {
     customerHits: [],
     customerNoPhoneMatch: false,
     customerRegisterName: "",
+    customerRegisterPhone: "",
     selectedCustomer: null,
     splitPay: false,
     cashSplitStr: "",

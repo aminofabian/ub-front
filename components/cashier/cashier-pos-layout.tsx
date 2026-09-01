@@ -317,6 +317,8 @@ export type CashierPosLayoutProps = {
     | "customerNoPhoneMatch"
     | "customerRegisterName"
     | "setCustomerRegisterName"
+    | "customerRegisterPhone"
+    | "setCustomerRegisterPhone"
     | "customerSearchBusy"
     | "customerRegisterBusy"
     | "phoneVerificationSent"
