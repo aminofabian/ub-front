@@ -16,13 +16,7 @@ import {
 } from "lucide-react";
 
 import { DashboardLoading } from "@/components/dashboard-page-ui";
-import {
-  INK,
-  MUTED,
-  NAVY_DEEP,
-  WhiteCard,
-  boardMoney,
-} from "@/components/credits/customer-board-theme";
+import { boardMoney } from "@/components/credits/customer-board-theme";
 import { Button } from "@/components/ui/button";
 import {
   fetchCatalogListStats,
@@ -36,6 +30,8 @@ import {
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
+
+import { AisleBar, AislePanel } from "./aisle-ui";
 
 type Props = {
   aisle: AisleRecord | null;
@@ -68,28 +64,23 @@ function StatBlock({
   warn?: boolean;
 }) {
   return (
-    <WhiteCard className={lead ? "min-h-[5.5rem] px-4 py-4" : "px-3 py-3"}>
-      <p
-        className="text-[11px] font-semibold uppercase tracking-[-0.02em]"
-        style={{ color: MUTED }}
-      >
+    <AislePanel className={lead ? "min-h-[5.5rem] px-4 py-4" : "px-3 py-3"}>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <p
         className={cn(
-          "mt-1 font-bold tabular-nums tracking-[-0.03em]",
-          lead ? "text-[1.45rem]" : "text-[1.15rem]",
+          "mt-1 font-bold tabular-nums tracking-tight text-foreground",
+          lead ? "text-2xl" : "text-lg",
+          warn && "text-amber-700 dark:text-amber-400",
         )}
-        style={{ color: warn ? "#b45309" : INK }}
       >
         {value}
       </p>
       {hint ? (
-        <p className="mt-0.5 text-[11px]" style={{ color: MUTED }}>
-          {hint}
-        </p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>
       ) : null}
-    </WhiteCard>
+    </AislePanel>
   );
 }
 
@@ -259,43 +250,34 @@ export function AisleDetailColumn({
 
   if (!aisle) {
     return (
-      <WhiteCard className="px-5 py-12">
-        <p className="max-w-[65ch] text-[15px] leading-relaxed" style={{ color: INK }}>
-          Select an aisle on the left to see what lives on that shelf — stock
-          levels, fast movers, category mix, and every product tagged to the zone.
+      <AislePanel className="px-5 py-12">
+        <p className="max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
+          Select an aisle on the left to see stock levels, fast movers, category
+          mix, and every product tagged to the zone.
         </p>
-      </WhiteCard>
+      </AislePanel>
     );
   }
 
   if (loading) {
-    return <DashboardLoading label="Scanning shelf zone…" />;
+    return <DashboardLoading label="Loading aisle…" />;
   }
 
   return (
     <div className="min-h-0 space-y-3 overflow-y-auto">
-      <WhiteCard className="px-4 py-4">
+      <AislePanel className="px-4 py-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p
-              className="text-[11px] font-semibold uppercase tracking-[0.14em]"
-              style={{ color: MUTED }}
-            >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Aisle details
             </p>
-            <p
-              className="mt-1 font-mono text-[11px] font-semibold uppercase tracking-[0.18em]"
-              style={{ color: "#0c3a66" }}
-            >
+            <p className="mt-1 font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
               {aisle.code}
             </p>
-            <h2
-              className="mt-0.5 text-[1.5rem] font-bold leading-tight tracking-[-0.03em]"
-              style={{ color: INK }}
-            >
+            <h2 className="mt-0.5 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
               {aisle.name}
             </h2>
-            <p className="mt-1 text-[12px]" style={{ color: MUTED }}>
+            <p className="mt-1 text-xs text-muted-foreground">
               Stop {walkIndex + 1} of {walkStops}
               {!aisle.active ? " · inactive" : ""}
             </p>
@@ -306,12 +288,11 @@ export function AisleDetailColumn({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-9 rounded-none border-[#d5deea] px-2"
-                style={{ color: INK }}
+                className="h-9 max-w-[9rem] px-2"
                 onClick={() => onSelectAisle(prevAisle.id)}
               >
-                <ChevronLeft className="size-4" />
-                <span className="max-w-[6rem] truncate">{prevAisle.name}</span>
+                <ChevronLeft className="size-4 shrink-0" />
+                <span className="truncate">{prevAisle.name}</span>
               </Button>
             ) : null}
             {nextAisle ? (
@@ -319,15 +300,14 @@ export function AisleDetailColumn({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-9 rounded-none border-[#d5deea] px-2"
-                style={{ color: INK }}
+                className="h-9 max-w-[9rem] px-2"
                 onClick={() => onSelectAisle(nextAisle.id)}
               >
-                <span className="max-w-[6rem] truncate">{nextAisle.name}</span>
-                <ChevronRight className="size-4" />
+                <span className="truncate">{nextAisle.name}</span>
+                <ChevronRight className="size-4 shrink-0" />
               </Button>
             ) : null}
-            <Button type="button" className="h-9 rounded-none" asChild>
+            <Button type="button" size="sm" className="h-9" asChild>
               <Link
                 href={`${APP_ROUTES.products}?aisleId=${encodeURIComponent(aisle.id)}`}
               >
@@ -348,10 +328,10 @@ export function AisleDetailColumn({
                   type="button"
                   title={stop.name}
                   className={cn(
-                    "flex h-9 min-w-[2.25rem] items-center justify-center px-2 text-[11px] font-bold tabular-nums transition-colors",
+                    "flex h-8 min-w-[2rem] items-center justify-center rounded-md px-2 text-[11px] font-bold tabular-nums transition-colors",
                     active
-                      ? "bg-[#0c3a66] text-white"
-                      : "bg-[#eef1f4] text-[#3a5570] hover:bg-[#d5deea]",
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
                     !stop.active && "opacity-60",
                   )}
                   onClick={() => onSelectAisle(stop.id)}
@@ -364,24 +344,15 @@ export function AisleDetailColumn({
         </div>
 
         <div className="mt-4">
-          <div
-            className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[-0.02em]"
-            style={{ color: MUTED }}
-          >
+          <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
             <span>Catalog share</span>
             <span className="tabular-nums">{share}%</span>
           </div>
-          <div className="mt-2 h-2 w-full bg-[#d5deea]">
-            <div
-              className="h-2 origin-left bg-[#0c3a66]"
-              style={{
-                width: "100%",
-                transform: `scaleX(${Math.min(100, share) / 100})`,
-              }}
-            />
+          <div className="mt-2">
+            <AisleBar pct={share} />
           </div>
         </div>
-      </WhiteCard>
+      </AislePanel>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatBlock
@@ -410,119 +381,86 @@ export function AisleDetailColumn({
 
       <div className="grid gap-3 lg:grid-cols-2">
         {bestSellers.length > 0 ? (
-          <WhiteCard className="px-4 py-4">
+          <AislePanel className="px-4 py-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="size-4" style={{ color: "#0c3a66" }} aria-hidden />
-              <p
-                className="text-[11px] font-semibold uppercase tracking-[-0.02em]"
-                style={{ color: MUTED }}
-              >
+              <TrendingUp className="size-4 text-muted-foreground" aria-hidden />
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Best sellers
               </p>
             </div>
-            <p className="mt-1 text-[12px]" style={{ color: MUTED }}>
+            <p className="mt-1 text-xs text-muted-foreground">
               Fast movers in this aisle from recent till sales
             </p>
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-3 space-y-2.5">
               {bestSellers.map((item, index) => {
                 const qty = Number(item.totalQuantity ?? 0);
                 const pct = Math.max((qty / maxSold) * 100, 4);
                 return (
                   <li key={item.id}>
-                    <div
-                      className="flex items-center justify-between gap-2 text-[13px]"
-                      style={{ color: INK }}
-                    >
-                      <span className="min-w-0 truncate font-medium">
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <span className="min-w-0 truncate font-medium text-foreground">
                         {index + 1}. {item.name}
                       </span>
-                      <span
-                        className="shrink-0 tabular-nums text-[12px]"
-                        style={{ color: MUTED }}
-                      >
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                         {qty.toLocaleString("en-KE", { maximumFractionDigits: 1 })} sold
                       </span>
                     </div>
-                    <div className="mt-1 h-2 w-full bg-[#d5deea]">
-                      <div
-                        className="h-2 origin-left"
-                        style={{
-                          width: "100%",
-                          transform: `scaleX(${pct / 100})`,
-                          background: index === 0 ? "#0c3a66" : "#2a6aa3",
-                        }}
-                      />
+                    <div className="mt-1">
+                      <AisleBar pct={pct} />
                     </div>
                   </li>
                 );
               })}
             </ul>
-          </WhiteCard>
+          </AislePanel>
         ) : (
-          <WhiteCard className="flex items-center px-4 py-8">
-            <p className="text-[13px]" style={{ color: MUTED }}>
+          <AislePanel className="flex items-center px-4 py-8">
+            <p className="text-sm text-muted-foreground">
               No till velocity yet for products in this aisle.
             </p>
-          </WhiteCard>
+          </AislePanel>
         )}
 
         {categoryMix.length > 0 ? (
-          <WhiteCard className="px-4 py-4">
+          <AislePanel className="px-4 py-4">
             <div className="flex items-center gap-2">
-              <Layers className="size-4" style={{ color: "#0c3a66" }} aria-hidden />
-              <p
-                className="text-[11px] font-semibold uppercase tracking-[-0.02em]"
-                style={{ color: MUTED }}
-              >
-                What&apos;s on the shelf
+              <Layers className="size-4 text-muted-foreground" aria-hidden />
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                On the shelf
               </p>
             </div>
-            <p className="mt-1 text-[12px]" style={{ color: MUTED }}>
+            <p className="mt-1 text-xs text-muted-foreground">
               Category mix by product count
             </p>
-            <ul className="mt-3 space-y-2">
-              {categoryMix.map((row, index) => {
+            <ul className="mt-3 space-y-2.5">
+              {categoryMix.map((row) => {
                 const pct = Math.max((row.count / maxCategory) * 100, 4);
                 return (
                   <li key={row.name}>
-                    <div
-                      className="flex items-center justify-between gap-2 text-[13px]"
-                      style={{ color: INK }}
-                    >
-                      <span className="min-w-0 truncate font-medium">{row.name}</span>
-                      <span
-                        className="shrink-0 tabular-nums text-[12px]"
-                        style={{ color: MUTED }}
-                      >
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <span className="min-w-0 truncate font-medium text-foreground">
+                        {row.name}
+                      </span>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                         {row.count} · {row.stock.toLocaleString("en-KE", { maximumFractionDigits: 0 })} u
                       </span>
                     </div>
-                    <div className="mt-1 h-2 w-full bg-[#d5deea]">
-                      <div
-                        className="h-2 origin-left"
-                        style={{
-                          width: "100%",
-                          transform: `scaleX(${pct / 100})`,
-                          background: index === 0 ? "#0c3a66" : "#2a6aa3",
-                        }}
-                      />
+                    <div className="mt-1">
+                      <AisleBar pct={pct} />
                     </div>
                   </li>
                 );
               })}
             </ul>
-          </WhiteCard>
+          </AislePanel>
         ) : null}
       </div>
 
       {emptyShelf.length > 0 ? (
-        <WhiteCard className="px-4 py-3">
+        <AislePanel className="px-4 py-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="size-4 text-[#b45309]" aria-hidden />
-            <p
-              className="text-[11px] font-semibold uppercase tracking-[-0.02em]"
-              style={{ color: MUTED }}
-            >
+            <AlertTriangle className="size-4 text-amber-600" aria-hidden />
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Running empty ({emptyShelf.length})
             </p>
           </div>
@@ -530,27 +468,24 @@ export function AisleDetailColumn({
             {emptyShelf.slice(0, 12).map((row) => (
               <span
                 key={row.id}
-                className="shrink-0 bg-[#fff4e5] px-2.5 py-1.5 text-[12px] font-medium text-[#8a5a00]"
+                className="shrink-0 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
               >
                 {row.name}
               </span>
             ))}
           </div>
-        </WhiteCard>
+        </AislePanel>
       ) : null}
 
-      <WhiteCard className="overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#eef1f4] px-4 py-3">
+      <AislePanel>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
           <div className="flex items-center gap-2">
-            <Package className="size-4" style={{ color: MUTED }} aria-hidden />
+            <Package className="size-4 text-muted-foreground" aria-hidden />
             <div>
-              <p
-                className="text-[11px] font-semibold uppercase tracking-[-0.02em]"
-                style={{ color: MUTED }}
-              >
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Stock on shelf
               </p>
-              <p className="text-[12px]" style={{ color: MUTED }}>
+              <p className="text-xs text-muted-foreground">
                 {products.length.toLocaleString()} loaded
                 {hasMore ? "+" : ""} · low {stats?.lowStock ?? 0}
               </p>
@@ -559,11 +494,11 @@ export function AisleDetailColumn({
         </div>
 
         {products.length === 0 ? (
-          <p className="px-4 py-10 text-center text-[14px]" style={{ color: MUTED }}>
+          <p className="px-4 py-10 text-center text-sm text-muted-foreground">
             No products tagged to this aisle yet.
           </p>
         ) : (
-          <ul className="divide-y divide-[#eef1f4]">
+          <ul className="divide-y divide-border/50">
             {sortedByStock.slice(0, 40).map((row) => {
               const qty = stockQty(row);
               const pct = Math.max((qty / maxStock) * 100, qty > 0 ? 3 : 0);
@@ -572,7 +507,7 @@ export function AisleDetailColumn({
               return (
                 <li key={row.id} className="px-4 py-3">
                   <div className="flex gap-3">
-                    <div className="size-11 shrink-0 overflow-hidden bg-[#eef1f4]">
+                    <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-muted">
                       {thumb ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -581,49 +516,37 @@ export function AisleDetailColumn({
                           className="size-full object-cover"
                         />
                       ) : (
-                        <div
-                          className="flex size-full items-center justify-center text-[10px] font-bold uppercase"
-                          style={{ color: MUTED }}
-                        >
+                        <div className="flex size-full items-center justify-center text-[10px] font-bold uppercase text-muted-foreground">
                           {row.name.slice(0, 2)}
                         </div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                        <p
-                          className="truncate text-[14px] font-semibold tracking-[-0.02em]"
-                          style={{ color: INK }}
-                        >
+                        <p className="truncate text-sm font-semibold text-foreground">
                           {row.name}
                         </p>
                         {price ? (
-                          <span className="text-[12px] tabular-nums" style={{ color: MUTED }}>
+                          <span className="text-xs tabular-nums text-muted-foreground">
                             {price}
                           </span>
                         ) : null}
                       </div>
-                      <p className="font-mono text-[11px]" style={{ color: MUTED }}>
+                      <p className="font-mono text-[11px] text-muted-foreground">
                         {row.sku}
                         {row.categoryName ? ` · ${row.categoryName}` : ""}
                       </p>
                       <div className="mt-2 flex items-center gap-2">
-                        <div className="h-2 min-w-0 flex-1 bg-[#d5deea]">
-                          <div
-                            className="h-2 origin-left"
-                            style={{
-                              width: "100%",
-                              transform: `scaleX(${pct / 100})`,
-                              background: qty === 0 ? "#c4a484" : "#2a6aa3",
-                            }}
-                          />
+                        <div className="min-w-0 flex-1">
+                          <AisleBar pct={pct} warn={qty === 0} />
                         </div>
                         <span
                           className={cn(
-                            "shrink-0 text-[12px] font-semibold tabular-nums",
-                            qty === 0 && "text-[#b45309]",
+                            "shrink-0 text-xs font-semibold tabular-nums",
+                            qty === 0
+                              ? "text-amber-700 dark:text-amber-400"
+                              : "text-foreground",
                           )}
-                          style={qty === 0 ? undefined : { color: INK }}
                         >
                           {qty.toLocaleString("en-KE", { maximumFractionDigits: 1 })}
                         </span>
@@ -637,12 +560,11 @@ export function AisleDetailColumn({
         )}
 
         {hasMore ? (
-          <div className="border-t border-[#eef1f4] px-4 py-3">
+          <div className="border-t border-border/60 px-4 py-3">
             <Button
               type="button"
               variant="outline"
-              className="w-full rounded-none border-[#d5deea]"
-              style={{ color: INK }}
+              className="w-full"
               disabled={loadingMore}
               onClick={() => void loadMore()}
             >
@@ -650,41 +572,29 @@ export function AisleDetailColumn({
             </Button>
           </div>
         ) : null}
-      </WhiteCard>
+      </AislePanel>
 
       {canWrite ? (
-        <section className="overflow-hidden rounded-none" style={{ background: NAVY_DEEP }}>
-          <h2 className="px-3 pt-3 pb-2 text-[13px] font-semibold tracking-[-0.02em] text-white">
-            Manage aisle
-          </h2>
-          <div className="space-y-2 px-3 pb-3">
+        <AislePanel className="px-4 py-4">
+          <h2 className="text-sm font-semibold text-foreground">Manage aisle</h2>
+          <div className="mt-3 space-y-3">
             <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                className="h-10 rounded-none bg-white hover:bg-white/90"
-                style={{ color: INK }}
-                onClick={onEdit}
-              >
+              <Button type="button" variant="default" onClick={onEdit}>
                 <Pencil className="mr-2 size-4" />
                 Edit
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 rounded-none border-white/30 bg-transparent text-white hover:bg-white/10"
-                onClick={onToggleStatus}
-              >
+              <Button type="button" variant="outline" onClick={onToggleStatus}>
                 {aisle.active ? "Deactivate" : "Activate"}
               </Button>
             </div>
-            <div className="flex items-center justify-between rounded-none border border-dashed border-white/20 px-3 py-2">
-              <span className="text-[11px] text-white/75">Walk order</span>
+            <div className="flex items-center justify-between rounded-lg border border-dashed border-border px-3 py-2">
+              <span className="text-xs text-muted-foreground">Walk order</span>
               <div className="flex gap-0.5">
                 <Button
                   type="button"
                   size="icon"
                   variant="ghost"
-                  className="size-8 text-white hover:bg-white/10"
+                  className="size-8"
                   disabled={reorderBusy || walkIndex === 0}
                   onClick={onMoveUp}
                   aria-label="Move up"
@@ -695,7 +605,7 @@ export function AisleDetailColumn({
                   type="button"
                   size="icon"
                   variant="ghost"
-                  className="size-8 text-white hover:bg-white/10"
+                  className="size-8"
                   disabled={reorderBusy || walkIndex >= walkStops - 1}
                   onClick={onMoveDown}
                   aria-label="Move down"
@@ -705,7 +615,7 @@ export function AisleDetailColumn({
               </div>
             </div>
           </div>
-        </section>
+        </AislePanel>
       ) : null}
     </div>
   );

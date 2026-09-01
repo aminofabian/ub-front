@@ -13,9 +13,9 @@ import {
   DashboardFeedback,
   DashboardLoadError,
   DashboardLoading,
+  DashboardPageHero,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
-import { INK, NAVY } from "@/components/credits/customer-board-theme";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -51,7 +51,7 @@ function useIsLg() {
 
 export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
   const isLg = useIsLg();
-  const { business, me, branchId } = useDashboard();
+  const { business, branchId } = useDashboard();
   const currency = business?.currency?.trim() || "KES";
 
   const [aisles, setAisles] = useState<AisleRecord[]>([]);
@@ -302,6 +302,21 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
     },
   };
 
+  const summary = (
+    <>
+      {visibleAisles.length.toLocaleString("en-KE")} aisle
+      {visibleAisles.length === 1 ? "" : "s"} ·{" "}
+      {assignedTotal.toLocaleString("en-KE")} products tagged
+      {unassignedCount > 0
+        ? ` · ${unassignedCount.toLocaleString("en-KE")} unassigned`
+        : ""}
+      .
+      {selected
+        ? ` ${selected.name} — stock and sales on the right.`
+        : " Pick an aisle on the left."}
+    </>
+  );
+
   if (loadError && aisles.length === 0) {
     return (
       <div className="mx-auto w-full max-w-[1280px] px-2 py-4 sm:px-4">
@@ -322,161 +337,133 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
         </div>
       ) : null}
 
-      <div
-        className={cn(
-          "overflow-hidden rounded-none p-4 sm:p-5",
-          loading && aisles.length === 0 && "opacity-90",
-        )}
-        style={{ background: NAVY }}
-      >
-        <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex size-12 shrink-0 items-center justify-center bg-white">
-              <MapPin className="size-6" aria-hidden style={{ color: INK }} />
-            </span>
-            <h1 className="min-w-0 font-sans text-[1.4rem] font-bold uppercase leading-tight tracking-[-0.02em] text-white sm:text-[1.75rem]">
-              Shelf zones
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="hidden text-[11px] font-medium uppercase tracking-[-0.02em] text-white/85 sm:block">
-              {me?.name || business?.name || ""}
-            </p>
-            <Link
-              href={APP_ROUTES.products}
-              className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline"
-            >
-              Products
-            </Link>
-            <Link
-              href={APP_ROUTES.categories}
-              className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline"
-            >
-              Categories
-            </Link>
-            <Link
-              href={APP_ROUTES.itemTypes}
-              className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline"
-            >
-              Departments
-            </Link>
-            <button
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <DashboardPageHero
+          compact
+          icon={MapPin}
+          eyebrow="Catalog"
+          title="Shelf zones"
+          description={summary}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={APP_ROUTES.products}
+            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Products
+          </Link>
+          <Link
+            href={APP_ROUTES.categories}
+            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Categories
+          </Link>
+          <Link
+            href={APP_ROUTES.itemTypes}
+            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Departments
+          </Link>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="size-9"
+            onClick={() => void load()}
+            disabled={loading}
+            aria-label="Refresh"
+          >
+            <RefreshCw
+              className={cn("size-4", loading && "animate-spin")}
+              aria-hidden
+            />
+          </Button>
+          {canWrite ? (
+            <Button
               type="button"
-              className="flex size-11 items-center justify-center text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
-              onClick={() => void load()}
-              disabled={loading}
-              aria-label="Refresh"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                setCreateName("");
+                setCreateCode("");
+                setCreateOpen(true);
+              }}
             >
-              <RefreshCw
-                className={cn("size-4", loading && "animate-spin")}
-                aria-hidden
-              />
-            </button>
-            {canWrite ? (
-              <Button
-                type="button"
-                size="sm"
-                className="h-11 rounded-none bg-white hover:bg-white/90"
-                style={{ color: INK }}
-                onClick={() => {
-                  setCreateName("");
-                  setCreateCode("");
-                  setCreateOpen(true);
-                }}
-              >
-                <Plus className="size-4" />
-                New zone
-              </Button>
-            ) : null}
-          </div>
-        </header>
-
-        <p className="mb-5 max-w-[72ch] text-[15px] leading-relaxed text-white">
-          {visibleAisles.length.toLocaleString("en-KE")} walk stop
-          {visibleAisles.length === 1 ? "" : "s"} in view ·{" "}
-          {assignedTotal.toLocaleString("en-KE")} products tagged
-          {unassignedCount > 0
-            ? ` · ${unassignedCount.toLocaleString("en-KE")} still unassigned`
-            : ""}
-          .
-          {selected
-            ? ` ${selected.name} is open — products, stock, and movers on the right.`
-            : " Pick an aisle on the left to open its shelf story."}
-        </p>
-
-        {loading && aisles.length === 0 ? (
-          <DashboardLoading label="Mapping shelf zones…" />
-        ) : aisles.length === 0 ? (
-          <div className="flex flex-col items-center px-4 py-16 text-center">
-            <div className="flex size-12 items-center justify-center bg-white">
-              <MapPin className="size-5" style={{ color: INK }} aria-hidden />
-            </div>
-            <h2 className="mt-4 text-lg font-semibold text-white">No zones yet</h2>
-            <p className="mt-1 max-w-xs text-sm text-white/80">
-              Create your first walk stop — e.g. front beverages, back wall dairy.
-            </p>
-            {canWrite ? (
-              <Button
-                type="button"
-                className="mt-5 gap-2 rounded-none bg-white hover:bg-white/90"
-                style={{ color: INK }}
-                onClick={() => setCreateOpen(true)}
-              >
-                <Plus className="size-4" aria-hidden />
-                New shelf zone
-              </Button>
-            ) : null}
-          </div>
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)]">
-            {!isLg ? (
-              mobileDetailOpen && selected ? (
-                <div className="min-w-0 lg:order-2">
-                  <button
-                    type="button"
-                    className="mb-3 flex items-center gap-2 text-[12px] text-white/85"
-                    onClick={() => setMobileDetailOpen(false)}
-                  >
-                    <ArrowLeft className="size-4" />
-                    Back to aisles
-                  </button>
-                  <AisleDetailColumn
-                    {...detailProps}
-                    allAisles={sortedAisles}
-                    onSelectAisle={selectAisle}
-                  />
-                </div>
-              ) : (
-                <div className="min-w-0 lg:order-1">
-                  <AisleListColumn {...listProps} />
-                </div>
-              )
-            ) : (
-              <>
-                <div className="min-w-0 lg:order-1">
-                  <AisleListColumn {...listProps} />
-                </div>
-                <div className="min-w-0 lg:order-2">
-                  <AisleDetailColumn
-                    {...detailProps}
-                    allAisles={sortedAisles}
-                    onSelectAisle={selectAisle}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        )}
+              <Plus className="size-4" />
+              New zone
+            </Button>
+          ) : null}
+        </div>
       </div>
 
+      {loading && aisles.length === 0 ? (
+        <DashboardLoading label="Loading shelf zones…" />
+      ) : aisles.length === 0 ? (
+        <div className="flex flex-col items-center rounded-xl border border-dashed border-border/80 px-4 py-16 text-center">
+          <div className="flex size-12 items-center justify-center rounded-xl border border-border/60 bg-muted/40">
+            <MapPin className="size-5 text-muted-foreground" aria-hidden />
+          </div>
+          <h2 className="mt-4 text-lg font-semibold text-foreground">No zones yet</h2>
+          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+            Create your first walk stop — e.g. front beverages, back wall dairy.
+          </p>
+          {canWrite ? (
+            <Button
+              type="button"
+              className="mt-5 gap-2"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="size-4" aria-hidden />
+              New shelf zone
+            </Button>
+          ) : null}
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)]">
+          {!isLg ? (
+            mobileDetailOpen && selected ? (
+              <div className="min-w-0 lg:order-2">
+                <button
+                  type="button"
+                  className="mb-3 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                  onClick={() => setMobileDetailOpen(false)}
+                >
+                  <ArrowLeft className="size-4" />
+                  Back to aisles
+                </button>
+                <AisleDetailColumn
+                  {...detailProps}
+                  allAisles={sortedAisles}
+                  onSelectAisle={selectAisle}
+                />
+              </div>
+            ) : (
+              <div className="min-w-0 lg:order-1">
+                <AisleListColumn {...listProps} />
+              </div>
+            )
+          ) : (
+            <>
+              <div className="min-w-0 lg:order-1">
+                <AisleListColumn {...listProps} />
+              </div>
+              <div className="min-w-0 lg:order-2">
+                <AisleDetailColumn
+                  {...detailProps}
+                  allAisles={sortedAisles}
+                  onSelectAisle={selectAisle}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {!isLg && selected && !mobileDetailOpen ? (
-        <div
-          className="fixed inset-x-0 bottom-0 z-30 border-t border-white/20 py-3 text-center"
-          style={{ background: NAVY }}
-        >
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 py-3 text-center backdrop-blur-sm">
           <button
             type="button"
-            className="text-[13px] font-medium text-white/90 hover:text-white"
+            className="text-sm font-medium text-foreground"
             onClick={() => setMobileDetailOpen(true)}
           >
             View {selected.name}
