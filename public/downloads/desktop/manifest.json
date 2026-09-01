@@ -1,7 +1,7 @@
 {
   "product": "Kiosk Desktop",
   "version": "0.0.14",
-  "generatedAt": "2026-09-01T19:58:12.295Z",
+  "generatedAt": "2026-09-01T20:28:03.294Z",
   "platforms": [
     {
       "id": "macos-aarch64",
@@ -9,7 +9,7 @@
       "arch": "aarch64",
       "label": "macOS (Apple Silicon)",
       "file": "kiosk-desktop-0.0.14-macos-aarch64.dmg",
-      "sizeBytes": 285706321,
+      "sizeBytes": 286578073,
       "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.14/kiosk-desktop-0.0.14-macos-aarch64.dmg"
     },
     {
