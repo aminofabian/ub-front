@@ -16,7 +16,7 @@ export default function TenantOrderPage() {
       <OrderPageLayout
         showHeader
         title="New order"
-        description="Pick a supplier, add products from their shelf, then save and send the purchase order on WhatsApp."
+        description="Pick a supplier, link products to their shelf if needed, add lines to your order, then save the purchase order."
       >
         <OrderPageShell />
       </OrderPageLayout>

@@ -30,6 +30,8 @@ type SupplierReceiveLinkModalProps = {
   /** Item ids already linked to this supplier (hide or mark). */
   linkedItemIds: Set<string>;
   onLinked: () => void;
+  /** Pre-fill catalog search when opened from the order shelf. */
+  initialQuery?: string;
 };
 
 const fieldClass = cn(
@@ -47,6 +49,7 @@ export function SupplierReceiveLinkModal({
   supplier,
   linkedItemIds,
   onLinked,
+  initialQuery = "",
 }: SupplierReceiveLinkModalProps) {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<ItemSummaryRecord[]>([]);
@@ -62,11 +65,11 @@ export function SupplierReceiveLinkModal({
 
   useEffect(() => {
     if (!open) return;
-    setQuery("");
+    setQuery(initialQuery.trim());
     setHits([]);
     setSelected([]);
     setCostStr("");
-  }, [open]);
+  }, [open, initialQuery]);
 
   useEffect(() => {
     if (!open) return;

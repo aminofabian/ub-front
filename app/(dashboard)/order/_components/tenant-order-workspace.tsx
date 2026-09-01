@@ -9,8 +9,10 @@ import {
   ChevronUp,
   ClipboardList,
   Copy,
+  Link2,
   Loader2,
   Package,
+  PackagePlus,
   Save,
   Search,
   ShoppingCart,
@@ -18,15 +20,21 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { CashierCreateProductModal } from "@/components/cashier/cashier-create-product-modal";
 import { useDashboard } from "@/components/dashboard-provider";
+import { SupplierReceiveLinkModal } from "@/components/supplier-receive/supplier-receive-link-modal";
 import {
   buildMarketplaceOrderText,
   buildWhatsAppOrderUrl,
 } from "@/app/marketplace/_lib/marketplace-order-pdf";
 import { SupplyPackQtyModal } from "@/app/(dashboard)/supplies/_components/supply-pack-qty-modal";
+import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { getSessionTenantId } from "@/lib/auth";
+import { Permission, hasPermission } from "@/lib/permissions";
+import { canLinkSupplierProducts } from "@/lib/supplier-access";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  addItemSupplierLink,
   fetchSupplierContacts,
   fetchSupplierItemLinks,
   fetchSuppliers,
@@ -59,6 +67,7 @@ import { cn, formatMoney } from "@/lib/utils";
 import { useOrderTemplate } from "@/hooks/use-order-template";
 
 import { SupplierGuideDrawer } from "@/app/(dashboard)/suppliers/_components/SupplierGuideDrawer";
+import { OrderCatalogSetupPanel } from "./order-catalog-setup-panel";
 import { OrderProductLedger } from "./order-product-ledger";
 import { OrderProductShelf } from "./order-product-shelf";
 import { OrderTemplatePicker } from "./order-template-picker";
@@ -223,9 +232,19 @@ export function TenantOrderWorkspace({
   /** When set, Confirm opens this callback instead of navigating to receive. */
   onOpenConfirm?: () => void;
 } = {}) {
-  const { branchId } = useDashboard();
+  const { branchId, me, business, itemTypes, itemTypeId } = useDashboard();
   const { effective: orderTemplate, setTemplate: setOrderTemplate } =
     useOrderTemplate();
+  const brandTheme = useMemo(
+    () => posBrandThemeStyle(business?.branding ?? null),
+    [business?.branding],
+  );
+  const canLinkProducts = canLinkSupplierProducts(me, business);
+  const canCreateProduct = hasPermission(
+    me?.permissions,
+    Permission.CatalogItemsWrite,
+  );
+  const currency = business?.currency?.trim().toUpperCase() || ORDER_CURRENCY;
   const businessId = getSessionTenantId()?.trim() ?? "";
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
   const [supplierId, setSupplierId] = useState<string | null>(
@@ -250,6 +269,9 @@ export function TenantOrderWorkspace({
   const [roundTo10, setRoundTo10] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
+  const [linkProductsOpen, setLinkProductsOpen] = useState(false);
+  const [linkCatalogQuery, setLinkCatalogQuery] = useState("");
+  const [createProductOpen, setCreateProductOpen] = useState(false);
   const cartsBySupplierRef = useRef<Record<string, CartQty>>({});
   const packsBySupplierRef = useRef<Record<string, OrderCartPackMeta>>({});
   const supplierIdRef = useRef<string | null>(null);
@@ -386,36 +408,41 @@ export function TenantOrderWorkspace({
     };
   }, [supplierId]);
 
+  const reloadSupplierLinks = useCallback(async () => {
+    if (!supplierId) {
+      setLinks([]);
+      return;
+    }
+    setLoadingLinks(true);
+    try {
+      const rows = await fetchSupplierItemLinks(supplierId, {
+        branchId: branchId || undefined,
+      });
+      setLinks(rows.filter((r) => r.active));
+    } catch (error) {
+      setLinks([]);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load products",
+      );
+    } finally {
+      setLoadingLinks(false);
+    }
+  }, [supplierId, branchId]);
+
+  const openLinkCatalog = useCallback((seedQuery?: string) => {
+    setLinkCatalogQuery(seedQuery?.trim() ?? "");
+    setLinkProductsOpen(true);
+  }, []);
+
   useEffect(() => {
     if (!supplierId) {
       setLinks([]);
       return;
     }
-    let cancelled = false;
-    setLoadingLinks(true);
     setCart(cartsBySupplierRef.current[supplierId] ?? {});
     setPackByItemId(packsBySupplierRef.current[supplierId] ?? {});
-    void fetchSupplierItemLinks(supplierId, {
-      branchId: branchId || undefined,
-    })
-      .then((rows) => {
-        if (!cancelled) setLinks(rows.filter((r) => r.active));
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setLinks([]);
-          toast.error(
-            error instanceof Error ? error.message : "Failed to load products",
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingLinks(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [supplierId, branchId]);
+    void reloadSupplierLinks();
+  }, [supplierId, reloadSupplierLinks]);
 
   // Apply a shared order ticket once the supplier catalogue is ready.
   useEffect(() => {
@@ -469,6 +496,10 @@ export function TenantOrderWorkspace({
   };
 
   const activeSupplier = suppliers.find((s) => s.id === supplierId) ?? null;
+  const linkedItemIds = useMemo(
+    () => new Set(links.map((link) => link.itemId)),
+    [links],
+  );
 
   const filteredSuppliers = useMemo(() => {
     const q = supplierQuery.trim().toLowerCase();
@@ -1244,6 +1275,28 @@ export function TenantOrderWorkspace({
             Confirm
           </Link>
         )}
+        {activeSupplier && canCreateProduct ? (
+          <button
+            type="button"
+            onClick={() => setCreateProductOpen(true)}
+            className="my-1.5 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-3.5 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]"
+            title="Create a new catalog product and link it to this supplier"
+          >
+            <PackagePlus className="size-3.5" aria-hidden />
+            Create
+          </button>
+        ) : null}
+        {activeSupplier && canLinkProducts ? (
+          <button
+            type="button"
+            onClick={() => openLinkCatalog(filter)}
+            className="my-1.5 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] px-3.5 text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)]"
+            title="Link catalog products to this supplier"
+          >
+            <Link2 className="size-3.5" aria-hidden />
+            Link
+          </button>
+        ) : null}
         <SupplierGuideDrawer
           trigger={
             <button
@@ -1338,6 +1391,17 @@ export function TenantOrderWorkspace({
               value={orderTemplate}
               onChange={setOrderTemplate}
             />
+            {supplierId && canLinkProducts ? (
+              <button
+                type="button"
+                onClick={() => openLinkCatalog(filter)}
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] px-2 py-1.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)]"
+                title="Link products from your catalog"
+              >
+                <Link2 className="size-3.5" aria-hidden />
+                <span className="hidden sm:inline">Link</span>
+              </button>
+            ) : null}
           </div>
 
           {showFamilies ? (
@@ -1396,11 +1460,21 @@ export function TenantOrderWorkspace({
                 Loading shelf…
               </p>
             ) : visibleLinks.length === 0 ? (
-              <p className="py-20 text-center text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
-                {parentFilterId
-                  ? "Nothing in this family."
-                  : "No linked products."}
-              </p>
+              parentFilterId && links.length > 0 ? (
+                <p className="py-20 text-center text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
+                  Nothing in this family.
+                </p>
+              ) : (
+                <OrderCatalogSetupPanel
+                  supplierName={activeSupplier?.name ?? "this supplier"}
+                  filterQuery={filter}
+                  hasLinks={links.length > 0}
+                  canLink={canLinkProducts}
+                  canCreate={canCreateProduct}
+                  onLink={openLinkCatalog}
+                  onCreate={() => setCreateProductOpen(true)}
+                />
+              )
             ) : orderTemplate === "ledger" ? (
               <OrderProductLedger
                 links={visibleLinks}
@@ -1603,6 +1677,54 @@ export function TenantOrderWorkspace({
           setPackSheetItemId(null);
         }}
       />
+
+      {activeSupplier && canCreateProduct ? (
+        <CashierCreateProductModal
+          open={createProductOpen}
+          onOpenChange={setCreateProductOpen}
+          brandTheme={brandTheme}
+          currency={currency}
+          branchId={branchId}
+          itemTypes={itemTypes}
+          preferredItemTypeId={itemTypeId || null}
+          purpose="receive"
+          onCreated={(item) => {
+            void (async () => {
+              try {
+                await addItemSupplierLink(item.id, {
+                  supplierId: activeSupplier.id,
+                  setPrimary: true,
+                });
+                toast.success(`Linked “${item.name}” → ${activeSupplier.name}`);
+              } catch (error) {
+                toast.error(
+                  error instanceof Error
+                    ? error.message
+                    : "Product created but could not link to supplier",
+                );
+              }
+              await reloadSupplierLinks();
+              toast.message("Tap the product to add it to your order");
+            })();
+          }}
+        />
+      ) : null}
+
+      {activeSupplier && canLinkProducts ? (
+        <SupplierReceiveLinkModal
+          open={linkProductsOpen}
+          onOpenChange={setLinkProductsOpen}
+          brandTheme={brandTheme}
+          supplier={activeSupplier}
+          linkedItemIds={linkedItemIds}
+          initialQuery={linkCatalogQuery}
+          onLinked={() => {
+            void reloadSupplierLinks().then(() => {
+              toast.message("Products linked — tap them to add to your order");
+            });
+          }}
+        />
+      ) : null}
     </div>
   );
 }
