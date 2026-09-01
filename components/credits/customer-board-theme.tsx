@@ -2,16 +2,10 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-export const NAVY = "#0c3a66";
-export const NAVY_DEEP = "#071e36";
-export const BAR = "#2a6aa3";
-export const BAR_LEAD = "#0c3a66";
-export const SLICE = "#16487a";
-export const INK = "#0c3a66";
-export const MUTED = "#3a5570";
-export const BOARD_EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
-export const WHITE_CARD_SHADOW = "0 4px 14px rgba(7, 30, 54, 0.22)";
+export const crmPanelClass =
+  "overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]";
 
+/** @deprecated Use crmPanelClass — kept for imports that expect WhiteCard */
 export function WhiteCard({
   children,
   className,
@@ -19,12 +13,30 @@ export function WhiteCard({
   children: ReactNode;
   className?: string;
 }) {
+  return <div className={cn(crmPanelClass, className)}>{children}</div>;
+}
+
+export function CrmBar({
+  pct,
+  className,
+  warn,
+}: {
+  pct: number;
+  className?: string;
+  warn?: boolean;
+}) {
   return (
-    <div
-      className={cn("rounded-none bg-white", className)}
-      style={{ boxShadow: WHITE_CARD_SHADOW }}
-    >
-      {children}
+    <div className={cn("h-1.5 w-full rounded-full bg-muted", className)}>
+      <div
+        className={cn(
+          "h-1.5 origin-left rounded-full",
+          warn ? "bg-amber-500/80" : "bg-foreground/55",
+        )}
+        style={{
+          width: "100%",
+          transform: `scaleX(${Math.min(100, Math.max(0, pct)) / 100})`,
+        }}
+      />
     </div>
   );
 }
@@ -48,48 +60,15 @@ export function BoardFilterButton({
       onClick={onClick}
       aria-pressed={ariaPressed ?? selected}
       className={cn(
-        "font-medium tracking-[-0.02em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-        compact ? "min-h-10 px-3 text-[12px]" : "min-h-11 px-3 text-[13px]",
-        selected ? "bg-white" : "text-white/90 hover:bg-white/10",
-      )}
-      style={
+        "rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        compact ? "min-h-9 px-3 text-[12px]" : "min-h-10 px-3 text-[13px]",
         selected
-          ? { color: INK }
-          : compact
-            ? { background: SLICE, color: "#fff" }
-            : undefined
-      }
+          ? "bg-foreground text-background"
+          : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
     >
       {children}
     </button>
-  );
-}
-
-export function BoardSearchInput({
-  value,
-  onChange,
-  placeholder,
-  "aria-label": ariaLabel,
-  className,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  "aria-label"?: string;
-  className?: string;
-}) {
-  return (
-    <input
-      type="search"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      aria-label={ariaLabel}
-      className={cn(
-        "h-11 w-full border-0 bg-white/10 text-sm text-white placeholder:text-[#d7e3ef] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-        className,
-      )}
-    />
   );
 }
 
@@ -101,16 +80,11 @@ export function NavySidebarSection({
   children: ReactNode;
 }) {
   return (
-    <section
-      className="overflow-hidden rounded-none"
-      style={{ background: NAVY_DEEP }}
-    >
-      <h2 className="px-3 pt-3 pb-2 text-[13px] font-semibold tracking-[-0.02em] text-white">
+    <section className={cn(crmPanelClass, "p-3")}>
+      <h2 className="pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {title}
       </h2>
-      <div className="flex max-h-56 flex-col gap-1.5 overflow-y-auto px-3 pb-3">
-        {children}
-      </div>
+      <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">{children}</div>
     </section>
   );
 }
@@ -139,13 +113,12 @@ export function NavyRadioOption({
       />
       <span
         className={cn(
-          "flex min-h-11 cursor-pointer items-center justify-center px-3 py-2 text-center text-[13px] font-medium tracking-[-0.02em] transition-colors duration-150",
-          "peer-focus-visible:ring-2 peer-focus-visible:ring-white peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#071e36]",
-          checked ? "bg-white" : "text-white hover:bg-white/10",
+          "flex min-h-10 cursor-pointer items-center rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
+          "peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2",
+          checked
+            ? "bg-foreground text-background"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
         )}
-        style={
-          checked ? { color: INK } : { background: SLICE, color: "#fff" }
-        }
       >
         {label}
       </span>

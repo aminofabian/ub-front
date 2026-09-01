@@ -4,8 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DashboardLoading } from "@/components/dashboard-page-ui";
 import {
-  INK,
-  MUTED,
+  CrmBar,
   WhiteCard,
   boardMoney,
 } from "@/components/credits/customer-board-theme";
@@ -22,6 +21,7 @@ import {
   type CustomerSpendRow,
 } from "@/lib/api";
 import { presetRange } from "@/lib/analytics-date-range";
+import { cn } from "@/lib/utils";
 
 type Props = {
   customer: CustomerRecord | null;
@@ -39,13 +39,15 @@ function StatBlock({
   lead?: boolean;
 }) {
   return (
-    <WhiteCard className={lead ? "px-4 py-4 min-h-[5.5rem]" : "px-3 py-3"}>
-      <p className="text-[11px] font-semibold uppercase tracking-[-0.02em]" style={{ color: MUTED }}>
+    <WhiteCard className={lead ? "min-h-[5.5rem] px-4 py-4" : "px-3 py-3"}>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <p
-        className={lead ? "mt-1 text-[1.45rem] font-bold tabular-nums tracking-[-0.03em]" : "mt-1 text-[1.15rem] font-bold tabular-nums tracking-[-0.03em]"}
-        style={{ color: INK }}
+        className={cn(
+          "mt-1 font-bold tabular-nums tracking-tight text-foreground",
+          lead ? "text-2xl" : "text-lg",
+        )}
       >
         {value}
       </p>
@@ -107,7 +109,7 @@ export function CustomerInsightsColumn({
   if (!customer) {
     return (
       <WhiteCard className="px-5 py-10">
-        <p className="max-w-[65ch] text-[15px] leading-relaxed" style={{ color: INK }}>
+        <p className="max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
           Select a customer to see visits, items bought, favourite products, and purchase history.
         </p>
       </WhiteCard>
@@ -131,39 +133,32 @@ export function CustomerInsightsColumn({
 
           {display.topItem ? (
             <WhiteCard className="px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[-0.02em]" style={{ color: MUTED }}>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Most bought
               </p>
-              <p className="mt-1 text-[1.2rem] font-bold tracking-[-0.03em]" style={{ color: INK }}>
+              <p className="mt-1 text-lg font-semibold tracking-tight text-foreground">
                 {display.topItem.name}
               </p>
               {display.topItem.sku ? (
-                <p className="font-mono text-[12px]" style={{ color: MUTED }}>
+                <p className="font-mono text-xs text-muted-foreground">
                   {display.topItem.sku}
                 </p>
               ) : null}
-              <p className="mt-2 text-[12px]" style={{ color: MUTED }}>
+              <p className="mt-2 text-xs text-muted-foreground">
                 {Math.round(display.topItem.quantity)} units · {money(display.topItem.spend)}
               </p>
               {display.topItems.length > 1 ? (
-                <ul className="mt-3 space-y-2 border-t border-[#eef1f4] pt-3">
+                <ul className="mt-3 space-y-2 border-t border-border/60 pt-3">
                   {display.topItems.slice(1).map((item) => {
                     const pct = Math.max((item.quantity / maxQty) * 100, 4);
                     return (
                       <li key={item.key}>
-                        <div className="flex items-center justify-between gap-2 text-[12px]" style={{ color: MUTED }}>
+                        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                           <span className="min-w-0 truncate">{item.name}</span>
                           <span className="tabular-nums">{Math.round(item.quantity)}</span>
                         </div>
-                        <div className="mt-1 h-2 w-full bg-[#d5deea]">
-                          <div
-                            className="h-2 origin-left"
-                            style={{
-                              width: "100%",
-                              transform: `scaleX(${pct / 100})`,
-                              background: "#2a6aa3",
-                            }}
-                          />
+                        <div className="mt-1">
+                          <CrmBar pct={pct} />
                         </div>
                       </li>
                     );
@@ -174,9 +169,9 @@ export function CustomerInsightsColumn({
           ) : null}
 
           {spendRow?.cohort ? (
-            <p className="text-[12px] text-white/90">
+            <p className="text-xs text-muted-foreground">
               30-day pattern:{" "}
-              <span className="font-semibold text-white capitalize">
+              <span className="font-medium capitalize text-foreground">
                 {String(spendRow.cohort).replace(/_/g, " ")}
               </span>
             </p>

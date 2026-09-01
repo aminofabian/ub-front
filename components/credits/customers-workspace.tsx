@@ -16,8 +16,8 @@ import {
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
+  DashboardPageHero,
 } from "@/components/dashboard-page-ui";
-import { NAVY, INK } from "@/components/credits/customer-board-theme";
 import { CustomerBulkSmsDrawer } from "@/components/credits/customer-bulk-sms-drawer";
 import { CustomerContactColumn } from "@/components/credits/customer-contact-column";
 import { CustomerCreateDialog } from "@/components/credits/customer-create-dialog";
@@ -65,7 +65,6 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   const {
     loading,
     business,
-    me,
     canViewCustomers,
     canManageCustomers,
     canManageCreditSettings,
@@ -280,120 +279,102 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] pb-16">
+    <div className="mx-auto w-full max-w-[1280px] px-2 pb-16 pt-2 sm:px-4 sm:pt-3">
       {message ? (
         <div className="mb-3">
           <DashboardFeedback kind={message.kind} text={message.text} />
         </div>
       ) : null}
 
-      <div
-        className={cn(
-          "overflow-hidden rounded-none p-4 sm:p-5",
-          refreshing && "opacity-80",
-        )}
-        style={{ background: NAVY }}
-      >
-        <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex size-12 shrink-0 items-center justify-center bg-white">
-              <Users className="size-6" aria-hidden style={{ color: INK }} />
-            </span>
-            <h1 className="min-w-0 font-sans text-[1.4rem] font-bold uppercase leading-tight tracking-[-0.02em] text-white sm:text-[1.75rem]">
-              Customer directory
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="hidden text-[11px] font-medium uppercase tracking-[-0.02em] text-white/85 sm:block">
-              {me?.name || business?.name || ""}
-            </p>
-            {canViewAnalytics ? (
-              <Link
-                href={APP_ROUTES.analyticsCustomers}
-                className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline"
-              >
-                Shoppers
-              </Link>
-            ) : null}
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <DashboardPageHero
+          compact
+          icon={Users}
+          eyebrow="Credits"
+          title="Customer directory"
+          description={
+            <>
+              {visibleRows.length.toLocaleString("en-KE")} customer
+              {visibleRows.length === 1 ? "" : "s"} in view
+              {periodLabel ? ` · ${periodLabel}` : ""}.
+              {focusedCustomer
+                ? ` ${focusedCustomer.name} — purchases in the centre, contact on the right.`
+                : " Pick someone from the list."}
+            </>
+          }
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          {canViewAnalytics ? (
             <Link
-              href={APP_ROUTES.customerSegments}
-              className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline"
+              href={APP_ROUTES.analyticsCustomers}
+              className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             >
-              Segments
+              Shoppers
             </Link>
+          ) : null}
+          <Link
+            href={APP_ROUTES.customerSegments}
+            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Segments
+          </Link>
+          <Link
+            href={APP_ROUTES.customerPhones}
+            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Phones
+          </Link>
+          {canReviewPaymentClaims ? (
             <Link
-              href={APP_ROUTES.customerPhones}
-              className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline"
+              href={APP_ROUTES.creditsPaymentClaims}
+              className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             >
-              Phones
+              Claims
             </Link>
-            {canReviewPaymentClaims ? (
-              <Link
-                href={APP_ROUTES.creditsPaymentClaims}
-                className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline"
-              >
-                Claims
-              </Link>
-            ) : null}
-            <button
-              type="button"
-              className="flex size-11 items-center justify-center text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
-              onClick={() => {
-                setRefreshKey((k) => k + 1);
-              }}
-              disabled={refreshing}
-              aria-label="Refresh"
-            >
-              <RefreshCw
-                className={cn("size-4", refreshing && "animate-spin")}
-                aria-hidden
-              />
-            </button>
-            {canManageCustomers ? (
-              <Button
-                type="button"
-                size="sm"
-                className="h-11 rounded-none bg-white hover:bg-white/90"
-                style={{ color: INK }}
-                onClick={() => setCreateOpen(true)}
-              >
-                <Plus className="size-4" />
-                New
-              </Button>
-            ) : null}
+          ) : null}
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="size-9"
+            onClick={() => setRefreshKey((k) => k + 1)}
+            disabled={refreshing}
+            aria-label="Refresh"
+          >
+            <RefreshCw
+              className={cn("size-4", refreshing && "animate-spin")}
+              aria-hidden
+            />
+          </Button>
+          {canManageCustomers ? (
+            <Button type="button" size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
+              <Plus className="size-4" />
+              New
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setMessagingOpen(true)}
+          >
+            <MessageCircle className="size-4" />
+          </Button>
+          {canManageCustomers && selectedIds.size > 0 ? (
             <Button
               type="button"
               size="sm"
               variant="outline"
-              className="h-11 rounded-none border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
-              onClick={() => setMessagingOpen(true)}
+              onClick={() => setSmsOpen(true)}
             >
-              <MessageCircle className="size-4" />
+              <MessageSquare className="size-4" />
+              {selectedIds.size}
             </Button>
-            {canManageCustomers && selectedIds.size > 0 ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-11 rounded-none border-white/30 bg-transparent text-white hover:bg-white/10"
-                onClick={() => setSmsOpen(true)}
-              >
-                <MessageSquare className="size-4" />
-                {selectedIds.size}
-              </Button>
-            ) : null}
-          </div>
-        </header>
+          ) : null}
+        </div>
+      </div>
 
-        <p className="mb-5 max-w-[72ch] text-[15px] leading-relaxed text-white">
-          {visibleRows.length.toLocaleString("en-KE")} customer
-          {visibleRows.length === 1 ? "" : "s"} in view
-          {periodLabel ? ` · ${periodLabel}` : ""}.
-          {focusedCustomer
-            ? ` Showing ${focusedCustomer.name} — purchases in the centre, contact on the right.`
-            : " Pick someone from the list to open their story."}
-        </p>
-
+      <div className={cn(refreshing && "opacity-90")}>
         <div className="grid gap-4 lg:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)_minmax(14rem,16rem)]">
           {!isLg ? (
             <>
@@ -402,7 +383,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
                 <div>
                   <button
                     type="button"
-                    className="mb-2 flex items-center gap-2 text-[12px] text-white/85"
+                    className="mb-2 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                     onClick={() => setMobilePane("list")}
                   >
                     <ArrowLeft className="size-4" />
@@ -419,7 +400,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
                 <div>
                   <button
                     type="button"
-                    className="mb-2 flex items-center gap-2 text-[12px] text-white/85"
+                    className="mb-2 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                     onClick={() => setMobilePane("list")}
                   >
                     <ArrowLeft className="size-4" />
@@ -444,7 +425,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
       </div>
 
       {!isLg && focusedCustomer && mobilePane === "list" ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 flex border-t border-white/20" style={{ background: NAVY }}>
+        <div className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-background/95 backdrop-blur-sm">
           {(
             [
               ["insights", "Purchases"],
@@ -454,7 +435,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
             <button
               key={pane}
               type="button"
-              className="flex-1 py-3 text-center text-[13px] font-medium text-white/85 hover:bg-white/10 hover:text-white"
+              className="flex-1 py-3 text-center text-sm font-medium text-foreground hover:bg-muted/60"
               onClick={() => setMobilePane(pane)}
             >
               {label}

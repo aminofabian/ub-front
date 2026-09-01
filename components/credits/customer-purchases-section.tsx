@@ -4,12 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, PackageOpen, Receipt } from "lucide-react";
 
 import { DashboardLoading } from "@/components/dashboard-page-ui";
-import {
-  INK,
-  MUTED,
-  WhiteCard,
-  boardMoney,
-} from "@/components/credits/customer-board-theme";
+import { WhiteCard, boardMoney } from "@/components/credits/customer-board-theme";
 import { Button } from "@/components/ui/button";
 import { fetchCustomerTabPurchases, type TabPurchaseRowRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -88,34 +83,25 @@ export function CustomerPurchasesSection({
     <div
       className={cn(
         "flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5",
-        isBoard ? "border-b border-[#eef1f4]" : "border-b border-border/60 bg-muted/30",
+        "border-b border-border/60",
+        !isBoard && "bg-muted/30",
       )}
     >
       <div>
         <h2
           className={cn(
-            "text-sm font-semibold",
-            isBoard && "text-[11px] font-semibold uppercase tracking-[-0.02em]",
+            "font-semibold text-foreground",
+            isBoard ? "text-[11px] uppercase tracking-wide text-muted-foreground" : "text-sm",
           )}
-          style={isBoard ? { color: MUTED } : undefined}
         >
           Purchase history
         </h2>
-        <p
-          className={cn("text-xs", !isBoard && "text-muted-foreground")}
-          style={isBoard ? { color: MUTED } : undefined}
-        >
+        <p className="text-xs text-muted-foreground">
           Sales linked at checkout — cash, M-Pesa, tab, and wallet
         </p>
       </div>
       {!loading && rows.length > 0 ? (
-        <span
-          className={cn(
-            "px-2.5 py-0.5 text-xs font-medium tabular-nums",
-            isBoard ? "bg-[#eef1f4]" : "rounded-full bg-muted text-muted-foreground",
-          )}
-          style={isBoard ? { color: INK } : undefined}
-        >
+        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
           {rows.length}
           {hasMore ? "+" : ""} sale{rows.length === 1 ? "" : "s"}
         </span>
@@ -126,38 +112,18 @@ export function CustomerPurchasesSection({
   const body = loading ? (
     <DashboardLoading label="Loading purchases…" />
   ) : error ? (
-    <p
-      className={cn(
-        "px-5 py-8 text-center text-sm",
-        isBoard ? "" : "text-destructive",
-      )}
-      style={isBoard ? { color: INK } : undefined}
-    >
-      {error}
-    </p>
+    <p className="px-5 py-8 text-center text-sm text-destructive">{error}</p>
   ) : rows.length === 0 ? (
     <div className="flex flex-col items-center gap-2 px-5 py-10 text-center">
-      <PackageOpen
-        className={cn("size-8", !isBoard && "text-muted-foreground/40")}
-        style={isBoard ? { color: MUTED } : undefined}
-        aria-hidden
-      />
-      <p
-        className={cn("text-sm font-medium", !isBoard && "text-foreground")}
-        style={isBoard ? { color: INK } : undefined}
-      >
-        No purchases yet
-      </p>
-      <p
-        className={cn("max-w-sm text-xs", !isBoard && "text-muted-foreground")}
-        style={isBoard ? { color: MUTED } : undefined}
-      >
+      <PackageOpen className="size-8 text-muted-foreground/40" aria-hidden />
+      <p className="text-sm font-medium text-foreground">No purchases yet</p>
+      <p className="max-w-sm text-xs text-muted-foreground">
         Sales appear here when the till attaches this customer at checkout.
       </p>
     </div>
   ) : (
     <>
-      <ul className={cn(isBoard ? "divide-y divide-[#eef1f4]" : "divide-y divide-border/50")}>
+      <ul className="divide-y divide-border/50">
         {rows.map((row) => {
           const open = openSaleId === row.saleId;
           const tabAmount = Number(row.creditAmount);
@@ -165,91 +131,40 @@ export function CustomerPurchasesSection({
             <li key={row.saleId}>
               <button
                 type="button"
-                className={cn(
-                  "flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors sm:px-5",
-                  isBoard ? "hover:bg-[#f4f7fb]" : "hover:bg-muted/30",
-                )}
+                className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/30 sm:px-5"
                 aria-expanded={open}
                 onClick={() => setOpenSaleId(open ? null : row.saleId)}
               >
-                <span
-                  className={cn(
-                    "mt-0.5 flex size-8 shrink-0 items-center justify-center border",
-                    isBoard
-                      ? "border-[#d5deea] bg-[#f4f7fb]"
-                      : "rounded-lg border-border/50 bg-muted/40",
-                  )}
-                >
-                  <Receipt
-                    className={cn("size-4", !isBoard && "text-muted-foreground")}
-                    style={isBoard ? { color: MUTED } : undefined}
-                  />
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/40">
+                  <Receipt className="size-4 text-muted-foreground" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p
-                    className="text-sm font-semibold"
-                    style={isBoard ? { color: INK } : undefined}
-                  >
+                  <p className="text-sm font-semibold text-foreground">
                     {row.receiptNo != null ? `Receipt #${row.receiptNo}` : "Sale"}
-                    <span
-                      className={cn(
-                        "ml-2 font-normal tabular-nums",
-                        !isBoard && "text-muted-foreground",
-                      )}
-                      style={isBoard ? { color: MUTED } : undefined}
-                    >
+                    <span className="ml-2 font-normal tabular-nums text-muted-foreground">
                       {fmtMoney(row.grandTotal)}
                     </span>
                   </p>
-                  <p
-                    className={cn(
-                      "mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs",
-                      !isBoard && "text-muted-foreground",
-                    )}
-                    style={isBoard ? { color: MUTED } : undefined}
-                  >
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                     <span>{new Date(row.soldAt).toLocaleString()}</span>
                     {tabAmount > 0 ? (
-                      <span
-                        className={cn(
-                          "px-1.5 py-0.5 font-medium",
-                          isBoard
-                            ? "bg-[#fff4e5] text-[#8a5a00]"
-                            : "rounded-full bg-amber-50 text-amber-800 ring-1 ring-amber-200/70 dark:bg-amber-950/40 dark:text-amber-200",
-                        )}
-                      >
+                      <span className="rounded-full bg-amber-50 px-1.5 py-0.5 font-medium text-amber-800 ring-1 ring-amber-200/70 dark:bg-amber-950/40 dark:text-amber-200">
                         Tab {fmtMoney(tabAmount)}
                       </span>
                     ) : null}
                   </p>
                 </div>
                 {open ? (
-                  <ChevronDown
-                    className={cn("mt-1 size-4 shrink-0", !isBoard && "text-muted-foreground")}
-                    style={isBoard ? { color: MUTED } : undefined}
-                  />
+                  <ChevronDown className="mt-1 size-4 shrink-0 text-muted-foreground" />
                 ) : (
-                  <ChevronRight
-                    className={cn("mt-1 size-4 shrink-0", !isBoard && "text-muted-foreground")}
-                    style={isBoard ? { color: MUTED } : undefined}
-                  />
+                  <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
                 )}
               </button>
               {open ? (
-                <div
-                  className={cn(
-                    "border-t px-4 py-3 sm:px-5 sm:pl-[4.25rem]",
-                    isBoard
-                      ? "border-[#eef1f4] bg-[#f8fafc]"
-                      : "border-border/40 bg-muted/10",
-                  )}
-                >
+                <div className="border-t border-border/40 bg-muted/10 px-4 py-3 sm:px-5 sm:pl-[4.25rem]">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr
-                        className={cn("text-xs", !isBoard && "text-muted-foreground")}
-                        style={isBoard ? { color: MUTED } : undefined}
-                      >
+                      <tr className="text-xs text-muted-foreground">
                         <th className="pb-2 font-medium">Item</th>
                         <th className="pb-2 font-medium">Qty</th>
                         <th className="pb-2 text-right font-medium">Total</th>
@@ -259,38 +174,20 @@ export function CustomerPurchasesSection({
                       {row.lines.map((line, index) => (
                         <tr
                           key={`${row.saleId}-${index}`}
-                          className={cn(
-                            index > 0 &&
-                              (isBoard ? "border-t border-[#eef1f4]" : "border-t border-border/30"),
-                          )}
+                          className={cn(index > 0 && "border-t border-border/30")}
                         >
-                          <td className="py-2 pr-3" style={isBoard ? { color: INK } : undefined}>
+                          <td className="py-2 pr-3 text-foreground">
                             {line.itemName}
                             {line.itemSku ? (
-                              <span
-                                className={cn(
-                                  "mt-0.5 block font-mono text-[11px]",
-                                  !isBoard && "text-muted-foreground",
-                                )}
-                                style={isBoard ? { color: MUTED } : undefined}
-                              >
+                              <span className="mt-0.5 block font-mono text-[11px] text-muted-foreground">
                                 {line.itemSku}
                               </span>
                             ) : null}
                           </td>
-                          <td
-                            className={cn(
-                              "py-2 pr-3 tabular-nums",
-                              !isBoard && "text-muted-foreground",
-                            )}
-                            style={isBoard ? { color: MUTED } : undefined}
-                          >
+                          <td className="py-2 pr-3 tabular-nums text-muted-foreground">
                             {line.quantity}
                           </td>
-                          <td
-                            className="py-2 text-right tabular-nums"
-                            style={isBoard ? { color: INK } : undefined}
-                          >
+                          <td className="py-2 text-right tabular-nums text-foreground">
                             {fmtMoney(line.lineTotal)}
                           </td>
                         </tr>
@@ -304,17 +201,11 @@ export function CustomerPurchasesSection({
         })}
       </ul>
       {hasMore ? (
-        <div
-          className={cn(
-            "border-t px-4 py-3 sm:px-5",
-            isBoard ? "border-[#eef1f4]" : "border-border/50",
-          )}
-        >
+        <div className="border-t border-border/50 px-4 py-3 sm:px-5">
           <Button
             type="button"
             variant="outline"
-            className={cn("w-full", isBoard ? "rounded-none border-[#d5deea]" : "rounded-xl")}
-            style={isBoard ? { color: INK } : undefined}
+            className="w-full"
             disabled={loadingMore}
             onClick={() => void loadMore()}
           >
