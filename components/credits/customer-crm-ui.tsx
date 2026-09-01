@@ -8,8 +8,7 @@ export const CRM_WORKSPACE_SHELL = cn(
 
 export const CRM_GRID = cn(
   "grid min-h-0 flex-1 gap-0",
-  "lg:grid-cols-[minmax(13.5rem,15rem)_minmax(0,1fr)]",
-  "xl:grid-cols-[minmax(13.5rem,15rem)_minmax(0,1fr)_minmax(17rem,20rem)]",
+  "lg:grid-cols-[minmax(16rem,18rem)_minmax(0,1fr)_minmax(17rem,20rem)]",
   "lg:items-stretch lg:overflow-hidden",
 );
 
@@ -26,9 +25,9 @@ export const CRM_MAIN = cn(
 );
 
 export const CRM_INSPECTOR = cn(
-  "hidden min-h-0 min-w-0 flex-col",
+  "flex min-h-0 min-w-0 flex-col",
   "border-t border-border/60 bg-muted/10",
-  "xl:flex xl:border-l xl:border-t-0 xl:overflow-y-auto",
+  "lg:border-l lg:border-t-0 lg:overflow-y-auto",
 );
 
 export const CRM_PANEL = cn(
