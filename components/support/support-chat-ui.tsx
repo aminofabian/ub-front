@@ -309,28 +309,14 @@ function ReplyQuote({
       type="button"
       onClick={onJump}
       className={cn(
-        "mb-2 flex w-full max-w-full items-stretch gap-2 rounded-lg border-l-[3px] px-2.5 py-1.5 text-left transition-colors",
-        mine
-          ? "border-primary-foreground/70 bg-primary-foreground/12 hover:bg-primary-foreground/18"
-          : "border-primary/70 bg-primary/[0.06] hover:bg-primary/[0.1]",
-        onJump && "cursor-pointer",
+        "mb-2 flex w-full max-w-full items-stretch gap-2 rounded-md px-2.5 py-1.5 text-left transition-colors",
+        mine ? "support-reply-quote--out" : "support-reply-quote--in",
+        onJump && "cursor-pointer hover:brightness-[1.03]",
       )}
     >
       <span className="min-w-0 flex-1">
-        <span
-          className={cn(
-            "block truncate text-[11px] font-semibold",
-            mine ? "text-primary-foreground/90" : "text-primary",
-          )}
-        >
-          {label}
-        </span>
-        <span
-          className={cn(
-            "mt-0.5 block truncate text-[12px] leading-snug",
-            mine ? "text-primary-foreground/75" : "text-muted-foreground",
-          )}
-        >
+        <span className="block truncate text-[11px] font-semibold">{label}</span>
+        <span className="support-reply-quote-body mt-0.5 block truncate text-[12px] leading-snug">
           {preview}
         </span>
       </span>
@@ -445,9 +431,9 @@ export function MessageBubble({
       ) : !mine ? (
         <span className="mb-5 size-7 shrink-0" aria-hidden />
       ) : null}
-      <div className={cn("flex max-w-[min(84%,22.5rem)] flex-col", mine ? "items-end" : "items-start")}>
+      <div className={cn("flex min-w-0 flex-col", mine ? "items-end" : "items-start")}>
         {!mine && message.senderName && clusterPosition !== "middle" && clusterPosition !== "last" ? (
-          <p className="mb-1 px-1 text-[11px] font-semibold tracking-wide text-primary/90">
+          <p className="mb-1 px-1 text-[11px] font-semibold tracking-wide text-emerald-800/80 dark:text-emerald-300/90">
             {message.senderName}
           </p>
         ) : null}
@@ -458,7 +444,7 @@ export function MessageBubble({
               onClick={() => onReply(message)}
               aria-label="Reply to this message"
               className={cn(
-                "absolute top-1/2 z-10 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-card/95 text-muted-foreground shadow-sm backdrop-blur-sm transition-all",
+                "absolute top-1/2 z-10 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-white text-slate-600 shadow-sm transition-all dark:bg-neutral-800 dark:text-neutral-300",
                 "opacity-0 group-hover/msg:opacity-100 focus-visible:opacity-100",
                 mine ? "-left-9" : "-right-9",
                 "hover:border-primary/35 hover:bg-primary/[0.08] hover:text-primary",
@@ -469,17 +455,15 @@ export function MessageBubble({
           ) : null}
           <div
             className={cn(
-              "relative px-3.5 py-2.5 text-[13.5px] leading-[1.45]",
+              "support-bubble",
               bubbleRadius(mine, clusterPosition),
-              mine
-                ? "bg-[linear-gradient(145deg,hsl(var(--primary))_0%,hsl(var(--primary)/0.92)_100%)] text-primary-foreground shadow-[0_3px_14px_-6px_rgba(40,167,69,0.65)]"
-                : "border border-border/50 bg-card/95 text-foreground shadow-[0_2px_10px_-8px_rgba(15,23,42,0.18)] backdrop-blur-[2px]",
+              mine ? "support-bubble--out" : "support-bubble--in",
               isPending && "opacity-70",
-              isFailed && "border-destructive/40 bg-destructive/5 text-foreground opacity-100 shadow-none",
+              isFailed && "border-destructive/40 !bg-destructive/10 !text-foreground opacity-100 shadow-none",
             )}
           >
             {!mine && message.senderName && (clusterPosition === "middle" || clusterPosition === "last") ? (
-              <p className="mb-1 text-[11px] font-semibold tracking-wide text-primary/90">
+              <p className="mb-1 text-[11px] font-semibold tracking-wide text-emerald-700 dark:text-emerald-400">
                 {message.senderName}
               </p>
             ) : null}
@@ -500,12 +484,7 @@ export function MessageBubble({
             {message.body?.trim() ? (
               <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.body}</p>
             ) : null}
-            <span
-              className={cn(
-                "mt-1.5 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums",
-                mine && !isFailed ? "text-primary-foreground/75" : "text-muted-foreground",
-              )}
-            >
+            <span className="support-bubble-time mt-1.5 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums">
               <span>{chatTime(message.createdAt)}</span>
               {mine ? (
                 isFailed ? (
@@ -755,7 +734,7 @@ export function TypingBubble({ label }: { label: string }) {
   return (
     <div className="flex w-full items-end gap-2 animate-in fade-in duration-200">
       <span className="mb-1 size-7 shrink-0" aria-hidden />
-      <div className="rounded-[1.2rem] rounded-bl-md border border-border/60 bg-card px-4 py-3 shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
+      <div className="support-bubble support-bubble--in rounded-[1.15rem] rounded-bl-[0.35rem] px-4 py-3">
         <span className="flex items-center gap-1.5" aria-label={label}>
           {[0, 1, 2].map((i) => (
             <span
@@ -1244,19 +1223,7 @@ export function ChatThreadSurface({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "relative min-h-0 flex-1 overflow-hidden",
-        "bg-[radial-gradient(120%_80%_at_50%_-10%,rgba(40,167,69,0.09),transparent_55%)]",
-        "bg-[linear-gradient(180deg,rgba(248,250,252,0.55)_0%,rgba(241,245,249,0.35)_100%)]",
-        "dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.35)_0%,rgba(15,23,42,0.15)_100%)]",
-        className,
-      )}
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:radial-gradient(circle_at_1px_1px,rgba(15,23,42,0.07)_1px,transparent_0)] [background-size:22px_22px] dark:opacity-[0.2] dark:[background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.06)_1px,transparent_0)]"
-      />
+    <div className={cn("support-chat-wallpaper relative min-h-0 flex-1 overflow-hidden", className)}>
       <div className="relative z-[1] h-full">{children}</div>
     </div>
   );

@@ -1404,7 +1404,7 @@ export function SaSupportInbox() {
         </div>
       ) : null}
 
-      <div className="relative min-h-0 flex-1 bg-muted/20">
+      <div className="relative min-h-0 flex-1 support-chat-wallpaper">
         <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto px-3 py-4 sm:px-5">
           {detailLoading ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
