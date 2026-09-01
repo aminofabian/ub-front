@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export const crmPanelClass =
-  "overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]";
+  "overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm";
 
-/** @deprecated Use crmPanelClass — kept for imports that expect WhiteCard */
+/** @deprecated Use DirectoryPanel from directory-workspace-ui */
 export function WhiteCard({
   children,
   className,
@@ -26,11 +26,11 @@ export function CrmBar({
   warn?: boolean;
 }) {
   return (
-    <div className={cn("h-1.5 w-full rounded-full bg-muted", className)}>
+    <div className={cn("h-1 w-full rounded-full bg-muted/80", className)}>
       <div
         className={cn(
-          "h-1.5 origin-left rounded-full",
-          warn ? "bg-amber-500/80" : "bg-foreground/55",
+          "h-1 origin-left rounded-full",
+          warn ? "bg-amber-500/75" : "bg-foreground/45",
         )}
         style={{
           width: "100%",
@@ -60,11 +60,11 @@ export function BoardFilterButton({
       onClick={onClick}
       aria-pressed={ariaPressed ?? selected}
       className={cn(
-        "rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        compact ? "min-h-9 px-3 text-[12px]" : "min-h-10 px-3 text-[13px]",
+        "rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        compact ? "h-7 px-2 text-[11px]" : "h-8 px-2.5 text-xs",
         selected
-          ? "bg-foreground text-background"
-          : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? "bg-foreground text-background shadow-sm"
+          : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
       {children}
@@ -80,11 +80,13 @@ export function NavySidebarSection({
   children: ReactNode;
 }) {
   return (
-    <section className={cn(crmPanelClass, "p-3")}>
-      <h2 className="pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <section className="space-y-1">
+      <p className="px-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {title}
-      </h2>
-      <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">{children}</div>
+      </p>
+      <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto rounded-lg border border-border/60 bg-muted/20 p-1">
+        {children}
+      </div>
     </section>
   );
 }
@@ -113,11 +115,11 @@ export function NavyRadioOption({
       />
       <span
         className={cn(
-          "flex min-h-10 cursor-pointer items-center rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
-          "peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2",
+          "flex h-8 cursor-pointer items-center rounded-md px-2 text-xs font-medium transition-colors",
+          "peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-1",
           checked
             ? "bg-foreground text-background"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
         )}
       >
         {label}

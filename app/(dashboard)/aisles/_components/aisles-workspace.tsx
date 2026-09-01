@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   MapPin,
   Plus,
   RefreshCw,
@@ -13,9 +11,15 @@ import {
   DashboardFeedback,
   DashboardLoadError,
   DashboardLoading,
-  DashboardPageHero,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
+import {
+  DirectoryBackButton,
+  DirectoryColumn,
+  DirectoryMobileTabs,
+  DirectoryToolbar,
+  directoryFrameClass,
+} from "@/components/credits/directory-workspace-ui";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -330,145 +334,136 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] px-2 pb-16 pt-2 sm:px-4 sm:pt-3">
+    <div className="mx-auto w-full max-w-[1320px] px-2 pb-14 pt-1 sm:px-3 sm:pt-2">
       {feedback ? (
-        <div className="mb-3">
+        <div className="mb-2">
           <DashboardFeedback kind={feedback.kind} text={feedback.text} />
         </div>
       ) : null}
 
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <DashboardPageHero
-          compact
-          icon={MapPin}
-          eyebrow="Catalog"
-          title="Shelf zones"
-          description={summary}
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={APP_ROUTES.products}
-            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          >
-            Products
-          </Link>
-          <Link
-            href={APP_ROUTES.categories}
-            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          >
-            Categories
-          </Link>
-          <Link
-            href={APP_ROUTES.itemTypes}
-            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          >
-            Departments
-          </Link>
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            className="size-9"
-            onClick={() => void load()}
-            disabled={loading}
-            aria-label="Refresh"
-          >
-            <RefreshCw
-              className={cn("size-4", loading && "animate-spin")}
-              aria-hidden
-            />
-          </Button>
-          {canWrite ? (
+      <DirectoryToolbar
+        icon={MapPin}
+        eyebrow="Catalog"
+        title="Shelf zones"
+        meta={summary}
+        links={[
+          { href: APP_ROUTES.products, label: "Products" },
+          { href: APP_ROUTES.categories, label: "Categories" },
+          { href: APP_ROUTES.itemTypes, label: "Departments" },
+        ]}
+        actions={
+          <>
             <Button
               type="button"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => {
-                setCreateName("");
-                setCreateCode("");
-                setCreateOpen(true);
-              }}
+              size="icon"
+              variant="outline"
+              className="size-8"
+              onClick={() => void load()}
+              disabled={loading}
+              aria-label="Refresh"
             >
-              <Plus className="size-4" />
-              New zone
+              <RefreshCw
+                className={cn("size-3.5", loading && "animate-spin")}
+                aria-hidden
+              />
             </Button>
-          ) : null}
-        </div>
-      </div>
+            {canWrite ? (
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 gap-1 text-xs"
+                onClick={() => {
+                  setCreateName("");
+                  setCreateCode("");
+                  setCreateOpen(true);
+                }}
+              >
+                <Plus className="size-3.5" />
+                New
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
       {loading && aisles.length === 0 ? (
         <DashboardLoading label="Loading shelf zones…" />
       ) : aisles.length === 0 ? (
-        <div className="flex flex-col items-center rounded-xl border border-dashed border-border/80 px-4 py-16 text-center">
-          <div className="flex size-12 items-center justify-center rounded-xl border border-border/60 bg-muted/40">
-            <MapPin className="size-5 text-muted-foreground" aria-hidden />
+        <div className="flex flex-col items-center rounded-2xl border border-dashed border-border/80 px-4 py-12 text-center">
+          <div className="flex size-10 items-center justify-center rounded-lg border border-border/60 bg-muted/40">
+            <MapPin className="size-4 text-muted-foreground" aria-hidden />
           </div>
-          <h2 className="mt-4 text-lg font-semibold text-foreground">No zones yet</h2>
-          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
-            Create your first walk stop — e.g. front beverages, back wall dairy.
+          <h2 className="mt-3 text-base font-semibold text-foreground">No zones yet</h2>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+            Create walk stops — e.g. front beverages, back wall dairy.
           </p>
           {canWrite ? (
-            <Button
-              type="button"
-              className="mt-5 gap-2"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus className="size-4" aria-hidden />
-              New shelf zone
+            <Button type="button" size="sm" className="mt-4 h-8 text-xs" onClick={() => setCreateOpen(true)}>
+              <Plus className="size-3.5" />
+              New zone
             </Button>
           ) : null}
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)]">
-          {!isLg ? (
-            mobileDetailOpen && selected ? (
-              <div className="min-w-0 lg:order-2">
-                <button
-                  type="button"
-                  className="mb-3 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-                  onClick={() => setMobileDetailOpen(false)}
+        <div className={directoryFrameClass}>
+          <div className="grid min-h-0 flex-1 divide-y lg:grid-cols-[13rem_minmax(0,1fr)] lg:divide-x lg:divide-y-0 divide-border/60">
+            {!isLg ? (
+              mobileDetailOpen && selected ? (
+                <DirectoryColumn title="Aisle" hint={selected.name}>
+                  <DirectoryBackButton
+                    label="All aisles"
+                    onClick={() => setMobileDetailOpen(false)}
+                  />
+                  <AisleDetailColumn
+                    {...detailProps}
+                    allAisles={sortedAisles}
+                    onSelectAisle={selectAisle}
+                  />
+                </DirectoryColumn>
+              ) : (
+                <DirectoryColumn
+                  title="Walk order"
+                  hint="Tap to inspect"
+                  badge={visibleAisles.length}
                 >
-                  <ArrowLeft className="size-4" />
-                  Back to aisles
-                </button>
-                <AisleDetailColumn
-                  {...detailProps}
-                  allAisles={sortedAisles}
-                  onSelectAisle={selectAisle}
-                />
-              </div>
+                  <AisleListColumn {...listProps} />
+                </DirectoryColumn>
+              )
             ) : (
-              <div className="min-w-0 lg:order-1">
-                <AisleListColumn {...listProps} />
-              </div>
-            )
-          ) : (
-            <>
-              <div className="min-w-0 lg:order-1">
-                <AisleListColumn {...listProps} />
-              </div>
-              <div className="min-w-0 lg:order-2">
-                <AisleDetailColumn
-                  {...detailProps}
-                  allAisles={sortedAisles}
-                  onSelectAisle={selectAisle}
-                />
-              </div>
-            </>
-          )}
+              <>
+                <DirectoryColumn
+                  title="Walk order"
+                  hint="Aisles on the floor"
+                  badge={visibleAisles.length}
+                >
+                  <AisleListColumn {...listProps} />
+                </DirectoryColumn>
+                <DirectoryColumn
+                  title="Shelf intelligence"
+                  hint={selected?.name ?? "Pick an aisle"}
+                >
+                  <AisleDetailColumn
+                    {...detailProps}
+                    allAisles={sortedAisles}
+                    onSelectAisle={selectAisle}
+                  />
+                </DirectoryColumn>
+              </>
+            )}
+          </div>
         </div>
       )}
 
       {!isLg && selected && !mobileDetailOpen ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 py-3 text-center backdrop-blur-sm">
-          <button
-            type="button"
-            className="text-sm font-medium text-foreground"
-            onClick={() => setMobileDetailOpen(true)}
-          >
-            View {selected.name}
-          </button>
-        </div>
+        <DirectoryMobileTabs
+          tabs={[
+            {
+              id: "detail",
+              label: selected.name,
+              onClick: () => setMobileDetailOpen(true),
+            },
+          ]}
+        />
       ) : null}
 
       <AisleCreateDrawer

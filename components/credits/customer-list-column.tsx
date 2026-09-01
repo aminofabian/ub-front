@@ -61,52 +61,52 @@ export function CustomerListColumn({
   maxOwed,
 }: Props) {
   return (
-    <div className="flex min-h-0 min-w-0 flex-col gap-3">
-      <div className="space-y-2">
-        <label className="relative block">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => onSearch(e.target.value)}
-            placeholder="Search name, C-number, phone"
-            aria-label="Search customers"
-            className={dashboardInputClass(false, "h-10 pl-9")}
-          />
-        </label>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Origin filter">
-          {(
-            [
-              ["all", "Everyone"],
-              ["inferred", "Inferred"],
-              ["verified", "Verified"],
-            ] as const
-          ).map(([id, label]) => (
-            <BoardFilterButton
-              key={id}
-              compact
-              selected={originFilter === id}
-              onClick={() => onOriginFilter(id)}
-            >
-              {label}
-            </BoardFilterButton>
-          ))}
-        </div>
-        <label className="flex min-h-9 cursor-pointer items-center gap-2 text-[12px] text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={outstandingOnly}
-            onChange={(e) => onOutstandingOnly(e.target.checked)}
-            className={customerTableCheckboxClass("size-3.5")}
-          />
-          Outstanding tab only
-        </label>
+    <div className="flex min-h-0 flex-col gap-2">
+      <label className="relative block">
+        <Search
+          className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+          aria-hidden
+        />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          placeholder="Name, C-no, phone"
+          aria-label="Search customers"
+          className={dashboardInputClass(false, "h-8 pl-8 text-xs")}
+        />
+      </label>
+
+      <div className="flex flex-wrap gap-1" role="group" aria-label="Origin filter">
+        {(
+          [
+            ["all", "All"],
+            ["inferred", "Inferred"],
+            ["verified", "Verified"],
+          ] as const
+        ).map(([id, label]) => (
+          <BoardFilterButton
+            key={id}
+            compact
+            selected={originFilter === id}
+            onClick={() => onOriginFilter(id)}
+          >
+            {label}
+          </BoardFilterButton>
+        ))}
       </div>
 
-      <NavySidebarSection title="Added">
+      <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={outstandingOnly}
+          onChange={(e) => onOutstandingOnly(e.target.checked)}
+          className={customerTableCheckboxClass("size-3")}
+        />
+        Tab balance only
+      </label>
+
+      <NavySidebarSection title="Joined">
         {dateOptions.map(({ id, label }) => (
           <NavyRadioOption
             key={id}
@@ -118,15 +118,13 @@ export function CustomerListColumn({
           />
         ))}
       </NavySidebarSection>
-      <p className="px-0.5 text-[11px] text-muted-foreground">{periodLabel}</p>
+      <p className="px-0.5 text-[10px] text-muted-foreground">{periodLabel}</p>
 
-      <WhiteCard className="min-h-0 flex-1 overflow-hidden">
+      <WhiteCard className="min-h-0 flex-1">
         {loading ? (
-          <p className="px-4 py-8 text-sm text-muted-foreground">Loading…</p>
+          <p className="px-3 py-6 text-xs text-muted-foreground">Loading…</p>
         ) : rows.length === 0 ? (
-          <p className="px-4 py-8 text-sm text-muted-foreground">
-            No customers match this view.
-          </p>
+          <p className="px-3 py-6 text-xs text-muted-foreground">No matches.</p>
         ) : (
           <ul>
             {rows.map((row, index) => {
@@ -138,17 +136,17 @@ export function CustomerListColumn({
                 <li
                   key={row.id}
                   className={cn(
-                    "border-b border-border/50 last:border-0",
-                    focused && "bg-muted/40",
+                    "border-b border-border/40 last:border-0",
+                    focused && "bg-muted/50",
                   )}
                 >
-                  <div className="grid gap-2 px-3 py-3 sm:grid-cols-[auto_minmax(0,1fr)]">
+                  <div className="grid gap-1.5 px-2 py-2 sm:grid-cols-[auto_minmax(0,1fr)]">
                     {canSelect ? (
                       <input
                         type="checkbox"
                         checked={selected}
                         onChange={() => onToggleSelect(row.id)}
-                        className={cn(customerTableCheckboxClass(), "mt-1")}
+                        className={cn(customerTableCheckboxClass(), "mt-0.5 size-3")}
                         aria-label={`Select ${row.name}`}
                       />
                     ) : null}
@@ -157,29 +155,36 @@ export function CustomerListColumn({
                       className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                       onClick={() => onFocus(row.id)}
                     >
-                      <div className="flex items-start gap-2">
-                        <p className="text-[13px] font-semibold tabular-nums text-muted-foreground">
+                      <div className="flex items-start gap-1.5">
+                        <span
+                          className={cn(
+                            "flex size-6 shrink-0 items-center justify-center rounded text-[10px] font-bold tabular-nums",
+                            focused
+                              ? "bg-foreground text-background"
+                              : "bg-muted text-muted-foreground",
+                          )}
+                        >
                           {index + 1}
-                        </p>
+                        </span>
                         <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-baseline gap-x-2">
-                            <p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground">
+                          <div className="flex flex-wrap items-baseline gap-x-1.5">
+                            <p className="truncate text-[13px] font-medium text-foreground">
                               {row.name}
                             </p>
                             {row.customerNo != null ? (
-                              <span className="text-[12px] tabular-nums text-muted-foreground">
+                              <span className="text-[10px] tabular-nums text-muted-foreground">
                                 C-{row.customerNo}
                               </span>
                             ) : null}
                           </div>
                           {owed > 0 ? (
-                            <div className="mt-2">
+                            <div className="mt-1">
                               <CrmBar pct={pct} />
                             </div>
                           ) : null}
-                          <p className="mt-1.5 text-[12px] leading-snug text-muted-foreground">
+                          <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
                             {customerPrimaryPhone(row.phones) || "No phone"}
-                            {owed > 0 ? ` · Owes ${formatKes(owed)}` : ""}
+                            {owed > 0 ? ` · ${formatKes(owed)}` : ""}
                           </p>
                         </div>
                       </div>

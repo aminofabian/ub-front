@@ -8,7 +8,6 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import {
   DashboardFeedback,
-  DashboardPageHero,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import {
@@ -18,6 +17,11 @@ import {
   NavySidebarSection,
   WhiteCard,
 } from "@/components/credits/customer-board-theme";
+import {
+  DirectoryColumn,
+  DirectoryToolbar,
+  directoryFrameClass,
+} from "@/components/credits/directory-workspace-ui";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
@@ -351,39 +355,28 @@ export function CustomerSpendBoard() {
   if (loading) return <BoardSkeleton />;
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] px-2 pb-16 pt-2 sm:px-4 sm:pt-3">
+    <div className="mx-auto w-full max-w-[1320px] px-2 pb-14 pt-1 sm:px-3 sm:pt-2">
       {error ? (
-        <div className="mb-3">
+        <div className="mb-2">
           <DashboardFeedback kind="error" text={error} />
         </div>
       ) : null}
 
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <DashboardPageHero
-          compact
-          icon={Users}
-          eyebrow="Analytics"
-          title="Who shops here"
-          description={summary}
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={APP_ROUTES.analytics}
-            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          >
-            Analytics
-          </Link>
-          <Link
-            href={APP_ROUTES.analyticsActivity}
-            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          >
-            Activity
-          </Link>
+      <DirectoryToolbar
+        icon={Users}
+        eyebrow="Analytics"
+        title="Shoppers"
+        meta={summary}
+        links={[
+          { href: APP_ROUTES.analytics, label: "Overview" },
+          { href: APP_ROUTES.analyticsActivity, label: "Activity" },
+        ]}
+        actions={
           <Button
             type="button"
             size="icon"
             variant="outline"
-            className="size-9"
+            className="size-8"
             onClick={() => {
               setRefreshing(true);
               void load();
@@ -392,19 +385,24 @@ export function CustomerSpendBoard() {
             aria-label="Refresh"
           >
             <RefreshCw
-              className={cn("size-4", refreshing && "animate-spin")}
+              className={cn("size-3.5", refreshing && "animate-spin")}
               aria-hidden
             />
           </Button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className={cn(refreshing && "opacity-90")}>
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem]">
-          <div className="min-w-0 space-y-4">
-            <div className="flex flex-col gap-2">
+      <div className={cn(directoryFrameClass, refreshing && "opacity-90")}>
+        <div className="grid min-h-0 flex-1 divide-y lg:grid-cols-[minmax(0,1fr)_12.5rem] lg:divide-x lg:divide-y-0 divide-border/60">
+          <DirectoryColumn
+            title="Ranking"
+            hint={rangeLabel || "Pick a period"}
+            badge={filtered.length}
+            className="lg:order-1"
+          >
+            <div className="flex min-h-0 flex-col gap-2">
               <div
-                className="flex flex-wrap gap-1.5"
+                className="flex flex-wrap gap-1"
                 role="group"
                 aria-label="Sort shoppers"
               >
@@ -419,7 +417,7 @@ export function CustomerSpendBoard() {
                 ))}
               </div>
               <div
-                className="flex flex-wrap gap-1.5"
+                className="flex flex-wrap gap-1"
                 role="group"
                 aria-label="Filter by shopping pattern"
               >
@@ -434,9 +432,9 @@ export function CustomerSpendBoard() {
                   </BoardFilterButton>
                 ))}
               </div>
-              <label className="relative block max-w-md">
+              <label className="relative block max-w-sm">
                 <Search
-                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                  className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
                   aria-hidden
                 />
                 <span className="sr-only">Search shoppers</span>
@@ -444,14 +442,13 @@ export function CustomerSpendBoard() {
                   type="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search name, C-number, or phone mask"
-                  className={dashboardInputClass(false, "h-10 pl-9")}
+                  placeholder="Name, C-number, phone mask"
+                  className={dashboardInputClass(false, "h-8 pl-8 text-sm")}
                 />
               </label>
-            </div>
 
             {filtered.length === 0 ? (
-              <WhiteCard className="px-5 py-10">
+              <WhiteCard className="px-4 py-8">
                 <p className="max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
                   {data && (data.rows?.length ?? 0) > 0
                     ? "No shopper matches that search or filter. Clear it to see the full ranking."
@@ -461,22 +458,22 @@ export function CustomerSpendBoard() {
             ) : (
               <>
                 {podium.length > 0 ? (
-                  <ol className="grid gap-3 md:grid-cols-3">
+                  <ol className="grid gap-2 sm:grid-cols-3">
                     {podium.map((row, index) => {
                       const lead = index === 0;
                       const href = customerHref(row.customerId);
                       const card = (
                             <WhiteCard
                               className={cn(
-                                "flex h-full flex-col justify-between px-4 py-4",
-                                lead ? "min-h-[9.5rem]" : "min-h-[8rem]",
+                                "flex h-full flex-col justify-between px-3 py-3",
+                                lead ? "min-h-[7.5rem]" : "min-h-[6.5rem]",
                               )}
                             >
-                              <div className="flex items-start gap-3">
+                              <div className="flex items-start gap-2.5">
                                 <p
                                   className={cn(
                                     "tabular-nums font-bold tracking-tight text-foreground",
-                                    lead ? "text-3xl leading-none" : "text-2xl leading-none",
+                                    lead ? "text-2xl leading-none" : "text-xl leading-none",
                                   )}
                                 >
                                   {index + 1}
@@ -484,16 +481,16 @@ export function CustomerSpendBoard() {
                                 <div className="min-w-0">
                                   <p
                                     className={cn(
-                                      "font-semibold tracking-tight text-foreground",
-                                      lead ? "text-xl leading-tight" : "text-lg leading-tight",
+                                      "truncate font-semibold tracking-tight text-foreground",
+                                      lead ? "text-base leading-tight" : "text-sm leading-tight",
                                     )}
                                   >
                                     {row.name}
                                   </p>
-                                  <p className="mt-1 text-xl font-bold tabular-nums tracking-tight text-foreground">
+                                  <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-foreground">
                                     {money(row.spend)}
                                   </p>
-                                  <p className="mt-1 text-xs text-muted-foreground">
+                                  <p className="mt-0.5 text-[11px] text-muted-foreground">
                                     {row.saleCount} till
                                     {row.saleCount === 1 ? "" : "s"}
                                     {row.weekStreak > 1
@@ -533,15 +530,15 @@ export function CustomerSpendBoard() {
                       const no = customerNoLabel(row.customerNo);
                       const href = customerHref(row.customerId);
                       const rowClass =
-                        "grid gap-3 px-4 py-3.5 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto]";
+                        "grid gap-2 px-3 py-2.5 sm:grid-cols-[1.75rem_minmax(0,1fr)_auto]";
                       const body = (
                         <>
-                            <p className="text-[13px] font-semibold tabular-nums text-muted-foreground">
+                            <p className="text-[11px] font-semibold tabular-nums text-muted-foreground">
                               {index + 1}
                             </p>
                             <div className="min-w-0">
-                              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                                <p className="truncate text-[15px] font-semibold tracking-tight text-foreground">
+                              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                                <p className="truncate text-sm font-semibold tracking-tight text-foreground">
                                   {row.name}
                                 </p>
                                 {no ? (
@@ -561,10 +558,10 @@ export function CustomerSpendBoard() {
                                   </span>
                                 ) : null}
                               </div>
-                              <div className="mt-2 max-w-md">
+                              <div className="mt-1.5 max-w-md">
                                 <CrmBar pct={pct} />
                               </div>
-                              <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-snug text-muted-foreground">
+                              <p className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-0.5 text-[11px] leading-snug text-muted-foreground">
                                 <span>
                                   {row.saleCount} till
                                   {row.saleCount === 1 ? "" : "s"}
@@ -598,10 +595,10 @@ export function CustomerSpendBoard() {
                               </p>
                             </div>
                             <div className="text-left sm:text-right">
-                              <p className="text-lg font-bold tabular-nums tracking-tight text-foreground">
+                              <p className="text-base font-bold tabular-nums tracking-tight text-foreground">
                                 {moneyFull(row.spend)}
                               </p>
-                              <p className="text-[11px] tabular-nums text-muted-foreground">
+                              <p className="text-[10px] tabular-nums text-muted-foreground">
                                 {toNum(row.sharePct).toLocaleString("en-KE", {
                                   maximumFractionDigits: 1,
                                 })}
@@ -638,9 +635,11 @@ export function CustomerSpendBoard() {
                 </WhiteCard>
               </>
             )}
-          </div>
+            </div>
+          </DirectoryColumn>
 
-          <aside className="flex flex-col gap-4 lg:sticky lg:top-3 lg:self-start">
+          <DirectoryColumn title="Scope" hint="Period & branch" className="lg:order-2">
+            <div className="flex flex-col gap-2">
             <NavySidebarSection title="Period">
               {ANALYTICS_PRESET_LABELS.map((item) => (
                 <NavyRadioOption
@@ -695,7 +694,8 @@ export function CustomerSpendBoard() {
                 />
               ))}
             </NavySidebarSection>
-          </aside>
+            </div>
+          </DirectoryColumn>
         </div>
       </div>
     </div>

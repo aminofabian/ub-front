@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   MessageCircle,
   MessageSquare,
   Plus,
@@ -16,7 +14,6 @@ import {
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
-  DashboardPageHero,
 } from "@/components/dashboard-page-ui";
 import { CustomerBulkSmsDrawer } from "@/components/credits/customer-bulk-sms-drawer";
 import { CustomerContactColumn } from "@/components/credits/customer-contact-column";
@@ -26,6 +23,13 @@ import { CustomerInsightsColumn } from "@/components/credits/customer-insights-c
 import { CustomerListColumn } from "@/components/credits/customer-list-column";
 import { CustomerMessagingDrawer } from "@/components/credits/customer-messaging-drawer";
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
+import {
+  DirectoryBackButton,
+  DirectoryColumn,
+  DirectoryMobileTabs,
+  DirectoryToolbar,
+  directoryFrameClass,
+} from "@/components/credits/directory-workspace-ui";
 import { LoyaltyCardPreview } from "@/components/credits/loyalty-card-preview";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -279,169 +283,168 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] px-2 pb-16 pt-2 sm:px-4 sm:pt-3">
+    <div className="mx-auto w-full max-w-[1320px] px-2 pb-14 pt-1 sm:px-3 sm:pt-2">
       {message ? (
-        <div className="mb-3">
+        <div className="mb-2">
           <DashboardFeedback kind={message.kind} text={message.text} />
         </div>
       ) : null}
 
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <DashboardPageHero
-          compact
-          icon={Users}
-          eyebrow="Credits"
-          title="Customer directory"
-          description={
-            <>
-              {visibleRows.length.toLocaleString("en-KE")} customer
-              {visibleRows.length === 1 ? "" : "s"} in view
-              {periodLabel ? ` · ${periodLabel}` : ""}.
-              {focusedCustomer
-                ? ` ${focusedCustomer.name} — purchases in the centre, contact on the right.`
-                : " Pick someone from the list."}
-            </>
-          }
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          {canViewAnalytics ? (
-            <Link
-              href={APP_ROUTES.analyticsCustomers}
-              className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+      <DirectoryToolbar
+        icon={Users}
+        eyebrow="Credits"
+        title="Customers"
+        meta={
+          <>
+            {visibleRows.length.toLocaleString("en-KE")} in view
+            {periodLabel ? ` · ${periodLabel}` : ""}
+            {focusedCustomer ? ` · ${focusedCustomer.name}` : ""}
+          </>
+        }
+        links={[
+          ...(canViewAnalytics
+            ? [{ href: APP_ROUTES.analyticsCustomers, label: "Shoppers" }]
+            : []),
+          { href: APP_ROUTES.customerSegments, label: "Segments" },
+          { href: APP_ROUTES.customerPhones, label: "Phones" },
+          ...(canReviewPaymentClaims
+            ? [{ href: APP_ROUTES.creditsPaymentClaims, label: "Claims" }]
+            : []),
+        ]}
+        actions={
+          <>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="size-8"
+              onClick={() => setRefreshKey((k) => k + 1)}
+              disabled={refreshing}
+              aria-label="Refresh"
             >
-              Shoppers
-            </Link>
-          ) : null}
-          <Link
-            href={APP_ROUTES.customerSegments}
-            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          >
-            Segments
-          </Link>
-          <Link
-            href={APP_ROUTES.customerPhones}
-            className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          >
-            Phones
-          </Link>
-          {canReviewPaymentClaims ? (
-            <Link
-              href={APP_ROUTES.creditsPaymentClaims}
-              className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            >
-              Claims
-            </Link>
-          ) : null}
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            className="size-9"
-            onClick={() => setRefreshKey((k) => k + 1)}
-            disabled={refreshing}
-            aria-label="Refresh"
-          >
-            <RefreshCw
-              className={cn("size-4", refreshing && "animate-spin")}
-              aria-hidden
-            />
-          </Button>
-          {canManageCustomers ? (
-            <Button type="button" size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
-              <Plus className="size-4" />
-              New
+              <RefreshCw
+                className={cn("size-3.5", refreshing && "animate-spin")}
+                aria-hidden
+              />
             </Button>
-          ) : null}
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => setMessagingOpen(true)}
-          >
-            <MessageCircle className="size-4" />
-          </Button>
-          {canManageCustomers && selectedIds.size > 0 ? (
+            {canManageCustomers ? (
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 gap-1 text-xs"
+                onClick={() => setCreateOpen(true)}
+              >
+                <Plus className="size-3.5" />
+                New
+              </Button>
+            ) : null}
             <Button
               type="button"
               size="sm"
               variant="outline"
-              onClick={() => setSmsOpen(true)}
+              className="size-8 px-0"
+              onClick={() => setMessagingOpen(true)}
+              aria-label="Messaging"
             >
-              <MessageSquare className="size-4" />
-              {selectedIds.size}
+              <MessageCircle className="size-3.5" />
             </Button>
-          ) : null}
-        </div>
-      </div>
+            {canManageCustomers && selectedIds.size > 0 ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1 text-xs"
+                onClick={() => setSmsOpen(true)}
+              >
+                <MessageSquare className="size-3.5" />
+                {selectedIds.size}
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
-      <div className={cn(refreshing && "opacity-90")}>
-        <div className="grid gap-4 lg:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)_minmax(14rem,16rem)]">
+      <div className={cn(directoryFrameClass, refreshing && "opacity-90")}>
+        <div className="grid min-h-0 flex-1 divide-y lg:grid-cols-[13.5rem_minmax(0,1fr)_12.5rem] lg:divide-x lg:divide-y-0 divide-border/60">
           {!isLg ? (
             <>
-              {mobilePane === "list" ? <CustomerListColumn {...listProps} /> : null}
+              {mobilePane === "list" ? (
+                <DirectoryColumn
+                  title="Directory"
+                  hint="Search and pick"
+                  badge={visibleRows.length}
+                >
+                  <CustomerListColumn {...listProps} />
+                </DirectoryColumn>
+              ) : null}
               {mobilePane === "insights" ? (
-                <div>
-                  <button
-                    type="button"
-                    className="mb-2 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                <DirectoryColumn title="Purchases" hint={focusedCustomer?.name}>
+                  <DirectoryBackButton
+                    label="Directory"
                     onClick={() => setMobilePane("list")}
-                  >
-                    <ArrowLeft className="size-4" />
-                    Back
-                  </button>
+                  />
                   <CustomerInsightsColumn
                     customer={focusedCustomer}
                     currency={currency}
                     canViewAnalytics={canViewAnalytics}
                   />
-                </div>
+                </DirectoryColumn>
               ) : null}
               {mobilePane === "contact" ? (
-                <div>
-                  <button
-                    type="button"
-                    className="mb-2 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                <DirectoryColumn title="Contact" hint={focusedCustomer?.name}>
+                  <DirectoryBackButton
+                    label="Directory"
                     onClick={() => setMobilePane("list")}
-                  >
-                    <ArrowLeft className="size-4" />
-                    Back
-                  </button>
+                  />
                   <CustomerContactColumn {...contactProps} />
-                </div>
+                </DirectoryColumn>
               ) : null}
             </>
           ) : (
             <>
-              <CustomerListColumn {...listProps} />
-              <CustomerInsightsColumn
-                customer={focusedCustomer}
-                currency={currency}
-                canViewAnalytics={canViewAnalytics}
-              />
-              <CustomerContactColumn {...contactProps} />
+              <DirectoryColumn
+                title="Directory"
+                hint="Who shops with you"
+                badge={visibleRows.length}
+              >
+                <CustomerListColumn {...listProps} />
+              </DirectoryColumn>
+              <DirectoryColumn
+                title="Purchases"
+                hint={focusedCustomer?.name ?? "Select someone"}
+              >
+                <CustomerInsightsColumn
+                  customer={focusedCustomer}
+                  currency={currency}
+                  canViewAnalytics={canViewAnalytics}
+                />
+              </DirectoryColumn>
+              <DirectoryColumn
+                title="Contact"
+                hint={focusedCustomer ? "Balance & reach" : "—"}
+              >
+                <CustomerContactColumn {...contactProps} />
+              </DirectoryColumn>
             </>
           )}
         </div>
       </div>
 
       {!isLg && focusedCustomer && mobilePane === "list" ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-background/95 backdrop-blur-sm">
-          {(
-            [
-              ["insights", "Purchases"],
-              ["contact", "Contact"],
-            ] as const
-          ).map(([pane, label]) => (
-            <button
-              key={pane}
-              type="button"
-              className="flex-1 py-3 text-center text-sm font-medium text-foreground hover:bg-muted/60"
-              onClick={() => setMobilePane(pane)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <DirectoryMobileTabs
+          tabs={[
+            {
+              id: "insights",
+              label: "Purchases",
+              onClick: () => setMobilePane("insights"),
+            },
+            {
+              id: "contact",
+              label: "Contact",
+              onClick: () => setMobilePane("contact"),
+            },
+          ]}
+        />
       ) : null}
 
       <CustomerCreateDialog

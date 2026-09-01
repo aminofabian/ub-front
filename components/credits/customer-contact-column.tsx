@@ -3,12 +3,12 @@
 import { Mail, MessageSquare, Pencil, Phone } from "lucide-react";
 
 import { WhiteCard, boardMoney } from "@/components/credits/customer-board-theme";
+import { DirectoryStat } from "@/components/credits/directory-workspace-ui";
 import { CustomerPhoneFlag, customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import { RemindPaymentButtons } from "@/components/credits/remind-payment-buttons";
 import { LoyaltyCardLink } from "@/components/credits/loyalty-card-preview";
 import { Button } from "@/components/ui/button";
 import type { CustomerRecord } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 type Props = {
   customer: CustomerRecord | null;
@@ -33,68 +33,55 @@ export function CustomerContactColumn({
 
   if (!customer) {
     return (
-      <WhiteCard className="px-4 py-5">
-        <h2 className="text-sm font-semibold text-foreground">Contact & balance</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Phones, email, tab balance, and wallet show here when you pick someone.
-        </p>
-      </WhiteCard>
+      <p className="px-1 py-4 text-xs leading-relaxed text-muted-foreground">
+        Pick someone to see phone, email, tab balance, and wallet.
+      </p>
     );
   }
 
   const owed = Number(customer.credit.balanceOwed ?? 0);
 
   return (
-    <aside className="flex flex-col gap-3 lg:sticky lg:top-3 lg:self-start">
-      <WhiteCard className="px-4 py-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {customer.customerNo != null ? `C-${customer.customerNo}` : "Customer"}
+    <div className="flex flex-col gap-2">
+      <WhiteCard className="px-3 py-2.5">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          {customer.customerNo != null ? `C-${customer.customerNo}` : "Profile"}
         </p>
-        <p className="mt-0.5 text-xl font-semibold leading-tight tracking-tight text-foreground">
+        <p className="mt-0.5 truncate text-base font-semibold text-foreground">
           {customer.name}
         </p>
-        <div className="mt-2">
+        <div className="mt-1.5">
           <LoyaltyCardLink onClick={onLoyaltyCard} />
         </div>
       </WhiteCard>
 
-      <WhiteCard className="px-4 py-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Amount owed
-        </p>
-        <p
-          className={cn(
-            "mt-1 text-2xl font-bold tabular-nums tracking-tight",
-            owed > 0 ? "text-foreground" : "text-muted-foreground",
-          )}
-        >
-          {money(owed)}
-        </p>
-        <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Wallet
-        </p>
-        <p className="mt-1 text-lg font-bold tabular-nums text-foreground">
-          {money(customer.credit.walletBalance)}
-        </p>
-        <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Loyalty
-        </p>
-        <p className="mt-1 text-lg font-bold tabular-nums text-foreground">
-          {customer.credit.loyaltyPoints ?? 0} pts
-        </p>
-      </WhiteCard>
+      <div className="grid grid-cols-2 gap-1.5">
+        <DirectoryStat
+          label="Owed"
+          value={money(owed)}
+          warn={owed > 0}
+        />
+        <DirectoryStat label="Wallet" value={money(customer.credit.walletBalance)} />
+        <DirectoryStat
+          label="Loyalty"
+          value={`${customer.credit.loyaltyPoints ?? 0}`}
+          className="col-span-2"
+        />
+      </div>
 
-      <WhiteCard className="px-4 py-4">
-        <h2 className="text-sm font-semibold text-foreground">Reach them</h2>
-        <div className="mt-3 space-y-3 text-sm text-muted-foreground">
-          <div className="flex items-start gap-2">
-            <Phone className="mt-0.5 size-4 shrink-0 text-foreground" />
-            <div>
+      <WhiteCard className="px-3 py-2.5">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Reach
+        </p>
+        <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+          <div className="flex gap-2">
+            <Phone className="mt-0.5 size-3.5 shrink-0 text-foreground" />
+            <div className="min-w-0">
               <p className="font-medium text-foreground">
                 {customerPrimaryPhone(customer.phones) || "No phone"}
               </p>
               {customer.phones.map((p) => (
-                <p key={p.id} className="mt-1 text-xs">
+                <p key={p.id} className="mt-0.5 text-[10px]">
                   {p.phone}
                   {p.primary ? " · primary" : ""}
                   <CustomerPhoneFlag phone={p.phone} className="block" />
@@ -102,12 +89,12 @@ export function CustomerContactColumn({
               ))}
             </div>
           </div>
-          <div className="flex items-start gap-2">
-            <Mail className="mt-0.5 size-4 shrink-0 text-foreground" />
-            <p>{customer.email?.trim() || "No email"}</p>
+          <div className="flex gap-2">
+            <Mail className="mt-0.5 size-3.5 shrink-0 text-foreground" />
+            <p className="min-w-0 break-words">{customer.email?.trim() || "No email"}</p>
           </div>
           {customer.notes?.trim() ? (
-            <p className="border-t border-border/60 pt-3 text-xs leading-relaxed">
+            <p className="border-t border-border/50 pt-2 text-[10px] leading-relaxed">
               {customer.notes.trim()}
             </p>
           ) : null}
@@ -115,8 +102,7 @@ export function CustomerContactColumn({
       </WhiteCard>
 
       {owed > 0 && canManage ? (
-        <WhiteCard className="px-3 py-3">
-          <p className="mb-2 text-sm font-medium text-foreground">Payment reminder</p>
+        <WhiteCard className="px-2.5 py-2">
           <RemindPaymentButtons
             customerId={customer.id}
             onResult={({ ok, text }) => onFeedback(ok ? "success" : "error", text)}
@@ -125,17 +111,23 @@ export function CustomerContactColumn({
       ) : null}
 
       {canManage ? (
-        <div className="flex flex-col gap-2">
-          <Button type="button" onClick={onEdit}>
-            <Pencil className="mr-2 size-4" />
-            Edit profile
+        <div className="grid grid-cols-2 gap-1.5">
+          <Button type="button" size="sm" className="h-8 text-xs" onClick={onEdit}>
+            <Pencil className="mr-1 size-3" />
+            Edit
           </Button>
-          <Button type="button" variant="outline" onClick={onMessage}>
-            <MessageSquare className="mr-2 size-4" />
-            Send SMS
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs"
+            onClick={onMessage}
+          >
+            <MessageSquare className="mr-1 size-3" />
+            SMS
           </Button>
         </div>
       ) : null}
-    </aside>
+    </div>
   );
 }
