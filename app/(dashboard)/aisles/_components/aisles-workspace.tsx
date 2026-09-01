@@ -400,8 +400,8 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
             : ""}
           .
           {selected
-            ? ` Showing ${selected.name} — stock and movers on the right.`
-            : " Pick a zone to open its shelf story."}
+            ? ` ${selected.name} is open — products, stock, and movers on the right.`
+            : " Pick an aisle on the left to open its shelf story."}
         </p>
 
         {loading && aisles.length === 0 ? (
@@ -431,24 +431,38 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
           <div className="grid gap-4 lg:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)]">
             {!isLg ? (
               mobileDetailOpen && selected ? (
-                <div className="min-w-0">
+                <div className="min-w-0 lg:order-2">
                   <button
                     type="button"
                     className="mb-3 flex items-center gap-2 text-[12px] text-white/85"
                     onClick={() => setMobileDetailOpen(false)}
                   >
                     <ArrowLeft className="size-4" />
-                    Back to walk path
+                    Back to aisles
                   </button>
-                  <AisleDetailColumn {...detailProps} />
+                  <AisleDetailColumn
+                    {...detailProps}
+                    allAisles={sortedAisles}
+                    onSelectAisle={selectAisle}
+                  />
                 </div>
               ) : (
-                <AisleListColumn {...listProps} />
+                <div className="min-w-0 lg:order-1">
+                  <AisleListColumn {...listProps} />
+                </div>
               )
             ) : (
               <>
-                <AisleListColumn {...listProps} />
-                <AisleDetailColumn {...detailProps} />
+                <div className="min-w-0 lg:order-1">
+                  <AisleListColumn {...listProps} />
+                </div>
+                <div className="min-w-0 lg:order-2">
+                  <AisleDetailColumn
+                    {...detailProps}
+                    allAisles={sortedAisles}
+                    onSelectAisle={selectAisle}
+                  />
+                </div>
               </>
             )}
           </div>

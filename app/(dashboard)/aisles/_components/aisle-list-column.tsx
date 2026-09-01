@@ -92,6 +92,10 @@ export function AisleListColumn({
         </Link>
       ) : null}
 
+      <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/80">
+        Aisles · walk order
+      </p>
+
       <WhiteCard className="min-h-[min(50dvh,24rem)] flex-1 overflow-hidden lg:min-h-0">
         {loading ? (
           <p className="px-4 py-8 text-[13px]" style={{ color: MUTED }}>
