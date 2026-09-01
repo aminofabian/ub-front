@@ -7044,6 +7044,10 @@ export async function postStandaloneWastage(body: {
   return request("/api/v1/inventory/wastage", {
     method: "POST",
     body,
+    // The caller (grocery spoils flow) owns the error toast — the global
+    // handler previously fired a second identical toast, and a multi-line
+    // save stacked several copies of the same failure.
+    toast: false,
   });
 }
 
