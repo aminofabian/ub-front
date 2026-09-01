@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRightLeft,
+  Ban,
   BarChart3,
+  CheckCircle2,
   ClipboardList,
   Layers,
   Loader2,
@@ -11,6 +13,7 @@ import {
   PackageX,
   Plus,
   Search,
+  Send,
   Truck,
   Warehouse,
   X,
@@ -32,10 +35,15 @@ import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
   fetchItemsPage,
+  fetchStockTransfers,
+  postCancelStockTransfer,
   postCompleteStockTransfer,
+  postReceiveStockTransfer,
+  postSendStockTransfer,
   postStockTransfer,
   type BranchRecord,
   type ItemSummaryRecord,
+  type StockTransferSummaryRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { filterInventoryQuickLinksForUser } from "@/lib/inventory-access";
@@ -237,9 +245,36 @@ export default function InventoryTransfersPage() {
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([{ itemId: "", qty: "1" }]);
   const [lastTransferId, setLastTransferId] = useState("");
-  const [completeId, setCompleteId] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [transfers, setTransfers] = useState<StockTransferSummaryRecord[]>([]);
+  const [transfersLoading, setTransfersLoading] = useState(true);
+  const [actingId, setActingId] = useState("");
+
+  const branchName = useCallback(
+    (id: string) =>
+      branches.find((b) => b.id === id)?.name?.trim() ||
+      (id ? id.slice(0, 8) : "—"),
+    [branches],
+  );
+
+  const loadTransfers = useCallback(async () => {
+    setTransfersLoading(true);
+    try {
+      const rows = await fetchStockTransfers();
+      setTransfers(rows);
+    } catch {
+      // Non-fatal — the create form still works; the list shows empty.
+      setTransfers([]);
+    } finally {
+      setTransfersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!allowed) return;
+    void loadTransfers();
+  }, [allowed, loadTransfers]);
 
   const transferDraftActive = useMemo(
     () =>
@@ -303,32 +338,40 @@ export default function InventoryTransfersPage() {
         lines: normalized,
       });
       setLastTransferId(created.id);
-      setCompleteId(created.id);
       setMessage(`Draft transfer created (${created.status}).`);
+      void loadTransfers();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Transfer failed.");
     } finally {
       setLoading(false);
     }
-  }, [fromBranchId, lines, notes, toBranchId]);
+  }, [fromBranchId, lines, notes, toBranchId, loadTransfers]);
 
-  const onComplete = useCallback(async () => {
-    const id = completeId.trim();
-    if (!id) {
-      setMessage("Enter a transfer ID to complete.");
-      return;
-    }
-    setMessage("");
-    setLoading(true);
-    try {
-      await postCompleteStockTransfer(id);
-      setMessage("Transfer completed.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Complete failed.");
-    } finally {
-      setLoading(false);
-    }
-  }, [completeId]);
+  const runTransferAction = useCallback(
+    async (
+      id: string,
+      action: "send" | "receive" | "complete" | "cancel",
+      done: string,
+    ) => {
+      setMessage("");
+      setActingId(id);
+      try {
+        if (action === "send") await postSendStockTransfer(id);
+        else if (action === "receive") await postReceiveStockTransfer(id);
+        else if (action === "cancel") await postCancelStockTransfer(id);
+        else await postCompleteStockTransfer(id);
+        setMessage(done);
+        await loadTransfers();
+      } catch (error) {
+        setMessage(
+          error instanceof Error ? error.message : "Transfer action failed.",
+        );
+      } finally {
+        setActingId("");
+      }
+    },
+    [loadTransfers],
+  );
 
   const quickLinks = useMemo(
     () =>
@@ -398,7 +441,7 @@ export default function InventoryTransfersPage() {
     );
   }
 
-  const messageIsSuccess = /created|completed|draft/i.test(message);
+  const messageIsSuccess = /created|completed|confirmed|cancelled|draft|sent|Receipt/i.test(message);
 
   return (
     <div className={DASHBOARD_MAX}>
@@ -410,7 +453,7 @@ export default function InventoryTransfersPage() {
             icon={ArrowRightLeft}
             eyebrow="Inventory"
             title="Stock transfers"
-            description="Move stock between branches — create a draft, then complete it."
+            description="Move stock between branches — send from one branch, the receiving shop confirms receipt before the stock becomes sellable."
           />
           {quickLinks.length > 0 ? (
             <DashboardQuickLinks compact links={quickLinks} />
@@ -542,34 +585,174 @@ export default function InventoryTransfersPage() {
         </div>
 
         <div className="rounded-xl border border-border/60 bg-muted/15 p-3">
-          <p className="mb-2 text-xs font-semibold text-foreground">
-            Complete transfer
-          </p>
-          <div className="flex flex-wrap items-end gap-2">
-            <label className="flex min-w-[12rem] flex-1 flex-col gap-0.5 text-xs">
-              <span className="text-muted-foreground">Transfer ID</span>
-              <input
-                className={cn(
-                  dashboardInputClass(),
-                  "h-9 py-1.5 font-mono text-xs",
-                )}
-                value={completeId}
-                onChange={(e) => setCompleteId(e.target.value)}
-                placeholder="UUID"
-                aria-label="Transfer ID to complete"
-              />
-            </label>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-foreground">Transfers</p>
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="h-9 shrink-0"
-              disabled={loading}
-              onClick={() => void onComplete()}
+              className="h-7 gap-1 px-2 text-[11px]"
+              disabled={transfersLoading}
+              onClick={() => void loadTransfers()}
             >
-              Complete
+              {transfersLoading ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : null}
+              Refresh
             </Button>
           </div>
+          {transfersLoading && transfers.length === 0 ? (
+            <p className="py-6 text-center text-xs text-muted-foreground">
+              Loading transfers…
+            </p>
+          ) : transfers.length === 0 ? (
+            <p className="py-6 text-center text-xs text-muted-foreground">
+              No transfers yet. Create a draft above — then send it when the
+              goods leave, and the receiving shop confirms receipt.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {transfers.map((t) => {
+                const busy = actingId === t.id;
+                const status = t.status?.toLowerCase() ?? "";
+                const isDraft = status === "draft";
+                const isInTransit = status === "in_transit";
+                return (
+                  <li
+                    key={t.id}
+                    className="rounded-lg border border-border/50 bg-card/60 p-2.5"
+                  >
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <TransferStatusBadge status={status} />
+                      <span className="text-xs font-medium text-foreground">
+                        {branchName(t.fromBranchId)} → {branchName(t.toBranchId)}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {new Date(t.createdAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                      <span
+                        className="ml-auto font-mono text-[10px] text-muted-foreground"
+                        title={t.id}
+                      >
+                        {t.id.slice(0, 8)}
+                      </span>
+                    </div>
+                    {t.lines.length > 0 ? (
+                      <p
+                        className="mt-1 truncate text-[11px] text-muted-foreground"
+                        title={t.lines
+                          .map((l) => `${l.itemName ?? l.itemId} × ${l.quantity}`)
+                          .join(", ")}
+                      >
+                        {t.lines
+                          .map((l) => `${l.itemName ?? l.itemId} × ${l.quantity}`)
+                          .join(", ")}
+                      </p>
+                    ) : null}
+                    {t.notes?.trim() ? (
+                      <p className="mt-0.5 truncate text-[11px] italic text-muted-foreground">
+                        {t.notes}
+                      </p>
+                    ) : null}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      {isInTransit ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-[11px]"
+                          disabled={busy}
+                          onClick={() =>
+                            void runTransferAction(
+                              t.id,
+                              "receive",
+                              "Receipt confirmed — stock added at the receiving branch.",
+                            )
+                          }
+                        >
+                          {busy ? (
+                            <Loader2 className="size-3 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="size-3" />
+                          )}
+                          Confirm receipt
+                        </Button>
+                      ) : null}
+                      {isInTransit ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-[11px]"
+                          disabled={busy}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                "Cancel this transfer? Stock returns to the sending branch.",
+                              )
+                            ) {
+                              void runTransferAction(
+                                t.id,
+                                "cancel",
+                                "Transfer cancelled — stock returned to the sending branch.",
+                              );
+                            }
+                          }}
+                        >
+                          <Ban className="size-3" />
+                          Cancel
+                        </Button>
+                      ) : null}
+                      {isDraft ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-[11px]"
+                          disabled={busy}
+                          onClick={() =>
+                            void runTransferAction(
+                              t.id,
+                              "send",
+                              "Transfer sent — goods are in transit until the receiving shop confirms.",
+                            )
+                          }
+                        >
+                          {busy ? (
+                            <Loader2 className="size-3 animate-spin" />
+                          ) : (
+                            <Send className="size-3" />
+                          )}
+                          Send
+                        </Button>
+                      ) : null}
+                      {isDraft ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-[11px] text-muted-foreground"
+                          disabled={busy}
+                          onClick={() =>
+                            void runTransferAction(
+                              t.id,
+                              "complete",
+                              "Transfer completed — stock moved immediately.",
+                            )
+                          }
+                        >
+                          <CheckCircle2 className="size-3" />
+                          Complete now
+                        </Button>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
 
         {message ? (
@@ -586,5 +769,33 @@ export default function InventoryTransfersPage() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+function TransferStatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    draft: "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+    in_transit:
+      "border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300",
+    completed:
+      "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+    cancelled:
+      "border-border bg-muted text-muted-foreground",
+  };
+  const labels: Record<string, string> = {
+    draft: "Draft",
+    in_transit: "In transit",
+    completed: "Received",
+    cancelled: "Cancelled",
+  };
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+        styles[status] ?? styles.cancelled,
+      )}
+    >
+      {labels[status] ?? status}
+    </span>
   );
 }

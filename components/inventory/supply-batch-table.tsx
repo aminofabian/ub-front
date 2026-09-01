@@ -324,6 +324,17 @@ export function SupplyBatchTable({
                       >
                         {b.batchNumber}
                       </Link>
+                      {b.itemNames && b.itemNames.length > 0 ? (
+                        <p
+                          className="mt-0.5 max-w-[16rem] truncate text-[11px] text-muted-foreground"
+                          title={b.itemNames.join(", ")}
+                        >
+                          {b.itemNames.join(", ")}
+                          {b.itemCount > b.itemNames.length
+                            ? ` +${b.itemCount - b.itemNames.length} more`
+                            : ""}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-5 py-4 sm:px-6">
                       {editingId === b.id ? (

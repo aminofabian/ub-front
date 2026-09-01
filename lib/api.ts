@@ -6921,6 +6921,8 @@ export type SupplyBatchSummaryRecord = {
   receivedAt: string;
   status: string;
   itemCount: number;
+  /** Item names in this batch (capped preview — see {@link itemCount}). */
+  itemNames?: string[] | null;
   totalInitialQuantity: number | string;
   totalRemainingQuantity: number | string;
   closedAt: string | null;
@@ -7229,6 +7231,37 @@ export type StockTransferCreatedRecord = {
   id: string;
   status: string;
 };
+
+export type StockTransferLineRecord = {
+  itemId: string;
+  itemName: string | null;
+  quantity: number | string;
+};
+
+export type StockTransferSummaryRecord = {
+  id: string;
+  status: string;
+  fromBranchId: string;
+  toBranchId: string;
+  notes: string | null;
+  createdAt: string;
+  createdBy: string | null;
+  lines: StockTransferLineRecord[];
+};
+
+/** Transfers list — newest first; branch filter matches from OR to. */
+export async function fetchStockTransfers(params?: {
+  status?: string;
+  branchId?: string;
+}): Promise<StockTransferSummaryRecord[]> {
+  const query = new URLSearchParams();
+  if (params?.status?.trim()) query.set("status", params.status.trim());
+  if (params?.branchId?.trim()) query.set("branchId", params.branchId.trim());
+  const q = query.toString();
+  return request<StockTransferSummaryRecord[]>(
+    `/api/v1/inventory/transfers${q ? `?${q}` : ""}`,
+  );
+}
 
 export async function postStockTransfer(
   body: PostStockTransferPayload,
