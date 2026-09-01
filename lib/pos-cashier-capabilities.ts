@@ -20,6 +20,11 @@ export const POS_CASHIER_CAPABILITY_FLAGS = {
    * Absent / false keeps drawout for owners, admins, and managers only.
    */
   drawout: "pos.cashier_drawout",
+  /**
+   * Show Clear sale on the till (beside Checkout / Pay). Absent defaults to
+   * enabled; set false to hide the one-tap abandon control.
+   */
+  clearSale: "pos.cashier_clear_sale",
   /** Auto-add scanned barcodes straight to cart (skip search) when the
    * barcode resolves to exactly one sellable product. */
   scanToCart: "pos.scan_to_cart",
@@ -29,6 +34,13 @@ export const POS_CASHIER_CAPABILITY_FLAGS = {
    */
   catalogHybrid: "pos.catalog_hybrid",
 } as const;
+
+/** Clear / cancel the whole open cart from the till. Default on when absent. */
+export function posClearSaleEnabled(
+  featureFlags: Record<string, boolean> | null | undefined,
+): boolean {
+  return featureFlags?.[POS_CASHIER_CAPABILITY_FLAGS.clearSale] !== false;
+}
 
 /** How the till presents the product shelf. */
 export type PosCatalogMode = "grid" | "hybrid";

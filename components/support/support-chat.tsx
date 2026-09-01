@@ -8,6 +8,7 @@ import {
   ChatMessageShape,
   ChatThreadSurface,
   Composer,
+  type ComposerReplyTarget,
   type ComposerSendPayload,
   DayDivider,
   LiveStatusPill,
@@ -16,7 +17,10 @@ import {
   ResolvedBanner,
   TypingBubble,
   chatDayLabel,
+  getMessageCluster,
   mergeByTimestamp,
+  replyFromRealtime,
+  toReplyTarget,
 } from "@/components/support/support-chat-ui";
 import { Button } from "@/components/ui/button";
 import { getRealtimeClient, type RealtimeConnectionState, type RealtimeFrame } from "@/lib/realtime";
@@ -55,6 +59,7 @@ function toLocalMessage(message: SupportMessage): LocalMessage {
     orderCard: message.orderCard ?? null,
     welcomeCard: message.welcomeCard ?? null,
     attachment: message.attachment ?? null,
+    replyTo: message.replyTo ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
   };
@@ -131,6 +136,8 @@ export function SupportChat({
   const [showJump, setShowJump] = React.useState(false);
   const [jumpCount, setJumpCount] = React.useState(0);
   const [soundOn, setSoundOn] = React.useState(true);
+  const [replyTo, setReplyTo] = React.useState<ComposerReplyTarget | null>(null);
+  const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setSoundOn(isSupportSoundEnabled());
@@ -205,6 +212,7 @@ export function SupportChat({
           orderCard: orderCardFromRealtime(data),
           welcomeCard: welcomeCardFromRealtime(data),
           attachment: attachmentFromRealtime(data),
+          replyTo: replyFromRealtime(data),
           readAt: null,
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
@@ -295,6 +303,16 @@ export function SupportChat({
     setJumpCount(0);
   };
 
+  const scrollToMessage = React.useCallback((messageId: string) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const target = container.querySelector(`[data-message-id="${messageId}"]`);
+    if (!(target instanceof HTMLElement)) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightMessageId(messageId);
+    window.setTimeout(() => setHighlightMessageId((current) => (current === messageId ? null : current)), 1400);
+  }, []);
+
   // Count unseen while scrolled up.
   React.useEffect(() => {
     if (showJump) {
@@ -362,9 +380,12 @@ export function SupportChat({
       const file = typeof payload === "string" ? null : payload.file ?? null;
       const existingAttachment =
         typeof payload === "string" ? null : payload.attachment ?? null;
+      const replyToMessageId =
+        typeof payload === "string" ? null : payload.replyToMessageId ?? replyTo?.messageId ?? null;
       if ((!body && !file && !existingAttachment) || sending) return;
       stopTyping();
       setSending(true);
+      setReplyTo(null);
       const tempId =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
@@ -388,6 +409,15 @@ export function SupportChat({
                 bytes: file.size,
               }
             : null),
+        replyTo: replyToMessageId
+          ? {
+              messageId: replyToMessageId,
+              senderType: replyTo?.senderType ?? "SUPER_ADMIN",
+              senderName: replyTo?.senderName ?? null,
+              body: replyTo?.body ?? "",
+              messageKind: replyTo?.messageKind ?? "TEXT",
+            }
+          : null,
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
@@ -407,7 +437,7 @@ export function SupportChat({
           if (!convId) throw new Error("Could not open support thread for upload");
           attachment = await uploadSupportAttachmentToCloudinary(convId, file);
         }
-        const saved = await sendSupportMessage(body, attachment);
+        const saved = await sendSupportMessage(body, attachment, replyToMessageId);
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
           if (prev.some((m) => m.id === saved.id)) {
@@ -433,7 +463,7 @@ export function SupportChat({
         setSending(false);
       }
     },
-    [conversationId, meId, meName, sending, stopTyping],
+    [conversationId, meId, meName, replyTo, sending, stopTyping],
   );
 
   const retry = (message: LocalMessage) => {
@@ -582,23 +612,28 @@ export function SupportChat({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col">
               {messages.map((message, index) => {
                 const mine = message.senderType === "TENANT";
                 const prev = messages[index - 1];
                 const newDay =
                   !prev || chatDayLabel(prev.createdAt) !== chatDayLabel(message.createdAt);
-                const showAvatar =
-                  !mine && (!prev || prev.senderUserId !== message.senderUserId || newDay);
+                const cluster = getMessageCluster(messages, index, (m) => m.senderType === "TENANT");
                 return (
                   <React.Fragment key={message.id}>
                     {newDay ? <DayDivider iso={message.createdAt} /> : null}
-                    <MessageBubble
-                      message={message}
-                      mine={mine}
-                      showAvatar={showAvatar}
-                      onRetry={message.failed ? () => retry(message) : undefined}
-                    />
+                    <div className={cluster.gapClass}>
+                      <MessageBubble
+                        message={message}
+                        mine={mine}
+                        showAvatar={cluster.showAvatar}
+                        clusterPosition={cluster.clusterPosition}
+                        highlighted={highlightMessageId === message.id}
+                        onReply={resolved ? undefined : (target) => setReplyTo(toReplyTarget(target))}
+                        onScrollToMessage={scrollToMessage}
+                        onRetry={message.failed ? () => retry(message) : undefined}
+                      />
+                    </div>
                   </React.Fragment>
                 );
               })}
@@ -635,6 +670,8 @@ export function SupportChat({
           disabled={resolved}
           disabledHint={resolved ? "Reopen the conversation to send a message" : undefined}
           sending={sending}
+          replyTo={replyTo}
+          onClearReply={() => setReplyTo(null)}
         />
       </div>
     </section>

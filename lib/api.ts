@@ -1383,6 +1383,8 @@ export type FeatureFlagsPatchPayload = {
   posCashierOrderConfirm?: boolean;
   /** Allow cashiers to record cash drawouts from an open till. */
   posCashierDrawout?: boolean;
+  /** Show Clear sale on the till (default on when absent). */
+  posCashierClearSale?: boolean;
   /** Which cashiers may draw out when the flag is on. */
   posCashierDrawoutAccess?: {
     scope?: "all" | "selected" | string;

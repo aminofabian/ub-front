@@ -8,6 +8,7 @@ import {
   Avatar,
   ChatThreadSurface,
   Composer,
+  type ComposerReplyTarget,
   type ComposerSendPayload,
   DayDivider,
   LiveStatusPill,
@@ -15,7 +16,10 @@ import {
   PlatformAvatar,
   TypingBubble,
   chatDayLabel,
+  getMessageCluster,
   mergeByTimestamp,
+  replyFromRealtime,
+  toReplyTarget,
 } from "@/components/support/support-chat-ui";
 import {
   Dialog,
@@ -81,6 +85,7 @@ function toLocalMessage(message: GuestMessage): ChatMessageShape {
     messageKind: message.messageKind ?? "TEXT",
     orderCard: message.orderCard ?? null,
     attachment: message.attachment ?? null,
+    replyTo: message.replyTo ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
   };
@@ -253,6 +258,8 @@ function GuestSupportPanel({
   const [showIntro, setShowIntro] = React.useState(false);
   const [connectionState, setConnectionState] =
     React.useState<RealtimeConnectionState>("disconnected");
+  const [replyTo, setReplyTo] = React.useState<ComposerReplyTarget | null>(null);
+  const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const stickToBottomRef = React.useRef(true);
@@ -348,6 +355,7 @@ function GuestSupportPanel({
           messageKind: String(data.messageKind ?? "TEXT"),
           orderCard: orderCardFromRealtime(data),
           attachment: attachmentFromRealtime(data),
+          replyTo: replyFromRealtime(data),
           readAt: null,
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
@@ -434,6 +442,16 @@ function GuestSupportPanel({
     setShowJump(!nearBottom);
   };
 
+  const scrollToMessage = React.useCallback((messageId: string) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const target = container.querySelector(`[data-message-id="${messageId}"]`);
+    if (!(target instanceof HTMLElement)) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightMessageId(messageId);
+    window.setTimeout(() => setHighlightMessageId((current) => (current === messageId ? null : current)), 1400);
+  }, []);
+
   // ── Send / start ─────────────────────────────────────────────────────────
   const send = React.useCallback(
     async (payload: ComposerSendPayload | string) => {
@@ -441,6 +459,8 @@ function GuestSupportPanel({
       const file = typeof payload === "string" ? null : payload.file ?? null;
       const existingAttachment =
         typeof payload === "string" ? null : payload.attachment ?? null;
+      const replyToMessageId =
+        typeof payload === "string" ? null : payload.replyToMessageId ?? replyTo?.messageId ?? null;
       if ((!body && !file && !existingAttachment) || sending) return;
 
       // First message may need to create the thread (and mint the guest token).
@@ -478,6 +498,7 @@ function GuestSupportPanel({
       }
 
       setSending(true);
+      setReplyTo(null);
       const tempId =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
@@ -501,6 +522,15 @@ function GuestSupportPanel({
                 bytes: file.size,
               }
             : null),
+        replyTo: replyToMessageId
+          ? {
+              messageId: replyToMessageId,
+              senderType: replyTo?.senderType ?? "TENANT",
+              senderName: replyTo?.senderName ?? null,
+              body: replyTo?.body ?? "",
+              messageKind: replyTo?.messageKind ?? "TEXT",
+            }
+          : null,
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
@@ -520,6 +550,7 @@ function GuestSupportPanel({
           type: context.type,
           businessSlug: context.businessSlug,
           attachment,
+          replyToMessageId,
         });
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
@@ -548,6 +579,7 @@ function GuestSupportPanel({
       sending,
       applyPayload,
       onUnreadChange,
+      replyTo,
     ],
   );
 
@@ -755,23 +787,19 @@ function GuestSupportPanel({
                     const prev = messages[index - 1];
                     const newDay =
                       !prev || chatDayLabel(prev.createdAt) !== chatDayLabel(message.createdAt);
-                    const showAvatar =
-                      !mine && (!prev || isMine(prev) || newDay);
-                    const tight =
-                      prev &&
-                      !newDay &&
-                      isMine(prev) === mine &&
-                      Math.abs(
-                        new Date(message.createdAt).getTime() - new Date(prev.createdAt).getTime(),
-                      ) < 120_000;
+                    const cluster = getMessageCluster(messages, index, isMine);
                     return (
                       <React.Fragment key={message.id}>
                         {newDay ? <DayDivider iso={message.createdAt} /> : null}
-                        <div className={cn(tight ? "mt-0.5" : "mt-0")}>
+                        <div className={cluster.gapClass}>
                           <MessageBubble
                             message={message}
                             mine={mine}
-                            showAvatar={showAvatar && !tight}
+                            showAvatar={cluster.showAvatar}
+                            clusterPosition={cluster.clusterPosition}
+                            highlighted={highlightMessageId === message.id}
+                            onReply={(target) => setReplyTo(toReplyTarget(target))}
+                            onScrollToMessage={scrollToMessage}
                             staffActions={false}
                           />
                         </div>
@@ -807,6 +835,8 @@ function GuestSupportPanel({
               disabled={Boolean(loadError)}
               sending={sending}
               accentHex={accent}
+              replyTo={replyTo}
+              onClearReply={() => setReplyTo(null)}
             />
             {resolved ? (
               <p className="-mt-1 pb-2.5 text-center text-[11px] text-muted-foreground">

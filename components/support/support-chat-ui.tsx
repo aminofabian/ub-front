@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   Check,
   CheckCheck,
+  CornerUpLeft,
   FileText,
   Paperclip,
   Send,
@@ -65,6 +66,14 @@ export type ChatWelcomeCardShape = {
   helpItems: string[];
 };
 
+export type ChatReplyShape = {
+  messageId: string;
+  senderType: ChatSenderType;
+  senderName: string | null;
+  body: string;
+  messageKind?: "TEXT" | "ORDER_CARD" | "WELCOME_CARD" | string | null;
+};
+
 export type ChatMessageShape = {
   id: string;
   conversationId: string;
@@ -76,6 +85,7 @@ export type ChatMessageShape = {
   orderCard?: ChatOrderCardShape | null;
   welcomeCard?: ChatWelcomeCardShape | null;
   attachment?: ChatAttachmentShape | null;
+  replyTo?: ChatReplyShape | null;
   readAt: string | null;
   createdAt: string;
   /** Optimistic, not yet confirmed by the server. */
@@ -84,11 +94,20 @@ export type ChatMessageShape = {
   failed?: boolean;
 };
 
+export type ComposerReplyTarget = {
+  messageId: string;
+  senderName: string | null;
+  senderType: ChatSenderType;
+  body: string;
+  messageKind?: string | null;
+};
+
 export type ComposerSendPayload = {
   body: string;
   attachment?: SupportAttachmentPayload | null;
   /** Local file still uploading when send is pressed — parent uploads then sends. */
   file?: File | null;
+  replyToMessageId?: string | null;
 };
 
 const AVATAR_HUES = [
@@ -200,13 +219,122 @@ export function listTime(iso: string | null | undefined): string {
 
 export function DayDivider({ iso }: { iso: string }) {
   return (
-    <div className="my-4 flex items-center gap-3 px-1" role="separator" aria-label={chatDayLabel(iso)}>
-      <span className="h-px flex-1 bg-border/70" />
-      <span className="shrink-0 text-[11px] font-medium tracking-wide text-muted-foreground">
+    <div className="my-5 flex items-center gap-3 px-1" role="separator" aria-label={chatDayLabel(iso)}>
+      <span className="h-px flex-1 bg-border/50" />
+      <span className="shrink-0 rounded-full border border-border/50 bg-card/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground shadow-sm backdrop-blur-sm">
         {chatDayLabel(iso)}
       </span>
-      <span className="h-px flex-1 bg-border/70" />
+      <span className="h-px flex-1 bg-border/50" />
     </div>
+  );
+}
+
+/** Messages from the same sender within 2 minutes form a visual cluster. */
+export const CLUSTER_GAP_MS = 2 * 60 * 1000;
+
+export type ClusterPosition = "single" | "first" | "middle" | "last";
+
+export function getMessageCluster(
+  messages: ChatMessageShape[],
+  index: number,
+  isMine: (message: ChatMessageShape) => boolean,
+): { showAvatar: boolean; clusterPosition: ClusterPosition; gapClass: string; mine: boolean } {
+  const message = messages[index];
+  const mine = isMine(message);
+  const prev = messages[index - 1];
+  const next = messages[index + 1];
+
+  const sameSender = (a: ChatMessageShape, b: ChatMessageShape) =>
+    a.senderUserId === b.senderUserId && a.senderType === b.senderType;
+
+  const withinCluster = (a: ChatMessageShape, b: ChatMessageShape) =>
+    sameSender(a, b) &&
+    Math.abs(new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) < CLUSTER_GAP_MS &&
+    chatDayLabel(a.createdAt) === chatDayLabel(b.createdAt);
+
+  const prevInCluster = prev ? withinCluster(message, prev) : false;
+  const nextInCluster = next ? withinCluster(message, next) : false;
+
+  let clusterPosition: ClusterPosition;
+  if (!prevInCluster && !nextInCluster) clusterPosition = "single";
+  else if (!prevInCluster && nextInCluster) clusterPosition = "first";
+  else if (prevInCluster && nextInCluster) clusterPosition = "middle";
+  else clusterPosition = "last";
+
+  const showAvatar = !mine && !nextInCluster;
+  const gapClass = prevInCluster ? "mt-0.5" : "mt-2";
+
+  return { showAvatar, clusterPosition, gapClass, mine };
+}
+
+function bubbleRadius(mine: boolean, cluster: ClusterPosition): string {
+  if (mine) {
+    if (cluster === "single") return "rounded-[1.15rem] rounded-br-[0.35rem]";
+    if (cluster === "first") return "rounded-[1.15rem] rounded-br-[0.45rem]";
+    if (cluster === "middle") return "rounded-[1.15rem] rounded-r-[0.45rem]";
+    return "rounded-[1.15rem] rounded-tr-[0.45rem] rounded-br-[0.35rem]";
+  }
+  if (cluster === "single") return "rounded-[1.15rem] rounded-bl-[0.35rem]";
+  if (cluster === "first") return "rounded-[1.15rem] rounded-bl-[0.45rem]";
+  if (cluster === "middle") return "rounded-[1.15rem] rounded-l-[0.45rem]";
+  return "rounded-[1.15rem] rounded-tl-[0.45rem] rounded-bl-[0.35rem]";
+}
+
+function replyAuthorLabel(reply: ChatReplyShape, mine: boolean): string {
+  if (reply.senderName?.trim()) return reply.senderName.trim();
+  if (reply.senderType === "SUPER_ADMIN") return "Kiosk Support";
+  if (reply.senderType === "GUEST") return "Customer";
+  return mine ? "You" : "Support";
+}
+
+function ReplyQuote({
+  reply,
+  mine,
+  onJump,
+}: {
+  reply: ChatReplyShape;
+  mine: boolean;
+  onJump?: () => void;
+}) {
+  const label = replyAuthorLabel(reply, mine);
+  const preview =
+    reply.messageKind === "ORDER_CARD"
+      ? "Online order"
+      : reply.messageKind === "WELCOME_CARD"
+        ? "Welcome message"
+        : reply.body?.trim() || "Message";
+
+  return (
+    <button
+      type="button"
+      onClick={onJump}
+      className={cn(
+        "mb-2 flex w-full max-w-full items-stretch gap-2 rounded-lg border-l-[3px] px-2.5 py-1.5 text-left transition-colors",
+        mine
+          ? "border-primary-foreground/70 bg-primary-foreground/12 hover:bg-primary-foreground/18"
+          : "border-primary/70 bg-primary/[0.06] hover:bg-primary/[0.1]",
+        onJump && "cursor-pointer",
+      )}
+    >
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block truncate text-[11px] font-semibold",
+            mine ? "text-primary-foreground/90" : "text-primary",
+          )}
+        >
+          {label}
+        </span>
+        <span
+          className={cn(
+            "mt-0.5 block truncate text-[12px] leading-snug",
+            mine ? "text-primary-foreground/75" : "text-muted-foreground",
+          )}
+        >
+          {preview}
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -216,13 +344,21 @@ export function MessageBubble({
   message,
   mine,
   showAvatar,
+  clusterPosition = "single",
   onRetry,
+  onReply,
+  onScrollToMessage,
+  highlighted = false,
   staffActions = true,
 }: {
   message: ChatMessageShape;
   mine: boolean;
   showAvatar: boolean;
+  clusterPosition?: ClusterPosition;
   onRetry?: () => void;
+  onReply?: (message: ChatMessageShape) => void;
+  onScrollToMessage?: (messageId: string) => void;
+  highlighted?: boolean;
   /** When false, hide tenant-only CTAs (e.g. Open order in guest chat). */
   staffActions?: boolean;
 }) {
@@ -296,10 +432,12 @@ export function MessageBubble({
 
   return (
     <div
+      data-message-id={message.id}
       className={cn(
-        "group flex w-full items-end gap-2",
+        "group/msg relative flex w-full items-end gap-2",
         mine ? "justify-end" : "justify-start",
         "animate-in fade-in slide-in-from-bottom-1 duration-200",
+        highlighted && "support-message-highlight",
       )}
     >
       {!mine && showAvatar ? (
@@ -308,44 +446,78 @@ export function MessageBubble({
         <span className="mb-5 size-7 shrink-0" aria-hidden />
       ) : null}
       <div className={cn("flex max-w-[min(84%,22.5rem)] flex-col", mine ? "items-end" : "items-start")}>
-        <div
-          className={cn(
-            "relative px-3.5 py-2.5 text-[13.5px] leading-[1.45]",
-            mine
-              ? "rounded-[1.2rem] rounded-br-md bg-primary text-primary-foreground shadow-[0_2px_10px_-4px_rgba(40,167,69,0.55)]"
-              : "rounded-[1.2rem] rounded-bl-md border border-border/60 bg-card text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.06)]",
-            isPending && "opacity-70",
-            isFailed && "border-destructive/40 bg-destructive/5 text-foreground opacity-100 shadow-none",
-          )}
-        >
-          {!mine && message.senderName ? (
-            <p className="mb-1 text-[11px] font-semibold tracking-wide text-primary/90">
-              {message.senderName}
-            </p>
+        {!mine && message.senderName && clusterPosition !== "middle" && clusterPosition !== "last" ? (
+          <p className="mb-1 px-1 text-[11px] font-semibold tracking-wide text-primary/90">
+            {message.senderName}
+          </p>
+        ) : null}
+        <div className="relative">
+          {onReply ? (
+            <button
+              type="button"
+              onClick={() => onReply(message)}
+              aria-label="Reply to this message"
+              className={cn(
+                "absolute top-1/2 z-10 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-card/95 text-muted-foreground shadow-sm backdrop-blur-sm transition-all",
+                "opacity-0 group-hover/msg:opacity-100 focus-visible:opacity-100",
+                mine ? "-left-9" : "-right-9",
+                "hover:border-primary/35 hover:bg-primary/[0.08] hover:text-primary",
+              )}
+            >
+              <CornerUpLeft className="size-3.5" />
+            </button>
           ) : null}
-          {message.attachment?.url ? (
-            <AttachmentBlock attachment={message.attachment} mine={mine} />
-          ) : null}
-          {message.body?.trim() ? (
-            <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.body}</p>
-          ) : null}
-          <span
+          <div
             className={cn(
-              "mt-1.5 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums",
-              mine && !isFailed ? "text-primary-foreground/75" : "text-muted-foreground",
+              "relative px-3.5 py-2.5 text-[13.5px] leading-[1.45]",
+              bubbleRadius(mine, clusterPosition),
+              mine
+                ? "bg-[linear-gradient(145deg,hsl(var(--primary))_0%,hsl(var(--primary)/0.92)_100%)] text-primary-foreground shadow-[0_3px_14px_-6px_rgba(40,167,69,0.65)]"
+                : "border border-border/50 bg-card/95 text-foreground shadow-[0_2px_10px_-8px_rgba(15,23,42,0.18)] backdrop-blur-[2px]",
+              isPending && "opacity-70",
+              isFailed && "border-destructive/40 bg-destructive/5 text-foreground opacity-100 shadow-none",
             )}
           >
-            <span>{chatTime(message.createdAt)}</span>
-            {mine ? (
-              isFailed ? (
-                <span className="font-medium text-destructive">Failed</span>
-              ) : message.readAt ? (
-                <CheckCheck className="size-3.5 opacity-95" aria-label="Read" />
-              ) : (
-                <Check className="size-3.5 opacity-90" aria-label="Sent" />
-              )
+            {!mine && message.senderName && (clusterPosition === "middle" || clusterPosition === "last") ? (
+              <p className="mb-1 text-[11px] font-semibold tracking-wide text-primary/90">
+                {message.senderName}
+              </p>
             ) : null}
-          </span>
+            {message.replyTo ? (
+              <ReplyQuote
+                reply={message.replyTo}
+                mine={mine}
+                onJump={
+                  onScrollToMessage
+                    ? () => onScrollToMessage(message.replyTo!.messageId)
+                    : undefined
+                }
+              />
+            ) : null}
+            {message.attachment?.url ? (
+              <AttachmentBlock attachment={message.attachment} mine={mine} />
+            ) : null}
+            {message.body?.trim() ? (
+              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.body}</p>
+            ) : null}
+            <span
+              className={cn(
+                "mt-1.5 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums",
+                mine && !isFailed ? "text-primary-foreground/75" : "text-muted-foreground",
+              )}
+            >
+              <span>{chatTime(message.createdAt)}</span>
+              {mine ? (
+                isFailed ? (
+                  <span className="font-medium text-destructive">Failed</span>
+                ) : message.readAt ? (
+                  <CheckCheck className="size-3.5 opacity-95" aria-label="Read" />
+                ) : (
+                  <Check className="size-3.5 opacity-90" aria-label="Sent" />
+                )
+              ) : null}
+            </span>
+          </div>
         </div>
         {isFailed && onRetry ? (
           <button
@@ -680,6 +852,8 @@ export function Composer({
   sending,
   accentHex,
   attachmentsEnabled = true,
+  replyTo,
+  onClearReply,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -690,6 +864,8 @@ export function Composer({
   /** Optional brand colour for the send button (storefront). */
   accentHex?: string | null;
   attachmentsEnabled?: boolean;
+  replyTo?: ComposerReplyTarget | null;
+  onClearReply?: () => void;
 }) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -741,14 +917,47 @@ export function Composer({
 
   const submit = () => {
     if (!canSend) return;
-    onSend({ body: value.trim(), file });
+    onSend({
+      body: value.trim(),
+      file,
+      replyToMessageId: replyTo?.messageId ?? null,
+    });
     onChange("");
     clearFile();
     setEmojiOpen(false);
+    onClearReply?.();
   };
+
+  const replyPreview =
+    replyTo?.messageKind === "ORDER_CARD"
+      ? "Online order"
+      : replyTo?.messageKind === "WELCOME_CARD"
+        ? "Welcome message"
+        : replyTo?.body?.trim() || "Message";
 
   return (
     <div className="shrink-0 bg-gradient-to-t from-background via-background to-background/80 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+      {replyTo ? (
+        <div className="mb-2 flex items-stretch gap-2 rounded-2xl border border-primary/20 bg-primary/[0.05] px-3 py-2.5 shadow-sm">
+          <span className="w-1 shrink-0 rounded-full bg-primary" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold text-primary">
+              Replying to {replyTo.senderName?.trim() || (replyTo.senderType === "SUPER_ADMIN" ? "Kiosk Support" : replyTo.senderType === "GUEST" ? "Customer" : "You")}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{replyPreview}</p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="size-8 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+            aria-label="Cancel reply"
+            onClick={onClearReply}
+          >
+            <X className="size-3.5" />
+          </Button>
+        </div>
+      ) : null}
       {file ? (
         <div className="mb-2 flex items-center gap-2 rounded-2xl border border-border/60 bg-card px-3 py-2 shadow-sm">
           {previewUrl ? (
@@ -1038,11 +1247,17 @@ export function ChatThreadSurface({
     <div
       className={cn(
         "relative min-h-0 flex-1 overflow-hidden",
-        "bg-[radial-gradient(120%_80%_at_50%_-10%,rgba(40,167,69,0.07),transparent_55%)] bg-muted/25",
+        "bg-[radial-gradient(120%_80%_at_50%_-10%,rgba(40,167,69,0.09),transparent_55%)]",
+        "bg-[linear-gradient(180deg,rgba(248,250,252,0.55)_0%,rgba(241,245,249,0.35)_100%)]",
+        "dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.35)_0%,rgba(15,23,42,0.15)_100%)]",
         className,
       )}
     >
-      {children}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:radial-gradient(circle_at_1px_1px,rgba(15,23,42,0.07)_1px,transparent_0)] [background-size:22px_22px] dark:opacity-[0.2] dark:[background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.06)_1px,transparent_0)]"
+      />
+      <div className="relative z-[1] h-full">{children}</div>
     </div>
   );
 }
@@ -1068,4 +1283,29 @@ export function mergeByTimestamp(
 
 export function CloseIcon() {
   return <X className="size-4" />;
+}
+
+export function toReplyTarget(message: ChatMessageShape): ComposerReplyTarget {
+  return {
+    messageId: message.id,
+    senderName: message.senderName,
+    senderType: message.senderType,
+    body: message.body,
+    messageKind: message.messageKind ?? "TEXT",
+  };
+}
+
+export function replyFromRealtime(data: Record<string, unknown>): ChatReplyShape | null {
+  const raw = data.replyTo;
+  if (!raw || typeof raw !== "object") return null;
+  const reply = raw as Record<string, unknown>;
+  const messageId = typeof reply.messageId === "string" ? reply.messageId : "";
+  if (!messageId) return null;
+  return {
+    messageId,
+    senderType: String(reply.senderType ?? "TENANT") as ChatSenderType,
+    senderName: typeof reply.senderName === "string" ? reply.senderName : null,
+    body: typeof reply.body === "string" ? reply.body : "",
+    messageKind: typeof reply.messageKind === "string" ? reply.messageKind : "TEXT",
+  };
 }

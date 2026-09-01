@@ -272,6 +272,8 @@ export type CashierPosLayoutProps = {
   allowOrderPad?: boolean;
   /** Confirm Path A purchase orders from the till. */
   allowOrderConfirm?: boolean;
+  /** One-tap Clear sale beside Checkout / Pay (tenant setting). */
+  allowClearSale?: boolean;
   /** Offer the airtime chip — the panel hides itself if airtime is switched off. */
   allowAirtime?: boolean;
   /** Mark cart lines as sold by weight (permission or admin flag). */
@@ -362,6 +364,7 @@ export type CashierPosLayoutProps = {
     | "onDownloadReceiptPdf"
     | "receiptLoading"
     | "onStartNewSale"
+    | "onClearSale"
     | "receiptPrinter"
   >;
 };
@@ -961,6 +964,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     allowCreditTabs = false,
     allowOrderPad = false,
     allowOrderConfirm = false,
+    allowClearSale = true,
     allowAirtime = false,
     allowWeighedToggle = false,
     weighedToggleBusyItemId = null,
@@ -2349,6 +2353,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           removeLine={cart.removeLine}
           updateLine={cart.updateLine}
           onCheckout={() => setCheckoutDrawerOpen(true)}
+          allowClearSale={allowClearSale}
+          onClearSale={cart.onClearSale}
           onEditPrice={(key) => setEditPriceKey(key)}
           onToggleWeighed={onToggleWeighed}
           className={cn(
@@ -2641,6 +2647,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         allowWeighedToggle={allowWeighedToggle}
         weighedToggleBusyItemId={weighedToggleBusyItemId}
         onToggleWeighed={onToggleWeighed}
+        allowClearSale={allowClearSale}
         {...cart}
       />
 

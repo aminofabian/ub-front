@@ -3061,6 +3061,13 @@ export type SaSupportMessage = {
     contentType?: string | null;
     bytes?: number | null;
   } | null;
+  replyTo?: {
+    messageId: string;
+    senderType: "TENANT" | "SUPER_ADMIN" | "GUEST";
+    senderName: string | null;
+    body: string;
+    messageKind?: string | null;
+  } | null;
   readAt: string | null;
   createdAt: string;
 };
@@ -3166,6 +3173,7 @@ export async function sendSaSupportMessage(
     contentType?: string | null;
     bytes?: number | null;
   } | null,
+  replyToMessageId?: string | null,
 ): Promise<SaSupportMessage> {
   return saRequest<SaSupportMessage>(
     `${API_ROUTES.superAdminSupport}/conversations/${encodeURIComponent(conversationId)}/messages`,
@@ -3173,6 +3181,7 @@ export async function sendSaSupportMessage(
       method: "POST",
       body: JSON.stringify({
         body: body || "",
+        replyToMessageId: replyToMessageId ?? undefined,
         attachment: attachment
           ? {
               url: attachment.url,

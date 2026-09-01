@@ -62,6 +62,13 @@ export type SupportMessage = {
     contentType?: string | null;
     bytes?: number | null;
   } | null;
+  replyTo?: {
+    messageId: string;
+    senderType: SupportSenderType | "GUEST";
+    senderName: string | null;
+    body: string;
+    messageKind?: string | null;
+  } | null;
   readAt: string | null;
   createdAt: string;
 };
@@ -91,11 +98,13 @@ export async function openSupportConversation(
 export async function sendSupportMessage(
   body: string,
   attachment?: SupportMessage["attachment"],
+  replyToMessageId?: string | null,
 ): Promise<SupportMessage> {
   return apiRequest<SupportMessage>(`${API_ROUTES.support}/conversation/messages`, {
     method: "POST",
     body: {
       body: body || "",
+      replyToMessageId: replyToMessageId ?? undefined,
       attachment: attachment
         ? {
             url: attachment.url,
@@ -178,6 +187,7 @@ export async function sendStorefrontBuyerReply(
   id: string,
   body: string,
   attachment?: SupportMessage["attachment"],
+  replyToMessageId?: string | null,
 ): Promise<SupportMessage> {
   return apiRequest<SupportMessage>(
     `${API_ROUTES.support}/storefront/conversations/${encodeURIComponent(id)}/messages`,
@@ -185,6 +195,7 @@ export async function sendStorefrontBuyerReply(
       method: "POST",
       body: {
         body: body || "",
+        replyToMessageId: replyToMessageId ?? undefined,
         attachment: attachment
           ? {
               url: attachment.url,

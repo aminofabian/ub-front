@@ -7,10 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Check,
   ClipboardList,
-  Copy,
-  FileDown,
   Loader2,
-  MessageCircle,
   Minus,
   Package,
   Plus,
@@ -51,6 +48,12 @@ import {
 } from "@/lib/api";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
+import { useOrderTemplate } from "@/hooks/use-order-template";
+
+import { orderNameTitleParts } from "@/app/(dashboard)/order/_lib/order-link-display";
+import { OrderProductLedger } from "./order-product-ledger";
+import { OrderProductShelf } from "./order-product-shelf";
+import { OrderTemplatePicker } from "./order-template-picker";
 
 const ORDER_CURRENCY = "KES";
 
@@ -151,6 +154,8 @@ export function OrderReceivePanel({
 } = {}) {
   const router = useRouter();
   const { branchId, business } = useDashboard();
+  const { effective: orderTemplate, setTemplate: setOrderTemplate } =
+    useOrderTemplate();
   const [orders, setOrders] = useState<PathAPurchaseOrderListRowRecord[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -978,39 +983,19 @@ export function OrderReceivePanel({
           {!embedded ? (
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
               {detail ? (
-                <>
-                  <button
-                    type="button"
-                    disabled={
-                      savingOrder ||
-                      deletingOrder ||
-                      confirming ||
-                      !orderDirty
-                    }
-                    onClick={() => void saveOrder()}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] disabled:opacity-50"
-                  >
-                    {savingOrder ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Save className="size-3.5" />
-                    )}
-                    Save order
-                  </button>
-                  <button
-                    type="button"
-                    disabled={deletingOrder || savingOrder || confirming}
-                    onClick={() => void removeOrder()}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
-                  >
-                    {deletingOrder ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="size-3.5" />
-                    )}
-                    Delete order
-                  </button>
-                </>
+                <button
+                  type="button"
+                  disabled={deletingOrder || savingOrder || confirming}
+                  onClick={() => void removeOrder()}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                >
+                  {deletingOrder ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-3.5" />
+                  )}
+                  Delete order
+                </button>
               ) : null}
               <Link
                 href={APP_ROUTES.order}
@@ -1021,21 +1006,6 @@ export function OrderReceivePanel({
             </div>
           ) : detail ? (
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                disabled={
-                  savingOrder || deletingOrder || confirming || !orderDirty
-                }
-                onClick={() => void saveOrder()}
-                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] disabled:opacity-50"
-              >
-                {savingOrder ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Save className="size-3.5" />
-                )}
-                Save
-              </button>
               <button
                 type="button"
                 disabled={deletingOrder || savingOrder || confirming}
@@ -1101,6 +1071,8 @@ export function OrderReceivePanel({
                 const amount = (canReceive ? receiveQty : orderQty) * unit;
                 const meta = itemMeta[line.itemId];
                 const name = meta?.name ?? line.itemId.slice(0, 8);
+                const { primary: linePrimary, option: lineOption } =
+                  orderNameTitleParts(name);
                 const thumb = posTileThumbUrl(name, meta?.thumbnailUrl);
                 const lineBusy =
                   savingLineId === line.id || deletingLineId === line.id;
@@ -1155,9 +1127,14 @@ export function OrderReceivePanel({
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
-                          {name}
+                        <p className="line-clamp-2 break-words text-[13px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
+                          {linePrimary}
                         </p>
+                        {lineOption ? (
+                          <p className="line-clamp-1 break-words text-[11px] font-semibold leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
+                            {lineOption}
+                          </p>
+                        ) : null}
                         <p className="mt-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                           Received {toNum(line.qtyReceived)}
                           {!canReceive ? " · fully received" : ""}
@@ -1305,13 +1282,23 @@ export function OrderReceivePanel({
               </button>
               {addItemOpen ? (
                 <div className="mt-3 space-y-2">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
-                    <input
-                      className="h-10 w-full rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white pl-9 pr-3 text-[13px] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_15%,transparent)]"
-                      placeholder="Search supplier catalog…"
-                      value={addItemQuery}
-                      onChange={(e) => setAddItemQuery(e.target.value)}
+                  <div className="flex items-center gap-2">
+                    <div className="relative min-w-0 flex-1">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
+                      <input
+                        className="h-10 w-full rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white pl-9 pr-3 text-[13px] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_15%,transparent)]"
+                        placeholder={
+                          orderTemplate === "ledger"
+                            ? "Search catalog list…"
+                            : "Search supplier catalog…"
+                        }
+                        value={addItemQuery}
+                        onChange={(e) => setAddItemQuery(e.target.value)}
+                      />
+                    </div>
+                    <OrderTemplatePicker
+                      value={orderTemplate}
+                      onChange={setOrderTemplate}
                     />
                   </div>
                   {addableLinks.length === 0 ? (
@@ -1320,30 +1307,24 @@ export function OrderReceivePanel({
                         ? "No supplier catalog loaded."
                         : "No matching items, or all catalog items are already on this order."}
                     </p>
+                  ) : orderTemplate === "ledger" ? (
+                    <OrderProductLedger
+                      links={addableLinks}
+                      cart={{}}
+                      packByItemId={{}}
+                      onSetQty={() => {}}
+                      onPickItem={(link) => void addItemToOrder(link)}
+                      pickingItemId={addingItemId}
+                    />
                   ) : (
-                    <ul className="max-h-52 divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] overflow-y-auto rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white [scrollbar-width:thin]">
-                      {addableLinks.map((link) => (
-                        <li key={link.id}>
-                          <button
-                            type="button"
-                            disabled={addingItemId === link.itemId}
-                            onClick={() => void addItemToOrder(link)}
-                            className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] disabled:opacity-50"
-                          >
-                            <span className="min-w-0 truncate text-[13px] font-medium text-[var(--order-ink,#15231f)]">
-                              {link.itemName}
-                            </span>
-                            <span className="shrink-0 font-mono text-[11px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-                              {addingItemId === link.itemId ? (
-                                <Loader2 className="size-3.5 animate-spin" />
-                              ) : (
-                                formatMoney(linkUnitCost(link), ORDER_CURRENCY)
-                              )}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                    <OrderProductShelf
+                      links={addableLinks}
+                      cart={{}}
+                      packByItemId={{}}
+                      onSetQty={() => {}}
+                      onPickItem={(link) => void addItemToOrder(link)}
+                      pickingItemId={addingItemId}
+                    />
                   )}
                 </div>
               ) : null}
@@ -1374,90 +1355,95 @@ export function OrderReceivePanel({
                   Clear
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <p className="text-[10px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                Save order changes, then confirm to post a goods receipt and
+                supplier bill. Share via WhatsApp or PDF anytime.
+              </p>
+            </div>
+
+            <div>
+              <div className="rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[var(--order-ink,#15231f)] p-3.5 text-white shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_10%,transparent)]">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color-mix(in_srgb,#fff_55%,transparent)]">
+                      Selected total
+                    </p>
+                    <p className="mt-1 font-mono text-[11px] text-[color-mix(in_srgb,#fff_62%,transparent)]">
+                      {selectedUnits} unit{selectedUnits === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <p className="font-mono text-[22px] font-bold tabular-nums leading-none">
+                    {formatMoney(selectedTotal, ORDER_CURRENCY)}
+                  </p>
+                </div>
                 <button
                   type="button"
-                  disabled={shareBusy || shareLines.length === 0}
-                  onClick={() => void downloadOrderPdf()}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] disabled:opacity-40"
+                  disabled={
+                    savingOrder ||
+                    confirming ||
+                    !detail ||
+                    !orderDirty
+                  }
+                  onClick={() => void saveOrder()}
+                  className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50"
                 >
-                  {sharing === "pdf" ? (
-                    <Loader2 className="size-3.5 animate-spin" />
+                  {savingOrder ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Saving…
+                    </>
                   ) : (
-                    <FileDown className="size-3.5" />
+                    <>
+                      <Save className="size-4" />
+                      Save
+                    </>
                   )}
-                  PDF
                 </button>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px]">
                 <button
                   type="button"
-                  disabled={shareBusy || shareLines.length === 0}
-                  onClick={() => void copyOrderList()}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] disabled:opacity-40"
+                  disabled={confirming || openLines.length === 0}
+                  onClick={() => void confirmSelected()}
+                  className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
                 >
-                  {sharing === "copy" ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Copy className="size-3.5" />
-                  )}
-                  Copy
+                  {confirming ? "Posting supply…" : "Confirm → supply"}
                 </button>
+                <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]" aria-hidden>
+                  ·
+                </span>
                 <button
                   type="button"
                   disabled={shareBusy || shareLines.length === 0}
                   onClick={() => void sendOrderWhatsApp()}
-                  className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#128c4a] px-3 text-[12px] font-semibold text-white transition hover:bg-[#0f7a3f] disabled:opacity-50 sm:col-span-1"
+                  className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
                 >
-                  {sharing === "whatsapp" ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin" />
-                      Opening…
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircle className="size-3.5" />
-                      WhatsApp
-                    </>
-                  )}
+                  {sharing === "whatsapp" ? "Opening…" : "WhatsApp"}
+                </button>
+                <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]" aria-hidden>
+                  ·
+                </span>
+                <button
+                  type="button"
+                  disabled={shareBusy || shareLines.length === 0}
+                  onClick={() => void copyOrderList()}
+                  className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
+                >
+                  {sharing === "copy" ? "Copying…" : "Copy"}
+                </button>
+                <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]" aria-hidden>
+                  ·
+                </span>
+                <button
+                  type="button"
+                  disabled={shareBusy || shareLines.length === 0}
+                  onClick={() => void downloadOrderPdf()}
+                  className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
+                >
+                  {sharing === "pdf" ? "Preparing…" : "PDF"}
                 </button>
               </div>
-              <p className="text-[10px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                Share the order list or PDF with your supplier. Confirm posts a
-                goods receipt and supplier bill.
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[var(--order-ink,#15231f)] p-3.5 text-white shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_10%,transparent)]">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color-mix(in_srgb,#fff_55%,transparent)]">
-                    Selected total
-                  </p>
-                  <p className="mt-1 font-mono text-[11px] text-[color-mix(in_srgb,#fff_62%,transparent)]">
-                    {selectedUnits} unit{selectedUnits === 1 ? "" : "s"}
-                  </p>
-                </div>
-                <p className="font-mono text-[22px] font-bold tabular-nums leading-none">
-                  {formatMoney(selectedTotal, ORDER_CURRENCY)}
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={confirming || openLines.length === 0}
-                onClick={() => void confirmSelected()}
-                className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50"
-              >
-                {confirming ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Posting supply…
-                  </>
-                ) : (
-                  <>
-                    <Check className="size-4" />
-                    Confirm → supply
-                  </>
-                )}
-              </button>
             </div>
           </div>
         </div>

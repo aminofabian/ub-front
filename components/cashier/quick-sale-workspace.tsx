@@ -64,6 +64,7 @@ import {
 import {
   cashierMayRecordDrawout,
   POS_CASHIER_CAPABILITY_FLAGS,
+  posClearSaleEnabled,
 } from "@/lib/pos-cashier-capabilities";
 import {
   shouldListenOnPos,
@@ -402,6 +403,7 @@ export function QuickSaleWorkspace({
   const allowOrderConfirm =
     hasPermission(me?.permissions, Permission.PurchasingPathAWrite) &&
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false;
+  const allowClearSale = posClearSaleEnabled(featureFlags);
   const allowAirtime = hasPermission(me?.permissions, Permission.AirtimeSell);
   const requirePhoneVerification = phoneVerificationRequiredForNewTab(business);
   const allowSearchCustomersByName = canSearchCustomersByName(business);
@@ -4188,6 +4190,8 @@ export function QuickSaleWorkspace({
     const active = carts.find((c) => c.id === activeCartId) ?? carts[0];
     if (!active) return;
 
+    cancelInFlightMpesa("Sale cleared");
+
     // Cancel server draft if one exists and the cart is not empty.
     if (
       active.draftId &&
@@ -4195,14 +4199,29 @@ export function QuickSaleWorkspace({
       posDraftPersistence &&
       online
     ) {
-      void cancelPosDraft(active.draftId).catch(() => {
+      void cancelPosDraft(active.draftId, "Cleared from till").catch(() => {
         // Best-effort — draft may already be completed / cancelled.
       });
+      setPendingSalesRefreshKey((k) => k + 1);
     }
 
     if (active?.groceryInvoiceId && online) {
       void unlockGroceryInvoice(active.groceryInvoiceId);
     }
+
+    const bizId = business?.id?.trim();
+    const bid = branchId.trim();
+    const uid = me?.id?.trim();
+    if (
+      cartLocalMirror &&
+      bizId &&
+      bid &&
+      uid &&
+      active.lines.length > 0
+    ) {
+      void removeMirroredCart(bizId, bid, uid, active.id);
+    }
+
     dismissCompletedSaleUi();
     setNotice("");
     setError("");
@@ -4220,7 +4239,60 @@ export function QuickSaleWorkspace({
         c.id === activeCartId ? resetCartSessionKeepingTab(c) : c,
       );
     });
-  }, [activeCartId, carts, dismissCompletedSaleUi, online, posDraftPersistence]);
+  }, [
+    activeCartId,
+    branchId,
+    business?.id,
+    cancelInFlightMpesa,
+    cartLocalMirror,
+    carts,
+    dismissCompletedSaleUi,
+    me?.id,
+    online,
+    posDraftPersistence,
+  ]);
+
+  const onClearSale = useCallback(() => {
+    const active = carts.find((c) => c.id === activeCartId) ?? carts[0];
+    if (!active?.lines.length) {
+      return;
+    }
+    const ticket =
+      active.ticketNumber != null && active.ticketNumber > 0
+        ? `#${active.ticketNumber}`
+        : null;
+    const blockedMsg = cartEditBlockedByMpesa(stkPushStatusRef.current);
+    if (blockedMsg) {
+      showThemedConfirmToast({
+        id: `clear-sale-mpesa-${active.id}`,
+        title: ticket ? `Clear sale ${ticket}?` : "Clear this sale?",
+        description:
+          "An M-Pesa prompt is on the customer's phone. Clearing will cancel it and remove every line.",
+        confirmLabel: "Clear sale",
+        confirmVariant: "destructive",
+        onConfirm: () => {
+          onStartNewSale();
+          setCheckoutDrawerOpen(false);
+        },
+      });
+      return;
+    }
+    showThemedConfirmToast({
+      id: `clear-sale-${active.id}`,
+      title: ticket ? `Clear sale ${ticket}?` : "Clear this sale?",
+      description: active.groceryInvoiceId
+        ? "Removes every line and releases the grocery invoice lock on this till."
+        : active.draftId
+          ? "Voids this open sale branch-wide and starts a fresh cart."
+          : "Removes every line from the till. This cannot be undone.",
+      confirmLabel: "Clear sale",
+      confirmVariant: "destructive",
+      onConfirm: () => {
+        onStartNewSale();
+        setCheckoutDrawerOpen(false);
+      },
+    });
+  }, [activeCartId, carts, onStartNewSale]);
 
   const onDownloadReceiptPdf = useCallback(async () => {
     if (!lastSale) {
@@ -4563,6 +4635,7 @@ export function QuickSaleWorkspace({
         allowCreditTabs={allowCreditTabs}
         allowOrderPad={allowOrderPad}
         allowOrderConfirm={allowOrderConfirm}
+        allowClearSale={allowClearSale}
         allowAirtime={allowAirtime}
         allowWeighedToggle={allowWeighedToggle}
         weighedToggleBusyItemId={weighedToggleBusyItemId}
@@ -4650,6 +4723,7 @@ export function QuickSaleWorkspace({
             void onDownloadReceiptPdf().catch(() => undefined),
           receiptLoading,
           onStartNewSale,
+          onClearSale,
           receiptPrinter: {
             cupsName:
               branches.find((b) => b.id === branchId.trim())?.receipt

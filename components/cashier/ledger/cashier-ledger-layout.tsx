@@ -164,6 +164,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     allowCreditTabs = false,
     allowOrderPad = false,
     allowOrderConfirm = false,
+    allowClearSale = true,
     allowAirtime = false,
     allowNegativeStock = false,
     itemTypes = [],
@@ -1153,6 +1154,19 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           </div>
 
           <div className="shrink-0 border-t border-zinc-100 p-3">
+          {allowClearSale && cart.onClearSale && cart.lines.length > 0 && !completeIdle ? (
+            <button
+              type="button"
+              disabled={cart.loading || tillLocked}
+              onClick={cart.onClearSale}
+              className={cn(
+                "mb-2 h-10 w-full rounded-md border border-red-200 bg-white text-sm font-semibold text-red-700",
+                "hover:bg-red-50 active:scale-[0.99] disabled:opacity-40",
+              )}
+            >
+              Clear sale
+            </button>
+          ) : null}
           <button
             type="button"
             disabled={

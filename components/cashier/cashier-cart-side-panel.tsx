@@ -51,6 +51,9 @@ type CashierCartSidePanelProps = {
     value: string,
   ) => void;
   onCheckout: () => void;
+  /** Show Clear sale beside Checkout / Pay (tenant setting). */
+  allowClearSale?: boolean;
+  onClearSale?: () => void;
   onEditPrice?: (key: string) => void;
   onToggleWeighed?: (lineKey: string) => void;
 };
@@ -77,6 +80,8 @@ export function CashierCartSidePanel({
   removeLine,
   updateLine,
   onCheckout,
+  allowClearSale = true,
+  onClearSale,
   onEditPrice,
   onToggleWeighed,
 }: CashierCartSidePanelProps) {
@@ -258,6 +263,17 @@ export function CashierCartSidePanel({
           >
             {loading ? "Recording…" : "Checkout / Pay"}
           </Button>
+          {allowClearSale && onClearSale && lines.length > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2 h-10 w-full rounded-md border-destructive/35 text-[13px] font-semibold text-destructive hover:bg-destructive/5 hover:text-destructive"
+              disabled={loading}
+              onClick={onClearSale}
+            >
+              Clear sale
+            </Button>
+          ) : null}
           <p className="mt-1.5 text-center text-[10px] leading-snug text-muted-foreground">
             {!branchSelected
               ? "Pick a branch in the top nav to check out"

@@ -231,6 +231,21 @@
     animation: support-typing-dot 1s ease-in-out infinite;
 }
 
+@keyframes support-message-flash {
+    0%,
+    100% {
+        background-color: transparent;
+    }
+    35% {
+        background-color: rgba(40, 167, 69, 0.14);
+    }
+}
+
+.support-message-highlight {
+    animation: support-message-flash 1.4s ease-out 1;
+    border-radius: 0.75rem;
+}
+
 /* ── Tablet / iPad native-app shell (bottom nav below 2xl) ─────────────── */
 .tablet-app-root:has(.tablet-bottom-nav) {
     background:

@@ -112,6 +112,8 @@ export type CashierCapabilitiesForm = {
   drawout: boolean;
   /** Search-first list catalog on POS (vs classic product grid). */
   catalogHybrid: boolean;
+  /** One-tap Clear sale beside Checkout / Pay on the till. */
+  clearSale: boolean;
 };
 
 export type ShiftSettingsForm = {
@@ -130,6 +132,8 @@ export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
   drawout: false,
   /** Default off — keep classic grid for existing grocery tills. */
   catalogHybrid: false,
+  /** Default on — cashiers can abandon a wrong sale in one tap. */
+  clearSale: true,
 };
 
 export const DEFAULT_SHIFT_SETTINGS: ShiftSettingsForm = {
@@ -150,6 +154,7 @@ export function cashierCapabilitiesFromRecord(
     orderConfirm: ff[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false,
     drawout: ff[POS_CASHIER_CAPABILITY_FLAGS.drawout] === true,
     catalogHybrid: ff[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true,
+    clearSale: ff[POS_CASHIER_CAPABILITY_FLAGS.clearSale] !== false,
   };
 }
 

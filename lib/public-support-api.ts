@@ -57,6 +57,13 @@ export type GuestMessage = {
     contentType?: string | null;
     bytes?: number | null;
   } | null;
+  replyTo?: {
+    messageId: string;
+    senderType: "GUEST" | "TENANT" | "SUPER_ADMIN";
+    senderName: string | null;
+    body: string;
+    messageKind?: string | null;
+  } | null;
   readAt: string | null;
   createdAt: string;
 };
@@ -302,6 +309,7 @@ export async function sendGuestMessage(
     type: GuestChatType;
     businessSlug?: string;
     attachment?: GuestMessage["attachment"];
+    replyToMessageId?: string | null;
   },
 ): Promise<GuestMessage> {
   const guestId = ensureGuestId();
@@ -314,6 +322,7 @@ export async function sendGuestMessage(
       body: JSON.stringify({
         body: body || "",
         guestName: getGuestName() ?? undefined,
+        replyToMessageId: opts.replyToMessageId ?? undefined,
         attachment: opts.attachment
           ? {
               url: opts.attachment.url,

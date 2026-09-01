@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   Banknote,
@@ -26,7 +25,6 @@ import {
 } from "@/components/ui/dialog";
 import { DashboardFeedback } from "@/components/dashboard-page-ui";
 import {
-  itemListThumbnailUrl,
   type CustomerRecord,
   type ItemSummaryRecord,
   type SalePaymentMethod,
@@ -36,18 +34,10 @@ import {
   cashierItemPrimaryLabel,
   cashierItemTitleParts,
 } from "@/lib/cashier-item-display";
-import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
-import { isAirtimeCartLine } from "@/lib/airtime-cart-line";
 import { CashierCurrencySuffix } from "./cashier-currency-inline";
-import {
-  CashierQtyControl,
-  formatCartQtyLabel,
-} from "./cashier-qty-control";
-import { CashierWeighedToggle } from "./cashier-weighed-toggle";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
 import { isValidCustomerPhone, customerPhoneValidationMessage, storedCustomerPhoneIssue } from "@/lib/customer-phone";
 import {
-  CustomerPhoneFlag,
   customerPrimaryPhone,
 } from "@/components/credits/customer-phone-flag";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -209,72 +199,63 @@ export type CashierCartDrawerProps = {
   onDownloadReceiptPdf: () => void;
   receiptLoading: boolean;
   onStartNewSale: () => void;
+  /** Abandon the in-progress cart (with confirm). */
+  onClearSale?: () => void;
+  /** Show Clear sale in checkout (tenant setting). */
+  allowClearSale?: boolean;
   /** Branch CUPS / network printer for raw ESC/POS + cut. */
   receiptPrinter?: LocalReceiptPrinterTarget | null;
 };
 
-function PayMethodTile({
+function PayMethodChip({
   active,
   disabled,
   onClick,
   icon,
   label,
-  hint,
 }: {
   active: boolean;
   disabled?: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
-  hint?: string;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
+      title={label}
       className={cn(
-        "flex min-h-[4.25rem] flex-col items-start justify-center gap-1 rounded-2xl border px-3 py-2.5 text-left transition-all duration-200",
+        "inline-flex min-h-9 items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-left transition-all duration-150",
         "disabled:cursor-not-allowed disabled:opacity-40",
         active
-          ? "scale-[1.02] border-transparent text-[var(--pos-primary-ink)] shadow-md"
-          : "border-border/50 bg-background/80 text-foreground hover:border-border hover:bg-card hover:shadow-sm",
+          ? "border-transparent text-[var(--pos-primary-ink)] shadow-sm"
+          : "border-border/45 bg-background/90 text-foreground hover:border-border hover:bg-card",
       )}
       style={
         active
           ? {
               backgroundColor: "var(--pos-primary)",
               boxShadow:
-                "0 10px 28px -12px color-mix(in srgb, var(--pos-primary) 55%, transparent)",
+                "0 6px 18px -10px color-mix(in srgb, var(--pos-primary) 50%, transparent)",
             }
           : undefined
       }
     >
       <span
         className={cn(
-          "inline-flex size-7 items-center justify-center rounded-lg",
+          "inline-flex size-6 shrink-0 items-center justify-center rounded-md",
           active
             ? "bg-[color-mix(in_srgb,var(--pos-primary-ink)_14%,transparent)]"
-            : "bg-muted/60 text-muted-foreground",
+            : "bg-muted/55 text-muted-foreground",
         )}
       >
         {icon}
       </span>
-      <span className="text-[13px] font-bold leading-none tracking-tight">
+      <span className="text-[12px] font-semibold leading-none tracking-tight">
         {label}
       </span>
-      {hint ? (
-        <span
-          className={cn(
-            "text-[10px] leading-tight",
-            active
-              ? "text-[color-mix(in_srgb,var(--pos-primary-ink)_72%,transparent)]"
-              : "text-muted-foreground",
-          )}
-        >
-          {hint}
-        </span>
-      ) : null}
     </button>
   );
 }
@@ -291,10 +272,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     grandTotal,
     payableTotal,
     removeLine,
-    updateLine,
-    allowWeighedToggle = false,
-    weighedToggleBusyItemId = null,
-    onToggleWeighed,
     payMethod,
     setPayMethod,
     kioskPayAvailable = false,
@@ -367,16 +344,13 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     onDownloadReceiptPdf,
     receiptLoading,
     onStartNewSale,
+    onClearSale,
+    allowClearSale = true,
     receiptPrinter,
   } = props;
 
   const [linesOpen, setLinesOpen] = useState(false);
   const saleComplete = lastSale != null && lastReceipt != null;
-
-  const totalItems = lines.reduce((acc, l) => {
-    const q = Number(l.quantity);
-    return acc + (Number.isFinite(q) && q > 0 ? q : 0);
-  }, 0);
 
   const walletBalance = selectedCustomer
     ? Number(selectedCustomer.credit.walletBalance)
@@ -608,68 +582,110 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
         ) : (
           <>
             <div
-              className="relative shrink-0 overflow-hidden px-4 pb-4 pt-5"
+              className="relative shrink-0 border-b border-border/35 px-3.5 py-2.5"
               style={{
                 background:
-                  "linear-gradient(160deg, color-mix(in srgb, var(--pos-primary) 18%, transparent) 0%, transparent 70%)",
+                  "linear-gradient(135deg, color-mix(in srgb, var(--pos-primary) 12%, transparent) 0%, transparent 65%)",
               }}
             >
-              <div
-                className="pointer-events-none absolute -right-8 -top-10 size-36 rounded-full opacity-30"
-                style={{
-                  background:
-                    "radial-gradient(circle, var(--pos-primary), transparent 70%)",
-                }}
-                aria-hidden
-              />
-              <DialogHeader className="relative min-w-0 pr-8">
-                <DialogTitle className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Checkout
-                </DialogTitle>
+              <DialogHeader className="relative min-w-0 pr-7">
+                <div className="flex items-center justify-between gap-2">
+                  <DialogTitle className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Checkout
+                  </DialogTitle>
+                  {lines.length > 0 ? (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                      onClick={() => setLinesOpen((v) => !v)}
+                      aria-expanded={linesOpen}
+                    >
+                      <ShoppingBag className="size-3" aria-hidden />
+                      {lines.length} item{lines.length === 1 ? "" : "s"}
+                      <ChevronDown
+                        className={cn(
+                          "size-3 transition-transform duration-200",
+                          linesOpen && "rotate-180",
+                        )}
+                        aria-hidden
+                      />
+                    </button>
+                  ) : null}
+                </div>
                 <DialogDescription className="sr-only">
                   Pay for this cart and complete the sale
                 </DialogDescription>
               </DialogHeader>
-              <p className="relative mt-3 text-[11px] font-medium text-muted-foreground">
-                {lines.length === 0
-                  ? "Cart is empty"
-                  : `${lines.length} line${lines.length === 1 ? "" : "s"} · ${totalItems.toFixed(0)} items`}
-              </p>
-              <div className="relative mt-1 flex items-baseline gap-2">
-                <span className="text-[2.75rem] font-bold leading-none tracking-tight tabular-nums text-foreground sm:text-[3rem]">
-                  {grandTotal.toFixed(2)}
-                </span>
-                <CashierCurrencySuffix
-                  code={currency}
-                  className="!text-[12px] tracking-[0.14em] text-muted-foreground/70"
-                />
+              <div className="relative mt-1 flex items-end justify-between gap-3">
+                <div className="flex min-w-0 items-baseline gap-1.5">
+                  <span className="text-[2rem] font-bold leading-none tracking-tight tabular-nums text-foreground">
+                    {grandTotal.toFixed(2)}
+                  </span>
+                  <CashierCurrencySuffix
+                    code={currency}
+                    className="!text-[11px] tracking-[0.12em] text-muted-foreground/70"
+                  />
+                </div>
+                {cashReady && changeDueAmount > 0 ? (
+                  <p className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
+                    {creditChangeToWallet
+                      ? `+${cashChange} wallet`
+                      : `Change ${cashChange}`}
+                  </p>
+                ) : cashReady ? (
+                  <p className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--pos-primary)]">
+                    <Check className="size-3" strokeWidth={3} aria-hidden />
+                    Exact
+                  </p>
+                ) : null}
               </div>
-              {cashReady && changeDueAmount > 0 ? (
-                <p className="relative mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-200">
-                  {creditChangeToWallet
-                    ? `Credit ${cashChange} ${currency} to wallet`
-                    : `Change due ${cashChange} ${currency}`}
-                </p>
-              ) : cashReady ? (
-                <p className="relative mt-2 inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)] px-2.5 py-1 text-[11px] font-semibold text-[var(--pos-primary)]">
-                  <Check className="size-3.5" strokeWidth={3} aria-hidden />
-                  Exact cash — ready
-                </p>
+              {linesOpen && lines.length > 0 ? (
+                <ul className="mt-2 max-h-28 space-y-0.5 overflow-y-auto rounded-xl border border-border/40 bg-background/80 p-1">
+                  {lines.map((line) => {
+                    const subtotal = lineSubtotal(line);
+                    const full = cashierItemPrimaryLabel(line.item);
+                    const { primary, option } = cashierItemTitleParts(line.item);
+                    return (
+                      <li
+                        key={line.key}
+                        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px]"
+                      >
+                        <span className="min-w-0 flex-1 truncate font-medium">
+                          {primary}
+                          {option ? (
+                            <span className="text-muted-foreground"> · {option}</span>
+                          ) : null}
+                        </span>
+                        <span className="shrink-0 tabular-nums text-muted-foreground">
+                          {subtotal.toFixed(2)}
+                        </span>
+                        <button
+                          type="button"
+                          className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+                          aria-label={`Remove ${full}`}
+                          onClick={() => removeLine(line.key)}
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
               ) : null}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
-              <div className="space-y-4">
-                <section className="space-y-2.5">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 py-2.5">
+              <div className="space-y-2.5">
+                <section className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      How are they paying?
+                    <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      Payment
                     </h3>
                     {!IS_DESKTOP ? (
-                      <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <label className="flex cursor-pointer items-center gap-1.5 text-[10px] text-muted-foreground">
                         <input
                           type="checkbox"
-                          className="size-3.5 rounded border-border/60 accent-[var(--pos-primary)]"
+                          className="size-3 rounded border-border/60 accent-[var(--pos-primary)]"
                           checked={splitPay}
                           disabled={
                             payMethod === "customer_credit" ||
@@ -706,42 +722,37 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   {!splitPay &&
                   stkPushStatus === "awaiting_till" &&
                   !isStkTender(payMethod) ? (
-                    <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
-                      Listening for M-Pesa till payment… You can keep adding
-                      items. If the customer pays Buy Goods for this total, the
-                      sale completes automatically.
+                    <p className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[11px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+                      Listening for M-Pesa till payment… Sale completes when paid.
                     </p>
                   ) : null}
 
                   {!splitPay ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      <PayMethodTile
+                    <div className="flex flex-wrap gap-1.5">
+                      <PayMethodChip
                         active={payMethod === "cash"}
                         onClick={() => setPayMethod("cash")}
-                        icon={<Banknote className="size-3.5" aria-hidden />}
+                        icon={<Banknote className="size-3" aria-hidden />}
                         label="Cash"
-                        hint="Notes & coins"
                       />
                       {!IS_DESKTOP ? (
-                        <PayMethodTile
+                        <PayMethodChip
                           active={payMethod === "mpesa_manual"}
                           onClick={() => setPayMethod("mpesa_manual")}
-                          icon={<Smartphone className="size-3.5" aria-hidden />}
+                          icon={<Smartphone className="size-3" aria-hidden />}
                           label="M-Pesa"
-                          hint="Your till STK"
                         />
                       ) : null}
                       {!IS_DESKTOP && kioskPayAvailable ? (
-                        <PayMethodTile
+                        <PayMethodChip
                           active={payMethod === "kiosk_pay"}
                           onClick={() => setPayMethod("kiosk_pay")}
-                          icon={<Store className="size-3.5" aria-hidden />}
-                          label="Kiosk Pay"
-                          hint="Platform STK"
+                          icon={<Store className="size-3" aria-hidden />}
+                          label="Kiosk"
                         />
                       ) : null}
                       {canCreateRemoteBill ? (
-                        <PayMethodTile
+                        <PayMethodChip
                           active={payMethod === "remote_bill"}
                           disabled={!online}
                           onClick={() => {
@@ -749,26 +760,24 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             setCreditChangeToWallet(false);
                             setPayMethod("remote_bill");
                           }}
-                          icon={<Send className="size-3.5" aria-hidden />}
+                          icon={<Send className="size-3" aria-hidden />}
                           label="Send bill"
-                          hint="Delivery / remote"
                         />
                       ) : null}
                       {canLookupCustomers ? (
-                        <PayMethodTile
+                        <PayMethodChip
                           active={payMethod === "customer_credit"}
                           onClick={() => {
                             setSplitPay(false);
                             setCreditChangeToWallet(false);
                             setPayMethod("customer_credit");
                           }}
-                          icon={<UserRound className="size-3.5" aria-hidden />}
+                          icon={<UserRound className="size-3" aria-hidden />}
                           label="Tab"
-                          hint="Charge later"
                         />
                       ) : null}
                       {canLookupCustomers ? (
-                        <PayMethodTile
+                        <PayMethodChip
                           active={payMethod === "customer_wallet"}
                           disabled={!online}
                           onClick={() => {
@@ -776,13 +785,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             setCreditChangeToWallet(false);
                             setPayMethod("customer_wallet");
                           }}
-                          icon={<Wallet className="size-3.5" aria-hidden />}
+                          icon={<Wallet className="size-3" aria-hidden />}
                           label="Wallet"
-                          hint="Store credit"
                         />
                       ) : null}
                       {canLookupCustomers ? (
-                        <PayMethodTile
+                        <PayMethodChip
                           active={payMethod === "loyalty_redeem"}
                           disabled={!online}
                           onClick={() => {
@@ -790,90 +798,304 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             setCreditChangeToWallet(false);
                             setPayMethod("loyalty_redeem");
                           }}
-                          icon={<Gift className="size-3.5" aria-hidden />}
+                          icon={<Gift className="size-3" aria-hidden />}
                           label="Loyalty"
-                          hint="Points"
                         />
                       ) : null}
                     </div>
                   ) : null}
 
-                  {!splitPay && payMethod === "cash" ? (
-                    <div className="space-y-3 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                          Cash received
-                        </p>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            className="rounded-lg px-2 py-1 text-[11px] font-semibold text-[var(--pos-primary)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)]"
-                            onClick={() => {
-                              const next = payableTotal.toFixed(2);
-                              lastAutoTenderRef.current = next;
-                              setCashTenderStr(next);
-                            }}
-                          >
-                            Exact total
-                          </button>
-                        </div>
+                  {showCustomerPicker ? (
+                    <div className="space-y-2 rounded-xl border border-border/45 bg-card/80 p-2.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        {creditChangeToWallet
+                          ? "Credit change to"
+                          : payMethod === "remote_bill"
+                            ? "Send bill to"
+                            : splitPay
+                              ? "Wallet customer"
+                              : captureCustomerSimple
+                                ? "Customer (optional)"
+                                : "Customer"}
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          className={fieldClass("h-9 min-w-0 flex-1 text-[13px]")}
+                          value={customerPhoneQuery}
+                          onChange={(e) =>
+                            setCustomerPhoneQuery(e.target.value)
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              onSearchCustomers();
+                            }
+                          }}
+                          placeholder={
+                            allowSearchCustomersByName &&
+                            (creditRegisterContext || captureCustomerSimple)
+                              ? "Name or phone…"
+                              : "Phone 2547… or 07…"
+                          }
+                          disabled={!online}
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="h-9 shrink-0 rounded-lg px-2.5 text-xs font-semibold"
+                          disabled={
+                            !online ||
+                            customerSearchBusy ||
+                            !customerPhoneQuery.trim() ||
+                            ((payMethod === "customer_credit" ||
+                              creditChangeToWallet) &&
+                              !allowSearchCustomersByName &&
+                              !isValidCustomerPhone(customerPhoneQuery))
+                          }
+                          onClick={onSearchCustomers}
+                        >
+                          {customerSearchBusy ? "…" : "Find"}
+                        </Button>
                       </div>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        aria-label={`Amount received in ${currency}`}
-                        className={fieldClass(
-                          "h-14 w-full text-right text-2xl font-bold tabular-nums tracking-tight",
-                        )}
-                        value={cashTenderStr}
-                        onChange={(e) => setCashTenderStr(e.target.value)}
-                        placeholder="0.00"
-                      />
-                      <div className="flex flex-wrap gap-1.5">
+                      {(payMethod === "customer_credit" ||
+                        creditChangeToWallet) &&
+                      !allowSearchCustomersByName &&
+                      customerPhoneQuery.trim() &&
+                      !isValidCustomerPhone(customerPhoneQuery) ? (
+                        <p className="text-[10px] text-destructive">
+                          {customerPhoneValidationMessage(customerPhoneQuery) ??
+                            "Enter a valid phone number."}
+                        </p>
+                      ) : null}
+                      {customerHits.length > 0 ? (
+                        <ul className="max-h-24 space-y-0.5 overflow-y-auto">
+                          {customerHits.map((c) => {
+                            const hitPhone = customerPrimaryPhone(c.phones);
+                            const phoneIssue = storedCustomerPhoneIssue(hitPhone);
+                            return (
+                              <li key={c.id}>
+                                <button
+                                  type="button"
+                                  className={cn(
+                                    "w-full rounded-lg px-2 py-1.5 text-left text-[12px] transition-colors",
+                                    selectedCustomer?.id === c.id
+                                      ? "bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] font-semibold"
+                                      : "hover:bg-muted/50",
+                                    phoneIssue && "ring-1 ring-destructive/40",
+                                  )}
+                                  onClick={() => setSelectedCustomer(c)}
+                                >
+                                  {c.name}
+                                  <span
+                                    className={cn(
+                                      "ml-1",
+                                      phoneIssue
+                                        ? "text-destructive"
+                                        : "text-muted-foreground",
+                                    )}
+                                  >
+                                    {hitPhone}
+                                  </span>
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : null}
+                      {customerNoPhoneMatch &&
+                      !selectedCustomer &&
+                      customerPhoneQuery.trim() &&
+                      !isValidCustomerPhone(customerPhoneQuery) &&
+                      !captureCustomerSimple &&
+                      (!creditRegisterContext || allowSearchCustomersByName) ? (
+                        <p className="text-[10px] text-muted-foreground">
+                          No match — try a phone number to register.
+                        </p>
+                      ) : null}
+                      {((creditRegisterContext &&
+                        isValidCustomerPhone(customerPhoneQuery)) ||
+                        captureCustomerSimple) &&
+                      customerNoPhoneMatch &&
+                      !selectedCustomer &&
+                      customerPhoneQuery.trim() ? (
+                        <div className="space-y-2 rounded-lg border border-[color-mix(in_srgb,var(--pos-primary)_25%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)] p-2.5">
+                          <p className="text-[11px] font-semibold text-foreground">
+                            {captureCustomerSimple
+                              ? "Add new customer"
+                              : "Register new number"}
+                          </p>
+                          {canManageCustomers ? (
+                            <>
+                              <input
+                                className={fieldClass("h-9 w-full text-[13px]")}
+                                value={customerRegisterName}
+                                onChange={(e) =>
+                                  setCustomerRegisterName(e.target.value)
+                                }
+                                placeholder="Full name"
+                                disabled={
+                                  !online ||
+                                  customerRegisterBusy ||
+                                  (registerNeedsOtp && phoneVerificationSent)
+                                }
+                              />
+                              {captureCustomerSimple ? (
+                                <input
+                                  className={fieldClass("h-9 w-full text-[13px]")}
+                                  value={customerRegisterPhone}
+                                  onChange={(e) =>
+                                    setCustomerRegisterPhone(e.target.value)
+                                  }
+                                  inputMode="tel"
+                                  placeholder="Phone (optional)"
+                                  disabled={!online || customerRegisterBusy}
+                                />
+                              ) : null}
+                              {registerNeedsOtp && phoneVerificationSent ? (
+                                <input
+                                  className={fieldClass(
+                                    "h-10 w-full text-center text-lg font-semibold tracking-[0.3em]",
+                                  )}
+                                  value={phoneVerificationCode}
+                                  onChange={(e) =>
+                                    setPhoneVerificationCode(
+                                      e.target.value.replace(/\D/g, "").slice(0, 4),
+                                    )
+                                  }
+                                  inputMode="numeric"
+                                  placeholder="••••"
+                                  aria-label="4-digit verification code"
+                                  disabled={!online || customerRegisterBusy}
+                                />
+                              ) : null}
+                              <Button
+                                type="button"
+                                className="h-9 w-full rounded-lg text-xs font-semibold"
+                                disabled={
+                                  !online ||
+                                  customerRegisterBusy ||
+                                  !customerRegisterName.trim() ||
+                                  (registerNeedsOtp &&
+                                    phoneVerificationSent &&
+                                    phoneVerificationCode.length !== 4) ||
+                                  (registerNeedsOtp &&
+                                    !phoneVerificationSent &&
+                                    Date.now() < phoneVerificationCooldownUntil) ||
+                                  (customerRegisterPhone.trim().length > 0 &&
+                                    !isValidCustomerPhone(customerRegisterPhone))
+                                }
+                                onClick={
+                                  registerNeedsOtp && !phoneVerificationSent
+                                    ? onSendPhoneVerification
+                                    : onRegisterCustomer
+                                }
+                              >
+                                {customerRegisterBusy
+                                  ? "Working…"
+                                  : registerNeedsOtp && !phoneVerificationSent
+                                    ? "Send code"
+                                    : captureCustomerSimple
+                                      ? "Add customer"
+                                      : "Register"}
+                              </Button>
+                            </>
+                          ) : (
+                            <p className="text-[10px] text-muted-foreground">
+                              No permission to register customers.
+                            </p>
+                          )}
+                        </div>
+                      ) : null}
+                      {selectedCustomer ? (
+                        <div className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-2.5 py-1.5 text-[12px]">
+                          <p className="min-w-0 truncate font-semibold">
+                            {selectedCustomer.name}
+                            {selectedPhone ? (
+                              <span className="font-normal text-muted-foreground">
+                                {" "}
+                                · {selectedPhone}
+                              </span>
+                            ) : null}
+                          </p>
+                          {captureCustomerSimple ? (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCustomer(null)}
+                              className="shrink-0 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                            >
+                              Clear
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {!splitPay && payMethod === "cash" ? (
+                    <div className="space-y-2 rounded-xl border border-border/45 bg-card/80 p-2.5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          aria-label={`Amount received in ${currency}`}
+                          className={fieldClass(
+                            "h-10 min-w-0 flex-1 text-right text-xl font-bold tabular-nums",
+                          )}
+                          value={cashTenderStr}
+                          onChange={(e) => setCashTenderStr(e.target.value)}
+                          placeholder="0.00"
+                        />
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-lg border border-border/50 bg-background px-2.5 py-2 text-[11px] font-semibold text-[var(--pos-primary)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                          onClick={() => {
+                            const next = payableTotal.toFixed(2);
+                            lastAutoTenderRef.current = next;
+                            setCashTenderStr(next);
+                          }}
+                        >
+                          Exact
+                        </button>
+                      </div>
+                      <div className="flex gap-1 overflow-x-auto pb-0.5">
                         {CASH_QUICK_AMOUNTS.map((n) => (
                           <button
                             key={n}
                             type="button"
                             onClick={() => setCashFromPicker(n)}
-                            className="rounded-xl border border-border/55 bg-background px-2.5 py-1.5 text-[12px] font-semibold tabular-nums text-foreground transition hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)]"
+                            className="shrink-0 rounded-lg border border-border/50 bg-background px-2 py-1 text-[11px] font-semibold tabular-nums transition hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)]"
                           >
                             {n}
                           </button>
                         ))}
                       </div>
-                      <p
-                        className={cn(
-                          "text-[12px] font-medium",
-                          cashReady
-                            ? "text-emerald-700 dark:text-emerald-300"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        {cashReady
-                          ? Number(cashChange) === 0
-                            ? "Exact — tap Complete below"
-                            : creditChangeToWallet
-                              ? selectedCustomer &&
-                                  Number(selectedCustomer.credit?.balanceOwed) >
-                                    0
-                                ? `Apply ${cashChange} ${currency} to tab first, rest to wallet`
-                                : `Park ${cashChange} ${currency} on their wallet`
-                              : `Give back ${cashChange} ${currency}`
-                          : "Tap Exact total, or pick a note amount"}
-                      </p>
+                      {!cashReady ? (
+                        <p className="text-[11px] text-muted-foreground">
+                          Enter amount received or tap Exact
+                        </p>
+                      ) : changeDueAmount > 0 ? (
+                        <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                          {creditChangeToWallet
+                            ? selectedCustomer &&
+                                Number(selectedCustomer.credit?.balanceOwed) > 0
+                              ? `Apply ${cashChange} to tab, rest to wallet`
+                              : `Park ${cashChange} ${currency} on wallet`
+                            : `Give back ${cashChange} ${currency}`}
+                        </p>
+                      ) : null}
                       {cashReady && changeDueAmount > 0 && canLookupCustomers ? (
                         <label
                           className={cn(
-                            "flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 text-[12px]",
+                            "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-[11px]",
                             creditChangeToWallet
-                              ? "border-[color-mix(in_srgb,var(--pos-primary)_40%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
-                              : "border-border/55 bg-background",
+                              ? "border-[color-mix(in_srgb,var(--pos-primary)_35%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_7%,transparent)]"
+                              : "border-border/50 bg-background",
                             !online && "cursor-not-allowed opacity-50",
                           )}
                         >
                           <input
                             type="checkbox"
-                            className="mt-0.5 size-3.5 rounded border-border/60 accent-[var(--pos-primary)]"
+                            className="size-3 rounded border-border/60 accent-[var(--pos-primary)]"
                             checked={creditChangeToWallet}
                             disabled={!online}
                             onChange={(e) => {
@@ -884,15 +1106,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               }
                             }}
                           />
-                          <span className="min-w-0">
-                            <span className="font-semibold text-foreground">
-                              Credit change to wallet
-                            </span>
-                            <span className="mt-0.5 block text-muted-foreground">
-                              Keep the note — park {cashChange} {currency} on
-                              their phone. If they owe on tab, that is paid
-                              first; the rest goes to wallet.
-                            </span>
+                          <span className="font-medium">
+                            Credit change to wallet
                           </span>
                         </label>
                       ) : null}
@@ -900,7 +1115,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   ) : null}
 
                   {!splitPay && isStkTender(payMethod) ? (
-                    <div className="space-y-2.5 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
+                    <div className="space-y-2 rounded-xl border border-border/45 bg-card/80 p-2.5">
                       {stkPushStatus === "idle" ||
                       stkPushStatus === "failed" ||
                       stkPushStatus === "awaiting_till" ? (
@@ -1059,7 +1274,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   ) : null}
 
                   {splitPay ? (
-                    <div className="space-y-2.5 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
+                    <div className="space-y-2 rounded-xl border border-border/45 bg-card/80 p-2.5">
                       {canLookupCustomers ? (
                         <div className="space-y-1.5">
                           {!selectedCustomer ? (
@@ -1218,566 +1433,19 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       })()}
                     </div>
                   ) : null}
-
-                  {showCustomerPicker ? (
-                    <div className="space-y-2.5 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                        {creditChangeToWallet
-                          ? "Credit change to"
-                          : payMethod === "remote_bill"
-                            ? "Send bill to"
-                            : splitPay
-                              ? "Wallet customer"
-                              : captureCustomerSimple
-                                ? "Customer (optional)"
-                                : "Customer"}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <input
-                          className={fieldClass("h-11 min-w-0 flex-1")}
-                          value={customerPhoneQuery}
-                          onChange={(e) =>
-                            setCustomerPhoneQuery(e.target.value)
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              onSearchCustomers();
-                            }
-                          }}
-                          placeholder={
-                            allowSearchCustomersByName &&
-                            (creditRegisterContext || captureCustomerSimple)
-                              ? "Name or phone…"
-                              : "Phone 2547… or 07…"
-                          }
-                          disabled={!online}
-                        />
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className="h-11 rounded-xl px-3 text-sm font-semibold"
-                          disabled={
-                            !online ||
-                            customerSearchBusy ||
-                            !customerPhoneQuery.trim() ||
-                            ((payMethod === "customer_credit" ||
-                              creditChangeToWallet) &&
-                              !allowSearchCustomersByName &&
-                              !isValidCustomerPhone(customerPhoneQuery))
-                          }
-                          onClick={onSearchCustomers}
-                        >
-                          {customerSearchBusy ? "…" : "Find"}
-                        </Button>
-                      </div>
-                      {(payMethod === "customer_credit" ||
-                        creditChangeToWallet) &&
-                      !allowSearchCustomersByName &&
-                      customerPhoneQuery.trim() &&
-                      !isValidCustomerPhone(customerPhoneQuery) ? (
-                        <p className="text-[11px] text-destructive">
-                          {customerPhoneValidationMessage(customerPhoneQuery) ??
-                            "Enter a valid phone number."}
-                        </p>
-                      ) : null}
-                      {customerHits.length > 0 ? (
-                        <ul className="max-h-36 space-y-1 overflow-y-auto">
-                          {customerHits.map((c) => {
-                            const hitPhone = customerPrimaryPhone(c.phones);
-                            const phoneIssue = storedCustomerPhoneIssue(hitPhone);
-                            return (
-                            <li key={c.id}>
-                              <button
-                                type="button"
-                                className={cn(
-                                  "w-full rounded-xl px-3 py-2.5 text-left text-[13px] transition-colors",
-                                  selectedCustomer?.id === c.id
-                                    ? "bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] font-semibold"
-                                    : "hover:bg-muted/50",
-                                  phoneIssue &&
-                                    "ring-1 ring-destructive/40",
-                                )}
-                                onClick={() => setSelectedCustomer(c)}
-                              >
-                                {c.name}
-                                <span
-                                  className={cn(
-                                    "ml-1.5",
-                                    phoneIssue
-                                      ? "text-destructive"
-                                      : "text-muted-foreground",
-                                  )}
-                                >
-                                  {hitPhone}
-                                </span>
-                                {phoneIssue ? (
-                                  <CustomerPhoneFlag
-                                    phone={hitPhone}
-                                    compact
-                                    className="mt-0.5 block"
-                                  />
-                                ) : null}
-                                {c.credit ? (
-                                  <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
-                                    {Number(c.credit.balanceOwed) > 0
-                                      ? `Tab owed ${Number(c.credit.balanceOwed).toFixed(2)}`
-                                      : "Tab clear"}
-                                    {" · "}
-                                    Wallet{" "}
-                                    {Number(c.credit.walletBalance ?? 0).toFixed(
-                                      2,
-                                    )}
-                                  </span>
-                                ) : null}
-                              </button>
-                            </li>
-                            );
-                          })}
-                        </ul>
-                      ) : null}
-                      {customerNoPhoneMatch &&
-                      !selectedCustomer &&
-                      customerPhoneQuery.trim() &&
-                      !isValidCustomerPhone(customerPhoneQuery) &&
-                      !captureCustomerSimple &&
-                      (!creditRegisterContext || allowSearchCustomersByName) ? (
-                        <p className="rounded-lg bg-muted/40 px-2.5 py-2 text-[12px] text-muted-foreground">
-                          No customer found for that search. Check the spelling,
-                          or use a phone number like 2547… or 07… to register
-                          them.
-                        </p>
-                      ) : null}
-                      {((creditRegisterContext &&
-                        isValidCustomerPhone(customerPhoneQuery)) ||
-                        captureCustomerSimple) &&
-                      customerNoPhoneMatch &&
-                      !selectedCustomer &&
-                      customerPhoneQuery.trim() ? (
-                        <div className="space-y-3 rounded-xl border border-[color-mix(in_srgb,var(--pos-primary)_28%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_7%,transparent)] p-3.5">
-                          <div className="space-y-1">
-                            <p className="text-[13px] font-semibold tracking-tight text-foreground">
-                              {captureCustomerSimple
-                                ? "Not in the directory — add customer"
-                                : registerNeedsOtp
-                                  ? creditChangeToWallet
-                                    ? "New number — verify before wallet credit"
-                                    : "New number — verify before credit"
-                                  : creditChangeToWallet
-                                    ? "New number — register before wallet credit"
-                                    : "New number — register before credit"}
-                            </p>
-                            <p className="text-[12px] leading-snug text-muted-foreground">
-                              {captureCustomerSimple
-                                ? "Enter their name to add them and start their purchase history — phone optional."
-                                : registerNeedsOtp
-                                  ? creditChangeToWallet
-                                    ? "A 4-digit code will be sent by SMS and WhatsApp. The customer must read it aloud so you can confirm the number before parking change on their wallet."
-                                    : "A 4-digit code will be sent by SMS and WhatsApp. The customer must read it aloud so you can confirm the number before opening a tab."
-                                  : creditChangeToWallet
-                                    ? "Enter the customer's name to register this number and park change on their wallet."
-                                    : "Enter the customer's name to register this number and open a tab."}
-                            </p>
-                          </div>
-                          {canManageCustomers ? (
-                            <>
-                              <label className="block space-y-1.5">
-                                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                                  Customer name
-                                </span>
-                                <input
-                                  className={fieldClass("h-11 w-full")}
-                                  value={customerRegisterName}
-                                  onChange={(e) =>
-                                    setCustomerRegisterName(e.target.value)
-                                  }
-                                  placeholder="Full name"
-                                  disabled={
-                                    !online ||
-                                    customerRegisterBusy ||
-                                    (registerNeedsOtp && phoneVerificationSent)
-                                  }
-                                />
-                              </label>
-                              {captureCustomerSimple ? (
-                                <label className="block space-y-1.5">
-                                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                                    Phone (optional)
-                                  </span>
-                                  <input
-                                    className={fieldClass("h-11 w-full")}
-                                    value={customerRegisterPhone}
-                                    onChange={(e) =>
-                                      setCustomerRegisterPhone(e.target.value)
-                                    }
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        onRegisterCustomer();
-                                      }
-                                    }}
-                                    inputMode="tel"
-                                    placeholder="2547… or 07… — leave blank if unknown"
-                                    disabled={!online || customerRegisterBusy}
-                                  />
-                                  {customerRegisterPhone.trim() &&
-                                  !isValidCustomerPhone(customerRegisterPhone) ? (
-                                    <span className="block text-[11px] text-destructive">
-                                      {customerPhoneValidationMessage(
-                                        customerRegisterPhone,
-                                      ) ?? "Enter a valid phone number."}
-                                    </span>
-                                  ) : null}
-                                </label>
-                              ) : null}
-                              {registerNeedsOtp ? (
-                                !phoneVerificationSent ? (
-                                  <Button
-                                    type="button"
-                                    className="h-11 w-full rounded-xl text-sm font-semibold"
-                                    disabled={
-                                      !online ||
-                                      customerRegisterBusy ||
-                                      !customerRegisterName.trim() ||
-                                      Date.now() < phoneVerificationCooldownUntil
-                                    }
-                                    onClick={onSendPhoneVerification}
-                                  >
-                                    {customerRegisterBusy
-                                      ? "Sending code…"
-                                      : "Send code to phone"}
-                                  </Button>
-                                ) : (
-                                  <div className="space-y-2.5 rounded-lg bg-background/70 px-3 py-3 ring-1 ring-border/70">
-                                    <div className="space-y-0.5">
-                                      <p className="text-[13px] font-semibold text-foreground">
-                                        Ask the customer for their code
-                                      </p>
-                                      <p className="text-[12px] leading-snug text-muted-foreground">
-                                      Sent
-                                      {phoneVerificationChannel === "whatsapp+sms"
-                                        ? " via SMS and WhatsApp"
-                                        : phoneVerificationChannel === "whatsapp"
-                                          ? " via WhatsApp"
-                                          : phoneVerificationChannel === "sms"
-                                            ? " via SMS"
-                                            : phoneVerificationChannel
-                                              ? ` via ${phoneVerificationChannel}`
-                                              : " to their phone"}
-                                      . Type the 4 digits they show or read to
-                                      you.
-                                      </p>
-                                    </div>
-                                    <input
-                                      className={fieldClass(
-                                        "h-14 w-full text-center text-2xl font-semibold tracking-[0.35em]",
-                                      )}
-                                      value={phoneVerificationCode}
-                                      onChange={(e) =>
-                                        setPhoneVerificationCode(
-                                          e.target.value
-                                            .replace(/\D/g, "")
-                                            .slice(0, 4),
-                                        )
-                                      }
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                          e.preventDefault();
-                                          onRegisterCustomer();
-                                        }
-                                      }}
-                                      inputMode="numeric"
-                                      autoComplete="one-time-code"
-                                      placeholder="••••"
-                                      aria-label="4-digit verification code"
-                                      disabled={!online || customerRegisterBusy}
-                                    />
-                                    <Button
-                                      type="button"
-                                      className="h-11 w-full rounded-xl text-sm font-semibold"
-                                      disabled={
-                                        !online ||
-                                        customerRegisterBusy ||
-                                        !customerRegisterName.trim() ||
-                                        phoneVerificationCode.length !== 4
-                                      }
-                                      onClick={onRegisterCustomer}
-                                    >
-                                      {customerRegisterBusy
-                                        ? "Verifying…"
-                                        : creditChangeToWallet
-                                          ? "Verify & credit wallet"
-                                          : "Verify & open tab"}
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      className="h-9 w-full rounded-xl text-xs text-muted-foreground"
-                                      disabled={
-                                        !online ||
-                                        customerRegisterBusy ||
-                                        Date.now() <
-                                          phoneVerificationCooldownUntil
-                                      }
-                                      onClick={onSendPhoneVerification}
-                                    >
-                                      {Date.now() < phoneVerificationCooldownUntil
-                                        ? "Resend available soon"
-                                        : "Resend code"}
-                                    </Button>
-                                  </div>
-                                )
-                              ) : (
-                                <Button
-                                  type="button"
-                                  className="h-11 w-full rounded-xl text-sm font-semibold"
-                                  disabled={
-                                    !online ||
-                                    customerRegisterBusy ||
-                                    !customerRegisterName.trim() ||
-                                    (customerRegisterPhone.trim().length > 0 &&
-                                      !isValidCustomerPhone(
-                                        customerRegisterPhone,
-                                      ))
-                                  }
-                                  onClick={onRegisterCustomer}
-                                >
-                                  {customerRegisterBusy
-                                    ? "Registering…"
-                                    : creditChangeToWallet
-                                      ? "Register & credit wallet"
-                                      : captureCustomerSimple
-                                        ? "Add customer"
-                                        : "Register & open tab"}
-                                </Button>
-                              )}
-                            </>
-                          ) : (
-                            <p className="text-[12px] text-muted-foreground">
-                              You need permission to register customers.
-                            </p>
-                          )}
-                        </div>
-                      ) : null}
-                      {selectedCustomer ? (
-                        <div className="rounded-xl bg-muted/40 px-3 py-2 text-[13px]">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="min-w-0">
-                              <span className="font-semibold">
-                                {selectedCustomer.name}
-                              </span>
-                              {captureCustomerSimple ? (
-                                selectedPhone ? (
-                                  <span className="text-muted-foreground">
-                                    {" "}
-                                    · {selectedPhone}
-                                  </span>
-                                ) : null
-                              ) : (
-                                <span className="text-muted-foreground">
-                                  {" "}
-                                  · wallet{" "}
-                                  {Number(
-                                    selectedCustomer.credit.walletBalance,
-                                  ).toFixed(2)}{" "}
-                                  {currency}
-                                </span>
-                              )}
-                            </p>
-                            {captureCustomerSimple ? (
-                              <button
-                                type="button"
-                                onClick={() => setSelectedCustomer(null)}
-                                className="shrink-0 rounded-lg px-2 py-0.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                              >
-                                Clear
-                              </button>
-                            ) : null}
-                          </div>
-                          {(() => {
-                            if (!selectedPhone) {
-                              return (
-                                <p className="mt-1 text-[11px] font-medium text-destructive">
-                                  {captureCustomerSimple
-                                    ? "No phone on file — history won't link to a number."
-                                    : "No phone on file — add one before sending reminders or STK."}
-                                </p>
-                              );
-                            }
-                            if (!storedCustomerPhoneIssue(selectedPhone)) {
-                              return captureCustomerSimple ? null : (
-                                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                                  {selectedPhone}
-                                </p>
-                              );
-                            }
-                            return (
-                              <div className="mt-1">
-                                {!captureCustomerSimple ? (
-                                  <p className="text-[11px] font-medium text-destructive">
-                                    {selectedPhone}
-                                  </p>
-                                ) : null}
-                                <CustomerPhoneFlag phone={selectedPhone} />
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
                 </section>
 
-                {lines.length > 0 ? (
-                  <section className="overflow-hidden rounded-2xl border border-border/50 bg-card/70">
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between gap-2 px-3 py-3 text-left"
-                      onClick={() => setLinesOpen((v) => !v)}
-                      aria-expanded={linesOpen}
-                    >
-                      <span className="flex items-center gap-2">
-                        <ShoppingBag
-                          className="size-4 text-[var(--pos-primary)]"
-                          aria-hidden
-                        />
-                        <span className="text-[13px] font-semibold">
-                          Review items
-                        </span>
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold tabular-nums text-muted-foreground">
-                          {lines.length}
-                        </span>
-                      </span>
-                      <ChevronDown
-                        className={cn(
-                          "size-4 text-muted-foreground transition-transform duration-200",
-                          linesOpen && "rotate-180",
-                        )}
-                        aria-hidden
-                      />
-                    </button>
-                    {linesOpen ? (
-                      <ul className="divide-y divide-border/40 border-t border-border/40">
-                        {lines.map((line) => {
-                          const thumb = posTileThumbUrl(
-                            line.item.name,
-                            itemListThumbnailUrl(line.item),
-                          );
-                          const subtotal = lineSubtotal(line);
-                          const full = cashierItemPrimaryLabel(line.item);
-                          const { primary, option } =
-                            cashierItemTitleParts(line.item);
-                          const unit = Number(line.unitPrice);
-                          const airtime = isAirtimeCartLine(line);
-                          return (
-                            <li
-                              key={line.key}
-                              className="flex items-center gap-2 px-3 py-2"
-                            >
-                              <div className="relative size-9 shrink-0 overflow-hidden rounded-lg bg-muted/40">
-                                {thumb ? (
-                                  <Image
-                                    src={thumb}
-                                    alt=""
-                                    width={36}
-                                    height={36}
-                                    className="size-full object-contain p-0.5"
-                                    unoptimized
-                                  />
-                                ) : (
-                                  <span
-                                    className="flex size-full items-center justify-center text-[11px] font-bold text-muted-foreground/50"
-                                    aria-hidden
-                                  >
-                                    {primary.trim().charAt(0).toUpperCase() ||
-                                      "?"}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="min-w-0 flex-1" title={full}>
-                                <div className="flex min-w-0 items-start gap-1.5">
-                                  <p className="min-w-0 flex-1 truncate text-[12px] font-semibold leading-tight">
-                                    {primary}
-                                    {option ? (
-                                      <span className="font-medium text-muted-foreground">
-                                        {" "}
-                                        · {option}
-                                      </span>
-                                    ) : null}
-                                  </p>
-                                  {!airtime &&
-                                  allowWeighedToggle &&
-                                  onToggleWeighed ? (
-                                    <CashierWeighedToggle
-                                      weighed={line.item.isWeighed === true}
-                                      busy={
-                                        weighedToggleBusyItemId === line.itemId
-                                      }
-                                      itemLabel={full}
-                                      onToggle={() =>
-                                        onToggleWeighed(line.key)
-                                      }
-                                    />
-                                  ) : null}
-                                </div>
-                                <p className="text-[10px] tabular-nums text-muted-foreground">
-                                  {Number.isFinite(unit)
-                                    ? unit.toFixed(2)
-                                    : line.unitPrice}{" "}
-                                  ×{" "}
-                                  {airtime
-                                    ? "1"
-                                    : formatCartQtyLabel(line.quantity)}
-                                  {!airtime && line.item.isWeighed === true
-                                    ? " kg"
-                                    : ""}
-                                </p>
-                              </div>
-                              {airtime ? null : (
-                                <CashierQtyControl
-                                  quantity={line.quantity}
-                                  itemLabel={full}
-                                  size="sm"
-                                  allowFractions={line.item.isWeighed === true}
-                                  unitPrice={line.unitPrice}
-                                  currency={currency}
-                                  onChange={(next) =>
-                                    updateLine(line.key, "quantity", next)
-                                  }
-                                  onUnitPriceChange={(next) =>
-                                    updateLine(line.key, "unitPrice", next)
-                                  }
-                                  onRemove={() => removeLine(line.key)}
-                                />
-                              )}
-                              <span className="w-12 shrink-0 text-right text-[12px] font-bold tabular-nums">
-                                {subtotal.toFixed(2)}
-                              </span>
-                              <button
-                                type="button"
-                                className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-40"
-                                aria-label={`Remove ${full}`}
-                                onClick={() => removeLine(line.key)}
-                              >
-                                <Trash2 className="size-3.5" />
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : null}
-                  </section>
-                ) : (
-                  <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border/55 py-10 text-center">
+                {lines.length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border/55 py-6 text-center">
                     <ShoppingBag
-                      className="size-6 text-muted-foreground/40"
+                      className="size-5 text-muted-foreground/40"
                       aria-hidden
                     />
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Tap products to build the cart
                     </p>
                   </div>
-                )}
+                ) : null}
 
                 {outboxCount > 0 ? (
                   <p className="rounded-xl border border-amber-200/60 bg-amber-50/80 px-3 py-2 text-[12px] text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100">
@@ -1799,28 +1467,39 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
               </div>
             </div>
 
-            <div className="shrink-0 border-t border-border/40 bg-background/95 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md">
+            <div className="shrink-0 border-t border-border/40 bg-background/95 px-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md">
               {!branchSelected ? (
-                <p className="mb-2 rounded-xl border border-amber-200/50 bg-amber-50/90 px-3 py-2 text-[12px] text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+                <p className="mb-1.5 rounded-lg border border-amber-200/50 bg-amber-50/90 px-2.5 py-1.5 text-[11px] text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
                   Pick a branch in the top nav to check out.
                 </p>
               ) : null}
               {completeBlockedHint ? (
-                <p className="mb-2 rounded-xl bg-muted/40 px-3 py-2 text-[12px] text-muted-foreground">
+                <p className="mb-1.5 rounded-lg bg-muted/40 px-2.5 py-1.5 text-[11px] text-muted-foreground">
                   {completeBlockedHint}
                 </p>
               ) : canCompleteSale ? (
-                <p className="mb-2 flex items-center justify-center gap-1.5 text-[12px] font-semibold text-emerald-700 dark:text-emerald-300">
-                  <Check className="size-3.5" strokeWidth={3} aria-hidden />
+                <p className="mb-1.5 flex items-center justify-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                  <Check className="size-3" strokeWidth={3} aria-hidden />
                   {payMethod === "remote_bill"
-                    ? "Ready to send bill + M-Pesa prompt"
-                    : "Ready to record this sale"}
+                    ? "Ready to send bill"
+                    : "Ready to complete"}
                 </p>
+              ) : null}
+              {allowClearSale && onClearSale && lines.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mb-1.5 h-9 w-full rounded-xl border-destructive/35 text-xs font-semibold text-destructive hover:bg-destructive/5 hover:text-destructive"
+                  disabled={loading}
+                  onClick={onClearSale}
+                >
+                  Clear sale
+                </Button>
               ) : null}
               <Button
                 type="button"
                 className={cn(
-                  "h-14 w-full rounded-2xl text-base font-bold tracking-tight shadow-lg transition-all duration-200",
+                  "h-12 w-full rounded-xl text-sm font-bold tracking-tight shadow-md transition-all duration-200",
                   "disabled:opacity-35 disabled:shadow-none",
                   canCompleteSale && "hover:scale-[1.01] active:scale-[0.99]",
                 )}

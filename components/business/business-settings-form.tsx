@@ -1355,6 +1355,17 @@ export function BusinessSettingsForm({
                 title="Allow cashiers to record drawouts"
                 description="Cashiers can pull cash from an open till. Larger amounts still need manager approval."
               />
+              <ToggleRow
+                checked={cashierCapabilities.clearSale}
+                onChange={(checked) =>
+                  setCashierCapabilities((previous) => ({
+                    ...previous,
+                    clearSale: checked,
+                  }))
+                }
+                title="Clear sale on the till"
+                description="Show a Clear sale button beside Checkout / Pay so cashiers can abandon a wrong sale in one tap."
+              />
               <div className="space-y-2 border-t border-border/60 pt-3">
                 <p className="text-sm font-medium text-foreground">
                   Product shelf layout

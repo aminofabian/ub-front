@@ -10,8 +10,8 @@ import {
   ClipboardList,
   Copy,
   Loader2,
-  MessageCircle,
   Package,
+  Save,
   Search,
   ShoppingCart,
   X,
@@ -56,8 +56,12 @@ import {
 } from "@/lib/order-ticket";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
+import { useOrderTemplate } from "@/hooks/use-order-template";
 
 import { SupplierGuideDrawer } from "@/app/(dashboard)/suppliers/_components/SupplierGuideDrawer";
+import { OrderProductLedger } from "./order-product-ledger";
+import { OrderProductShelf } from "./order-product-shelf";
+import { OrderTemplatePicker } from "./order-template-picker";
 import { type OrderParentOption } from "./order-parent-floater";
 
 const ORDER_CURRENCY = "KES";
@@ -220,6 +224,8 @@ export function TenantOrderWorkspace({
   onOpenConfirm?: () => void;
 } = {}) {
   const { branchId } = useDashboard();
+  const { effective: orderTemplate, setTemplate: setOrderTemplate } =
+    useOrderTemplate();
   const businessId = getSessionTenantId()?.trim() ?? "";
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
   const [supplierId, setSupplierId] = useState<string | null>(
@@ -1088,19 +1094,19 @@ export function TenantOrderWorkspace({
 
         <button
           type="button"
-          disabled={placing || whatsapping || cartLines.length === 0}
-          onClick={() => void placeOrder(true)}
+          disabled={placing || cartLines.length === 0}
+          onClick={() => void placeOrder(false)}
           className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-40"
         >
-          {placing || whatsapping ? (
+          {placing ? (
             <>
               <Loader2 className="size-4 animate-spin" aria-hidden />
-              {placing ? "Saving…" : "Opening WhatsApp…"}
+              Saving…
             </>
           ) : (
             <>
-              <MessageCircle className="size-4" aria-hidden />
-              Save & WhatsApp
+              <Save className="size-4" aria-hidden />
+              Save
             </>
           )}
         </button>
@@ -1109,11 +1115,11 @@ export function TenantOrderWorkspace({
       <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px]">
         <button
           type="button"
-          disabled={placing || cartLines.length === 0}
-          onClick={() => void placeOrder(false)}
+          disabled={placing || whatsapping || cartLines.length === 0}
+          onClick={() => void placeOrder(true)}
           className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
         >
-          Save only
+          Save & WhatsApp
         </button>
         <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]" aria-hidden>
           ·
@@ -1313,14 +1319,24 @@ export function TenantOrderWorkspace({
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_45%,transparent)] px-3 py-2">
-            <Search className="pointer-events-none absolute left-5 top-1/2 size-4 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
-            <input
-              className="h-10 w-full rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white pl-10 pr-3 text-[14px] shadow-sm outline-none placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)] focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_15%,transparent)] sm:text-[14px]"
-              placeholder="Search products on this shelf…"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              enterKeyHint="search"
+          <div className="flex shrink-0 items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_45%,transparent)] px-3 py-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
+              <input
+                className="h-10 w-full rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white pl-9 pr-3 text-[14px] shadow-sm outline-none placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)] focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_15%,transparent)] sm:text-[14px]"
+                placeholder={
+                  orderTemplate === "ledger"
+                    ? "Search products in this list…"
+                    : "Search products on this shelf…"
+                }
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                enterKeyHint="search"
+              />
+            </div>
+            <OrderTemplatePicker
+              value={orderTemplate}
+              onChange={setOrderTemplate}
             />
           </div>
 
@@ -1385,122 +1401,20 @@ export function TenantOrderWorkspace({
                   ? "Nothing in this family."
                   : "No linked products."}
               </p>
+            ) : orderTemplate === "ledger" ? (
+              <OrderProductLedger
+                links={visibleLinks}
+                cart={cart}
+                packByItemId={packByItemId}
+                onSetQty={setQty}
+              />
             ) : (
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 min-[1500px]:grid-cols-8 min-[1500px]:gap-3">
-                {visibleLinks.map((link) => {
-                  const qty = cart[link.itemId] ?? 0;
-                  const stock = toNum(link.currentStock);
-                  const reorder = toNum(link.reorderLevel);
-                  const low = reorder > 0 && stock <= reorder;
-                  const pack = packByItemId[link.itemId] ?? null;
-                  const packed = pack != null && pack.size > 1;
-                  const cost = packUnitPrice(link, pack);
-                  const packs = linkPacks(link);
-                  const thumb = posTileThumbUrl(
-                    link.itemName,
-                    link.thumbnailUrl,
-                  );
-                  return (
-                    <div
-                      key={link.id}
-                      className={cn(
-                        "group flex flex-col overflow-hidden rounded-xl bg-white shadow-sm transition-[box-shadow,ring-color] duration-150",
-                        qty > 0
-                          ? "ring-2 ring-[var(--pos-primary,#0f766e)]"
-                          : "ring-1 ring-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] hover:shadow-md hover:ring-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
-                      )}
-                    >
-                      <button
-                        type="button"
-                        className="relative aspect-[5/4] w-full touch-manipulation rounded-t-[10px] bg-[#fafbfa] transition-transform active:scale-[0.985]"
-                        onClick={() => setQty(link.itemId, qty + 1)}
-                        aria-label={`Add ${link.itemName}`}
-                      >
-                        {thumb ? (
-                          <Image
-                            src={thumb}
-                            alt=""
-                            fill
-                            sizes="(max-width: 640px) 48vw, (min-width: 1536px) 10vw, 140px"
-                            className="object-contain p-3 transition-transform duration-200 group-hover:scale-[1.02]"
-                            unoptimized
-                          />
-                        ) : (
-                          <span className="flex h-full w-full items-center justify-center">
-                            <Package
-                              className="size-5 opacity-15"
-                              strokeWidth={1.5}
-                              aria-hidden
-                            />
-                          </span>
-                        )}
-                        {qty > 0 ? (
-                          <span className="absolute left-1.5 top-1.5 z-[1] inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--pos-primary,#0f766e)] px-1.5 font-mono text-[10px] font-bold text-white shadow-sm">
-                            {qty}
-                          </span>
-                        ) : null}
-                        {packed ? (
-                          <span className="absolute right-1.5 top-1.5 z-[1] rounded-full bg-amber-100 px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-amber-950">
-                            ×{formatPackSize(pack.size)}
-                          </span>
-                        ) : null}
-                        {low ? (
-                          <span className="absolute bottom-1.5 right-1.5 z-[1] bg-amber-700/90 px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-white">
-                            {stock}
-                          </span>
-                        ) : null}
-                      </button>
-                      <div className="flex flex-1 flex-col gap-2 px-2 pb-2 pt-1.5">
-                        <p className="line-clamp-2 min-h-[2.1rem] text-[12px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
-                          {link.itemName}
-                        </p>
-                        {packs.length > 0 ? (
-                          <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
-                            {packs
-                              .map((p) => `×${formatPackSize(p.unitsPerPack)}`)
-                              .join(" · ")}
-                          </p>
-                        ) : null}
-                        <div className="mt-auto flex items-center justify-between gap-1.5">
-                          <p className="font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
-                            {cost > 0
-                              ? formatMoney(cost, ORDER_CURRENCY)
-                              : "—"}
-                            {packed ? (
-                              <span className="font-sans text-[9px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
-                                {" "}
-                                / pack
-                              </span>
-                            ) : null}
-                          </p>
-                          <div className="inline-flex items-center overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_50%,transparent)]">
-                            <button
-                              type="button"
-                              disabled={qty <= 0}
-                              className="flex size-7 items-center justify-center touch-manipulation text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-white disabled:opacity-25"
-                              onClick={() => setQty(link.itemId, qty - 1)}
-                              aria-label="Decrease"
-                            >
-                              −
-                            </button>
-                            <span className="min-w-5 text-center font-mono text-[11px] font-semibold tabular-nums">
-                              {qty}
-                            </span>
-                            <button
-                              type="button"
-                              className="flex size-7 items-center justify-center touch-manipulation text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-white"
-                              onClick={() => setQty(link.itemId, qty + 1)}
-                              aria-label="Increase"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <OrderProductShelf
+                links={visibleLinks}
+                cart={cart}
+                packByItemId={packByItemId}
+                onSetQty={setQty}
+              />
             )}
           </div>
         </div>

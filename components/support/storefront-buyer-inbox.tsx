@@ -7,14 +7,18 @@ import {
   type ChatMessageShape,
   Avatar,
   Composer,
+  type ComposerReplyTarget,
   type ComposerSendPayload,
   DayDivider,
   LiveStatusPill,
   MessageBubble,
   TypingBubble,
   chatDayLabel,
+  getMessageCluster,
   listTime,
   mergeByTimestamp,
+  replyFromRealtime,
+  toReplyTarget,
 } from "@/components/support/support-chat-ui";
 import { Button } from "@/components/ui/button";
 import { getRealtimeClient, type RealtimeConnectionState, type RealtimeFrame } from "@/lib/realtime";
@@ -44,6 +48,7 @@ function toLocalMessage(message: {
   messageKind?: string | null;
   orderCard?: LocalMessage["orderCard"];
   attachment?: LocalMessage["attachment"];
+  replyTo?: LocalMessage["replyTo"];
   readAt: string | null;
   createdAt: string;
 }): LocalMessage {
@@ -57,6 +62,7 @@ function toLocalMessage(message: {
     messageKind: message.messageKind ?? "TEXT",
     orderCard: message.orderCard ?? null,
     attachment: message.attachment ?? null,
+    replyTo: message.replyTo ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
   };
@@ -139,6 +145,8 @@ export function StorefrontBuyerInbox() {
   const [typingByConv, setTypingByConv] = React.useState<Record<string, boolean>>({});
   const [mobileView, setMobileView] = React.useState<MobileView>("list");
   const [showJump, setShowJump] = React.useState(false);
+  const [replyTo, setReplyTo] = React.useState<ComposerReplyTarget | null>(null);
+  const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const stickToBottomRef = React.useRef(true);
@@ -223,6 +231,7 @@ export function StorefrontBuyerInbox() {
           messageKind: String(data.messageKind ?? "TEXT"),
           orderCard: orderCardFromRealtime(data),
           attachment: attachmentFromRealtime(data),
+          replyTo: replyFromRealtime(data),
           readAt: null,
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
@@ -335,6 +344,16 @@ export function StorefrontBuyerInbox() {
     if (nearBottom) setShowJump(false);
   };
 
+  const scrollToMessage = React.useCallback((messageId: string) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const target = container.querySelector(`[data-message-id="${messageId}"]`);
+    if (!(target instanceof HTMLElement)) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightMessageId(messageId);
+    window.setTimeout(() => setHighlightMessageId((current) => (current === messageId ? null : current)), 1400);
+  }, []);
+
   // ── Send ────────────────────────────────────────────────────────────────
   const send = React.useCallback(
     async (payload: ComposerSendPayload | string) => {
@@ -342,8 +361,11 @@ export function StorefrontBuyerInbox() {
       const file = typeof payload === "string" ? null : payload.file ?? null;
       const existingAttachment =
         typeof payload === "string" ? null : payload.attachment ?? null;
+      const replyToMessageId =
+        typeof payload === "string" ? null : payload.replyToMessageId ?? replyTo?.messageId ?? null;
       if ((!body && !file && !existingAttachment) || !activeId || sending) return;
       setSending(true);
+      setReplyTo(null);
       const tempId =
         typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `tmp-${Date.now()}`;
       const localPreviewUrl =
@@ -365,6 +387,15 @@ export function StorefrontBuyerInbox() {
                 bytes: file.size,
               }
             : null),
+        replyTo: replyToMessageId
+          ? {
+              messageId: replyToMessageId,
+              senderType: replyTo?.senderType ?? "GUEST",
+              senderName: replyTo?.senderName ?? null,
+              body: replyTo?.body ?? "",
+              messageKind: replyTo?.messageKind ?? "TEXT",
+            }
+          : null,
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
@@ -376,7 +407,7 @@ export function StorefrontBuyerInbox() {
         if (file) {
           attachment = await uploadSupportAttachmentToCloudinary(activeId, file);
         }
-        const saved = await sendStorefrontBuyerReply(activeId, body, attachment);
+        const saved = await sendStorefrontBuyerReply(activeId, body, attachment, replyToMessageId);
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
           if (prev.some((m) => m.id === saved.id)) {
@@ -407,7 +438,7 @@ export function StorefrontBuyerInbox() {
         setSending(false);
       }
     },
-    [activeId, sending],
+    [activeId, replyTo, sending],
   );
 
   const normalizedSearch = search.trim().toLowerCase();
@@ -599,12 +630,20 @@ export function StorefrontBuyerInbox() {
                 const mine = message.senderType === "TENANT";
                 const prev = messages[index - 1];
                 const newDay = !prev || chatDayLabel(prev.createdAt) !== chatDayLabel(message.createdAt);
-                const showAvatar = !mine && (index === 0 || (prev?.senderType ?? "") === "TENANT");
+                const cluster = getMessageCluster(messages, index, (m) => m.senderType === "TENANT");
                 return (
                   <React.Fragment key={message.id}>
                     {newDay && index > 0 ? <DayDivider iso={message.createdAt} /> : null}
-                    <div className={cn("flex w-full", mine ? "justify-end" : "justify-start")}>
-                      <MessageBubble message={message} mine={mine} showAvatar={showAvatar} />
+                    <div className={cn("flex w-full", mine ? "justify-end" : "justify-start", cluster.gapClass)}>
+                      <MessageBubble
+                        message={message}
+                        mine={mine}
+                        showAvatar={cluster.showAvatar}
+                        clusterPosition={cluster.clusterPosition}
+                        highlighted={highlightMessageId === message.id}
+                        onReply={(target) => setReplyTo(toReplyTarget(target))}
+                        onScrollToMessage={scrollToMessage}
+                      />
                     </div>
                   </React.Fragment>
                 );
@@ -630,7 +669,15 @@ export function StorefrontBuyerInbox() {
         ) : null}
       </div>
       <div className="border-t border-border/60 p-3">
-        <Composer value={draft} onChange={setDraft} onSend={(payload) => void send(payload)} disabled={sending} sending={sending} />
+        <Composer
+          value={draft}
+          onChange={setDraft}
+          onSend={(payload) => void send(payload)}
+          disabled={sending}
+          sending={sending}
+          replyTo={replyTo}
+          onClearReply={() => setReplyTo(null)}
+        />
       </div>
     </section>
   ) : (

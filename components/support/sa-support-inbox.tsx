@@ -17,6 +17,7 @@ import {
   ChatEmptyState,
   ChatMessageShape,
   Composer,
+  type ComposerReplyTarget,
   type ComposerSendPayload,
   DayDivider,
   LiveStatusPill,
@@ -24,8 +25,11 @@ import {
   ResolvedBanner,
   TypingBubble,
   chatDayLabel,
+  getMessageCluster,
   listTime,
   mergeByTimestamp,
+  replyFromRealtime,
+  toReplyTarget,
 } from "@/components/support/support-chat-ui";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES, PLATFORM_DOMAIN, slugDerivedShopUrl } from "@/lib/config";
@@ -67,6 +71,7 @@ function toLocalMessage(message: SaSupportMessage): ChatMessageShape {
     orderCard: message.orderCard ?? null,
     welcomeCard: message.welcomeCard ?? null,
     attachment: message.attachment ?? null,
+    replyTo: message.replyTo ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
   };
@@ -404,6 +409,8 @@ export function SaSupportInbox() {
   const [typingByConv, setTypingByConv] = React.useState<Record<string, boolean>>({});
   const [mobileView, setMobileView] = React.useState<MobileView>(deepLinkId ? "chat" : "list");
   const [showJump, setShowJump] = React.useState(false);
+  const [replyTo, setReplyTo] = React.useState<ComposerReplyTarget | null>(null);
+  const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
   const [presence, setPresence] = React.useState<Record<string, SaSupportPresence>>({});
   const [onlineOnly, setOnlineOnly] = React.useState(false);
   const [liveCounts, setLiveCounts] = React.useState({
@@ -625,6 +632,7 @@ export function SaSupportInbox() {
           orderCard: orderCardFromRealtime(data),
           welcomeCard: welcomeCardFromRealtime(data),
           attachment: attachmentFromRealtime(data),
+          replyTo: replyFromRealtime(data),
           readAt: null,
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
@@ -834,6 +842,16 @@ export function SaSupportInbox() {
     setShowJump(false);
   };
 
+  const scrollToMessage = React.useCallback((messageId: string) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const target = container.querySelector(`[data-message-id="${messageId}"]`);
+    if (!(target instanceof HTMLElement)) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightMessageId(messageId);
+    window.setTimeout(() => setHighlightMessageId((current) => (current === messageId ? null : current)), 1400);
+  }, []);
+
   // ── Reply / status ──────────────────────────────────────────────────────
   const send = React.useCallback(
     async (payload: ComposerSendPayload | string) => {
@@ -842,8 +860,11 @@ export function SaSupportInbox() {
       const file = typeof payload === "string" ? null : payload.file ?? null;
       const existingAttachment =
         typeof payload === "string" ? null : payload.attachment ?? null;
+      const replyToMessageId =
+        typeof payload === "string" ? null : payload.replyToMessageId ?? replyTo?.messageId ?? null;
       if (!body && !file && !existingAttachment) return;
       setSending(true);
+      setReplyTo(null);
       const tempId =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
@@ -867,6 +888,15 @@ export function SaSupportInbox() {
                 bytes: file.size,
               }
             : null),
+        replyTo: replyToMessageId
+          ? {
+              messageId: replyToMessageId,
+              senderType: replyTo?.senderType ?? "TENANT",
+              senderName: replyTo?.senderName ?? null,
+              body: replyTo?.body ?? "",
+              messageKind: replyTo?.messageKind ?? "TEXT",
+            }
+          : null,
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
@@ -881,7 +911,7 @@ export function SaSupportInbox() {
             (folder) => getSaCloudinarySignature(folder, "auto"),
           );
         }
-        const saved = await sendSaSupportMessage(activeId, body, attachment);
+        const saved = await sendSaSupportMessage(activeId, body, attachment, replyToMessageId);
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
           if (prev.some((m) => m.id === saved.id)) {
@@ -915,7 +945,7 @@ export function SaSupportInbox() {
         setSending(false);
       }
     },
-    [activeId, sending],
+    [activeId, replyTo, sending],
   );
 
   const retry = (message: ChatMessageShape) => {
@@ -1397,13 +1427,20 @@ export function SaSupportInbox() {
                 const mine = message.senderType === "SUPER_ADMIN";
                 const prev = messages[index - 1];
                 const newDay = !prev || chatDayLabel(prev.createdAt) !== chatDayLabel(message.createdAt);
-                const showAvatar =
-                  !mine && (!prev || prev.senderUserId !== message.senderUserId || newDay);
+                const cluster = getMessageCluster(messages, index, (m) => m.senderType === "SUPER_ADMIN");
                 return (
                   <React.Fragment key={message.id}>
                     {newDay ? <DayDivider iso={message.createdAt} /> : null}
-                    <div className={cn("flex flex-col gap-1", mine ? "items-end" : "items-start")}>
-                      <MessageBubble message={message} mine={mine} showAvatar={showAvatar} />
+                    <div className={cn("flex flex-col", mine ? "items-end" : "items-start", cluster.gapClass)}>
+                      <MessageBubble
+                        message={message}
+                        mine={mine}
+                        showAvatar={cluster.showAvatar}
+                        clusterPosition={cluster.clusterPosition}
+                        highlighted={highlightMessageId === message.id}
+                        onReply={resolved ? undefined : (target) => setReplyTo(toReplyTarget(target))}
+                        onScrollToMessage={scrollToMessage}
+                      />
                       {message.failed ? (
                         <button
                           type="button"
@@ -1443,6 +1480,8 @@ export function SaSupportInbox() {
         disabled={resolved}
         disabledHint={resolved ? "Reopen the conversation to reply" : undefined}
         sending={sending}
+        replyTo={replyTo}
+        onClearReply={() => setReplyTo(null)}
       />
     </section>
   ) : (
