@@ -31,6 +31,7 @@ import {
   fetchDesktopLanStatus,
   fetchDesktopMediaStatus,
   fetchDesktopPrinterConfig,
+  fetchDesktopSyncPlan,
   fetchDesktopSyncStatus,
   reconnectDesktop,
   renewDesktopLicense,
@@ -43,6 +44,7 @@ import {
   type DesktopLanStatus,
   type DesktopMediaStatus,
   type DesktopPrinterConfig,
+  type DesktopSyncPlan,
   type DesktopSyncStatus,
 } from "@/lib/desktop-api";
 import { APP_ROUTES } from "@/lib/config";
@@ -97,6 +99,7 @@ export default function DesktopSettingsPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<DesktopSyncStatus | null>(null);
   const [mediaStatus, setMediaStatus] = useState<DesktopMediaStatus | null>(null);
+  const [cloudPlan, setCloudPlan] = useState<DesktopSyncPlan | null>(null);
   const [reconnectOpen, setReconnectOpen] = useState(false);
   const [reconnectOrigin, setReconnectOrigin] = useState("https://kiosk.zelisline.com");
   const [reconnectEmail, setReconnectEmail] = useState("");
@@ -125,15 +128,17 @@ export default function DesktopSettingsPage() {
     setLoadError("");
     setLoading(true);
     try {
-      const [lanStatus, backupList, printerCfg] = await Promise.all([
+      const [lanStatus, backupList, printerCfg, plan] = await Promise.all([
         fetchDesktopLanStatus(),
         fetchDesktopBackups(),
         fetchDesktopPrinterConfig(),
+        fetchDesktopSyncPlan(),
       ]);
       await refreshLicense();
       setLan(lanStatus);
       setBackups(backupList);
       setPrinter(printerCfg);
+      setCloudPlan(plan);
       void pollMediaStatus();
     } catch (e) {
       setLoadError(
@@ -372,6 +377,18 @@ export default function DesktopSettingsPage() {
                 this PC, and upload any sales from closed shifts. The counter
                 keeps working offline either way.
               </p>
+              {cloudPlan?.tier ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Online shop plan:{" "}
+                  <span className="font-medium capitalize">{cloudPlan.tier}</span>
+                  {cloudPlan.status ? (
+                    <>
+                      {" "}
+                      · <span className="capitalize">{cloudPlan.status.toLowerCase()}</span>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -499,7 +516,8 @@ export default function DesktopSettingsPage() {
                 <p className="mt-1 text-muted-foreground">{license.message}</p>
                 {license.plan ? (
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Plan: {license.plan}
+                    Plan:{" "}
+                    {license.plan.charAt(0).toUpperCase() + license.plan.slice(1)}
                     {license.daysRemaining != null
                       ? ` · ${license.daysRemaining} day(s) left`
                       : null}

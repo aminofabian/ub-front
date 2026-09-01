@@ -99,6 +99,20 @@ export function fetchDesktopMediaStatus(): Promise<DesktopMediaStatus> {
   });
 }
 
+/** {@code GET /api/v1/desktop/sync/plan} — the online shop's subscription plan as last seen by the till. */
+export type DesktopSyncPlan = {
+  /** Cloud subscription tier, e.g. "growth" (null = not synced yet). */
+  tier: string | null;
+  /** Cloud billing status, e.g. "ACTIVE" (null = unknown). */
+  status: string | null;
+};
+
+export function fetchDesktopSyncPlan(): Promise<DesktopSyncPlan> {
+  return apiRequest<DesktopSyncPlan>("/api/v1/desktop/sync/plan", {
+    toast: false,
+  });
+}
+
 /** {@code POST /api/v1/desktop/reconnect} — re-auth after the cloud session expires. */
 export function reconnectDesktop(
   origin: string,

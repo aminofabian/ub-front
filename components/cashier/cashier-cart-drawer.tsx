@@ -1332,6 +1332,17 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           })}
                         </ul>
                       ) : null}
+                      {customerNoPhoneMatch &&
+                      !selectedCustomer &&
+                      customerPhoneQuery.trim() &&
+                      !isValidCustomerPhone(customerPhoneQuery) &&
+                      (!creditRegisterContext || allowSearchCustomersByName) ? (
+                        <p className="rounded-lg bg-muted/40 px-2.5 py-2 text-[12px] text-muted-foreground">
+                          No customer found for that search. Check the spelling,
+                          or use a phone number like 2547… or 07… to register
+                          them.
+                        </p>
+                      ) : null}
                       {(creditRegisterContext || captureCustomerSimple) &&
                       customerNoPhoneMatch &&
                       !selectedCustomer &&

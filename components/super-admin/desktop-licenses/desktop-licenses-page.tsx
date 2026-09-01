@@ -43,9 +43,12 @@ const INPUT_CLASS =
 const LABEL_CLASS = "text-sm font-medium leading-none text-foreground";
 
 const PLANS = [
-  { value: "shop", label: "Shop (full POS)" },
-  { value: "counter", label: "Counter (single till)" },
-  { value: "lan", label: "LAN server" },
+  { value: "", label: "Same as the shop's subscription (auto)" },
+  { value: "free", label: "Free" },
+  { value: "starter", label: "Starter" },
+  { value: "business", label: "Business" },
+  { value: "growth", label: "Growth" },
+  { value: "enterprise", label: "Enterprise" },
 ];
 
 function formatExpiry(iso: string | null): string {
@@ -65,7 +68,7 @@ export function DesktopLicensesPage() {
   const [resendingId, setResendingId] = useState<string | null>(null);
 
   const [businessName, setBusinessName] = useState("");
-  const [plan, setPlan] = useState("shop");
+  const [plan, setPlan] = useState("");
   const [days, setDays] = useState("365");
   const [perpetual, setPerpetual] = useState(false);
   const [fingerprint, setFingerprint] = useState("");
@@ -119,7 +122,8 @@ export function DesktopLicensesPage() {
   function buildPayload() {
     return {
       businessName: businessName.trim(),
-      plan,
+      // Blank plan = the issuer copies the shop's cloud subscription tier.
+      ...(plan ? { plan } : {}),
       ...(perpetual
         ? { perpetual: true }
         : { days: Math.max(1, Math.min(36500, Number(days) || 365)) }),
@@ -458,6 +462,10 @@ export function DesktopLicensesPage() {
                   </option>
                 ))}
               </select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                The plan is copied from the cloud subscription of this shop, so
+                the till and the online shop stay in sync.
+              </p>
             </div>
 
             <div>
