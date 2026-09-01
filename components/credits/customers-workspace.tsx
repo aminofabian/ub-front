@@ -1,27 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Filter,
   MessageCircle,
   MessageSquare,
-  Phone,
   Plus,
-  Receipt,
-  TrendingUp,
+  RefreshCw,
   Users,
 } from "lucide-react";
 
 import {
-  DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
-  DashboardPageHero,
-  DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
+import { NAVY, INK } from "@/components/credits/customer-board-theme";
 import { CustomerBulkSmsDrawer } from "@/components/credits/customer-bulk-sms-drawer";
 import { CustomerContactColumn } from "@/components/credits/customer-contact-column";
 import { CustomerCreateDialog } from "@/components/credits/customer-create-dialog";
@@ -29,16 +25,10 @@ import { CustomerDetailDrawer } from "@/components/credits/customer-detail-drawe
 import { CustomerInsightsColumn } from "@/components/credits/customer-insights-column";
 import { CustomerListColumn } from "@/components/credits/customer-list-column";
 import { CustomerMessagingDrawer } from "@/components/credits/customer-messaging-drawer";
-import {
-  CRM_GRID,
-  CRM_PANEL,
-  CRM_WORKSPACE_SHELL,
-} from "@/components/credits/customer-crm-ui";
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import { LoyaltyCardPreview } from "@/components/credits/loyalty-card-preview";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
-import { useFormatMoney } from "@/hooks/use-format-money";
 import { fetchCustomers, type CustomerRecord } from "@/lib/api";
 import type { LoyaltyCardCustomerInput } from "@/lib/loyalty-card";
 import {
@@ -59,11 +49,11 @@ type MobilePane = "list" | "insights" | "contact";
 const DATE_FILTER_OPTIONS: { id: CustomerDatePreset; label: string }[] = [
   { id: "today", label: "Today" },
   { id: "yesterday", label: "Yesterday" },
-  { id: "last3", label: "3d" },
-  { id: "last7", label: "1w" },
-  { id: "last30", label: "30d" },
-  { id: "thisMonth", label: "Mo" },
-  { id: "all", label: "All" },
+  { id: "last3", label: "3 days" },
+  { id: "last7", label: "1 week" },
+  { id: "last30", label: "30 days" },
+  { id: "thisMonth", label: "This month" },
+  { id: "all", label: "All time" },
 ];
 
 type Props = {
@@ -74,13 +64,15 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   const router = useRouter();
   const {
     loading,
+    business,
+    me,
     canViewCustomers,
     canManageCustomers,
     canManageCreditSettings,
     canReviewPaymentClaims,
     canViewAnalytics,
   } = useDashboard();
-  const { formatMoneyCompact: formatKes } = useFormatMoney();
+  const currency = business?.currency?.trim() || "KES";
 
   const [rows, setRows] = useState<CustomerRecord[]>([]);
   const [listLoading, setListLoading] = useState(false);
@@ -90,6 +82,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   const [outstandingOnly, setOutstandingOnly] = useState(false);
   const [originFilter, setOriginFilter] = useState<"all" | "inferred" | "verified">("all");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<{
     text: string;
     kind: "error" | "success";
@@ -131,39 +124,33 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
     return () => window.clearTimeout(id);
   }, [phoneFilter]);
 
+  const loadCustomers = useCallback(async () => {
+    setListLoading(true);
+    setRefreshing(true);
+    setMessage(null);
+    try {
+      const data = await fetchCustomers(activePhoneQuery, {
+        flexible: true,
+        createdFrom: dateRange?.from,
+        createdTo: dateRange?.to,
+      });
+      setRows(data);
+      setSelectedIds(new Set());
+    } catch (error) {
+      setMessage({
+        text: error instanceof Error ? error.message : "Failed to load customers.",
+        kind: "error",
+      });
+    } finally {
+      setListLoading(false);
+      setRefreshing(false);
+    }
+  }, [activePhoneQuery, dateRange]);
+
   useEffect(() => {
     if (loading || !canViewCustomers) return;
-    let cancelled = false;
-    const run = async () => {
-      setListLoading(true);
-      setMessage(null);
-      try {
-        const data = await fetchCustomers(activePhoneQuery, {
-          flexible: true,
-          createdFrom: dateRange?.from,
-          createdTo: dateRange?.to,
-        });
-        if (!cancelled) {
-          setRows(data);
-          setSelectedIds(new Set());
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setMessage({
-            text:
-              error instanceof Error ? error.message : "Failed to load customers.",
-            kind: "error",
-          });
-        }
-      } finally {
-        if (!cancelled) setListLoading(false);
-      }
-    };
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [loading, canViewCustomers, activePhoneQuery, dateRange, refreshKey]);
+    void loadCustomers();
+  }, [loading, canViewCustomers, loadCustomers, refreshKey]);
 
   const visibleRows = useMemo(() => {
     return rows.filter((row) => {
@@ -174,6 +161,11 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
       return true;
     });
   }, [rows, outstandingOnly, originFilter]);
+
+  const maxOwed = useMemo(
+    () => Math.max(...visibleRows.map((r) => Number(r.credit.balanceOwed ?? 0)), 1),
+    [visibleRows],
+  );
 
   useEffect(() => {
     if (initialCustomerId) {
@@ -227,19 +219,50 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
     return [];
   }, [selectedIds, focusedId]);
 
-  const quickLinks = [
-    ...(canViewAnalytics
-      ? [
-          { href: APP_ROUTES.customerSegments, label: "Segments", desc: "", icon: Filter },
-          { href: APP_ROUTES.analyticsCustomers, label: "Shoppers", desc: "", icon: TrendingUp },
-        ]
-      : []),
-    { href: APP_ROUTES.customerPhones, label: "Phones", desc: "", icon: Phone },
-    { href: APP_ROUTES.creditsOnTab, label: "On tab", desc: "", icon: Receipt },
-    ...(canReviewPaymentClaims
-      ? [{ href: APP_ROUTES.creditsPaymentClaims, label: "Claims", desc: "", icon: Receipt }]
-      : []),
-  ];
+  const listProps = {
+    rows: visibleRows,
+    loading: listLoading,
+    focusedId,
+    selectedIds,
+    canSelect: canManageCustomers,
+    search: phoneFilter,
+    onSearch: setPhoneFilter,
+    dateOptions: DATE_FILTER_OPTIONS,
+    datePreset,
+    onDatePreset: (id: string) => setDatePreset(id as CustomerDatePreset),
+    periodLabel,
+    outstandingOnly,
+    onOutstandingOnly: setOutstandingOnly,
+    originFilter,
+    onOriginFilter: setOriginFilter,
+    onFocus,
+    onToggleSelect: toggleRow,
+    formatKes: (n: number | string) =>
+      new Intl.NumberFormat("en-KE", {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 0,
+      }).format(Number(n)),
+    maxOwed,
+  };
+
+  const contactProps = {
+    customer: focusedCustomer,
+    currency,
+    canManage: canManageCustomers,
+    onEdit: () => setEditOpen(true),
+    onMessage: () => setSmsOpen(true),
+    onLoyaltyCard: () => {
+      if (!focusedCustomer) return;
+      setCardCustomer({
+        id: focusedCustomer.id,
+        name: focusedCustomer.name,
+        phone: customerPrimaryPhone(focusedCustomer.phones),
+        loyaltyPoints: focusedCustomer.credit.loyaltyPoints,
+      });
+    },
+    onFeedback: (kind: "error" | "success", text: string) => setMessage({ kind, text }),
+  };
 
   if (loading) {
     return <DashboardLoading label="Loading session…" />;
@@ -257,28 +280,84 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "!space-y-4 pb-24 lg:pb-4")}>
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <DashboardPageHero
-          compact
-          icon={Users}
-          eyebrow="Customers"
-          title="Directory"
-          description="List · purchase intelligence · contact — three columns, one glance."
-        />
-        <div className="flex flex-col items-end gap-2">
-          {quickLinks.length > 0 ? (
-            <DashboardQuickLinks compact links={quickLinks} />
-          ) : null}
-          <div className="flex flex-wrap gap-2">
+    <div className="mx-auto w-full max-w-[1280px] pb-16">
+      {message ? (
+        <div className="mb-3">
+          <DashboardFeedback kind={message.kind} text={message.text} />
+        </div>
+      ) : null}
+
+      <div
+        className={cn(
+          "overflow-hidden rounded-none p-4 sm:p-5",
+          refreshing && "opacity-80",
+        )}
+        style={{ background: NAVY }}
+      >
+        <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-12 shrink-0 items-center justify-center bg-white">
+              <Users className="size-6" aria-hidden style={{ color: INK }} />
+            </span>
+            <h1 className="min-w-0 font-sans text-[1.4rem] font-bold uppercase leading-tight tracking-[-0.02em] text-white sm:text-[1.75rem]">
+              Customer directory
+            </h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="hidden text-[11px] font-medium uppercase tracking-[-0.02em] text-white/85 sm:block">
+              {me?.name || business?.name || ""}
+            </p>
+            {canViewAnalytics ? (
+              <Link
+                href={APP_ROUTES.analyticsCustomers}
+                className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline"
+              >
+                Shoppers
+              </Link>
+            ) : null}
+            <Link
+              href={APP_ROUTES.customerSegments}
+              className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline"
+            >
+              Segments
+            </Link>
+            <Link
+              href={APP_ROUTES.customerPhones}
+              className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline"
+            >
+              Phones
+            </Link>
+            {canReviewPaymentClaims ? (
+              <Link
+                href={APP_ROUTES.creditsPaymentClaims}
+                className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline"
+              >
+                Claims
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              className="flex size-11 items-center justify-center text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
+              onClick={() => {
+                setRefreshKey((k) => k + 1);
+              }}
+              disabled={refreshing}
+              aria-label="Refresh"
+            >
+              <RefreshCw
+                className={cn("size-4", refreshing && "animate-spin")}
+                aria-hidden
+              />
+            </button>
             {canManageCustomers ? (
               <Button
                 type="button"
                 size="sm"
-                className="rounded-xl"
+                className="h-11 rounded-none bg-white hover:bg-white/90"
+                style={{ color: INK }}
                 onClick={() => setCreateOpen(true)}
               >
-                <Plus className="size-3.5" />
+                <Plus className="size-4" />
                 New
               </Button>
             ) : null}
@@ -286,154 +365,86 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
               type="button"
               size="sm"
               variant="outline"
-              className="rounded-xl"
+              className="h-11 rounded-none border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
               onClick={() => setMessagingOpen(true)}
             >
-              <MessageCircle className="size-3.5" />
-              Messaging
+              <MessageCircle className="size-4" />
             </Button>
             {canManageCustomers && selectedIds.size > 0 ? (
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="rounded-xl"
+                className="h-11 rounded-none border-white/30 bg-transparent text-white hover:bg-white/10"
                 onClick={() => setSmsOpen(true)}
               >
-                <MessageSquare className="size-3.5" />
+                <MessageSquare className="size-4" />
                 {selectedIds.size}
               </Button>
             ) : null}
           </div>
-        </div>
-      </header>
+        </header>
 
-      {message ? <DashboardFeedback kind={message.kind} text={message.text} /> : null}
+        <p className="mb-5 max-w-[72ch] text-[15px] leading-relaxed text-white">
+          {visibleRows.length.toLocaleString("en-KE")} customer
+          {visibleRows.length === 1 ? "" : "s"} in view
+          {periodLabel ? ` · ${periodLabel}` : ""}.
+          {focusedCustomer
+            ? ` Showing ${focusedCustomer.name} — purchases in the centre, contact on the right.`
+            : " Pick someone from the list to open their story."}
+        </p>
 
-      <div className={cn(CRM_WORKSPACE_SHELL, CRM_PANEL)}>
-        <div className={CRM_GRID}>
+        <div className="grid gap-4 lg:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)_minmax(14rem,16rem)]">
           {!isLg ? (
             <>
-              {mobilePane === "list" ? (
-                <CustomerListColumn
-                  rows={visibleRows}
-                  loading={listLoading}
-                  focusedId={focusedId}
-                  selectedIds={selectedIds}
-                  canSelect={canManageCustomers}
-                  search={phoneFilter}
-                  onSearch={setPhoneFilter}
-                  dateOptions={DATE_FILTER_OPTIONS}
-                  datePreset={datePreset}
-                  onDatePreset={(id) => setDatePreset(id as CustomerDatePreset)}
-                  periodLabel={periodLabel}
-                  outstandingOnly={outstandingOnly}
-                  onOutstandingOnly={setOutstandingOnly}
-                  originFilter={originFilter}
-                  onOriginFilter={setOriginFilter}
-                  onFocus={onFocus}
-                  onToggleSelect={toggleRow}
-                  formatKes={formatKes}
-                />
-              ) : null}
+              {mobilePane === "list" ? <CustomerListColumn {...listProps} /> : null}
               {mobilePane === "insights" ? (
-                <div className="flex min-h-0 flex-col lg:contents">
+                <div>
                   <button
                     type="button"
-                    className="flex shrink-0 items-center gap-2 border-b border-border/50 px-3 py-2 text-sm font-medium text-muted-foreground"
+                    className="mb-2 flex items-center gap-2 text-[12px] text-white/85"
                     onClick={() => setMobilePane("list")}
                   >
                     <ArrowLeft className="size-4" />
-                    Back to list
+                    Back
                   </button>
                   <CustomerInsightsColumn
                     customer={focusedCustomer}
-                    formatKes={formatKes}
+                    currency={currency}
                     canViewAnalytics={canViewAnalytics}
                   />
                 </div>
               ) : null}
               {mobilePane === "contact" ? (
-                <div className="flex min-h-0 flex-col lg:contents">
+                <div>
                   <button
                     type="button"
-                    className="flex shrink-0 items-center gap-2 border-b border-border/50 px-3 py-2 text-sm font-medium text-muted-foreground"
+                    className="mb-2 flex items-center gap-2 text-[12px] text-white/85"
                     onClick={() => setMobilePane("list")}
                   >
                     <ArrowLeft className="size-4" />
-                    Back to list
+                    Back
                   </button>
-                  <CustomerContactColumn
-                    customer={focusedCustomer}
-                    formatKes={formatKes}
-                    canManage={canManageCustomers}
-                    onEdit={() => setEditOpen(true)}
-                    onMessage={() => setSmsOpen(true)}
-                    onLoyaltyCard={() => {
-                      if (!focusedCustomer) return;
-                      setCardCustomer({
-                        id: focusedCustomer.id,
-                        name: focusedCustomer.name,
-                        phone: customerPrimaryPhone(focusedCustomer.phones),
-                        loyaltyPoints: focusedCustomer.credit.loyaltyPoints,
-                      });
-                    }}
-                    onFeedback={(kind, text) => setMessage({ kind, text })}
-                  />
+                  <CustomerContactColumn {...contactProps} />
                 </div>
               ) : null}
             </>
           ) : (
             <>
-              <CustomerListColumn
-                rows={visibleRows}
-                loading={listLoading}
-                focusedId={focusedId}
-                selectedIds={selectedIds}
-                canSelect={canManageCustomers}
-                search={phoneFilter}
-                onSearch={setPhoneFilter}
-                dateOptions={DATE_FILTER_OPTIONS}
-                datePreset={datePreset}
-                onDatePreset={(id) => setDatePreset(id as CustomerDatePreset)}
-                periodLabel={periodLabel}
-                outstandingOnly={outstandingOnly}
-                onOutstandingOnly={setOutstandingOnly}
-                originFilter={originFilter}
-                onOriginFilter={setOriginFilter}
-                onFocus={onFocus}
-                onToggleSelect={toggleRow}
-                formatKes={formatKes}
-              />
+              <CustomerListColumn {...listProps} />
               <CustomerInsightsColumn
                 customer={focusedCustomer}
-                formatKes={formatKes}
+                currency={currency}
                 canViewAnalytics={canViewAnalytics}
               />
-              <CustomerContactColumn
-                customer={focusedCustomer}
-                formatKes={formatKes}
-                canManage={canManageCustomers}
-                onEdit={() => setEditOpen(true)}
-                onMessage={() => setSmsOpen(true)}
-                onLoyaltyCard={() => {
-                  if (!focusedCustomer) return;
-                  setCardCustomer({
-                    id: focusedCustomer.id,
-                    name: focusedCustomer.name,
-                    phone: customerPrimaryPhone(focusedCustomer.phones),
-                    loyaltyPoints: focusedCustomer.credit.loyaltyPoints,
-                  });
-                }}
-                onFeedback={(kind, text) => setMessage({ kind, text })}
-              />
+              <CustomerContactColumn {...contactProps} />
             </>
           )}
         </div>
       </div>
 
       {!isLg && focusedCustomer && mobilePane === "list" ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border/80 bg-card/95 backdrop-blur-md lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-30 flex border-t border-white/20" style={{ background: NAVY }}>
           {(
             [
               ["insights", "Purchases"],
@@ -443,7 +454,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
             <button
               key={pane}
               type="button"
-              className="flex-1 py-3 text-center text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="flex-1 py-3 text-center text-[13px] font-medium text-white/85 hover:bg-white/10 hover:text-white"
               onClick={() => setMobilePane(pane)}
             >
               {label}
