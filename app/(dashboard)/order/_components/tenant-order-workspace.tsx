@@ -9,6 +9,7 @@ import {
   ChevronUp,
   ClipboardList,
   Copy,
+  History,
   Link2,
   Loader2,
   Package,
@@ -35,6 +36,7 @@ import { canLinkSupplierProducts } from "@/lib/supplier-access";
 import { APP_ROUTES } from "@/lib/config";
 import {
   addItemSupplierLink,
+  fetchPathAPurchaseOrder,
   fetchSupplierContacts,
   fetchSupplierItemLinks,
   fetchSuppliers,
@@ -43,6 +45,7 @@ import {
   postPathAPurchaseOrderSend,
   postPathAPurchaseOrderSendToSupplier,
   type ItemLinkPackOfferRecord,
+  type PathAPurchaseOrderDetailRecord,
   type SupplierContactRecord,
   type SupplierItemLinkRecord,
   type SupplierRecord,
@@ -67,7 +70,9 @@ import { cn, formatMoney } from "@/lib/utils";
 import { useOrderTemplate } from "@/hooks/use-order-template";
 
 import { SupplierGuideDrawer } from "@/app/(dashboard)/suppliers/_components/SupplierGuideDrawer";
+import { applyPoDetailToCart } from "@/app/(dashboard)/order/_lib/order-lifetime-stats";
 import { OrderCatalogSetupPanel } from "./order-catalog-setup-panel";
+import { OrderPastOrdersDrawer } from "./order-past-orders-drawer";
 import { OrderProductLedger } from "./order-product-ledger";
 import { OrderProductShelf } from "./order-product-shelf";
 import { OrderTemplatePicker } from "./order-template-picker";
@@ -272,11 +277,15 @@ export function TenantOrderWorkspace({
   const [linkProductsOpen, setLinkProductsOpen] = useState(false);
   const [linkCatalogQuery, setLinkCatalogQuery] = useState("");
   const [createProductOpen, setCreateProductOpen] = useState(false);
+  const [pastOrdersOpen, setPastOrdersOpen] = useState(false);
   const cartsBySupplierRef = useRef<Record<string, CartQty>>({});
   const packsBySupplierRef = useRef<Record<string, OrderCartPackMeta>>({});
   const supplierIdRef = useRef<string | null>(null);
   const ticketAppliedRef = useRef(false);
   const pendingTicketRef = useRef(parseOrderTicket(initialTicket));
+  const pendingReorderPoRef = useRef<PathAPurchaseOrderDetailRecord | null>(
+    null,
+  );
   supplierIdRef.current = supplierId;
 
   const packSheetLink = packSheetItemId
@@ -474,6 +483,36 @@ export function TenantOrderWorkspace({
     }
   }, [loadingLinks, links]);
 
+  // Apply a reordered PO once the supplier catalogue is ready.
+  useEffect(() => {
+    const pending = pendingReorderPoRef.current;
+    if (!pending || loadingLinks) return;
+    if (pending.supplierId !== supplierId) return;
+
+    const result = applyPoDetailToCart(pending, links);
+    pendingReorderPoRef.current = null;
+
+    if (result.matched === 0) {
+      toast.error(
+        "Could not match that order to this supplier’s current catalog",
+      );
+      return;
+    }
+
+    setCart(result.cart);
+    setPackByItemId(result.packs);
+    setMobileOrderOpen(true);
+    if (result.missed > 0) {
+      toast.message(
+        `Loaded ${result.matched} line${result.matched === 1 ? "" : "s"} · ${result.missed} unavailable now`,
+      );
+    } else {
+      toast.success(
+        `Loaded ${pending.poNumber} · ${result.matched} line${result.matched === 1 ? "" : "s"}`,
+      );
+    }
+  }, [loadingLinks, links, supplierId]);
+
   useEffect(() => {
     setParentFilterId(null);
   }, [supplierId]);
@@ -494,6 +533,38 @@ export function TenantOrderWorkspace({
     }
     setSupplierId(nextId);
   };
+
+  const reorderFromPo = useCallback(
+    async (poId: string) => {
+      const po = await fetchPathAPurchaseOrder(poId);
+      if (po.supplierId !== supplierId) {
+        pendingReorderPoRef.current = po;
+        selectSupplier(po.supplierId);
+        return;
+      }
+      if (loadingLinks) {
+        pendingReorderPoRef.current = po;
+        return;
+      }
+      const result = applyPoDetailToCart(po, links);
+      if (result.matched === 0) {
+        throw new Error("Could not match that order to this supplier’s catalog");
+      }
+      setCart(result.cart);
+      setPackByItemId(result.packs);
+      setMobileOrderOpen(true);
+      if (result.missed > 0) {
+        toast.message(
+          `Loaded ${result.matched} line${result.matched === 1 ? "" : "s"} · ${result.missed} unavailable now`,
+        );
+      } else {
+        toast.success(
+          `Loaded ${po.poNumber} · ${result.matched} line${result.matched === 1 ? "" : "s"}`,
+        );
+      }
+    },
+    [supplierId, loadingLinks, links, cart, packByItemId],
+  );
 
   const activeSupplier = suppliers.find((s) => s.id === supplierId) ?? null;
   const linkedItemIds = useMemo(
@@ -1297,6 +1368,15 @@ export function TenantOrderWorkspace({
             Link
           </button>
         ) : null}
+        <button
+          type="button"
+          onClick={() => setPastOrdersOpen(true)}
+          className="my-1.5 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-3.5 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]"
+          title="Reorder from a previous purchase order"
+        >
+          <History className="size-3.5" aria-hidden />
+          Past orders
+        </button>
         <SupplierGuideDrawer
           trigger={
             <button
@@ -1725,6 +1805,15 @@ export function TenantOrderWorkspace({
           }}
         />
       ) : null}
+
+      <OrderPastOrdersDrawer
+        open={pastOrdersOpen}
+        onOpenChange={setPastOrdersOpen}
+        supplierId={supplierId}
+        supplierName={activeSupplier?.name ?? null}
+        suppliers={suppliers}
+        onReorder={async (poId) => reorderFromPo(poId)}
+      />
     </div>
   );
 }

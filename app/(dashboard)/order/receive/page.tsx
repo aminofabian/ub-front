@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { OrderPageLayout } from "../_components/order-page-layout";
 import { OrderReceivePanel } from "../_components/order-receive-panel";
+import { OrderReceiveStatsStrip } from "../_components/order-receive-stats-strip";
 
 export const metadata: Metadata = {
   title: "Confirm orders · Procurement · Kiosk",
@@ -11,11 +12,7 @@ export const metadata: Metadata = {
 
 export default function OrderReceivePage() {
   return (
-    <OrderPageLayout
-      showHeader
-      title="Confirm orders"
-      description="Adjust quantities and prices on arrival, add missing lines, then confirm selected items as a supply bill with stock movements."
-    >
+    <OrderPageLayout header={<OrderReceiveStatsStrip />}>
       <OrderReceivePanel />
     </OrderPageLayout>
   );
