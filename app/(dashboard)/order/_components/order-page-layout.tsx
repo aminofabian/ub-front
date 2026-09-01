@@ -13,12 +13,15 @@ export function OrderPageLayout({
   title,
   description,
   showHeader = false,
+  header,
   className,
 }: {
   children: ReactNode;
   title?: string;
   description?: string;
   showHeader?: boolean;
+  /** Replaces the default title/description header block. */
+  header?: ReactNode;
   className?: string;
 }) {
   return (
@@ -39,7 +42,9 @@ export function OrderPageLayout({
           <ProcurementHubNav />
         </div>
 
-        {showHeader && title ? (
+        {header ? header : null}
+
+        {showHeader && title && !header ? (
           <header className="px-0.5 sm:px-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--order-ink)_42%,transparent)]">
               Procurement

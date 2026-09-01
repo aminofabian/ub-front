@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { OrderPageLayout } from "./_components/order-page-layout";
 import { OrderPageShell } from "./_components/order-page-shell";
+import { OrderStatsStrip } from "./_components/order-stats-strip";
 
 export const metadata: Metadata = {
   title: "Order · Procurement · Kiosk",
@@ -13,11 +14,7 @@ export const metadata: Metadata = {
 export default function TenantOrderPage() {
   return (
     <Suspense fallback={null}>
-      <OrderPageLayout
-        showHeader
-        title="New order"
-        description="Pick a supplier, link products to their shelf if needed, add lines to your order, then save the purchase order."
-      >
+      <OrderPageLayout header={<OrderStatsStrip />}>
         <OrderPageShell />
       </OrderPageLayout>
     </Suspense>
