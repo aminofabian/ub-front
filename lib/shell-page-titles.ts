@@ -15,7 +15,8 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.suppliers]: "Suppliers",
     [APP_ROUTES.marketplace]: "Find suppliers",
     [APP_ROUTES.creditsOnTab]: "On tab",
-    [APP_ROUTES.customers]: "People on credit",
+    [APP_ROUTES.customers]: "All customers",
+    [APP_ROUTES.customerSegments]: "Segments",
     [APP_ROUTES.customerPhones]: "Phone numbers",
     [APP_ROUTES.creditsPaymentClaims]: "They say they paid",
     [APP_ROUTES.inventoryStock]: "Stock levels",
@@ -86,7 +87,9 @@ export function shellPageTitle(pathname: string): string {
   if (path.startsWith("/credits")) return "Credit";
   if (path === APP_ROUTES.customerPhones || path.startsWith(`${APP_ROUTES.customerPhones}/`))
     return "Customer phones";
-  if (path.startsWith(APP_ROUTES.customers)) return "Credit customers";
+  if (path === APP_ROUTES.customerSegments) return "Segments";
+  if (/^\/customers\/[^/]+$/.test(path)) return "Customer profile";
+  if (path.startsWith(APP_ROUTES.customers)) return "Customers";
 
   const segment = path.split("/").filter(Boolean).pop();
   if (!segment) return "Home";
