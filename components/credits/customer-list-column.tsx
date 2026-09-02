@@ -5,8 +5,6 @@ import { Search } from "lucide-react";
 import {
   BoardFilterButton,
   CrmBar,
-  NavyRadioOption,
-  NavySidebarSection,
   WhiteCard,
 } from "@/components/credits/customer-board-theme";
 import { dashboardInputClass } from "@/components/dashboard-page-ui";
@@ -61,70 +59,85 @@ export function CustomerListColumn({
   maxOwed,
 }: Props) {
   return (
-    <div className="flex min-h-0 flex-col gap-2">
-      <label className="relative block">
-        <Search
-          className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
-          aria-hidden
-        />
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
-          placeholder="Name, C-no, phone"
-          aria-label="Search customers"
-          className={dashboardInputClass(false, "h-8 pl-8 text-xs")}
-        />
-      </label>
-
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Origin filter">
-        {(
-          [
-            ["all", "All"],
-            ["inferred", "Inferred"],
-            ["verified", "Verified"],
-          ] as const
-        ).map(([id, label]) => (
-          <BoardFilterButton
-            key={id}
-            compact
-            selected={originFilter === id}
-            onClick={() => onOriginFilter(id)}
-          >
-            {label}
-          </BoardFilterButton>
-        ))}
-      </div>
-
-      <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
-        <input
-          type="checkbox"
-          checked={outstandingOnly}
-          onChange={(e) => onOutstandingOnly(e.target.checked)}
-          className={customerTableCheckboxClass("size-3")}
-        />
-        Tab balance only
-      </label>
-
-      <NavySidebarSection title="Joined">
-        {dateOptions.map(({ id, label }) => (
-          <NavyRadioOption
-            key={id}
-            name="customer-added"
-            value={id}
-            checked={datePreset === id}
-            onChange={() => onDatePreset(id)}
-            label={label}
+    <div className="flex min-h-0 flex-col gap-1.5">
+      <div className="shrink-0 space-y-1.5 rounded-md border border-border/60 bg-muted/15 p-1.5">
+        <label className="relative block">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
           />
-        ))}
-      </NavySidebarSection>
-      <p className="px-0.5 text-[10px] text-muted-foreground">{periodLabel}</p>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="Name, C-no, phone"
+            aria-label="Search customers"
+            className={dashboardInputClass(false, "h-7 pl-7 text-[11px]")}
+          />
+        </label>
+
+        <div className="flex flex-wrap items-center gap-1">
+          <div className="flex flex-wrap gap-0.5" role="group" aria-label="Origin filter">
+            {(
+              [
+                ["all", "All"],
+                ["inferred", "Inferred"],
+                ["verified", "Verified"],
+              ] as const
+            ).map(([id, label]) => (
+              <BoardFilterButton
+                key={id}
+                compact
+                selected={originFilter === id}
+                onClick={() => onOriginFilter(id)}
+              >
+                {label}
+              </BoardFilterButton>
+            ))}
+          </div>
+          <label className="ml-auto flex cursor-pointer items-center gap-1 text-[10px] text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={outstandingOnly}
+              onChange={(e) => onOutstandingOnly(e.target.checked)}
+              className={customerTableCheckboxClass("size-2.5")}
+            />
+            Tab only
+          </label>
+        </div>
+
+        <div>
+          <p className="mb-0.5 px-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Joined
+            <span className="font-normal normal-case tracking-normal text-muted-foreground/80">
+              {" "}
+              · {periodLabel}
+            </span>
+          </p>
+          <div
+            className="flex flex-wrap gap-0.5"
+            role="group"
+            aria-label="Joined date filter"
+          >
+            {dateOptions.map(({ id, label }) => (
+              <BoardFilterButton
+                key={id}
+                compact
+                selected={datePreset === id}
+                onClick={() => onDatePreset(id)}
+              >
+                {label}
+              </BoardFilterButton>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <WhiteCard className="min-h-0 flex-1">
         {loading ? (
-          <p className="px-3 py-6 text-xs text-muted-foreground">Loading…</p>
+          <p className="px-2.5 py-5 text-[11px] text-muted-foreground">Loading…</p>
         ) : rows.length === 0 ? (
-          <p className="px-3 py-6 text-xs text-muted-foreground">No matches.</p>
+          <p className="px-2.5 py-5 text-[11px] text-muted-foreground">No matches.</p>
         ) : (
           <ul>
             {rows.map((row, index) => {
@@ -140,13 +153,13 @@ export function CustomerListColumn({
                     focused && "bg-muted/50",
                   )}
                 >
-                  <div className="grid gap-1.5 px-2 py-2 sm:grid-cols-[auto_minmax(0,1fr)]">
+                  <div className="grid gap-1 px-1.5 py-1.5 sm:grid-cols-[auto_minmax(0,1fr)]">
                     {canSelect ? (
                       <input
                         type="checkbox"
                         checked={selected}
                         onChange={() => onToggleSelect(row.id)}
-                        className={cn(customerTableCheckboxClass(), "mt-0.5 size-3")}
+                        className={cn(customerTableCheckboxClass(), "mt-0.5 size-2.5")}
                         aria-label={`Select ${row.name}`}
                       />
                     ) : null}
@@ -158,7 +171,7 @@ export function CustomerListColumn({
                       <div className="flex items-start gap-1.5">
                         <span
                           className={cn(
-                            "flex size-6 shrink-0 items-center justify-center rounded text-[10px] font-bold tabular-nums",
+                            "flex size-5 shrink-0 items-center justify-center rounded text-[9px] font-bold tabular-nums",
                             focused
                               ? "bg-foreground text-background"
                               : "bg-muted text-muted-foreground",
@@ -167,22 +180,22 @@ export function CustomerListColumn({
                           {index + 1}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-baseline gap-x-1.5">
-                            <p className="truncate text-[13px] font-medium text-foreground">
+                          <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
+                            <p className="text-[12px] font-medium leading-tight text-foreground">
                               {row.name}
                             </p>
                             {row.customerNo != null ? (
-                              <span className="text-[10px] tabular-nums text-muted-foreground">
+                              <span className="text-[9px] tabular-nums text-muted-foreground">
                                 C-{row.customerNo}
                               </span>
                             ) : null}
                           </div>
                           {owed > 0 ? (
-                            <div className="mt-1">
-                              <CrmBar pct={pct} />
+                            <div className="mt-0.5">
+                              <CrmBar pct={pct} className="h-0.5" />
                             </div>
                           ) : null}
-                          <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
+                          <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
                             {customerPrimaryPhone(row.phones) || "No phone"}
                             {owed > 0 ? ` · ${formatKes(owed)}` : ""}
                           </p>

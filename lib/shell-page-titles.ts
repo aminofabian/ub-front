@@ -34,7 +34,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.inventoryCostIssues]: "Selling too cheap",
     [APP_ROUTES.purchasingAddSupplies]: "Record delivery",
     [APP_ROUTES.order]: "New order",
-    [APP_ROUTES.orderReceive]: "Confirm delivery",
+    [APP_ROUTES.orderReceive]: "Confirm supply",
     [APP_ROUTES.purchasingIntelligence]: "Compare suppliers",
     [APP_ROUTES.purchasingApAging]: "Unpaid bills",
     [APP_ROUTES.purchasingRecordPayment]: "Pay bills",

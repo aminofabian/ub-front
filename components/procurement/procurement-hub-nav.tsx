@@ -30,19 +30,19 @@ const HUB_TABS: HubTab[] = [
     match: (p) => p.startsWith(APP_ROUTES.suppliers),
   },
   {
+    href: APP_ROUTES.orderReceive,
+    label: "Confirm supply",
+    hint: "Receive & post supply",
+    icon: ClipboardCheck,
+    match: (p) => p.startsWith(APP_ROUTES.orderReceive),
+  },
+  {
     href: APP_ROUTES.order,
     label: "New order",
     hint: "Build & send POs",
     icon: ShoppingCart,
     match: (p) =>
       p === APP_ROUTES.order || p.startsWith(`${APP_ROUTES.order}?`),
-  },
-  {
-    href: APP_ROUTES.orderReceive,
-    label: "Confirm orders",
-    hint: "Receive & post supply",
-    icon: ClipboardCheck,
-    match: (p) => p.startsWith(APP_ROUTES.orderReceive),
   },
   {
     href: APP_ROUTES.purchasingAddSupplies,

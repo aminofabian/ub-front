@@ -16,7 +16,7 @@ export function CashierOrderConfirmDrawer({ open, onOpenChange }: Props) {
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Confirm orders"
+      title="Confirm supply"
       description="Mark goods as received for open purchase orders."
       contextLabel="Receiving"
       icon={<ClipboardCheck className="size-4" aria-hidden />}

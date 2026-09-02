@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   ClipboardList,
@@ -11,7 +11,6 @@ import {
   Minus,
   Package,
   Plus,
-  Save,
   Search,
   Trash2,
 } from "lucide-react";
@@ -37,6 +36,8 @@ import {
   deletePathAPurchaseOrderLine,
   patchPathAPurchaseOrderLine,
   postPathAPurchaseOrderCancel,
+  postPathAPurchaseOrderSend,
+  postPathAPurchaseOrderSendToSupplier,
   postPathAGoodsReceipt,
   postPathAGrnSupplierInvoice,
   postPathAPurchaseOrderLine,
@@ -56,6 +57,12 @@ import { OrderProductShelf } from "./order-product-shelf";
 import { OrderTemplatePicker } from "./order-template-picker";
 
 const ORDER_CURRENCY = "KES";
+const LINE_SAVE_DEBOUNCE_MS = 400;
+
+type LinePersistOpts = {
+  qtyOrdered?: number;
+  unitEstimatedCost?: number;
+};
 
 function toNum(v: unknown): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -64,6 +71,12 @@ function toNum(v: unknown): number {
     return Number.isFinite(n) ? n : 0;
   }
   return 0;
+}
+
+/** Match backend UNIT_SCALE (4) so confirm qty cannot drift above remaining. */
+function roundQty(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * 10000) / 10000;
 }
 
 function todayIsoDate(): string {
@@ -132,9 +145,11 @@ function lineDraftsFromPo(po: PathAPurchaseOrderDetailRecord) {
   const nextPrice: ReceivePrice = {};
   const nextSel: Record<string, boolean> = {};
   for (const line of po.lines) {
-    nextOrderQty[line.id] = toNum(line.qtyOrdered);
+    const ordered = roundQty(toNum(line.qtyOrdered));
+    const received = roundQty(toNum(line.qtyReceived));
+    nextOrderQty[line.id] = ordered;
     nextPrice[line.id] = toNum(line.unitEstimatedCost);
-    const remaining = toNum(line.qtyOrdered) - toNum(line.qtyReceived);
+    const remaining = roundQty(ordered - received);
     if (remaining > 0) {
       nextQty[line.id] = remaining;
       nextSel[line.id] = true;
@@ -177,8 +192,7 @@ export function OrderReceivePanel({
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [addItemQuery, setAddItemQuery] = useState("");
   const [addingItemId, setAddingItemId] = useState<string | null>(null);
-  const [savingLineId, setSavingLineId] = useState<string | null>(null);
-  const [savingOrder, setSavingOrder] = useState(false);
+  const [savingLines, setSavingLines] = useState<Record<string, boolean>>({});
   const [deletingLineId, setDeletingLineId] = useState<string | null>(null);
   const [deletingOrder, setDeletingOrder] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -186,6 +200,21 @@ export function OrderReceivePanel({
   const [sharing, setSharing] = useState<"whatsapp" | "pdf" | "copy" | null>(
     null,
   );
+  const [savedLineIds, setSavedLineIds] = useState<Record<string, boolean>>(
+    {},
+  );
+  const persistTimers = useRef<Record<string, number>>({});
+  const persistInflight = useRef<Record<string, Promise<boolean>>>({});
+  const persistQueued = useRef<Record<string, LinePersistOpts | undefined>>(
+    {},
+  );
+  const savedClearTimers = useRef<Record<string, number>>({});
+  const detailRef = useRef(detail);
+  const orderQtyRef = useRef(orderQtyByLine);
+  const priceRef = useRef(priceByLine);
+  detailRef.current = detail;
+  orderQtyRef.current = orderQtyByLine;
+  priceRef.current = priceByLine;
 
   const refreshOrders = useCallback(async () => {
     setLoading(true);
@@ -462,119 +491,272 @@ export function OrderReceivePanel({
     };
   };
 
-  const persistLine = async (
-    lineId: string,
-    opts?: { qtyOrdered?: number; unitEstimatedCost?: number },
-  ) => {
-    if (!detail) return false;
-    const line = detail.lines.find((l) => l.id === lineId);
-    if (!line) return false;
-
-    const qtyOrdered = opts?.qtyOrdered ?? orderQtyByLine[lineId] ?? toNum(line.qtyOrdered);
-    const unitEstimatedCost =
-      opts?.unitEstimatedCost ?? priceByLine[lineId] ?? toNum(line.unitEstimatedCost);
-    const received = toNum(line.qtyReceived);
-
-    if (qtyOrdered <= 0 || unitEstimatedCost <= 0) {
-      toast.error("Quantity and price must be greater than zero");
-      return false;
-    }
-    if (qtyOrdered < received) {
-      toast.error("Order quantity cannot be less than already received");
-      return false;
-    }
-    if (
-      qtyOrdered === toNum(line.qtyOrdered) &&
-      unitEstimatedCost === toNum(line.unitEstimatedCost)
-    ) {
-      return true;
-    }
-
-    setSavingLineId(lineId);
-    try {
-      const updated = await patchPathAPurchaseOrderLine(detail.id, lineId, {
-        qtyOrdered,
-        unitEstimatedCost,
+  const markLineSaved = useCallback((lineId: string) => {
+    setSavedLineIds((prev) => ({ ...prev, [lineId]: true }));
+    window.clearTimeout(savedClearTimers.current[lineId]);
+    savedClearTimers.current[lineId] = window.setTimeout(() => {
+      setSavedLineIds((prev) => {
+        if (!prev[lineId]) return prev;
+        const next = { ...prev };
+        delete next[lineId];
+        return next;
       });
-      setDetail((prev) =>
-        prev
-          ? {
-              ...prev,
-              lines: prev.lines.map((l) =>
-                l.id === lineId
-                  ? {
-                      ...l,
-                      qtyOrdered: updated.qtyOrdered,
-                      unitEstimatedCost: updated.unitEstimatedCost,
-                    }
-                  : l,
-              ),
-            }
-          : prev,
-      );
-      setOrderQtyByLine((prev) => ({
-        ...prev,
-        [lineId]: toNum(updated.qtyOrdered),
-      }));
-      setPriceByLine((prev) => ({
-        ...prev,
-        [lineId]: toNum(updated.unitEstimatedCost),
-      }));
-      const remaining =
-        toNum(updated.qtyOrdered) - toNum(line.qtyReceived);
-      if (remaining > 0) {
-        setQtyByLine((prev) => ({
-          ...prev,
-          [lineId]: Math.min(prev[lineId] ?? remaining, remaining),
-        }));
-      }
-      return true;
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Could not save line",
-      );
-      return false;
-    } finally {
-      setSavingLineId(null);
-    }
-  };
+    }, 1600);
+  }, []);
 
-  const saveOrder = async () => {
-    if (!detail) return;
-    if (!orderDirty) {
-      toast.message("Nothing to save");
-      return;
-    }
-    setSavingOrder(true);
-    try {
-      for (const line of detail.lines) {
-        const orderQty = orderQtyByLine[line.id] ?? toNum(line.qtyOrdered);
-        const price = priceByLine[line.id] ?? toNum(line.unitEstimatedCost);
-        if (
-          orderQty === toNum(line.qtyOrdered) &&
-          price === toNum(line.unitEstimatedCost)
-        ) {
-          continue;
+  const persistLineRef = useRef<
+    (lineId: string, opts?: LinePersistOpts) => Promise<boolean>
+  >(async () => true);
+
+  const persistLine = useCallback(
+    async (lineId: string, opts?: LinePersistOpts) => {
+      persistQueued.current[lineId] = {
+        ...persistQueued.current[lineId],
+        ...opts,
+      };
+
+      const existing = persistInflight.current[lineId];
+      if (existing) return existing;
+
+      const drain = async (): Promise<boolean> => {
+        let ok = true;
+        while (lineId in persistQueued.current) {
+          const queued = persistQueued.current[lineId];
+          delete persistQueued.current[lineId];
+
+          const po = detailRef.current;
+          if (!po) return false;
+          const line = po.lines.find((l) => l.id === lineId);
+          if (!line) return false;
+
+          const qtyOrdered = roundQty(
+            queued?.qtyOrdered ??
+              orderQtyRef.current[lineId] ??
+              toNum(line.qtyOrdered),
+          );
+          const unitEstimatedCost =
+            queued?.unitEstimatedCost ??
+            priceRef.current[lineId] ??
+            toNum(line.unitEstimatedCost);
+          const received = roundQty(toNum(line.qtyReceived));
+
+          if (qtyOrdered <= 0) {
+            continue;
+          }
+          if (qtyOrdered < received) {
+            toast.error("Order quantity cannot be less than already received");
+            setOrderQtyByLine((prev) => ({
+              ...prev,
+              [lineId]: toNum(line.qtyOrdered),
+            }));
+            ok = false;
+            continue;
+          }
+          const costChanged =
+            unitEstimatedCost > 0 &&
+            unitEstimatedCost !== toNum(line.unitEstimatedCost);
+          const qtyChanged = qtyOrdered !== roundQty(toNum(line.qtyOrdered));
+          if (!qtyChanged && !costChanged) {
+            continue;
+          }
+
+          setSavingLines((prev) => ({ ...prev, [lineId]: true }));
+          try {
+            const updated = await patchPathAPurchaseOrderLine(po.id, lineId, {
+              qtyOrdered,
+              ...(unitEstimatedCost > 0 ? { unitEstimatedCost } : {}),
+            });
+            const nextQty = roundQty(toNum(updated.qtyOrdered));
+            const nextPrice = toNum(updated.unitEstimatedCost);
+            setDetail((prev) =>
+              prev && prev.id === po.id
+                ? {
+                    ...prev,
+                    lines: prev.lines.map((l) =>
+                      l.id === lineId
+                        ? {
+                            ...l,
+                            qtyOrdered: updated.qtyOrdered,
+                            unitEstimatedCost: updated.unitEstimatedCost,
+                          }
+                        : l,
+                    ),
+                  }
+                : prev,
+            );
+            setOrderQtyByLine((prev) => ({ ...prev, [lineId]: nextQty }));
+            setPriceByLine((prev) => ({ ...prev, [lineId]: nextPrice }));
+            const remaining = roundQty(nextQty - received);
+            if (remaining > 0) {
+              setQtyByLine((prev) => ({
+                ...prev,
+                [lineId]: roundQty(
+                  Math.min(prev[lineId] ?? remaining, remaining),
+                ),
+              }));
+            }
+            setOrders((prev) =>
+              prev.map((row) => {
+                if (row.id !== po.id) return row;
+                const lines = (
+                  detailRef.current?.id === po.id
+                    ? detailRef.current.lines
+                    : po.lines
+                ).map((l) =>
+                  l.id === lineId
+                    ? { ...l, qtyOrdered: updated.qtyOrdered }
+                    : l,
+                );
+                const totalOrdered = lines.reduce(
+                  (sum, l) => sum + toNum(l.qtyOrdered),
+                  0,
+                );
+                return { ...row, totalOrdered };
+              }),
+            );
+            markLineSaved(lineId);
+          } catch (error) {
+            toast.error(
+              error instanceof Error ? error.message : "Could not save line",
+            );
+            setOrderQtyByLine((prev) => ({
+              ...prev,
+              [lineId]: toNum(line.qtyOrdered),
+            }));
+            setPriceByLine((prev) => ({
+              ...prev,
+              [lineId]: toNum(line.unitEstimatedCost),
+            }));
+            ok = false;
+          } finally {
+            setSavingLines((prev) => {
+              if (!prev[lineId]) return prev;
+              const next = { ...prev };
+              delete next[lineId];
+              return next;
+            });
+          }
         }
-        const ok = await persistLine(line.id, {
-          qtyOrdered: orderQty,
-          unitEstimatedCost: price,
-        });
-        if (!ok) return;
-      }
-      toast.success("Order saved");
-      await refreshOrders();
-      const po = await fetchPathAPurchaseOrder(detail.id);
-      setDetail(po);
-      const drafts = lineDraftsFromPo(po);
-      setQtyByLine(drafts.nextQty);
-      setOrderQtyByLine(drafts.nextOrderQty);
-      setPriceByLine(drafts.nextPrice);
-      setSelectedLines(drafts.nextSel);
-    } finally {
-      setSavingOrder(false);
+        return ok;
+      };
+
+      const run = drain().then((result) => {
+        delete persistInflight.current[lineId];
+        if (lineId in persistQueued.current) {
+          return persistLineRef.current(lineId);
+        }
+        return result;
+      });
+
+      persistInflight.current[lineId] = run;
+      return run;
+    },
+    [markLineSaved],
+  );
+  persistLineRef.current = persistLine;
+
+  const schedulePersist = useCallback(
+    (lineId: string, opts?: LinePersistOpts) => {
+      persistQueued.current[lineId] = {
+        ...persistQueued.current[lineId],
+        ...opts,
+      };
+      window.clearTimeout(persistTimers.current[lineId]);
+      persistTimers.current[lineId] = window.setTimeout(() => {
+        delete persistTimers.current[lineId];
+        void persistLine(lineId);
+      }, LINE_SAVE_DEBOUNCE_MS);
+    },
+    [persistLine],
+  );
+
+  const flushPersist = useCallback(
+    (lineId: string, opts?: LinePersistOpts) => {
+      window.clearTimeout(persistTimers.current[lineId]);
+      delete persistTimers.current[lineId];
+      return persistLine(lineId, opts);
+    },
+    [persistLine],
+  );
+
+  const flushAllPending = useCallback(async () => {
+    const po = detailRef.current;
+    if (!po) return true;
+    const ids = new Set<string>([
+      ...po.lines.map((l) => l.id),
+      ...Object.keys(persistTimers.current),
+      ...Object.keys(persistQueued.current),
+    ]);
+    let ok = true;
+    for (const lineId of ids) {
+      const flushed = await flushPersist(lineId);
+      if (!flushed) ok = false;
     }
-  };
+    return ok;
+  }, [flushPersist]);
+
+  useEffect(() => {
+    const onHide = () => {
+      void flushAllPending();
+    };
+    const onVis = () => {
+      if (document.visibilityState === "hidden") onHide();
+    };
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [flushAllPending]);
+
+  useEffect(() => {
+    const persist = persistLineRef;
+    const timers = persistTimers;
+    const queued = persistQueued;
+    const savedTimers = savedClearTimers;
+    return () => {
+      for (const t of Object.values(timers.current)) {
+        window.clearTimeout(t);
+      }
+      timers.current = {};
+      for (const lineId of Object.keys(queued.current)) {
+        void persist.current(lineId);
+      }
+      for (const t of Object.values(savedTimers.current)) {
+        window.clearTimeout(t);
+      }
+    };
+  }, []);
+
+  const applyReceiveQty = useCallback(
+    (lineId: string, nextReceive: number, immediate: boolean) => {
+      const qty = roundQty(Math.max(0, nextReceive));
+      setQtyByLine((prev) => ({ ...prev, [lineId]: qty }));
+      const po = detailRef.current;
+      const line = po?.lines.find((l) => l.id === lineId);
+      if (!line || qty <= 0) return;
+      const already = roundQty(toNum(line.qtyReceived));
+      const localOrdered =
+        orderQtyRef.current[lineId] ?? roundQty(toNum(line.qtyOrdered));
+      const remaining = roundQty(Math.max(0, localOrdered - already));
+      if (qty <= remaining) return;
+      const qtyOrdered = roundQty(already + qty);
+      setOrderQtyByLine((prev) => ({ ...prev, [lineId]: qtyOrdered }));
+      const opts = { qtyOrdered };
+      if (immediate) void flushPersist(lineId, opts);
+      else schedulePersist(lineId, opts);
+    },
+    [flushPersist, schedulePersist],
+  );
+
+  const selectOrder = useCallback(
+    (id: string) => {
+      if (id === selectedId) return;
+      void flushAllPending().then(() => setSelectedId(id));
+    },
+    [flushAllPending, selectedId],
+  );
 
   const removeLine = async (lineId: string) => {
     if (!detail) return;
@@ -758,21 +940,6 @@ export function OrderReceivePanel({
 
   const confirmSelected = async () => {
     if (!detail) return;
-    const lines = openLines
-      .filter((l) => selectedLines[l.id])
-      .map((l) => ({
-        purchaseOrderLineId: l.id,
-        qtyReceived: Math.max(0, qtyByLine[l.id] ?? 0),
-        itemId: l.itemId,
-        unitCost: priceByLine[l.id] ?? toNum(l.unitEstimatedCost),
-      }))
-      .filter((l) => l.qtyReceived > 0);
-
-    if (lines.length === 0) {
-      toast.error("Select at least one line with quantity");
-      return;
-    }
-
     const receiveBranch = detail.branchId || branchId;
     if (!receiveBranch.trim()) {
       toast.error("Branch is required to confirm");
@@ -781,26 +948,52 @@ export function OrderReceivePanel({
 
     setConfirming(true);
     try {
-      if (orderDirty) {
-        for (const line of openLines.filter((l) => selectedLines[l.id])) {
-          const ok = await persistLine(line.id, {
-            qtyOrdered: orderQtyByLine[line.id] ?? toNum(line.qtyOrdered),
-            unitEstimatedCost:
-              priceByLine[line.id] ?? toNum(line.unitEstimatedCost),
-          });
-          if (!ok) {
-            toast.error("Save order changes before confirming");
-            return;
-          }
-        }
+      const flushed = await flushAllPending();
+      if (!flushed) {
+        toast.error("Could not save order changes");
+        return;
+      }
+
+      let po = await fetchPathAPurchaseOrder(detail.id);
+      if (po.status === "draft") {
+        const linked = suppliers
+          .find((s) => s.id === po.supplierId)
+          ?.marketplaceSupplierId?.trim();
+        po = linked
+          ? await postPathAPurchaseOrderSendToSupplier(po.id, { toast: false })
+          : await postPathAPurchaseOrderSend(po.id);
+      }
+      setDetail(po);
+
+      const lines = po.lines
+        .filter((l) => selectedLines[l.id])
+        .map((l) => {
+          const already = roundQty(toNum(l.qtyReceived));
+          const ordered = roundQty(toNum(l.qtyOrdered));
+          const remaining = roundQty(Math.max(0, ordered - already));
+          const qtyReceived = roundQty(
+            Math.max(0, qtyByLine[l.id] ?? remaining),
+          );
+          return {
+            purchaseOrderLineId: l.id,
+            qtyReceived,
+            itemId: l.itemId,
+            unitCost: priceByLine[l.id] ?? toNum(l.unitEstimatedCost),
+          };
+        })
+        .filter((l) => l.qtyReceived > 0);
+
+      if (lines.length === 0) {
+        toast.error("Select at least one line with quantity");
+        return;
       }
 
       const grn = await postPathAGoodsReceipt(
         {
-          purchaseOrderId: detail.id,
+          purchaseOrderId: po.id,
           branchId: receiveBranch.trim(),
           receivedAt: new Date().toISOString(),
-          notes: `Confirmed from Order · ${detail.poNumber}`,
+          notes: `Confirmed from Order · ${po.poNumber}`,
           lines: lines.map((l) => ({
             purchaseOrderLineId: l.purchaseOrderLineId,
             qtyReceived: l.qtyReceived,
@@ -819,7 +1012,7 @@ export function OrderReceivePanel({
       await postPathAGrnSupplierInvoice(
         grn.goodsReceiptId,
         {
-          invoiceNumber: `${detail.poNumber}-R${Date.now().toString().slice(-4)}`,
+          invoiceNumber: `${po.poNumber}-R${Date.now().toString().slice(-4)}`,
           invoiceDate: todayIsoDate(),
           lines: invoiceLines,
         },
@@ -909,7 +1102,7 @@ export function OrderReceivePanel({
                   <li key={o.id}>
                     <button
                       type="button"
-                      onClick={() => setSelectedId(o.id)}
+                      onClick={() => selectOrder(o.id)}
                       className={cn(
                         "group relative flex w-full flex-col gap-1.5 overflow-hidden rounded-lg border px-3 py-2.5 text-left transition-[border-color,background-color,box-shadow] duration-200",
                         active
@@ -965,7 +1158,7 @@ export function OrderReceivePanel({
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_78%,transparent)] px-4 py-3 backdrop-blur-[2px] sm:items-center">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
-              Confirm → supply
+              Confirm supply
             </p>
             <h2 className="mt-0.5 truncate font-heading text-[17px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
               {detail ? `${detail.poNumber} · ${supplierName}` : "Select an order"}
@@ -985,7 +1178,7 @@ export function OrderReceivePanel({
               {detail ? (
                 <button
                   type="button"
-                  disabled={deletingOrder || savingOrder || confirming}
+                  disabled={deletingOrder || confirming}
                   onClick={() => void removeOrder()}
                   className="inline-flex h-9 items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
                 >
@@ -1008,7 +1201,7 @@ export function OrderReceivePanel({
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
-                disabled={deletingOrder || savingOrder || confirming}
+                disabled={deletingOrder || confirming}
                 onClick={() => void removeOrder()}
                 className="inline-flex h-9 items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
               >
@@ -1046,7 +1239,8 @@ export function OrderReceivePanel({
                 No items on this order
               </p>
               <p className="text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                Add items from the supplier catalog below, then save the order.
+                Add items from the supplier catalog below. Changes save to this
+                order immediately.
               </p>
             </div>
           ) : (
@@ -1061,8 +1255,10 @@ export function OrderReceivePanel({
               </div>
               <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]">
               {displayLines.map((line) => {
-                const remaining =
-                  toNum(line.qtyOrdered) - toNum(line.qtyReceived);
+                const remaining = roundQty(
+                  (orderQtyByLine[line.id] ?? toNum(line.qtyOrdered)) -
+                    toNum(line.qtyReceived),
+                );
                 const canReceive = remaining > 0;
                 const checked = canReceive && Boolean(selectedLines[line.id]);
                 const receiveQty = qtyByLine[line.id] ?? remaining;
@@ -1075,7 +1271,8 @@ export function OrderReceivePanel({
                   orderNameTitleParts(name);
                 const thumb = posTileThumbUrl(name, meta?.thumbnailUrl);
                 const lineBusy =
-                  savingLineId === line.id || deletingLineId === line.id;
+                  Boolean(savingLines[line.id]) || deletingLineId === line.id;
+                const lineSaved = Boolean(savedLineIds[line.id]);
                 const canDelete = toNum(line.qtyReceived) === 0;
                 return (
                   <li
@@ -1138,6 +1335,7 @@ export function OrderReceivePanel({
                         <p className="mt-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                           Received {toNum(line.qtyReceived)}
                           {!canReceive ? " · fully received" : ""}
+                          {lineBusy ? " · saving…" : lineSaved ? " · saved" : ""}
                         </p>
                       </div>
                     </div>
@@ -1148,20 +1346,33 @@ export function OrderReceivePanel({
                         <input
                           className="h-8 w-[4.5rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)] disabled:opacity-40"
                           disabled={lineBusy}
+                          inputMode="decimal"
                           value={unit}
                           onChange={(e) => {
                             const n = Number.parseFloat(e.target.value);
+                            const next = Number.isFinite(n) ? Math.max(0, n) : 0;
                             setPriceByLine((prev) => ({
                               ...prev,
-                              [line.id]: Number.isFinite(n)
-                                ? Math.max(0, n)
-                                : 0,
+                              [line.id]: next,
                             }));
+                            if (next > 0) {
+                              schedulePersist(line.id, { unitEstimatedCost: next });
+                            }
                           }}
                           onBlur={(e) => {
                             const n = Number.parseFloat(e.target.value);
                             if (Number.isFinite(n) && n > 0) {
-                              void persistLine(line.id, { unitEstimatedCost: n });
+                              void flushPersist(line.id, { unitEstimatedCost: n });
+                              return;
+                            }
+                            setPriceByLine((prev) => ({
+                              ...prev,
+                              [line.id]: toNum(line.unitEstimatedCost),
+                            }));
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              (e.target as HTMLInputElement).blur();
                             }
                           }}
                         />
@@ -1172,20 +1383,62 @@ export function OrderReceivePanel({
                         <input
                           className="h-8 w-[4.5rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)] disabled:opacity-40"
                           disabled={lineBusy}
+                          inputMode="decimal"
                           value={orderQty}
                           onChange={(e) => {
                             const n = Number.parseFloat(e.target.value);
+                            const next = roundQty(
+                              Number.isFinite(n) ? Math.max(0, n) : 0,
+                            );
                             setOrderQtyByLine((prev) => ({
                               ...prev,
-                              [line.id]: Number.isFinite(n)
-                                ? Math.max(0, n)
-                                : 0,
+                              [line.id]: next,
                             }));
+                            const already = roundQty(toNum(line.qtyReceived));
+                            const remaining = roundQty(
+                              Math.max(0, next - already),
+                            );
+                            setQtyByLine((prev) => ({
+                              ...prev,
+                              [line.id]: remaining,
+                            }));
+                            if (remaining > 0) {
+                              setSelectedLines((prev) => ({
+                                ...prev,
+                                [line.id]: true,
+                              }));
+                            }
+                            if (next > 0) {
+                              schedulePersist(line.id, { qtyOrdered: next });
+                            }
                           }}
                           onBlur={(e) => {
                             const n = Number.parseFloat(e.target.value);
                             if (Number.isFinite(n) && n > 0) {
-                              void persistLine(line.id, { qtyOrdered: n });
+                              const next = roundQty(n);
+                              const already = roundQty(toNum(line.qtyReceived));
+                              const remaining = roundQty(
+                                Math.max(0, next - already),
+                              );
+                              setOrderQtyByLine((prev) => ({
+                                ...prev,
+                                [line.id]: next,
+                              }));
+                              setQtyByLine((prev) => ({
+                                ...prev,
+                                [line.id]: remaining,
+                              }));
+                              void flushPersist(line.id, { qtyOrdered: next });
+                              return;
+                            }
+                            setOrderQtyByLine((prev) => ({
+                              ...prev,
+                              [line.id]: toNum(line.qtyOrdered),
+                            }));
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              (e.target as HTMLInputElement).blur();
                             }
                           }}
                         />
@@ -1198,10 +1451,7 @@ export function OrderReceivePanel({
                             className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
                             disabled={!checked || lineBusy}
                             onClick={() =>
-                              setQtyByLine((prev) => ({
-                                ...prev,
-                                [line.id]: Math.max(0, receiveQty - 1),
-                              }))
+                              applyReceiveQty(line.id, receiveQty - 1, true)
                             }
                           >
                             <Minus className="size-3.5" />
@@ -1209,15 +1459,28 @@ export function OrderReceivePanel({
                           <input
                             className="w-11 border-x border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-transparent text-center font-mono text-[13px] tabular-nums outline-none disabled:opacity-40"
                             disabled={!checked || lineBusy}
+                            inputMode="decimal"
                             value={receiveQty}
                             onChange={(e) => {
                               const n = Number.parseFloat(e.target.value);
-                              setQtyByLine((prev) => ({
-                                ...prev,
-                                [line.id]: Number.isFinite(n)
-                                  ? Math.max(0, n)
-                                  : 0,
-                              }));
+                              applyReceiveQty(
+                                line.id,
+                                Number.isFinite(n) ? n : 0,
+                                false,
+                              );
+                            }}
+                            onBlur={(e) => {
+                              const n = Number.parseFloat(e.target.value);
+                              applyReceiveQty(
+                                line.id,
+                                Number.isFinite(n) ? n : 0,
+                                true,
+                              );
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                (e.target as HTMLInputElement).blur();
+                              }
                             }}
                           />
                           <button
@@ -1225,10 +1488,7 @@ export function OrderReceivePanel({
                             className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
                             disabled={!checked || lineBusy}
                             onClick={() =>
-                              setQtyByLine((prev) => ({
-                                ...prev,
-                                [line.id]: receiveQty + 1,
-                              }))
+                              applyReceiveQty(line.id, receiveQty + 1, true)
                             }
                           >
                             <Plus className="size-3.5" />
@@ -1356,8 +1616,8 @@ export function OrderReceivePanel({
                 </button>
               </div>
               <p className="text-[10px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                Save order changes, then confirm to post a goods receipt and
-                supplier bill. Share via WhatsApp or PDF anytime.
+                Receive qty defaults to the open balance. Confirm posts a goods
+                receipt and supplier bill. Share via WhatsApp or PDF anytime.
               </p>
             </div>
 
@@ -1378,41 +1638,34 @@ export function OrderReceivePanel({
                 </div>
                 <button
                   type="button"
-                  disabled={
-                    savingOrder ||
-                    confirming ||
-                    !detail ||
-                    !orderDirty
-                  }
-                  onClick={() => void saveOrder()}
+                  disabled={confirming || !detail || openLines.length === 0}
+                  onClick={() => void confirmSelected()}
                   className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50"
                 >
-                  {savingOrder ? (
+                  {confirming ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      Saving…
+                      Posting supply…
                     </>
                   ) : (
                     <>
-                      <Save className="size-4" />
-                      Save
+                      <Check className="size-4" />
+                      Confirm supply
                     </>
                   )}
                 </button>
+                <p className="mt-2 text-center text-[10px] text-[color-mix(in_srgb,#fff_58%,transparent)]">
+                  {Object.keys(savingLines).length > 0
+                    ? "Saving to order…"
+                    : orderDirty
+                      ? "Saving…"
+                      : detail
+                        ? "Edits saved to this order"
+                        : "\u00a0"}
+                </p>
               </div>
 
               <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px]">
-                <button
-                  type="button"
-                  disabled={confirming || openLines.length === 0}
-                  onClick={() => void confirmSelected()}
-                  className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
-                >
-                  {confirming ? "Posting supply…" : "Confirm → supply"}
-                </button>
-                <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]" aria-hidden>
-                  ·
-                </span>
                 <button
                   type="button"
                   disabled={shareBusy || shareLines.length === 0}
