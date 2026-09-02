@@ -17,6 +17,8 @@ import {
   Settings2,
   Shield,
   Sparkles,
+  Ticket,
+  UsersRound,
   X,
 } from "lucide-react";
 import { Collapsible } from "radix-ui";
@@ -31,6 +33,8 @@ import { getSuperAdminRealtimeClient } from "@/lib/realtime";
 import {
   logoutSuperAdmin,
   fetchSuperAdminMe,
+  saCanManageStaff,
+  saCanSeeFullConsole,
   startSaSessionKeepAlive,
   type SuperAdminMe,
 } from "@/lib/super-admin-api";
@@ -63,6 +67,19 @@ function crumbsFor(pathname: string): Crumb[] {
   }
   if (pathname === APP_ROUTES.superAdminMessages) return [{ label: "Messages" }];
   if (pathname === APP_ROUTES.superAdminSupport) return [{ label: "Support" }];
+  if (pathname === APP_ROUTES.superAdminServing) return [{ label: "Serving" }];
+  if (pathname === APP_ROUTES.superAdminServingStaff) {
+    return [
+      { label: "Serving", href: APP_ROUTES.superAdminServing },
+      { label: "Staff" },
+    ];
+  }
+  if (pathname.startsWith(`${APP_ROUTES.superAdminServing}/tickets/`)) {
+    return [
+      { label: "Serving", href: APP_ROUTES.superAdminServing },
+      { label: "Ticket" },
+    ];
+  }
   if (pathname === APP_ROUTES.superAdminSettings) return [{ label: "Profile" }];
   if (pathname === APP_ROUTES.superAdminPlatformPayments) {
     return [{ label: "Platform" }, { label: "Payments" }];
@@ -224,34 +241,64 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
     router.replace(APP_ROUTES.superAdminLogin);
   };
 
+  const fullConsole = saCanSeeFullConsole(me?.deskRole);
+  const manageStaff = saCanManageStaff(me?.deskRole);
+  const servingHome = APP_ROUTES.superAdminServing;
+
+  React.useEffect(() => {
+    if (!me) return;
+    if (fullConsole) {
+      return;
+    }
+    const onStaffPage = pathname === APP_ROUTES.superAdminServingStaff
+      || pathname.startsWith(`${APP_ROUTES.superAdminServingStaff}/`);
+    const allowed =
+      !onStaffPage
+      && (pathname === servingHome
+        || pathname.startsWith(`${servingHome}/tickets`)
+        || pathname === APP_ROUTES.superAdminSettings);
+    if (!allowed) {
+      router.replace(servingHome);
+    }
+  }, [me, fullConsole, pathname, router, servingHome]);
+
   const closeMobile = () => setMobileNav(false);
 
   const sidebarNav = (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center border-b border-border/60 px-3 lg:px-4">
         <KioskLogo
-          href={APP_ROUTES.superAdminDashboard}
+          href={fullConsole ? APP_ROUTES.superAdminDashboard : servingHome}
           size="sm"
           wordmark="Kiosk"
-          tagline="Console"
+          tagline={fullConsole ? "Console" : "Serving"}
           showTagline
         />
       </div>
 
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain p-3" aria-label="Super admin">
-        <NavItem href={APP_ROUTES.superAdminDashboard} label="Overview" icon={LayoutDashboard} />
-        <NavItem href={APP_ROUTES.superAdminBusinesses} label="Tenants" icon={Building2} match="prefix" />
-        <NavItem href={APP_ROUTES.superAdminPlatformSubscription} label="Subscriptions" icon={CreditCard} />
-        <NavItem href={APP_ROUTES.superAdminAdoptions} label="Adoptions" icon={Sparkles} />
-        <NavItem href={APP_ROUTES.superAdminCampaigns} label="Campaigns" icon={Mail} match="prefix" />
-        <NavItem href={APP_ROUTES.superAdminMessages} label="Messages" icon={Inbox} />
-        <NavItem
-          href={APP_ROUTES.superAdminSupport}
-          label="Support"
-          icon={Headset}
-          badge={saSupportUnread}
-        />
+        <NavItem href={APP_ROUTES.superAdminServing} label="Serving" icon={Ticket} match="prefix" />
+        {manageStaff ? (
+          <NavItem href={APP_ROUTES.superAdminServingStaff} label="Staff" icon={UsersRound} />
+        ) : null}
+        {fullConsole ? (
+          <>
+            <NavItem href={APP_ROUTES.superAdminDashboard} label="Overview" icon={LayoutDashboard} />
+            <NavItem href={APP_ROUTES.superAdminBusinesses} label="Tenants" icon={Building2} match="prefix" />
+            <NavItem href={APP_ROUTES.superAdminPlatformSubscription} label="Subscriptions" icon={CreditCard} />
+            <NavItem href={APP_ROUTES.superAdminAdoptions} label="Adoptions" icon={Sparkles} />
+            <NavItem href={APP_ROUTES.superAdminCampaigns} label="Campaigns" icon={Mail} match="prefix" />
+            <NavItem href={APP_ROUTES.superAdminMessages} label="Messages" icon={Inbox} />
+            <NavItem
+              href={APP_ROUTES.superAdminSupport}
+              label="Support"
+              icon={Headset}
+              badge={saSupportUnread}
+            />
+          </>
+        ) : null}
 
+        {fullConsole ? (
         <Collapsible.Root open={openPlatform} onOpenChange={setOpenPlatform} className="mt-2">
           <Collapsible.Trigger
             type="button"
@@ -294,6 +341,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
             </div>
           </Collapsible.Content>
         </Collapsible.Root>
+        ) : null}
       </nav>
 
       <div className="mt-auto space-y-1 border-t border-border/60 p-3">
@@ -375,7 +423,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
             </nav>
 
             <Link
-              href={APP_ROUTES.superAdminSupport}
+              href={fullConsole ? APP_ROUTES.superAdminSupport : APP_ROUTES.superAdminServing}
               aria-label={
                 saSupportUnread > 0
                   ? `Support — ${saSupportUnread} unread message${saSupportUnread === 1 ? "" : "s"}`

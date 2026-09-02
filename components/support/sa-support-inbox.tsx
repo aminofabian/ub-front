@@ -10,6 +10,7 @@ import {
   Inbox,
   RotateCw,
   Search,
+  Ticket,
 } from "lucide-react";
 
 import {
@@ -46,8 +47,10 @@ import {
   fetchSaSupportConversation,
   fetchSaSupportConversations,
   fetchSaSupportPresence,
+  fetchSaServingTickets,
   getSaCloudinarySignature,
   markSaSupportConversationRead,
+  promoteSaConversationToTicket,
   reopenSaSupportConversation,
   resolveSaSupportConversation,
   sendSaSupportMessage,
@@ -413,6 +416,8 @@ export function SaSupportInbox() {
   const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
   const [presence, setPresence] = React.useState<Record<string, SaSupportPresence>>({});
   const [onlineOnly, setOnlineOnly] = React.useState(false);
+  const [linkedTicket, setLinkedTicket] = React.useState<{ id: string; displayNumber: string } | null>(null);
+  const [promoteBusy, setPromoteBusy] = React.useState(false);
   const [liveCounts, setLiveCounts] = React.useState({
     tenantsOnline: 0,
     visitorsOnline: 0,
@@ -429,6 +434,28 @@ export function SaSupportInbox() {
   activeIdRef.current = activeId;
   const tabRef = React.useRef(tab);
   tabRef.current = tab;
+
+  React.useEffect(() => {
+    if (!activeId) {
+      setLinkedTicket(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchSaServingTickets({ conversationId: activeId })
+      .then((payload) => {
+        if (cancelled) return;
+        const first =
+          payload.tickets.find((t) => t.status === "NEW" || t.status === "OPEN" || t.status === "WAITING")
+          ?? payload.tickets[0];
+        setLinkedTicket(first ? { id: first.id, displayNumber: first.displayNumber } : null);
+      })
+      .catch(() => {
+        if (!cancelled) setLinkedTicket(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId]);
 
   const activeConversation =
     conversations.find((c) => c.id === activeId) ?? (detail ? { ...detail } : null) ?? null;
@@ -1396,6 +1423,34 @@ export function SaSupportInbox() {
         <div className="hidden sm:block">
           <ResolvedBanner resolved={resolved} onReopen={toggleStatus} busy={statusBusy} />
         </div>
+        {linkedTicket ? (
+          <Button asChild size="sm" variant="outline">
+            <a href={APP_ROUTES.superAdminServingTicket(linkedTicket.id)}>
+              <Ticket className="size-3.5" />
+              {linkedTicket.displayNumber}
+            </a>
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={promoteBusy}
+            onClick={async () => {
+              if (!activeConversation) return;
+              setPromoteBusy(true);
+              try {
+                const ticket = await promoteSaConversationToTicket(activeConversation.id);
+                setLinkedTicket({ id: ticket.id, displayNumber: ticket.displayNumber });
+              } finally {
+                setPromoteBusy(false);
+              }
+            }}
+          >
+            <Ticket className="size-3.5" />
+            {promoteBusy ? "Opening…" : "Turn into ticket"}
+          </Button>
+        )}
       </header>
 
       {activeConversation ? (

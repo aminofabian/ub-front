@@ -223,3 +223,48 @@ export async function fetchStorefrontBuyerUnreadCount(): Promise<number> {
   );
   return typeof payload?.count === "number" ? payload.count : 0;
 }
+
+export async function escalateStorefrontBuyerConversation(
+  id: string,
+): Promise<import("@/lib/super-admin-api").ServingTicketSummary> {
+  return apiRequest(
+    `${API_ROUTES.support}/storefront/conversations/${encodeURIComponent(id)}/escalate`,
+    { method: "POST" },
+  );
+}
+
+export async function createTenantServingTicket(body: {
+  subject: string;
+  category?: string;
+  body?: string;
+}): Promise<import("@/lib/super-admin-api").ServingTicketSummary> {
+  return apiRequest(`${API_ROUTES.support}/tickets`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function fetchTenantServingTickets(opts?: {
+  status?: string;
+}): Promise<{ tickets: import("@/lib/super-admin-api").ServingTicketSummary[]; total: number }> {
+  const params = new URLSearchParams();
+  if (opts?.status) params.set("status", opts.status);
+  const qs = params.toString();
+  return apiRequest(`${API_ROUTES.support}/tickets${qs ? `?${qs}` : ""}`);
+}
+
+export async function fetchTenantServingTicket(
+  id: string,
+): Promise<import("@/lib/super-admin-api").ServingTicketDetail> {
+  return apiRequest(`${API_ROUTES.support}/tickets/${encodeURIComponent(id)}`);
+}
+
+export async function replyTenantServingTicket(
+  id: string,
+  body: string,
+): Promise<SupportMessage> {
+  return apiRequest(`${API_ROUTES.support}/tickets/${encodeURIComponent(id)}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+}

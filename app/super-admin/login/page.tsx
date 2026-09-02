@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { APP_ROUTES } from "@/lib/config";
-import { loginSuperAdmin } from "@/lib/super-admin-api";
+import { loginSuperAdmin, saDeskHome } from "@/lib/super-admin-api";
 import { getSuperAdminAccessToken } from "@/lib/super-admin-session";
 
 export default function SuperAdminLoginPage() {
@@ -33,8 +33,8 @@ export default function SuperAdminLoginPage() {
     setError("");
     setBusy(true);
     try {
-      await loginSuperAdmin(email, password);
-      router.push(APP_ROUTES.superAdminDashboard);
+      const result = await loginSuperAdmin(email, password);
+      router.push(saDeskHome(result.deskRole));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {

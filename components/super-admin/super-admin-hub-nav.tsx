@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Mail,
   Sparkles,
+  Ticket,
   type LucideIcon,
 } from "lucide-react";
 
@@ -60,6 +61,13 @@ const HUB_TABS: HubTab[] = [
     hint: "Email nudges",
     icon: Mail,
     match: (p) => p.startsWith(APP_ROUTES.superAdminCampaigns),
+  },
+  {
+    href: APP_ROUTES.superAdminServing,
+    label: "Serving",
+    hint: "Tickets & desk",
+    icon: Ticket,
+    match: (p) => p.startsWith(APP_ROUTES.superAdminServing),
   },
   {
     href: APP_ROUTES.superAdminSupport,

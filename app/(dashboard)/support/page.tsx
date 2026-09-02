@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Headset, ShoppingBag } from "lucide-react";
+import { Headset, ShoppingBag, Ticket } from "lucide-react";
 
 import { StorefrontBuyerInbox } from "@/components/support/storefront-buyer-inbox";
 import { SupportChat } from "@/components/support/support-chat";
+import { TenantServingTickets } from "@/components/support/tenant-serving-tickets";
 import { cn } from "@/lib/utils";
 
-type Tab = "platform" | "storefront";
+type Tab = "platform" | "storefront" | "tickets";
 
 export default function SupportPage() {
   const [tab, setTab] = React.useState<Tab>("platform");
@@ -20,7 +21,9 @@ export default function SupportPage() {
           <p className="mt-0.5 text-sm text-muted-foreground">
             {tab === "platform"
               ? "A direct line to the Kiosk team — replies land here live."
-              : "Shoppers who started a chat on your storefront land here."}
+              : tab === "tickets"
+                ? "Palmart tickets for this shop. Each issue has a number and an owner."
+                : "Shoppers who started a chat on your storefront land here."}
           </p>
         </div>
         <div className="flex items-center gap-1 rounded-lg bg-muted/60 p-0.5">
@@ -48,6 +51,18 @@ export default function SupportPage() {
             <ShoppingBag className="size-3.5" aria-hidden />
             Storefront buyers
           </button>
+          <button
+            type="button"
+            onClick={() => setTab("tickets")}
+            aria-pressed={tab === "tickets"}
+            className={cn(
+              "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors",
+              tab === "tickets" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Ticket className="size-3.5" aria-hidden />
+            Tickets
+          </button>
         </div>
       </div>
       <div className="min-h-0 flex-1">
@@ -55,6 +70,8 @@ export default function SupportPage() {
           <div className="h-[calc(100dvh-13.25rem)] min-h-[440px]">
             <SupportChat />
           </div>
+        ) : tab === "tickets" ? (
+          <TenantServingTickets />
         ) : (
           <StorefrontBuyerInbox />
         )}

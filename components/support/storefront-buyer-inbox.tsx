@@ -28,6 +28,7 @@ import {
   fetchStorefrontBuyerConversation,
   fetchStorefrontBuyerConversations,
   markStorefrontBuyerConversationRead,
+  escalateStorefrontBuyerConversation,
   sendStorefrontBuyerReply,
 } from "@/lib/support-api";
 import { setSupportConversationFocused } from "@/lib/support-focus";
@@ -136,6 +137,8 @@ export function StorefrontBuyerInbox() {
   const [listError, setListError] = React.useState("");
 
   const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [escalatedLabel, setEscalatedLabel] = React.useState<string | null>(null);
+  const [escalateBusy, setEscalateBusy] = React.useState(false);
   const [messages, setMessages] = React.useState<LocalMessage[]>([]);
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [draft, setDraft] = React.useState("");
@@ -160,6 +163,10 @@ export function StorefrontBuyerInbox() {
     if (!activeId) return;
     setSupportConversationFocused(activeId, true);
     return () => setSupportConversationFocused(activeId, false);
+  }, [activeId]);
+
+  React.useEffect(() => {
+    setEscalatedLabel(null);
   }, [activeId]);
 
   const loadList = React.useCallback(
@@ -609,6 +616,24 @@ export function StorefrontBuyerInbox() {
         <div className="hidden sm:block">
           <LiveStatusPill state={connectionState} />
         </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={escalateBusy}
+          onClick={async () => {
+            if (!activeConversation) return;
+            setEscalateBusy(true);
+            try {
+              const ticket = await escalateStorefrontBuyerConversation(activeConversation.id);
+              setEscalatedLabel(ticket.displayNumber);
+            } finally {
+              setEscalateBusy(false);
+            }
+          }}
+        >
+          {escalatedLabel ? escalatedLabel : escalateBusy ? "Escalating…" : "Escalate to Palmart"}
+        </Button>
       </header>
 
       <div className="relative min-h-0 flex-1 support-chat-wallpaper">

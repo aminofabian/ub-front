@@ -8,11 +8,26 @@ import {
   setSuperAdminAccessToken,
 } from "@/lib/super-admin-session";
 
+export type SaDeskRole = "owner" | "lead" | "agent";
+
+export function saDeskHome(role?: string | null): string {
+  return role === "agent" ? APP_ROUTES.superAdminServing : APP_ROUTES.superAdminDashboard;
+}
+
+export function saCanSeeFullConsole(role?: string | null): boolean {
+  return role !== "agent";
+}
+
+export function saCanManageStaff(role?: string | null): boolean {
+  return role === "owner" || role === "lead";
+}
+
 export type SuperAdminLoginResult = {
   accessToken: string;
   superAdminId: string;
   email: string;
   name: string;
+  deskRole?: SaDeskRole;
 };
 
 export type SaBusinessRow = {
@@ -978,6 +993,7 @@ export type SuperAdminMe = {
   name: string;
   /** Ops SMS alert recipient (tenant adoptions). Null until set in Profile. */
   phone: string | null;
+  deskRole?: SaDeskRole;
 };
 
 export async function fetchSuperAdminMe(): Promise<SuperAdminMe> {
@@ -3533,4 +3549,248 @@ export type SaSmsCreditUsageRecord = {
 
 export async function fetchSmsCreditUsage(): Promise<SaSmsCreditUsageRecord> {
   return saRequest<SaSmsCreditUsageRecord>(API_ROUTES.superAdminSmsCreditsUsage);
+}
+
+export type ServingTicketStatus = "NEW" | "OPEN" | "WAITING" | "RESOLVED" | "CLOSED";
+export type ServingTicketType = "TENANT" | "SHOPPER";
+export type ServingTicketPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
+export type ServingTicketCategory =
+  | "BILLING"
+  | "ONBOARDING"
+  | "BUG"
+  | "DOMAIN"
+  | "MARKETPLACE"
+  | "OTHER";
+
+export type ServingTicketSummary = {
+  id: string;
+  ticketNumber: number;
+  displayNumber: string;
+  type: ServingTicketType | string;
+  status: ServingTicketStatus | string;
+  priority: ServingTicketPriority | string;
+  category: ServingTicketCategory | string;
+  subject: string;
+  businessId: string | null;
+  businessName: string | null;
+  requesterName: string | null;
+  requesterEmail?: string | null;
+  requesterPhone?: string | null;
+  shopperName: string | null;
+  shopperPhone?: string | null;
+  orderId?: string | null;
+  assignedTo: string | null;
+  assignedToName: string | null;
+  conversationId: string | null;
+  contactMessageId: string | null;
+  lastActivityAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ServingTicketNote = {
+  id: string;
+  authorId: string;
+  authorName: string | null;
+  body: string;
+  createdAt: string;
+};
+
+export type ServingTicketEvent = {
+  id: string;
+  kind: string;
+  actorId: string | null;
+  actorName: string | null;
+  payload: string | null;
+  createdAt: string;
+};
+
+export type ServingTicketDetail = {
+  ticket: ServingTicketSummary;
+  messages: import("@/lib/support-api").SupportMessage[];
+  notes: ServingTicketNote[];
+  events: ServingTicketEvent[];
+};
+
+export type ServingStaffRow = {
+  id: string;
+  email: string;
+  name: string;
+  phone: string | null;
+  deskRole: SaDeskRole | string;
+  active: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+  openCount: number;
+  waitingCount: number;
+  currentUser: boolean;
+};
+
+export type ServingBoardAgent = {
+  id: string;
+  name: string;
+  email: string;
+  deskRole: string;
+  openCount: number;
+  waitingCount: number;
+  tickets: ServingTicketSummary[];
+};
+
+export type ServingBoard = {
+  unassigned: ServingTicketSummary[];
+  agents: ServingBoardAgent[];
+  waiting: ServingTicketSummary[];
+  resolved: ServingTicketSummary[];
+};
+
+export async function fetchSaServingTickets(opts?: {
+  status?: string;
+  type?: string;
+  assignee?: string;
+  businessId?: string;
+  conversationId?: string;
+  contactMessageId?: string;
+  q?: string;
+}): Promise<{ tickets: ServingTicketSummary[]; total: number }> {
+  const params = new URLSearchParams();
+  if (opts?.status) params.set("status", opts.status);
+  if (opts?.type) params.set("type", opts.type);
+  if (opts?.assignee) params.set("assignee", opts.assignee);
+  if (opts?.businessId) params.set("businessId", opts.businessId);
+  if (opts?.conversationId) params.set("conversationId", opts.conversationId);
+  if (opts?.contactMessageId) params.set("contactMessageId", opts.contactMessageId);
+  if (opts?.q) params.set("q", opts.q);
+  const qs = params.toString();
+  return saRequest(`${API_ROUTES.superAdminServing}/tickets${qs ? `?${qs}` : ""}`);
+}
+
+export async function fetchSaServingTicket(id: string): Promise<ServingTicketDetail> {
+  return saRequest(`${API_ROUTES.superAdminServing}/tickets/${encodeURIComponent(id)}`);
+}
+
+export async function createSaServingTicket(body: {
+  type: ServingTicketType;
+  subject: string;
+  category?: string;
+  priority?: string;
+  businessId?: string;
+  shopperName?: string;
+  shopperPhone?: string;
+  orderId?: string;
+  body?: string;
+}): Promise<ServingTicketSummary> {
+  return saRequest(`${API_ROUTES.superAdminServing}/tickets`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function assignSaServingTicket(
+  id: string,
+  assigneeId: string | null,
+): Promise<ServingTicketSummary> {
+  return saRequest(`${API_ROUTES.superAdminServing}/tickets/${encodeURIComponent(id)}/assign`, {
+    method: "POST",
+    body: JSON.stringify({ assigneeId }),
+  });
+}
+
+export async function claimSaServingTicket(id: string): Promise<ServingTicketSummary> {
+  return saRequest(`${API_ROUTES.superAdminServing}/tickets/${encodeURIComponent(id)}/claim`, {
+    method: "POST",
+  });
+}
+
+export async function setSaServingTicketStatus(
+  id: string,
+  status: ServingTicketStatus,
+): Promise<ServingTicketSummary> {
+  return saRequest(`${API_ROUTES.superAdminServing}/tickets/${encodeURIComponent(id)}/status`, {
+    method: "POST",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function patchSaServingTicket(
+  id: string,
+  body: { category?: string; priority?: string },
+): Promise<ServingTicketSummary> {
+  return saRequest(`${API_ROUTES.superAdminServing}/tickets/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function replySaServingTicket(
+  id: string,
+  body: string,
+): Promise<import("@/lib/support-api").SupportMessage> {
+  return saRequest(`${API_ROUTES.superAdminServing}/tickets/${encodeURIComponent(id)}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+}
+
+export async function noteSaServingTicket(id: string, body: string): Promise<ServingTicketNote> {
+  return saRequest(`${API_ROUTES.superAdminServing}/tickets/${encodeURIComponent(id)}/notes`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+}
+
+export async function promoteSaConversationToTicket(
+  conversationId: string,
+): Promise<ServingTicketSummary> {
+  return saRequest(
+    `${API_ROUTES.superAdminServing}/tickets/from-conversation/${encodeURIComponent(conversationId)}`,
+    { method: "POST" },
+  );
+}
+
+export async function openSaTicketFromContact(
+  contactMessageId: string,
+): Promise<ServingTicketSummary> {
+  return saRequest(
+    `${API_ROUTES.superAdminServing}/tickets/from-contact/${encodeURIComponent(contactMessageId)}`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchSaServingShops(): Promise<{ shops: Array<{ id: string; name: string; slug: string }> }> {
+  return saRequest(`${API_ROUTES.superAdminServing}/shops`);
+}
+
+export async function fetchSaServingBoard(): Promise<ServingBoard> {
+  return saRequest(`${API_ROUTES.superAdminServing}/board`);
+}
+
+export async function fetchSaServingAssignees(): Promise<{ assignees: Array<{ id: string; name: string }> }> {
+  return saRequest(`${API_ROUTES.superAdminServing}/assignees`);
+}
+
+export async function fetchSaServingStaff(): Promise<{ staff: ServingStaffRow[]; total: number }> {
+  return saRequest(`${API_ROUTES.superAdminServing}/staff`);
+}
+
+export async function inviteSaServingStaff(body: {
+  name: string;
+  email: string;
+  phone?: string;
+  deskRole: SaDeskRole;
+  password: string;
+}): Promise<{ staff: ServingStaffRow; temporaryPassword: string }> {
+  return saRequest(`${API_ROUTES.superAdminServing}/staff`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function patchSaServingStaff(
+  id: string,
+  body: { deskRole?: SaDeskRole; active?: boolean; name?: string; phone?: string },
+): Promise<ServingStaffRow> {
+  return saRequest(`${API_ROUTES.superAdminServing}/staff/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
 }

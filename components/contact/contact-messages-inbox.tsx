@@ -25,6 +25,7 @@ type ContactMessagesInboxProps = {
     id: string,
     body: { channel: ContactReplyChannel; body: string },
   ) => Promise<unknown>;
+  onOpenTicket?: (contactMessageId: string) => Promise<void> | void;
 };
 
 export function ContactMessagesInbox({
@@ -32,6 +33,7 @@ export function ContactMessagesInbox({
   listMessages,
   getMessage,
   replyMessage,
+  onOpenTicket,
 }: ContactMessagesInboxProps) {
   const [filter, setFilter] = useState<"ALL" | "UNREAD" | "READ">("ALL");
   const [rows, setRows] = useState<ContactMessageListItem[]>([]);
@@ -245,6 +247,16 @@ export function ContactMessagesInbox({
               <p className="whitespace-pre-wrap text-sm leading-relaxed">
                 {detail.body}
               </p>
+              {onOpenTicket ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void onOpenTicket(detail.id)}
+                >
+                  Open serving ticket
+                </Button>
+              ) : null}
 
               {detail.replies.length > 0 ? (
                 <div className="space-y-2">

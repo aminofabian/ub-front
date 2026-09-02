@@ -1328,10 +1328,12 @@ export function MarketplaceOrderWorkspace({
                         : shelfProductCount}
                     </span>
                   </h3>
-                  <MarketplaceTemplatePicker
-                    value={catalogTemplate}
-                    onChange={setTemplate}
-                  />
+                  {!embedded ? (
+                    <MarketplaceTemplatePicker
+                      value={catalogTemplate}
+                      onChange={setTemplate}
+                    />
+                  ) : null}
                 </div>
                 {familyLetters.length > 1 ? (
                   <div

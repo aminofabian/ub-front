@@ -115,6 +115,10 @@ export const APP_ROUTES = {
   superAdminMessages: "/super-admin/messages",
   /** Super-admin support inbox — every tenant's chat thread. */
   superAdminSupport: "/super-admin/support",
+  superAdminServing: "/super-admin/serving",
+  superAdminServingStaff: "/super-admin/serving/staff",
+  superAdminServingTicket: (id: string) =>
+    `/super-admin/serving/tickets/${encodeURIComponent(id)}`,
   /** Credit sales put on tab — period pulse + feed. */
   creditsOnTab: "/credits",
   creditsPaymentClaims: "/credits/payment-claims",
@@ -258,6 +262,7 @@ export const API_ROUTES = {
   supplierPortalReports: "/api/v1/supplier-portal/reports",
   support: "/api/v1/support",
   superAdminSupport: "/api/v1/super-admin/support",
+  superAdminServing: "/api/v1/super-admin/serving",
   marketplaceProductEditRequests: "/api/v1/marketplace/product-edit-requests",
   supplierPortalCapabilities: "/api/v1/supplier-portal/capabilities",
   superAdminAuthLogin: "/api/v1/super-admin/auth/login",
