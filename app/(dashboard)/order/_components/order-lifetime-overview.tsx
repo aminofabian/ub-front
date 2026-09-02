@@ -1,6 +1,6 @@
 "use client";
 
-import { cn, formatMoney, formatMoneyCompact } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
 
 const CURRENCY = "KES";
 
@@ -15,8 +15,8 @@ function MiniSparkline({
   if (slice.length < 2) return null;
 
   const max = Math.max(...slice.map((p) => p.spend), 1);
-  const width = 72;
-  const height = 18;
+  const width = 120;
+  const height = 28;
   const step = width / (slice.length - 1);
   const path = slice
     .map((point, index) => {
@@ -29,14 +29,14 @@ function MiniSparkline({
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className={cn("h-[18px] w-[4.5rem] text-[var(--pos-primary,#0f766e)]", className)}
+      className={cn("h-7 w-[7.5rem] text-[var(--pos-primary,#0f766e)]", className)}
       aria-hidden
     >
       <path
         d={path}
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.6"
+        strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -44,23 +44,33 @@ function MiniSparkline({
   );
 }
 
-function LedgerChip({
+function LedgerMetric({
   label,
   value,
   hint,
+  emphasize = false,
 }: {
   label: string;
   value: string;
   hint: string;
+  emphasize?: boolean;
 }) {
   return (
-    <div className="min-w-0" title={hint}>
-      <dt className="text-[9px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,#fff_46%,transparent)]">
+    <div className="min-w-0">
+      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,#fff_52%,transparent)]">
         {label}
-      </dt>
-      <dd className="mt-0.5 truncate font-heading text-[13px] font-semibold leading-none tracking-[-0.03em] text-white tabular-nums sm:text-[14px]">
+      </p>
+      <p
+        className={cn(
+          "mt-1 font-heading font-semibold leading-none tracking-[-0.03em] tabular-nums text-white",
+          emphasize ? "text-[26px] sm:text-[28px]" : "text-[18px] sm:text-[20px]",
+        )}
+      >
         {value}
-      </dd>
+      </p>
+      <p className="mt-1 text-[10px] leading-snug text-[color-mix(in_srgb,#fff_58%,transparent)]">
+        {hint}
+      </p>
     </div>
   );
 }
@@ -68,7 +78,6 @@ function LedgerChip({
 export function OrderLifetimeOverview({
   loading,
   lifetime,
-  className,
 }: {
   loading: boolean;
   lifetime: {
@@ -85,7 +94,6 @@ export function OrderLifetimeOverview({
     inFlightCount: number;
     spendTrend: { date: string; spend: number }[];
   };
-  className?: string;
 }) {
   const paidRatio =
     lifetime.confirmedValue > 0
@@ -93,82 +101,83 @@ export function OrderLifetimeOverview({
       : 0;
 
   return (
-    <div
-      className={cn(
-        "relative flex min-h-[4.5rem] flex-col justify-center gap-2.5 overflow-hidden bg-[var(--order-ink,#15231f)] px-3.5 py-2.5",
-        className,
-      )}
-    >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="min-w-0">
-            <p className="font-heading text-[20px] font-semibold leading-none tracking-[-0.03em] text-white tabular-nums sm:text-[22px]">
-              {loading ? "—" : formatMoney(lifetime.totalSpend, CURRENCY)}
-            </p>
-            <p className="mt-1 text-[10px] leading-none text-[color-mix(in_srgb,#fff_58%,transparent)]">
-              {loading
-                ? "Loading purchase history…"
-                : `${lifetime.ordersPlaced} order${lifetime.ordersPlaced === 1 ? "" : "s"} · ${lifetime.confirmedInvoices} bill${lifetime.confirmedInvoices === 1 ? "" : "s"}`}
-            </p>
+    <div className="overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[var(--order-ink,#15231f)] shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_8%,transparent),0_16px_40px_-24px_color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
+      <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[1.15fr_1fr] lg:items-end">
+        <div className="min-w-0 space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color-mix(in_srgb,#fff_48%,transparent)]">
+                Procurement ledger
+              </p>
+              <p className="mt-1 text-[12px] text-[color-mix(in_srgb,#fff_62%,transparent)]">
+                Everything you&apos;ve ordered, confirmed, and paid
+              </p>
+            </div>
+            {!loading && lifetime.spendTrend.length > 1 ? (
+              <MiniSparkline points={lifetime.spendTrend} />
+            ) : null}
           </div>
-          {!loading && lifetime.spendTrend.length > 1 ? (
-            <MiniSparkline
-              points={lifetime.spendTrend}
-              className="hidden shrink-0 opacity-90 xl:block"
-            />
-          ) : null}
+          <LedgerMetric
+            label="Total spend"
+            value={loading ? "—" : formatMoney(lifetime.totalSpend, CURRENCY)}
+            hint={
+              loading
+                ? "Loading purchase history…"
+                : `${lifetime.ordersPlaced} order${lifetime.ordersPlaced === 1 ? "" : "s"} placed · ${lifetime.confirmedInvoices} supply bill${lifetime.confirmedInvoices === 1 ? "" : "s"}`
+            }
+            emphasize
+          />
         </div>
 
-        <dl className="grid min-w-0 grid-cols-4 gap-x-2.5 sm:ml-auto sm:gap-4">
-          <LedgerChip
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+          <LedgerMetric
             label="Placed"
             value={loading ? "—" : String(lifetime.ordersPlaced)}
             hint={`${lifetime.inFlightCount} in flight`}
           />
-          <LedgerChip
+          <LedgerMetric
             label="Confirmed"
             value={loading ? "—" : String(lifetime.fullyReceived)}
             hint={
               loading
                 ? "Fully received POs"
-                : `${lifetime.confirmedInvoices} bills · ${formatMoneyCompact(lifetime.confirmedValue, CURRENCY)}`
+                : `${lifetime.confirmedInvoices} bills · ${formatMoney(lifetime.confirmedValue, CURRENCY)}`
             }
           />
-          <LedgerChip
+          <LedgerMetric
             label="Paid"
-            value={
-              loading ? "—" : formatMoneyCompact(lifetime.paidValue, CURRENCY)
-            }
+            value={loading ? "—" : formatMoney(lifetime.paidValue, CURRENCY)}
             hint={
               loading
                 ? "Settled to suppliers"
                 : `${lifetime.paidCount} paid${lifetime.partialPayCount > 0 ? ` · ${lifetime.partialPayCount} partial` : ""}`
             }
           />
-          <LedgerChip
-            label="Open"
-            value={
-              loading ? "—" : formatMoneyCompact(lifetime.openBalance, CURRENCY)
-            }
+          <LedgerMetric
+            label="Outstanding"
+            value={loading ? "—" : formatMoney(lifetime.openBalance, CURRENCY)}
             hint={
               lifetime.unpaidCount > 0
                 ? `${lifetime.unpaidCount} bill${lifetime.unpaidCount === 1 ? "" : "s"} still open`
                 : "All caught up"
             }
           />
-        </dl>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="h-[3px] min-w-0 flex-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,#fff_10%,transparent)]">
+      <div className="border-t border-[color-mix(in_srgb,#fff_8%,transparent)] px-4 pb-4 pt-3 sm:px-5">
+        <div className="flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-[color-mix(in_srgb,#fff_45%,transparent)]">
+          <span>Paid down</span>
+          <span className="tabular-nums text-[color-mix(in_srgb,#fff_70%,transparent)]">
+            {loading ? "—" : `${Math.round(paidRatio)}%`}
+          </span>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,#fff_10%,transparent)]">
           <div
             className="h-full rounded-full bg-[var(--pos-primary,#0f766e)] transition-[width] duration-500"
             style={{ width: loading ? "0%" : `${paidRatio}%` }}
           />
         </div>
-        <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,#fff_48%,transparent)] tabular-nums">
-          {loading ? "—" : `${Math.round(paidRatio)}% paid`}
-        </span>
       </div>
     </div>
   );

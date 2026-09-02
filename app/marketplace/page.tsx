@@ -33,7 +33,15 @@ import {
 import { marketplacePassportProductPath } from "@/lib/marketplace-url";
 import { cn, formatMoney } from "@/lib/utils";
 
+import { useMarketplaceTemplate } from "@/hooks/use-marketplace-template";
+
+import {
+  MarketplaceLedgerSkeleton,
+  MarketplaceProductLedger,
+  MarketplaceSupplierLedger,
+} from "./_components/marketplace-browse-ledger";
 import { MarketplaceOrderWorkspace } from "./_components/marketplace-order-panel";
+import { MarketplaceTemplatePicker } from "./_components/marketplace-template-picker";
 import {
   mktChip,
   mktChipActive,
@@ -102,6 +110,8 @@ function hueFromId(id: string): number {
 }
 
 function PublicMarketplacePageInner() {
+  const { effective: catalogTemplate, isLedger, setTemplate } =
+    useMarketplaceTemplate();
   const [tab, setTab] = useState<SearchTab>("products");
   const [searchInput, setSearchInput] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -421,7 +431,7 @@ function PublicMarketplacePageInner() {
               Supplier marketplace
             </h1>
             <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
-              area → supplier → shelf
+              area → supplier → {isLedger ? "ledger" : "shelf"}
             </p>
           </div>
           {hasQuery && !loading ? (
@@ -496,6 +506,10 @@ function PublicMarketplacePageInner() {
                       ) : null}
                     </button>
                   )}
+                  <MarketplaceTemplatePicker
+                    value={catalogTemplate}
+                    onChange={setTemplate}
+                  />
                   <div
                     role="tablist"
                     aria-label="Marketplace view"
@@ -673,11 +687,15 @@ function PublicMarketplacePageInner() {
             </div>
           </section>
 
-          {/* Shelf workspace */}
+          {/* Shelf / ledger workspace */}
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
             {loading ? (
               <div className="min-h-0 flex-1 overflow-y-auto p-2">
-                <MarketplaceSkeleton tab={tab} />
+                {isLedger ? (
+                  <MarketplaceLedgerSkeleton tab={tab} />
+                ) : (
+                  <MarketplaceSkeleton tab={tab} />
+                )}
               </div>
             ) : tab === "products" ? (
               <>
@@ -728,7 +746,7 @@ function PublicMarketplacePageInner() {
                   <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                     <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2.5 py-2">
                       <h2 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
-                        Shelf
+                        {isLedger ? "Ledger" : "Shelf"}
                         <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
                           {visibleProducts.length}
                         </span>
@@ -752,15 +770,19 @@ function PublicMarketplacePageInner() {
                         />
                       ) : (
                         <>
-                          <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-                            {visibleProducts.map((row, index) => (
-                              <ProductTile
-                                key={`${row.supplierId}-${row.productId}`}
-                                row={row}
-                                index={index}
-                              />
-                            ))}
-                          </div>
+                          {isLedger ? (
+                            <MarketplaceProductLedger rows={visibleProducts} />
+                          ) : (
+                            <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                              {visibleProducts.map((row, index) => (
+                                <ProductTile
+                                  key={`${row.supplierId}-${row.productId}`}
+                                  row={row}
+                                  index={index}
+                                />
+                              ))}
+                            </div>
+                          )}
                           {!productLast ? (
                             <div className="flex justify-center py-2">
                               <button
@@ -808,19 +830,23 @@ function PublicMarketplacePageInner() {
               </div>
             ) : (
               <div className="min-h-0 flex-1 overflow-y-auto p-2">
-                <div className="mb-2 flex items-center px-0.5">
+                <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
                   <h2 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
-                    Suppliers
+                    {isLedger ? "Ledger" : "Suppliers"}
                     <span className="font-mono text-[10px] font-medium tabular-nums text-muted-foreground">
                       {visibleSuppliers.length}
                     </span>
                   </h2>
                 </div>
-                <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                  {visibleSuppliers.map((row, index) => (
-                    <SupplierTile key={row.id} row={row} index={index} />
-                  ))}
-                </div>
+                {isLedger ? (
+                  <MarketplaceSupplierLedger rows={visibleSuppliers} />
+                ) : (
+                  <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                    {visibleSuppliers.map((row, index) => (
+                      <SupplierTile key={row.id} row={row} index={index} />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

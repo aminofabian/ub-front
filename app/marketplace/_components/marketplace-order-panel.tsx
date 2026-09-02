@@ -61,6 +61,7 @@ import {
   catalogPackOptions,
   firstFamilyForLetter,
   groupCatalogProducts,
+  type CatalogProductGroup,
 } from "@/lib/marketplace-catalog-groups";
 import {
   encodeOrderTicket,
@@ -78,6 +79,7 @@ import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
 import { SupplyPackQtyModal } from "@/app/(dashboard)/supplies/_components/supply-pack-qty-modal";
 import { WholesalePackStamp } from "@/components/pack/wholesale-pack-stamp";
 import { cn, formatMoney } from "@/lib/utils";
+import { useMarketplaceTemplate } from "@/hooks/use-marketplace-template";
 
 import {
   buildMarketplaceCataloguePdf,
@@ -97,6 +99,7 @@ import {
   shareOrDownloadOrderPdf,
 } from "../_lib/marketplace-order-pdf";
 import { mktBtnGhost } from "./marketplace-ui";
+import { MarketplaceTemplatePicker } from "./marketplace-template-picker";
 
 type CartQty = Record<string, number>;
 /**
@@ -378,6 +381,9 @@ export function MarketplaceOrderWorkspace({
   ownerMode?: boolean;
 }) {
   const isShelf = layout === "shelf";
+  const { effective: catalogTemplate, isLedger, setTemplate } =
+    useMarketplaceTemplate();
+  const catalogIsLedger = isShelf && isLedger;
   const focusProduct = useMemo(() => {
     if (!selectedProductSlug?.trim()) return null;
     const needle = selectedProductSlug.trim().toLowerCase();
@@ -1313,15 +1319,19 @@ export function MarketplaceOrderWorkspace({
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-1.5 pb-3 sm:px-2.5">
               <div className="sticky top-0 z-[2] -mx-1.5 flex flex-col gap-1.5 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[#faf8f4] px-1.5 py-1.5 sm:-mx-2.5 sm:px-2.5">
-                <div className="flex items-baseline justify-between gap-2 px-0.5">
-                  <h3 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
-                    {activeParentLabel}
+                <div className="flex items-center justify-between gap-2 px-0.5">
+                  <h3 className="flex min-w-0 items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+                    {catalogIsLedger ? "Ledger" : activeParentLabel}
                     <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
                       {showFamilyHeadings
                         ? `${shelfSections.length} families · ${shelfProductCount}`
                         : shelfProductCount}
                     </span>
                   </h3>
+                  <MarketplaceTemplatePicker
+                    value={catalogTemplate}
+                    onChange={setTemplate}
+                  />
                 </div>
                 {familyLetters.length > 1 ? (
                   <div
@@ -1355,6 +1365,20 @@ export function MarketplaceOrderWorkspace({
                       ? "No packs in this family."
                       : "No products match your search."}
                 </div>
+              ) : catalogIsLedger ? (
+                <ShelfProductLedger
+                  sections={shelfSections}
+                  flatten={flattenSingletonFamilies}
+                  showFamilyHeadings={showFamilyHeadings}
+                  supplierSlug={detail.slug}
+                  cart={cart}
+                  packByProductId={packByProductId}
+                  focusProductId={focusProduct?.id ?? null}
+                  onAdd={(productId) =>
+                    setQty(productId, (cart[productId] ?? 0) + 1, true)
+                  }
+                  onSetQty={(productId, qty) => setQty(productId, qty)}
+                />
               ) : flattenSingletonFamilies ? (
                 <div className="mt-1.5 grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                   {shelfSections.map((family) => {
@@ -2745,6 +2769,244 @@ function CatalogueOrderRow({
         ) : null}
       </div>
       <QtyControl qty={qty} onChange={onSetQty} compact />
+    </div>
+  );
+}
+
+function LedgerColHead({
+  label,
+  width,
+  align = "left",
+  className,
+}: {
+  label: string;
+  width: string;
+  align?: "left" | "right";
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex h-8 shrink-0 items-center border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2 text-[10px] font-bold uppercase tracking-[0.08em] last:border-r-0",
+        width,
+        align === "right" && "justify-end",
+        "text-muted-foreground",
+        className,
+      )}
+    >
+      {label}
+    </div>
+  );
+}
+
+function ShelfProductLedger({
+  sections,
+  flatten,
+  showFamilyHeadings,
+  supplierSlug,
+  cart,
+  packByProductId,
+  focusProductId,
+  onAdd,
+  onSetQty,
+}: {
+  sections: CatalogProductGroup[];
+  flatten: boolean;
+  showFamilyHeadings: boolean;
+  supplierSlug: string | null;
+  cart: CartQty;
+  packByProductId: CartPackMeta;
+  focusProductId: string | null;
+  onAdd: (productId: string) => void;
+  onSetQty: (productId: string, qty: number) => void;
+}) {
+  const cartUnits = Object.values(cart).reduce((sum, n) => sum + n, 0);
+  const grouped = !flatten && showFamilyHeadings;
+  const rows: {
+    family: CatalogProductGroup;
+    items: CatalogProductGroup["items"];
+    start: number;
+  }[] = [];
+  let running = 0;
+  for (const family of sections) {
+    const items = flatten ? family.items.slice(0, 1) : family.items;
+    rows.push({ family, items, start: running });
+    running += items.length;
+  }
+  const productCount = running;
+
+  return (
+    <div className="mt-1.5 overflow-hidden rounded-lg border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)]">
+      <div className="flex border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_60%,transparent)]">
+        <LedgerColHead label="#" width="w-9" />
+        <LedgerColHead label="Item" width="min-w-0 flex-1" />
+        <LedgerColHead label="SKU" width="w-[5.5rem] hidden md:flex" />
+        <LedgerColHead label="Price" width="w-[6.5rem]" align="right" />
+        <LedgerColHead label="Qty" width="w-[7.5rem]" align="right" />
+      </div>
+      <div>
+        {rows.map(({ family, items, start }) => (
+            <section
+              key={family.id}
+              id={catalogFamilyAnchor(family.id)}
+              className="scroll-mt-14"
+            >
+              {grouped ? (
+                <div className="flex h-7 items-center justify-between border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_40%,transparent)] px-2.5">
+                  <p className="truncate text-[11px] font-semibold text-[var(--pos-ink,#1c1915)]">
+                    {family.label}
+                  </p>
+                  <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                    {items.length}
+                  </span>
+                </div>
+              ) : null}
+              {items.map((product, index) => {
+                const qty = cart[product.id] ?? 0;
+                const pack = packByProductId[product.id] ?? null;
+                const inCart = qty > 0;
+                const focused = focusProductId === product.id;
+                const title = flatten
+                  ? product.name
+                  : catalogPackLabel(product, family.label);
+                const href = marketplacePassportProductPath(
+                  supplierSlug,
+                  product.slug,
+                );
+                const price = pack?.price ?? product.unitPrice;
+                const availablePacks = catalogPackOptions(product);
+                const thumb = posTileThumbUrl(product.name, product.imageUrl);
+                return (
+                  <div
+                    key={product.id}
+                    data-shelf-product={product.id}
+                    className={cn(
+                      "flex min-h-11 items-stretch border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] text-[12px] last:border-b-0",
+                      inCart
+                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]"
+                        : "hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_40%,transparent)]",
+                      focused &&
+                        "ring-1 ring-inset ring-[var(--pos-primary,#0f766e)]",
+                    )}
+                  >
+                    <div className="flex w-9 shrink-0 items-center justify-center border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] font-mono text-[10px] tabular-nums text-muted-foreground">
+                      {start + index + 1}
+                    </div>
+                    <div className="flex min-w-0 flex-1 items-center gap-2 border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] px-2 py-1.5">
+                      <button
+                        type="button"
+                        onClick={() => onAdd(product.id)}
+                        className="relative size-9 shrink-0 overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]"
+                        aria-label={
+                          qty > 0
+                            ? `${title}, ${qty} in order. Tap to add another.`
+                            : `Add ${title} to order`
+                        }
+                      >
+                        {thumb ? (
+                          <Image
+                            src={thumb}
+                            alt=""
+                            fill
+                            sizes="36px"
+                            className="object-contain p-0.5"
+                            unoptimized
+                          />
+                        ) : (
+                          <span
+                            className={cn(
+                              "flex h-full w-full items-center justify-center bg-gradient-to-br",
+                              kioskPlaceholderWashClass(product.name),
+                            )}
+                            aria-hidden
+                          >
+                            <Package className="size-3.5 opacity-55" />
+                          </span>
+                        )}
+                      </button>
+                      <div className="min-w-0">
+                        {href ? (
+                          <Link
+                            href={href}
+                            className="block truncate font-medium text-[var(--pos-ink,#1c1915)] hover:underline"
+                          >
+                            {title}
+                          </Link>
+                        ) : (
+                          <p className="truncate font-medium text-[var(--pos-ink,#1c1915)]">
+                            {title}
+                          </p>
+                        )}
+                        {pack ? (
+                          <p className="truncate font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                            Pack of {formatPackSize(pack.size)}
+                          </p>
+                        ) : availablePacks.length > 0 ? (
+                          <p className="truncate font-mono text-[10px] text-muted-foreground">
+                            {availablePacks
+                              .map((p) => `×${formatPackSize(p.unitsPerPack)}`)
+                              .join(" · ")}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="hidden w-[5.5rem] shrink-0 items-center border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] px-2 md:flex">
+                      <span className="truncate font-mono text-[10px] tabular-nums text-muted-foreground">
+                        {product.sku || "—"}
+                      </span>
+                    </div>
+                    <div className="flex w-[6.5rem] shrink-0 items-center justify-end border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] px-2 font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+                      {price != null
+                        ? formatMoney(price, product.currency ?? "KES")
+                        : "Ask"}
+                    </div>
+                    <div className="flex w-[7.5rem] shrink-0 items-center justify-end gap-1 px-1.5">
+                      <button
+                        type="button"
+                        disabled={qty <= 0}
+                        onClick={() => onSetQty(product.id, qty - 1)}
+                        className="flex size-7 items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] text-muted-foreground transition-colors hover:bg-white disabled:opacity-25"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="size-3.5" aria-hidden />
+                      </button>
+                      <span
+                        className={cn(
+                          "min-w-6 text-center font-mono text-[12px] font-bold tabular-nums",
+                          inCart
+                            ? "text-[var(--pos-primary,#0f766e)]"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {qty}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onAdd(product.id)}
+                        className="flex size-7 items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] text-muted-foreground transition-colors hover:bg-white"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="size-3.5" aria-hidden />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </section>
+        ))}
+      </div>
+      {productCount > 0 ? (
+        <div className="flex border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_50%,transparent)] px-3 py-2 text-[11px]">
+          <span className="text-muted-foreground">
+            {productCount} item{productCount === 1 ? "" : "s"}
+          </span>
+          {cartUnits > 0 ? (
+            <span className="ml-auto font-mono font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
+              {cartUnits} in order
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
