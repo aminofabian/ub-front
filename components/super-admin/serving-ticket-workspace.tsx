@@ -3,6 +3,7 @@
 import Link from "next/link";
 import * as React from "react";
 
+import { ServingWorklist } from "@/components/serving/serving-worklist";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import {
   Composer,
@@ -15,12 +16,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  addSaServingPoint,
   assignSaServingTicket,
+  completeSaServingPoint,
   fetchSaServingAssignees,
   fetchSaServingTicket,
   noteSaServingTicket,
+  organizeSaServingTicket,
   patchSaServingTicket,
   replySaServingTicket,
+  reopenSaServingPoint,
   saCanManageStaff,
   setSaServingTicketStatus,
   type SaDeskRole,
@@ -63,6 +68,7 @@ export function ServingTicketWorkspace({
   const [reply, setReply] = React.useState("");
   const [note, setNote] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [organizeSource, setOrganizeSource] = React.useState<string | null>(null);
 
   const reload = React.useCallback(async () => {
     setError("");
@@ -133,6 +139,45 @@ export function ServingTicketWorkspace({
       />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {ticket ? (
+        <div className="space-y-4">
+          <ServingWorklist
+            ticket={ticket}
+            points={detail?.points ?? []}
+            variant="staff"
+            source={organizeSource ?? (detail?.points ?? []).find((p) => p.source === "AI")?.source}
+            busy={busy}
+            onOrganize={() => {
+              setBusy(true);
+              void organizeSaServingTicket(ticket.id)
+                .then((result) => {
+                  setOrganizeSource(result.source);
+                  setDetail(result.ticket);
+                })
+                .catch((err) => setError(err instanceof Error ? err.message : "Could not organize"))
+                .finally(() => setBusy(false));
+            }}
+            onToggle={(point) => {
+              setBusy(true);
+              const run = point.status === "DONE"
+                ? reopenSaServingPoint(ticket.id, point.id)
+                : completeSaServingPoint(ticket.id, point.id);
+              void run
+                .then(() => reload())
+                .catch((err) => setError(err instanceof Error ? err.message : "Could not update point"))
+                .finally(() => setBusy(false));
+            }}
+            onAdd={async (title, pointDetail) => {
+              setBusy(true);
+              try {
+                await addSaServingPoint(ticket.id, { title, detail: pointDetail || undefined });
+                await reload();
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Could not add point");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
           <section className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border">
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
@@ -310,6 +355,7 @@ export function ServingTicketWorkspace({
               </ul>
             </div>
           </aside>
+        </div>
         </div>
       ) : null}
     </div>

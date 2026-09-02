@@ -256,6 +256,8 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
       !onStaffPage
       && (pathname === servingHome
         || pathname.startsWith(`${servingHome}/tickets`)
+        || pathname === APP_ROUTES.superAdminSupport
+        || pathname === APP_ROUTES.superAdminMessages
         || pathname === APP_ROUTES.superAdminSettings);
     if (!allowed) {
       router.replace(servingHome);
@@ -271,7 +273,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
           href={fullConsole ? APP_ROUTES.superAdminDashboard : servingHome}
           size="sm"
           wordmark="Kiosk"
-          tagline={fullConsole ? "Console" : "Serving"}
+          tagline={fullConsole ? "Console" : "Desk"}
           showTagline
         />
       </div>
@@ -280,6 +282,17 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
         <NavItem href={APP_ROUTES.superAdminServing} label="Serving" icon={Ticket} match="prefix" />
         {manageStaff ? (
           <NavItem href={APP_ROUTES.superAdminServingStaff} label="Staff" icon={UsersRound} />
+        ) : null}
+        {!fullConsole ? (
+          <>
+            <NavItem
+              href={APP_ROUTES.superAdminSupport}
+              label="Support"
+              icon={Headset}
+              badge={saSupportUnread}
+            />
+            <NavItem href={APP_ROUTES.superAdminMessages} label="Messages" icon={Inbox} />
+          </>
         ) : null}
         {fullConsole ? (
           <>
@@ -423,7 +436,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
             </nav>
 
             <Link
-              href={fullConsole ? APP_ROUTES.superAdminSupport : APP_ROUTES.superAdminServing}
+              href={APP_ROUTES.superAdminSupport}
               aria-label={
                 saSupportUnread > 0
                   ? `Support — ${saSupportUnread} unread message${saSupportUnread === 1 ? "" : "s"}`

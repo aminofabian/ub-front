@@ -10,6 +10,7 @@ import {
   fetchSaContactMessage,
   fetchSaContactMessages,
   openSaTicketFromContact,
+  organizeSaContactToTicket,
   replySaContactMessage,
 } from "@/lib/super-admin-api";
 
@@ -45,6 +46,10 @@ export default function SuperAdminMessagesPage() {
         onOpenTicket={async (id) => {
           const ticket = await openSaTicketFromContact(id);
           router.push(APP_ROUTES.superAdminServingTicket(ticket.id));
+        }}
+        onOrganize={async (id) => {
+          const result = await organizeSaContactToTicket(id);
+          router.push(APP_ROUTES.superAdminServingTicket(result.ticket.ticket.id));
         }}
       />
     </div>

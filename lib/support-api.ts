@@ -268,3 +268,13 @@ export async function replyTenantServingTicket(
     body: JSON.stringify({ body }),
   });
 }
+
+export async function completeTenantServingPoint(
+  ticketId: string,
+  pointId: string,
+): Promise<import("@/lib/super-admin-api").ServingTicketPoint> {
+  return apiRequest(
+    `${API_ROUTES.support}/tickets/${encodeURIComponent(ticketId)}/points/${encodeURIComponent(pointId)}/complete`,
+    { method: "POST" },
+  );
+}

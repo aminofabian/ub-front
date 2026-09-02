@@ -18,6 +18,10 @@ export function saCanSeeFullConsole(role?: string | null): boolean {
   return role !== "agent";
 }
 
+export function saCanSeeDeskInbox(role?: string | null): boolean {
+  return role === "owner" || role === "lead" || role === "agent";
+}
+
 export function saCanManageStaff(role?: string | null): boolean {
   return role === "owner" || role === "lead";
 }
@@ -3586,6 +3590,21 @@ export type ServingTicketSummary = {
   lastActivityAt: string | null;
   createdAt: string;
   updatedAt: string;
+  shopSeq?: number | null;
+  pointCount?: number;
+  doneCount?: number;
+};
+
+export type ServingTicketPoint = {
+  id: string;
+  seq: number;
+  title: string;
+  detail: string | null;
+  status: "OPEN" | "DONE" | string;
+  source?: string | null;
+  completedAt: string | null;
+  completedByName: string | null;
+  completedByKind: "STAFF" | "TENANT" | string | null;
 };
 
 export type ServingTicketNote = {
@@ -3610,6 +3629,12 @@ export type ServingTicketDetail = {
   messages: import("@/lib/support-api").SupportMessage[];
   notes: ServingTicketNote[];
   events: ServingTicketEvent[];
+  points: ServingTicketPoint[];
+};
+
+export type ServingOrganizeResult = {
+  ticket: ServingTicketDetail;
+  source: "AI" | "HEURISTIC" | string;
 };
 
 export type ServingStaffRow = {
@@ -3752,6 +3777,60 @@ export async function openSaTicketFromContact(
 ): Promise<ServingTicketSummary> {
   return saRequest(
     `${API_ROUTES.superAdminServing}/tickets/from-contact/${encodeURIComponent(contactMessageId)}`,
+    { method: "POST" },
+  );
+}
+
+export async function organizeSaServingTicket(id: string): Promise<ServingOrganizeResult> {
+  return saRequest(`${API_ROUTES.superAdminServing}/tickets/${encodeURIComponent(id)}/organize`, {
+    method: "POST",
+  });
+}
+
+export async function organizeSaConversationToTicket(
+  conversationId: string,
+): Promise<ServingOrganizeResult> {
+  return saRequest(
+    `${API_ROUTES.superAdminServing}/tickets/organize-from-conversation/${encodeURIComponent(conversationId)}`,
+    { method: "POST" },
+  );
+}
+
+export async function organizeSaContactToTicket(
+  contactMessageId: string,
+): Promise<ServingOrganizeResult> {
+  return saRequest(
+    `${API_ROUTES.superAdminServing}/tickets/organize-from-contact/${encodeURIComponent(contactMessageId)}`,
+    { method: "POST" },
+  );
+}
+
+export async function addSaServingPoint(
+  ticketId: string,
+  body: { title: string; detail?: string },
+): Promise<ServingTicketPoint> {
+  return saRequest(`${API_ROUTES.superAdminServing}/tickets/${encodeURIComponent(ticketId)}/points`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function completeSaServingPoint(
+  ticketId: string,
+  pointId: string,
+): Promise<ServingTicketPoint> {
+  return saRequest(
+    `${API_ROUTES.superAdminServing}/tickets/${encodeURIComponent(ticketId)}/points/${encodeURIComponent(pointId)}/complete`,
+    { method: "POST" },
+  );
+}
+
+export async function reopenSaServingPoint(
+  ticketId: string,
+  pointId: string,
+): Promise<ServingTicketPoint> {
+  return saRequest(
+    `${API_ROUTES.superAdminServing}/tickets/${encodeURIComponent(ticketId)}/points/${encodeURIComponent(pointId)}/reopen`,
     { method: "POST" },
   );
 }

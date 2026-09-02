@@ -10,7 +10,7 @@ export default function SuperAdminSupportPage() {
     <div className="space-y-5">
       <SuperAdminPageHeader
         title="Support"
-        description="Every tenant's live chat thread with the platform team. Replies go out in real time."
+        description="Every tenant's live chat. Leads and agents can break a rambling thread into a numbered list the shop ticks off."
       />
       <Suspense fallback={<p className="text-sm text-muted-foreground">Loading inbox…</p>}>
         <SaSupportInbox />

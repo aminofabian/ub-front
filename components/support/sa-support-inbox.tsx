@@ -10,6 +10,7 @@ import {
   Inbox,
   RotateCw,
   Search,
+  Sparkles,
   Ticket,
 } from "lucide-react";
 
@@ -50,6 +51,7 @@ import {
   fetchSaServingTickets,
   getSaCloudinarySignature,
   markSaSupportConversationRead,
+  organizeSaConversationToTicket,
   promoteSaConversationToTicket,
   reopenSaSupportConversation,
   resolveSaSupportConversation,
@@ -416,8 +418,13 @@ export function SaSupportInbox() {
   const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
   const [presence, setPresence] = React.useState<Record<string, SaSupportPresence>>({});
   const [onlineOnly, setOnlineOnly] = React.useState(false);
-  const [linkedTicket, setLinkedTicket] = React.useState<{ id: string; displayNumber: string } | null>(null);
+  const [linkedTicket, setLinkedTicket] = React.useState<{
+    id: string;
+    displayNumber: string;
+    pointCount?: number;
+  } | null>(null);
   const [promoteBusy, setPromoteBusy] = React.useState(false);
+  const [organizeBusy, setOrganizeBusy] = React.useState(false);
   const [liveCounts, setLiveCounts] = React.useState({
     tenantsOnline: 0,
     visitorsOnline: 0,
@@ -447,7 +454,15 @@ export function SaSupportInbox() {
         const first =
           payload.tickets.find((t) => t.status === "NEW" || t.status === "OPEN" || t.status === "WAITING")
           ?? payload.tickets[0];
-        setLinkedTicket(first ? { id: first.id, displayNumber: first.displayNumber } : null);
+        setLinkedTicket(
+          first
+            ? {
+                id: first.id,
+                displayNumber: first.shopSeq ? `#${first.shopSeq}` : first.displayNumber,
+                pointCount: first.pointCount,
+              }
+            : null,
+        );
       })
       .catch(() => {
         if (!cancelled) setLinkedTicket(null);
@@ -1427,7 +1442,9 @@ export function SaSupportInbox() {
           <Button asChild size="sm" variant="outline">
             <a href={APP_ROUTES.superAdminServingTicket(linkedTicket.id)}>
               <Ticket className="size-3.5" />
-              {linkedTicket.displayNumber}
+              {linkedTicket.pointCount
+                ? `${linkedTicket.displayNumber} · ${linkedTicket.pointCount} pts`
+                : linkedTicket.displayNumber}
             </a>
           </Button>
         ) : (
@@ -1451,6 +1468,29 @@ export function SaSupportInbox() {
             {promoteBusy ? "Opening…" : "Turn into ticket"}
           </Button>
         )}
+        <Button
+          type="button"
+          size="sm"
+          disabled={organizeBusy || !activeConversation}
+          onClick={async () => {
+            if (!activeConversation) return;
+            setOrganizeBusy(true);
+            try {
+              const result = await organizeSaConversationToTicket(activeConversation.id);
+              const ticket = result.ticket.ticket;
+              setLinkedTicket({
+                id: ticket.id,
+                displayNumber: ticket.shopSeq ? `#${ticket.shopSeq}` : ticket.displayNumber,
+                pointCount: ticket.pointCount,
+              });
+            } finally {
+              setOrganizeBusy(false);
+            }
+          }}
+        >
+          <Sparkles className="size-3.5" />
+          {organizeBusy ? "Splitting…" : "Break into 1, 2, 3…"}
+        </Button>
       </header>
 
       {activeConversation ? (

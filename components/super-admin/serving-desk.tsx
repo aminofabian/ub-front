@@ -70,13 +70,21 @@ function TicketCard({
           href={APP_ROUTES.superAdminServingTicket(ticket.id)}
           className="min-w-0 font-mono text-xs font-semibold text-primary hover:underline"
         >
-          {ticket.displayNumber}
+          {ticket.shopSeq ? `#${ticket.shopSeq}` : ticket.displayNumber}
+          {ticket.shopSeq ? (
+            <span className="ml-1 font-normal text-muted-foreground">{ticket.displayNumber}</span>
+          ) : null}
         </Link>
         <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase", statusClass(ticket.status))}>
           {stale ? "Waiting 15m+" : ticket.status}
         </span>
       </div>
       <p className="mt-1.5 line-clamp-2 text-sm font-medium text-foreground">{ticket.subject}</p>
+      {(ticket.pointCount ?? 0) > 0 ? (
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          {ticket.doneCount ?? 0}/{ticket.pointCount} points
+        </p>
+      ) : null}
       <p className="mt-1 truncate text-xs text-muted-foreground">
         {ticket.type === "SHOPPER" ? ticket.shopperName || "Shopper" : ticket.businessName || ticket.requesterName || "Shop"}
       </p>
@@ -424,12 +432,17 @@ export function ServingDesk({ deskRole }: { deskRole?: SaDeskRole | string | nul
                     href={APP_ROUTES.superAdminServingTicket(ticket.id)}
                     className="font-mono text-xs font-semibold text-primary hover:underline"
                   >
-                    {ticket.displayNumber}
+                    {ticket.shopSeq ? `#${ticket.shopSeq}` : ticket.displayNumber}
                   </Link>
                   <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase", statusClass(ticket.status))}>
                     {isStaleUnassigned(ticket) ? "Waiting 15m+" : ticket.status}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-sm">{ticket.subject}</span>
+                  {(ticket.pointCount ?? 0) > 0 ? (
+                    <span className="text-[11px] tabular-nums text-muted-foreground">
+                      {ticket.doneCount ?? 0}/{ticket.pointCount}
+                    </span>
+                  ) : null}
                   <span className="text-xs text-muted-foreground">
                     {ticket.assignedToName || "Unassigned"}
                   </span>

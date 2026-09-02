@@ -26,6 +26,7 @@ type ContactMessagesInboxProps = {
     body: { channel: ContactReplyChannel; body: string },
   ) => Promise<unknown>;
   onOpenTicket?: (contactMessageId: string) => Promise<void> | void;
+  onOrganize?: (contactMessageId: string) => Promise<void> | void;
 };
 
 export function ContactMessagesInbox({
@@ -34,6 +35,7 @@ export function ContactMessagesInbox({
   getMessage,
   replyMessage,
   onOpenTicket,
+  onOrganize,
 }: ContactMessagesInboxProps) {
   const [filter, setFilter] = useState<"ALL" | "UNREAD" | "READ">("ALL");
   const [rows, setRows] = useState<ContactMessageListItem[]>([]);
@@ -247,15 +249,28 @@ export function ContactMessagesInbox({
               <p className="whitespace-pre-wrap text-sm leading-relaxed">
                 {detail.body}
               </p>
-              {onOpenTicket ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void onOpenTicket(detail.id)}
-                >
-                  Open serving ticket
-                </Button>
+              {onOpenTicket || onOrganize ? (
+                <div className="flex flex-wrap gap-2">
+                  {onOpenTicket ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void onOpenTicket(detail.id)}
+                    >
+                      Open serving ticket
+                    </Button>
+                  ) : null}
+                  {onOrganize ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => void onOrganize(detail.id)}
+                    >
+                      Break into 1, 2, 3…
+                    </Button>
+                  ) : null}
+                </div>
               ) : null}
 
               {detail.replies.length > 0 ? (
