@@ -28,7 +28,12 @@ export type ProblemValidationFieldError = {
   message: string;
 };
 
-const DEFAULT_PROBLEM_TITLE = "Request failed.";
+/**
+ * Shown only when the server gave us nothing usable. Prefer connection-aware
+ * copy — see {@link isBareRequestFailureMessage} and
+ * {@link isTransientBackendStatus}.
+ */
+export const DEFAULT_PROBLEM_TITLE = "Something went wrong. Please try again.";
 
 const TENANT_NOT_FOUND_PROBLEM_TYPE = "urn:problem:tenant-not-found";
 const UNMAPPED_TENANT_HOST_DETAIL_PREFIX =
@@ -95,7 +100,7 @@ function formatApiProblemMessageInternal(
   const title =
     problem != null && problem.title.trim().length > 0
       ? problem.title.trim()
-      : DEFAULT_PROBLEM_TITLE.replace(/\.$/, "");
+      : DEFAULT_PROBLEM_TITLE;
 
   if (validation) {
     const lines = validation.map((e) =>
@@ -122,7 +127,7 @@ function formatApiProblemMessageInternal(
     }
     return title;
   }
-  return DEFAULT_PROBLEM_TITLE.replace(/\.$/, "");
+  return DEFAULT_PROBLEM_TITLE;
 }
 
 export function parseProblem(payload: unknown): ProblemResponse | null {
@@ -426,6 +431,44 @@ export function isAuthRecoveryUserMessage(text: string): boolean {
     normalized.includes("invalid or expired token") ||
     normalized.includes("sign in again")
   );
+}
+
+/**
+ * Copy that carries no information the user can act on — what's left when a
+ * gateway, a restarted backend, or a dropped keep-alive answers with an empty
+ * or non-problem body. Never toast these: they describe our plumbing, not
+ * anything the user did, and the connection banner owns that state instead.
+ */
+const BARE_FAILURE_TITLES =
+  /^(request failed|something went wrong(\. please try again)?|unknown error|error|http error|internal server error|bad gateway|gateway time-?out|service (temporarily )?unavailable|no response|failed to fetch|load failed|network(\s?error)?)$/i;
+
+export function isBareRequestFailureMessage(message: string): boolean {
+  const trimmed = message.trim();
+  if (!trimmed) {
+    return true;
+  }
+  if (trimmed.includes("\n")) {
+    // A detail line means the server told us something specific.
+    return false;
+  }
+  const withoutStatus = trimmed
+    .replace(/\s*\(\s*\d{3}\s*\)\s*$/, "")
+    .replace(/[.!]+$/, "")
+    .trim();
+  return BARE_FAILURE_TITLES.test(withoutStatus);
+}
+
+/**
+ * Statuses that mean "try again shortly", not "you did something wrong":
+ * client-side network failure (0), timeouts, rate limits, and the gateway 5xx
+ * family a proxy emits when the upstream is asleep, restarting, or slow.
+ */
+const TRANSIENT_BACKEND_STATUSES = new Set([
+  0, 408, 425, 429, 502, 503, 504, 521, 522, 523, 524, 598, 599,
+]);
+
+export function isTransientBackendStatus(status: number): boolean {
+  return TRANSIENT_BACKEND_STATUSES.has(status);
 }
 
 /**

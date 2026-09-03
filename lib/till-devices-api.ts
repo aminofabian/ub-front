@@ -3,6 +3,7 @@ import {
   parseCashierTemplateId,
   type CashierTemplateId,
 } from "@/lib/cashier-templates";
+import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
 import { getOrCreateTillDeviceId } from "@/lib/till-device";
 
 export type TillDeviceRecord = {
@@ -114,5 +115,5 @@ export function tillDeviceErrorMessage(error: unknown): string {
   if (error instanceof ApiRequestError) {
     return error.message;
   }
-  return error instanceof Error ? error.message : "Request failed";
+  return error instanceof Error ? error.message : DEFAULT_PROBLEM_TITLE;
 }

@@ -19,6 +19,7 @@ import {
   type SaBusinessSubscriptionRecord,
   type SaSubscriptionPlanRecord,
 } from "@/lib/super-admin-api";
+import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
 import { cn } from "@/lib/utils";
 
 const NAIROBI = "Africa/Nairobi";
@@ -136,7 +137,7 @@ export function SaSubscriptionPanel({
       setNote("");
       toast.success(ok);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Request failed.");
+      toast.error(e instanceof Error ? e.message : DEFAULT_PROBLEM_TITLE);
     } finally {
       setBusy(null);
     }

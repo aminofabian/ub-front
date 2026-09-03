@@ -6,6 +6,7 @@ import {
   type ItemImageRecord,
   type PatchItemPayload,
 } from "@/lib/api";
+import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
 import { type PackageDraft, type VariantDraft } from "./_types";
 
 // ─── numeric helpers ──────────────────────────────────────────────────────────
@@ -13,7 +14,7 @@ import { type PackageDraft, type VariantDraft } from "./_types";
 /** User-visible message for catalog/inventory mutation failures (includes API errors). */
 export function formatMutationError(
   error: unknown,
-  fallback = "Request failed.",
+  fallback = DEFAULT_PROBLEM_TITLE,
 ): string {
   if (isAuthRecoveryError(error)) return "";
   if (error instanceof ApiRequestError) return error.message;

@@ -55,9 +55,12 @@ import {
   formatApiProblemMessage,
   getBranchGuidanceKind,
   getPosGuidanceKind,
+  isBareRequestFailureMessage,
   isSessionRelatedProblem,
+  isTransientBackendStatus,
   shouldOmitHttpErrorToast,
 } from "@/lib/problem";
+import { markApiSuccess, markApiTrouble } from "@/lib/connection-health";
 import { toast } from "sonner";
 import {
   ApiUnreachableError,
@@ -149,6 +152,24 @@ function notifyHttpErrorToast(
     recordOpsClientError({ message, kind: "api_config" });
     return;
   }
+  /*
+   * Transport-level failures — a gateway 502/504, a rate limit, or a body the
+   * backend never wrote — tell the user nothing they can act on. This is the
+   * "page sat idle overnight" case. Feed the ambient connection strip and log
+   * it for ops instead of throwing a bare toast at someone who just walked
+   * back to their screen.
+   */
+  if (
+    (status != null && isTransientBackendStatus(status)) ||
+    isBareRequestFailureMessage(message)
+  ) {
+    markApiTrouble();
+    recordOpsClientError({
+      message: status != null ? `${message} (HTTP ${status})` : message,
+      kind: "api_unreachable",
+    });
+    return;
+  }
   const branchKind = getBranchGuidanceKind(message);
   if (branchKind) {
     notifyBranchRequired(branchKind);
@@ -176,7 +197,13 @@ function failRequest(
   payload: unknown,
   options?: { toast?: boolean },
 ): never {
-  const message = formatApiProblemMessage(payload);
+  const raw = formatApiProblemMessage(payload);
+  // No usable problem body on a transient status: say what actually happened
+  // rather than leaking our placeholder copy into every caller's catch block.
+  const message =
+    isBareRequestFailureMessage(raw) && isTransientBackendStatus(status)
+      ? USER_API_UNREACHABLE_MESSAGE
+      : raw;
   const authRecovery = shouldOmitHttpErrorToast(message, status, payload);
   if (options?.toast !== false && !authRecovery) {
     notifyHttpErrorToast(message, status, payload);
@@ -304,6 +331,85 @@ const CLIENT_FETCH_TIMEOUT_MS = 25_000;
  * forever (restore "succeeded" from the cookie, the retry 401'd again).
  */
 const MAX_UNAUTHORIZED_RECOVERY_ATTEMPTS = 2;
+
+/**
+ * Transient-failure retries for reads.
+ *
+ * The first request after a long idle very often dies on a connection the
+ * gateway already closed. Retrying once or twice with backoff turns that into
+ * a non-event, which is the real fix for "Request failed" — not better copy.
+ * Only safe methods retry: replaying a POST could double-charge a customer.
+ */
+const TRANSIENT_RETRY_ATTEMPTS = 3;
+const TRANSIENT_RETRY_BASE_MS = 400;
+const TRANSIENT_RETRY_MAX_MS = 4_000;
+
+function transientRetryDelayMs(attempt: number): number {
+  const backoff = Math.min(
+    TRANSIENT_RETRY_MAX_MS,
+    TRANSIENT_RETRY_BASE_MS * 2 ** attempt,
+  );
+  // Jitter keeps a screenful of widgets from retrying in lockstep.
+  return backoff + Math.floor(Math.random() * 250);
+}
+
+/** Like {@link delay}, but wakes early when the caller aborts. */
+function abortableDelay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      { once: true },
+    );
+  });
+}
+
+/**
+ * Runs `execute`, retrying transient transport failures for safe methods.
+ * Non-transient responses (and every unsafe method) return on the first try.
+ */
+async function executeWithTransientRetry(
+  execute: () => Promise<Response>,
+  method: RequestMethod,
+  signal?: AbortSignal,
+): Promise<Response> {
+  const retryable = method === "GET";
+  let lastUnreachable: unknown = null;
+
+  for (let attempt = 0; attempt < TRANSIENT_RETRY_ATTEMPTS; attempt += 1) {
+    if (attempt > 0) {
+      await abortableDelay(transientRetryDelayMs(attempt - 1), signal);
+      if (signal?.aborted) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+    }
+    try {
+      const response = await execute();
+      if (
+        !retryable ||
+        response.ok ||
+        !isTransientBackendStatus(response.status) ||
+        attempt === TRANSIENT_RETRY_ATTEMPTS - 1
+      ) {
+        return response;
+      }
+      markApiTrouble();
+    } catch (error) {
+      const isUnreachable = error instanceof ApiUnreachableError;
+      if (!retryable || !isUnreachable || attempt === TRANSIENT_RETRY_ATTEMPTS - 1) {
+        throw error;
+      }
+      markApiTrouble();
+      lastUnreachable = error;
+    }
+  }
+
+  throw lastUnreachable ?? new ApiUnreachableError(getNetworkErrorMessage());
+}
 
 function fetchWithClientTimeout(
   url: string,
@@ -1762,6 +1868,7 @@ function getNetworkErrorMessage(): string {
 
 function throwUnreachable(path?: string): never {
   const detail = getNetworkErrorMessage();
+  markApiTrouble();
   recordOpsClientError({
     message: detail,
     kind: "api_unreachable",
@@ -2115,7 +2222,7 @@ async function request<T>(
   // Opt-in softAuth OR any mounted POS shell (cashier / butcher / grocery).
   const soft = softAuth || isPosSoftAuthActive();
 
-  let response = await execute();
+  let response = await executeWithTransientRetry(execute, method, signal);
   // Bound the 401 recovery cycle. When the refresh token is dead but the
   // access cookie is still present, restore keeps "succeeding" from the cookie
   // while every retry 401s again — an unbounded loop every few seconds.
@@ -2158,6 +2265,9 @@ async function request<T>(
       toast: response.status === 401 ? false : suppressToast,
     });
   }
+
+  // A completed round-trip clears any connection strip we were showing.
+  markApiSuccess();
 
   if (response.status === 204) {
     return {} as T;

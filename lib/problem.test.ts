@@ -5,9 +5,11 @@ import {
   getBranchGuidanceKind,
   getPosGuidanceKind,
   isAuthRecoveryUserMessage,
+  isBareRequestFailureMessage,
   isItemNotFoundProblem,
   isSessionRelatedProblem,
   isTenantContextMissingProblem,
+  isTransientBackendStatus,
   isUnmappedTenantHostProblem,
   shouldOmitHttpErrorToast,
 } from "@/lib/problem";
@@ -343,5 +345,59 @@ describe("auth recovery copy is never toasted", () => {
     expect(
       isAuthRecoveryUserMessage("Incorrect email or password."),
     ).toBe(false);
+  });
+});
+
+describe("bare transport failures are never user-facing", () => {
+  it("recognises placeholder copy with and without a status", () => {
+    for (const message of [
+      "",
+      "Request failed",
+      "Request failed.",
+      "Request failed (502)",
+      "Something went wrong. Please try again.",
+      "Internal Server Error",
+      "Bad Gateway",
+      "Gateway Timeout",
+      "Service Unavailable",
+      "Failed to fetch",
+      "Load failed",
+    ]) {
+      expect(isBareRequestFailureMessage(message)).toBe(true);
+    }
+  });
+
+  it("keeps anything the server actually explained", () => {
+    for (const message of [
+      "SKU already exists",
+      "Request failed.\nSKU already exists",
+      "This item is out of stock at this branch.",
+      "Choose a shop location first — pick a branch in the top bar, then try again.",
+    ]) {
+      expect(isBareRequestFailureMessage(message)).toBe(false);
+    }
+  });
+
+  it("classifies gateway and timeout statuses as transient", () => {
+    for (const status of [0, 408, 429, 502, 503, 504, 522, 524]) {
+      expect(isTransientBackendStatus(status)).toBe(true);
+    }
+  });
+
+  it("leaves real client errors alone", () => {
+    for (const status of [400, 401, 403, 404, 409, 422, 500]) {
+      expect(isTransientBackendStatus(status)).toBe(false);
+    }
+  });
+});
+
+describe("problem formatting never emits raw 'Request failed'", () => {
+  it("falls back to friendly copy for an unusable body", () => {
+    expect(formatApiProblemMessage(null)).toBe(
+      "Something went wrong. Please try again.",
+    );
+    expect(formatApiProblemMessage({})).toBe(
+      "Something went wrong. Please try again.",
+    );
   });
 });

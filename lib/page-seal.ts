@@ -1,6 +1,11 @@
 import { apiUrl } from "@/lib/config";
 import { toKenyanLocal07 } from "@/lib/kenyan-phone";
-import { isSessionRelatedProblem } from "@/lib/problem";
+import {
+  DEFAULT_PROBLEM_TITLE,
+  isSessionRelatedProblem,
+  isTransientBackendStatus,
+} from "@/lib/problem";
+import { USER_API_UNREACHABLE_MESSAGE } from "@/lib/ops-client-log";
 import {
   getSupplierPortalAccessToken,
   signOutSupplierPortalAndRedirectToLogin,
@@ -79,18 +84,22 @@ export function clearPageSealUnlock(scope: PageSealScope, key: string): void {
 async function readJson<T>(res: Response, supplierAuth = false): Promise<T> {
   if (!res.ok) {
     let body: unknown = {};
-    let detail = res.statusText;
+    // `res.statusText` is protocol jargon — only a problem body earns the screen.
+    const fallback = isTransientBackendStatus(res.status)
+      ? USER_API_UNREACHABLE_MESSAGE
+      : DEFAULT_PROBLEM_TITLE;
+    let detail = "";
     try {
       body = await res.json();
       const problem = body as { detail?: string; title?: string };
-      detail = problem.detail || problem.title || detail;
+      detail = problem.detail || problem.title || "";
     } catch {
       /* ignore */
     }
     if (supplierAuth && isSessionRelatedProblem(res.status, body)) {
       signOutSupplierPortalAndRedirectToLogin(detail || "session expired");
     }
-    throw new Error(detail || `Request failed (${res.status})`);
+    throw new Error(detail || fallback);
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

@@ -6,6 +6,7 @@ import { AuthRecoveryPanel } from "@/components/auth/auth-recovery-panel";
 import { SessionEndedScreen } from "@/components/auth/session-ended-screen";
 import { SessionReconnectBanner } from "@/components/auth/session-reconnect-banner";
 import { SessionWaitScreen } from "@/components/auth/session-wait-screen";
+import { ConnectionHealthBanner } from "@/components/connection-health-banner";
 import { SubscriptionRenewalWall } from "@/components/subscription-renewal-wall";
 import { StaleClientReload } from "@/components/stale-client-reload";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
@@ -70,7 +71,9 @@ export function AuthenticatedShellGate({ children }: AuthenticatedShellGateProps
     <>
       {reconnectState === "reconnecting" && hasSession ? (
         <SessionReconnectBanner />
-      ) : null}
+      ) : (
+        <ConnectionHealthBanner />
+      )}
       {body}
       <SubscriptionRenewalWall />
       <StaleClientReload />

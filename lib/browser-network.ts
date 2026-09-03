@@ -1,10 +1,15 @@
 import { IS_DESKTOP } from "@/lib/runtime";
 
+/**
+ * Only `navigator.onLine === false` is a real offline signal. Non-browser
+ * runtimes (SSR, tests, some WebViews) leave it undefined, and treating that
+ * as offline would gate the whole app on a missing property.
+ */
 export function getBrowserOnline(): boolean {
   if (typeof navigator === "undefined") {
     return true;
   }
-  return navigator.onLine;
+  return navigator.onLine !== false;
 }
 
 /**
@@ -25,7 +30,7 @@ export function subscribeOnlineStatus(cb: (online: boolean) => void): () => void
   if (typeof window === "undefined") {
     return () => undefined;
   }
-  const sync = () => cb(navigator.onLine);
+  const sync = () => cb(getBrowserOnline());
   window.addEventListener("online", sync);
   window.addEventListener("offline", sync);
   sync();

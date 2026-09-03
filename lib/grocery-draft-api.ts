@@ -2,6 +2,7 @@
 
 import { apiRequest, ApiRequestError } from "@/lib/api";
 import type { GroceryInvoiceResponse } from "@/lib/grocery-api";
+import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
 import {
   isOpsInfraError,
   isOpsInfraMessage,
@@ -145,7 +146,7 @@ async function groceryDraftRequest<T>(
     if (isOpsInfraError(e)) {
       throw new GroceryDraftApiError(USER_API_UNREACHABLE_MESSAGE, 0, null);
     }
-    const msg = e instanceof Error ? e.message : "Request failed";
+    const msg = e instanceof Error ? e.message : DEFAULT_PROBLEM_TITLE;
     throw new GroceryDraftApiError(
       isOpsInfraMessage(msg) ? USER_API_UNREACHABLE_MESSAGE : msg,
       0,

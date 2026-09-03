@@ -4,6 +4,11 @@
 
 import { apiUrl } from "./config";
 import { getSessionTokens } from "./auth";
+import {
+  DEFAULT_PROBLEM_TITLE,
+  isTransientBackendStatus,
+} from "@/lib/problem";
+import { USER_API_UNREACHABLE_MESSAGE } from "@/lib/ops-client-log";
 
 export const WEB_CART_STORAGE_KEY = "ub.webCart.v1";
 export const WEB_CART_CHANGED_EVENT = "ub-web-cart-changed";
@@ -126,10 +131,14 @@ export type PublicCheckoutResult = {
 };
 
 async function readFetchErrorMessage(res: Response): Promise<string> {
+  // `res.statusText` is protocol jargon ("Bad Gateway"), never shopper copy.
+  const fallback = isTransientBackendStatus(res.status)
+    ? USER_API_UNREACHABLE_MESSAGE
+    : DEFAULT_PROBLEM_TITLE;
   try {
     const text = await res.text();
     if (!text) {
-      return res.statusText || "Request failed";
+      return fallback;
     }
     try {
       const j = JSON.parse(text) as { detail?: string; title?: string; message?: string };
@@ -147,7 +156,7 @@ async function readFetchErrorMessage(res: Response): Promise<string> {
     }
     return text.slice(0, 300);
   } catch {
-    return res.statusText || "Request failed";
+    return fallback;
   }
 }
 
