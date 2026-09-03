@@ -9,6 +9,7 @@ import {
   mergeVariantOptions,
   ShopItemVariantPicker,
 } from "@/components/storefront/shop-item-variant-picker";
+import { ClimaxFloorProduct } from "@/components/storefront/templates/store/climax-floor-product";
 import { PrintAtelierProduct } from "@/components/storefront/templates/store/print-atelier-product";
 import { BlankDropProduct } from "@/components/storefront/templates/store/blank-drop-product";
 import { PastryCaseProduct } from "@/components/storefront/templates/store/pastry-case-product";
@@ -39,6 +40,9 @@ export function ShopProductDetailView({
   }
   if (theme === "pastry-case") {
     return <PastryCaseProduct slug={slug} item={item} />;
+  }
+  if (theme === "climax-floor") {
+    return <ClimaxFloorProduct slug={slug} item={item} />;
   }
 
   const variantOptions = mergeVariantOptions(item);

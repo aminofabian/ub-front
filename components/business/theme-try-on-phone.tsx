@@ -547,6 +547,51 @@ function StoreBody({
     );
   }
 
+  if (layout === "showroom") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col px-[0.55em] pb-[0.65em] pt-[0.3em]">
+        <div className="flex min-h-0 flex-1 gap-[0.4em]">
+          <div className="w-[3.1em] shrink-0 overflow-hidden" style={{ backgroundColor: skin.card }}>
+            <p
+              className="px-[0.3em] py-[0.28em] text-[0.38em] font-bold text-white"
+              style={{ backgroundColor: brand }}
+            >
+              Categories
+            </p>
+            {["Chairs", "Desks", "Sofas"].map((label) => (
+              <p
+                key={label}
+                className="truncate border-b px-[0.3em] py-[0.22em] text-[0.34em]"
+                style={{ borderColor: lineColor(skin), color: skin.muted }}
+              >
+                {label}
+              </p>
+            ))}
+          </div>
+          <div className="grid min-w-0 flex-1 grid-cols-2 content-start gap-[0.35em]">
+            {[p0, p1, p2].map((product, i) => (
+              <div
+                key={i}
+                className="overflow-hidden border"
+                style={{ borderColor: lineColor(skin), backgroundColor: skin.card }}
+              >
+                <Face
+                  product={product}
+                  skin={skin}
+                  index={i}
+                  className="h-[2.6em] w-full"
+                />
+                <p className="truncate px-[0.25em] py-[0.22em] text-[0.38em] font-semibold">
+                  {product?.name || "Seat"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (layout === "shelf-row") {
     return (
       <div className="flex min-h-0 flex-1 flex-col justify-end gap-[0.5em] px-[0.7em] pb-[0.9em] pt-[0.4em]">
@@ -1145,6 +1190,7 @@ function productCta(layout: ThemePhoneLayout): string {
   if (layout === "poster") return "Enquire";
   if (layout === "pastry") return "Add to bag";
   if (layout === "marketplace") return "Add to cart";
+  if (layout === "showroom") return "Add to cart";
   if (layout === "locked-shelf") return "Notify";
   return "Add";
 }
@@ -1158,6 +1204,7 @@ function cartCta(layout: ThemePhoneLayout): string {
   if (layout === "poster") return "Enquire";
   if (layout === "pastry") return "Order";
   if (layout === "marketplace") return "Checkout";
+  if (layout === "showroom") return "Checkout";
   if (layout === "locked-shelf") return "Notify";
   return "Pay";
 }
@@ -1284,6 +1331,35 @@ function ProductBody({
             "mt-[0.45em] flex h-[1.65em] items-center justify-center text-[0.62em] font-bold",
             RADIUS_PILL[skin.radius],
           )}
+          style={{ backgroundColor: skin.accent, color: skin.onAccent }}
+        >
+          {cta}
+        </span>
+      </div>
+    );
+  }
+
+  if (layout === "showroom") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col px-[0.85em] pb-[0.75em] pt-[0.3em]">
+        <div
+          className="relative min-h-0 flex-1 overflow-hidden border"
+          style={{ borderColor: lineColor(skin) }}
+        >
+          <span
+            className="absolute left-[0.35em] top-[0.35em] z-[1] px-[0.35em] py-[0.12em] text-[0.38em] font-bold"
+            style={{ backgroundColor: skin.accent, color: skin.onAccent }}
+          >
+            Sale!
+          </span>
+          <Face product={product} skin={skin} index={0} className="h-full w-full" />
+        </div>
+        <p className="mt-[0.4em] line-clamp-2 text-[0.62em] font-bold leading-tight">
+          {name}
+        </p>
+        <div className="mt-[0.2em]">{price}</div>
+        <span
+          className="mt-[0.4em] flex h-[1.55em] items-center justify-center text-[0.55em] font-bold"
           style={{ backgroundColor: skin.accent, color: skin.onAccent }}
         >
           {cta}

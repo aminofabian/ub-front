@@ -59,6 +59,7 @@ describe("formatApplyFailureMessage", () => {
           { phase: "item-types", status: "done" },
           { phase: "branding", status: "done" },
           { phase: "logo", status: "skipped" },
+          { phase: "phone", status: "done" },
         ],
         failedPhase: null,
         error: "patch failed",
@@ -66,6 +67,6 @@ describe("formatApplyFailureMessage", () => {
       }),
     );
     expect(message).toContain("couldn't mark setup as finished");
-    expect(message).toContain("Tap Create my shop to retry");
+    expect(message).toContain("Tap That’s my number to retry");
   });
 });

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, CreditCard, ExternalLink, Globe, Mail, MessageCircle, Plus, Users } from "lucide-react";
+import { Check, Copy, CreditCard, ExternalLink, Globe, Inbox, Mail, MessageCircle, Plus, Users } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SaSmsCreditsPanel } from "@/components/super-admin/sa-sms-credits-panel";
@@ -37,6 +37,7 @@ import {
   impersonateSaBusiness,
   patchSaBusiness,
   patchSaBusinessUserStatus,
+  resendSaBusinessUserVerification,
   setSaPrimaryDomain,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,14 @@ const USER_STATUSES = [
   { value: "suspended", label: "Suspended" },
   { value: "locked", label: "Locked" },
 ] as const;
+
+function statusOptionsFor(status: string) {
+  const current = status.toLowerCase();
+  if (current === "invited") {
+    return USER_STATUSES.filter((s) => s.value !== "active");
+  }
+  return USER_STATUSES;
+}
 
 function userStatusVariant(status: string): "success" | "warning" | "secondary" {
   const value = status.toLowerCase();
@@ -473,6 +482,12 @@ function BusinessDetailInner() {
     const user = users.find((u) => u.id === userId);
     if (!user || user.status === nextStatus || locked) return;
     const current = user.status.toLowerCase();
+    if (current === "invited" && nextStatus === "active") {
+      showThemedErrorToast(
+        "Email verification isn’t a toggle. Resend the inbox link — they have to tap it.",
+      );
+      return;
+    }
     const deactivating = current === "active" && nextStatus !== "active";
     const apply = async () => {
       setBusy(true);
@@ -502,6 +517,34 @@ function BusinessDetailInner() {
       return;
     }
     void apply();
+  };
+
+  const onResendVerification = (userId: string) => {
+    const user = users.find((u) => u.id === userId);
+    if (!user || locked) return;
+    showThemedConfirmToast({
+      id: `sa-resend-verify-${userId}`,
+      title: `Resend verification to ${user.email}?`,
+      description:
+        "They stay invited until they tap the link. This does not mark them verified.",
+      confirmLabel: "Send inbox link",
+      onConfirm: () => {
+        void (async () => {
+          setBusy(true);
+          setError("");
+          try {
+            await resendSaBusinessUserVerification(businessId, userId);
+            showThemedSuccessToast(`Verification email sent to ${user.email}.`);
+          } catch (err) {
+            showThemedErrorToast(
+              err instanceof Error ? err.message : "Could not resend verification.",
+            );
+          } finally {
+            setBusy(false);
+          }
+        })();
+      },
+    });
   };
 
   if (!businessId) {
@@ -957,8 +1000,10 @@ function BusinessDetailInner() {
         <div className="border-b border-border/60 px-4 py-4 sm:px-5">
           <h2 className="font-heading text-lg font-semibold tracking-tight">People</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Change a person&apos;s status (e.g. invited → active), email them directly, or
-            open the shop as them. Moving someone out of Active revokes their sessions.
+            Change a person&apos;s status, email them, or open the shop as them.
+            Invited owners stay invited until they tap the verification link —
+            that can&apos;t be skipped from here. Moving someone out of Active
+            revokes their sessions.
           </p>
         </div>
         {users.length === 0 ? (
@@ -992,12 +1037,25 @@ function BusinessDetailInner() {
                         disabled={locked}
                         onChange={(ev) => onChangeUserStatus(u.id, ev.target.value)}
                       >
-                        {USER_STATUSES.map((s) => (
+                        {statusOptionsFor(u.status).map((s) => (
                           <option key={s.value} value={s.value}>
                             {s.label}
                           </option>
                         ))}
                       </select>
+                      {u.status.toLowerCase() === "invited" ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          disabled={locked}
+                          onClick={() => onResendVerification(u.id)}
+                        >
+                          <Inbox className="size-3.5" />
+                          Resend inbox
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
                         variant="outline"
@@ -1058,12 +1116,25 @@ function BusinessDetailInner() {
                             disabled={locked}
                             onChange={(ev) => onChangeUserStatus(u.id, ev.target.value)}
                           >
-                            {USER_STATUSES.map((s) => (
+                            {statusOptionsFor(u.status).map((s) => (
                               <option key={s.value} value={s.value}>
                                 {s.label}
                               </option>
                             ))}
                           </select>
+                          {u.status.toLowerCase() === "invited" ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mr-1.5 gap-1.5"
+                              disabled={locked}
+                              onClick={() => onResendVerification(u.id)}
+                            >
+                              <Inbox className="size-3.5" />
+                              Resend inbox
+                            </Button>
+                          ) : null}
                           <Button
                             type="button"
                             variant="outline"

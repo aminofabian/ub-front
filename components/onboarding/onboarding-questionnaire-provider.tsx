@@ -40,8 +40,11 @@ import {
   dismissOnboardingQuestionnaire,
   getOnboardingQuestionnaireState,
   hydrateOnboardingQuestionnaireFromServer,
+  looksLikeOwnerPhone,
   saveQuestionnaireProgress,
   shouldStartOnboardingQuestionnaire,
+  QUESTIONNAIRE_PHONE_STEP,
+  QUESTIONNAIRE_STOCK_STEP,
   type OnboardingQuestionnaireAnswers,
   type OnboardingQuestionnaireFinishExtras,
   type ProductSourceChoice,
@@ -64,6 +67,7 @@ export function useOnboardingQuestionnaire() {
 
 function isCompleteAnswers(
   answers: Partial<OnboardingQuestionnaireAnswers>,
+  countryCode?: string | null,
 ): answers is OnboardingQuestionnaireAnswers {
   const hasTemplate =
     answers.onlineStore === "yes"
@@ -81,7 +85,8 @@ function isCompleteAnswers(
     hasTemplate &&
     Boolean(answers.displayName?.trim()) &&
     Boolean(answers.primaryColor?.trim()) &&
-    Boolean(answers.accentColor?.trim())
+    Boolean(answers.accentColor?.trim()) &&
+    looksLikeOwnerPhone(answers.ownerPhone ?? "", countryCode)
   );
 }
 
@@ -150,7 +155,7 @@ export function OnboardingQuestionnaireProvider({
   const catalogEligible = isCatalogEligibleStoreTypes(answers.storeTypes);
 
   useEffect(() => {
-    if (step !== 7 || !canGlobalCatalog || !catalogEligible) {
+    if (step !== QUESTIONNAIRE_STOCK_STEP || !canGlobalCatalog || !catalogEligible) {
       return;
     }
     let cancelled = false;
@@ -263,7 +268,7 @@ export function OnboardingQuestionnaireProvider({
     (source: ProductSourceChoice) => {
       const merged = { ...answers, productSource: source };
       setAnswers(merged);
-      saveQuestionnaireProgress(7, merged);
+      saveQuestionnaireProgress(QUESTIONNAIRE_STOCK_STEP, merged);
     },
     [answers],
   );
@@ -276,7 +281,7 @@ export function OnboardingQuestionnaireProvider({
         : { ...answers, productSource: "spreadsheet" as const };
     if (merged !== answers) {
       setAnswers(merged);
-      saveQuestionnaireProgress(7, merged);
+      saveQuestionnaireProgress(QUESTIONNAIRE_STOCK_STEP, merged);
     }
     setActive(false);
     router.replace(APP_ROUTES.businessImport);
@@ -306,16 +311,16 @@ export function OnboardingQuestionnaireProvider({
       setAnswers(merged);
       setErrorMessage("");
 
-      if (step < 6) {
+      if (step < QUESTIONNAIRE_PHONE_STEP) {
         const nextStep = step + 1;
         saveQuestionnaireProgress(nextStep, merged);
         setStep(nextStep);
         return;
       }
 
-      if (step === 6) {
-        if (!isCompleteAnswers(merged)) {
-          setErrorMessage("Please complete all steps before finishing.");
+      if (step === QUESTIONNAIRE_PHONE_STEP) {
+        if (!isCompleteAnswers(merged, business?.countryCode)) {
+          setErrorMessage("Add a working phone number so we can reach the shop.");
           return;
         }
 
@@ -339,8 +344,8 @@ export function OnboardingQuestionnaireProvider({
           }
           completeOnboardingQuestionnaire(merged);
           if (isCatalogEligibleStoreTypes(merged.storeTypes)) {
-            saveQuestionnaireProgress(7, merged);
-            setStep(7);
+            saveQuestionnaireProgress(QUESTIONNAIRE_STOCK_STEP, merged);
+            setStep(QUESTIONNAIRE_STOCK_STEP);
           } else {
             setActive(false);
             router.replace(
@@ -399,6 +404,7 @@ export function OnboardingQuestionnaireProvider({
               brandingDisplayName={business?.branding?.displayName}
               countryCode={business?.countryCode}
               currency={business?.currency}
+              accountPhone={me?.phone}
               catalogShellEmpty={catalogShellEmpty}
               catalogLabel={catalogLabel}
               suggestedPack={suggestedPack}

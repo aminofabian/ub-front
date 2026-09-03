@@ -349,6 +349,26 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
       ],
     },
   ],
+  "climax-floor": [
+    {
+      key: "floor",
+      label: "Floor green",
+      hint: "Category bar and Sale badges when no brand colour is set",
+      type: "select",
+      var: "--cf-green",
+      default: "forest",
+      values: {
+        forest: "#006651",
+        pine: "#2d5a47",
+        moss: "#3d7a4a",
+      },
+      options: [
+        { value: "forest", label: "Forest", swatch: "#006651" },
+        { value: "pine", label: "Pine", swatch: "#2d5a47" },
+        { value: "moss", label: "Moss", swatch: "#3d7a4a" },
+      ],
+    },
+  ],
   "butcher-board": [
     {
       key: "frame",

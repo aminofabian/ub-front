@@ -6,6 +6,7 @@ import {
   patchBranch,
   patchOnboardingState,
   updateBusiness,
+  updateMe,
   updateMyBranding,
   uploadMyBrandingLogo,
   type BusinessRecord,
@@ -13,6 +14,7 @@ import {
 import {
   branchCountToNumber,
   formatBranchDisplayName,
+  normalizeOwnerPhone,
   type OnboardingQuestionnaireAnswers,
   type OnboardingQuestionnaireFinishExtras,
 } from "@/lib/onboarding-questionnaire";
@@ -33,7 +35,8 @@ export type OnboardingApplyPhaseId =
   | "storefront"
   | "item-types"
   | "branding"
-  | "logo";
+  | "logo"
+  | "phone";
 
 export type OnboardingApplyPhaseResult = {
   phase: OnboardingApplyPhaseId;
@@ -63,6 +66,7 @@ export const ONBOARDING_APPLY_PHASE_LABELS: Record<
   "item-types": "Your product sections",
   branding: "Your branding",
   logo: "Your logo",
+  phone: "Your shop line",
 };
 
 type PhaseRunner = {
@@ -98,7 +102,7 @@ async function runPhasesUntilFailure(
 /** Builds a user-facing failure message for {@link OnboardingApplyResult}. */
 export function formatApplyFailureMessage(result: OnboardingApplyResult): string {
   if (!result.failedPhase) {
-    return "Your shop was saved, but we couldn't mark setup as finished. Tap Create my shop to retry.";
+    return "Your shop was saved, but we couldn't mark setup as finished. Tap That’s my number to retry.";
   }
   const phaseLabel = ONBOARDING_APPLY_PHASE_LABELS[result.failedPhase];
   const savedCount = result.phases.length;
@@ -109,8 +113,8 @@ export function formatApplyFailureMessage(result: OnboardingApplyResult): string
   const detail = result.error ? ` ${result.error}` : "";
   const hint =
     result.failedPhase === "logo"
-      ? " Remove the logo on the previous step, or tap Create my shop to retry."
-      : " Tap Create my shop to retry — already-saved steps won't repeat.";
+      ? " Remove the logo on the previous step, or tap That’s my number to retry."
+      : " Tap That’s my number to retry — already-saved steps won't repeat.";
   return `${savedPart}${phaseLabel} could not be saved.${detail}${hint}`;
 }
 
@@ -120,7 +124,7 @@ export function formatApplyFailureMessage(result: OnboardingApplyResult): string
  * remaining phases (each phase is idempotent — it re-reads current state
  * before creating entities).
  *
- * Phases: branches → storefront (+ butcher flag) → item types → branding → logo.
+ * Phases: branches → storefront (+ butcher flag) → item types → branding → logo → phone.
  */
 export async function applyOnboardingQuestionnaire(
   answers: OnboardingQuestionnaireAnswers,
@@ -165,13 +169,21 @@ export async function applyOnboardingQuestionnaire(
         const landingTemplateId = normalizeLandingTemplateId(
           answers.landingTemplateId || DEFAULT_LANDING_TEMPLATE_ID,
         );
+        const whatsapp =
+          answers.landingWhatsapp?.trim() ||
+          (answers.ownerPhone
+            ? normalizeOwnerPhone(
+                answers.ownerPhone,
+                opts.business?.countryCode,
+              )
+            : "");
         const storefrontPatch = {
           storeThemeId,
           landingTemplateId,
-          ...(answers.landingWhatsapp?.trim()
+          ...(whatsapp
             ? {
                 landingContent: {
-                  whatsapp: answers.landingWhatsapp.trim(),
+                  whatsapp,
                 },
               }
             : {}),
@@ -259,6 +271,18 @@ export async function applyOnboardingQuestionnaire(
         return { phase: "logo", status: "done" };
       },
     },
+    {
+      id: "phone",
+      run: async () => {
+        const raw = answers.ownerPhone?.trim();
+        if (!raw) {
+          return { phase: "phone", status: "skipped" };
+        }
+        const phone = normalizeOwnerPhone(raw, opts.business?.countryCode);
+        await updateMe({ phone });
+        return { phase: "phone", status: "done" };
+      },
+    },
   ]);
 
   if (failedPhase) {
@@ -274,7 +298,7 @@ export async function applyOnboardingQuestionnaire(
   try {
     await patchOnboardingState({
       status: "completed",
-      step: 6,
+      step: 7,
       answers: {
         branchCount: answers.branchCount,
         branchLocalities: answers.branchLocalities,
@@ -286,6 +310,9 @@ export async function applyOnboardingQuestionnaire(
         displayName: answers.displayName.trim(),
         primaryColor: answers.primaryColor.trim(),
         accentColor: answers.accentColor.trim(),
+        ownerPhone: answers.ownerPhone
+          ? normalizeOwnerPhone(answers.ownerPhone, opts.business?.countryCode)
+          : undefined,
       },
     });
   } catch (finalizeError) {

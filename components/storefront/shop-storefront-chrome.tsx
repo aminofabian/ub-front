@@ -61,6 +61,9 @@ import blankDropStyles from "@/components/storefront/templates/store/blank-drop.
 import { PastryCaseHeader } from "@/components/storefront/templates/store/pastry-case-header";
 import { pastryCaseFontVariables } from "@/components/storefront/templates/store/pastry-case-fonts";
 import pastryCaseStyles from "@/components/storefront/templates/store/pastry-case.module.css";
+import { ClimaxFloorHeader } from "@/components/storefront/templates/store/climax-floor-header";
+import { climaxFloorFontVariables } from "@/components/storefront/templates/store/climax-floor-fonts";
+import climaxFloorStyles from "@/components/storefront/templates/store/climax-floor.module.css";
 import { SpiritsCellarHeader } from "@/components/storefront/templates/store/spirits-cellar-header";
 import { spiritsCellarFontVariables } from "@/components/storefront/templates/store/spirits-cellar-fonts";
 import spiritsCellarStyles from "@/components/storefront/templates/store/spirits-cellar.module.css";
@@ -188,7 +191,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop" | "pastry-case" | "comilmart";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop" | "pastry-case" | "comilmart" | "climax-floor";
   storeThemeId?: string | null;
   /** D8: `ub.session` presence hint from `StorefrontShell` (label-only). */
   hasPresence: boolean;
@@ -226,7 +229,8 @@ export function ShopStorefrontChrome({
   const isBlankDrop = chromeVariant === "blank-drop";
   const isPastryCase = chromeVariant === "pastry-case";
   const isComilmart = chromeVariant === "comilmart";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase || isComilmart;
+  const isClimaxFloor = chromeVariant === "climax-floor";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase || isComilmart || isClimaxFloor;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const restoreAttemptedRef = useRef(false);
@@ -336,6 +340,10 @@ export function ShopStorefrontChrome({
                         } as CSSProperties)
                       : isComilmart
                         ? comilmartPaletteVars(primaryHex, accentHex)
+                        : isClimaxFloor
+                          ? ({
+                              ["--cf-green" as string]: primaryHex || "#006651",
+                            } as CSSProperties)
         : undefined;
 
   return (
@@ -445,6 +453,13 @@ export function ShopStorefrontChrome({
               comilmartFontVariables,
               "[--storefront-paper:#F6F4EF]",
             ),
+          isClimaxFloor &&
+            cn(
+              climaxFloorStyles.root,
+              climaxFloorStyles.body,
+              climaxFloorFontVariables,
+              "[--storefront-paper:#FFFFFF]",
+            ),
           isChemLab &&
             cn(
               chemLabStyles.root,
@@ -544,6 +559,16 @@ export function ShopStorefrontChrome({
             announcement={announcement}
             areaLabel={locationHint}
             whatsapp={whatsappNumber}
+            categories={categories}
+          />
+        </Suspense>
+      ) : null}
+      {isClimaxFloor && !compactChrome ? (
+        <Suspense fallback={null}>
+          <ClimaxFloorHeader
+            storeName={headerTitle}
+            logoUrl={logoUrl}
+            tagline={locationHint}
             categories={categories}
           />
         </Suspense>

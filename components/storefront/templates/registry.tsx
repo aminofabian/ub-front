@@ -14,6 +14,7 @@ import { BoutiqueShelfStoreHome } from "@/components/storefront/templates/store/
 import { ButcherBoardStoreHome } from "@/components/storefront/templates/store/butcher-board-home";
 import { CarbonDeskStoreHome } from "@/components/storefront/templates/store/carbon-desk-home";
 import { ChemLabStoreHome } from "@/components/storefront/templates/store/chem-lab-home";
+import { ClimaxFloorStoreHome } from "@/components/storefront/templates/store/climax-floor-home";
 import { ComilmartStoreHome } from "@/components/storefront/templates/store/comilmart-home";
 import { MartStoreHome } from "@/components/storefront/templates/store/mart-home";
 import { MilkRunStoreHome } from "@/components/storefront/templates/store/milk-run-home";
@@ -53,6 +54,7 @@ const STORE_HOMES: Record<
   "blank-drop": BlankDropStoreHome,
   "pastry-case": PastryCaseStoreHome,
   comilmart: ComilmartStoreHome,
+  "climax-floor": ClimaxFloorStoreHome,
 };
 
 const LANDING_PAGES: Record<
@@ -86,7 +88,8 @@ export type StoreChromeVariant =
   | "print-atelier"
   | "blank-drop"
   | "pastry-case"
-  | "comilmart";
+  | "comilmart"
+  | "climax-floor";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -132,6 +135,8 @@ export function resolveStoreChromeVariant(
       return "pastry-case";
     case "comilmart":
       return "comilmart";
+    case "climax-floor":
+      return "climax-floor";
     default:
       return "default";
   }

@@ -21,7 +21,8 @@ export type StoreThemeId =
   | "print-atelier"
   | "blank-drop"
   | "pastry-case"
-  | "comilmart";
+  | "comilmart"
+  | "climax-floor";
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
@@ -67,7 +68,8 @@ export type ThemePhoneLayout =
   | "logo-poster"
   | "shop-window"
   | "locked-shelf"
-  | "marketplace";
+  | "marketplace"
+  | "showroom";
 
 /**
  * Per-theme "try it on" skin: what a miniature of the theme looks like when
@@ -181,6 +183,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "blank-drop",
   "pastry-case",
   "comilmart",
+  "climax-floor",
 ] as const;
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
@@ -801,6 +804,47 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
       radius: "soft",
       font: "sans",
       dark: true,
+    },
+  },
+  {
+    id: "climax-floor",
+    kind: "store",
+    name: "Climax Floor",
+    blurb:
+      "A furniture showroom shop - forest-green category bar, sale badges, four-column grid.",
+    previewFrom: "#FFFFFF",
+    previewTo: "#006651",
+    accent: "#006651",
+    vibes: ["Industrial & office", "Boutique & gifts"],
+    matches: [
+      "furniture",
+      "showroom",
+      "sofa",
+      "chair",
+      "workstation",
+      "boardroom",
+      "cabinet",
+      "climax",
+      "desking",
+      "reception",
+      "office chair",
+      "office desk",
+    ],
+    points: [
+      "A furniture-shop floor: category sidebar, sale badges, and a dense product grid.",
+      "Your brand colour becomes the category bar and Sale tags.",
+      "Built for showrooms, office furniture, and home seating catalogues.",
+    ],
+    phone: {
+      layout: "showroom",
+      surface: "#FFFFFF",
+      ink: "#111111",
+      muted: "#6B6B6B",
+      card: "#FFFFFF",
+      accent: "#006651",
+      onAccent: "#FFFFFF",
+      radius: "sharp",
+      font: "sans",
     },
   },
 ];

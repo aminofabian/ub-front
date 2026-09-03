@@ -6,6 +6,10 @@ import {
   type OnboardingStateRecord,
 } from "@/lib/api";
 import { STORE_SECTION_STARTER_KITS } from "@/lib/item-type-suggestions";
+import {
+  kenyanAirtimePhoneOk,
+  toKenyanMsisdn254,
+} from "@/lib/kenyan-phone";
 
 const STORAGE_KEY = "palmart.onboardingQuestionnaire.v1";
 
@@ -40,6 +44,8 @@ export type OnboardingQuestionnaireAnswers = {
   landingTemplateId: string;
   /** Optional WhatsApp for themes that surface chat CTAs (e.g. milk-run). */
   landingWhatsapp?: string;
+  /** Owner shop line — WhatsApp, SMS alerts, till pings. */
+  ownerPhone: string;
   displayName: string;
   primaryColor: string;
   accentColor: string;
@@ -71,8 +77,11 @@ export type OnboardingQuestionnaireState = {
   updatedAt: string;
 };
 
-/** Answer steps 1–6 + final stock step 7. */
-export const QUESTIONNAIRE_STEP_COUNT = 7;
+/** Answer steps 1–7 (incl. shop line) + final stock step 8. */
+export const QUESTIONNAIRE_BRANDING_STEP = 6;
+export const QUESTIONNAIRE_PHONE_STEP = 7;
+export const QUESTIONNAIRE_STOCK_STEP = 8;
+export const QUESTIONNAIRE_STEP_COUNT = 8;
 
 export const BRANCH_COUNT_OPTIONS: readonly {
   value: BranchCountChoice;
@@ -356,6 +365,36 @@ export function suggestDisplayName(opts: {
 /** @deprecated Use branchLocalities + formatBranchDisplayName */
 export function defaultBranchName(index: number): string {
   return formatBranchDisplayName(defaultBranchLocality(index));
+}
+
+/** True when the shop-line field is complete enough to store. */
+export function looksLikeOwnerPhone(
+  raw: string,
+  countryCode?: string | null,
+): boolean {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return false;
+  }
+  const code = countryCode?.trim().toUpperCase() || "KE";
+  if (code === "KE") {
+    return kenyanAirtimePhoneOk(trimmed);
+  }
+  const digits = trimmed.replace(/\D/g, "");
+  return digits.length >= 9 && digits.length <= 15;
+}
+
+/** Canonical shop-line value for user.phone / WhatsApp. */
+export function normalizeOwnerPhone(
+  raw: string,
+  countryCode?: string | null,
+): string {
+  const trimmed = raw.trim();
+  const code = countryCode?.trim().toUpperCase() || "KE";
+  if (code === "KE") {
+    return toKenyanMsisdn254(trimmed) ?? trimmed.replace(/\D/g, "");
+  }
+  return trimmed.replace(/\s+/g, " ");
 }
 
 const DEFAULT_STATE: OnboardingQuestionnaireState = {

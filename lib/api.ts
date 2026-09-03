@@ -2785,6 +2785,16 @@ export async function fetchMe(): Promise<MeResponse> {
   return request<MeResponse>(API_ROUTES.me);
 }
 
+export async function updateMe(body: {
+  name?: string;
+  phone?: string | null;
+}): Promise<MeResponse> {
+  return request<MeResponse>(API_ROUTES.me, {
+    method: "PATCH",
+    body,
+  });
+}
+
 /** Self-service: set the current user's till PIN (first-login onboarding / change). */
 export async function setOwnPin(pin: string): Promise<void> {
   return request<void>(`${API_ROUTES.me}/pin`, {
@@ -3251,6 +3261,7 @@ export type OnboardingAnswersRecord = {
   accentColor?: string;
   /** new | spreadsheet | other_pos */
   productSource?: string;
+  ownerPhone?: string;
 };
 
 export type OnboardingStateRecord = {

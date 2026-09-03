@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronLeft, Package } from "lucide-react";
+import { Check, ChevronLeft, MessageCircle, Package, Smartphone } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { OnboardingBrandingColorPicker } from "@/components/onboarding/onboarding-branding-color-picker";
@@ -26,9 +26,12 @@ import {
   branchCountToNumber,
   branchLocalityPlaceholder,
   formatBranchDisplayName,
+  looksLikeOwnerPhone,
   storeTypesSectionLabels,
   formatStoreTypesLabel,
   suggestDisplayName,
+  QUESTIONNAIRE_PHONE_STEP,
+  QUESTIONNAIRE_STOCK_STEP,
   type BranchCountChoice,
   type OnboardingQuestionnaireAnswers,
   type OnboardingQuestionnaireFinishExtras,
@@ -48,6 +51,8 @@ import {
 } from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
 import type { OnboardingSuggestedPackPreview } from "@/lib/onboarding-suggested-pack";
+import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
+import { findSelfServeCountry } from "@/lib/selfserve-countries";
 
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 const ACCEPTED_LOGO_TYPES = "image/png,image/jpeg,image/webp,image/svg+xml";
@@ -78,6 +83,8 @@ type Props = {
   /** ISO country for locality placeholders (defaults to KE examples). */
   countryCode?: string | null;
   currency?: string | null;
+  /** Prefill from the signed-in user's existing phone. */
+  accountPhone?: string | null;
   /** When true, step 6 shows empty-catalog copy instead of browse CTA. */
   catalogShellEmpty?: boolean;
   catalogLabel?: string | null;
@@ -167,6 +174,61 @@ function OptionButton({
   );
 }
 
+function ShopLinePreview({
+  shopName,
+  phoneLabel,
+}: {
+  shopName: string;
+  phoneLabel: string;
+}) {
+  const who = shopName.trim() || "the shop";
+  return (
+    <div className="mx-auto w-full max-w-[280px]">
+      <div className="overflow-hidden rounded-[2rem] border border-[#1F2937] bg-[#111827] shadow-[0_24px_48px_-28px_rgba(17,24,39,0.85)]">
+        <div className="flex items-center justify-center pt-2">
+          <span className="h-1.5 w-16 rounded-full bg-[#374151]" />
+        </div>
+        <div className="space-y-2 px-3 pb-4 pt-3">
+          <p className="text-center text-[10px] font-medium uppercase tracking-[0.18em] text-[#9CA3AF]">
+            Tomorrow morning
+          </p>
+          <div className="space-y-1.5 rounded-2xl bg-[#1F2937] px-3 py-2.5">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white">
+                <MessageCircle className="size-3.5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-white">{who}</p>
+                <p className="truncate text-[11px] text-[#D1D5DB]">
+                  Hi — do you still have chicken?
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-1.5 rounded-2xl bg-[#1F2937] px-3 py-2.5">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#0D9488] text-white">
+                <Smartphone className="size-3.5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-white">Kiosk</p>
+                <p className="text-[11px] text-[#D1D5DB]">
+                  3 items below reorder at {who}
+                </p>
+              </div>
+            </div>
+          </div>
+          {phoneLabel ? (
+            <p className="pt-1 text-center text-[11px] tabular-nums text-[#99F6E4]">
+              {phoneLabel}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DepartmentChip({
   label,
   selected,
@@ -231,6 +293,7 @@ export function OnboardingQuestionnaire({
   onOpenImport,
   countryCode = null,
   currency = null,
+  accountPhone = null,
   catalogShellEmpty = false,
   catalogLabel = null,
   suggestedPack = null,
@@ -265,6 +328,12 @@ export function OnboardingQuestionnaire({
   const [landingWhatsapp, setLandingWhatsapp] = useState(
     initialAnswers.landingWhatsapp ?? "",
   );
+  const [ownerPhone, setOwnerPhone] = useState(
+    initialAnswers.ownerPhone ?? accountPhone ?? "",
+  );
+  const { countries } = useSelfServeCountries();
+  const shopDial = findSelfServeCountry(countries, countryCode ?? "KE");
+  const dialCode = shopDial?.dialCode ?? "+254";
   const [milkRunWaPromptOpen, setMilkRunWaPromptOpen] = useState(false);
   const [seeAllThemes, setSeeAllThemes] = useState(false);
   const [displayName, setDisplayName] = useState(() => {
@@ -441,6 +510,8 @@ export function OnboardingQuestionnaire({
           accentColor.trim().length > 0 &&
           meetsBrandingContrast(primaryColor, accentColor)
         );
+      case QUESTIONNAIRE_PHONE_STEP:
+        return looksLikeOwnerPhone(ownerPhone, countryCode);
       default:
         return false;
     }
@@ -456,6 +527,8 @@ export function OnboardingQuestionnaire({
     displayName,
     primaryColor,
     accentColor,
+    ownerPhone,
+    countryCode,
   ]);
 
   const isDepartmentSelected = (label: string) =>
@@ -578,6 +651,17 @@ export function OnboardingQuestionnaire({
           { logoFile },
         );
         break;
+      case QUESTIONNAIRE_PHONE_STEP:
+        if (!looksLikeOwnerPhone(ownerPhone, countryCode)) return;
+        onContinue(
+          {
+            ownerPhone: ownerPhone.trim(),
+            landingWhatsapp:
+              landingWhatsapp.trim() || ownerPhone.trim() || undefined,
+          },
+          { logoFile },
+        );
+        break;
     }
   };
 
@@ -663,14 +747,18 @@ export function OnboardingQuestionnaire({
             </div>
             <QuestionnaireProgress step={step} />
           </div>
-          <button
-            type="button"
-            onClick={step === QUESTIONNAIRE_STEP_COUNT ? onFinishLater : onSkip}
-            disabled={submitting}
-            className="inline-flex h-10 shrink-0 items-center justify-center px-2 text-xs font-medium text-[#6B7280] transition active:scale-95 disabled:opacity-40 sm:hidden"
-          >
-            Skip
-          </button>
+          {step === QUESTIONNAIRE_PHONE_STEP ? (
+            <span className="inline-flex h-10 w-[3.25rem] shrink-0 sm:hidden" aria-hidden />
+          ) : (
+            <button
+              type="button"
+              onClick={step === QUESTIONNAIRE_STEP_COUNT ? onFinishLater : onSkip}
+              disabled={submitting}
+              className="inline-flex h-10 shrink-0 items-center justify-center px-2 text-xs font-medium text-[#6B7280] transition active:scale-95 disabled:opacity-40 sm:hidden"
+            >
+              Skip
+            </button>
+          )}
         </div>
       </header>
 
@@ -1164,7 +1252,52 @@ export function OnboardingQuestionnaire({
               </>
             ) : null}
 
-            {step === 7 ? (
+            {step === QUESTIONNAIRE_PHONE_STEP ? (
+              <>
+                <StepHeading
+                  title="This number is the shop"
+                  description="Customers WhatsApp it. We text it when stock is low. M-Pesa and till alerts land here. Not a personal line you never check — the one that sits next to the till."
+                />
+                <ShopLinePreview
+                  shopName={displayName || businessName || ""}
+                  phoneLabel={ownerPhone.trim()}
+                />
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-medium text-[#6B7280]">
+                    Shop line
+                  </span>
+                  <div className="flex h-12 items-center overflow-hidden rounded-none border border-[#E5E7EB] bg-white focus-within:border-[#0D9488] focus-within:ring-2 focus-within:ring-[#0D9488]/20">
+                    <span className="shrink-0 border-r border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm font-medium tabular-nums text-[#374151]">
+                      {dialCode}
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={ownerPhone}
+                      onChange={(e) => setOwnerPhone(e.target.value)}
+                      className="min-w-0 flex-1 bg-transparent px-4 text-base tabular-nums text-[#1F2937] outline-none sm:text-[15px]"
+                      placeholder={
+                        countryCode?.toUpperCase() === "KE"
+                          ? "07XX XXX XXX"
+                          : "Your mobile number"
+                      }
+                      aria-label="Shop phone number"
+                      enterKeyHint="done"
+                    />
+                  </div>
+                </label>
+                <p className="text-xs text-[#9CA3AF]">
+                  {looksLikeOwnerPhone(ownerPhone, countryCode)
+                    ? "We’ll save this on your account and on the online shop’s WhatsApp button."
+                    : countryCode?.toUpperCase() === "KE"
+                      ? "Use a Kenyan mobile — 07… or 2547…"
+                      : "Enter a mobile number we can actually reach."}
+                </p>
+              </>
+            ) : null}
+
+            {step === QUESTIONNAIRE_STOCK_STEP ? (
               <>
                 <StepHeading
                   title={
@@ -1442,8 +1575,8 @@ export function OnboardingQuestionnaire({
             >
               {submitting
                 ? "Setting up your shop…"
-                : step === 6
-                  ? "Create my shop"
+                : step === QUESTIONNAIRE_PHONE_STEP
+                  ? "That’s my number"
                   : "Continue"}
             </button>
           )}
@@ -1473,14 +1606,18 @@ export function OnboardingQuestionnaire({
               ) : (
                 <span />
               )}
-              <button
-                type="button"
-                onClick={onSkip}
-                disabled={submitting}
-                className="min-h-10 text-[#9CA3AF] transition hover:text-[#6B7280] disabled:opacity-50"
-              >
-                Skip for now
-              </button>
+              {step === QUESTIONNAIRE_PHONE_STEP ? (
+                <span />
+              ) : (
+                <button
+                  type="button"
+                  onClick={onSkip}
+                  disabled={submitting}
+                  className="min-h-10 text-[#9CA3AF] transition hover:text-[#6B7280] disabled:opacity-50"
+                >
+                  Skip for now
+                </button>
+              )}
             </div>
           )}
         </div>

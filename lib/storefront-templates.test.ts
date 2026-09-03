@@ -55,6 +55,12 @@ describe("theme recommendation", () => {
     );
   });
 
+  test("furniture showroom names pick climax floor", () => {
+    expect(recommendStoreThemeId({ name: "Nairobi Furniture Showroom" })).toBe(
+      "climax-floor",
+    );
+  });
+
   test("landing scorer picks a butcher closed-sign", () => {
     expect(
       recommendLandingTemplateId({ name: "Kamau Butchery" }),

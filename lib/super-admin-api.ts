@@ -1739,6 +1739,17 @@ export async function patchSaBusinessUserStatus(
   );
 }
 
+/** Re-sends the email-verification inbox link. Does not mark the user verified. */
+export async function resendSaBusinessUserVerification(
+  businessId: string,
+  userId: string,
+): Promise<void> {
+  await saRequest<void>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/users/${userId}/resend-verification`,
+    { method: "POST" },
+  );
+}
+
 export type SaEmailRecipientRow = {
   userId: string;
   email: string;
