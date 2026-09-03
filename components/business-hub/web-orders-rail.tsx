@@ -50,12 +50,14 @@ export function WebOrdersRail({
   live = false,
   justUpdated = false,
   className,
+  onInspect,
 }: {
   orders: WebOrderSummary[];
   currency?: string | null;
   live?: boolean;
   justUpdated?: boolean;
   className?: string;
+  onInspect?: (order: WebOrderSummary) => void;
 }) {
   const empty = orders.length === 0;
   const total = orders.reduce((sum, o) => sum + toNum(o.grandTotal), 0);
@@ -122,40 +124,50 @@ export function WebOrdersRail({
               const newest = i === 0 && justUpdated;
               const fulfillment = order.fulfillmentStatus ?? "awaiting_confirmation";
               return (
-                <li key={order.id}>
+                <li
+                  key={order.id}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 transition-colors hover:bg-[#FCFAF6]",
+                    newest && "bg-[#FCFAF6] hub-figure-pop",
+                  )}
+                >
+                  <Link
+                    href={`${APP_ROUTES.storefrontWebOrders}?orderId=${encodeURIComponent(order.id)}`}
+                    className="shrink-0 font-mono text-[10px] tabular-nums text-[#8A8A8A] hover:text-[#141414]"
+                    title={new Date(order.createdAt).toLocaleString()}
+                  >
+                    <time dateTime={order.createdAt}>
+                      {formatClock(order.createdAt)}
+                    </time>
+                  </Link>
+                  <div className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => onInspect?.(order)}
+                      aria-label={`Open purchase history for ${order.customerName?.trim() || "customer"}`}
+                      className={cn(
+                        "block max-w-full truncate text-left text-[12px] font-medium text-[#141414]",
+                        onInspect &&
+                          "underline decoration-[#B08D48]/40 underline-offset-2 hover:decoration-[#B08D48]",
+                      )}
+                    >
+                      {order.customerName?.trim() || "Customer"}
+                    </button>
+                  </div>
                   <Link
                     href={`${APP_ROUTES.storefrontWebOrders}?orderId=${encodeURIComponent(order.id)}`}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 transition-colors hover:bg-[#FCFAF6]",
-                      newest && "bg-[#FCFAF6] hub-figure-pop",
+                      "shrink-0 text-[9px] font-semibold uppercase tracking-[0.06em]",
+                      fulfillmentTone(fulfillment),
                     )}
                   >
-                    <time
-                      dateTime={order.createdAt}
-                      className="shrink-0 font-mono text-[10px] tabular-nums text-[#8A8A8A]"
-                      title={new Date(order.createdAt).toLocaleString()}
-                    >
-                      {formatClock(order.createdAt)}
-                    </time>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12px] font-medium text-[#141414]">
-                        {order.customerName?.trim() || "Customer"}
-                      </p>
-                    </div>
-                    <span
-                      className={cn(
-                        "shrink-0 text-[9px] font-semibold uppercase tracking-[0.06em]",
-                        fulfillmentTone(fulfillment),
-                      )}
-                    >
-                      {order.status?.toLowerCase() === "paid"
-                        ? fulfillmentLabel(fulfillment)
-                        : labelPayment(order.status)}
-                    </span>
-                    <p className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-[#141414]">
-                      {fmtMoney(order.grandTotal, order.currency || currency)}
-                    </p>
+                    {order.status?.toLowerCase() === "paid"
+                      ? fulfillmentLabel(fulfillment)
+                      : labelPayment(order.status)}
                   </Link>
+                  <p className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-[#141414]">
+                    {fmtMoney(order.grandTotal, order.currency || currency)}
+                  </p>
                 </li>
               );
             })}

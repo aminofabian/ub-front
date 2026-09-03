@@ -42,6 +42,7 @@ export function SupplyBillsRail({
   justUpdated = false,
   className,
   onPayBill,
+  onInspect,
 }: {
   bills: PathBSupplyListRowRecord[];
   currency?: string | null;
@@ -50,6 +51,8 @@ export function SupplyBillsRail({
   className?: string;
   /** Opens the supplier payment drawer for this bill. */
   onPayBill?: (bill: PathBSupplyListRowRecord) => void;
+  /** Opens supply history for this supplier. */
+  onInspect?: (bill: PathBSupplyListRowRecord) => void;
 }) {
   const summary = summarizeSupplyRows(bills);
   const empty = bills.length === 0;
@@ -133,12 +136,21 @@ export function SupplyBillsRail({
                     {formatClock(bill.createdAt)}
                   </time>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[12px] font-medium text-[#141414]">
+                    <button
+                      type="button"
+                      onClick={() => onInspect?.(bill)}
+                      aria-label={`Open supply history for ${supplierLabel}`}
+                      className={cn(
+                        "block max-w-full truncate text-left text-[12px] font-medium text-[#141414]",
+                        onInspect &&
+                          "underline decoration-[#B08D48]/40 underline-offset-2 hover:decoration-[#B08D48]",
+                      )}
+                    >
                       <SupplierDisplayName
                         name={bill.supplierName}
                         className="truncate"
                       />
-                    </p>
+                    </button>
                   </div>
                   {payEnabled ? (
                     <button

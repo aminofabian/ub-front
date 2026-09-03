@@ -1,0 +1,199 @@
+.panel :is(input, button, a) {
+  caret-color: #b08d48;
+}
+
+.panel ::selection {
+  background: color-mix(in srgb, #b08d48 32%, #f9f6f0);
+  color: #141414;
+}
+
+.panel {
+  --ink: #141414;
+  --soft: #6e6558;
+  --rule: color-mix(in srgb, #b08d48 22%, transparent);
+  --paper: #f9f6f0;
+  --gold: #b08d48;
+  --owed: #c47a5a;
+  --paid: #1f6b3a;
+}
+
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.figure {
+  font-family: var(--font-serif), ui-serif, Georgia, serif;
+  font-size: clamp(1.7rem, 4vw, 2.15rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.figureOwed {
+  color: var(--owed);
+}
+
+.meta {
+  margin: 0.4rem 0 0;
+  max-width: 42ch;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--soft);
+}
+
+.tally {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem 1rem;
+  margin: 1rem 0 0;
+}
+
+.tally dt {
+  font-size: 0.6875rem;
+  color: var(--soft);
+}
+
+.tally dd {
+  margin: 0.15rem 0 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.paid {
+  color: var(--paid);
+}
+
+.owed {
+  color: var(--owed);
+}
+
+.ledger {
+  margin-top: 1.15rem;
+}
+
+.ledgerHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  padding-bottom: 0.4rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--soft);
+}
+
+.rows {
+  max-height: min(28rem, 52dvh);
+  overflow-y: auto;
+  background:
+    repeating-linear-gradient(
+      transparent,
+      transparent 1.7rem,
+      var(--rule) calc(1.7rem + 1px)
+    );
+}
+
+.rows::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rows::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--gold) 50%, #e6e1d8);
+  border-radius: 99px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.75rem;
+  min-height: 1.75rem;
+  padding: 0.15rem 0.1rem;
+  font-size: 0.8125rem;
+}
+
+.when {
+  color: var(--soft);
+}
+
+.kind {
+  color: var(--ink);
+}
+
+.amt {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-weight: 600;
+}
+
+.sub {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  color: var(--soft);
+}
+
+.empty,
+.error,
+.loading {
+  padding: 1.5rem 0.25rem;
+  font-size: 0.875rem;
+}
+
+.error {
+  color: #9a2f2f;
+}
+
+.loading {
+  color: var(--soft);
+}
+
+.foot {
+  margin-top: 1.1rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed color-mix(in srgb, #b08d48 30%, transparent);
+  font-size: 0.75rem;
+  color: var(--soft);
+}
+
+.foot a {
+  color: var(--ink);
+  font-weight: 600;
+  text-underline-offset: 0.16em;
+}
+
+.foot a:hover {
+  text-decoration: underline;
+}
+
+.lines {
+  margin: 0.15rem 0 0.35rem 0;
+  padding-left: 0.1rem;
+  font-size: 0.6875rem;
+  color: var(--soft);
+}
+
+@media (max-width: 420px) {
+  .tally {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+:global(.dark) .panel {
+  --ink: #f3eadc;
+  --soft: #cbbba8;
+  --rule: rgb(176 141 72 / 0.22);
+  --paper: #231910;
+  --paid: #7dcea0;
+}

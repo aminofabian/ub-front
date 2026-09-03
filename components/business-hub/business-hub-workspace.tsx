@@ -35,6 +35,10 @@ import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
 import { CreditTabsRail } from "@/components/business-hub/credit-tabs-rail";
 import { SupplyBillsRail } from "@/components/business-hub/supply-bills-rail";
 import { WebOrdersRail } from "@/components/business-hub/web-orders-rail";
+import {
+  HubHistoryDrawer,
+  type HubHistoryTarget,
+} from "@/components/business-hub/hub-history-drawer";
 import { RevenueBarChart } from "@/components/business-hub/revenue-bar-chart";
 import { StockHealthPanel } from "@/components/business-hub/stock-health-panel";
 import { TopMoversPanel } from "@/components/business-hub/top-movers-panel";
@@ -253,6 +257,9 @@ export function BusinessHubWorkspace() {
   const [payCreditTab, setPayCreditTab] =
     useState<OutstandingTabRowRecord | null>(null);
   const [payCreditOpen, setPayCreditOpen] = useState(false);
+  const [historyTarget, setHistoryTarget] = useState<HubHistoryTarget | null>(
+    null,
+  );
   const [openWebOrders, setOpenWebOrders] = useState<WebOrderSummary[]>([]);
   const [recentDrawouts, setRecentDrawouts] = useState<HubDrawout[]>([]);
   const [selectedCashiers, setSelectedCashiers] = useState<string[]>([]);
@@ -600,6 +607,33 @@ export function BusinessHubWorkspace() {
   const openCreditPay = useCallback((tab: OutstandingTabRowRecord) => {
     setPayCreditTab(tab);
     setPayCreditOpen(true);
+  }, []);
+
+  const openSupplyHistory = useCallback((bill: PathBSupplyListRowRecord) => {
+    setHistoryTarget({
+      kind: "supplier",
+      supplierId: bill.supplierId,
+      name: bill.supplierName?.trim() || "Supplier",
+    });
+  }, []);
+
+  const openCreditHistory = useCallback((tab: OutstandingTabRowRecord) => {
+    setHistoryTarget({
+      kind: "credit",
+      customerId: tab.customerId,
+      name: tab.name?.trim() || "Customer",
+      phone: tab.primaryPhone,
+      balanceOwed: tab.balanceOwed,
+    });
+  }, []);
+
+  const openShopperHistory = useCallback((order: WebOrderSummary) => {
+    setHistoryTarget({
+      kind: "shopper",
+      name: order.customerName?.trim() || "Customer",
+      phone: order.customerPhone,
+      seed: order,
+    });
   }, []);
 
   useBusinessHubRealtime({
@@ -1277,6 +1311,7 @@ export function BusinessHubWorkspace() {
                   live={pulseLive}
                   justUpdated={supplyJustUpdated}
                   onPayBill={canOpenSupplyPay ? openSupplyPay : undefined}
+                  onInspect={openSupplyHistory}
                 />
               ) : null}
 
@@ -1288,6 +1323,7 @@ export function BusinessHubWorkspace() {
                   live={pulseLive}
                   justUpdated={creditJustUpdated}
                   onPayTab={canOpenCreditPay ? openCreditPay : undefined}
+                  onInspect={openCreditHistory}
                   paidTotal={creditActivity?.totalPaid ?? null}
                   paidCount={creditActivity?.paymentCount ?? null}
                   paidPeriodLabel={isToday ? "today" : "this week"}
@@ -1301,6 +1337,7 @@ export function BusinessHubWorkspace() {
                   currency={currency}
                   live={pulseLive}
                   justUpdated={webOrdersJustUpdated}
+                  onInspect={openShopperHistory}
                 />
               ) : null}
 
@@ -1416,6 +1453,14 @@ export function BusinessHubWorkspace() {
           }}
         />
       ) : null}
+
+      <HubHistoryDrawer
+        target={historyTarget}
+        currency={currency}
+        onOpenChange={(next) => {
+          if (!next) setHistoryTarget(null);
+        }}
+      />
     </BusinessPageLayout>
   );
 }

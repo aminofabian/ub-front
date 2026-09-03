@@ -26,6 +26,7 @@ export function CreditTabsRail({
   justUpdated = false,
   className,
   onPayTab,
+  onInspect,
   paidTotal = null,
   paidCount = null,
   paidPeriodLabel = "today",
@@ -37,6 +38,8 @@ export function CreditTabsRail({
   className?: string;
   /** Opens the mark-paid dialog for this customer tab. */
   onPayTab?: (tab: OutstandingTabRowRecord) => void;
+  /** Opens credit history for this customer. */
+  onInspect?: (tab: OutstandingTabRowRecord) => void;
   /** Credit collections in the hub period filter. */
   paidTotal?: number | string | null;
   paidCount?: number | null;
@@ -137,9 +140,18 @@ export function CreditTabsRail({
                   )}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[12px] font-medium text-[#141414]">
+                    <button
+                      type="button"
+                      onClick={() => onInspect?.(tab)}
+                      aria-label={`Open credit history for ${name}`}
+                      className={cn(
+                        "block max-w-full truncate text-left text-[12px] font-medium text-[#141414]",
+                        onInspect &&
+                          "underline decoration-[#C47A5A]/45 underline-offset-2 hover:decoration-[#C47A5A]",
+                      )}
+                    >
                       {name}
-                    </p>
+                    </button>
                     {tab.primaryPhone?.trim() ? (
                       <>
                         <p
