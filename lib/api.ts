@@ -4342,6 +4342,17 @@ export type ItemSaleHistoryRow = {
   lineTotal: number | string;
   costTotal: number | string;
   profit: number | string;
+  customerId: string | null;
+  customerName: string | null;
+};
+
+export type ItemCustomerBuyRow = {
+  customerId: string | null;
+  customerName: string;
+  quantity: number | string;
+  spend: number | string;
+  saleCount: number | string;
+  lastSoldAt: string | null;
 };
 
 export type ItemPurchaseHistoryRow = {
@@ -4381,6 +4392,7 @@ export type ItemEconomicsRecord = {
   unitsBought: number | string;
   onHand: number | string;
   last30Days: ItemEconomicsDayPoint[];
+  buyers: ItemCustomerBuyRow[];
   supplierSpendBreakdown: ItemSupplierSpendRow[];
   sales: ItemSaleHistoryRow[];
   purchases: ItemPurchaseHistoryRow[];
