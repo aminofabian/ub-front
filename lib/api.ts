@@ -10567,6 +10567,7 @@ export type CreditAccountSummaryRecord = {
   walletBalance: number | string;
   loyaltyPoints: number;
   creditLimit: number | string | null;
+  creditSuspended?: boolean;
   version: number;
 };
 
@@ -10786,6 +10787,10 @@ export type CreditStatementRecord = {
   balanceOwed: number | string;
   walletBalance: number | string;
   loyaltyPoints: number;
+  creditSuspended?: boolean;
+  creditLimit?: number | string | null;
+  totalCharged?: number | string;
+  totalPaid?: number | string;
   lines: CreditStatementLineRecord[];
 };
 
@@ -10849,6 +10854,7 @@ export type OutstandingTabRowRecord = {
   name: string;
   primaryPhone: string | null;
   balanceOwed: number | string;
+  creditSuspended?: boolean;
 };
 
 export type TabPurchaseLineRecord = {
@@ -11186,6 +11192,7 @@ export type PatchCustomerPayload = {
   email?: string | null;
   notes?: string | null;
   creditLimit?: number | string | null;
+  creditSuspended?: boolean;
   version?: number;
   creditAccountVersion?: number;
 };

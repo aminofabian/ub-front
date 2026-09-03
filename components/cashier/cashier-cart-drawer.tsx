@@ -530,6 +530,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
       return "Pick a customer to continue.";
     }
     if (payMethod === "customer_credit" && selectedCustomer) {
+      if (selectedCustomer.credit.creditSuspended) {
+        return "This tab is suspended. They cannot take more credit.";
+      }
       return "Confirm a valid phone for tab credit.";
     }
     return "Finish payment details to complete.";
@@ -767,13 +770,20 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       {canLookupCustomers ? (
                         <PayMethodChip
                           active={payMethod === "customer_credit"}
+                          disabled={Boolean(
+                            selectedCustomer?.credit.creditSuspended,
+                          )}
                           onClick={() => {
                             setSplitPay(false);
                             setCreditChangeToWallet(false);
                             setPayMethod("customer_credit");
                           }}
                           icon={<UserRound className="size-3" aria-hidden />}
-                          label="Tab"
+                          label={
+                            selectedCustomer?.credit.creditSuspended
+                              ? "Tab suspended"
+                              : "Tab"
+                          }
                         />
                       ) : null}
                       {canLookupCustomers ? (

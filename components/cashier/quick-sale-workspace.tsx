@@ -196,6 +196,10 @@ function payMethodNeedsCustomer(
   );
 }
 
+function customerTabSuspended(customer: CustomerRecord | null | undefined): boolean {
+  return Boolean(customer?.credit.creditSuspended);
+}
+
 function isStkTender(
   method: SalePaymentMethod | "remote_bill" | "kiosk_pay",
 ): boolean {
@@ -2371,6 +2375,7 @@ export function QuickSaleWorkspace({
       const remainder = roundMoney2(grandTotal - sum);
       // If a customer is selected, the remainder goes to their tab (credit).
       if (selectedCustomer && remainder > 0.001 && sum > 0) {
+        if (customerTabSuspended(selectedCustomer)) return false;
         return true;
       }
       const positiveParts = [w, c, m].filter((n) => n > 0).length;
@@ -2400,6 +2405,12 @@ export function QuickSaleWorkspace({
     }
     if (payMethodNeedsCustomer(payMethod)) {
       if (!selectedCustomer) {
+        return false;
+      }
+      if (
+        payMethod === "customer_credit" &&
+        customerTabSuspended(selectedCustomer)
+      ) {
         return false;
       }
       // Phone field is only required when registering a new tab customer (no selection yet).
@@ -3355,6 +3366,14 @@ export function QuickSaleWorkspace({
         setNotice("");
         return;
       }
+      if (
+        payMethod === "customer_credit" &&
+        customerTabSuspended(linkedCustomer)
+      ) {
+        setError("This customer's tab is suspended. They cannot take more credit.");
+        setNotice("");
+        return;
+      }
     }
 
     // M-Pesa: finish silent phone→customer link if background resolve is still pending.
@@ -3452,6 +3471,17 @@ export function QuickSaleWorkspace({
       if (splitRemainder > 0.001 && !linkedCustomer) {
         setError(
           `Split amounts (${sum.toFixed(2)}) must equal cart total (${grandTotal.toFixed(2)}). Select a customer to charge the rest to their tab.`,
+        );
+        setNotice("");
+        return;
+      }
+      if (
+        splitRemainder > 0.001 &&
+        linkedCustomer &&
+        customerTabSuspended(linkedCustomer)
+      ) {
+        setError(
+          "This customer's tab is suspended. Cover the full amount without putting the rest on tab.",
         );
         setNotice("");
         return;

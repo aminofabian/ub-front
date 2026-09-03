@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
+  Ban,
   CreditCard,
   IdCard,
   RefreshCw,
@@ -29,9 +30,13 @@ import { useFormatMoney } from "@/hooks/use-format-money";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import {
   fetchCreditsActivitySummary,
+  fetchCustomerCreditStatement,
   fetchOutstandingTabs,
   fetchPaymentLedger,
+  patchCustomer,
   type CreditsActivitySummaryRecord,
+  type CreditStatementLineRecord,
+  type CreditStatementRecord,
   type OutstandingTabRowRecord,
   type PaymentLedgerRow,
 } from "@/lib/api";
@@ -168,6 +173,7 @@ export function CreditActivityPage() {
     loading: sessionLoading,
     canViewSalesIntelligence,
     canViewCustomers,
+    canManageCustomers,
     canReviewPaymentClaims,
     canManageCreditSettings,
   } = useDashboard();
@@ -660,6 +666,7 @@ export function CreditActivityPage() {
                     const owed = toNum(tab.balanceOwed);
                     const active = tab.customerId === selectedId;
                     const phoneOk = isUsableStoredCustomerPhone(tab.primaryPhone);
+                    const suspended = Boolean(tab.creditSuspended);
                     return (
                       <li key={tab.customerId}>
                         <button
@@ -686,8 +693,15 @@ export function CreditActivityPage() {
                             {initials(tab.name)}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium text-foreground">
-                              {tab.name}
+                            <span className="flex items-center gap-1.5">
+                              <span className="block truncate text-sm font-medium text-foreground">
+                                {tab.name}
+                              </span>
+                              {suspended ? (
+                                <span className="shrink-0 rounded-sm bg-[#2C1810]/8 px-1 py-px text-[10px] font-medium text-[#6B5344] dark:bg-muted dark:text-muted-foreground">
+                                  Suspended
+                                </span>
+                              ) : null}
                             </span>
                             <span
                               className={cn(
@@ -716,9 +730,9 @@ export function CreditActivityPage() {
                     tab={selectedTab}
                     fmtKes={fmtKes}
                     canRemind={canRemind}
+                    canManageCustomers={canManageCustomers}
                     canReviewPaymentClaims={canReviewPaymentClaims}
                     selectedCharges={selectedCharges}
-                    singleDay={singleDay}
                     onRemindResult={({ ok, text }) =>
                       setFeedback({ kind: ok ? "success" : "error", text })
                     }
@@ -732,6 +746,24 @@ export function CreditActivityPage() {
                         name: selectedTab.name,
                         phone: selectedTab.primaryPhone,
                       })
+                    }
+                    onCreditSuspended={(customerId, creditSuspended) => {
+                      setOpenTabs((prev) =>
+                        prev.map((row) =>
+                          row.customerId === customerId
+                            ? { ...row, creditSuspended }
+                            : row,
+                        ),
+                      );
+                      setFeedback({
+                        kind: "success",
+                        text: creditSuspended
+                          ? "Tab suspended. They cannot take more credit."
+                          : "Tab restored. They can take credit again.",
+                      });
+                    }}
+                    onSuspendError={(text) =>
+                      setFeedback({ kind: "error", text })
                     }
                   />
                 ) : (
@@ -963,26 +995,53 @@ export function CreditActivityPage() {
   );
 }
 
+function isTabCreditKind(kind: string): boolean {
+  return kind.startsWith("credit_");
+}
+
+function creditLineLabel(kind: string, memo: string): string {
+  switch (kind) {
+    case "credit_debt":
+      return "Charged";
+    case "credit_payment":
+      return "Paid";
+    case "credit_payment_reversal":
+      return "Payment reversed";
+    case "credit_adjustment":
+      return "Adjusted";
+    default:
+      return memo.trim() || kind.replaceAll("_", " ");
+  }
+}
+
+function isPaymentLine(kind: string): boolean {
+  return kind === "credit_payment";
+}
+
 function SelectedTabWorkspace({
   tab,
   fmtKes,
   canRemind,
+  canManageCustomers,
   canReviewPaymentClaims,
   selectedCharges,
-  singleDay,
   onRemindResult,
   onMarkPaid,
   onPrintCard,
+  onCreditSuspended,
+  onSuspendError,
 }: {
   tab: OutstandingTabRowRecord;
   fmtKes: (n: number) => string;
   canRemind: boolean;
+  canManageCustomers: boolean;
   canReviewPaymentClaims: boolean;
   selectedCharges: PaymentLedgerRow[];
-  singleDay: boolean;
   onRemindResult: (result: { ok: boolean; text: string }) => void;
   onMarkPaid: () => void;
   onPrintCard: () => void;
+  onCreditSuspended: (customerId: string, creditSuspended: boolean) => void;
+  onSuspendError: (text: string) => void;
 }) {
   const owed = toNum(tab.balanceOwed);
   const phoneOk = isUsableStoredCustomerPhone(tab.primaryPhone);
@@ -990,6 +1049,75 @@ function SelectedTabWorkspace({
     (sum, row) => sum + toNum(row.amount),
     0,
   );
+  const [statement, setStatement] = useState<CreditStatementRecord | null>(
+    null,
+  );
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [suspendBusy, setSuspendBusy] = useState(false);
+  const [confirmSuspend, setConfirmSuspend] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setHistoryLoading(true);
+    setHistoryError(null);
+    setStatement(null);
+    setConfirmSuspend(false);
+    void fetchCustomerCreditStatement(tab.customerId)
+      .then((next) => {
+        if (!cancelled) setStatement(next);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setHistoryError(
+            e instanceof Error ? e.message : "Could not load credit history.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab.customerId]);
+
+  const suspended = Boolean(
+    statement?.creditSuspended ?? tab.creditSuspended,
+  );
+  const tabLines = useMemo(() => {
+    const lines = (statement?.lines ?? []).filter((line) =>
+      isTabCreditKind(line.kind),
+    );
+    return [...lines].reverse();
+  }, [statement]);
+  const totalCharged = toNum(statement?.totalCharged);
+  const totalPaid = toNum(statement?.totalPaid);
+
+  const toggleSuspend = async (next: boolean) => {
+    setSuspendBusy(true);
+    try {
+      const updated = await patchCustomer(tab.customerId, {
+        creditSuspended: next,
+      });
+      setStatement((prev) =>
+        prev
+          ? { ...prev, creditSuspended: Boolean(updated.credit.creditSuspended) }
+          : prev,
+      );
+      onCreditSuspended(
+        tab.customerId,
+        Boolean(updated.credit.creditSuspended),
+      );
+      setConfirmSuspend(false);
+    } catch (e) {
+      onSuspendError(
+        e instanceof Error ? e.message : "Could not update this tab.",
+      );
+    } finally {
+      setSuspendBusy(false);
+    }
+  };
 
   return (
     <div className="flex h-full flex-col gap-5">
@@ -1010,11 +1138,37 @@ function SelectedTabWorkspace({
             {tab.primaryPhone?.trim() || "No phone on file"}
           </p>
           <CustomerPhoneFlag phone={tab.primaryPhone} />
+          {suspended ? (
+            <p className="mt-2 text-sm text-[#6B5344] dark:text-muted-foreground">
+              Tab suspended — they cannot take more credit.
+            </p>
+          ) : null}
         </div>
         <p className="font-serif text-3xl tabular-nums tracking-tight text-[#9A5A40] dark:text-[#E8B89A]">
           {fmtKes(owed)}
         </p>
       </div>
+
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+        <div>
+          <dt className="text-[11px] text-muted-foreground">Charged</dt>
+          <dd className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
+            {historyLoading ? " " : fmtKes(totalCharged)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[11px] text-muted-foreground">Paid</dt>
+          <dd className="mt-0.5 text-sm font-semibold tabular-nums text-[#1F6B3A] dark:text-emerald-300">
+            {historyLoading ? " " : fmtKes(totalPaid)}
+          </dd>
+        </div>
+        <div className="col-span-2 sm:col-span-1">
+          <dt className="text-[11px] text-muted-foreground">Still owed</dt>
+          <dd className="mt-0.5 text-sm font-semibold tabular-nums text-[#9A5A40] dark:text-[#E8B89A]">
+            {fmtKes(owed)}
+          </dd>
+        </div>
+      </dl>
 
       <div className="flex flex-wrap items-center gap-2">
         {canReviewPaymentClaims ? (
@@ -1033,41 +1187,125 @@ function SelectedTabWorkspace({
           <IdCard className="size-3.5" aria-hidden />
           Print card
         </Button>
-        {!canReviewPaymentClaims && !canRemind ? (
+        {canManageCustomers ? (
+          suspended ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={suspendBusy}
+              onClick={() => void toggleSuspend(false)}
+            >
+              Restore credit
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={suspendBusy}
+              onClick={() => setConfirmSuspend(true)}
+            >
+              <Ban className="size-3.5" aria-hidden />
+              Suspend credit
+            </Button>
+          )
+        ) : null}
+        {!canReviewPaymentClaims && !canRemind && !canManageCustomers ? (
           <p className="text-xs text-muted-foreground">
             Need claims review or messaging permission to clear or remind.
           </p>
         ) : null}
       </div>
 
-      {selectedCharges.length > 0 ? (
-        <div className="mt-auto border-t border-border/50 pt-4">
-          <p className="text-xs text-muted-foreground">
-            This period: {selectedCharges.length} sale
-            {selectedCharges.length === 1 ? "" : "s"}, {fmtKes(chargeTotal)}
+      {confirmSuspend ? (
+        <div className="rounded-xl border border-border/70 bg-[#F9F6F0] px-4 py-3 dark:bg-muted/40">
+          <p className="text-sm text-foreground">
+            Stop {tab.name} from taking more on tab? The balance stays until they
+            pay.
           </p>
-          <ul className="mt-2 space-y-1.5">
-            {selectedCharges.slice(0, 5).map((row) => (
-              <li
-                key={row.paymentId || `${row.saleId}-${row.sortOrder}`}
-                className="flex items-baseline justify-between gap-3 text-sm"
-              >
-                <span className="min-w-0 truncate text-muted-foreground">
-                  {fmtDayTime(row.soldAt, singleDay)}
-                  {row.receiptNo != null ? `, #${row.receiptNo}` : ""}
-                </span>
-                <span className="shrink-0 tabular-nums text-foreground">
-                  {fmtKes(toNum(row.amount))}
-                </span>
-              </li>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={suspendBusy}
+              onClick={() => void toggleSuspend(true)}
+            >
+              Suspend tab
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={suspendBusy}
+              onClick={() => setConfirmSuspend(false)}
+            >
+              Keep credit
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-auto border-t border-border/50 pt-4">
+        <p className="text-xs text-muted-foreground">
+          Credit history
+          {selectedCharges.length > 0
+            ? ` · this period ${selectedCharges.length} sale${
+                selectedCharges.length === 1 ? "" : "s"
+              }, ${fmtKes(chargeTotal)}`
+            : null}
+        </p>
+        {historyLoading ? (
+          <LedgerSkeleton rows={4} />
+        ) : historyError ? (
+          <p className="mt-2 text-sm text-destructive">{historyError}</p>
+        ) : tabLines.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-foreground">
+            No charges or payments on file yet.
+          </p>
+        ) : (
+          <ul className="mt-2 max-h-48 space-y-1.5 overflow-y-auto">
+            {tabLines.map((line, index) => (
+              <CreditHistoryRow
+                key={`${line.at}-${line.kind}-${index}`}
+                line={line}
+                fmtKes={fmtKes}
+              />
             ))}
           </ul>
-        </div>
-      ) : (
-        <p className="mt-auto border-t border-border/50 pt-4 text-xs text-muted-foreground">
-          No charges in this period for this name.
-        </p>
-      )}
+        )}
+      </div>
     </div>
+  );
+}
+
+function CreditHistoryRow({
+  line,
+  fmtKes,
+}: {
+  line: CreditStatementLineRecord;
+  fmtKes: (n: number) => string;
+}) {
+  const debit = toNum(line.debit);
+  const credit = toNum(line.credit);
+  const paid = isPaymentLine(line.kind);
+  const amount = paid || credit > 0 ? credit : debit;
+  return (
+    <li className="flex items-baseline justify-between gap-3 text-sm">
+      <span className="min-w-0 truncate text-muted-foreground">
+        {fmtDayTime(line.at, false)} · {creditLineLabel(line.kind, line.memo)}
+      </span>
+      <span
+        className={cn(
+          "shrink-0 tabular-nums",
+          paid
+            ? "text-[#1F6B3A] dark:text-emerald-300"
+            : "text-foreground",
+        )}
+      >
+        {paid ? "−" : "+"}
+        {fmtKes(amount)}
+      </span>
+    </li>
   );
 }
