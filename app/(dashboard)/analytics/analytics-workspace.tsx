@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
-import { BarChart3, Filter, RefreshCw, X } from "lucide-react";
+import { BarChart3, Check, Filter, RefreshCw, X } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -26,23 +26,33 @@ import {
   toISODate,
 } from "@/lib/analytics-date-range";
 import {
+  fetchAuditEvents,
   fetchBranches,
   fetchCategories,
   fetchCogsByBranch,
+  fetchCreditsActivitySummary,
   fetchCustomersByMonth,
   fetchFinancePL,
+  fetchFinancePulse,
   fetchItemsByProfit,
+  fetchOutstandingTabs,
+  fetchPaymentLedger,
   fetchSalesRevenueByCategory,
   fetchStaffPerformance,
+  type AuditEventRecord,
   type BranchCogsRow,
   type BranchRecord,
   type CategoryRecord,
+  type CreditCollectionRowRecord,
   type CustomerTrendResponse,
   type ItemRevenueRow,
+  type OutstandingTabRowRecord,
+  type PaymentLedgerRow,
   type ProfitAndLossResponse,
   type RevenueByCategoryRow,
   type StaffPerformanceRow,
 } from "@/lib/api";
+import { AnalyticsOpsBoard } from "./analytics-ops-board";
 
 const NAVY = "#0c3a66";
 const NAVY_DEEP = "#071e36";
@@ -421,6 +431,11 @@ function BoardSkeleton() {
           <div className="h-36 bg-white/10" />
         </div>
       </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-40 bg-white/90" />
+        ))}
+      </div>
       <span className="sr-only">Loading sales performance</span>
     </div>
   );
@@ -433,7 +448,12 @@ export function AnalyticsWorkspace({
   activityHref?: string | null;
   showCategoryTable?: boolean;
 } = {}) {
-  const { business, me, setBranchId: setHeaderBranchId } = useDashboard();
+  const {
+    business,
+    me,
+    setBranchId: setHeaderBranchId,
+    canViewAuditLog,
+  } = useDashboard();
   const { itemTypeId: headerItemTypeId } = useSessionItemType();
   const currency = business?.currency?.trim() || "KES";
   const money = useCallback(
@@ -477,6 +497,14 @@ export function AnalyticsWorkspace({
   const [branchCogs, setBranchCogs] = useState<BranchCogsRow[]>([]);
   const [customerTrend, setCustomerTrend] =
     useState<CustomerTrendResponse | null>(null);
+  const [payments, setPayments] = useState<PaymentLedgerRow[]>([]);
+  const [tabs, setTabs] = useState<OutstandingTabRowRecord[]>([]);
+  const [collections, setCollections] = useState<CreditCollectionRowRecord[]>(
+    [],
+  );
+  const [owedTotal, setOwedTotal] = useState(0);
+  const [audit, setAudit] = useState<AuditEventRecord[]>([]);
+  const [openShifts, setOpenShifts] = useState(0);
 
   const dateRange = useMemo(() => {
     if (preset === "custom") {
@@ -505,15 +533,36 @@ export function AnalyticsWorkspace({
         setItemsByProfit([]);
         setBranchCogs([]);
         setCustomerTrend(null);
+        setPayments([]);
+        setTabs([]);
+        setCollections([]);
+        setOwedTotal(0);
+        setAudit([]);
+        setOpenShifts(0);
         return;
       }
 
       const branchFilter = branchId || undefined;
       const typeFilter = headerItemTypeId?.trim() || undefined;
       const catFilter = categoryId || undefined;
+      const fromIso = parseISODate(dateRange.from).toISOString();
+      const toEnd = parseISODate(dateRange.to);
+      toEnd.setHours(23, 59, 59, 999);
+      const toIso = toEnd.toISOString();
 
-      const [plRes, catRes, staffRes, itemsRes, cogsRes, customersRes] =
-        await Promise.all([
+      const [
+        plRes,
+        catRes,
+        staffRes,
+        itemsRes,
+        cogsRes,
+        customersRes,
+        payRes,
+        tabRes,
+        creditRes,
+        pulseRes,
+        auditRes,
+      ] = await Promise.all([
           fetchFinancePL(
             dateRange.from,
             dateRange.to,
@@ -549,6 +598,25 @@ export function AnalyticsWorkspace({
           fetchCustomersByMonth(dateRange.from, dateRange.to, branchFilter).catch(
             () => null,
           ),
+          fetchPaymentLedger(dateRange.from, dateRange.to, branchFilter).catch(
+            () => [] as PaymentLedgerRow[],
+          ),
+          fetchOutstandingTabs().catch(() => [] as OutstandingTabRowRecord[]),
+          fetchCreditsActivitySummary(dateRange.from, dateRange.to).catch(
+            () => null,
+          ),
+          fetchFinancePulse(dateRange.to, branchFilter, typeFilter).catch(
+            () => null,
+          ),
+          canViewAuditLog
+            ? fetchAuditEvents({
+                branchId: branchFilter ?? null,
+                from: fromIso,
+                to: toIso,
+                page: 0,
+                size: 8,
+              }).catch(() => null)
+            : Promise.resolve(null),
         ]);
 
       setPl(plRes);
@@ -557,6 +625,14 @@ export function AnalyticsWorkspace({
       setItemsByProfit(Array.isArray(itemsRes) ? itemsRes : []);
       setBranchCogs(Array.isArray(cogsRes) ? cogsRes : []);
       setCustomerTrend(customersRes);
+      setPayments(Array.isArray(payRes) ? payRes : []);
+      setTabs(Array.isArray(tabRes) ? tabRes : []);
+      setCollections(
+        Array.isArray(creditRes?.collections) ? creditRes.collections : [],
+      );
+      setOwedTotal(Number(creditRes?.totalOwed ?? 0) || 0);
+      setOpenShifts(pulseRes?.openShifts ?? 0);
+      setAudit(Array.isArray(auditRes?.content) ? auditRes.content : []);
       hasLoadedRef.current = true;
     } catch (err) {
       setError(
@@ -566,7 +642,7 @@ export function AnalyticsWorkspace({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [dateRange, branchId, categoryId, headerItemTypeId]);
+  }, [dateRange, branchId, categoryId, headerItemTypeId, canViewAuditLog]);
 
   useEffect(() => {
     void load();
@@ -583,7 +659,6 @@ export function AnalyticsWorkspace({
   const totalCogs = categoryFiltered
     ? totalRevenue - totalProfit
     : toNum(pl?.cogs);
-  const totalCustomers = customerTrend?.totalDistinct ?? 0;
 
   const productBars = itemsByProfit.map((row) => ({
     key: row.itemId,
@@ -636,6 +711,28 @@ export function AnalyticsWorkspace({
     ...branches.map((b) => ({ id: b.id, label: b.name })),
   ];
 
+  const imported = payments.reduce((sum, row) => sum + toNum(row.amount), 0);
+  const unverifiedMpesa = payments.filter((row) => {
+    const method = row.method.trim().toLowerCase();
+    return (
+      (method === "mpesa" || method === "mpesa_manual") &&
+      row.mpesaVerified === false
+    );
+  }).length;
+  const unallocated = payments
+    .filter((row) => {
+      const status = row.status.trim().toLowerCase();
+      const method = row.method.trim().toLowerCase();
+      const open = status && status !== "completed" && status !== "paid";
+      const unverified =
+        (method === "mpesa" || method === "mpesa_manual") &&
+        row.mpesaVerified === false;
+      return open || unverified;
+    })
+    .reduce((sum, row) => sum + toNum(row.amount), 0);
+  const allocated = Math.max(imported - unallocated, 0);
+  const balanced = unallocated === 0 && openShifts === 0 && unverifiedMpesa === 0;
+
   if (loading) return <BoardSkeleton />;
 
   return (
@@ -654,13 +751,20 @@ export function AnalyticsWorkspace({
         style={{ background: NAVY }}
       >
         <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
             <span className="flex size-12 shrink-0 items-center justify-center bg-white">
               <BarChart3 className="size-6" aria-hidden style={{ color: NAVY }} />
             </span>
             <h1 className="min-w-0 font-sans text-[1.4rem] font-bold uppercase leading-tight tracking-[-0.02em] text-white sm:text-[1.75rem]">
               Sales performance dashboard
             </h1>
+            <span
+              className="inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[-0.02em] text-white"
+              style={{ background: balanced ? "#1a6b2a" : "#c05612" }}
+            >
+              {balanced ? <Check className="size-3.5" aria-hidden /> : null}
+              {balanced ? "Balanced" : "Needs review"}
+            </span>
           </div>
           <div className="flex items-center gap-3">
             <p className="hidden text-[11px] font-medium uppercase tracking-[-0.02em] text-white/85 sm:block">
@@ -725,7 +829,7 @@ export function AnalyticsWorkspace({
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem]">
           <div className="min-w-0 space-y-4">
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
               {[
                 { label: "Total revenue", value: money(totalRevenue) },
                 {
@@ -735,7 +839,14 @@ export function AnalyticsWorkspace({
                 { label: "Total profit", value: money(totalProfit) },
                 {
                   label: "Total customers",
-                  value: totalCustomers.toLocaleString("en-KE"),
+                  value: (customerTrend?.totalDistinct ?? 0).toLocaleString(
+                    "en-KE",
+                  ),
+                },
+                {
+                  label: "Unallocated",
+                  value: money(unallocated + owedTotal),
+                  warn: unallocated + owedTotal > 0,
                 },
               ].map((kpi) => (
                 <WhiteCard key={kpi.label} className="flex min-h-[5.5rem] flex-col justify-between px-4 py-3">
@@ -747,7 +858,10 @@ export function AnalyticsWorkspace({
                   </p>
                   <p
                     className="text-[1.55rem] font-bold tabular-nums leading-none tracking-[-0.03em] sm:text-[1.7rem]"
-                    style={{ color: INK }}
+                    style={{
+                      color:
+                        "warn" in kpi && kpi.warn ? "#c05612" : INK,
+                    }}
                   >
                     {kpi.value}
                   </p>
@@ -814,6 +928,23 @@ export function AnalyticsWorkspace({
               onClear={branchLocked ? undefined : () => onChangeBranch("")}
             />
           </aside>
+        </div>
+
+        <div className="mt-4">
+          <AnalyticsOpsBoard
+            money={money}
+            payments={payments}
+            tabs={tabs}
+            collections={collections}
+            audit={audit}
+            imported={payments.length > 0 ? imported : totalRevenue}
+            allocated={payments.length > 0 ? allocated : totalRevenue}
+            unallocated={unallocated + owedTotal}
+            balanced={balanced}
+            openShifts={openShifts}
+            unverifiedMpesa={unverifiedMpesa}
+            canViewAudit={canViewAuditLog}
+          />
         </div>
       </div>
 
