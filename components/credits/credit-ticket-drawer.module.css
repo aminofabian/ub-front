@@ -1,0 +1,163 @@
+.wrap :is(input, button, a) {
+  caret-color: #3a3a3a;
+}
+
+.wrap ::selection {
+  background: #d4d4d4;
+  color: #141414;
+}
+
+.wrap {
+  --ink: #1c1c1c;
+  --soft: #5c5c5c;
+  --rule: #ececec;
+  --tab: #b4533a;
+}
+
+.status,
+.error {
+  padding: 1.75rem 0.15rem;
+  font-size: 0.875rem;
+}
+
+.status {
+  color: var(--soft);
+}
+
+.error {
+  color: #9a2f2f;
+}
+
+.slip {
+  color: var(--ink);
+}
+
+.tear {
+  height: 10px;
+  margin: 0 -0.15rem 0.85rem;
+  background: radial-gradient(
+    circle at 6px 0,
+    transparent 5px,
+    var(--rule) 5.5px,
+    var(--rule) 6px,
+    transparent 6.5px
+  );
+  background-size: 12px 10px;
+  background-repeat: repeat-x;
+}
+
+.tear:last-child {
+  margin: 1rem -0.15rem 0;
+  background-position: 0 10px;
+  transform: scaleY(-1);
+}
+
+.shop {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--soft);
+}
+
+.paidFigure {
+  margin: 1.15rem 0 0;
+  font-family: var(--font-serif), ui-serif, Georgia, serif;
+  font-size: clamp(1.85rem, 4vw, 2.35rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #1f6b3a;
+}
+
+.paidLabel {
+  margin: 0.4rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--soft);
+}
+
+.note {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--soft);
+}
+
+.items {
+  margin: 0.85rem 0 0;
+  border-top: 1px dashed var(--rule);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.55rem 0;
+  border-bottom: 1px dashed var(--rule);
+}
+
+.itemName {
+  min-width: 0;
+  font-size: 0.875rem;
+}
+
+.itemQty {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--soft);
+}
+
+.itemAmt {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.emptyLine {
+  padding: 0.85rem 0;
+  font-size: 0.8125rem;
+  color: var(--soft);
+}
+
+.totals {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.9rem;
+}
+
+.totals div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.totals dt {
+  font-size: 0.75rem;
+  color: var(--soft);
+}
+
+.totals dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.tabAmt {
+  color: var(--tab);
+}
+
+:global(.dark) .wrap {
+  --ink: #f0f0f0;
+  --soft: #a3a3a3;
+  --rule: #2a2a2a;
+  --tab: #e8b89a;
+}

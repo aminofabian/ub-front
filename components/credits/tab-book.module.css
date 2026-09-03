@@ -1,29 +1,29 @@
-/* Kenyan counter cash-book: cream paper, terracotta margin, one binding gutter. */
+/* Credits board: white paper, charcoal type, hairline rules. */
 
 .book {
-  --ink: #2c1810;
-  --ink-soft: #6b5344;
-  --rule: color-mix(in srgb, #8b6f3a 22%, transparent);
-  --margin: #c47a5a;
-  --paper: #f4efe4;
-  --paper-deep: #ebe4d4;
+  --ink: #1c1c1c;
+  --ink-soft: #5c5c5c;
+  --rule: #ececec;
+  --accent: #1c1c1c;
+  --owed: #b4533a;
+  --paper: #ffffff;
+  --paper-deep: #fafafa;
   --collect: #1f6b3a;
   --gutter: 18px;
   --line: 1.75rem;
   overflow: hidden;
   border-radius: 1rem;
-  border: 1px solid color-mix(in srgb, #8b6f3a 18%, #e6e1d8);
+  border: 1px solid #e8e8e8;
   background: var(--paper);
   color: var(--ink);
-  box-shadow: 0 10px 28px -18px rgb(44 24 16 / 0.45);
 }
 
 .book :is(input, button, a) {
-  caret-color: var(--margin);
+  caret-color: var(--ink);
 }
 
 .book ::selection {
-  background: color-mix(in srgb, var(--margin) 35%, #f9f6f0);
+  background: #d4d4d4;
   color: var(--ink);
 }
 
@@ -32,7 +32,7 @@
 }
 
 .book :is(.index, .page, .dayList)::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--margin) 55%, var(--paper-deep));
+  background: #d4d4d4;
   border-radius: 99px;
 }
 
@@ -40,9 +40,8 @@
   display: grid;
   gap: 1.25rem;
   padding: 1.35rem 1.4rem 1.2rem;
-  background:
-    linear-gradient(180deg, #faf6ee 0%, var(--paper) 100%);
-  border-bottom: 1px solid color-mix(in srgb, #8b6f3a 16%, transparent);
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
 }
 
 .mastheadTop {
@@ -65,6 +64,7 @@
   letter-spacing: -0.03em;
   line-height: 1.02;
   font-variant-numeric: tabular-nums;
+  color: var(--owed);
 }
 
 .owedMeta {
@@ -94,6 +94,7 @@
   letter-spacing: -0.02em;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
+  color: var(--ink);
 }
 
 .collect {
@@ -103,7 +104,7 @@
 .sideHint {
   margin: 0.2rem 0 0;
   font-size: 0.6875rem;
-  color: color-mix(in srgb, var(--ink-soft) 80%, #a09080);
+  color: var(--ink-soft);
 }
 
 .toolbar {
@@ -123,7 +124,7 @@
 .stamp {
   min-height: 1.85rem;
   border-radius: 0.35rem;
-  border: 1px dashed color-mix(in srgb, var(--margin) 40%, transparent);
+  border: 1px solid #e0e0e0;
   background: transparent;
   padding: 0.2rem 0.55rem;
   font-size: 0.6875rem;
@@ -135,15 +136,14 @@
 
 .stamp:hover {
   color: var(--ink);
-  background: color-mix(in srgb, #fff 40%, transparent);
+  background: var(--paper-deep);
 }
 
 .stampActive {
-  border-style: solid;
-  border-color: var(--margin);
-  background: color-mix(in srgb, var(--margin) 12%, #fff);
-  color: #7a3f28;
-  box-shadow: 0 1px 0 rgb(44 24 16 / 0.06);
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+  box-shadow: none;
 }
 
 .hours {
@@ -157,7 +157,7 @@
   min-width: 0;
   flex: 1;
   border-radius: 1px 1px 0 0;
-  background: var(--margin);
+  background: #cfcfcf;
 }
 
 .hourScale {
@@ -165,7 +165,7 @@
   justify-content: space-between;
   margin-top: 0.3rem;
   font-size: 0.625rem;
-  color: #a09080;
+  color: var(--ink-soft);
 }
 
 .spread {
@@ -183,22 +183,13 @@
   position: relative;
   max-height: 22rem;
   overflow-y: auto;
-  background:
-    linear-gradient(to right, transparent var(--gutter), var(--margin) var(--gutter), var(--margin) calc(var(--gutter) + 1px), transparent calc(var(--gutter) + 1px)),
-    repeating-linear-gradient(
-      transparent,
-      transparent calc(var(--line) - 1px),
-      var(--rule) var(--line)
-    ),
-    var(--paper-deep);
-  background-attachment: local;
+  background: var(--paper-deep);
 }
 
 @media (min-width: 1024px) {
   .index {
     max-height: none;
-    border-right: 1px solid color-mix(in srgb, #8b6f3a 14%, transparent);
-    box-shadow: inset -14px 0 18px -18px rgb(44 24 16 / 0.35);
+    border-right: 1px solid var(--rule);
   }
 }
 
@@ -209,9 +200,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-  padding: 0.85rem var(--gutter) 0.7rem calc(var(--gutter) + 0.85rem);
-  background: color-mix(in srgb, var(--paper-deep) 92%, #fff);
-  border-bottom: 1px solid color-mix(in srgb, #8b6f3a 12%, transparent);
+  padding: 0.85rem var(--gutter) 0.7rem calc(var(--gutter) + 0.35rem);
+  background: var(--paper-deep);
+  border-bottom: 1px solid var(--rule);
 }
 
 .indexTitle {
@@ -234,21 +225,22 @@
   min-height: var(--line);
   align-items: baseline;
   gap: 0.65rem;
-  padding: 0.15rem var(--gutter) 0.15rem calc(var(--gutter) + 0.85rem);
+  padding: 0.15rem var(--gutter) 0.15rem calc(var(--gutter) + 0.35rem);
   text-align: left;
   color: inherit;
 }
 
 .nameRow:hover {
-  background: color-mix(in srgb, #fff 45%, transparent);
+  background: #fff;
 }
 
 .nameRowActive {
-  background: color-mix(in srgb, #fff 70%, transparent);
+  background: #fff;
+  box-shadow: inset 2px 0 0 var(--ink);
 }
 
 .nameRow:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--margin) 70%, transparent);
+  outline: 2px solid #1c1c1c;
   outline-offset: -2px;
 }
 
@@ -279,7 +271,7 @@
   font-variant-numeric: tabular-nums;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #9a5a40;
+  color: var(--owed);
 }
 
 .badge {
@@ -290,18 +282,16 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #7a3f28;
-  background: color-mix(in srgb, var(--margin) 16%, #fff);
+  color: var(--ink);
+  background: #ececec;
 }
 
 .page {
   display: flex;
   min-height: 16rem;
   flex-direction: column;
-  background:
-    linear-gradient(to right, transparent 1.15rem, var(--margin) 1.15rem, var(--margin) calc(1.15rem + 1px), transparent calc(1.15rem + 1px)),
-    var(--paper);
-  padding: 1.15rem 1.25rem 1.25rem 1.7rem;
+  background: var(--paper);
+  padding: 1.15rem 1.25rem 1.25rem 1.35rem;
 }
 
 .pageTurn {
@@ -352,7 +342,7 @@
   letter-spacing: -0.03em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: #9a5a40;
+  color: var(--owed);
 }
 
 .tally {
@@ -419,12 +409,6 @@
 .ledgerBody {
   max-height: 14.5rem;
   overflow-y: auto;
-  background:
-    repeating-linear-gradient(
-      transparent,
-      transparent calc(var(--line) - 1px),
-      var(--rule) var(--line)
-    );
 }
 
 .ledgerRow {
@@ -432,9 +416,22 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 0.75rem;
+  width: 100%;
   min-height: var(--line);
-  padding: 0 0.15rem;
+  padding: 0.2rem 0.15rem;
+  text-align: left;
   font-size: 0.8125rem;
+  color: inherit;
+  border-bottom: 1px solid var(--rule);
+}
+
+.ledgerRow:hover {
+  background: var(--paper-deep);
+}
+
+.ledgerRow:focus-visible {
+  outline: 2px solid #1c1c1c;
+  outline-offset: -2px;
 }
 
 .ledgerWhen {
@@ -461,13 +458,14 @@
   margin-top: 0.85rem;
   padding: 0.75rem 0.85rem;
   border-radius: 0.65rem;
-  background: color-mix(in srgb, var(--margin) 10%, #fff);
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
 }
 
 .daySheet {
   display: grid;
-  border-top: 1px dashed color-mix(in srgb, #8b6f3a 28%, transparent);
-  background: color-mix(in srgb, var(--paper) 70%, #fff);
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
 }
 
 @media (min-width: 1280px) {
@@ -477,13 +475,13 @@
 }
 
 .dayCol + .dayCol {
-  border-top: 1px dashed color-mix(in srgb, #8b6f3a 22%, transparent);
+  border-top: 1px solid var(--rule);
 }
 
 @media (min-width: 1280px) {
   .dayCol + .dayCol {
     border-top: 0;
-    border-left: 1px dashed color-mix(in srgb, #8b6f3a 22%, transparent);
+    border-left: 1px solid var(--rule);
   }
 }
 
@@ -520,11 +518,11 @@
 }
 
 .dayRow:hover {
-  background: color-mix(in srgb, var(--margin) 7%, transparent);
+  background: var(--paper-deep);
 }
 
 .dayRowLinked {
-  background: color-mix(in srgb, var(--margin) 11%, transparent);
+  background: var(--paper-deep);
 }
 
 .dayWhen {
@@ -582,7 +580,7 @@
   width: 100%;
   height: 2.15rem;
   border-radius: 0.4rem;
-  border: 1px solid color-mix(in srgb, #8b6f3a 22%, transparent);
+  border: 1px solid #e0e0e0;
   background: #fff;
   padding-left: 2rem;
   font-size: 0.8125rem;
@@ -592,76 +590,62 @@
 
 .search:focus-visible {
   outline: none;
-  border-color: var(--margin);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--margin) 22%, transparent);
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgb(28 28 28 / 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   .book {
-    --ink: #f3eadc;
-    --ink-soft: #cbbba8;
-    --rule: rgb(232 184 154 / 0.16);
-    --paper: #231910;
-    --paper-deep: #1b140e;
+    --ink: #f0f0f0;
+    --ink-soft: #a3a3a3;
+    --rule: #2a2a2a;
+    --owed: #e8b89a;
+    --paper: #141414;
+    --paper-deep: #1a1a1a;
     --collect: #7dcea0;
-    border-color: rgb(232 184 154 / 0.16);
-    box-shadow: none;
-  }
-
-  .masthead {
-    background: linear-gradient(180deg, #2a1e16 0%, var(--paper) 100%);
+    border-color: #2a2a2a;
   }
 
   .stampActive {
-    background: color-mix(in srgb, var(--margin) 22%, var(--paper));
-    color: #f0c4ae;
+    background: #f0f0f0;
+    color: #141414;
+    border-color: #f0f0f0;
   }
 
   .search {
-    background: #2a1e16;
+    background: #1a1a1a;
     color: var(--ink);
+    border-color: #2a2a2a;
   }
 
-  .nameOwed,
-  .personOwed {
-    color: #e8b89a;
-  }
-
-  .phoneBad {
-    color: #f0a0a0;
+  .nameRowActive {
+    box-shadow: inset 2px 0 0 #f0f0f0;
   }
 }
 
 :global(.dark) .book {
-  --ink: #f3eadc;
-  --ink-soft: #cbbba8;
-  --rule: rgb(232 184 154 / 0.16);
-  --paper: #231910;
-  --paper-deep: #1b140e;
+  --ink: #f0f0f0;
+  --ink-soft: #a3a3a3;
+  --rule: #2a2a2a;
+  --owed: #e8b89a;
+  --paper: #141414;
+  --paper-deep: #1a1a1a;
   --collect: #7dcea0;
-  border-color: rgb(232 184 154 / 0.16);
-  box-shadow: none;
-}
-
-:global(.dark) .masthead {
-  background: linear-gradient(180deg, #2a1e16 0%, var(--paper) 100%);
+  border-color: #2a2a2a;
 }
 
 :global(.dark) .stampActive {
-  background: color-mix(in srgb, var(--margin) 22%, var(--paper));
-  color: #f0c4ae;
+  background: #f0f0f0;
+  color: #141414;
+  border-color: #f0f0f0;
 }
 
 :global(.dark) .search {
-  background: #2a1e16;
+  background: #1a1a1a;
   color: var(--ink);
+  border-color: #2a2a2a;
 }
 
-:global(.dark) .nameOwed,
-:global(.dark) .personOwed {
-  color: #e8b89a;
-}
-
-:global(.dark) .phoneBad {
-  color: #f0a0a0;
+:global(.dark) .nameRowActive {
+  box-shadow: inset 2px 0 0 #f0f0f0;
 }

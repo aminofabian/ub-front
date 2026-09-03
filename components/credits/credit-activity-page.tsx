@@ -28,16 +28,25 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { useFormatMoney } from "@/hooks/use-format-money";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import {
+  CreditTicketDrawer,
+  slipFromPurchase,
+  type CreditSlip,
+} from "@/components/credits/credit-ticket-drawer";
+import {
   fetchCreditsActivitySummary,
   fetchCustomerCreditStatement,
+  fetchCustomerTabPurchases,
   fetchOutstandingTabs,
   fetchPaymentLedger,
+  fetchSale,
   patchCustomer,
   type CreditsActivitySummaryRecord,
   type CreditStatementLineRecord,
   type CreditStatementRecord,
   type OutstandingTabRowRecord,
   type PaymentLedgerRow,
+  type SaleRecord,
+  type TabPurchaseRowRecord,
 } from "@/lib/api";
 import type { LoyaltyCardCustomerInput } from "@/lib/loyalty-card";
 import {
@@ -93,6 +102,66 @@ function fmtDayTime(iso: string, singleDay: boolean): string {
 
 function isCreditMethod(method: string): boolean {
   return method.trim().toLowerCase() === "customer_credit";
+}
+
+function saleToSlip(
+  sale: SaleRecord,
+  when: string,
+  extras?: {
+    customerName?: string;
+    cashierName?: string;
+    tabAmount?: number;
+  },
+): CreditSlip {
+  return {
+    kind: "items",
+    heading: sale.receiptNo != null ? `#${sale.receiptNo}` : "Sale",
+    when,
+    customerName: extras?.customerName,
+    cashierName: extras?.cashierName ?? sale.soldByName ?? undefined,
+    lines: sale.items.map((item) => ({
+      name: item.lineLabel?.trim() || "Item",
+      quantity: toNum(item.quantity),
+      unitPrice: toNum(item.unitPrice),
+      lineTotal: toNum(item.lineTotal),
+    })),
+    grandTotal: toNum(sale.grandTotal),
+    tabAmount: extras?.tabAmount,
+  };
+}
+
+function assignPurchasesToLines(
+  lines: CreditStatementLineRecord[],
+  purchases: TabPurchaseRowRecord[],
+): Map<number, TabPurchaseRowRecord> {
+  const used = new Set<string>();
+  const map = new Map<number, TabPurchaseRowRecord>();
+  lines.forEach((line, i) => {
+    if (line.kind !== "credit_debt") return;
+    const t = new Date(line.at).getTime();
+    const amount = toNum(line.debit);
+    let best: TabPurchaseRowRecord | null = null;
+    let bestScore = Infinity;
+    for (const p of purchases) {
+      if (used.has(p.saleId)) continue;
+      const dt = Math.abs(new Date(p.soldAt).getTime() - t);
+      if (dt > 15 * 60 * 1000) continue;
+      const dCredit = Math.abs(toNum(p.creditAmount) - amount);
+      const dGrand = Math.abs(toNum(p.grandTotal) - amount);
+      const dAmt = Math.min(dCredit, dGrand);
+      if (dAmt > 0.05) continue;
+      const score = dt + dAmt * 4000;
+      if (score < bestScore) {
+        bestScore = score;
+        best = p;
+      }
+    }
+    if (best) {
+      used.add(best.saleId);
+      map.set(i, best);
+    }
+  });
+  return map;
 }
 
 function nameKey(name: string | null | undefined): string {
@@ -194,6 +263,9 @@ export function CreditActivityPage() {
   );
   const [cardCustomer, setCardCustomer] =
     useState<LoyaltyCardCustomerInput | null>(null);
+  const [slip, setSlip] = useState<CreditSlip | null>(null);
+  const [slipLoading, setSlipLoading] = useState(false);
+  const [slipError, setSlipError] = useState<string | null>(null);
 
   const canRemind = canManageCreditSettings || canReviewPaymentClaims;
   const busy = listLoading || refreshing || tabsLoading || summaryLoading;
@@ -399,6 +471,57 @@ export function CreditActivityPage() {
     [openTabs],
   );
 
+  const closeSlip = useCallback((open: boolean) => {
+    if (!open) {
+      setSlip(null);
+      setSlipError(null);
+      setSlipLoading(false);
+    }
+  }, []);
+
+  const showSlip = useCallback((next: CreditSlip) => {
+    setSlipError(null);
+    setSlipLoading(false);
+    setSlip(next);
+  }, []);
+
+  const openSaleSlip = useCallback(
+    async (
+      saleId: string,
+      when: string,
+      extras?: {
+        customerName?: string;
+        cashierName?: string;
+        tabAmount?: number;
+      },
+    ) => {
+      setSlip(null);
+      setSlipError(null);
+      setSlipLoading(true);
+      try {
+        const sale = await fetchSale(saleId);
+        setSlip(saleToSlip(sale, when, extras));
+      } catch (e) {
+        setSlipError(
+          e instanceof Error ? e.message : "Could not open this till slip.",
+        );
+        setSlip({
+          kind: "items",
+          heading: "Sale",
+          when,
+          customerName: extras?.customerName,
+          cashierName: extras?.cashierName,
+          lines: [],
+          grandTotal: extras?.tabAmount ?? 0,
+          tabAmount: extras?.tabAmount,
+        });
+      } finally {
+        setSlipLoading(false);
+      }
+    },
+    [],
+  );
+
   if (sessionLoading) {
     return (
       <div className={cn(DASHBOARD_MAX_WIDE, "space-y-6 pb-16")}>
@@ -425,11 +548,11 @@ export function CreditActivityPage() {
   return (
     <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")}>
       {/*
-        THESIS: one cash book on the counter, not a stack of dashboard cards.
-        OWN-WORLD: Kenyan exercise-book paper — cream, terracotta margin rule, serif figures.
-        STORY: read what is still out, open a name, collect or suspend, then scan the day's charges.
-        FIRST VIEWPORT: the book itself — owed, names, the selected account.
-        FORM: operate / tab-book.
+        THESIS: one ledger on white paper — still owed, names, then history as till slips.
+        OWN-WORLD: white sheet, charcoal type, rust only on outstanding.
+        STORY: pick a name, collect or freeze, tap a charge to read the items.
+        FIRST VIEWPORT: owed figure, names, selected account.
+        FORM: operate / white ledger.
         FINISH: verify in the browser.
       */}
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -606,7 +729,7 @@ export function CreditActivityPage() {
                   </div>
                   <div className="relative">
                     <Search
-                      className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-[#8A7A6C]"
+                      className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-neutral-400"
                       aria-hidden
                     />
                     <input
@@ -677,6 +800,10 @@ export function CreditActivityPage() {
                     canManageCustomers={canManageCustomers}
                     canReviewPaymentClaims={canReviewPaymentClaims}
                     selectedCharges={selectedCharges}
+                    onOpenSlip={showSlip}
+                    onOpenSaleSlip={(saleId, when, extras) =>
+                      void openSaleSlip(saleId, when, extras)
+                    }
                     onRemindResult={({ ok, text }) =>
                       setFeedback({ kind: ok ? "success" : "error", text })
                     }
@@ -740,7 +867,7 @@ export function CreditActivityPage() {
               {canViewCustomers ? null : (
                 <div className="relative mt-2 max-w-xs">
                   <Search
-                    className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-[#8A7A6C]"
+                    className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-neutral-400"
                     aria-hidden
                   />
                   <input
@@ -773,7 +900,18 @@ export function CreditActivityPage() {
                     <li key={row.paymentId || `${row.saleId}-${row.sortOrder}`}>
                       <button
                         type="button"
-                        onClick={() => selectTabByName(name)}
+                        onClick={() => {
+                          selectTabByName(name);
+                          void openSaleSlip(
+                            row.saleId,
+                            fmtDayTime(row.soldAt, false),
+                            {
+                              customerName: name,
+                              cashierName: row.cashierName?.trim() || undefined,
+                              tabAmount: amount,
+                            },
+                          );
+                        }}
                         className={cn(
                           styles.dayRow,
                           linked && styles.dayRowLinked,
@@ -906,6 +1044,14 @@ export function CreditActivityPage() {
         }}
       />
 
+      <CreditTicketDrawer
+        slip={slip}
+        loading={slipLoading}
+        error={slipError}
+        fmtKes={fmtKes}
+        onOpenChange={closeSlip}
+      />
+
       <LoyaltyCardPreview
         customer={cardCustomer}
         open={cardCustomer != null}
@@ -947,6 +1093,8 @@ function SelectedTabWorkspace({
   canManageCustomers,
   canReviewPaymentClaims,
   selectedCharges,
+  onOpenSlip,
+  onOpenSaleSlip,
   onRemindResult,
   onMarkPaid,
   onPrintCard,
@@ -959,6 +1107,16 @@ function SelectedTabWorkspace({
   canManageCustomers: boolean;
   canReviewPaymentClaims: boolean;
   selectedCharges: PaymentLedgerRow[];
+  onOpenSlip: (slip: CreditSlip) => void;
+  onOpenSaleSlip: (
+    saleId: string,
+    when: string,
+    extras?: {
+      customerName?: string;
+      cashierName?: string;
+      tabAmount?: number;
+    },
+  ) => void;
   onRemindResult: (result: { ok: boolean; text: string }) => void;
   onMarkPaid: () => void;
   onPrintCard: () => void;
@@ -976,6 +1134,7 @@ function SelectedTabWorkspace({
   );
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [purchases, setPurchases] = useState<TabPurchaseRowRecord[]>([]);
   const [suspendBusy, setSuspendBusy] = useState(false);
   const [confirmSuspend, setConfirmSuspend] = useState(false);
 
@@ -984,10 +1143,18 @@ function SelectedTabWorkspace({
     setHistoryLoading(true);
     setHistoryError(null);
     setStatement(null);
+    setPurchases([]);
     setConfirmSuspend(false);
-    void fetchCustomerCreditStatement(tab.customerId)
-      .then((next) => {
-        if (!cancelled) setStatement(next);
+    void Promise.all([
+      fetchCustomerCreditStatement(tab.customerId),
+      fetchCustomerTabPurchases(tab.customerId, { offset: 0, limit: 80 }).catch(
+        () => ({ rows: [] as TabPurchaseRowRecord[] }),
+      ),
+    ])
+      .then(([next, page]) => {
+        if (cancelled) return;
+        setStatement(next);
+        setPurchases(page.rows);
       })
       .catch((e) => {
         if (!cancelled) {
@@ -1013,6 +1180,10 @@ function SelectedTabWorkspace({
     );
     return [...lines].reverse();
   }, [statement]);
+  const purchaseByLine = useMemo(
+    () => assignPurchasesToLines(tabLines, purchases),
+    [tabLines, purchases],
+  );
   const totalCharged = toNum(statement?.totalCharged);
   const totalPaid = toNum(statement?.totalPaid);
 
@@ -1171,6 +1342,7 @@ function SelectedTabWorkspace({
                   selectedCharges.length === 1 ? "" : "s"
                 }, ${fmtKes(chargeTotal)}`
               : ""}
+            {" · tap a row for the slip"}
           </span>
           <span>Kind</span>
           <span>Amount</span>
@@ -1189,7 +1361,58 @@ function SelectedTabWorkspace({
               <CreditHistoryRow
                 key={`${line.at}-${line.kind}-${index}`}
                 line={line}
+                purchase={purchaseByLine.get(index) ?? null}
                 fmtKes={fmtKes}
+                onOpen={() => {
+                  const purchase = purchaseByLine.get(index);
+                  if (purchase) {
+                    onOpenSlip(
+                      slipFromPurchase(
+                        purchase,
+                        (iso) => fmtDayTime(iso, false),
+                        tab.name,
+                      ),
+                    );
+                    return;
+                  }
+                  if (isPaymentLine(line.kind)) {
+                    onOpenSlip({
+                      kind: "payment",
+                      heading: "Collected",
+                      when: fmtDayTime(line.at, false),
+                      customerName: tab.name,
+                      amount: toNum(line.credit) || toNum(line.debit),
+                      note: creditLineLabel(line.kind, line.memo),
+                    });
+                    return;
+                  }
+                  const match = selectedCharges.find((row) => {
+                    const dt = Math.abs(
+                      new Date(row.soldAt).getTime() - new Date(line.at).getTime(),
+                    );
+                    return (
+                      dt < 15 * 60 * 1000 &&
+                      Math.abs(toNum(row.amount) - toNum(line.debit)) < 0.05
+                    );
+                  });
+                  if (match) {
+                    onOpenSaleSlip(match.saleId, fmtDayTime(match.soldAt, false), {
+                      customerName: tab.name,
+                      cashierName: match.cashierName?.trim() || undefined,
+                      tabAmount: toNum(match.amount),
+                    });
+                    return;
+                  }
+                  onOpenSlip({
+                    kind: "items",
+                    heading: creditLineLabel(line.kind, line.memo),
+                    when: fmtDayTime(line.at, false),
+                    customerName: tab.name,
+                    lines: [],
+                    grandTotal: toNum(line.debit) || toNum(line.credit),
+                    tabAmount: toNum(line.debit) || undefined,
+                  });
+                }}
               />
             ))}
           </ul>
@@ -1201,25 +1424,45 @@ function SelectedTabWorkspace({
 
 function CreditHistoryRow({
   line,
+  purchase,
   fmtKes,
+  onOpen,
 }: {
   line: CreditStatementLineRecord;
+  purchase: TabPurchaseRowRecord | null;
   fmtKes: (n: number) => string;
+  onOpen: () => void;
 }) {
   const debit = toNum(line.debit);
   const credit = toNum(line.credit);
   const paid = isPaymentLine(line.kind);
   const amount = paid || credit > 0 ? credit : debit;
+  const itemHint =
+    purchase && purchase.lines.length > 0
+      ? purchase.lines
+          .slice(0, 2)
+          .map((l) => l.itemName)
+          .join(", ") + (purchase.lines.length > 2 ? "…" : "")
+      : null;
   return (
-    <li className={styles.ledgerRow}>
-      <span className={styles.ledgerWhen}>{fmtDayTime(line.at, false)}</span>
-      <span className={styles.ledgerKind}>
-        {creditLineLabel(line.kind, line.memo)}
-      </span>
-      <span className={cn(styles.ledgerAmt, paid && styles.paid)}>
-        {paid ? "−" : "+"}
-        {fmtKes(amount)}
-      </span>
+    <li>
+      <button type="button" className={styles.ledgerRow} onClick={onOpen}>
+        <span className={styles.ledgerWhen}>
+          {fmtDayTime(line.at, false)}
+          {itemHint ? (
+            <span className={cn(styles.muted, "mt-0.5 block truncate text-[11px]")}>
+              {itemHint}
+            </span>
+          ) : null}
+        </span>
+        <span className={styles.ledgerKind}>
+          {creditLineLabel(line.kind, line.memo)}
+        </span>
+        <span className={cn(styles.ledgerAmt, paid && styles.paid)}>
+          {paid ? "−" : "+"}
+          {fmtKes(amount)}
+        </span>
+      </button>
     </li>
   );
 }
