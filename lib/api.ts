@@ -10888,11 +10888,20 @@ export async function fetchOutstandingTabs(
 }
 
 /** Paid collections in range + live open-tab total for the credits board. */
+export type CreditCollectionRowRecord = {
+  id: string;
+  customerId: string;
+  name: string;
+  paidAt: string;
+  amount: number | string;
+};
+
 export type CreditsActivitySummaryRecord = {
   totalPaid: number | string;
   paymentCount: number;
   totalOwed: number | string;
   openTabCount: number;
+  collections?: CreditCollectionRowRecord[];
 };
 
 export async function fetchCreditsActivitySummary(

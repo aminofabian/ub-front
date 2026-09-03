@@ -5,16 +5,20 @@
 }
 
 .book {
-  --ink: #1c1c1c;
-  --ink-soft: #5c5c5c;
-  --rule: #e5e5e5;
-  --accent: #1c1c1c;
-  --owed: #b4533a;
-  --collect: #1f6b3a;
+  --ink: #111111;
+  --ink-soft: #3d3d3d;
+  --rule: #d6d6d6;
+  --accent: #111111;
+  --owed: #9a2e16;
+  --collect: #166534;
   --gutter: 18px;
   --line: 1.75rem;
   color: var(--ink);
   background: transparent;
+}
+
+.book a {
+  color: var(--ink);
 }
 
 .book :is(input, button, a) {
@@ -58,7 +62,7 @@
   margin: 0.15rem 0 0;
   font-family: var(--font-serif), ui-serif, Georgia, serif;
   font-size: clamp(2.4rem, 5vw, 3.6rem);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.02;
   font-variant-numeric: tabular-nums;
@@ -225,7 +229,7 @@
   gap: 0.65rem;
   padding: 0.15rem var(--gutter) 0.15rem 0;
   text-align: left;
-  color: inherit;
+  color: var(--ink);
 }
 
 .nameRow:hover {
@@ -254,7 +258,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .nameMeta {
@@ -334,7 +340,7 @@
   font-size: clamp(1.45rem, 3vw, 1.9rem);
   letter-spacing: -0.025em;
   line-height: 1.12;
-  color: inherit;
+  color: var(--ink);
   text-underline-offset: 0.18em;
 }
 
@@ -382,6 +388,7 @@
   font-variant-numeric: tabular-nums;
   font-size: 0.95rem;
   font-weight: 600;
+  color: var(--ink);
 }
 
 .actions {
@@ -405,11 +412,11 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 0.75rem;
   padding: 0 0.15rem 0.35rem;
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 .ledgerBody {
@@ -427,7 +434,7 @@
   padding: 0.2rem 0.15rem;
   text-align: left;
   font-size: 0.8125rem;
-  color: inherit;
+  color: var(--ink);
   border-bottom: 1px solid var(--rule);
 }
 
@@ -459,6 +466,8 @@
 .ledgerAmt {
   font-variant-numeric: tabular-nums;
   text-align: right;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .paid {
@@ -526,7 +535,7 @@
   gap: 0.75rem;
   padding: 0.55rem 0;
   text-align: left;
-  color: inherit;
+  color: var(--ink);
 }
 
 .dayRow:hover {
@@ -546,6 +555,35 @@
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
+}
+
+.paidWhen {
+  width: 7.25rem;
+  flex-shrink: 0;
+  padding-top: 0.1rem;
+  text-align: right;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.paidName {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.paidAmt {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--collect);
 }
 
 .muted {
@@ -608,38 +646,22 @@
   box-shadow: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  .book {
-    --ink: #f0f0f0;
-    --ink-soft: #a3a3a3;
-    --rule: #2a2a2a;
-    --owed: #e8b89a;
-    --collect: #7dcea0;
-  }
+.search::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
 
-  .stampActive {
-    background: transparent;
-    color: var(--ink);
-    border-color: var(--ink);
-    box-shadow: inset 0 -2px 0 var(--ink);
-  }
-
-  .search {
-    background: transparent;
-    color: var(--ink);
-  }
-
-  .nameRowActive {
-    box-shadow: inset 2px 0 0 #f0f0f0;
-  }
+.indexTitle,
+.dayTitle {
+  color: var(--ink);
 }
 
 :global(.dark) .book {
-  --ink: #f0f0f0;
-  --ink-soft: #a3a3a3;
-  --rule: #2a2a2a;
-  --owed: #e8b89a;
-  --collect: #7dcea0;
+  --ink: #f4f4f4;
+  --ink-soft: #d0d0d0;
+  --rule: #3f3f3f;
+  --owed: #fb923c;
+  --collect: #4ade80;
 }
 
 :global(.dark) .stampActive {
@@ -655,5 +677,5 @@
 }
 
 :global(.dark) .nameRowActive {
-  box-shadow: inset 2px 0 0 #f0f0f0;
+  box-shadow: inset 2px 0 0 #f4f4f4;
 }

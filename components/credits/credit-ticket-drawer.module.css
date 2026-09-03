@@ -8,10 +8,11 @@
 }
 
 .wrap {
-  --ink: #1c1c1c;
-  --soft: #5c5c5c;
-  --rule: #ececec;
-  --tab: #b4533a;
+  --ink: #111111;
+  --soft: #3d3d3d;
+  --rule: #d6d6d6;
+  --tab: #9a2e16;
+  color: var(--ink);
 }
 
 .status,
@@ -149,8 +150,8 @@
 }
 
 :global(.dark) .wrap {
-  --ink: #f0f0f0;
-  --soft: #a3a3a3;
-  --rule: #2a2a2a;
-  --tab: #e8b89a;
+  --ink: #f4f4f4;
+  --soft: #d0d0d0;
+  --rule: #3f3f3f;
+  --tab: #fb923c;
 }

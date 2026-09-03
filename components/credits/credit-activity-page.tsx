@@ -375,6 +375,12 @@ export function CreditActivityPage() {
 
   const query = search.trim().toLowerCase();
 
+  const collections = useMemo(() => {
+    const list = summary?.collections ?? [];
+    if (!query) return list;
+    return list.filter((row) => row.name.toLowerCase().includes(query));
+  }, [summary, query]);
+
   const filteredCharges = useMemo(() => {
     if (!query) return rows;
     return rows.filter((r) => {
@@ -945,52 +951,69 @@ export function CreditActivityPage() {
 
           <div className={styles.dayCol}>
             <div className={styles.dayHead}>
-              <h2 className={styles.dayTitle}>Who charged</h2>
-              <p className={styles.dayHint}>Ranked by credit this period</p>
+              <h2 className={styles.dayTitle}>Who paid</h2>
+              <p className={styles.dayHint}>
+                {summaryLoading && summary == null
+                  ? "Loading collections"
+                  : collections.length === 0
+                    ? "Money that came back this period"
+                    : `${collections.length} collection${collections.length === 1 ? "" : "s"}`}
+              </p>
             </div>
-            {listLoading ? (
+            {summaryLoading && summary == null ? (
               <LedgerSkeleton rows={4} />
-            ) : ranked.length === 0 ? (
-              <p className={cn(styles.empty, styles.muted)}>No names yet.</p>
+            ) : collections.length === 0 ? (
+              <p className={cn(styles.empty, styles.muted)}>
+                {query
+                  ? "No collections match that search."
+                  : "Nobody has paid this period."}
+              </p>
             ) : (
-              <ol className={styles.dayList}>
-                {ranked.slice(0, 10).map((person, index) => {
-                  const linked = Boolean(
-                    selectedTab &&
-                      nameKey(person.name) === nameKey(selectedTab.name),
-                  );
+              <ul className={styles.dayList}>
+                {collections.map((row) => {
+                  const amount = toNum(row.amount);
+                  const linked = selectedTab?.customerId === row.customerId;
+                  const when = fmtDayTime(row.paidAt, false);
                   return (
-                    <li key={person.name}>
+                    <li key={row.id}>
                       <button
                         type="button"
-                        onClick={() => selectTabByName(person.name)}
+                        onClick={() => {
+                          if (
+                            openTabs.some(
+                              (tab) => tab.customerId === row.customerId,
+                            )
+                          ) {
+                            setSelectedId(row.customerId);
+                          }
+                          showSlip({
+                            kind: "payment",
+                            heading: "Collected",
+                            when,
+                            customerName: row.name,
+                            amount,
+                          });
+                        }}
                         className={cn(
                           styles.dayRow,
                           linked && styles.dayRowLinked,
                         )}
                       >
-                        <span className={cn(styles.dayWhen, "w-6 text-left")}>
-                          {index + 1}
-                        </span>
+                        <time
+                          className={styles.paidWhen}
+                          dateTime={row.paidAt}
+                        >
+                          {when}
+                        </time>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm">
-                            {person.name}
-                          </span>
-                          <span className={cn(styles.muted, "block text-[11px]")}>
-                            {person.tabs} tab{person.tabs === 1 ? "" : "s"}
-                            {singleDay && fmtTime(person.lastAt)
-                              ? `, last ${fmtTime(person.lastAt)}`
-                              : null}
-                          </span>
+                          <span className={styles.paidName}>{row.name}</span>
                         </span>
-                        <span className={styles.nameOwed}>
-                          {fmtKes(person.total)}
-                        </span>
+                        <span className={styles.paidAmt}>{fmtKes(amount)}</span>
                       </button>
                     </li>
                   );
                 })}
-              </ol>
+              </ul>
             )}
             <p className={styles.foot}>
               Remind sends WhatsApp or SMS with a pay link. Mark paid when cash
