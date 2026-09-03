@@ -33,23 +33,16 @@
 }
 
 .tear {
-  height: 10px;
-  margin: 0 -0.15rem 0.85rem;
-  background: radial-gradient(
-    circle at 6px 0,
-    transparent 5px,
-    var(--rule) 5.5px,
-    var(--rule) 6px,
-    transparent 6.5px
-  );
-  background-size: 12px 10px;
-  background-repeat: repeat-x;
+  height: 0;
+  margin: 0 0 0.85rem;
+  border-top: 1px dashed var(--rule);
 }
 
 .tear:last-child {
-  margin: 1rem -0.15rem 0;
-  background-position: 0 10px;
-  transform: scaleY(-1);
+  margin: 1rem 0 0;
+  transform: none;
+  background: none;
+  background-position: unset;
 }
 
 .shop {

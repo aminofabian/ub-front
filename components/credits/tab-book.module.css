@@ -1,21 +1,20 @@
-/* Credits board: white paper, charcoal type, hairline rules. */
+/* Credits board: flush with the page, hairlines only, square. */
+
+.shell :global(*) {
+  border-radius: 0 !important;
+}
 
 .book {
   --ink: #1c1c1c;
   --ink-soft: #5c5c5c;
-  --rule: #ececec;
+  --rule: #e5e5e5;
   --accent: #1c1c1c;
   --owed: #b4533a;
-  --paper: #ffffff;
-  --paper-deep: #fafafa;
   --collect: #1f6b3a;
   --gutter: 18px;
   --line: 1.75rem;
-  overflow: hidden;
-  border-radius: 1rem;
-  border: 1px solid #e8e8e8;
-  background: var(--paper);
   color: var(--ink);
+  background: transparent;
 }
 
 .book :is(input, button, a) {
@@ -33,14 +32,13 @@
 
 .book :is(.index, .page, .dayList)::-webkit-scrollbar-thumb {
   background: #d4d4d4;
-  border-radius: 99px;
 }
 
 .masthead {
   display: grid;
   gap: 1.25rem;
-  padding: 1.35rem 1.4rem 1.2rem;
-  background: var(--paper);
+  padding: 0 0 1.2rem;
+  background: transparent;
   border-bottom: 1px solid var(--rule);
 }
 
@@ -123,8 +121,8 @@
 
 .stamp {
   min-height: 1.85rem;
-  border-radius: 0.35rem;
-  border: 1px solid #e0e0e0;
+  border-radius: 0;
+  border: 1px solid var(--rule);
   background: transparent;
   padding: 0.2rem 0.55rem;
   font-size: 0.6875rem;
@@ -136,14 +134,14 @@
 
 .stamp:hover {
   color: var(--ink);
-  background: var(--paper-deep);
+  border-color: var(--ink);
 }
 
 .stampActive {
   border-color: var(--ink);
-  background: var(--ink);
-  color: #fff;
-  box-shadow: none;
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--ink);
 }
 
 .hours {
@@ -156,7 +154,7 @@
 .hour {
   min-width: 0;
   flex: 1;
-  border-radius: 1px 1px 0 0;
+  border-radius: 0;
   background: #cfcfcf;
 }
 
@@ -183,7 +181,7 @@
   position: relative;
   max-height: 22rem;
   overflow-y: auto;
-  background: var(--paper-deep);
+  background: transparent;
 }
 
 @media (min-width: 1024px) {
@@ -200,8 +198,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-  padding: 0.85rem var(--gutter) 0.7rem calc(var(--gutter) + 0.35rem);
-  background: var(--paper-deep);
+  padding: 0.85rem var(--gutter) 0.7rem 0;
+  background: transparent;
   border-bottom: 1px solid var(--rule);
 }
 
@@ -225,18 +223,19 @@
   min-height: var(--line);
   align-items: baseline;
   gap: 0.65rem;
-  padding: 0.15rem var(--gutter) 0.15rem calc(var(--gutter) + 0.35rem);
+  padding: 0.15rem var(--gutter) 0.15rem 0;
   text-align: left;
   color: inherit;
 }
 
 .nameRow:hover {
-  background: #fff;
+  background: transparent;
 }
 
 .nameRowActive {
-  background: #fff;
+  background: transparent;
   box-shadow: inset 2px 0 0 var(--ink);
+  padding-left: 0.65rem;
 }
 
 .nameRow:focus-visible {
@@ -276,22 +275,29 @@
 
 .badge {
   margin-left: 0.35rem;
-  border-radius: 0.2rem;
+  border-radius: 0;
+  border: 1px solid var(--rule);
   padding: 0 0.28rem;
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink);
-  background: #ececec;
+  background: transparent;
 }
 
 .page {
   display: flex;
   min-height: 16rem;
   flex-direction: column;
-  background: var(--paper);
-  padding: 1.15rem 1.25rem 1.25rem 1.35rem;
+  background: transparent;
+  padding: 1.15rem 0 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .page {
+    padding-left: 1.25rem;
+  }
 }
 
 .pageTurn {
@@ -426,7 +432,12 @@
 }
 
 .ledgerRow:hover {
-  background: var(--paper-deep);
+  background: transparent;
+}
+
+.ledgerRow:hover .ledgerKind {
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
 }
 
 .ledgerRow:focus-visible {
@@ -456,16 +467,17 @@
 
 .confirm {
   margin-top: 0.85rem;
-  padding: 0.75rem 0.85rem;
-  border-radius: 0.65rem;
-  background: var(--paper-deep);
-  border: 1px solid var(--rule);
+  padding: 0.75rem 0;
+  border-radius: 0;
+  background: transparent;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
 }
 
 .daySheet {
   display: grid;
   border-top: 1px solid var(--rule);
-  background: var(--paper);
+  background: transparent;
 }
 
 @media (min-width: 1280px) {
@@ -486,7 +498,7 @@
 }
 
 .dayHead {
-  padding: 0.85rem 1.15rem 0.35rem;
+  padding: 0.85rem 0 0.35rem;
 }
 
 .dayTitle {
@@ -512,17 +524,18 @@
   width: 100%;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 0.55rem 1.15rem;
+  padding: 0.55rem 0;
   text-align: left;
   color: inherit;
 }
 
 .dayRow:hover {
-  background: var(--paper-deep);
+  background: transparent;
 }
 
 .dayRowLinked {
-  background: var(--paper-deep);
+  background: transparent;
+  font-weight: 600;
 }
 
 .dayWhen {
@@ -560,7 +573,7 @@
 }
 
 .foot {
-  padding: 0.85rem 1.15rem 1.1rem;
+  padding: 0.85rem 0 1.1rem;
   font-size: 0.75rem;
   line-height: 1.5;
   color: var(--ink-soft);
@@ -579,9 +592,10 @@
 .search {
   width: 100%;
   height: 2.15rem;
-  border-radius: 0.4rem;
-  border: 1px solid #e0e0e0;
-  background: #fff;
+  border-radius: 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
   padding-left: 2rem;
   font-size: 0.8125rem;
   color: var(--ink);
@@ -591,7 +605,7 @@
 .search:focus-visible {
   outline: none;
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px rgb(28 28 28 / 0.12);
+  box-shadow: none;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -600,22 +614,19 @@
     --ink-soft: #a3a3a3;
     --rule: #2a2a2a;
     --owed: #e8b89a;
-    --paper: #141414;
-    --paper-deep: #1a1a1a;
     --collect: #7dcea0;
-    border-color: #2a2a2a;
   }
 
   .stampActive {
-    background: #f0f0f0;
-    color: #141414;
-    border-color: #f0f0f0;
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--ink);
+    box-shadow: inset 0 -2px 0 var(--ink);
   }
 
   .search {
-    background: #1a1a1a;
+    background: transparent;
     color: var(--ink);
-    border-color: #2a2a2a;
   }
 
   .nameRowActive {
@@ -628,22 +639,19 @@
   --ink-soft: #a3a3a3;
   --rule: #2a2a2a;
   --owed: #e8b89a;
-  --paper: #141414;
-  --paper-deep: #1a1a1a;
   --collect: #7dcea0;
-  border-color: #2a2a2a;
 }
 
 :global(.dark) .stampActive {
-  background: #f0f0f0;
-  color: #141414;
-  border-color: #f0f0f0;
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--ink);
 }
 
 :global(.dark) .search {
-  background: #1a1a1a;
+  background: transparent;
   color: var(--ink);
-  border-color: #2a2a2a;
 }
 
 :global(.dark) .nameRowActive {

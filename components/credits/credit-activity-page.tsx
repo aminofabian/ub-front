@@ -215,15 +215,15 @@ function LedgerSkeleton({ rows = 6 }: { rows?: number }) {
     <div className="divide-y divide-border/40" aria-hidden>
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="flex items-center gap-3 px-4 py-3">
-          <div className="size-8 shrink-0 animate-pulse rounded-md bg-muted" />
+          <div className="size-8 shrink-0 animate-pulse bg-muted" />
           <div className="min-w-0 flex-1 space-y-1.5">
             <div
-              className="h-3 max-w-[11rem] animate-pulse rounded-sm bg-muted"
+              className="h-3 max-w-[11rem] animate-pulse bg-muted"
               style={{ width: `${56 + (i % 4) * 10}%` }}
             />
-            <div className="h-2.5 w-24 animate-pulse rounded-sm bg-muted/70" />
+            <div className="h-2.5 w-24 animate-pulse bg-muted/70" />
           </div>
-          <div className="h-3 w-14 shrink-0 animate-pulse rounded-sm bg-muted" />
+          <div className="h-3 w-14 shrink-0 animate-pulse bg-muted" />
         </div>
       ))}
     </div>
@@ -524,10 +524,10 @@ export function CreditActivityPage() {
 
   if (sessionLoading) {
     return (
-      <div className={cn(DASHBOARD_MAX_WIDE, "space-y-6 pb-16")}>
-        <div className="h-10 w-48 animate-pulse rounded-md bg-muted" />
-        <div className="h-36 animate-pulse rounded-2xl bg-muted/60" />
-        <div className="h-80 animate-pulse rounded-2xl bg-muted/40" />
+      <div className={cn(DASHBOARD_MAX_WIDE, styles.shell, "space-y-6 pb-16")}>
+        <div className="h-10 w-48 animate-pulse bg-muted" />
+        <div className="h-36 animate-pulse bg-muted/60" />
+        <div className="h-80 animate-pulse bg-muted/40" />
       </div>
     );
   }
@@ -546,13 +546,13 @@ export function CreditActivityPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, styles.shell, "space-y-5 pb-16")}>
       {/*
-        THESIS: one ledger on white paper — still owed, names, then history as till slips.
-        OWN-WORLD: white sheet, charcoal type, rust only on outstanding.
+        THESIS: a flush ledger — type and hairlines, no panel, no radius.
+        OWN-WORLD: page paper, charcoal type, rust only on outstanding.
         STORY: pick a name, collect or freeze, tap a charge to read the items.
         FIRST VIEWPORT: owed figure, names, selected account.
-        FORM: operate / white ledger.
+        FORM: operate / square ledger.
         FINISH: verify in the browser.
       */}
       <header className="flex flex-wrap items-end justify-between gap-3">
