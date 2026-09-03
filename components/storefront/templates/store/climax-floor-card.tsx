@@ -77,14 +77,6 @@ export function ClimaxFloorCard({
 
   return (
     <article className={styles.card}>
-      <div className={styles.cardMeta}>
-        {item.variantName ? (
-          <span className={styles.cardCat}>{item.variantName}</span>
-        ) : null}
-        <Link href={href} className={styles.cardName}>
-          {item.name}
-        </Link>
-      </div>
       <StorefrontProductImageShell
         href={href}
         className={cn(styles.cardVisual, "relative")}
@@ -92,7 +84,7 @@ export function ClimaxFloorCard({
         itemName={item.name}
         ariaLabel={item.name}
       >
-        {sale ? <span className={styles.sale}>Sale!</span> : null}
+        {sale ? <span className={styles.sale}>Sale</span> : null}
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -107,6 +99,12 @@ export function ClimaxFloorCard({
         )}
       </StorefrontProductImageShell>
       <div className={styles.cardBody}>
+        {item.variantName ? (
+          <span className={styles.cardCat}>{item.variantName}</span>
+        ) : null}
+        <Link href={href} className={styles.cardName}>
+          {item.name}
+        </Link>
         <div className={styles.priceRow}>
           {sale ? (
             <span className={styles.was}>

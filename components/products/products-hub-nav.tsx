@@ -29,7 +29,7 @@ const HUB_TABS: HubTab[] = [
     icon: Package,
     match: (p) =>
       p === APP_ROUTES.products ||
-      p.startsWith(`${APP_ROUTES.products}?`),
+      p.startsWith(`${APP_ROUTES.products}/p/`),
   },
   {
     href: APP_ROUTES.itemTypes,

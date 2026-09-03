@@ -39,6 +39,7 @@ import {
   type ItemSummaryRecord,
   type ItemTypeRecord,
 } from "@/lib/api";
+import { productDossierPath } from "@/lib/product-dossier-url";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -648,7 +649,7 @@ export default function InventoryMissingImagesPage() {
                   {/* Details */}
                   <div className="flex flex-col gap-1">
                     <Link
-                      href={`/products/${item.id}`}
+                      href={productDossierPath(item)}
                       className="line-clamp-2 text-[12.5px] font-semibold leading-snug text-foreground/90 transition-colors hover:text-primary"
                     >
                       {item.name}
@@ -690,7 +691,7 @@ export default function InventoryMissingImagesPage() {
                   {/* Upload action */}
                   <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/30 pt-3">
                     <Link
-                      href={`/products/${item.id}`}
+                      href={productDossierPath(item)}
                       className="text-[10px] font-medium text-muted-foreground/60 transition-colors hover:text-foreground"
                     >
                       View product →

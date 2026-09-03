@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
 import {
   Boxes,
@@ -11,6 +12,7 @@ import {
   CircleDollarSign,
   GitBranchPlus,
   Layers,
+  LineChart,
   Loader2,
   MapPin,
   Package,
@@ -41,6 +43,7 @@ import {
   type ItemTypeRecord,
 } from "@/lib/api";
 import { CATALOG_FIX_NAME_LABEL, resolveCatalogItemName } from "@/lib/catalog-display";
+import { productDossierPath } from "@/lib/product-dossier-url";
 import { type ProductEditDraft, type QuickEditKey } from "../_types";
 import {
   coverImageUrl,
@@ -674,6 +677,7 @@ export function ProductDetailPanel(props: Props) {
               )}
             </div>
             {!mobileAppLayout ? (
+              <div className="flex items-start justify-between gap-2">
               <h3
                 className={cn(
                   "text-[15px] font-semibold leading-snug tracking-tight text-foreground",
@@ -683,6 +687,14 @@ export function ProductDetailPanel(props: Props) {
               >
                 {heroTitle}
               </h3>
+              <Link
+                href={productDossierPath(detail)}
+                className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-foreground/55 underline-offset-2 hover:text-foreground hover:underline"
+              >
+                <LineChart className="size-3" aria-hidden />
+                Ledger
+              </Link>
+              </div>
             ) : null}
             <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-0.5", detailMetaClass)}>
               {detail.sku && (
@@ -1830,6 +1842,12 @@ export function ProductDetailPanel(props: Props) {
       {showMobileStickyActions ? (
       <div className={detailStickyBarClass}>
         <div className="mx-auto flex max-w-lg gap-2">
+          <Button asChild variant="outline" className="h-10 flex-1 gap-1.5 rounded-xl text-xs font-medium">
+            <Link href={productDossierPath(detail)}>
+              <LineChart className="size-3.5" aria-hidden />
+              Ledger
+            </Link>
+          </Button>
           <Button
             type="button"
             variant="outline"

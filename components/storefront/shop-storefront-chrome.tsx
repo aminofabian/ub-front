@@ -458,7 +458,7 @@ export function ShopStorefrontChrome({
               climaxFloorStyles.root,
               climaxFloorStyles.body,
               climaxFloorFontVariables,
-              "[--storefront-paper:#FFFFFF]",
+              "[--storefront-paper:#FBFCFB]",
             ),
           isChemLab &&
             cn(

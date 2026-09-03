@@ -4324,6 +4324,76 @@ export async function fetchItemTimeline(
   );
 }
 
+export type ItemEconomicsDayPoint = {
+  date: string;
+  unitsSold: number | string;
+  revenue: number | string;
+};
+
+export type ItemSaleHistoryRow = {
+  saleId: string;
+  receiptNo: number | null;
+  soldAt: string;
+  branchId: string | null;
+  branchName: string | null;
+  itemId: string;
+  quantity: number | string;
+  unitPrice: number | string;
+  lineTotal: number | string;
+  costTotal: number | string;
+  profit: number | string;
+};
+
+export type ItemPurchaseHistoryRow = {
+  invoiceId: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  supplierId: string;
+  supplierName: string;
+  itemId: string;
+  quantity: number | string;
+  unitCost: number | string;
+  lineTotal: number | string;
+  status: string;
+};
+
+export type ItemSupplierSpendRow = {
+  supplierId: string;
+  supplierName: string;
+  quantity: number | string;
+  spend: number | string;
+};
+
+export type ItemEconomicsRecord = {
+  itemId: string;
+  name: string;
+  includesVariants: boolean;
+  skuCount: number;
+  unitsSold: number | string;
+  unitsSold7d: number | string;
+  unitsSold30d: number | string;
+  revenue: number | string;
+  costOfGoods: number | string;
+  grossProfit: number | string;
+  saleCount: number | string;
+  lastSoldAt: string | null;
+  supplierSpend: number | string;
+  unitsBought: number | string;
+  onHand: number | string;
+  last30Days: ItemEconomicsDayPoint[];
+  supplierSpendBreakdown: ItemSupplierSpendRow[];
+  sales: ItemSaleHistoryRow[];
+  purchases: ItemPurchaseHistoryRow[];
+};
+
+export async function fetchItemEconomics(
+  itemId: string,
+): Promise<ItemEconomicsRecord> {
+  return request<ItemEconomicsRecord>(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/economics`,
+  );
+}
+
 /** Fire-and-forget friendly: records intentional non-POS scans on an item timeline. */
 export async function recordItemScan(
   itemId: string,

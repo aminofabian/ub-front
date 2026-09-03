@@ -162,7 +162,12 @@ export function ProductsWorkspace() {
     } else if (aisleId) {
       setAisleId(aisleId);
     }
-  }, [searchParams, setAisleId]);
+    const productId = searchParams.get("product")?.trim();
+    if (productId) {
+      detail.selectProduct(productId);
+      setMobileDetailOpen(true);
+    }
+  }, [searchParams, setAisleId, detail.selectProduct]);
 
   useEffect(() => {
     if (searchParams.get("action") === "global-catalog" && canGlobalCatalog) {
