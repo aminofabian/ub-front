@@ -17,7 +17,6 @@ import {
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardPageHero,
-  dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { CustomerPhoneFlag } from "@/components/credits/customer-phone-flag";
 import { MarkPaidDialog } from "@/components/credits/mark-paid-dialog";
@@ -48,6 +47,7 @@ import {
 } from "@/lib/analytics-date-range";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import styles from "@/components/credits/tab-book.module.css";
 
 type CreditPeriod = Extract<
   DatePreset,
@@ -97,13 +97,6 @@ function isCreditMethod(method: string): boolean {
 
 function nameKey(name: string | null | undefined): string {
   return (name ?? "").trim().toLowerCase() || "walk-in / unnamed";
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-  return `${parts[0]![0]!}${parts[1]![0]!}`.toUpperCase();
 }
 
 type CustomerRank = {
@@ -430,21 +423,21 @@ export function CreditActivityPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-6 pb-16")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")}>
       {/*
-        THESIS: a working tab book, not a three-metric poster. Outstanding is the job; collect and remind live beside the name you pick.
-        OWN-WORLD: Palmart paper (cream masthead, rounded-2xl boards) with terracotta for what is still out and green only on collect.
-        STORY: scan who owes, pick a person, remind or mark paid, then audit what was charged this period.
-        FIRST VIEWPORT: title + period chips, owed masthead, open-tab list with a workspace.
-        FORM: operate / tab-book board inside the existing dashboard world.
-        FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+        THESIS: one cash book on the counter, not a stack of dashboard cards.
+        OWN-WORLD: Kenyan exercise-book paper — cream, terracotta margin rule, serif figures.
+        STORY: read what is still out, open a name, collect or suspend, then scan the day's charges.
+        FIRST VIEWPORT: the book itself — owed, names, the selected account.
+        FORM: operate / tab-book.
+        FINISH: verify in the browser.
       */}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <DashboardPageHero
           compact
           icon={CreditCard}
           title="On tab"
-          description="Who still owes, what was charged, and what you collected."
+          description="The shop cash book. Open a name to collect, remind, or freeze credit."
         />
         <div className="flex flex-wrap items-center gap-2">
           {canReviewPaymentClaims ? (
@@ -483,68 +476,32 @@ export function CreditActivityPage() {
         <DashboardFeedback kind={feedback.kind} text={feedback.text} />
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div
-          className="inline-flex max-w-full flex-wrap rounded-lg border border-border/70 bg-muted/40 p-0.5"
-          role="group"
-          aria-label="Credit period"
-        >
-          {PERIOD_OPTIONS.map(({ id, label, hint }) => {
-            const active = period === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                title={hint}
-                onClick={() => setPeriod(id)}
-                className={cn(
-                  "rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-                  active
-                    ? "bg-[#F9F6F0] text-[#8B6F3A] shadow-sm dark:bg-muted dark:text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-        <p className="text-[11px] text-muted-foreground">{periodLabel}</p>
-      </div>
-
-      <section className="overflow-hidden rounded-2xl border border-[#E6E1D8]/90 bg-[#F9F6F0] shadow-sm dark:border-border dark:bg-card">
-        <div className="flex flex-col gap-5 px-5 py-5 sm:px-6 sm:py-6">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-[#6B5344] dark:text-muted-foreground">
-                Still owed
-              </p>
-              <p className="mt-1 font-serif text-[2.35rem] leading-[1.1] tracking-tight text-[#2C1810] tabular-nums dark:text-foreground sm:text-5xl">
+      <section className={styles.book}>
+        <div className={styles.masthead}>
+          <div className={styles.mastheadTop}>
+            <div className={styles.owedFigure}>
+              <h2 className={styles.owedAmount}>
                 {summaryLoading && summary == null && tabsLoading
                   ? " "
                   : fmtKes(totalOwed)}
-              </p>
-              <p className="mt-2 text-sm text-[#7A6A5C] dark:text-muted-foreground">
+              </h2>
+              <p className={styles.owedMeta}>
                 {summaryLoading && summary == null && tabsLoading
                   ? "Loading balances"
                   : openTabCount === 0
                     ? "All tabs settled"
-                    : `${openTabCount} open tab${openTabCount === 1 ? "" : "s"}${
+                    : `Still owed · ${openTabCount} open tab${openTabCount === 1 ? "" : "s"}${
                         phoneIssues > 0
                           ? ` · ${phoneIssues} need a usable phone`
                           : ""
                       }`}
               </p>
             </div>
-            <dl className="grid min-w-[12rem] flex-1 grid-cols-2 gap-x-8 gap-y-3 sm:max-w-md">
+            <dl className={styles.sideFigures}>
               <div>
-                <dt className="text-xs text-[#7A6A5C] dark:text-muted-foreground">
-                  Charged
-                </dt>
-                <dd className="mt-0.5 font-serif text-2xl tabular-nums tracking-tight text-[#2C1810] dark:text-foreground">
-                  {listLoading ? " " : fmtKes(totalCredit)}
-                </dd>
-                <p className="mt-0.5 text-[11px] text-[#8A7A6C] dark:text-muted-foreground">
+                <dt>Charged</dt>
+                <dd>{listLoading ? " " : fmtKes(totalCredit)}</dd>
+                <p className={styles.sideHint}>
                   {listLoading
                     ? "Loading"
                     : tabCount === 0
@@ -553,13 +510,11 @@ export function CreditActivityPage() {
                 </p>
               </div>
               <div>
-                <dt className="text-xs text-[#7A6A5C] dark:text-muted-foreground">
-                  Collected
-                </dt>
-                <dd className="mt-0.5 font-serif text-2xl tabular-nums tracking-tight text-[#1F6B3A] dark:text-emerald-300">
+                <dt>Collected</dt>
+                <dd className={styles.collect}>
                   {summaryLoading && summary == null ? " " : fmtKes(totalPaid)}
                 </dd>
-                <p className="mt-0.5 text-[11px] text-[#8A7A6C] dark:text-muted-foreground">
+                <p className={styles.sideHint}>
                   {summaryLoading && summary == null
                     ? "Loading"
                     : paymentCount === 0
@@ -570,24 +525,44 @@ export function CreditActivityPage() {
             </dl>
           </div>
 
-          {listLoading || tabCount === 0 ? null : (
-            <p className="text-xs text-[#7A6A5C] dark:text-muted-foreground">
-              Average tab {fmtKes(avgTab)}
-              {peakHour && singleDay ? ` · peak around ${peakHour.label}` : null}
+          <div className={styles.toolbar}>
+            <div className={styles.stamps} role="group" aria-label="Credit period">
+              {PERIOD_OPTIONS.map(({ id, label, hint }) => {
+                const active = period === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    title={hint}
+                    onClick={() => setPeriod(id)}
+                    className={cn(styles.stamp, active && styles.stampActive)}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className={styles.sideHint}>
+              {periodLabel}
+              {listLoading || tabCount === 0
+                ? null
+                : ` · avg ${fmtKes(avgTab)}${
+                    peakHour && singleDay ? ` · peak ${peakHour.label}` : ""
+                  }`}
             </p>
-          )}
+          </div>
 
           {singleDay && tabCount > 0 ? (
             <div>
               <div
-                className="flex h-9 items-end gap-px"
+                className={styles.hours}
                 role="img"
                 aria-label="Credit charged by hour of day"
               >
                 {hours.map((value, hour) => (
                   <div
                     key={hour}
-                    className="min-w-0 flex-1 rounded-sm bg-[#C47A5A] transition-[height,opacity] duration-200"
+                    className={styles.hour}
                     style={{
                       height: `${Math.max(10, (value / maxHour) * 100)}%`,
                       opacity: value > 0 ? 0.28 + (value / maxHour) * 0.72 : 0.1,
@@ -596,7 +571,7 @@ export function CreditActivityPage() {
                   />
                 ))}
               </div>
-              <div className="mt-1.5 flex justify-between text-[10px] text-[#A09080] dark:text-muted-foreground">
+              <div className={styles.hourScale}>
                 <span>12a</span>
                 <span>6a</span>
                 <span>12p</span>
@@ -606,127 +581,96 @@ export function CreditActivityPage() {
             </div>
           ) : null}
         </div>
-      </section>
 
-      {canViewCustomers ? (
-        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3 sm:px-5">
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-foreground">
-                Open tabs
-              </h2>
-              <p className="text-[11px] text-muted-foreground">
-                {tabsLoading
-                  ? "Loading balances"
-                  : filteredTabs.length === 0
-                    ? query
-                      ? "No open tabs match that search"
-                      : "No outstanding balances"
-                    : `Biggest balances first · ${fmtKes(totalOwed)}`}
-              </p>
-            </div>
-            <div className="relative min-w-0 w-full sm:w-64">
-              <Search
-                className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <input
-                className={cn(dashboardInputClass(), "h-9 pl-9")}
-                placeholder="Find name, phone, till, or receipt"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                aria-label="Search open tabs and credit sales"
-              />
-            </div>
-          </div>
-
-          {tabsLoading ? (
-            <LedgerSkeleton rows={5} />
+        {canViewCustomers ? (
+          tabsLoading ? (
+            <LedgerSkeleton rows={6} />
           ) : openTabs.length === 0 ? (
-            <div className="px-5 py-14 text-center">
-              <p className="text-sm font-medium text-foreground">
-                Everyone is settled
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                No open tab balances right now.
-              </p>
+            <div className={styles.empty}>
+              <p>Everyone is settled</p>
+              <p className={styles.muted}>No open tab balances right now.</p>
             </div>
           ) : (
-            <div className="grid lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
-              <ul
-                className="max-h-[22rem] overflow-y-auto border-b border-border/60 lg:max-h-[min(34rem,calc(100dvh-18rem))] lg:border-r lg:border-b-0"
-                aria-label="Open tabs"
-              >
-                {filteredTabs.length === 0 ? (
-                  <li className="px-4 py-10 text-center text-sm text-muted-foreground">
-                    No names match that search.
-                  </li>
-                ) : (
-                  filteredTabs.map((tab) => {
-                    const owed = toNum(tab.balanceOwed);
-                    const active = tab.customerId === selectedId;
-                    const phoneOk = isUsableStoredCustomerPhone(tab.primaryPhone);
-                    const suspended = Boolean(tab.creditSuspended);
-                    return (
-                      <li key={tab.customerId}>
-                        <button
-                          type="button"
-                          aria-current={active ? "true" : undefined}
-                          onClick={() => setSelectedId(tab.customerId)}
-                          className={cn(
-                            "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
-                            active
-                              ? "bg-[#F9F6F0] dark:bg-muted/50"
-                              : "hover:bg-muted/40",
-                          )}
-                        >
-                          <span
+            <div className={styles.spread}>
+              <div className={styles.index}>
+                <div className={styles.indexHead}>
+                  <div>
+                    <h2 className={styles.indexTitle}>Names</h2>
+                    <p className={styles.indexHint}>
+                      {filteredTabs.length === 0
+                        ? query
+                          ? "No open tabs match that search"
+                          : "No outstanding balances"
+                        : `Biggest first · ${fmtKes(totalOwed)}`}
+                    </p>
+                  </div>
+                  <div className="relative">
+                    <Search
+                      className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-[#8A7A6C]"
+                      aria-hidden
+                    />
+                    <input
+                      className={styles.search}
+                      placeholder="Find name or phone"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      aria-label="Search open tabs and credit sales"
+                    />
+                  </div>
+                </div>
+                <ul aria-label="Open tabs">
+                  {filteredTabs.length === 0 ? (
+                    <li className={cn(styles.empty, styles.muted)}>
+                      No names match that search.
+                    </li>
+                  ) : (
+                    filteredTabs.map((tab) => {
+                      const owed = toNum(tab.balanceOwed);
+                      const active = tab.customerId === selectedId;
+                      const phoneOk = isUsableStoredCustomerPhone(
+                        tab.primaryPhone,
+                      );
+                      const suspended = Boolean(tab.creditSuspended);
+                      return (
+                        <li key={tab.customerId}>
+                          <button
+                            type="button"
+                            aria-current={active ? "true" : undefined}
+                            onClick={() => setSelectedId(tab.customerId)}
                             className={cn(
-                              "flex size-8 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold tracking-wide",
-                              active
-                                ? "bg-[#C47A5A] text-white"
-                                : "bg-muted text-muted-foreground",
+                              styles.nameRow,
+                              active && styles.nameRowActive,
                             )}
-                            aria-hidden
                           >
-                            {initials(tab.name)}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="flex items-center gap-1.5">
-                              <span className="block truncate text-sm font-medium text-foreground">
+                            <span className={styles.nameText}>
+                              <span className={styles.nameLine}>
                                 {tab.name}
+                                {suspended ? (
+                                  <span className={styles.badge}>Held</span>
+                                ) : null}
                               </span>
-                              {suspended ? (
-                                <span className="shrink-0 rounded-sm bg-[#2C1810]/8 px-1 py-px text-[10px] font-medium text-[#6B5344] dark:bg-muted dark:text-muted-foreground">
-                                  Suspended
-                                </span>
-                              ) : null}
+                              <span
+                                className={cn(
+                                  styles.nameMeta,
+                                  !phoneOk && styles.phoneBad,
+                                )}
+                              >
+                                {tab.primaryPhone?.trim() || "No phone"}
+                              </span>
                             </span>
-                            <span
-                              className={cn(
-                                "block truncate text-[11px]",
-                                phoneOk
-                                  ? "text-muted-foreground"
-                                  : "font-medium text-destructive",
-                              )}
-                            >
-                              {tab.primaryPhone?.trim() || "No phone"}
-                            </span>
-                          </span>
-                          <span className="shrink-0 text-sm font-semibold tabular-nums text-[#9A5A40] dark:text-[#E8B89A]">
-                            {fmtKes(owed)}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })
-                )}
-              </ul>
+                            <span className={styles.nameOwed}>{fmtKes(owed)}</span>
+                          </button>
+                        </li>
+                      );
+                    })
+                  )}
+                </ul>
+              </div>
 
-              <div className="flex min-h-[16rem] flex-col px-5 py-5 sm:px-6">
+              <div className={styles.page}>
                 {selectedTab ? (
                   <SelectedTabWorkspace
+                    key={selectedTab.customerId}
                     tab={selectedTab}
                     fmtKes={fmtKes}
                     canRemind={canRemind}
@@ -767,127 +711,111 @@ export function CreditActivityPage() {
                     }
                   />
                 ) : (
-                  <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
-                    <p className="text-sm font-medium text-foreground">
-                      Pick a tab
-                    </p>
-                    <p className="mt-1 max-w-[28ch] text-sm text-muted-foreground">
-                      Remind, mark paid, or print a card from here.
+                  <div className={styles.empty}>
+                    <p>Pick a name</p>
+                    <p className={styles.muted}>
+                      Their charges, payments, and collect actions open here.
                     </p>
                   </div>
                 )}
               </div>
             </div>
-          )}
-        </section>
-      ) : null}
+          )
+        ) : (
+          <div className={styles.empty}>
+            <p>Open tabs need customer access</p>
+            <p className={styles.muted}>Period charges are still below.</p>
+          </div>
+        )}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(16rem,1fr)]">
-        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3 sm:px-5">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">
-                Charged this period
-              </h2>
-              <p className="text-[11px] text-muted-foreground">
+        <div className={styles.daySheet}>
+          <div className={styles.dayCol}>
+            <div className={styles.dayHead}>
+              <h2 className={styles.dayTitle}>Charged this period</h2>
+              <p className={styles.dayHint}>
                 {listLoading
                   ? "Loading sales"
                   : `${sortedCharges.length} sale${sortedCharges.length === 1 ? "" : "s"}`}
               </p>
+              {canViewCustomers ? null : (
+                <div className="relative mt-2 max-w-xs">
+                  <Search
+                    className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-[#8A7A6C]"
+                    aria-hidden
+                  />
+                  <input
+                    className={styles.search}
+                    placeholder="Find name, till, or receipt"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    aria-label="Search credit sales"
+                  />
+                </div>
+              )}
             </div>
-            {canViewCustomers ? null : (
-              <div className="relative min-w-0 w-full sm:w-56">
-                <Search
-                  className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground"
-                  aria-hidden
-                />
-                <input
-                  className={cn(dashboardInputClass(), "h-9 pl-9")}
-                  placeholder="Find name, till, or receipt"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  aria-label="Search credit sales"
-                />
-              </div>
+            {listLoading ? (
+              <LedgerSkeleton rows={6} />
+            ) : sortedCharges.length === 0 ? (
+              <p className={cn(styles.empty, styles.muted)}>
+                {query
+                  ? "No credit sales match that search."
+                  : `No credit sales for ${periodLabel.toLowerCase()}.`}
+              </p>
+            ) : (
+              <ul className={styles.dayList}>
+                {sortedCharges.map((row) => {
+                  const amount = toNum(row.amount);
+                  const name = row.customerName?.trim() || "Walk-in / unnamed";
+                  const linked = Boolean(
+                    selectedTab && nameKey(name) === nameKey(selectedTab.name),
+                  );
+                  return (
+                    <li key={row.paymentId || `${row.saleId}-${row.sortOrder}`}>
+                      <button
+                        type="button"
+                        onClick={() => selectTabByName(name)}
+                        className={cn(
+                          styles.dayRow,
+                          linked && styles.dayRowLinked,
+                        )}
+                      >
+                        <p className={styles.dayWhen}>
+                          {fmtDayTime(row.soldAt, singleDay)}
+                        </p>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm">{name}</p>
+                          <p className={cn(styles.muted, "truncate text-xs")}>
+                            {[
+                              row.cashierName?.trim() || "Till",
+                              row.receiptNo != null ? `#${row.receiptNo}` : null,
+                              toNum(row.saleGrandTotal) > amount
+                                ? `sale ${fmtKes(toNum(row.saleGrandTotal))}`
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </p>
+                        </div>
+                        <p className={styles.nameOwed}>{fmtKes(amount)}</p>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
 
-          {listLoading ? (
-            <LedgerSkeleton rows={7} />
-          ) : sortedCharges.length === 0 ? (
-            <p className="px-5 py-14 text-center text-sm text-muted-foreground">
-              {query
-                ? "No credit sales match that search."
-                : `No credit sales for ${periodLabel.toLowerCase()}.`}
-            </p>
-          ) : (
-            <ul className="divide-y divide-border/40">
-              {sortedCharges.map((row) => {
-                const amount = toNum(row.amount);
-                const name = row.customerName?.trim() || "Walk-in / unnamed";
-                const linked = Boolean(
-                  selectedTab && nameKey(name) === nameKey(selectedTab.name),
-                );
-                return (
-                  <li key={row.paymentId || `${row.saleId}-${row.sortOrder}`}>
-                    <button
-                      type="button"
-                      onClick={() => selectTabByName(name)}
-                      className={cn(
-                        "flex w-full items-start gap-3 px-4 py-3 text-left sm:px-5",
-                        linked
-                          ? "bg-[#F9F6F0]/80 dark:bg-muted/40"
-                          : "hover:bg-muted/30",
-                      )}
-                    >
-                      <p className="w-16 shrink-0 pt-0.5 text-right text-xs font-medium tabular-nums text-muted-foreground sm:w-24">
-                        {fmtDayTime(row.soldAt, singleDay)}
-                      </p>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {name}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {[
-                            row.cashierName?.trim() || "Till",
-                            row.receiptNo != null ? `#${row.receiptNo}` : null,
-                            toNum(row.saleGrandTotal) > amount
-                              ? `sale ${fmtKes(toNum(row.saleGrandTotal))}`
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join(", ")}
-                        </p>
-                      </div>
-                      <p className="shrink-0 text-sm font-semibold tabular-nums text-[#9A5A40] dark:text-[#E8B89A]">
-                        {fmtKes(amount)}
-                      </p>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-
-        <aside className="space-y-4">
-          <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-            <div className="border-b border-border/60 px-4 py-3 sm:px-5">
-              <h2 className="text-sm font-semibold text-foreground">
-                Who charged
-              </h2>
-              <p className="text-[11px] text-muted-foreground">
-                Ranked by credit this period
-              </p>
+          <div className={styles.dayCol}>
+            <div className={styles.dayHead}>
+              <h2 className={styles.dayTitle}>Who charged</h2>
+              <p className={styles.dayHint}>Ranked by credit this period</p>
             </div>
             {listLoading ? (
               <LedgerSkeleton rows={4} />
             ) : ranked.length === 0 ? (
-              <p className="px-4 py-10 text-center text-xs text-muted-foreground">
-                No names yet.
-              </p>
+              <p className={cn(styles.empty, styles.muted)}>No names yet.</p>
             ) : (
-              <ol>
+              <ol className={styles.dayList}>
                 {ranked.slice(0, 10).map((person, index) => {
                   const linked = Boolean(
                     selectedTab &&
@@ -899,27 +827,25 @@ export function CreditActivityPage() {
                         type="button"
                         onClick={() => selectTabByName(person.name)}
                         className={cn(
-                          "flex w-full items-center gap-3 px-4 py-2.5 text-left sm:px-5",
-                          linked
-                            ? "bg-[#F9F6F0] dark:bg-muted/40"
-                            : "hover:bg-muted/30",
+                          styles.dayRow,
+                          linked && styles.dayRowLinked,
                         )}
                       >
-                        <span className="w-5 shrink-0 text-xs tabular-nums text-muted-foreground">
+                        <span className={cn(styles.dayWhen, "w-6 text-left")}>
                           {index + 1}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">
+                          <span className="block truncate text-sm">
                             {person.name}
                           </span>
-                          <span className="block text-[11px] text-muted-foreground">
+                          <span className={cn(styles.muted, "block text-[11px]")}>
                             {person.tabs} tab{person.tabs === 1 ? "" : "s"}
                             {singleDay && fmtTime(person.lastAt)
                               ? `, last ${fmtTime(person.lastAt)}`
                               : null}
                           </span>
                         </span>
-                        <span className="shrink-0 text-sm font-semibold tabular-nums">
+                        <span className={styles.nameOwed}>
                           {fmtKes(person.total)}
                         </span>
                       </button>
@@ -928,33 +854,29 @@ export function CreditActivityPage() {
                 })}
               </ol>
             )}
-          </section>
-
-          <p className="px-1 text-xs leading-relaxed text-muted-foreground">
-            Remind sends WhatsApp or SMS with a pay link. Mark paid when cash or
-            M-Pesa lands.
-            {canReviewPaymentClaims ? (
-              <>
-                {" "}
-                <Link
-                  href={APP_ROUTES.creditsPaymentClaims}
-                  className="font-medium text-foreground underline-offset-2 hover:underline"
-                >
-                  Review pending claims
-                </Link>
-                .
-              </>
-            ) : null}{" "}
-            <Link
-              href={APP_ROUTES.paymentsDayLedger}
-              className="inline-flex items-center gap-0.5 font-medium text-foreground underline-offset-2 hover:underline"
-            >
-              Day ledger
-              <ArrowRight className="size-3" aria-hidden />
-            </Link>
-          </p>
-        </aside>
-      </div>
+            <p className={styles.foot}>
+              Remind sends WhatsApp or SMS with a pay link. Mark paid when cash
+              or M-Pesa lands.
+              {canReviewPaymentClaims ? (
+                <>
+                  {" "}
+                  <Link href={APP_ROUTES.creditsPaymentClaims}>
+                    Review pending claims
+                  </Link>
+                  .
+                </>
+              ) : null}{" "}
+              <Link
+                href={APP_ROUTES.paymentsDayLedger}
+                className="inline-flex items-center gap-0.5"
+              >
+                Day ledger
+                <ArrowRight className="size-3" aria-hidden />
+              </Link>
+            </p>
+          </div>
+        </div>
+      </section>
 
       <MarkPaidDialog
         open={payTarget != null}
@@ -1120,57 +1042,51 @@ function SelectedTabWorkspace({
   };
 
   return (
-    <div className="flex h-full flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className={cn("flex h-full flex-col", styles.pageTurn)}>
+      <div className={styles.personHead}>
         <div className="min-w-0">
           <Link
             href={`${APP_ROUTES.customers}/${encodeURIComponent(tab.customerId)}`}
-            className="font-serif text-2xl leading-[1.15] tracking-tight text-foreground hover:underline"
+            className={styles.personName}
           >
             {tab.name}
           </Link>
           <p
             className={cn(
               "mt-1 text-sm",
-              phoneOk ? "text-muted-foreground" : "font-medium text-destructive",
+              phoneOk ? styles.muted : styles.phoneBad,
             )}
           >
             {tab.primaryPhone?.trim() || "No phone on file"}
           </p>
           <CustomerPhoneFlag phone={tab.primaryPhone} />
           {suspended ? (
-            <p className="mt-2 text-sm text-[#6B5344] dark:text-muted-foreground">
-              Tab suspended — they cannot take more credit.
+            <p className={styles.suspendedNote}>
+              Tab held — they cannot take more credit.
             </p>
           ) : null}
         </div>
-        <p className="font-serif text-3xl tabular-nums tracking-tight text-[#9A5A40] dark:text-[#E8B89A]">
-          {fmtKes(owed)}
-        </p>
+        <p className={styles.personOwed}>{fmtKes(owed)}</p>
       </div>
 
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+      <dl className={styles.tally}>
         <div>
-          <dt className="text-[11px] text-muted-foreground">Charged</dt>
-          <dd className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
-            {historyLoading ? " " : fmtKes(totalCharged)}
-          </dd>
+          <dt>Charged</dt>
+          <dd>{historyLoading ? " " : fmtKes(totalCharged)}</dd>
         </div>
         <div>
-          <dt className="text-[11px] text-muted-foreground">Paid</dt>
-          <dd className="mt-0.5 text-sm font-semibold tabular-nums text-[#1F6B3A] dark:text-emerald-300">
+          <dt>Paid</dt>
+          <dd className={styles.paid}>
             {historyLoading ? " " : fmtKes(totalPaid)}
           </dd>
         </div>
-        <div className="col-span-2 sm:col-span-1">
-          <dt className="text-[11px] text-muted-foreground">Still owed</dt>
-          <dd className="mt-0.5 text-sm font-semibold tabular-nums text-[#9A5A40] dark:text-[#E8B89A]">
-            {fmtKes(owed)}
-          </dd>
+        <div>
+          <dt>Still owed</dt>
+          <dd className={styles.nameOwed}>{fmtKes(owed)}</dd>
         </div>
       </dl>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className={styles.actions}>
         {canReviewPaymentClaims ? (
           <Button type="button" size="sm" onClick={onMarkPaid}>
             Mark paid
@@ -1212,15 +1128,15 @@ function SelectedTabWorkspace({
           )
         ) : null}
         {!canReviewPaymentClaims && !canRemind && !canManageCustomers ? (
-          <p className="text-xs text-muted-foreground">
+          <p className={cn(styles.muted, "text-xs")}>
             Need claims review or messaging permission to clear or remind.
           </p>
         ) : null}
       </div>
 
       {confirmSuspend ? (
-        <div className="rounded-xl border border-border/70 bg-[#F9F6F0] px-4 py-3 dark:bg-muted/40">
-          <p className="text-sm text-foreground">
+        <div className={styles.confirm}>
+          <p className="text-sm">
             Stop {tab.name} from taking more on tab? The balance stays until they
             pay.
           </p>
@@ -1246,25 +1162,29 @@ function SelectedTabWorkspace({
         </div>
       ) : null}
 
-      <div className="mt-auto border-t border-border/50 pt-4">
-        <p className="text-xs text-muted-foreground">
-          Credit history
-          {selectedCharges.length > 0
-            ? ` · this period ${selectedCharges.length} sale${
-                selectedCharges.length === 1 ? "" : "s"
-              }, ${fmtKes(chargeTotal)}`
-            : null}
-        </p>
+      <div className={styles.ledger}>
+        <div className={styles.ledgerHead}>
+          <span>
+            History
+            {selectedCharges.length > 0
+              ? ` · this period ${selectedCharges.length} sale${
+                  selectedCharges.length === 1 ? "" : "s"
+                }, ${fmtKes(chargeTotal)}`
+              : ""}
+          </span>
+          <span>Kind</span>
+          <span>Amount</span>
+        </div>
         {historyLoading ? (
           <LedgerSkeleton rows={4} />
         ) : historyError ? (
           <p className="mt-2 text-sm text-destructive">{historyError}</p>
         ) : tabLines.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className={cn(styles.muted, "mt-2 text-sm")}>
             No charges or payments on file yet.
           </p>
         ) : (
-          <ul className="mt-2 max-h-48 space-y-1.5 overflow-y-auto">
+          <ul className={styles.ledgerBody}>
             {tabLines.map((line, index) => (
               <CreditHistoryRow
                 key={`${line.at}-${line.kind}-${index}`}
@@ -1291,18 +1211,12 @@ function CreditHistoryRow({
   const paid = isPaymentLine(line.kind);
   const amount = paid || credit > 0 ? credit : debit;
   return (
-    <li className="flex items-baseline justify-between gap-3 text-sm">
-      <span className="min-w-0 truncate text-muted-foreground">
-        {fmtDayTime(line.at, false)} · {creditLineLabel(line.kind, line.memo)}
+    <li className={styles.ledgerRow}>
+      <span className={styles.ledgerWhen}>{fmtDayTime(line.at, false)}</span>
+      <span className={styles.ledgerKind}>
+        {creditLineLabel(line.kind, line.memo)}
       </span>
-      <span
-        className={cn(
-          "shrink-0 tabular-nums",
-          paid
-            ? "text-[#1F6B3A] dark:text-emerald-300"
-            : "text-foreground",
-        )}
-      >
+      <span className={cn(styles.ledgerAmt, paid && styles.paid)}>
         {paid ? "−" : "+"}
         {fmtKes(amount)}
       </span>
