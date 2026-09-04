@@ -73,7 +73,7 @@ export function SetupProgressBanner({
   };
 
   const primaryCtaClass =
-    "inline-flex h-8 items-center gap-1 rounded-md bg-[#141414] px-2.5 text-xs font-medium text-[#F5E6C8] hover:bg-[#2A2A2A]";
+    "inline-flex h-8 items-center gap-1 rounded-none bg-[#141414] px-2.5 text-xs font-medium text-[#F5E6C8] hover:bg-[#2A2A2A]";
 
   return (
     <>
@@ -255,7 +255,7 @@ function StepDot({ step }: { step: SetupProgressStepRecord }) {
   return (
     <span
       className={cn(
-        "size-2 rounded-full transition-colors",
+        "size-2 rounded-none transition-colors",
         done && "bg-[#0D9488]",
         current && "bg-[#B08D48] ring-2 ring-[#B08D48]/25",
         !done && !current && "bg-[#E6E1D8]",
@@ -284,7 +284,7 @@ function ExpandedStepRow({ step }: { step: SetupProgressStepRecord }) {
         ) : current ? (
           <Package className="size-3.5 text-[#B08D48]" aria-hidden />
         ) : (
-          <span className="inline-block size-3.5 rounded-full border border-[#E6E1D8]" />
+          <span className="inline-block size-3.5 rounded-none border border-[#E6E1D8]" />
         )}
       </span>
       <div className="min-w-0 flex-1">

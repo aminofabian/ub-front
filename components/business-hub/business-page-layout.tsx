@@ -49,7 +49,13 @@ export function BusinessPageLayout({
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-2">
         {showNav ? (
-          <div className="rounded-none border border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)] bg-white/90 p-0.5">
+          <div
+            className={cn(
+              "shrink-0 overflow-hidden rounded-none border bg-white/95 p-0.5",
+              "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
+              "shadow-[0_1px_0_rgba(20,20,20,0.035),0_8px_22px_-14px_rgba(20,20,20,0.12)]",
+            )}
+          >
             <BusinessHubNav setupHome={setupHome} />
           </div>
         ) : null}

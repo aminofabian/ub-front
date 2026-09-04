@@ -106,19 +106,19 @@ export function BusinessHubNav({
           >
             <Icon
               className={cn(
-                "size-3.5 shrink-0",
+                "size-3.5 shrink-0 transition-colors",
                 active
                   ? "text-[color-mix(in_srgb,#fff_88%,transparent)]"
                   : "text-[var(--hub-accent,#B08D48)]",
               )}
               aria-hidden
             />
-            <span className="truncate text-[12px] font-medium tracking-[-0.01em] sm:text-[13px]">
+            <span className="truncate text-[12px] font-medium tracking-[-0.015em] sm:text-[13px]">
               {label}
             </span>
             <span
               className={cn(
-                "ml-auto hidden truncate text-[10px] xl:block",
+                "ml-auto hidden truncate text-[10px] tracking-[-0.01em] xl:block",
                 active
                   ? "text-[color-mix(in_srgb,#fff_62%,transparent)]"
                   : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_40%,transparent)]",

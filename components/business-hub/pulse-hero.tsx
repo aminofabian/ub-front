@@ -92,7 +92,7 @@ export function PulseHero({
               <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-medium tracking-wide text-emerald-800">
                 <span
                   className={cn(
-                    "size-1.5 rounded-full bg-emerald-500 hub-live-beacon",
+                    "size-1.5 rounded-none bg-emerald-500 hub-live-beacon",
                     justUpdated && "animate-pulse",
                   )}
                   aria-hidden

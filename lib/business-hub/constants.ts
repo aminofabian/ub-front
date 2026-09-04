@@ -31,10 +31,14 @@ export const HUB_BORDER =
 export const HUB_SECTION =
   "inline-flex items-center gap-2 text-[12px] font-medium tracking-[-0.015em] text-[#141414] before:block before:h-px before:w-2.5 before:shrink-0 before:bg-[#B08D48] before:content-['']";
 
-/** Interactive controls — radius only here. */
+/** Interactive controls — sharp to match the desk. */
 export const HUB_BTN =
-  "rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/35";
+  "rounded-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/35";
 
 export const HUB_ICON_BTN =
   HUB_BTN +
   " inline-flex size-8 items-center justify-center border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-white text-[#666666] hover:border-[#B08D48]/45 hover:text-[#8A6B2E] disabled:cursor-not-allowed disabled:opacity-60";
+
+/** Quiet status chip — square, brass or ink. */
+export const HUB_CHIP =
+  "inline-flex shrink-0 items-center rounded-none px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em]";

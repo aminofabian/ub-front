@@ -5585,6 +5585,7 @@ html:has([data-store-theme-id="comilmart"]) ::selection {
       transparent 72%
     );
   color-scheme: light;
+  caret-color: #b08d48;
 }
 
 .hub-paper ::selection {

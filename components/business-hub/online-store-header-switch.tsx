@@ -43,7 +43,8 @@ export function OnlineStoreHeaderSwitch() {
           enabled ? "Turn off the online store" : "Turn on the online store"
         }
         className={cn(
-          "rounded-full data-checked:bg-[#141414] data-unchecked:bg-[#E6E1D8]",
+          "rounded-none data-checked:bg-[#141414] data-unchecked:bg-[#E6E1D8]",
+          "[&_[data-slot=switch-thumb]]:rounded-none",
           "focus-visible:border-[#B08D48] focus-visible:ring-[#B08D48]/35",
         )}
       />

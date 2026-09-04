@@ -108,7 +108,7 @@
 
 .rows::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--gold) 50%, #e6e1d8);
-  border-radius: 99px;
+  border-radius: 0;
 }
 
 .row {

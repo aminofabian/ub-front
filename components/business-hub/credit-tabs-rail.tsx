@@ -172,7 +172,7 @@ export function CreditTabsRail({
                       type="button"
                       onClick={() => onPayTab?.(tab)}
                       className={cn(
-                        "shrink-0 rounded-md bg-[#F3EBD9] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-[#8A6B2E]",
+                        "shrink-0 rounded-none bg-[#F3EBD9] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-[#8A6B2E]",
                         "transition-colors hover:bg-[#E8D9B8] hover:text-[#141414]",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/45",
                       )}

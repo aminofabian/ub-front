@@ -62,7 +62,7 @@ export function CashierStageTabs({
         {live ? (
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-800">
             <span
-              className="size-1.5 rounded-full bg-emerald-500 hub-live-beacon"
+              className="size-1.5 rounded-none bg-emerald-500 hub-live-beacon"
               aria-hidden
             />
             Live
