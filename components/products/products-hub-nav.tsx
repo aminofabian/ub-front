@@ -54,20 +54,13 @@ const HUB_TABS: HubTab[] = [
   },
 ];
 
-export function ProductsHubNav({
-  className,
-  columns = 4,
-}: {
-  className?: string;
-  columns?: 2 | 4;
-}) {
+export function ProductsHubNav({ className }: { className?: string }) {
   const pathname = usePathname();
 
   return (
     <nav
       className={cn(
-        "grid gap-1 p-1",
-        columns === 2 ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4",
+        "flex gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         className,
       )}
       aria-label="Products pages"
@@ -79,30 +72,29 @@ export function ProductsHubNav({
           <Link
             key={tab.href}
             href={tab.href}
+            title={tab.hint}
             className={cn(
-              "group relative flex min-h-[3.25rem] flex-col justify-center rounded-lg px-3 py-2.5 transition-[background-color,box-shadow,color] duration-200 sm:min-h-[3.5rem] sm:flex-row sm:items-center sm:gap-3 sm:px-4",
+              "group relative flex h-8 shrink-0 items-center gap-1.5 rounded-none px-2.5 transition-colors sm:h-9 sm:flex-1 sm:px-3",
               active
-                ? "bg-[var(--catalog-ink,#15231f)] text-white shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_12%,transparent)]"
-                : "text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_62%,transparent)] hover:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_4%,transparent)] hover:text-[var(--catalog-ink,#15231f)]",
+                ? "bg-[var(--catalog-ink,#15231f)] text-white"
+                : "text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)] hover:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_4%,transparent)] hover:text-[var(--catalog-ink,#15231f)]",
             )}
           >
-            <span className="flex items-center gap-2">
-              <Icon
-                className={cn(
-                  "size-4 shrink-0 transition-transform duration-200 group-hover:scale-105",
-                  active
-                    ? "text-[color-mix(in_srgb,#fff_88%,transparent)]"
-                    : "text-[var(--catalog-primary,#0f766e)]",
-                )}
-                aria-hidden
-              />
-              <span className="text-[13px] font-semibold tracking-[-0.01em] sm:text-sm">
-                {tab.label}
-              </span>
+            <Icon
+              className={cn(
+                "size-3.5 shrink-0",
+                active
+                  ? "text-[color-mix(in_srgb,#fff_88%,transparent)]"
+                  : "text-[var(--catalog-primary,#0f766e)]",
+              )}
+              aria-hidden
+            />
+            <span className="truncate text-[12px] font-medium tracking-[-0.01em] sm:text-[13px]">
+              {tab.label}
             </span>
             <span
               className={cn(
-                "mt-0.5 hidden text-[11px] sm:ml-auto sm:mt-0 sm:block",
+                "ml-auto hidden truncate text-[10px] lg:block",
                 active
                   ? "text-[color-mix(in_srgb,#fff_62%,transparent)]"
                   : "text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]",
@@ -110,6 +102,12 @@ export function ProductsHubNav({
             >
               {tab.hint}
             </span>
+            {active ? (
+              <span
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[var(--catalog-primary,#0f766e)]"
+                aria-hidden
+              />
+            ) : null}
           </Link>
         );
       })}
