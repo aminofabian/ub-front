@@ -3,6 +3,7 @@
 import {
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -12,6 +13,7 @@ import {
 import { Check, ImagePlus, Layers, PackagePlus, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { SearchableSelect } from "@/app/(dashboard)/products/_components/SearchableSelect";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -578,6 +580,15 @@ export function CashierCreateProductModal({
 
   const canSubmit = canSubmitSingle || canSubmitGroup;
 
+  const departmentOptions = useMemo(
+    () =>
+      itemTypes.map((t) => ({
+        value: t.id,
+        label: t.label,
+      })),
+    [itemTypes],
+  );
+
   useEffect(() => {
     const n = readyGroupVariants.length;
     if (n > prevReady.current) setInviteOn(true);
@@ -946,27 +957,24 @@ export function CashierCreateProductModal({
             </div>
           </div>
 
-          <label className="block space-y-1.5">
+          <div className="space-y-1.5">
             <span className={labelClass}>Department</span>
-            <select
+            <SearchableSelect
               className={fieldClass}
               value={itemTypeId}
-              onChange={(e) => setItemTypeId(e.target.value)}
+              onChange={setItemTypeId}
+              options={departmentOptions}
+              placeholder={
+                itemTypes.length === 0 ? "No departments" : "Find department…"
+              }
+              required
               disabled={
                 itemTypes.length === 0 ||
+                busy ||
                 (mode === "single" && linkAsVariant && relatedItem != null)
               }
-            >
-              {itemTypes.length === 0 ? (
-                <option value="">No departments</option>
-              ) : (
-                itemTypes.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label}
-                  </option>
-                ))
-              )}
-            </select>
+              aria-label="Department"
+            />
             {mode === "single" && linkAsVariant && relatedItem != null ? (
               <span className="text-[11px] text-zinc-500">
                 Department is inherited from the parent product.
@@ -976,7 +984,7 @@ export function CashierCreateProductModal({
                 Options inherit this department.
               </span>
             ) : null}
-          </label>
+          </div>
 
           {mode === "single" ? (
             <div className={cn("flex flex-col gap-3", styles.enter)}>
