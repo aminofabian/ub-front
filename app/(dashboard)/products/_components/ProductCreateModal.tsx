@@ -40,6 +40,12 @@ import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import type { ParentDraft } from "../_types";
 import { formatAmount, toNumber } from "../_utils";
 import { categorySelectOptions } from "./category-select-options";
+import {
+  CreateGroupOptionsPad,
+  newGroupOptionRow,
+  readyGroupOptions,
+  type GroupOptionRow,
+} from "./CreateGroupOptionsPad";
 import { PackageVariantsSection } from "./PackageVariantsSection";
 import { ProductDescriptionField } from "./ProductDescriptionField";
 import { ProductNameSuggestions } from "./ProductNameSuggestions";
@@ -119,7 +125,7 @@ function matchCategoryIdByName(
 }
 
 const fieldClass = cn(
-  "h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-3 text-[15px] text-[var(--catalog-ink,#15231f)] shadow-none",
+  "h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-3 text-[14px] text-[var(--catalog-ink,#15231f)] shadow-none",
   "placeholder:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)]",
   "focus-visible:border-[var(--catalog-ink,#15231f)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_28%,transparent)]",
   "disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_80%,transparent)]",
@@ -166,7 +172,7 @@ function QtyStepper({
   const safe = Number.isFinite(qty) && qty >= 0 ? qty : 0;
 
   return (
-    <div className="flex h-11 overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white">
+    <div className="flex h-10 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white">
       <button
         type="button"
         disabled={disabled || safe <= 0}
@@ -233,6 +239,10 @@ export function ProductCreateModal({
   const prevArmed = useRef(false);
   const [descGenError, setDescGenError] = useState("");
   const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(null);
+  const [groupOptions, setGroupOptions] = useState<GroupOptionRow[]>(() => [
+    newGroupOptionRow(),
+    newGroupOptionRow(),
+  ]);
   const categoryCreate = useInlineCategoryCreate(catalog.upsertCategory);
   const departmentCreate = useInlineItemTypeCreate(catalog.upsertItemType);
   const aisleCreate = useInlineAisleCreate(catalog.upsertAisle);
@@ -248,6 +258,12 @@ export function ProductCreateModal({
     prevArmed.current = false;
     setDescGenError("");
     setLinkedGlobalLabel(null);
+    setGroupOptions((prev) => {
+      for (const row of prev) {
+        if (row.imagePreview) URL.revokeObjectURL(row.imagePreview);
+      }
+      return [newGroupOptionRow(), newGroupOptionRow()];
+    });
     categoryCreate.clearError();
     departmentCreate.clearError();
     aisleCreate.clearError();
@@ -462,13 +478,23 @@ export function ProductCreateModal({
   );
 
   const currency = currencyCode.trim() || "KES";
+  const readyOptions = useMemo(
+    () => readyGroupOptions(groupOptions),
+    [groupOptions],
+  );
+  const startedOptions = groupOptions.filter(
+    (r) => r.label.trim() || r.unitPrice.trim(),
+  ).length;
 
   const canArm =
     catalog.itemTypes.length > 0 &&
     m.parentDraft.name.trim().length > 0 &&
-    (isGroup ||
-      (Number.isFinite(Number(m.parentDraft.bundlePrice)) &&
-        Number(m.parentDraft.bundlePrice) > 0));
+    (isGroup
+      ? m.parentDraft.categoryId.trim().length > 0 &&
+        readyOptions.length >= 1 &&
+        readyOptions.length === startedOptions
+      : Number.isFinite(Number(m.parentDraft.bundlePrice)) &&
+        Number(m.parentDraft.bundlePrice) > 0);
 
   useEffect(() => {
     if (canArm && !prevArmed.current) setStamp((s) => s + 1);
@@ -487,6 +513,16 @@ export function ProductCreateModal({
 
       await m.onCreateParent(e, {
         keepOpen: creatingGroup ? false : keepOpen,
+        groupOptions: creatingGroup
+          ? readyOptions.map((o) => ({
+              label: o.label,
+              barcode: o.barcode || undefined,
+              unitPrice: o.unitPrice,
+              buyingPrice: o.buyingPrice,
+              stock: o.stock,
+              imageFile: o.imageFile,
+            }))
+          : undefined,
       });
 
       if (creatingGroup || !keepOpen) return;
@@ -530,7 +566,7 @@ export function ProductCreateModal({
       }, 0);
       window.setTimeout(() => setJustAdded(false), 560);
     },
-    [keepOpen, m],
+    [keepOpen, m, readyOptions],
   );
 
   return (
@@ -547,7 +583,7 @@ export function ProductCreateModal({
         overlayClassName="bg-black/40 supports-[backdrop-filter]:backdrop-blur-[2px]"
         className={cn(
           styles.root,
-          "gap-0 overflow-hidden p-0 sm:rounded-l-2xl",
+          "gap-0 overflow-hidden p-0 sm:rounded-none",
           "w-[min(100%,60rem)] max-w-[60rem]",
         )}
       >
@@ -566,7 +602,7 @@ export function ProductCreateModal({
               </DialogTitle>
               <DialogDescription className="text-[13px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)]">
                 {isGroup
-                  ? "Name the family, then add each size or pack after this."
+                  ? "Name the family, then each size or flavour you sell."
                   : justAdded
                     ? "Added. Name the next one."
                     : "Name and selling price are enough to sell. Photo and barcode can wait."}
@@ -611,7 +647,7 @@ export function ProductCreateModal({
             {banner ? <div className="mb-1">{banner}</div> : null}
 
             {catalog.itemTypes.length === 0 ? (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
+              <div className="rounded-none border border-destructive/30 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
                 {canCreateCategory
                   ? "Add a department below, or generate with AI under More details."
                   : "Add a department first (Your shop → Departments), then come back here."}
@@ -619,7 +655,7 @@ export function ProductCreateModal({
             ) : null}
 
             {m.parentDraft.globalProductSourceId ? (
-              <div className="flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_65%,white)] px-3 py-2 text-[12px] text-[var(--catalog-ink,#15231f)]">
+              <div className="flex items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_65%,white)] px-3 py-2 text-[12px] text-[var(--catalog-ink,#15231f)]">
                 <span className="min-w-0 flex-1">
                   Filled from shared catalog
                   {linkedGlobalLabel ? ` (${linkedGlobalLabel})` : ""}
@@ -641,7 +677,7 @@ export function ProductCreateModal({
             ) : null}
 
             <div className={cn("space-y-4", justAdded && styles.fresh)}>
-              <div className={cn(!isGroup && styles.identity)}>
+              <div className={styles.identity}>
                 <div className="space-y-1.5">
                   <FieldLabel htmlFor="create-product-name">
                     {isGroup ? "Family name" : "Name"}
@@ -662,59 +698,57 @@ export function ProductCreateModal({
                     autoFocus
                   />
                 </div>
-                {!isGroup ? (
-                  <div className="space-y-1.5">
-                    <span className={labelClass}>Photo</span>
-                    <div
-                      onDrop={handleDrop}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setPhotoOver(true);
-                      }}
-                      onDragLeave={() => setPhotoOver(false)}
-                      className={styles.photo}
-                      data-filled={previewUrl ? "" : undefined}
-                      data-over={photoOver ? "" : undefined}
-                    >
-                      {previewUrl ? (
-                        <Image
-                          src={previewUrl}
-                          alt=""
-                          width={76}
-                          height={76}
-                          unoptimized
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
+                <div className="space-y-1.5">
+                  <span className={labelClass}>Photo</span>
+                  <div
+                    onDrop={handleDrop}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setPhotoOver(true);
+                    }}
+                    onDragLeave={() => setPhotoOver(false)}
+                    className={styles.photo}
+                    data-filled={previewUrl ? "" : undefined}
+                    data-over={photoOver ? "" : undefined}
+                  >
+                    {previewUrl ? (
+                      <Image
+                        src={previewUrl}
+                        alt=""
+                        width={76}
+                        height={76}
+                        unoptimized
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileRef.current?.click()}
+                        className={styles.photoBtn}
+                        aria-label="Add a photo"
+                      >
+                        <ImagePlus className="size-5" aria-hidden />
+                        <span>Add</span>
+                      </button>
+                    )}
+                    {previewUrl ? (
+                      <div className={styles.photoBar}>
                         <button
                           type="button"
                           onClick={() => fileRef.current?.click()}
-                          className={styles.photoBtn}
-                          aria-label="Add a photo"
                         >
-                          <ImagePlus className="size-5" aria-hidden />
-                          <span>Add</span>
+                          Change
                         </button>
-                      )}
-                      {previewUrl ? (
-                        <div className={styles.photoBar}>
-                          <button
-                            type="button"
-                            onClick={() => fileRef.current?.click()}
-                          >
-                            Change
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => m.setPendingCreateImage(null)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => m.setPendingCreateImage(null)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
+                </div>
               </div>
 
               <input
@@ -747,7 +781,7 @@ export function ProductCreateModal({
                 </div>
                 <SearchableSelect
                   ref={departmentSelectRef}
-                  className={cn(productFormInputClass, "h-11 rounded-xl")}
+                  className={cn(productFormInputClass, "h-10 rounded-none")}
                   value={m.parentDraft.itemTypeId}
                   onChange={(itemTypeId) =>
                     m.setParentDraft((p) => ({ ...p, itemTypeId }))
@@ -792,7 +826,7 @@ export function ProductCreateModal({
                   </div>
                   <SearchableSelect
                     ref={categorySelectRef}
-                    className={cn(productFormInputClass, "h-11 rounded-xl")}
+                    className={cn(productFormInputClass, "h-10 rounded-none")}
                     value={m.parentDraft.categoryId}
                     onChange={(categoryId) =>
                       m.setParentDraft((p) => ({ ...p, categoryId }))
@@ -919,10 +953,10 @@ export function ProductCreateModal({
                       <FieldLabel htmlFor="create-barcode" hint="Optional">
                         Barcode
                       </FieldLabel>
-                      <div className="flex overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white">
+                      <div className="flex overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white">
                         <input
                           id="create-barcode"
-                          className="h-11 min-w-0 flex-1 border-0 bg-transparent px-3 font-mono text-[13px] text-[var(--catalog-ink,#15231f)] outline-none placeholder:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)]"
+                          className="h-10 min-w-0 flex-1 border-0 bg-transparent px-3 font-mono text-[13px] text-[var(--catalog-ink,#15231f)] outline-none placeholder:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)]"
                           placeholder="Type or scan"
                           value={m.parentDraft.barcode}
                           onChange={(e) =>
@@ -945,10 +979,12 @@ export function ProductCreateModal({
                   </div>
                 </>
               ) : (
-                <p className={cn(styles.hintCard, styles.enter)}>
-                  After you create the family, you&apos;ll add each size, pack,
-                  or flavour as its own option — same flow as on the till.
-                </p>
+                <CreateGroupOptionsPad
+                  rows={groupOptions}
+                  onChange={setGroupOptions}
+                  currency={currency}
+                  disabled={m.parentCreateBusy}
+                />
               )}
 
               <button
@@ -968,7 +1004,7 @@ export function ProductCreateModal({
               </button>
 
               {moreOpen ? (
-                <div className={cn(styles.morePanel, "space-y-3 rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_45%,white)] p-3")}>
+                <div className={cn(styles.morePanel, "space-y-3 rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_45%,white)] p-3")}>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {!isGroup ? (
                       <div className="space-y-1.5">
@@ -992,7 +1028,7 @@ export function ProductCreateModal({
                         </div>
                         <SearchableSelect
                           ref={categorySelectRef}
-                          className={cn(productFormInputClass, "h-10 rounded-lg")}
+                          className={cn(productFormInputClass, "h-10 rounded-none")}
                           value={m.parentDraft.categoryId}
                           onChange={(categoryId) =>
                             m.setParentDraft((p) => ({ ...p, categoryId }))
@@ -1033,7 +1069,7 @@ export function ProductCreateModal({
                       </div>
                       <SearchableSelect
                         ref={aisleSelectRef}
-                        className={cn(productFormInputClass, "h-10 rounded-lg")}
+                        className={cn(productFormInputClass, "h-10 rounded-none")}
                         value={m.parentDraft.aisleId}
                         onChange={(aisleId) =>
                           m.setParentDraft((p) => ({ ...p, aisleId }))
@@ -1061,7 +1097,7 @@ export function ProductCreateModal({
                         <button
                           key={template.id}
                           type="button"
-                          className="rounded-lg border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-2 py-1 text-[11px] font-medium text-[var(--catalog-ink,#15231f)] hover:border-[var(--catalog-ink,#15231f)]"
+                          className="rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-2 py-1 text-[11px] font-medium text-[var(--catalog-ink,#15231f)] hover:border-[var(--catalog-ink,#15231f)]"
                           onClick={() => {
                             const itemTypeId =
                               matchItemTypeIdForTemplate(
@@ -1094,7 +1130,7 @@ export function ProductCreateModal({
                           <input
                             className={cn(
                               productFormInputClass,
-                              "h-10 min-w-0 flex-1 rounded-lg font-mono text-xs",
+                              "h-10 min-w-0 flex-1 rounded-none font-mono text-xs",
                             )}
                             placeholder="Auto"
                             value={m.parentDraft.sku}
@@ -1110,7 +1146,7 @@ export function ProductCreateModal({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="h-10 shrink-0 rounded-lg px-2 font-mono text-[10px]"
+                              className="h-10 shrink-0 rounded-none px-2 font-mono text-[10px]"
                               onClick={() =>
                                 m.setParentDraft((p) => ({
                                   ...p,
@@ -1128,7 +1164,7 @@ export function ProductCreateModal({
                         <div className="space-y-1.5">
                           <span className={labelClass}>Stock at branch</span>
                           <select
-                            className={cn(productFormInputClass, "h-10 rounded-lg")}
+                            className={cn(productFormInputClass, "h-10 rounded-none")}
                             value={m.parentDraft.openingBranchId}
                             onChange={(e) =>
                               m.setParentDraft((p) => ({
@@ -1166,7 +1202,7 @@ export function ProductCreateModal({
                         <label className="space-y-1">
                           <span className={productFormLabelClass}>Brand</span>
                           <input
-                            className={cn(productFormInputClass, "h-10 rounded-lg")}
+                            className={cn(productFormInputClass, "h-10 rounded-none")}
                             value={m.parentDraft.brand}
                             onChange={(e) =>
                               m.setParentDraft((p) => ({
@@ -1179,7 +1215,7 @@ export function ProductCreateModal({
                         <label className="space-y-1">
                           <span className={productFormLabelClass}>Size</span>
                           <input
-                            className={cn(productFormInputClass, "h-10 rounded-lg")}
+                            className={cn(productFormInputClass, "h-10 rounded-none")}
                             value={m.parentDraft.size}
                             onChange={(e) =>
                               m.setParentDraft((p) => ({
@@ -1198,7 +1234,7 @@ export function ProductCreateModal({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="h-8 rounded-lg text-xs"
+                              className="h-8 rounded-none text-xs"
                               disabled={m.suppliersLoading}
                               onClick={() => void m.loadSuppliersForLink()}
                             >
@@ -1208,7 +1244,7 @@ export function ProductCreateModal({
                           <label className="space-y-1">
                             <span className={productFormLabelClass}>Supplier</span>
                             <select
-                              className={cn(productFormInputClass, "h-10 rounded-lg")}
+                              className={cn(productFormInputClass, "h-10 rounded-none")}
                               value={
                                 m.suppliersForLink.some(
                                   (s) => s.id === m.parentDraft.supplierId,
@@ -1244,7 +1280,7 @@ export function ProductCreateModal({
                     onError={setDescGenError}
                     onGenerated={handleGenerated}
                     rows={2}
-                    textareaClassName="min-h-[2.5rem] rounded-lg"
+                    textareaClassName="min-h-[2.5rem] rounded-none"
                     context={{
                       name: m.parentDraft.name,
                       categoryName: createCategoryName,
@@ -1289,7 +1325,11 @@ export function ProductCreateModal({
               </Button>
               <button
                 type="submit"
-                disabled={catalog.itemTypes.length === 0 || m.parentCreateBusy}
+                disabled={
+                  catalog.itemTypes.length === 0 ||
+                  m.parentCreateBusy ||
+                  !canArm
+                }
                 data-armed={canArm ? "true" : "false"}
                 data-busy={m.parentCreateBusy ? "true" : undefined}
                 data-stamp={canArm && stamp > 0 ? stamp : undefined}
@@ -1298,7 +1338,11 @@ export function ProductCreateModal({
                 {m.parentCreateBusy
                   ? "Saving…"
                   : isGroup
-                    ? "Create family"
+                    ? readyOptions.length === 0
+                      ? "Create family"
+                      : readyOptions.length === 1
+                        ? "Create 1 option"
+                        : `Create ${readyOptions.length} options`
                     : keepOpen
                       ? "Add & next"
                       : "Add product"}

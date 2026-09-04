@@ -367,7 +367,20 @@ export function useProductMutations(d: Dependencies) {
   // CREATE PARENT
   // ══════════════════════════════════════════════════════════════════════════
   const onCreateParent = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>, opts?: { keepOpen?: boolean }) => {
+    async (
+      e: React.FormEvent<HTMLFormElement>,
+      opts?: {
+        keepOpen?: boolean;
+        groupOptions?: Array<{
+          label: string;
+          barcode?: string;
+          unitPrice: number;
+          buyingPrice?: number | null;
+          stock: number;
+          imageFile?: File | null;
+        }>;
+      },
+    ) => {
       e.preventDefault();
       if (parentCreateSubmittingRef.current) return;
       parentCreateSubmittingRef.current = true;
@@ -400,6 +413,11 @@ export function useProductMutations(d: Dependencies) {
         }
         if (isCreatingGroup && !parentDraft.categoryId.trim()) {
           setMessage("Choose a category for this group — variants will inherit it.");
+          return;
+        }
+        const groupOptions = opts?.groupOptions ?? [];
+        if (isCreatingGroup && groupOptions.length === 0) {
+          setMessage("Add at least one option with a name and sell price.");
           return;
         }
 
@@ -645,7 +663,7 @@ export function useProductMutations(d: Dependencies) {
             return;
           }
         }
-        // Upload image if selected
+        // Upload family / product photo
         if (pendingCreateImage) {
           try {
             await uploadItemImageToCloudinary(created.id, pendingCreateImage, {
@@ -654,6 +672,134 @@ export function useProductMutations(d: Dependencies) {
           } catch {
             // non-fatal — product is already created
           }
+        }
+
+        // Family + options: create each option on this screen (no drawer handoff)
+        if (isCreatingGroup && groupOptions.length > 0) {
+          const branchId =
+            parentDraft.openingBranchId.trim() ||
+            headerBranchId.trim() ||
+            branches[0]?.id?.trim() ||
+            "";
+          const warnings: string[] = [];
+          let lastVid: string | null = null;
+          for (const opt of groupOptions) {
+            const draft: VariantDraft = {
+              ...emptyVariantDraft(),
+              variantName: opt.label,
+              barcode: opt.barcode?.trim() || "",
+              categoryId: parentDraft.categoryId.trim(),
+              sellingPrice: String(opt.unitPrice),
+              sellBranchId: branchId,
+              bundlePrice: String(opt.unitPrice),
+              defaultCostPrice:
+                opt.buyingPrice != null ? String(opt.buyingPrice) : "",
+              openingQty: String(opt.stock),
+              openingBranchId: branchId,
+              openingUnitCost:
+                opt.buyingPrice != null ? String(opt.buyingPrice) : "",
+            };
+            let body;
+            try {
+              body = buildCreateVariantBody(draft);
+            } catch (err) {
+              setMessage(
+                err instanceof Error ? err.message : "Invalid option.",
+              );
+              await refreshFullCatalog();
+              selectProduct(created.id);
+              return;
+            }
+            let bp = null;
+            try {
+              bp = bundlePatchFromVariantDraft(draft);
+            } catch (err) {
+              setMessage(
+                err instanceof Error ? err.message : "Invalid option pricing.",
+              );
+              await refreshFullCatalog();
+              selectProduct(created.id);
+              return;
+            }
+            let variant;
+            try {
+              variant = await createItemVariant(created.id, body);
+            } catch (err) {
+              setMessage(
+                formatMutationError(
+                  err,
+                  `Family created, but option “${opt.label}” failed.`,
+                ),
+              );
+              await refreshFullCatalog();
+              selectProduct(lastVid || created.id);
+              setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedType });
+              setActiveDrawer(null);
+              return;
+            }
+            lastVid = variant.id;
+            if (bp) {
+              try {
+                await patchItem(variant.id, bp);
+              } catch {
+                warnings.push(`Price patch failed (${opt.label}).`);
+              }
+            }
+            if (canSetSellPrice && branchId && opt.unitPrice > 0) {
+              try {
+                await postSellingPrice({
+                  itemId: variant.id,
+                  branchId,
+                  price: opt.unitPrice,
+                  effectiveFrom: new Date().toISOString().slice(0, 10),
+                });
+              } catch {
+                warnings.push(`Selling price failed (${opt.label}).`);
+              }
+            }
+            if (
+              canInventoryWrite &&
+              branchId &&
+              Number.isFinite(opt.stock) &&
+              opt.stock > 0
+            ) {
+              try {
+                await postStockIncrease({
+                  branchId,
+                  itemId: variant.id,
+                  quantity: opt.stock,
+                  unitCost: opt.buyingPrice ?? 0,
+                  notes: "Opening stock from family create",
+                });
+              } catch {
+                warnings.push(`Stock failed (${opt.label}).`);
+              }
+            }
+            if (opt.imageFile) {
+              try {
+                await uploadItemImageToCloudinary(variant.id, opt.imageFile, {
+                  primary: true,
+                });
+              } catch {
+                warnings.push(`Photo failed (${opt.label}).`);
+              }
+            }
+          }
+          setPendingCreateImage(null);
+          await refreshFullCatalog();
+          selectProduct(lastVid || created.id);
+          await refreshSelectedDetail(lastVid || created.id);
+          setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedType });
+          setActiveDrawer(null);
+          const n = groupOptions.length;
+          setMessage(
+            warnings.length > 0
+              ? `Family created with ${n} option${n === 1 ? "" : "s"}. ${warnings[0]}`
+              : n === 1
+                ? "Family created with 1 option."
+                : `Family created with ${n} options.`,
+          );
+          return;
         }
 
         // Opening stock for standalone products (skip when adopt already applied it)
@@ -727,30 +873,18 @@ export function useProductMutations(d: Dependencies) {
         setPendingCreateImage(null);
         await refreshFullCatalog();
         selectProduct(created.id);
-        if (isCreatingGroup) {
-          /* Keep the create drawer on the group form until detail is ready,
-             then switch straight to add-variant — never paint EMPTY_PARENT
-             (standalone) while create-parent is still open. */
-          await refreshSelectedDetail(created.id);
-          setVariantDraftRows([emptyVariantDraft()]);
-          setPendingVariantImage(null);
-          setActiveDrawer("add-variant");
-          setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedType });
-          setMessage("Group created — add your first variant.");
-        } else {
-          setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedType });
-          if (!opts?.keepOpen) setActiveDrawer(null);
-          const linkedSupplier = canLinkSupplier && Boolean(sup);
-          setMessage(
-            adoptedFromSharedCatalog
-              ? linkedSupplier
-                ? "Product created, linked to shared catalog, and supplier linked."
-                : "Product created and linked to shared catalog."
-              : linkedSupplier
-                ? "Product created and linked."
-                : "Product created.",
-          );
-        }
+        setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedType });
+        if (!opts?.keepOpen) setActiveDrawer(null);
+        const linkedSupplier = canLinkSupplier && Boolean(sup);
+        setMessage(
+          adoptedFromSharedCatalog
+            ? linkedSupplier
+              ? "Product created, linked to shared catalog, and supplier linked."
+              : "Product created and linked to shared catalog."
+            : linkedSupplier
+              ? "Product created and linked."
+              : "Product created.",
+        );
       } catch (err) {
         setMessage(formatMutationError(err, "Create failed."));
       } finally {
@@ -764,13 +898,15 @@ export function useProductMutations(d: Dependencies) {
       canInventoryWrite,
       canGlobalAdopt,
       canCatalogWrite,
+      canSetSellPrice,
       pendingCreateImage,
       refreshFullCatalog,
       refreshSelectedDetail,
       selectProduct,
       setActiveDrawer,
       setMessage,
-      setVariantDraftRows,
+      headerBranchId,
+      branches,
     ],
   );
 
