@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
-import { BarChart3, Check, Filter, RefreshCw, X } from "lucide-react";
+import { Check, Filter, RefreshCw, X } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -54,14 +54,10 @@ import {
 } from "@/lib/api";
 import { AnalyticsOpsBoard } from "./analytics-ops-board";
 
-const NAVY = "#0c3a66";
-const NAVY_DEEP = "#071e36";
-const BAR = "#2a6aa3";
-const BAR_LEAD = "#0c3a66";
-const SLICE = "#16487a";
-const INK = "#0c3a66";
-const MUTED = "#3a5570";
+const BAR = "color-mix(in oklab, currentColor 45%, transparent)";
+const BAR_LEAD = "currentColor";
 const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
+const OWED = "#9a2e16";
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -112,7 +108,7 @@ function monthsCovered(
   return out;
 }
 
-function WhiteCard({
+function Panel({
   children,
   className,
 }: {
@@ -121,8 +117,10 @@ function WhiteCard({
 }) {
   return (
     <div
-      className={cn("rounded-none bg-white", className)}
-      style={{ boxShadow: "0 4px 14px rgba(7, 30, 54, 0.22)" }}
+      className={cn(
+        "rounded-none border border-border bg-transparent",
+        className,
+      )}
     >
       {children}
     </div>
@@ -137,24 +135,18 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <WhiteCard className="flex min-h-0 flex-col px-4 pb-4 pt-5">
-      <h2
-        className="mb-3 text-center text-[12px] font-semibold uppercase tracking-[-0.02em]"
-        style={{ color: INK }}
-      >
+    <Panel className="flex min-h-0 flex-col px-3 pb-3 pt-4">
+      <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {title}
       </h2>
-      <div className="min-h-0 flex-1">{children}</div>
-    </WhiteCard>
+      <div className="min-h-0 flex-1 text-foreground">{children}</div>
+    </Panel>
   );
 }
 
 function EmptyPlot({ children }: { children: React.ReactNode }) {
   return (
-    <p
-      className="flex h-44 items-center justify-center px-4 text-center text-xs leading-relaxed"
-      style={{ color: MUTED }}
-    >
+    <p className="flex h-44 items-center justify-center px-4 text-center text-xs leading-relaxed text-muted-foreground">
       {children}
     </p>
   );
@@ -184,10 +176,7 @@ function ColumnChart({
             key={item.key}
             className="flex min-w-0 flex-1 flex-col items-center gap-1.5"
           >
-            <span
-              className="w-full truncate text-center text-[10px] font-semibold tabular-nums tracking-[-0.02em]"
-              style={{ color: INK }}
-            >
+            <span className="w-full truncate text-center text-[10px] font-semibold tabular-nums tracking-[-0.02em] text-foreground">
               {formatValue(item.value)}
             </span>
             <div className="flex h-36 w-full items-end justify-center sm:h-40">
@@ -197,15 +186,13 @@ function ColumnChart({
                   height: "100%",
                   transform: `scaleY(${pct / 100})`,
                   background: lead ? BAR_LEAD : BAR,
-                  boxShadow: "2px 4px 6px rgba(7, 30, 54, 0.28)",
                   transition: `transform 200ms ${EASE}`,
                 }}
                 title={`${item.label}: ${formatValue(item.value)}`}
               />
             </div>
             <span
-              className="line-clamp-2 h-8 w-full text-center text-[10px] leading-tight"
-              style={{ color: MUTED }}
+              className="line-clamp-2 h-8 w-full text-center text-[10px] leading-tight text-muted-foreground"
               title={item.label}
             >
               {item.label}
@@ -271,8 +258,8 @@ function CustomerTrend({
           <path
             d={toPath(solid)}
             fill="none"
-            stroke={NAVY}
-            strokeWidth="2.4"
+            stroke="currentColor"
+            strokeWidth="2"
             strokeLinejoin="miter"
           />
         ) : null}
@@ -280,9 +267,11 @@ function CustomerTrend({
           <path
             d={toPath(tail)}
             fill="none"
-            stroke={BAR_LEAD}
-            strokeWidth="2.6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeDasharray="4 3"
             strokeLinejoin="miter"
+            opacity="0.55"
           />
         ) : null}
         {coords.map((c) => {
@@ -296,14 +285,14 @@ function CustomerTrend({
                   width="32"
                   height="16"
                   rx="0"
-                  fill={NAVY}
+                  fill="currentColor"
                 />
               ) : null}
               <text
                 x={c.x}
                 y={incomplete ? c.y - 11 : c.y - 10}
                 textAnchor="middle"
-                fill={incomplete ? "#fff" : INK}
+                fill={incomplete ? "var(--background)" : "currentColor"}
                 fontSize="10"
                 fontWeight="700"
               >
@@ -314,7 +303,7 @@ function CustomerTrend({
                 y={c.y - (incomplete ? 4 : 3)}
                 width={incomplete ? 8 : 6}
                 height={incomplete ? 8 : 6}
-                fill={incomplete ? BAR_LEAD : NAVY}
+                fill="currentColor"
               />
             </g>
           );
@@ -325,7 +314,7 @@ function CustomerTrend({
             x={c.x}
             y={h - 4}
             textAnchor="middle"
-            fill={MUTED}
+            fill="color-mix(in oklab, currentColor 55%, transparent)"
             fontSize="11"
           >
             {c.label}
@@ -352,18 +341,18 @@ function SlicerPanel({
   onClear?: () => void;
 }) {
   return (
-    <section className="overflow-hidden rounded-none" style={{ background: NAVY_DEEP }}>
-      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
-        <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-white">
+    <section className="border border-border">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {title}
         </h2>
-        <div className="flex items-center gap-1 text-white/90">
+        <div className="flex items-center gap-1 text-muted-foreground">
           <Filter className="size-3.5" aria-hidden />
           {onClear ? (
             <button
               type="button"
               onClick={onClear}
-              className="flex size-8 items-center justify-center hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="flex size-8 items-center justify-center hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={`Clear ${title}`}
             >
               <X className="size-3.5" />
@@ -371,11 +360,14 @@ function SlicerPanel({
           ) : null}
         </div>
       </div>
-      <div className="flex max-h-56 flex-col gap-1.5 overflow-y-auto px-3 pb-3">
+      <div className="flex max-h-56 flex-col overflow-y-auto">
         {items.map((item) => {
           const selected = value === item.id;
           return (
-            <label key={item.id || `${name}-all`} className="block">
+            <label
+              key={item.id || `${name}-all`}
+              className="block border-b border-border last:border-0"
+            >
               <input
                 type="radio"
                 name={name}
@@ -385,17 +377,12 @@ function SlicerPanel({
               />
               <span
                 className={cn(
-                  "flex min-h-11 cursor-pointer items-center justify-center px-3 py-2 text-center text-[13px] font-medium tracking-[-0.02em] transition-colors duration-150",
-                  "peer-focus-visible:ring-2 peer-focus-visible:ring-white peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#071e36]",
+                  "flex min-h-10 cursor-pointer items-center px-3 py-2 text-[13px] font-medium tracking-[-0.02em] transition-colors",
+                  "peer-focus-visible:bg-muted/40",
                   selected
-                    ? "bg-white"
-                    : "text-white hover:bg-white/10",
+                    ? "bg-foreground text-background"
+                    : "text-foreground hover:bg-muted/30",
                 )}
-                style={
-                  selected
-                    ? { color: INK }
-                    : { background: SLICE, color: "#fff" }
-                }
               >
                 {item.label}
               </span>
@@ -410,31 +397,25 @@ function SlicerPanel({
 function BoardSkeleton() {
   return (
     <div
-      className="mx-auto w-full max-w-[1280px] rounded-none p-4 pb-10 sm:p-5"
-      style={{ background: NAVY }}
+      className="mx-auto w-full max-w-[1280px] space-y-4 pb-10"
       aria-busy="true"
     >
-      <div className="mb-4 h-10 w-2/3 bg-white/10" />
-      <div className="mb-3 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-20 bg-white/90" />
+      <div className="h-8 w-2/3 animate-pulse bg-muted" />
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-20 animate-pulse border border-border bg-muted/40" />
         ))}
       </div>
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13.5rem]">
         <div className="grid gap-3 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-56 bg-white/90" />
+            <div key={i} className="h-56 animate-pulse border border-border bg-muted/30" />
           ))}
         </div>
         <div className="space-y-3">
-          <div className="h-36 bg-white/10" />
-          <div className="h-36 bg-white/10" />
+          <div className="h-36 animate-pulse border border-border bg-muted/30" />
+          <div className="h-36 animate-pulse border border-border bg-muted/30" />
         </div>
-      </div>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-40 bg-white/90" />
-        ))}
       </div>
       <span className="sr-only">Loading sales performance</span>
     </div>
@@ -736,229 +717,220 @@ export function AnalyticsWorkspace({
   if (loading) return <BoardSkeleton />;
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] pb-16">
-      {error ? (
-        <div className="mb-3">
-          <DashboardFeedback kind="error" text={error} />
-        </div>
-      ) : null}
+    <div
+      className={cn(
+        "mx-auto w-full max-w-[1280px] space-y-5 pb-16 text-foreground",
+        refreshing && "opacity-80",
+      )}
+    >
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-      <div
-        className={cn(
-          "overflow-hidden rounded-none p-4 sm:p-5",
-          refreshing && "opacity-80",
-        )}
-        style={{ background: NAVY }}
-      >
-        <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 flex-wrap items-center gap-3">
-            <span className="flex size-12 shrink-0 items-center justify-center bg-white">
-              <BarChart3 className="size-6" aria-hidden style={{ color: NAVY }} />
-            </span>
-            <h1 className="min-w-0 font-sans text-[1.4rem] font-bold uppercase leading-tight tracking-[-0.02em] text-white sm:text-[1.75rem]">
-              Sales performance dashboard
+      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="text-lg font-bold tracking-tight sm:text-xl">
+              Trends
             </h1>
             <span
-              className="inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[-0.02em] text-white"
-              style={{ background: balanced ? "#1a6b2a" : "#c05612" }}
+              className={cn(
+                "inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.06em]",
+                balanced ? "text-emerald-700" : "text-[#9a2e16]",
+              )}
             >
               {balanced ? <Check className="size-3.5" aria-hidden /> : null}
               {balanced ? "Balanced" : "Needs review"}
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <p className="hidden text-[11px] font-medium uppercase tracking-[-0.02em] text-white/85 sm:block">
-              {me?.name || business?.name || ""}
-            </p>
-            {activityHref ? (
-              <Link
-                href={activityHref}
-                className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                Activity
-              </Link>
-            ) : null}
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            {me?.name || business?.name || "Sales performance"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {activityHref ? (
             <Link
-              href={APP_ROUTES.analyticsCustomers}
-              className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              href={activityHref}
+              className="text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              Shoppers
+              Activity
             </Link>
-            <button
-              type="button"
-              className="flex size-11 items-center justify-center text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
-              onClick={() => {
-                setRefreshing(true);
-                void load();
-              }}
-              disabled={refreshing}
-              aria-label="Refresh"
-            >
-              <RefreshCw
-                className={cn("size-4", refreshing && "animate-spin")}
-                aria-hidden
-              />
-            </button>
-          </div>
-        </header>
+          ) : null}
+          <Link
+            href={APP_ROUTES.analyticsCustomers}
+            className="text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Shoppers
+          </Link>
+          <button
+            type="button"
+            className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+            onClick={() => {
+              setRefreshing(true);
+              void load();
+            }}
+            disabled={refreshing}
+            aria-label="Refresh"
+          >
+            <RefreshCw
+              className={cn("size-4", refreshing && "animate-spin")}
+              aria-hidden
+            />
+          </button>
+        </div>
+      </header>
 
-        {preset === "custom" ? (
-          <div className="mb-4 flex flex-wrap items-center gap-3 text-[12px] text-white">
-            <label className="flex items-center gap-2">
-              From
-              <input
-                type="date"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-11 rounded-none border-0 bg-white px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                style={{ color: INK }}
-              />
-            </label>
-            <label className="flex items-center gap-2">
-              To
-              <input
-                type="date"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="h-11 rounded-none border-0 bg-white px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                style={{ color: INK }}
-              />
-            </label>
-          </div>
-        ) : null}
+      {preset === "custom" ? (
+        <div className="flex flex-wrap items-center gap-3 text-[12px] text-muted-foreground">
+          <label className="flex items-center gap-2">
+            From
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              className="h-10 border border-border bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </label>
+          <label className="flex items-center gap-2">
+            To
+            <input
+              type="date"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+              className="h-10 border border-border bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </label>
+        </div>
+      ) : null}
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem]">
-          <div className="min-w-0 space-y-4">
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
-              {[
-                { label: "Total revenue", value: money(totalRevenue) },
-                {
-                  label: "Total cost of goods sold",
-                  value: money(totalCogs),
-                },
-                { label: "Total profit", value: money(totalProfit) },
-                {
-                  label: "Total customers",
-                  value: (customerTrend?.totalDistinct ?? 0).toLocaleString(
-                    "en-KE",
-                  ),
-                },
-                {
-                  label: "Unallocated",
-                  value: money(unallocated + owedTotal),
-                  warn: unallocated + owedTotal > 0,
-                },
-              ].map((kpi) => (
-                <WhiteCard key={kpi.label} className="flex min-h-[5.5rem] flex-col justify-between px-4 py-3">
-                  <p
-                    className="text-[12px] font-medium leading-snug tracking-[-0.02em]"
-                    style={{ color: MUTED }}
-                  >
-                    {kpi.label}
-                  </p>
-                  <p
-                    className="text-[1.55rem] font-bold tabular-nums leading-none tracking-[-0.03em] sm:text-[1.7rem]"
-                    style={{
-                      color:
-                        "warn" in kpi && kpi.warn ? "#c05612" : INK,
-                    }}
-                  >
-                    {kpi.value}
-                  </p>
-                </WhiteCard>
-              ))}
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <ChartCard title="Product by profit">
-                <ColumnChart
-                  items={productBars}
-                  formatValue={money}
-                  empty="No product profit in this slice."
-                />
-              </ChartCard>
-              <ChartCard title="Sales by revenue">
-                <ColumnChart
-                  items={staffBars}
-                  formatValue={money}
-                  empty="No cashier sales in this slice."
-                />
-              </ChartCard>
-              <ChartCard title="Branch by COGS">
-                <ColumnChart
-                  items={cogsBars}
-                  formatValue={money}
-                  empty="No cost of goods in this slice."
-                />
-              </ChartCard>
-              <ChartCard title="Monthly customers trend">
-                <CustomerTrend
-                  points={customerPoints}
-                  incompleteKey={incompleteMonth}
-                />
-              </ChartCard>
-            </div>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_14rem]">
+        <div className="min-w-0 space-y-4">
+          <div className="grid grid-cols-2 gap-0 border border-border xl:grid-cols-5">
+            {[
+              { label: "Total revenue", value: money(totalRevenue) },
+              {
+                label: "Total cost of goods sold",
+                value: money(totalCogs),
+              },
+              { label: "Total profit", value: money(totalProfit) },
+              {
+                label: "Total customers",
+                value: (customerTrend?.totalDistinct ?? 0).toLocaleString(
+                  "en-KE",
+                ),
+              },
+              {
+                label: "Unallocated",
+                value: money(unallocated + owedTotal),
+                warn: unallocated + owedTotal > 0,
+              },
+            ].map((kpi, i) => (
+              <div
+                key={kpi.label}
+                className={cn(
+                  "flex min-h-[5.25rem] flex-col justify-between border-border px-3 py-3",
+                  i > 0 && "border-l",
+                  i >= 2 && "border-t xl:border-t-0",
+                  i === 4 && "col-span-2 border-t xl:col-span-1 xl:border-t-0",
+                )}
+              >
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                  {kpi.label}
+                </p>
+                <p
+                  className="text-[1.45rem] font-bold tabular-nums leading-none tracking-[-0.03em] sm:text-[1.6rem]"
+                  style={{
+                    color: "warn" in kpi && kpi.warn ? OWED : undefined,
+                  }}
+                >
+                  {kpi.value}
+                </p>
+              </div>
+            ))}
           </div>
 
-          <aside className="flex flex-col gap-4 lg:sticky lg:top-3 lg:self-start">
-            <SlicerPanel
-              title="Period"
-              name="analytics-period"
-              items={ANALYTICS_PRESET_LABELS.map(({ key, label }) => ({
-                id: key,
-                label,
-              }))}
-              value={preset}
-              onChange={(id) => setPreset(id as DatePreset)}
-            />
-            <SlicerPanel
-              title="Category"
-              name="analytics-category"
-              items={categoryItems}
-              value={categoryId}
-              onChange={setCategoryId}
-              onClear={() => setCategoryId("")}
-            />
-            <SlicerPanel
-              title="Branch"
-              name="analytics-branch"
-              items={branchItems}
-              value={branchId}
-              onChange={onChangeBranch}
-              onClear={branchLocked ? undefined : () => onChangeBranch("")}
-            />
-          </aside>
+          <div className="grid gap-3 md:grid-cols-2">
+            <ChartCard title="Product by profit">
+              <ColumnChart
+                items={productBars}
+                formatValue={money}
+                empty="No product profit in this slice."
+              />
+            </ChartCard>
+            <ChartCard title="Sales by revenue">
+              <ColumnChart
+                items={staffBars}
+                formatValue={money}
+                empty="No cashier sales in this slice."
+              />
+            </ChartCard>
+            <ChartCard title="Branch by COGS">
+              <ColumnChart
+                items={cogsBars}
+                formatValue={money}
+                empty="No cost of goods in this slice."
+              />
+            </ChartCard>
+            <ChartCard title="Monthly customers trend">
+              <CustomerTrend
+                points={customerPoints}
+                incompleteKey={incompleteMonth}
+              />
+            </ChartCard>
+          </div>
         </div>
 
-        <div className="mt-4">
-          <AnalyticsOpsBoard
-            money={money}
-            payments={payments}
-            tabs={tabs}
-            collections={collections}
-            audit={audit}
-            imported={payments.length > 0 ? imported : totalRevenue}
-            allocated={payments.length > 0 ? allocated : totalRevenue}
-            unallocated={unallocated + owedTotal}
-            balanced={balanced}
-            openShifts={openShifts}
-            unverifiedMpesa={unverifiedMpesa}
-            canViewAudit={canViewAuditLog}
+        <aside className="flex flex-col gap-3 lg:sticky lg:top-3 lg:self-start">
+          <SlicerPanel
+            title="Period"
+            name="analytics-period"
+            items={ANALYTICS_PRESET_LABELS.map(({ key, label }) => ({
+              id: key,
+              label,
+            }))}
+            value={preset}
+            onChange={(id) => setPreset(id as DatePreset)}
           />
-        </div>
+          <SlicerPanel
+            title="Category"
+            name="analytics-category"
+            items={categoryItems}
+            value={categoryId}
+            onChange={setCategoryId}
+            onClear={() => setCategoryId("")}
+          />
+          <SlicerPanel
+            title="Branch"
+            name="analytics-branch"
+            items={branchItems}
+            value={branchId}
+            onChange={onChangeBranch}
+            onClear={branchLocked ? undefined : () => onChangeBranch("")}
+          />
+        </aside>
       </div>
 
+      <AnalyticsOpsBoard
+        money={money}
+        payments={payments}
+        tabs={tabs}
+        collections={collections}
+        audit={audit}
+        imported={payments.length > 0 ? imported : totalRevenue}
+        allocated={payments.length > 0 ? allocated : totalRevenue}
+        unallocated={unallocated + owedTotal}
+        balanced={balanced}
+        openShifts={openShifts}
+        unverifiedMpesa={unverifiedMpesa}
+        canViewAudit={canViewAuditLog}
+      />
+
       {showCategoryTable ? (
-        <WhiteCard className="mt-4 overflow-hidden">
-          <h2
-            className="border-b px-4 py-3 text-sm font-semibold tracking-[-0.02em]"
-            style={{ color: INK, borderColor: "#d5deea" }}
-          >
+        <Panel className="overflow-hidden">
+          <h2 className="border-b border-border px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             Net revenue by category
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-left text-sm">
-              <thead className="border-b text-[11px]" style={{ color: MUTED, borderColor: "#d5deea", background: "#eef3f8" }}>
+              <thead className="border-b border-border text-[11px] text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium">Category</th>
                   <th className="px-3 py-2 text-right font-medium">
@@ -972,8 +944,7 @@ export function AnalyticsWorkspace({
                   <tr>
                     <td
                       colSpan={3}
-                      className="px-3 py-6 text-center"
-                      style={{ color: MUTED }}
+                      className="px-3 py-6 text-center text-muted-foreground"
                     >
                       No category rows for this window.
                     </td>
@@ -982,7 +953,7 @@ export function AnalyticsWorkspace({
                   categoryRevenue.map((row) => (
                     <tr
                       key={row.categoryId}
-                      className="border-b border-[#eef1f4] last:border-0"
+                      className="border-b border-border last:border-0"
                     >
                       <td className="px-3 py-2">{row.categoryName}</td>
                       <td className="px-3 py-2 text-right tabular-nums">
@@ -997,7 +968,7 @@ export function AnalyticsWorkspace({
               </tbody>
             </table>
           </div>
-        </WhiteCard>
+        </Panel>
       ) : null}
     </div>
   );

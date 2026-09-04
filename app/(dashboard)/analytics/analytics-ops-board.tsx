@@ -13,11 +13,7 @@ import type {
   PaymentLedgerRow,
 } from "@/lib/api";
 
-const INK = "#0c3a66";
-const MUTED = "#3a5570";
-const LINE = "#d5deea";
-const HEAD = "#eef3f8";
-const NAVY = "#0c3a66";
+const OWED = "#9a2e16";
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -52,23 +48,6 @@ function humanizeEvent(eventType: string): string {
     .join(" ");
 }
 
-function WhiteCard({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn("rounded-none bg-white", className)}
-      style={{ boxShadow: "0 4px 14px rgba(7, 30, 54, 0.22)" }}
-    >
-      {children}
-    </div>
-  );
-}
-
 function Panel({
   title,
   href,
@@ -81,29 +60,22 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <WhiteCard className="flex min-h-0 flex-col">
-      <div
-        className="flex items-center justify-between gap-2 border-b px-4 py-3"
-        style={{ borderColor: LINE }}
-      >
-        <h2
-          className="text-[12px] font-semibold uppercase tracking-[-0.02em]"
-          style={{ color: INK }}
-        >
+    <section className="flex min-h-0 flex-col border border-border">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {title}
         </h2>
         {href ? (
           <Link
             href={href}
-            className="text-[11px] font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            style={{ color: NAVY }}
+            className="text-[11px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {hrefLabel ?? "Open"}
           </Link>
         ) : null}
       </div>
       {children}
-    </WhiteCard>
+    </section>
   );
 }
 
@@ -114,18 +86,15 @@ function StatusMark({
   tone: "ok" | "warn" | "bad" | "info";
   children: React.ReactNode;
 }) {
-  const style =
-    tone === "ok"
-      ? { background: "#d8f0d8", color: "#1a6b2a" }
-      : tone === "warn"
-        ? { background: "#f7e7b0", color: "#8a5a00" }
-        : tone === "bad"
-          ? { background: "#f4d0d0", color: "#9b1c1c" }
-          : { background: "#d4e4f4", color: INK };
   return (
     <span
-      className="inline-block px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[-0.02em]"
-      style={style}
+      className={cn(
+        "text-[10px] font-semibold uppercase tracking-[0.04em]",
+        tone === "ok" && "text-emerald-700",
+        tone === "warn" && "text-amber-700",
+        tone === "bad" && "text-[#9a2e16]",
+        tone === "info" && "text-muted-foreground",
+      )}
     >
       {children}
     </span>
@@ -137,8 +106,7 @@ function EmptyRow({ cols, children }: { cols: number; children: React.ReactNode 
     <tr>
       <td
         colSpan={cols}
-        className="px-3 py-6 text-center text-xs"
-        style={{ color: MUTED }}
+        className="px-3 py-6 text-center text-xs text-muted-foreground"
       >
         {children}
       </td>
@@ -253,8 +221,8 @@ export function AnalyticsOpsBoard({
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-2">
+    <div className="space-y-3">
+      <div className="grid gap-3 lg:grid-cols-2">
         <Panel
           title="Payments (all channels)"
           href={APP_ROUTES.paymentsDayLedger}
@@ -262,7 +230,7 @@ export function AnalyticsOpsBoard({
         >
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
-              <thead style={{ background: HEAD, color: MUTED }}>
+              <thead className="border-b border-border text-muted-foreground">
                 <tr className="text-[11px]">
                   <th className="px-3 py-2 font-medium">When</th>
                   <th className="px-3 py-2 font-medium">Channel</th>
@@ -280,19 +248,18 @@ export function AnalyticsOpsBoard({
                     return (
                       <tr
                         key={row.paymentId}
-                        className="border-b last:border-0"
-                        style={{ borderColor: "#eef1f4" }}
+                        className="border-b border-border last:border-0"
                       >
-                        <td className="whitespace-nowrap px-3 py-2" style={{ color: MUTED }}>
+                        <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
                           {formatWhen(row.soldAt)}
                         </td>
-                        <td className="px-3 py-2" style={{ color: INK }}>
+                        <td className="px-3 py-2">
                           {formatPaymentMethodLabel(row.method)}
                         </td>
-                        <td className="max-w-[9rem] truncate px-3 py-2" style={{ color: INK }}>
+                        <td className="max-w-[9rem] truncate px-3 py-2">
                           {row.customerName || row.cashierName || "Walk-in"}
                         </td>
-                        <td className="px-3 py-2 text-right tabular-nums" style={{ color: INK }}>
+                        <td className="px-3 py-2 text-right tabular-nums">
                           {money(row.amount)}
                         </td>
                         <td className="px-3 py-2">
@@ -314,7 +281,7 @@ export function AnalyticsOpsBoard({
         >
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
-              <thead style={{ background: HEAD, color: MUTED }}>
+              <thead className="border-b border-border text-muted-foreground">
                 <tr className="text-[11px]">
                   <th className="px-3 py-2 font-medium">Receipt</th>
                   <th className="px-3 py-2 font-medium">Match</th>
@@ -330,26 +297,24 @@ export function AnalyticsOpsBoard({
                   shownReview.map((row) => (
                     <tr
                       key={row.paymentId}
-                      className="border-b last:border-0"
-                      style={{ borderColor: "#eef1f4" }}
+                      className="border-b border-border last:border-0"
                     >
-                      <td className="px-3 py-2 tabular-nums" style={{ color: INK }}>
+                      <td className="px-3 py-2 tabular-nums">
                         {row.receiptNo != null ? `#${row.receiptNo}` : "No receipt"}
                       </td>
-                      <td className="max-w-[10rem] truncate px-3 py-2" style={{ color: INK }}>
+                      <td className="max-w-[10rem] truncate px-3 py-2">
                         {row.customerName || row.cashierName || "Walk-in"}
                       </td>
-                      <td className="px-3 py-2" style={{ color: MUTED }}>
+                      <td className="px-3 py-2 text-muted-foreground">
                         {formatPaymentMethodLabel(row.method)}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums" style={{ color: INK }}>
+                      <td className="px-3 py-2 text-right tabular-nums">
                         {money(row.amount)}
                       </td>
                       <td className="px-3 py-2">
                         <Link
                           href={APP_ROUTES.paymentsDayLedger}
-                          className="inline-flex h-8 items-center px-2.5 text-[11px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                          style={{ background: NAVY }}
+                          className="inline-flex h-8 items-center border border-border px-2.5 text-[11px] font-semibold hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           Review
                         </Link>
@@ -369,7 +334,7 @@ export function AnalyticsOpsBoard({
         >
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
-              <thead style={{ background: HEAD, color: MUTED }}>
+              <thead className="border-b border-border text-muted-foreground">
                 <tr className="text-[11px]">
                   <th className="px-3 py-2 font-medium">Customer</th>
                   <th className="px-3 py-2 text-right font-medium">Owed</th>
@@ -384,13 +349,13 @@ export function AnalyticsOpsBoard({
                     {shownTabs.map((row) => (
                       <tr
                         key={row.customerId}
-                        className="border-b last:border-0"
-                        style={{ borderColor: "#eef1f4" }}
+                        className="border-b border-border last:border-0"
                       >
-                        <td className="px-3 py-2" style={{ color: INK }}>
-                          {row.name}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums" style={{ color: INK }}>
+                        <td className="px-3 py-2">{row.name}</td>
+                        <td
+                          className="px-3 py-2 text-right tabular-nums"
+                          style={{ color: OWED }}
+                        >
                           {money(row.balanceOwed)}
                         </td>
                         <td className="px-3 py-2">
@@ -403,13 +368,10 @@ export function AnalyticsOpsBoard({
                     {shownPaid.map((row) => (
                       <tr
                         key={row.id}
-                        className="border-b last:border-0"
-                        style={{ borderColor: "#eef1f4" }}
+                        className="border-b border-border last:border-0"
                       >
-                        <td className="px-3 py-2" style={{ color: INK }}>
-                          {row.name}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums" style={{ color: MUTED }}>
+                        <td className="px-3 py-2">{row.name}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
                           {money(row.amount)}
                         </td>
                         <td className="px-3 py-2">
@@ -431,7 +393,7 @@ export function AnalyticsOpsBoard({
         >
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
-              <thead style={{ background: HEAD, color: MUTED }}>
+              <thead className="border-b border-border text-muted-foreground">
                 <tr className="text-[11px]">
                   <th className="px-3 py-2 font-medium">Type</th>
                   <th className="px-3 py-2 font-medium">Detail</th>
@@ -446,16 +408,13 @@ export function AnalyticsOpsBoard({
                   exceptions.map((row) => (
                     <tr
                       key={row.key}
-                      className="border-b last:border-0"
-                      style={{ borderColor: "#eef1f4" }}
+                      className="border-b border-border last:border-0"
                     >
-                      <td className="px-3 py-2" style={{ color: INK }}>
-                        {row.type}
-                      </td>
-                      <td className="max-w-[12rem] truncate px-3 py-2" style={{ color: MUTED }}>
+                      <td className="px-3 py-2">{row.type}</td>
+                      <td className="max-w-[12rem] truncate px-3 py-2 text-muted-foreground">
                         {row.detail}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums" style={{ color: INK }}>
+                      <td className="px-3 py-2 text-right tabular-nums">
                         {money(row.amount)}
                       </td>
                       <td className="px-3 py-2">
@@ -470,70 +429,63 @@ export function AnalyticsOpsBoard({
         </Panel>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-3">
         <Panel title="Reconciliation">
-          <div className="space-y-2 px-4 py-4 text-[13px]">
+          <div className="space-y-2 px-3 py-3 text-[13px]">
             <div className="flex justify-between gap-3">
-              <span style={{ color: MUTED }}>Imported</span>
-              <span className="tabular-nums font-semibold" style={{ color: INK }}>
-                {money(imported)}
-              </span>
+              <span className="text-muted-foreground">Imported</span>
+              <span className="tabular-nums font-semibold">{money(imported)}</span>
             </div>
             <div className="flex justify-between gap-3">
-              <span style={{ color: MUTED }}>Allocated</span>
-              <span className="tabular-nums font-semibold" style={{ color: INK }}>
-                {money(allocated)}
-              </span>
+              <span className="text-muted-foreground">Allocated</span>
+              <span className="tabular-nums font-semibold">{money(allocated)}</span>
             </div>
             <div className="flex justify-between gap-3">
-              <span style={{ color: MUTED }}>Unallocated</span>
+              <span className="text-muted-foreground">Unallocated</span>
               <span
                 className="tabular-nums font-semibold"
-                style={{ color: unallocated > 0 ? "#c05612" : INK }}
+                style={{ color: unallocated > 0 ? OWED : undefined }}
               >
                 {money(unallocated)}
               </span>
             </div>
-            <div
-              className="mt-3 flex items-center gap-2 px-3 py-3 text-white"
-              style={{ background: balanced ? "#1a6b2a" : "#8a5a00" }}
-            >
-              {balanced ? <Check className="size-4 shrink-0" aria-hidden /> : null}
-              <div>
-                <p className="text-[13px] font-bold uppercase tracking-[-0.02em]">
-                  {balanced ? "Balanced" : "Needs review"}
-                </p>
-                <p className="text-[11px] text-white/85">
-                  {balanced
-                    ? "Posted tenders match the period total."
-                    : "Open tenders or tabs still need a pass."}
-                </p>
-              </div>
+            <div className="mt-2 border-t border-border pt-3">
+              <p
+                className={cn(
+                  "flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-[0.04em]",
+                  balanced ? "text-emerald-700" : "text-[#9a2e16]",
+                )}
+              >
+                {balanced ? <Check className="size-3.5" aria-hidden /> : null}
+                {balanced ? "Balanced" : "Needs review"}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {balanced
+                  ? "Posted tenders match the period total."
+                  : "Open tenders or tabs still need a pass."}
+              </p>
             </div>
           </div>
         </Panel>
 
         <Panel title="Period close">
-          <ul className="grid gap-1 px-3 py-3 sm:grid-cols-1">
+          <ul className="grid gap-0 px-2 py-1">
             {checks.map((item) => (
-              <li key={item.label}>
+              <li key={item.label} className="border-b border-border last:border-0">
                 <Link
                   href={item.href}
-                  className="flex min-h-11 items-center gap-2 px-1 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                  style={{ color: INK }}
+                  className="flex min-h-10 items-center gap-2 px-1 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span
-                    className="flex size-5 shrink-0 items-center justify-center border"
-                    style={{
-                      borderColor: item.done ? "#1a6b2a" : LINE,
-                      background: item.done ? "#d8f0d8" : "#fff",
-                      color: "#1a6b2a",
-                    }}
+                    className={cn(
+                      "flex size-4 shrink-0 items-center justify-center border border-border",
+                      item.done && "border-emerald-700 text-emerald-700",
+                    )}
                     aria-hidden
                   >
-                    {item.done ? <Check className="size-3.5" /> : null}
+                    {item.done ? <Check className="size-3" /> : null}
                   </span>
-                  <span className={item.done ? "line-through opacity-60" : undefined}>
+                  <span className={item.done ? "text-muted-foreground line-through" : undefined}>
                     {item.label}
                   </span>
                 </Link>
@@ -549,7 +501,7 @@ export function AnalyticsOpsBoard({
         >
           <div className="overflow-x-auto">
             <table className="w-full min-w-[20rem] text-left text-[12px]">
-              <thead style={{ background: HEAD, color: MUTED }}>
+              <thead className="border-b border-border text-muted-foreground">
                 <tr className="text-[11px]">
                   <th className="px-3 py-2 font-medium">When</th>
                   <th className="px-3 py-2 font-medium">Who</th>
@@ -565,16 +517,15 @@ export function AnalyticsOpsBoard({
                   audit.slice(0, 6).map((row) => (
                     <tr
                       key={row.id}
-                      className="border-b last:border-0"
-                      style={{ borderColor: "#eef1f4" }}
+                      className="border-b border-border last:border-0"
                     >
-                      <td className="whitespace-nowrap px-3 py-2" style={{ color: MUTED }}>
+                      <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
                         {formatDay(row.createdAt)}
                       </td>
-                      <td className="max-w-[7rem] truncate px-3 py-2" style={{ color: INK }}>
+                      <td className="max-w-[7rem] truncate px-3 py-2">
                         {row.actorName || row.actorType || "System"}
                       </td>
-                      <td className="px-3 py-2" style={{ color: INK }}>
+                      <td className="px-3 py-2">
                         {humanizeEvent(row.eventType)}
                       </td>
                     </tr>
