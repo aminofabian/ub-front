@@ -119,7 +119,7 @@ export function RecentTicksRail({
                 </span>
               ) : null}
               <p
-                className="truncate text-[13px] font-medium tracking-[-0.01em] text-[#141414]"
+                className="truncate text-[12px] font-medium tracking-[-0.01em] text-[#141414]"
                 title={title}
               >
                 {title}

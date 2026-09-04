@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { HUB_MUTED, HUB_SECTION, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export type StockHealthItem = {
@@ -18,41 +18,45 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section className="space-y-2">
-      <h2 className={HUB_SECTION}>Store & stock</h2>
+    <section aria-label="Store and stock" className={cn(HUB_SURFACE)}>
       <div
         className={cn(
-          HUB_SURFACE,
-          "grid grid-cols-2 divide-x divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)] sm:grid-cols-4 sm:divide-y-0",
+          "grid divide-x divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)]",
+          items.length <= 3 && "grid-cols-3 divide-y-0",
+          items.length === 4 && "grid-cols-2 sm:grid-cols-4 sm:divide-y-0",
+          items.length >= 5 &&
+            "grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 xl:divide-y-0",
         )}
       >
         {items.map((item) => (
           <Link
             key={item.id}
             href={item.href}
-            className="group relative px-3.5 py-3 transition-colors hover:bg-[#FAF8F3]"
+            title={`${item.label}: ${item.value} — ${item.detail}`}
+            className="group flex min-w-0 items-center gap-2 px-2.5 py-1.5 transition-colors hover:bg-[#FAF8F3] sm:px-3"
           >
             <span
               className={cn(
-                "mb-2 block size-1.5",
+                "size-1.5 shrink-0",
                 item.tone === "alert" && "bg-[#C47A5A]",
                 item.tone === "watch" && "bg-[#B08D48]",
                 (!item.tone || item.tone === "ok") && "bg-emerald-600",
               )}
               aria-hidden
             />
-            <p className={cn("text-[11px] font-medium", HUB_MUTED)}>
-              {item.label}
-            </p>
-            <p
-              className="mt-1 truncate text-[15px] font-semibold tracking-[-0.02em] text-[#141414] tabular-nums"
-              style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
-            >
-              {item.value}
-            </p>
-            <p className="mt-0.5 truncate text-[11px] text-[#7A7A7A]">
-              {item.detail}
-            </p>
+            <span className="min-w-0 flex-1">
+              <span
+                className={cn("block truncate text-[10px] font-medium", HUB_MUTED)}
+              >
+                {item.label}
+              </span>
+              <span
+                className="mt-0.5 block truncate text-[13px] font-semibold leading-none tracking-[-0.02em] text-[#141414] tabular-nums"
+                style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+              >
+                {item.value}
+              </span>
+            </span>
           </Link>
         ))}
       </div>

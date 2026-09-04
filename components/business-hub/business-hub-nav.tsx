@@ -28,7 +28,8 @@ const HUB_TABS: HubTab[] = [
     label: "Pulse",
     hint: "Revenue & till",
     icon: Activity,
-    match: (p) => p === APP_ROUTES.business || p.startsWith(`${APP_ROUTES.business}?`),
+    match: (p) =>
+      p === APP_ROUTES.business || p.startsWith(`${APP_ROUTES.business}?`),
   },
   {
     href: APP_ROUTES.businessSettings,
@@ -79,8 +80,8 @@ export function BusinessHubNav({
   return (
     <nav
       className={cn(
-        "grid gap-0.5",
-        columns === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+        "flex gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        columns === 2 ? "sm:grid sm:grid-cols-2 sm:overflow-visible" : "",
         className,
       )}
       aria-label="Your shop pages"
@@ -97,10 +98,10 @@ export function BusinessHubNav({
             href={tab.href}
             title={hint}
             className={cn(
-              "group relative flex h-9 items-center gap-2 rounded-none px-2.5 transition-[background-color,color] duration-150 sm:px-3",
+              "group relative flex h-8 shrink-0 items-center gap-1.5 rounded-none px-2.5 transition-colors sm:h-9 sm:flex-1 sm:px-3",
               active
                 ? "bg-[var(--hub-ink,#141414)] text-white"
-                : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_58%,transparent)] hover:bg-[color-mix(in_srgb,var(--hub-ink,#141414)_4%,transparent)] hover:text-[var(--hub-ink,#141414)]",
+                : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_55%,transparent)] hover:bg-[color-mix(in_srgb,var(--hub-ink,#141414)_4%,transparent)] hover:text-[var(--hub-ink,#141414)]",
             )}
           >
             <Icon
@@ -112,15 +113,15 @@ export function BusinessHubNav({
               )}
               aria-hidden
             />
-            <span className="truncate text-[13px] font-medium tracking-[-0.01em]">
+            <span className="truncate text-[12px] font-medium tracking-[-0.01em] sm:text-[13px]">
               {label}
             </span>
             <span
               className={cn(
-                "ml-auto hidden truncate text-[11px] lg:block",
+                "ml-auto hidden truncate text-[10px] xl:block",
                 active
                   ? "text-[color-mix(in_srgb,#fff_62%,transparent)]"
-                  : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_42%,transparent)]",
+                  : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_40%,transparent)]",
               )}
             >
               {hint}

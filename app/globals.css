@@ -5572,17 +5572,17 @@ html:has([data-store-theme-id="comilmart"]) ::selection {
 }
 
 .hub-paper {
-  background-color: #f4f2ed;
+  background-color: #f3f1ec;
   background-image:
     linear-gradient(
       180deg,
-      color-mix(in srgb, #fff 55%, #f4f2ed) 0%,
-      #f4f2ed 36%
+      color-mix(in srgb, #fff 48%, #f3f1ec) 0%,
+      #f3f1ec 40%
     ),
     radial-gradient(
-      80% 50% at 100% 0%,
-      color-mix(in srgb, #b08d48 7%, transparent),
-      transparent 70%
+      70% 42% at 100% -4%,
+      color-mix(in srgb, #b08d48 6%, transparent),
+      transparent 72%
     );
   color-scheme: light;
 }

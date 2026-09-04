@@ -50,17 +50,17 @@ export function CashierStageTabs({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-2 gap-y-1.5",
+        "flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2",
         className,
       )}
     >
       <div className="flex items-center gap-2">
-        <p className="inline-flex items-center gap-2 text-[12px] font-medium text-[#141414] before:block before:h-px before:w-2.5 before:bg-[#B08D48] before:content-['']">
+        <p className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#141414] before:block before:h-px before:w-2 before:bg-[#B08D48] before:content-['']">
           Stage
         </p>
         <span className="text-[11px] text-[#8A8A8A]">{modeCopy(selected)}</span>
         {live ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800">
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-800">
             <span
               className="size-1.5 rounded-full bg-emerald-500 hub-live-beacon"
               aria-hidden
@@ -71,7 +71,7 @@ export function CashierStageTabs({
       </div>
 
       <div
-        className="flex min-w-0 flex-1 flex-wrap items-center gap-1"
+        className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="tablist"
         aria-label="Cashier lanes"
       >
@@ -82,10 +82,10 @@ export function CashierStageTabs({
           onClick={selectAll}
           className={cn(
             HUB_BTN,
-            "inline-flex h-8 items-center px-2.5 text-[12px] font-medium",
+            "inline-flex h-7 shrink-0 items-center px-2.5 text-[12px] font-medium",
             viewingAll
               ? "bg-[#141414] text-[#F5E6C8]"
-              : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_9%,transparent)] hover:text-[#141414]",
+              : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)] hover:text-[#141414]",
           )}
         >
           Floor
@@ -112,10 +112,10 @@ export function CashierStageTabs({
               onClick={() => toggleCashier(name)}
               className={cn(
                 HUB_BTN,
-                "inline-flex h-8 max-w-[9rem] items-center gap-1.5 px-2.5 text-[12px] font-medium",
+                "inline-flex h-7 max-w-[8.5rem] shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-medium",
                 active
                   ? "bg-[#141414] text-[#F5E6C8]"
-                  : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_9%,transparent)] hover:text-[#141414]",
+                  : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)] hover:text-[#141414]",
               )}
             >
               <span

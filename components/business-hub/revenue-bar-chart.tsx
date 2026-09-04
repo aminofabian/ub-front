@@ -10,7 +10,7 @@ import { chartWindowStats } from "@/lib/business-hub/pulse-insights";
 import { useFormatMoney } from "@/hooks/use-format-money";
 import { cn } from "@/lib/utils";
 
-const METER_TRACK_PX = 28;
+const METER_TRACK_PX = 26;
 
 function dayOfMonth(isoDay: string): string {
   const day = isoDay.slice(8, 10);
@@ -68,9 +68,9 @@ export function RevenueBarChart({
 
   return (
     <section className={cn(HUB_SURFACE, "overflow-hidden")}>
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-1.5 sm:px-3.5">
+      <div className="flex flex-col gap-1 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <div className="flex min-w-0 items-baseline gap-2">
-          <h2 className="inline-flex items-center gap-2 text-[13px] font-medium tracking-[-0.015em] text-[#141414] before:block before:h-px before:w-3 before:bg-[#B08D48] before:content-['']">
+          <h2 className="inline-flex items-center gap-1.5 text-[12px] font-medium tracking-[-0.015em] text-[#141414] before:block before:h-px before:w-2.5 before:bg-[#B08D48] before:content-['']">
             {title}
           </h2>
           <p className={cn("text-[11px] tabular-nums", HUB_MUTED)}>
@@ -79,11 +79,11 @@ export function RevenueBarChart({
               : "Waiting"}
           </p>
         </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 sm:gap-x-4">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5">
           {summary.map((item) => (
             <p
               key={item.id}
-              className="flex items-baseline gap-1 text-[11px] tabular-nums"
+              className="flex items-baseline gap-1 text-[10px] tabular-nums sm:text-[11px]"
               title={`${item.label}: ${item.value} · ${item.hint}`}
             >
               <span className={HUB_MUTED}>{item.label}</span>
@@ -93,7 +93,7 @@ export function RevenueBarChart({
         </div>
       </div>
 
-      <div className="px-3 py-2 sm:px-3.5" role="img" aria-label={ariaLabel}>
+      <div className="px-2.5 py-2 sm:px-3" role="img" aria-label={ariaLabel}>
         <div
           className="grid items-end gap-px"
           style={{
@@ -111,10 +111,10 @@ export function RevenueBarChart({
             return (
               <div
                 key={point.day}
-                className="group relative flex min-w-0 flex-col items-stretch gap-1 px-px"
+                className="group relative flex min-w-0 flex-col items-stretch gap-0.5 px-px"
                 title={`${point.label} · ${formatMoneyCompact(point.value)}`}
               >
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded-none bg-[#141414] px-1.5 py-0.5 text-[10px] text-[#F5E6C8] group-hover:block">
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 bg-[#141414] px-1.5 py-0.5 text-[10px] text-[#F5E6C8] group-hover:block">
                   <span className="whitespace-nowrap font-medium">
                     {point.label}
                   </span>
@@ -132,7 +132,7 @@ export function RevenueBarChart({
                 >
                   {point.value > 0 ? (
                     <div
-                      className="hub-bar-grow w-full rounded-none"
+                      className="hub-bar-grow w-full"
                       style={{
                         height: heightPx,
                         backgroundColor: isToday
@@ -150,7 +150,7 @@ export function RevenueBarChart({
                 <div className="flex items-center justify-center gap-0.5">
                   <span
                     className={cn(
-                      "text-[9px] font-medium tabular-nums leading-none",
+                      "text-[8px] font-medium tabular-nums leading-none sm:text-[9px]",
                       isToday ? "text-[#8A6B2E]" : "text-[#666666]",
                     )}
                   >
@@ -158,7 +158,7 @@ export function RevenueBarChart({
                   </span>
                   <span
                     className={cn(
-                      "text-[8px] uppercase leading-none",
+                      "hidden text-[8px] uppercase leading-none sm:inline",
                       isToday ? "text-[#B08D48]" : "text-[#B0A898]",
                     )}
                   >

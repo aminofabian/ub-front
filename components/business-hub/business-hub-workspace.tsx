@@ -76,6 +76,7 @@ import {
 import type { Period } from "@/lib/business-hub/types";
 import { monthlyCommitmentForSchedule } from "@/lib/fixed-costs-utils";
 import { cn } from "@/lib/utils";
+import { HUB_ICON_BTN } from "@/lib/business-hub/constants";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
   addDays,
@@ -1136,11 +1137,11 @@ export function BusinessHubWorkspace() {
 
   return (
     <BusinessPageLayout
-      title={shopNotReady ? "Open the shop" : "Business pulse"}
+      title={shopNotReady ? "Open the shop" : null}
       description={
         shopNotReady
           ? "Stock the shelves, dress the window, then invite the people who will sell. The till waits until there is something to sell."
-          : "Live revenue, till tape, payables, and stock health. Everything that moves your shop today in one board."
+          : null
       }
       setupHome={shopNotReady}
       headerActions={
@@ -1149,13 +1150,7 @@ export function BusinessHubWorkspace() {
             type="button"
             onClick={() => void load()}
             disabled={refreshing}
-            className={cn(
-              "inline-flex size-9 items-center justify-center rounded-md bg-white text-[#666666]",
-              "border border-[color-mix(in_srgb,#141414_9%,transparent)]",
-              "transition-colors hover:text-[#8A6B2E] hover:border-[#B08D48]/45",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
-              "disabled:cursor-not-allowed disabled:opacity-60",
-            )}
+            className={HUB_ICON_BTN}
             aria-label="Refresh business hub"
           >
             <RefreshCw
@@ -1169,12 +1164,7 @@ export function BusinessHubWorkspace() {
           {canManageBusinessSettings ? (
             <Link
               href={APP_ROUTES.businessSettings}
-              className={cn(
-                "inline-flex size-9 items-center justify-center rounded-md bg-white text-[#666666]",
-                "border border-[color-mix(in_srgb,#141414_9%,transparent)]",
-                "transition-colors hover:text-[#8A6B2E] hover:border-[#B08D48]/45",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
-              )}
+              className={HUB_ICON_BTN}
               aria-label="Business settings"
             >
               <Settings className="size-3.5" aria-hidden />
@@ -1191,7 +1181,7 @@ export function BusinessHubWorkspace() {
           dualLanes && "max-w-7xl",
         )}
       >
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2">
           {canManageBusinessSettings ? (
             <SetupProgressBanner />
           ) : null}
@@ -1207,23 +1197,21 @@ export function BusinessHubWorkspace() {
 
           <div
             className={cn(
-              "xl:grid xl:items-start xl:gap-0",
+              "xl:grid xl:items-start xl:gap-3",
               showTillStage &&
                 !dualLanes &&
                 !galleryOpen &&
-                "xl:grid-cols-[minmax(0,1fr)_minmax(240px,280px)]",
+                "xl:grid-cols-[minmax(0,1fr)_minmax(220px,260px)]",
               showTillStage &&
                 dualLanes &&
-                "xl:grid-cols-[minmax(0,1fr)_minmax(200px,240px)_minmax(200px,240px)]",
+                "xl:grid-cols-[minmax(0,1fr)_minmax(190px,230px)_minmax(190px,230px)]",
               showTillStage && galleryOpen && "xl:grid-cols-1",
             )}
           >
             <div
               className={cn(
-                "flex flex-col gap-3",
-                showTillStage &&
-                  !galleryOpen &&
-                  "xl:border-r xl:border-[color-mix(in_srgb,#141414_6%,transparent)] xl:pr-4",
+                "flex flex-col gap-2",
+                showTillStage && !galleryOpen && "xl:pr-1",
               )}
             >
               {shopNotReady ? (
@@ -1290,89 +1278,108 @@ export function BusinessHubWorkspace() {
 
               {shopNotReady ? null : (
                 <>
-              {salesEmpty ? null : (
-              <PulseHero
-                eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
-                revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
-                revenue={money(revenue)}
-                revenueBreakdown={revenueBreakdown}
-                headline={headline}
-                trend={revenueTrend}
-                trendTone={revenueFooterTone}
-                metrics={pulseMetrics}
-                live={pulseLive}
-                justUpdated={justUpdated}
-              />
-              )}
-
-              {canViewSupplyBills &&
-              !(salesEmpty && todaySupplies.length === 0) ? (
-                <SupplyBillsRail
-                  bills={todaySupplies}
-                  currency={currency}
-                  live={pulseLive}
-                  justUpdated={supplyJustUpdated}
-                  onPayBill={canOpenSupplyPay ? openSupplyPay : undefined}
-                  onInspect={openSupplyHistory}
-                />
-              ) : null}
-
-              {canViewCreditTabs &&
-              !(salesEmpty && openCreditTabs.length === 0) ? (
-                <CreditTabsRail
-                  tabs={openCreditTabs}
-                  currency={currency}
-                  live={pulseLive}
-                  justUpdated={creditJustUpdated}
-                  onPayTab={canOpenCreditPay ? openCreditPay : undefined}
-                  onInspect={openCreditHistory}
-                  paidTotal={creditActivity?.totalPaid ?? null}
-                  paidCount={creditActivity?.paymentCount ?? null}
-                  paidPeriodLabel={isToday ? "today" : "this week"}
-                />
-              ) : null}
-
-              {canShowWebOrders &&
-              !(salesEmpty && openWebOrders.length === 0) ? (
-                <WebOrdersRail
-                  orders={openWebOrders}
-                  currency={currency}
-                  live={pulseLive}
-                  justUpdated={webOrdersJustUpdated}
-                  onInspect={openShopperHistory}
-                />
-              ) : null}
-
-              {salesEmpty ? null : (
-              <RevenueBarChart
-                points={chartPoints}
-                ariaLabel={chartAriaLabel}
-                caption={chartCaption}
-                title={isToday ? "Twelve-day runway" : "Seven-day runway"}
-              />
-              )}
-
-              {showAttentionSection ? (
-                actionItems.length > 0 ? (
-                  <ActionItemsStrip items={actionItems} />
-                ) : salesEmpty ? null : (
-                  <HubAllClear />
-                )
-              ) : null}
-
-              {(stockItems.length > 0 || showMovers) ? (
-                <div
-                  className={cn(
-                    "grid gap-2 lg:items-start",
-                    stockItems.length > 0 &&
-                      showMovers &&
-                      "lg:grid-cols-[1.15fr_0.85fr]",
+                  {salesEmpty ? null : (
+                    <PulseHero
+                      eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
+                      revenueLabel={
+                        isToday ? "Revenue today" : "Revenue this week"
+                      }
+                      revenue={money(revenue)}
+                      revenueBreakdown={revenueBreakdown}
+                      headline={headline}
+                      trend={revenueTrend}
+                      trendTone={revenueFooterTone}
+                      metrics={pulseMetrics}
+                      live={pulseLive}
+                      justUpdated={justUpdated}
+                    />
                   )}
-                >
-                  <StockHealthPanel items={stockItems} />
-                  {showMovers ? <TopMoversPanel movers={topMovers} /> : null}
-                </div>
-              ) : null}
+
+                  {(canViewSupplyBills &&
+                    !(salesEmpty && todaySupplies.length === 0)) ||
+                  (canViewCreditTabs &&
+                    !(salesEmpty && openCreditTabs.length === 0)) ||
+                  (canShowWebOrders &&
+                    !(salesEmpty && openWebOrders.length === 0)) ? (
+                    <div className="flex flex-col gap-1.5">
+                      {canViewSupplyBills &&
+                      !(salesEmpty && todaySupplies.length === 0) ? (
+                        <SupplyBillsRail
+                          bills={todaySupplies}
+                          currency={currency}
+                          live={pulseLive}
+                          justUpdated={supplyJustUpdated}
+                          onPayBill={
+                            canOpenSupplyPay ? openSupplyPay : undefined
+                          }
+                          onInspect={openSupplyHistory}
+                        />
+                      ) : null}
+
+                      {canViewCreditTabs &&
+                      !(salesEmpty && openCreditTabs.length === 0) ? (
+                        <CreditTabsRail
+                          tabs={openCreditTabs}
+                          currency={currency}
+                          live={pulseLive}
+                          justUpdated={creditJustUpdated}
+                          onPayTab={
+                            canOpenCreditPay ? openCreditPay : undefined
+                          }
+                          onInspect={openCreditHistory}
+                          paidTotal={creditActivity?.totalPaid ?? null}
+                          paidCount={creditActivity?.paymentCount ?? null}
+                          paidPeriodLabel={isToday ? "today" : "this week"}
+                        />
+                      ) : null}
+
+                      {canShowWebOrders &&
+                      !(salesEmpty && openWebOrders.length === 0) ? (
+                        <WebOrdersRail
+                          orders={openWebOrders}
+                          currency={currency}
+                          live={pulseLive}
+                          justUpdated={webOrdersJustUpdated}
+                          onInspect={openShopperHistory}
+                        />
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {salesEmpty ? null : (
+                    <RevenueBarChart
+                      points={chartPoints}
+                      ariaLabel={chartAriaLabel}
+                      caption={chartCaption}
+                      title={
+                        isToday ? "Twelve-day runway" : "Seven-day runway"
+                      }
+                    />
+                  )}
+
+                  {showAttentionSection ? (
+                    actionItems.length > 0 ? (
+                      <ActionItemsStrip items={actionItems} />
+                    ) : salesEmpty ? null : (
+                      <HubAllClear />
+                    )
+                  ) : null}
+
+                  {(stockItems.length > 0 || showMovers) ? (
+                    <div
+                      className={cn(
+                        "grid gap-2",
+                        stockItems.length > 0 &&
+                          showMovers &&
+                          "lg:grid-cols-[1.35fr_0.65fr] lg:items-start",
+                      )}
+                    >
+                      <StockHealthPanel items={stockItems} />
+                      {showMovers ? (
+                        <TopMoversPanel movers={topMovers} />
+                      ) : null}
+                    </div>
+                  ) : null}
                 </>
               )}
 
@@ -1387,7 +1394,9 @@ export function BusinessHubWorkspace() {
                       "hidden xl:block xl:self-stretch",
                       dualLanes &&
                         index === 0 &&
-                        "xl:border-r xl:border-[color-mix(in_srgb,#141414_6%,transparent)]",
+                        "xl:border-r xl:border-[color-mix(in_srgb,#141414_8%,transparent)] xl:pr-3",
+                      dualLanes && index === 1 && "xl:pl-3",
+                      !dualLanes && "xl:pl-1",
                     )}
                   >
                     <RecentTicksRail
@@ -1402,7 +1411,7 @@ export function BusinessHubWorkspace() {
                       accent={lane.accent}
                       laneIndex={dualLanes ? index : undefined}
                       fillViewport={false}
-                      className="h-full max-h-[min(40rem,72dvh)] border-0 shadow-none ring-0 xl:rounded-none xl:border xl:border-[color-mix(in_srgb,#141414_9%,transparent)] xl:shadow-[0_1px_0_rgba(20,20,20,0.04),0_10px_28px_-14px_rgba(20,20,20,0.14)]"
+                      className="h-full max-h-[min(40rem,72dvh)] border-0 shadow-none xl:border xl:border-[color-mix(in_srgb,#141414_8%,transparent)] xl:shadow-[0_1px_0_rgba(20,20,20,0.035),0_8px_22px_-14px_rgba(20,20,20,0.12)]"
                     />
                   </div>
                 ))

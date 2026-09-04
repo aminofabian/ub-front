@@ -20,15 +20,15 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   }
 
   return (
-    <section className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-2">
+    <section className="space-y-1">
+      <div className="flex items-baseline justify-between gap-2 px-0.5">
         <h2 className={HUB_SECTION}>Needs attention</h2>
         <p className="text-[11px] tabular-nums text-[#AAAAAA]">{items.length}</p>
       </div>
       <div
         className={cn(
           HUB_SURFACE,
-          "flex flex-wrap items-stretch divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)] sm:divide-x sm:divide-y-0",
+          "flex snap-x snap-mandatory overflow-x-auto divide-x divide-[color-mix(in_srgb,#141414_8%,transparent)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:overflow-visible",
         )}
       >
         {items.map((item) => {
@@ -37,7 +37,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
             <Link
               key={item.id}
               href={item.href}
-              className="group flex min-w-0 flex-1 basis-full items-center gap-2 px-3 py-1.5 transition-colors hover:bg-[#FAF8F3] sm:basis-0"
+              className="group flex min-w-[11rem] flex-1 snap-start items-center gap-2 px-2.5 py-1.5 transition-colors hover:bg-[#FAF8F3] sm:min-w-0"
             >
               <Icon
                 className={cn(

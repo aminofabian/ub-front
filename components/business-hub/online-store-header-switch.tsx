@@ -14,14 +14,14 @@ export function OnlineStoreHeaderSwitch() {
   return (
     <div
       className={cn(
-        "inline-flex h-9 max-w-full items-center gap-2 rounded-none border border-[color-mix(in_srgb,#141414_9%,transparent)] bg-white pl-2.5 pr-1.5",
+        "inline-flex h-8 max-w-full items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-white pl-2 pr-1",
         saving && "opacity-70",
       )}
     >
       <Store className="size-3.5 shrink-0 text-[#B08D48]" aria-hidden />
-      <span className="min-w-0">
+      <span className="hidden min-w-0 sm:block">
         <span className="block text-[11px] font-medium leading-none tracking-[-0.01em] text-[#141414]">
-          Online store
+          Online
         </span>
         <span
           className={cn(
@@ -40,12 +40,10 @@ export function OnlineStoreHeaderSwitch() {
           void setEnabled(next);
         }}
         aria-label={
-          enabled
-            ? "Turn off the online store"
-            : "Turn on the online store"
+          enabled ? "Turn off the online store" : "Turn on the online store"
         }
         className={cn(
-          "ml-0.5 rounded-full data-checked:bg-[#141414] data-unchecked:bg-[#E6E1D8]",
+          "rounded-full data-checked:bg-[#141414] data-unchecked:bg-[#E6E1D8]",
           "focus-visible:border-[#B08D48] focus-visible:ring-[#B08D48]/35",
         )}
       />
