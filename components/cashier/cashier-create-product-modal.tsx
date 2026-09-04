@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  fetchItemById,
   fetchItems,
   createPosQuickItem,
   uploadItemImageFile,
@@ -48,6 +49,8 @@ type VariantRow = {
   buyingPrice: string;
   unitPrice: string;
   stock: string;
+  /** Optional photo preview / draft payload. */
+  imageDataUrl: string | null;
 };
 
 type CashierCreateProductModalProps = {
@@ -78,6 +81,7 @@ function newVariantRow(seed?: Partial<VariantRow>): VariantRow {
     buyingPrice: "",
     unitPrice: "",
     stock: "1",
+    imageDataUrl: null,
     ...seed,
   };
 }
@@ -150,7 +154,71 @@ export function CashierCreateProductModal({
   const [photoOver, setPhotoOver] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const optionFileRef = useRef<HTMLInputElement>(null);
+  const pendingOptionPhotoKey = useRef<string | null>(null);
   const draftHydrated = useRef(false);
+  const suppressDraftSave = useRef(false);
+  const draftSnapshotRef = useRef({
+    branchId,
+    purpose,
+    mode,
+    name,
+    barcode,
+    buyingPrice,
+    unitPrice,
+    initialStockQty,
+    itemTypeId,
+    linkAsVariant,
+    variantName,
+    relatedItem,
+    groupVariants,
+    imageDataUrl,
+  });
+  draftSnapshotRef.current = {
+    branchId,
+    purpose,
+    mode,
+    name,
+    barcode,
+    buyingPrice,
+    unitPrice,
+    initialStockQty,
+    itemTypeId,
+    linkAsVariant,
+    variantName,
+    relatedItem,
+    groupVariants,
+    imageDataUrl,
+  };
+
+  const flushDraft = () => {
+    if (suppressDraftSave.current) return;
+    const s = draftSnapshotRef.current;
+    saveCashierCreateProductDraft({
+      branchId: s.branchId,
+      purpose: s.purpose,
+      mode: s.mode,
+      name: s.name,
+      barcode: s.barcode,
+      buyingPrice: s.buyingPrice,
+      unitPrice: s.unitPrice,
+      initialStockQty: s.initialStockQty,
+      itemTypeId: s.itemTypeId,
+      linkAsVariant: s.linkAsVariant,
+      variantName: s.variantName,
+      relatedItem: s.relatedItem,
+      groupVariants: s.groupVariants.map((r) => ({
+        key: r.key,
+        label: r.label,
+        barcode: r.barcode,
+        buyingPrice: r.buyingPrice,
+        unitPrice: r.unitPrice,
+        stock: r.stock,
+        imageDataUrl: r.imageDataUrl,
+      })),
+      imageDataUrl: s.imageDataUrl,
+    });
+  };
 
   const defaultItemTypeId = () => {
     const preferred = preferredItemTypeId?.trim();
@@ -187,12 +255,14 @@ export function CashierCreateProductModal({
 
   useEffect(() => {
     if (!open) {
+      if (draftReady) flushDraft();
       draftHydrated.current = false;
       setDraftReady(false);
       return;
     }
     if (draftHydrated.current) return;
     draftHydrated.current = true;
+    suppressDraftSave.current = false;
 
     const draft = loadCashierCreateProductDraft(branchId, purpose);
     if (draft) {
@@ -217,12 +287,15 @@ export function CashierCreateProductModal({
         Array.isArray(draft.groupVariants) && draft.groupVariants.length > 0
           ? draft.groupVariants.map((r) =>
               newVariantRow({
-                key: r.key,
-                label: r.label,
-                barcode: r.barcode,
-                buyingPrice: r.buyingPrice,
-                unitPrice: r.unitPrice,
-                stock: r.stock,
+                key: r.key || undefined,
+                label: r.label ?? "",
+                barcode: r.barcode ?? "",
+                buyingPrice: r.buyingPrice ?? "",
+                unitPrice: r.unitPrice ?? "",
+                stock:
+                  r.stock?.trim() ||
+                  (purpose === "receive" ? "0" : "1"),
+                imageDataUrl: r.imageDataUrl?.trim() || null,
               }),
             )
           : [
@@ -270,31 +343,7 @@ export function CashierCreateProductModal({
 
   useEffect(() => {
     if (!open || !draftReady) return;
-    const t = window.setTimeout(() => {
-      saveCashierCreateProductDraft({
-        branchId,
-        purpose,
-        mode,
-        name,
-        barcode,
-        buyingPrice,
-        unitPrice,
-        initialStockQty,
-        itemTypeId,
-        linkAsVariant,
-        variantName,
-        relatedItem,
-        groupVariants: groupVariants.map((r) => ({
-          key: r.key,
-          label: r.label,
-          barcode: r.barcode,
-          buyingPrice: r.buyingPrice,
-          unitPrice: r.unitPrice,
-          stock: r.stock,
-        })),
-        imageDataUrl,
-      });
-    }, 280);
+    const t = window.setTimeout(() => flushDraft(), 280);
     return () => window.clearTimeout(t);
   }, [
     open,
@@ -315,6 +364,13 @@ export function CashierCreateProductModal({
     imageDataUrl,
   ]);
 
+  useEffect(() => {
+    if (!open || !draftReady) return;
+    const onHide = () => flushDraft();
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, [open, draftReady]);
+
   const applyImageFile = (file: File | null) => {
     if (!file) {
       setImageFile(null);
@@ -334,11 +390,104 @@ export function CashierCreateProductModal({
       });
   };
 
+  const applyOptionImageFile = (rowKey: string, file: File | null) => {
+    if (!file) {
+      setGroupVariants((prev) =>
+        prev.map((row) =>
+          row.key === rowKey ? { ...row, imageDataUrl: null } : row,
+        ),
+      );
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose an image file");
+      return;
+    }
+    void fileToDataUrl(file)
+      .then((url) => {
+        setGroupVariants((prev) =>
+          prev.map((row) =>
+            row.key === rowKey ? { ...row, imageDataUrl: url } : row,
+          ),
+        );
+      })
+      .catch(() => toast.error("Could not read that photo"));
+  };
+
+  const openOptionPhotoPicker = (rowKey: string) => {
+    pendingOptionPhotoKey.current = rowKey;
+    optionFileRef.current?.click();
+  };
+
   const handlePhotoDrop = (e: DragEvent) => {
     e.preventDefault();
     setPhotoOver(false);
     const file = e.dataTransfer.files?.[0] ?? null;
     if (file) applyImageFile(file);
+  };
+
+  const uploadGroupPhotos = async (
+    firstVariantId: string,
+    optionRows: { label: string; imageDataUrl: string | null }[],
+    familyFile: File | null,
+  ) => {
+    let fail = 0;
+    try {
+      const first = await fetchItemById(firstVariantId, { toast: false });
+      const parentId = first.variantOfItemId?.trim();
+      if (familyFile) {
+        const targetId = parentId || firstVariantId;
+        try {
+          await uploadItemImageFile(targetId, familyFile, { primary: true });
+        } catch {
+          fail += 1;
+        }
+      }
+      const withPhotos = optionRows.filter((r) => r.imageDataUrl?.trim());
+      if (withPhotos.length === 0) {
+        if (fail > 0) toast.error("Group created, but a photo did not upload");
+        return;
+      }
+      let variants: ItemSummaryRecord[] = [];
+      if (parentId) {
+        const parent = await fetchItemById(parentId, { toast: false });
+        variants = parent.variants ?? [];
+      } else {
+        variants = [first];
+      }
+      for (const row of withPhotos) {
+        const needle = row.label.trim().toLowerCase();
+        const match =
+          variants.find(
+            (v) => (v.variantName ?? "").trim().toLowerCase() === needle,
+          ) ??
+          variants.find((v) =>
+            (v.name ?? "").toLowerCase().includes(needle),
+          );
+        const file = dataUrlToFile(
+          row.imageDataUrl!,
+          `${row.label.trim() || "option"}.jpg`,
+        );
+        if (!match || !file) {
+          fail += 1;
+          continue;
+        }
+        try {
+          await uploadItemImageFile(match.id, file, { primary: true });
+        } catch {
+          fail += 1;
+        }
+      }
+      if (fail > 0) {
+        toast.error(
+          fail === 1
+            ? "Group created, but 1 photo did not upload"
+            : `Group created, but ${fail} photos did not upload`,
+        );
+      }
+    } catch {
+      toast.error("Group created, but photos could not be attached");
+    }
   };
 
   useEffect(() => {
@@ -465,12 +614,21 @@ export function CashierCreateProductModal({
             initialStockQty: v.stock,
           })),
         });
-        if (imageFile) {
-          try {
-            await uploadItemImageFile(created.id, imageFile, { primary: true });
-          } catch {
-            toast.error("Product created, but the photo did not upload");
-          }
+        if (imageFile || readyGroupVariants.some((v) => {
+          const row = groupVariants.find((g) => g.key === v.key);
+          return Boolean(row?.imageDataUrl);
+        })) {
+          await uploadGroupPhotos(
+            created.id,
+            readyGroupVariants.map((v) => {
+              const row = groupVariants.find((g) => g.key === v.key);
+              return {
+                label: v.label,
+                imageDataUrl: row?.imageDataUrl ?? null,
+              };
+            }),
+            imageFile,
+          );
         }
         const first = readyGroupVariants[0];
         const priceStr = first.unitPrice.toFixed(2);
@@ -492,6 +650,7 @@ export function CashierCreateProductModal({
             : `Group created with ${readyGroupVariants.length} options`,
         );
         clearCashierCreateProductDraft(branchId, purpose);
+        suppressDraftSave.current = true;
         draftHydrated.current = false;
         setDraftReady(false);
         onOpenChange(false);
@@ -539,6 +698,7 @@ export function CashierCreateProductModal({
       );
       toast.success(linkAsVariant ? "Variant created" : "Product created");
       clearCashierCreateProductDraft(branchId, purpose);
+      suppressDraftSave.current = true;
       draftHydrated.current = false;
       setDraftReady(false);
       onOpenChange(false);
@@ -1011,6 +1171,7 @@ export function CashierCreateProductModal({
               <div className={styles.pad}>
                 <div className={styles.head}>
                   <span className={styles.headNum}>#</span>
+                  <span className={styles.headPhoto}>Photo</span>
                   <span className={styles.headOpt}>Option</span>
                   <span className={styles.headSell}>Sell</span>
                   <span className={styles.headStock}>Stock</span>
@@ -1018,6 +1179,20 @@ export function CashierCreateProductModal({
                   <span className={styles.headCode}>Barcode</span>
                   <span className={styles.headRemove} />
                 </div>
+                <input
+                  ref={optionFileRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const key = pendingOptionPhotoKey.current;
+                    const file = e.target.files?.[0] ?? null;
+                    pendingOptionPhotoKey.current = null;
+                    e.target.value = "";
+                    if (key && file) applyOptionImageFile(key, file);
+                  }}
+                />
                 {groupVariants.map((row, index) => {
                   const sellOk = parsePosMoney(row.unitPrice) != null;
                   const labelOk = row.label.trim().length > 0;
@@ -1044,6 +1219,36 @@ export function CashierCreateProductModal({
                       <div className={styles.num}>
                         <span className={styles.index}>{index + 1}</span>
                         <Check className={cn(styles.check, "size-3.5")} />
+                      </div>
+                      <div className={cn(styles.cell, styles.cellPhoto)}>
+                        <button
+                          type="button"
+                          className={styles.optPhoto}
+                          data-filled={row.imageDataUrl ? "" : undefined}
+                          disabled={busy}
+                          aria-label={
+                            row.imageDataUrl
+                              ? `Change photo for option ${index + 1}`
+                              : `Add photo for option ${index + 1} (optional)`
+                          }
+                          onClick={() => openOptionPhotoPicker(row.key)}
+                          onContextMenu={(e) => {
+                            if (!row.imageDataUrl) return;
+                            e.preventDefault();
+                            applyOptionImageFile(row.key, null);
+                          }}
+                        >
+                          {row.imageDataUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- local draft preview
+                            <img
+                              src={row.imageDataUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <ImagePlus className="size-3.5" aria-hidden />
+                          )}
+                        </button>
                       </div>
                       <div className={styles.cell}>
                         <input

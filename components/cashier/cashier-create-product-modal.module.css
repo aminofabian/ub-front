@@ -223,6 +223,12 @@
   justify-content: center;
 }
 
+.headPhoto {
+  width: 2.5rem;
+  flex-shrink: 0;
+  justify-content: center;
+}
+
 .headOpt {
   flex: 1;
   min-width: 0;
@@ -323,6 +329,48 @@
   flex: 1;
   align-items: center;
   padding: 0.25rem 0.2rem;
+}
+
+.cellPhoto {
+  flex: 0 0 2.5rem;
+  width: 2.5rem;
+  justify-content: center;
+  padding: 0.25rem 0.15rem;
+}
+
+.optPhoto {
+  position: relative;
+  display: flex;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px dashed #d4d4d8;
+  border-radius: 0.35rem;
+  background: #fafafa;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.optPhoto:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.optPhoto[data-filled] {
+  border-style: solid;
+  border-color: #d4d4d8;
+  padding: 0;
+}
+
+.optPhoto:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .cellSell,
@@ -558,6 +606,12 @@
   .photo:hover:not([data-filled]) {
     background: #f4f4f5;
     border-color: #a1a1aa;
+  }
+
+  .optPhoto:hover:not(:disabled):not([data-filled]) {
+    border-color: var(--pos-primary);
+    color: var(--pos-primary);
+    background: color-mix(in srgb, var(--pos-primary) 8%, white);
   }
 
   .remove:hover:not(:disabled) {

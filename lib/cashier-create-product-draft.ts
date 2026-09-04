@@ -15,6 +15,8 @@ export type CashierCreateProductDraftVariant = {
   buyingPrice: string;
   unitPrice: string;
   stock: string;
+  /** Optional option photo as a data URL. */
+  imageDataUrl?: string | null;
 };
 
 export type CashierCreateProductDraft = {
@@ -38,9 +40,24 @@ export type CashierCreateProductDraft = {
 };
 
 const MAX_IMAGE_DATA_URL_CHARS = 1_200_000;
+/** Per-option thumbs stay smaller so a group draft fits in localStorage. */
+const MAX_OPTION_IMAGE_DATA_URL_CHARS = 450_000;
 
 function storageKey(branchId: string, purpose: string): string {
   return `${CASHIER_CREATE_PRODUCT_DRAFT_PREFIX}${purpose}:${branchId.trim() || "_"}`;
+}
+
+function trimOptionImages(
+  rows: CashierCreateProductDraftVariant[],
+): CashierCreateProductDraftVariant[] {
+  return rows.map((r) => ({
+    ...r,
+    imageDataUrl:
+      r.imageDataUrl &&
+      r.imageDataUrl.length <= MAX_OPTION_IMAGE_DATA_URL_CHARS
+        ? r.imageDataUrl
+        : null,
+  }));
 }
 
 export function loadCashierCreateProductDraft(
@@ -73,6 +90,7 @@ export function saveCashierCreateProductDraft(
       : null;
   const payload: CashierCreateProductDraft = {
     ...draft,
+    groupVariants: trimOptionImages(draft.groupVariants),
     v: 1,
     updatedAt: Date.now(),
     imageDataUrl,
@@ -83,16 +101,21 @@ export function saveCashierCreateProductDraft(
       JSON.stringify(payload),
     );
   } catch {
-    // Quota or private mode — drop the image and retry text-only once.
-    if (imageDataUrl) {
-      try {
-        window.localStorage.setItem(
-          storageKey(draft.branchId, draft.purpose),
-          JSON.stringify({ ...payload, imageDataUrl: null }),
-        );
-      } catch {
-        /* ignore */
-      }
+    // Quota or private mode — drop images and retry text-only once.
+    try {
+      window.localStorage.setItem(
+        storageKey(draft.branchId, draft.purpose),
+        JSON.stringify({
+          ...payload,
+          imageDataUrl: null,
+          groupVariants: payload.groupVariants.map((r) => ({
+            ...r,
+            imageDataUrl: null,
+          })),
+        }),
+      );
+    } catch {
+      /* ignore */
     }
   }
 }
