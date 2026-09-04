@@ -539,35 +539,37 @@ export function ProductsWorkspace() {
     <>
       <ProductsPageLayout
         headerActions={
-          <div
-            className={cn(
-              "flex items-center gap-1.5",
-              !catalogEmpty && "hidden lg:flex",
-            )}
-          >
-            <ProductHeaderActions
-              canCreate={catalog.itemTypes.length > 0}
-              onCreateNew={() => setActiveDrawer("create-parent")}
-            />
-          </div>
-        }
-        headerExtra={
-          catalogEmpty ? undefined : (
-          <div className="space-y-2">
-            {showShelfZoneBanner ? (
+          <div className="flex w-full min-w-0 items-center gap-2">
+            {showShelfZoneBanner && !catalogEmpty ? (
               <UnassignedShelfZoneBanner
                 count={unassignedAisleCount ?? 0}
                 businessId={business?.id}
                 onDismiss={() => setShelfZoneBannerDismissed(true)}
+                className="min-w-0 flex-1"
               />
             ) : null}
+            <div
+              className={cn(
+                "flex shrink-0 items-center justify-end gap-1.5",
+                catalogEmpty || !showShelfZoneBanner ? "ml-auto" : null,
+                !catalogEmpty && "hidden lg:flex",
+              )}
+            >
+              <ProductHeaderActions
+                canCreate={catalog.itemTypes.length > 0}
+                onCreateNew={() => setActiveDrawer("create-parent")}
+              />
+            </div>
+          </div>
+        }
+        headerExtra={
+          catalogEmpty ? undefined : (
             <div className="hidden lg:block">
               <ProductAttentionBar
                 attentionStats={attentionStats}
                 onAttentionToggle={onAttentionToggle}
               />
             </div>
-          </div>
           )
         }
       >

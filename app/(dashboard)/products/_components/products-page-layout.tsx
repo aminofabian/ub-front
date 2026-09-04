@@ -48,9 +48,7 @@ export function ProductsPageLayout({
           <header className="shrink-0 space-y-1.5">
             <h1 className="sr-only">Products</h1>
             {headerActions ? (
-              <div className="flex flex-wrap items-center justify-end gap-1.5">
-                {headerActions}
-              </div>
+              <div className="flex min-w-0 items-center gap-2">{headerActions}</div>
             ) : null}
             {headerExtra}
           </header>
