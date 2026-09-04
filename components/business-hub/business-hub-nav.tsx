@@ -79,7 +79,7 @@ export function BusinessHubNav({
   return (
     <nav
       className={cn(
-        "grid gap-1 p-1",
+        "grid gap-0.5 p-0.5",
         columns === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
         className,
       )}
@@ -87,40 +87,37 @@ export function BusinessHubNav({
     >
       {HUB_TABS.map((tab) => {
         const isHome = tab.href === APP_ROUTES.business;
-        const label =
-          isHome && setupHome ? "Shop" : tab.label;
-        const hint =
-          isHome && setupHome ? "Open the floor" : tab.hint;
+        const label = isHome && setupHome ? "Shop" : tab.label;
+        const hint = isHome && setupHome ? "Open the floor" : tab.hint;
         const active = tab.match(pathname);
         const Icon = tab.icon;
         return (
           <Link
             key={tab.href}
             href={tab.href}
+            title={hint}
             className={cn(
-              "group relative flex min-h-[3.1rem] flex-col justify-center rounded-xl px-3 py-2.5 transition-[background-color,color] duration-150 sm:min-h-[3.35rem] sm:flex-row sm:items-center sm:gap-3 sm:px-4",
+              "group relative flex h-9 items-center gap-2 rounded-lg px-2.5 transition-[background-color,color] duration-150 sm:px-3",
               active
                 ? "bg-[var(--hub-ink,#141414)] text-white"
                 : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_58%,transparent)] hover:bg-[color-mix(in_srgb,var(--hub-ink,#141414)_4%,transparent)] hover:text-[var(--hub-ink,#141414)]",
             )}
           >
-            <span className="flex items-center gap-2">
-              <Icon
-                className={cn(
-                  "size-3.5 shrink-0",
-                  active
-                    ? "text-[color-mix(in_srgb,#fff_88%,transparent)]"
-                    : "text-[var(--hub-accent,#B08D48)]",
-                )}
-                aria-hidden
-              />
-              <span className="text-[13px] font-medium tracking-[-0.01em] sm:text-sm">
-                {label}
-              </span>
+            <Icon
+              className={cn(
+                "size-3.5 shrink-0",
+                active
+                  ? "text-[color-mix(in_srgb,#fff_88%,transparent)]"
+                  : "text-[var(--hub-accent,#B08D48)]",
+              )}
+              aria-hidden
+            />
+            <span className="truncate text-[13px] font-medium tracking-[-0.01em]">
+              {label}
             </span>
             <span
               className={cn(
-                "mt-0.5 hidden text-[11px] sm:ml-auto sm:mt-0 sm:block",
+                "ml-auto hidden truncate text-[11px] lg:block",
                 active
                   ? "text-[color-mix(in_srgb,#fff_62%,transparent)]"
                   : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_42%,transparent)]",

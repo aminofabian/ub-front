@@ -1191,7 +1191,7 @@ export function BusinessHubWorkspace() {
           dualLanes && "max-w-7xl",
         )}
       >
-        <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-2.5">
           {canManageBusinessSettings ? (
             <SetupProgressBanner />
           ) : null}

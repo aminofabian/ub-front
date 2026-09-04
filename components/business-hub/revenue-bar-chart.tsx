@@ -7,11 +7,10 @@ import {
 } from "@/lib/business-hub/constants";
 import type { DailyRevenuePoint } from "@/lib/business-hub/build-daily-revenue-series";
 import { chartWindowStats } from "@/lib/business-hub/pulse-insights";
-import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { useFormatMoney } from "@/hooks/use-format-money";
 import { cn } from "@/lib/utils";
 
-const METER_TRACK_PX = 52;
+const METER_TRACK_PX = 28;
 
 function dayOfMonth(isoDay: string): string {
   const day = isoDay.slice(8, 10);
@@ -50,138 +49,129 @@ export function RevenueBarChart({
     },
     {
       id: "avg",
-      label: "Daily avg",
+      label: "Avg",
       value: formatMoneyCompact(stats.average),
-      hint: "Across runway",
+      hint: "Daily",
     },
     {
       id: "best",
-      label: "Best day",
+      label: "Best",
       value: stats.best ? stats.best.label : "—",
-      hint: stats.best ? formatMoneyCompact(stats.best.value) : "No sales yet",
+      hint: stats.best ? formatMoneyCompact(stats.best.value) : "No sales",
     },
     {
       id: "active",
       label: "Active",
       value: String(stats.activeDays),
-      hint: stats.activeDays === 1 ? "day with sales" : "days with sales",
+      hint: stats.activeDays === 1 ? "day" : "days",
     },
   ] as const;
 
   return (
     <section className={cn(HUB_SURFACE, "overflow-hidden")}>
-      <div className="space-y-0">
-        <div className="border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-4 py-3">
-          <HubSectionLabel
-            title={title}
-            meta={
-              stats.activeDays > 0
-                ? `${stats.activeDays} of ${points.length}`
-                : "Waiting"
-            }
-          />
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-3 py-1.5 sm:px-3.5">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <h2 className="text-[13px] font-medium tracking-[-0.01em] text-[#141414]">
+            {title}
+          </h2>
+          <p className={cn("text-[11px] tabular-nums", HUB_MUTED)}>
+            {stats.activeDays > 0
+              ? `${stats.activeDays} of ${points.length}`
+              : "Waiting"}
+          </p>
         </div>
-
-        <div className="grid grid-cols-2 divide-x divide-y divide-[color-mix(in_srgb,#141414_6%,transparent)] border-b border-[color-mix(in_srgb,#141414_6%,transparent)] sm:grid-cols-4 sm:divide-y-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 sm:gap-x-4">
           {summary.map((item) => (
-            <div key={item.id} className="px-3.5 py-3">
-              <p className={cn("text-[11px] font-medium", HUB_MUTED)}>
-                {item.label}
-              </p>
-              <p
-                className="mt-1 truncate text-[15px] font-semibold tracking-tight text-[#141414] tabular-nums"
-                title={item.value}
-              >
-                {item.value}
-              </p>
-              <p className="mt-0.5 truncate text-[11px] text-[#8A8A8A]">
-                {item.hint}
-              </p>
-            </div>
+            <p
+              key={item.id}
+              className="flex items-baseline gap-1 text-[11px] tabular-nums"
+              title={`${item.label}: ${item.value} · ${item.hint}`}
+            >
+              <span className={HUB_MUTED}>{item.label}</span>
+              <span className="font-semibold text-[#141414]">{item.value}</span>
+            </p>
           ))}
         </div>
+      </div>
 
-        <div className="px-3 py-3 sm:px-4" role="img" aria-label={ariaLabel}>
-          <div
-            className="grid items-end gap-1"
-            style={{
-              gridTemplateColumns: `repeat(${Math.max(points.length, 1)}, minmax(0, 1fr))`,
-            }}
-          >
-            {points.map((point) => {
-              const heightPx =
-                point.value <= 0
-                  ? 0
-                  : Math.max(3, Math.round((point.value / max) * METER_TRACK_PX));
-              const isToday = point.day === todayDay;
-              const isPeak = point.day === peakDay && point.value > 0 && !isToday;
+      <div className="px-3 py-2 sm:px-3.5" role="img" aria-label={ariaLabel}>
+        <div
+          className="grid items-end gap-1"
+          style={{
+            gridTemplateColumns: `repeat(${Math.max(points.length, 1)}, minmax(0, 1fr))`,
+          }}
+        >
+          {points.map((point) => {
+            const heightPx =
+              point.value <= 0
+                ? 0
+                : Math.max(2, Math.round((point.value / max) * METER_TRACK_PX));
+            const isToday = point.day === todayDay;
+            const isPeak = point.day === peakDay && point.value > 0 && !isToday;
 
-              return (
-                <div
-                  key={point.day}
-                  className="group relative flex min-w-0 flex-col items-stretch gap-1.5"
-                  title={`${point.label} · ${formatMoneyCompact(point.value)}`}
-                >
-                  <div
-                    className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 rounded-lg bg-white px-2 py-1 text-[11px] shadow-[0_4px_16px_-4px_rgba(20,20,20,0.18)] ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)] group-hover:block"
-                  >
-                    <span className="whitespace-nowrap font-medium text-[#141414]">
-                      {point.label}
-                    </span>
-                    <span className="mx-1 text-[#C4BBA8]" aria-hidden>
-                      ·
-                    </span>
-                    <span className="whitespace-nowrap font-semibold tabular-nums text-[#8A6B2E]">
-                      {formatMoneyCompact(point.value)}
-                    </span>
-                  </div>
-
-                  <div
-                    className="flex w-full items-end justify-center"
-                    style={{ height: METER_TRACK_PX }}
-                  >
-                    {point.value > 0 ? (
-                      <div
-                        className={cn(
-                          "hub-bar-grow w-full rounded-sm",
-                          isToday && "ring-1 ring-[#B08D48]/50 ring-offset-1",
-                        )}
-                        style={{
-                          height: heightPx,
-                          backgroundColor: isToday
-                            ? HUB_ACCENT
-                            : isPeak
-                              ? "#C9A86A"
-                              : "#D9C7A0",
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full bg-[#EDE8DF]" style={{ height: 2 }} />
-                    )}
-                  </div>
-
-                  <div className="flex flex-col items-center gap-0.5">
-                    <span
-                      className={cn(
-                        "text-[10px] font-semibold tabular-nums leading-none",
-                        isToday ? "text-[#8A6B2E]" : "text-[#141414]",
-                      )}
-                    >
-                      {dayOfMonth(point.day)}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-[9px] uppercase leading-none",
-                        isToday ? "text-[#B08D48]" : "text-[#B0A898]",
-                      )}
-                    >
-                      {weekdayInitial(point.day)}
-                    </span>
-                  </div>
+            return (
+              <div
+                key={point.day}
+                className="group relative flex min-w-0 flex-col items-stretch gap-1"
+                title={`${point.label} · ${formatMoneyCompact(point.value)}`}
+              >
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded-md bg-white px-1.5 py-0.5 text-[10px] shadow-[0_4px_16px_-4px_rgba(20,20,20,0.18)] ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)] group-hover:block">
+                  <span className="whitespace-nowrap font-medium text-[#141414]">
+                    {point.label}
+                  </span>
+                  <span className="mx-1 text-[#C4BBA8]" aria-hidden>
+                    ·
+                  </span>
+                  <span className="whitespace-nowrap font-semibold tabular-nums text-[#8A6B2E]">
+                    {formatMoneyCompact(point.value)}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+
+                <div
+                  className="flex w-full items-end justify-center"
+                  style={{ height: METER_TRACK_PX }}
+                >
+                  {point.value > 0 ? (
+                    <div
+                      className={cn(
+                        "hub-bar-grow w-full rounded-sm",
+                        isToday && "ring-1 ring-[#B08D48]/50",
+                      )}
+                      style={{
+                        height: heightPx,
+                        backgroundColor: isToday
+                          ? HUB_ACCENT
+                          : isPeak
+                            ? "#C9A86A"
+                            : "#D9C7A0",
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full bg-[#EDE8DF]" style={{ height: 2 }} />
+                  )}
+                </div>
+
+                <div className="flex items-center justify-center gap-0.5">
+                  <span
+                    className={cn(
+                      "text-[9px] font-medium tabular-nums leading-none",
+                      isToday ? "text-[#8A6B2E]" : "text-[#666666]",
+                    )}
+                  >
+                    {dayOfMonth(point.day)}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[8px] uppercase leading-none",
+                      isToday ? "text-[#B08D48]" : "text-[#B0A898]",
+                    )}
+                  >
+                    {weekdayInitial(point.day)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

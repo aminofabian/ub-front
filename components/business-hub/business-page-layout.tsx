@@ -38,28 +38,28 @@ export function BusinessPageLayout({
   return (
     <div
       className={cn(
-        "hub-paper relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col px-3 pb-6 pt-3 sm:px-5 sm:pb-8 sm:pt-4",
+        "hub-paper relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col px-3 pb-5 pt-2.5 sm:px-5 sm:pb-6 sm:pt-3",
         className,
       )}
       style={BUSINESS_HUB_VARS}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col gap-5">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-3">
         {showNav ? (
-          <div className="rounded-2xl bg-[color-mix(in_srgb,var(--hub-slip)_78%,transparent)] p-1 ring-1 ring-[color-mix(in_srgb,var(--hub-ink)_6%,transparent)] backdrop-blur-sm">
+          <div className="rounded-xl bg-[color-mix(in_srgb,var(--hub-slip)_78%,transparent)] p-0.5 ring-1 ring-[color-mix(in_srgb,var(--hub-ink)_6%,transparent)] backdrop-blur-sm">
             <BusinessHubNav setupHome={setupHome} />
           </div>
         ) : null}
 
-        <header className="flex flex-wrap items-end justify-between gap-3 px-0.5 sm:px-1">
+        <header className="flex flex-wrap items-center justify-between gap-2 px-0.5 sm:px-1">
           <div className="min-w-0 flex-1">
-            <h1 className="font-heading text-[1.55rem] font-semibold leading-tight tracking-[-0.03em] text-[var(--hub-ink)] sm:text-[1.7rem]">
+            <h1 className="font-heading text-xl font-semibold leading-none tracking-[-0.03em] text-[var(--hub-ink)] sm:text-[1.35rem]">
               {title}
             </h1>
-            <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--hub-ink)_55%,transparent)] sm:text-sm">
+            <p className="mt-1 max-w-2xl truncate text-[12px] leading-snug text-[color-mix(in_srgb,var(--hub-ink)_52%,transparent)] sm:text-[13px]">
               {description}
             </p>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 pb-0.5">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
             <OnlineStoreHeaderSwitch />
             {headerActions}
           </div>

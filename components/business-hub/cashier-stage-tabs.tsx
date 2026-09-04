@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { HUB_ACCENT } from "@/lib/business-hub/constants";
 
 const DUAL_LANE_MAX = 2;
 
@@ -32,7 +31,6 @@ export function CashierStageTabs({
   className?: string;
 }) {
   const viewingAll = selected.length === 0;
-  const columns = 1 + cashiers.length;
 
   function selectAll() {
     onChange([]);
@@ -49,16 +47,17 @@ export function CashierStageTabs({
   if (cashiers.length === 0) return null;
 
   return (
-    <div className={cn("bg-transparent", className)}>
-      <div className="mb-2 flex items-baseline justify-between gap-3">
-        <div className="flex items-baseline gap-2">
-          <p className="text-[13px] font-medium tracking-[-0.01em] text-[#141414]">
-            Stage
-          </p>
-          <span className="text-[12px] text-[#8A8A8A]">{modeCopy(selected)}</span>
-        </div>
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-2 gap-y-1.5",
+        className,
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <p className="text-[12px] font-medium text-[#141414]">Stage</p>
+        <span className="text-[11px] text-[#8A8A8A]">{modeCopy(selected)}</span>
         {live ? (
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700">
             <span
               className="size-1.5 rounded-full bg-emerald-500 hub-live-beacon"
               aria-hidden
@@ -69,10 +68,7 @@ export function CashierStageTabs({
       </div>
 
       <div
-        className="grid gap-2"
-        style={{
-          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-        }}
+        className="flex min-w-0 flex-1 flex-wrap items-center gap-1"
         role="tablist"
         aria-label="Cashier lanes"
       >
@@ -82,35 +78,13 @@ export function CashierStageTabs({
           aria-selected={viewingAll}
           onClick={selectAll}
           className={cn(
-            "group relative flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2.5 text-left ring-1 transition-colors",
+            "inline-flex h-8 items-center rounded-lg px-2.5 text-[12px] font-medium transition-colors",
             viewingAll
-              ? "bg-[#FCFAF6] text-[#141414] ring-[#B08D48]/55"
-              : "text-[#141414] ring-[color-mix(in_srgb,#141414_8%,transparent)] hover:ring-[#D4C4A0]",
+              ? "bg-[#141414] text-[#F5E6C8]"
+              : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)] hover:text-[#141414]",
           )}
         >
-          <span className="min-w-0">
-            <span
-              className={cn(
-                "block text-[11px] font-medium",
-                viewingAll ? "text-[#B08D48]" : "text-[#8A8A8A]",
-              )}
-            >
-              All
-            </span>
-            <span
-              className="mt-0.5 block truncate text-[14px] font-medium leading-tight"
-              style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
-            >
-              Floor
-            </span>
-          </span>
-          {viewingAll ? (
-            <span
-              className="pointer-events-none absolute inset-x-3 bottom-0 h-0.5 rounded-full"
-              style={{ backgroundColor: HUB_ACCENT }}
-              aria-hidden
-            />
-          ) : null}
+          Floor
         </button>
 
         {cashiers.map((name, index) => {
@@ -133,46 +107,25 @@ export function CashierStageTabs({
               }
               onClick={() => toggleCashier(name)}
               className={cn(
-                "relative flex items-center gap-2.5 rounded-xl bg-white px-3 py-2.5 text-left ring-1 transition-colors",
+                "inline-flex h-8 max-w-[9rem] items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium transition-colors",
                 active
-                  ? "bg-[#FCFAF6] text-[#141414] ring-[#B08D48]/55"
-                  : "text-[#141414] ring-[color-mix(in_srgb,#141414_8%,transparent)] hover:ring-[#D4C4A0]",
+                  ? "bg-[#141414] text-[#F5E6C8]"
+                  : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)] hover:text-[#141414]",
               )}
             >
               <span
                 className={cn(
                   "font-mono text-[10px] tabular-nums",
-                  active ? "text-[#B08D48]" : "text-[#C4BBA8]",
+                  active ? "text-[#F5E6C8]/70" : "text-[#C4BBA8]",
                 )}
               >
                 {laneIndex >= 0
                   ? String(laneIndex + 1).padStart(2, "0")
                   : String(index + 1).padStart(2, "0")}
               </span>
-              <span className="min-w-0 flex-1">
-                <span
-                  className={cn(
-                    "block text-[11px] font-medium",
-                    active ? "text-[#B08D48]" : "text-[#8A8A8A]",
-                  )}
-                >
-                  Till
-                </span>
-                <span
-                  className="mt-0.5 block truncate text-[14px] font-medium leading-tight"
-                  style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
-                  title={name}
-                >
-                  {shortName(name)}
-                </span>
+              <span className="truncate" title={name}>
+                {shortName(name)}
               </span>
-              {active ? (
-                <span
-                  className="pointer-events-none absolute inset-x-3 bottom-0 h-0.5 rounded-full"
-                  style={{ backgroundColor: HUB_ACCENT }}
-                  aria-hidden
-                />
-              ) : null}
             </button>
           );
         })}
