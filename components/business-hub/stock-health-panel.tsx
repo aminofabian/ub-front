@@ -52,7 +52,7 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
               </span>
               <span
                 className="mt-0.5 block truncate text-[13px] font-semibold leading-none tracking-[-0.02em] text-[#141414] tabular-nums"
-                style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+                style={{ fontFamily: "var(--font-heading)" }}
               >
                 {item.value}
               </span>

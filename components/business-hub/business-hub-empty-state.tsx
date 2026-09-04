@@ -42,7 +42,7 @@ export function BusinessHubEmptyState({
     >
       <p
         className="text-xl font-medium tracking-tight text-[#141414] sm:text-2xl"
-        style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+        style={{ fontFamily: "var(--font-heading)" }}
       >
         Products are on the shelf
       </p>

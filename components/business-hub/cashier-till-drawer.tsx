@@ -103,7 +103,7 @@ export function CashierTillDrawer({
               </p>
               <p
                 className="mt-1 text-xl font-medium tracking-tight text-[#141414]"
-                style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+                style={{ fontFamily: "var(--font-heading)" }}
               >
                 {cashiers.length} cashiers on stage
               </p>

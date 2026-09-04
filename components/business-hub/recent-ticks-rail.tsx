@@ -153,7 +153,7 @@ export function RecentTicksRail({
           <div className="flex h-full min-h-[8rem] flex-col justify-center px-2.5 py-6">
             <p
               className="text-sm font-medium text-[#141414]"
-              style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+              style={{ fontFamily: "var(--font-heading)" }}
             >
               Quiet till…
             </p>
@@ -260,7 +260,7 @@ export function RecentTicksRail({
                         <p
                           className="text-[14px] font-semibold tabular-nums tracking-tight text-[#141414]"
                           style={{
-                            fontFamily: "var(--font-heading), Georgia, serif",
+                            fontFamily: "var(--font-heading)",
                           }}
                         >
                           {fmtMoney(tick.amount, currency)}
@@ -312,7 +312,7 @@ export function RecentTicksRail({
                     <p
                       className="text-[13px] font-semibold tabular-nums tracking-tight text-[#C47A5A]"
                       style={{
-                        fontFamily: "var(--font-heading), Georgia, serif",
+                        fontFamily: "var(--font-heading)",
                       }}
                     >
                       −{fmtMoney(drawoutTotal, currency)}
@@ -364,8 +364,7 @@ export function RecentTicksRail({
                               <span
                                 className="text-[12px] font-semibold tabular-nums text-[#C47A5A]"
                                 style={{
-                                  fontFamily:
-                                    "var(--font-heading), Georgia, serif",
+                                  fontFamily: "var(--font-heading)",
                                 }}
                               >
                                 −{fmtMoney(row.amount, currency)}

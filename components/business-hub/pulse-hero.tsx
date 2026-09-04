@@ -68,7 +68,7 @@ export function PulseHero({
                 "text-[1.4rem] font-medium leading-none tracking-[-0.035em] text-[#141414] tabular-nums sm:text-[1.55rem]",
                 justUpdated && "hub-figure-pop",
               )}
-              style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+              style={{ fontFamily: "var(--font-heading)" }}
             >
               {revenue}
             </p>
@@ -151,7 +151,7 @@ export function PulseHero({
                 <p
                   className="truncate text-[13px] font-semibold leading-none tracking-[-0.02em] text-[#141414] tabular-nums sm:text-[14px]"
                   style={{
-                    fontFamily: "var(--font-heading), Georgia, serif",
+                    fontFamily: "var(--font-heading)",
                   }}
                 >
                   {metric.value}

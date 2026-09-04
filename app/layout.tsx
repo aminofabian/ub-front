@@ -2,9 +2,11 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import type { ReactNode } from "react";
 
+import { barlowCondensed } from "@/app/fonts/barlow-condensed";
 import { cormorant } from "@/app/fonts/cormorant";
 import { dmSans } from "@/app/fonts/dm-sans";
 import { geistMono } from "@/app/fonts/geist-mono";
+import { inter } from "@/app/fonts/inter";
 import { TenantProvider } from "@/components/providers/tenant-provider";
 import { PlatformSupportLauncher } from "@/components/support/platform-support-launcher";
 import { TenantFaviconSync } from "@/components/tenant-favicon-sync";
@@ -80,7 +82,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en-KE"
-      className={`${geistMono.variable} ${dmSans.variable} ${cormorant.variable} h-full antialiased`}
+      className={`${geistMono.variable} ${inter.variable} ${barlowCondensed.variable} ${dmSans.variable} ${cormorant.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

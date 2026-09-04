@@ -47,7 +47,7 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
                 </span>
                 <span
                   className="shrink-0 text-[12px] font-semibold tabular-nums text-[#141414]"
-                  style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+                  style={{ fontFamily: "var(--font-heading)" }}
                 >
                   {formatMoneyCompact(revenue)}
                 </span>

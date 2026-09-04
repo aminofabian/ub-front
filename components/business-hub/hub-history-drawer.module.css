@@ -28,7 +28,7 @@
 }
 
 .figure {
-  font-family: var(--font-serif), ui-serif, Georgia, serif;
+  font-family: var(--font-heading), "Barlow Condensed", Oswald, "Arial Narrow", Impact, sans-serif;
   font-size: clamp(1.7rem, 4vw, 2.15rem);
   letter-spacing: -0.03em;
   line-height: 1;
