@@ -5596,6 +5596,19 @@ html:has([data-store-theme-id="comilmart"]) ::selection {
   outline-offset: 2px;
 }
 
+.catalog-paper {
+  color-scheme: light;
+}
+
+.catalog-paper ::selection {
+  background: color-mix(in srgb, var(--catalog-primary, #0f766e) 26%, #fff);
+  color: var(--catalog-ink, #15231f);
+}
+
+.catalog-paper :focus-visible {
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hub-rise,
   .hub-bar-grow,

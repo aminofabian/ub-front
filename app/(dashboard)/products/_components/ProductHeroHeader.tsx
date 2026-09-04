@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { CATALOG_CHIP, CATALOG_EDGE } from "./catalog-chrome";
 
 export type AttentionFilterId =
   | "missingBarcode"
@@ -33,13 +34,14 @@ export function ProductAttentionBar({
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-wrap items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_70%,transparent)] px-2 py-1.5",
+        "flex min-w-0 flex-wrap items-center gap-1.5 rounded-none border bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_72%,var(--catalog-slip,#fff))] px-2 py-1.5",
+        CATALOG_EDGE,
         className,
       )}
       role="group"
       aria-label="Needs a look"
     >
-      <span className="pr-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]">
+      <span className="inline-flex items-center gap-2 pr-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)] before:block before:h-px before:w-2 before:shrink-0 before:bg-[var(--catalog-primary,#0f766e)] before:content-['']">
         Needs a look
       </span>
       {visibleAttention.map((stat) => (
@@ -54,7 +56,7 @@ export function ProductAttentionBar({
               : `Show products with ${stat.label}`
           }
           className={cn(
-            "inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] transition-colors",
+            CATALOG_CHIP,
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_30%,transparent)]",
             stat.active
               ? "border-[var(--catalog-ink,#15231f)] bg-[var(--catalog-ink,#15231f)] text-white"

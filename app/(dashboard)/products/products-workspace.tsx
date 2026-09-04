@@ -594,8 +594,8 @@ export function ProductsWorkspace() {
               catalogEmpty
                 ? "bg-transparent"
                 : [
-                    "lg:rounded-xl lg:border lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] lg:bg-white",
-                    "lg:shadow-[0_1px_0_color-mix(in_srgb,var(--catalog-ink,#15231f)_6%,transparent),0_16px_48px_-28px_color-mix(in_srgb,var(--catalog-ink,#15231f)_20%,transparent)]",
+                    "lg:rounded-none lg:border lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] lg:bg-white",
+                    "lg:shadow-[0_1px_0_color-mix(in_srgb,var(--catalog-ink,#15231f)_6%,transparent),0_10px_28px_-18px_color-mix(in_srgb,var(--catalog-ink,#15231f)_22%,transparent)]",
                     "border-0 bg-transparent",
                   ],
             )}
@@ -671,7 +671,7 @@ export function ProductsWorkspace() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-2 px-3 py-8 text-center">
-                    <div className="flex size-10 items-center justify-center rounded-xl border border-dashed border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_60%,transparent)]">
+                    <div className="flex size-10 items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_60%,transparent)]">
                       <MousePointerClick className="size-4 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_35%,transparent)]" />
                     </div>
                     <p className="text-[12px] font-medium tracking-tight text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]">

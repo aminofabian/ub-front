@@ -82,19 +82,19 @@ export function ProductsHubNav({ className }: { className?: string }) {
           >
             <Icon
               className={cn(
-                "size-3.5 shrink-0",
+                "size-3.5 shrink-0 transition-colors",
                 active
                   ? "text-[color-mix(in_srgb,#fff_88%,transparent)]"
                   : "text-[var(--catalog-primary,#0f766e)]",
               )}
               aria-hidden
             />
-            <span className="truncate text-[12px] font-medium tracking-[-0.01em] sm:text-[13px]">
+            <span className="truncate text-[12px] font-medium tracking-[-0.015em] sm:text-[13px]">
               {tab.label}
             </span>
             <span
               className={cn(
-                "ml-auto hidden truncate text-[10px] lg:block",
+                "ml-auto hidden truncate text-[10px] tracking-[-0.01em] lg:block",
                 active
                   ? "text-[color-mix(in_srgb,#fff_62%,transparent)]"
                   : "text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]",

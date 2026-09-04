@@ -5,16 +5,12 @@ import { BookOpen, FileUp, PackagePlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
-import { cn } from "@/lib/utils";
+import {
+  CATALOG_BTN_GHOST,
+  CATALOG_BTN_OUTLINE,
+  CATALOG_BTN_PRIMARY,
+} from "./catalog-chrome";
 import { ProductGuideDrawer } from "./ProductGuideDrawer";
-
-const actionBtnOutline = cn(
-  "h-8 gap-1 rounded-lg border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] px-2.5 text-[12px] shadow-none",
-);
-
-const actionBtnPrimary = cn(
-  "h-8 gap-1.5 rounded-lg bg-[var(--catalog-ink,#15231f)] px-3 text-[12px] text-white shadow-none hover:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_88%,#000)]",
-);
 
 export function ProductHeaderActions({
   canCreate,
@@ -31,7 +27,7 @@ export function ProductHeaderActions({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-8 gap-1 rounded-lg px-2 text-[12px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)] shadow-none hover:text-[var(--catalog-ink,#15231f)]"
+            className={CATALOG_BTN_GHOST}
             title="How to add products"
           >
             <BookOpen className="size-3.5" aria-hidden />
@@ -39,7 +35,7 @@ export function ProductHeaderActions({
           </Button>
         }
       />
-      <Button asChild variant="outline" size="sm" className={actionBtnOutline}>
+      <Button asChild variant="outline" size="sm" className={CATALOG_BTN_OUTLINE}>
         <Link
           href={APP_ROUTES.businessImport}
           title="Add many products from a spreadsheet"
@@ -53,7 +49,7 @@ export function ProductHeaderActions({
         size="sm"
         disabled={!canCreate}
         onClick={onCreateNew}
-        className={actionBtnPrimary}
+        className={CATALOG_BTN_PRIMARY}
       >
         <PackagePlus className="size-3.5" aria-hidden />
         Add product

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { ProductsHubNav } from "@/components/products/products-hub-nav";
 import { cn } from "@/lib/utils";
+import { CATALOG_SURFACE } from "./catalog-chrome";
 
 export const PRODUCTS_CATALOG_VARS = {
   ["--catalog-primary" as string]: "#0f766e",
@@ -29,18 +30,18 @@ export function ProductsPageLayout({
   return (
     <div
       className={cn(
-        "relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col px-2 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-2.5",
+        "catalog-paper relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col px-2 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-2.5",
         className,
       )}
       style={PRODUCTS_CATALOG_VARS}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-[radial-gradient(120%_100%_at_12%_-20%,color-mix(in_srgb,var(--catalog-primary)_12%,transparent),transparent_60%),linear-gradient(180deg,color-mix(in_srgb,var(--catalog-shelf)_85%,#fff),transparent)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(110%_90%_at_8%_-18%,color-mix(in_srgb,var(--catalog-primary)_10%,transparent),transparent_58%),linear-gradient(180deg,color-mix(in_srgb,var(--catalog-shelf)_90%,#fff),transparent_72%)]"
       />
 
       <div className="relative flex min-h-0 flex-1 flex-col gap-2">
-        <div className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--catalog-ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--catalog-slip)_94%,transparent)] p-0.5">
+        <div className={cn("shrink-0 p-0.5", CATALOG_SURFACE)}>
           <ProductsHubNav />
         </div>
 

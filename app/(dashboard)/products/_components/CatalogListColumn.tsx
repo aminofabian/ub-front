@@ -252,7 +252,7 @@ export function CatalogListColumn({
               type="button"
               size="sm"
               variant="ghost"
-              className="h-7 gap-1 rounded-md px-2 text-xs"
+              className="h-7 gap-1 rounded-none px-2 text-xs"
               disabled={selectionBusy}
               onClick={() => catalog.setRowSelection(new Set())}
             >

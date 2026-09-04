@@ -69,7 +69,7 @@ export const catalogFilterLabelClass =
   "text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]";
 
 export const catalogFilterInputClass = cn(
-  "h-7 w-full min-w-0 rounded-md border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] text-[var(--catalog-ink,#15231f)] shadow-none",
+  "h-7 w-full min-w-0 rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] text-[var(--catalog-ink,#15231f)] shadow-none",
   "placeholder:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)]",
   "focus-visible:border-[var(--catalog-primary,#0f766e)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_20%,transparent)]",
   "disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_80%,transparent)] disabled:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_40%,transparent)]",
@@ -106,7 +106,7 @@ export const catalogFilterToggleActiveClass = cn(
 
 /** Needs list — bordered sheet block matching detail metric/field rows. */
 export const catalogFilterNeedsSheetClass = cn(
-  "overflow-hidden rounded-lg border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-white",
+  "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-white",
 );
 
 export const catalogFilterNeedsRowClass = cn(
@@ -125,7 +125,7 @@ export const catalogFilterNeedsCountClass =
 
 /** Scope tabs as a 2×2 sheet grid. */
 export const catalogFilterScopeGridClass =
-  "grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)]";
+  "grid grid-cols-2 gap-px overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)]";
 
 export const catalogFilterScopeCellClass = cn(
   "flex h-7 items-center justify-center bg-background text-[10px] font-medium tracking-tight text-foreground/55 transition-colors",
@@ -199,7 +199,7 @@ export function catalogRowAccentClass(
   active: boolean,
 ): string {
   return cn(
-    "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-[1] before:w-[2px] before:rounded-r before:bg-[var(--catalog-primary,#0f766e)] before:opacity-0",
+    "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-[1] before:w-px before:bg-[var(--catalog-primary,#0f766e)] before:opacity-0",
     active && "before:opacity-100",
   );
 }
