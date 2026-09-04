@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HUB_MUTED, HUB_SECTION, HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export type StockHealthItem = {
@@ -18,45 +18,38 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section className="space-y-2">
-      <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
-        Store & stock
-      </h2>
-      <div className="grid grid-cols-2 gap-px border border-[#E6E1D8] bg-[#E6E1D8] sm:grid-cols-4">
+    <section className="space-y-2.5">
+      <h2 className={HUB_SECTION}>Store & stock</h2>
+      <div
+        className={cn(
+          HUB_SURFACE,
+          "grid grid-cols-2 divide-x divide-y divide-[color-mix(in_srgb,#141414_6%,transparent)] sm:grid-cols-4 sm:divide-y-0",
+        )}
+      >
         {items.map((item) => (
           <Link
             key={item.id}
             href={item.href}
-            className={cn(
-              HUB_SURFACE,
-              "group relative overflow-hidden border-0 px-3 py-2.5 transition-colors hover:bg-[#FCFAF6]",
-            )}
+            className="group relative px-3.5 py-3 transition-colors hover:bg-[#FAF9F6]"
           >
-            <div
+            <span
               className={cn(
-                "absolute inset-y-0 left-0 w-0.5",
+                "mb-2 block size-1.5 rounded-full",
                 item.tone === "alert" && "bg-[#C47A5A]",
                 item.tone === "watch" && "bg-[#B08D48]",
-                (!item.tone || item.tone === "ok") && "bg-emerald-500/70",
+                (!item.tone || item.tone === "ok") && "bg-emerald-500/80",
               )}
               aria-hidden
             />
-            <div className="pl-1.5">
-              <p
-                className={cn(
-                  "text-[10px] font-medium uppercase tracking-[0.08em]",
-                  HUB_MUTED,
-                )}
-              >
-                {item.label}
-              </p>
-              <p className="mt-1 truncate text-[15px] font-semibold tracking-tight text-[#141414] tabular-nums">
-                {item.value}
-              </p>
-              <p className="mt-0.5 truncate text-[10px] text-[#888888]">
-                {item.detail}
-              </p>
-            </div>
+            <p className={cn("text-[11px] font-medium", HUB_MUTED)}>
+              {item.label}
+            </p>
+            <p className="mt-1 truncate text-[15px] font-semibold tracking-tight text-[#141414] tabular-nums">
+              {item.value}
+            </p>
+            <p className="mt-0.5 truncate text-[11px] text-[#888888]">
+              {item.detail}
+            </p>
           </Link>
         ))}
       </div>

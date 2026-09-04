@@ -98,21 +98,23 @@ export function BusinessHubNav({
             key={tab.href}
             href={tab.href}
             className={cn(
-              "group relative flex min-h-[3.25rem] flex-col justify-center rounded-lg px-3 py-2.5 transition-[background-color,box-shadow,color] duration-200 sm:min-h-[3.5rem] sm:flex-row sm:items-center sm:gap-3 sm:px-4",
+              "group relative flex min-h-[3.1rem] flex-col justify-center rounded-xl px-3 py-2.5 transition-[background-color,color] duration-150 sm:min-h-[3.35rem] sm:flex-row sm:items-center sm:gap-3 sm:px-4",
               active
-                ? "bg-[var(--hub-ink,#141414)] text-white shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_12%,transparent)]"
-                : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_62%,transparent)] hover:bg-[color-mix(in_srgb,var(--hub-ink,#141414)_4%,transparent)] hover:text-[var(--hub-ink,#141414)]",
+                ? "bg-[var(--hub-ink,#141414)] text-white"
+                : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_58%,transparent)] hover:bg-[color-mix(in_srgb,var(--hub-ink,#141414)_4%,transparent)] hover:text-[var(--hub-ink,#141414)]",
             )}
           >
             <span className="flex items-center gap-2">
               <Icon
                 className={cn(
-                  "size-4 shrink-0 transition-transform duration-200 group-hover:scale-105",
-                  active ? "text-[color-mix(in_srgb,#fff_88%,transparent)]" : "text-[var(--hub-accent,#B08D48)]",
+                  "size-3.5 shrink-0",
+                  active
+                    ? "text-[color-mix(in_srgb,#fff_88%,transparent)]"
+                    : "text-[var(--hub-accent,#B08D48)]",
                 )}
                 aria-hidden
               />
-              <span className="text-[13px] font-semibold tracking-[-0.01em] sm:text-sm">
+              <span className="text-[13px] font-medium tracking-[-0.01em] sm:text-sm">
                 {label}
               </span>
             </span>

@@ -28,19 +28,21 @@ import {
 } from "lucide-react";
 
 import {
-  DEFAULT_MAIL_HTML,
+  MAIL_CHIP,
   MAIL_FIELD,
   MAIL_FILTER_FIELDS,
   MAIL_INSET,
   MAIL_PANEL,
   MAIL_PILL_ACTIVE,
   MAIL_PILL_IDLE,
+  MAIL_PRIMARY_BTN,
   MAIL_SHELL,
   MAIL_VARIABLES,
   formatMailHtml,
   mailSkipLabel,
 } from "@/components/credits/customer-email-campaign-ui";
 import { customerInitials } from "@/components/credits/customer-crm-ui";
+import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -60,6 +62,10 @@ import {
   type CustomerRecord,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import {
+  defaultShopMailHtml,
+  resolveShopMailBrand,
+} from "@/lib/shop-mail-brand";
 import { cn } from "@/lib/utils";
 
 type SelectedCustomer = {
@@ -87,12 +93,18 @@ export function CustomerEmailCampaignComposer({
   const router = useRouter();
   const searchParams = useSearchParams();
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
+  const { business } = useDashboard();
+  const brand = useMemo(
+    () => resolveShopMailBrand(business?.branding, business?.name),
+    [business?.branding, business?.name],
+  );
 
   const [name, setName] = useState(initialCampaign?.name ?? "");
   const [subject, setSubject] = useState(initialCampaign?.subject ?? "");
   const [bodyHtml, setBodyHtml] = useState(
-    initialCampaign?.bodyHtml ?? DEFAULT_MAIL_HTML,
+    () => initialCampaign?.bodyHtml ?? defaultShopMailHtml(brand),
   );
+  const [bodyTouched, setBodyTouched] = useState(Boolean(initialCampaign?.bodyHtml));
   const [method, setMethod] = useState<CustomerEmailRecipientMethod>(
     (initialCampaign?.recipientMethod as CustomerEmailRecipientMethod) ??
       "specific",
@@ -152,6 +164,11 @@ export function CustomerEmailCampaignComposer({
     setSelected(rows);
     if (rows.length > 0) setMethod("specific");
   });
+
+  useEffect(() => {
+    if (bodyTouched || initialCampaign?.bodyHtml) return;
+    setBodyHtml(defaultShopMailHtml(brand));
+  }, [brand, bodyTouched, initialCampaign?.bodyHtml]);
 
   useEffect(() => {
     const raw = searchParams.get("customerIds");
@@ -400,7 +417,7 @@ export function CustomerEmailCampaignComposer({
   };
 
   return (
-    <div className={MAIL_SHELL}>
+    <div className={MAIL_SHELL} style={brand.cssVars}>
       <div
         className={cn(
           "flex min-h-0 flex-col gap-3",
@@ -408,19 +425,38 @@ export function CustomerEmailCampaignComposer({
         )}
       >
         {/* Top bar */}
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-[linear-gradient(180deg,color-mix(in_srgb,#8B6F3A_6%,transparent)_0%,transparent_100%)] px-3 py-3 sm:px-5">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--mail-brand,#8B6F3A)_8%,transparent)_0%,transparent_100%)] px-3 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <Button asChild variant="ghost" size="icon" className="size-8 shrink-0">
               <Link href={APP_ROUTES.customerEmailCampaigns} aria-label="Back">
                 <ArrowLeft className="size-4" />
               </Link>
             </Button>
+            {brand.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brand.logoUrl}
+                alt=""
+                className="hidden h-8 w-auto max-w-[7rem] object-contain sm:block"
+              />
+            ) : (
+              <span
+                className="hidden size-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold sm:flex"
+                style={{
+                  background: "var(--mail-soft)",
+                  color: "var(--mail-brand)",
+                }}
+                aria-hidden
+              >
+                {brand.displayName.slice(0, 1).toUpperCase()}
+              </span>
+            )}
             <div className="min-w-0">
               <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">
                 {name.trim() || "New email"}
               </h1>
               <p className="truncate text-xs text-muted-foreground">
-                {subject.trim() || "Compose for customers in this shop"}
+                {subject.trim() || `From ${brand.displayName}`}
               </p>
             </div>
           </div>
@@ -438,7 +474,7 @@ export function CustomerEmailCampaignComposer({
             <Button
               type="button"
               size="sm"
-              className="rounded-xl bg-[#8B6F3A] text-[#FFFDF8] hover:bg-[#7a6133]"
+              className={MAIL_PRIMARY_BTN}
               disabled={busy || Boolean(blockingError)}
               onClick={() => void openReview()}
             >
@@ -620,7 +656,7 @@ export function CustomerEmailCampaignComposer({
                       key={v.tag}
                       type="button"
                       title={v.label}
-                      className="rounded-md border border-border/70 bg-[#F9F6F0]/80 px-2 py-1 font-mono text-[10px] text-[#6b5530] transition-colors hover:border-[#8B6F3A]/35 hover:bg-[#F9F6F0]"
+                      className={MAIL_CHIP}
                       onClick={() => insertVariable(v.tag)}
                     >
                       {`{{${v.tag}}}`}
@@ -630,12 +666,15 @@ export function CustomerEmailCampaignComposer({
                 <textarea
                   ref={editorRef}
                   value={bodyHtml}
-                  onChange={(e) => setBodyHtml(e.target.value)}
+                  onChange={(e) => {
+                    setBodyTouched(true);
+                    setBodyHtml(e.target.value);
+                  }}
                   spellCheck={false}
                   className={cn(
                     "w-full flex-1 rounded-xl border border-border/70 bg-[#1a1714] p-3.5 font-mono text-[12px] leading-5 text-[#f5f0e8]",
-                    "outline-none selection:bg-[#8B6F3A]/40",
-                    "focus-visible:ring-2 focus-visible:ring-[#8B6F3A]/35",
+                    "outline-none selection:bg-[color-mix(in_srgb,var(--mail-brand)_45%,transparent)]",
+                    "focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--mail-brand)_35%,transparent)]",
                     fullscreen ? "min-h-0" : "min-h-[220px]",
                   )}
                 />
@@ -670,7 +709,7 @@ export function CustomerEmailCampaignComposer({
             <div
               className={cn(
                 "relative flex min-h-[22rem] flex-1 items-start justify-center overflow-auto",
-                "bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,#8B6F3A_10%,transparent)_0%,transparent_55%),linear-gradient(165deg,#f7f3eb_0%,#efe8dc_48%,#e8dfd0_100%)]",
+                "bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--mail-brand)_14%,transparent)_0%,transparent_55%),linear-gradient(165deg,var(--mail-paper-from)_0%,var(--mail-paper-to)_100%)]",
                 "p-4 sm:p-6",
               )}
             >
@@ -684,16 +723,36 @@ export function CustomerEmailCampaignComposer({
               >
                 <div
                   className={cn(
-                    "overflow-hidden rounded-2xl border border-[#d9cfc0] bg-white shadow-[0_18px_40px_-18px_rgba(60,40,10,0.45)]",
+                    "overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--mail-brand)_18%,#d9cfc0)] bg-white shadow-[0_18px_40px_-18px_rgba(60,40,10,0.45)]",
                     device === "mobile" && "rounded-[1.35rem]",
                   )}
                 >
-                  <div className="flex items-center gap-2 border-b border-[#efe8dc] bg-[#FFFDF8] px-3 py-2">
-                    <span className="size-2 rounded-full bg-[#e8d9c4]" />
-                    <span className="size-2 rounded-full bg-[#e8d9c4]" />
-                    <span className="size-2 rounded-full bg-[#e8d9c4]" />
-                    <span className="ml-2 truncate text-[10px] text-[#8a7a62]">
-                      {preview?.sampleEmail || "sample@customer"}
+                  <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--mail-brand)_10%,#efe8dc)] bg-[#FFFDF8] px-3 py-2">
+                    {brand.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={brand.logoUrl}
+                        alt=""
+                        className="h-4 w-auto max-w-[4.5rem] object-contain"
+                      />
+                    ) : (
+                      <>
+                        <span
+                          className="size-2 rounded-full"
+                          style={{ background: "var(--mail-brand)" }}
+                        />
+                        <span
+                          className="size-2 rounded-full opacity-50"
+                          style={{ background: "var(--mail-brand)" }}
+                        />
+                        <span
+                          className="size-2 rounded-full opacity-30"
+                          style={{ background: "var(--mail-brand)" }}
+                        />
+                      </>
+                    )}
+                    <span className="ml-1 truncate text-[10px] text-[color-mix(in_srgb,var(--mail-brand)_55%,#78716c)]">
+                      {preview?.sampleEmail || brand.displayName}
                     </span>
                   </div>
                   <iframe
@@ -709,7 +768,7 @@ export function CustomerEmailCampaignComposer({
                   />
                 </div>
                 {preview ? (
-                  <p className="mt-3 text-center text-[11px] text-[#7a6a52]">
+                  <p className="mt-3 text-center text-[11px] text-[color-mix(in_srgb,var(--mail-brand)_45%,#78716c)]">
                     Sample: {preview.sampleCustomerName}
                     {preview.unknownVariables.length > 0
                       ? ` · ${preview.unknownVariables.length} unknown tag(s)`
@@ -738,6 +797,7 @@ export function CustomerEmailCampaignComposer({
           confirmPhrase={confirmPhrase}
           onConfirmPhrase={setConfirmPhrase}
           busy={busy}
+          shopName={brand.displayName}
           onBack={() => setReviewOpen(false)}
           onSend={() => void confirmSend()}
         />
@@ -790,7 +850,7 @@ function AudienceMeter({
           <span className="text-border">·</span>
           <span>{audience.automaticallyExcluded.toLocaleString()} out</span>
           <span className="text-border">·</span>
-          <span className="font-semibold text-[#8B6F3A]">
+          <span className="font-semibold text-[var(--mail-brand)]">
             {audience.finalRecipients.toLocaleString()} final
           </span>
         </>
@@ -876,7 +936,7 @@ function SpecificPicker({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => onAdd(hit)}
                 >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#F9F6F0] text-[10px] font-semibold text-[#8B6F3A]">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--mail-soft)] text-[10px] font-semibold text-[var(--mail-brand)]">
                     {customerInitials(hit.name)}
                   </span>
                   <span className="min-w-0 flex-1">
@@ -886,7 +946,7 @@ function SpecificPicker({
                     </span>
                   </span>
                   {picked ? (
-                    <Check className="size-4 shrink-0 text-[#8B6F3A]" />
+                    <Check className="size-4 shrink-0 text-[var(--mail-brand)]" />
                   ) : (
                     <Plus className="size-4 shrink-0 text-muted-foreground" />
                   )}
@@ -902,7 +962,7 @@ function SpecificPicker({
         {selected.length > 0 ? (
           <button
             type="button"
-            className="text-[#8B6F3A] underline-offset-2 hover:underline"
+            className="text-[var(--mail-brand)] underline-offset-2 hover:underline"
             onClick={onClear}
           >
             Clear all
@@ -915,9 +975,9 @@ function SpecificPicker({
           {selected.map((s) => (
             <span
               key={s.id}
-              className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-[#F9F6F0]/70 py-1 pl-1 pr-2 text-xs"
+              className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--mail-brand)_18%,transparent)] bg-[color-mix(in_srgb,var(--mail-soft)_70%,transparent)] py-1 pl-1 pr-2 text-xs"
             >
-              <span className="flex size-5 items-center justify-center rounded-full bg-[#8B6F3A]/15 text-[9px] font-semibold text-[#8B6F3A]">
+              <span className="flex size-5 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--mail-brand)_18%,transparent)] text-[9px] font-semibold text-[var(--mail-brand)]">
                 {customerInitials(s.name)}
               </span>
               <span className="truncate">{s.name}</span>
@@ -1205,6 +1265,7 @@ function ReviewSheet({
   confirmPhrase,
   onConfirmPhrase,
   busy,
+  shopName,
   onBack,
   onSend,
 }: {
@@ -1215,6 +1276,7 @@ function ReviewSheet({
   confirmPhrase: string;
   onConfirmPhrase: (v: string) => void;
   busy: boolean;
+  shopName: string;
   onBack: () => void;
   onSend: () => void;
 }) {
@@ -1229,12 +1291,12 @@ function ReviewSheet({
           "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-200 sm:motion-safe:zoom-in-95",
         )}
       >
-        <div className="border-b border-border/60 bg-[linear-gradient(180deg,color-mix(in_srgb,#8B6F3A_8%,transparent),transparent)] px-5 py-4">
+        <div className="border-b border-border/60 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--mail-brand)_10%,transparent),transparent)] px-5 py-4">
           <h3 id="review-title" className="text-base font-semibold tracking-tight">
             Ready to send?
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Double-check the audience before this leaves the shop.
+            From {shopName} — double-check the audience before this leaves.
           </p>
         </div>
         <dl className="space-y-2.5 px-5 py-4 text-sm">
@@ -1255,7 +1317,7 @@ function ReviewSheet({
           />
           <div className="flex items-baseline justify-between gap-3 border-t border-border/50 pt-2.5">
             <dt className="text-muted-foreground">Final recipients</dt>
-            <dd className="text-lg font-semibold tabular-nums text-[#8B6F3A]">
+            <dd className="text-lg font-semibold tabular-nums text-[var(--mail-brand)]">
               {(audience?.finalRecipients ?? 0).toLocaleString()}
             </dd>
           </div>
@@ -1288,7 +1350,7 @@ function ReviewSheet({
           </Button>
           <Button
             type="button"
-            className="rounded-xl bg-[#8B6F3A] text-[#FFFDF8] hover:bg-[#7a6133]"
+            className={MAIL_PRIMARY_BTN}
             disabled={
               busy ||
               (method === "all_eligible" && confirmPhrase.trim() !== "SEND")

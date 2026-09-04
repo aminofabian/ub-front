@@ -71,7 +71,7 @@ export function RevenueBarChart({
   return (
     <section className={cn(HUB_SURFACE, "overflow-hidden")}>
       <div className="space-y-0">
-        <div className="border-b border-[#E6E1D8] px-4 py-2.5">
+        <div className="border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-4 py-3">
           <HubSectionLabel
             title={title}
             meta={
@@ -82,15 +82,10 @@ export function RevenueBarChart({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-px border-b border-[#E6E1D8] bg-[#E6E1D8] sm:grid-cols-4">
+        <div className="grid grid-cols-2 divide-x divide-y divide-[color-mix(in_srgb,#141414_6%,transparent)] border-b border-[color-mix(in_srgb,#141414_6%,transparent)] sm:grid-cols-4 sm:divide-y-0">
           {summary.map((item) => (
-            <div key={item.id} className="bg-white px-3 py-2.5">
-              <p
-                className={cn(
-                  "text-[10px] font-medium uppercase tracking-[0.08em]",
-                  HUB_MUTED,
-                )}
-              >
+            <div key={item.id} className="px-3.5 py-3">
+              <p className={cn("text-[11px] font-medium", HUB_MUTED)}>
                 {item.label}
               </p>
               <p
@@ -99,7 +94,7 @@ export function RevenueBarChart({
               >
                 {item.value}
               </p>
-              <p className="mt-0.5 truncate text-[10px] text-[#8A8A8A]">
+              <p className="mt-0.5 truncate text-[11px] text-[#8A8A8A]">
                 {item.hint}
               </p>
             </div>
@@ -128,7 +123,7 @@ export function RevenueBarChart({
                   title={`${point.label} · ${formatMoneyCompact(point.value)}`}
                 >
                   <div
-                    className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 border border-[#E6E1D8] bg-white px-2 py-1 text-[11px] shadow-sm group-hover:block"
+                    className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 rounded-lg bg-white px-2 py-1 text-[11px] shadow-[0_4px_16px_-4px_rgba(20,20,20,0.18)] ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)] group-hover:block"
                   >
                     <span className="whitespace-nowrap font-medium text-[#141414]">
                       {point.label}
@@ -148,8 +143,8 @@ export function RevenueBarChart({
                     {point.value > 0 ? (
                       <div
                         className={cn(
-                          "hub-bar-grow w-full",
-                          isToday && "outline outline-1 outline-[#B08D48] outline-offset-1",
+                          "hub-bar-grow w-full rounded-sm",
+                          isToday && "ring-1 ring-[#B08D48]/50 ring-offset-1",
                         )}
                         style={{
                           height: heightPx,

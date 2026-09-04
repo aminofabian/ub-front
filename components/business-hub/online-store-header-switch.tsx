@@ -14,14 +14,14 @@ export function OnlineStoreHeaderSwitch() {
   return (
     <div
       className={cn(
-        "inline-flex h-9 max-w-full items-center gap-2 rounded-lg border border-[#E6E1D8]/90 bg-white pl-2.5 pr-1.5",
-        "shadow-[0_1px_0_rgba(20,20,20,0.04)]",
+        "inline-flex h-9 max-w-full items-center gap-2 rounded-xl bg-white pl-2.5 pr-1.5",
+        "ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)]",
         saving && "opacity-70",
       )}
     >
       <Store className="size-3.5 shrink-0 text-[#B08D48]" aria-hidden />
       <span className="min-w-0">
-        <span className="block text-[11px] font-semibold leading-none tracking-[-0.01em] text-[#141414]">
+        <span className="block text-[11px] font-medium leading-none tracking-[-0.01em] text-[#141414]">
           Online store
         </span>
         <span

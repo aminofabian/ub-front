@@ -73,14 +73,14 @@ export function SetupProgressBanner({
   };
 
   const primaryCtaClass =
-    "inline-flex h-8 items-center gap-1 bg-[#141414] px-2.5 text-xs font-semibold text-[#F5E6C8] hover:bg-[#2A2A2A]";
+    "inline-flex h-8 items-center gap-1 rounded-lg bg-[#141414] px-2.5 text-xs font-medium text-[#F5E6C8] hover:bg-[#2A2A2A]";
 
   return (
     <>
       <section
         className={cn(
           HUB_SURFACE,
-          "overflow-hidden border-[#B08D48]/30 bg-[#FCFAF6]",
+          "overflow-hidden bg-[#FCFAF6]",
           className,
         )}
         aria-label="Shop setup progress"

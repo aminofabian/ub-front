@@ -1,14 +1,14 @@
 "use client";
 
-import { HUB_MUTED } from "@/lib/business-hub/constants";
+import { HUB_MUTED, HUB_SECTION } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export function HubSectionLabel({
-  index,
   title,
   meta,
   className,
 }: {
+  /** @deprecated Section numbers removed for quieter headings. */
   index?: string;
   title: string;
   meta?: string;
@@ -21,26 +21,9 @@ export function HubSectionLabel({
         className,
       )}
     >
-      <div className="flex min-w-0 items-baseline gap-2">
-        {index ? (
-          <span
-            className="font-mono text-[10px] font-medium tabular-nums text-[#B08D48]"
-            aria-hidden
-          >
-            {index}
-          </span>
-        ) : null}
-        <h2
-          className={cn(
-            "text-[11px] font-semibold uppercase tracking-[0.14em]",
-            HUB_MUTED,
-          )}
-        >
-          {title}
-        </h2>
-      </div>
+      <h2 className={HUB_SECTION}>{title}</h2>
       {meta ? (
-        <p className="text-[11px] tabular-nums text-[#9A9A9A]">{meta}</p>
+        <p className={cn("text-[12px] tabular-nums", HUB_MUTED)}>{meta}</p>
       ) : null}
     </div>
   );

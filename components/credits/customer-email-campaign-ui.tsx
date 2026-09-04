@@ -1,8 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Warm CRM accent — shared with customer-crm-ui */
-export const MAIL_ACCENT = "#8B6F3A";
-
+/** Brand-driven tokens — set `--mail-brand*` on a parent via {@link resolveShopMailBrand}. */
 export const MAIL_SHELL = cn(
   "relative mx-auto w-full max-w-[92rem] px-3 pb-8 pt-3 sm:px-5 sm:pt-4 lg:px-6",
   "lg:h-[calc(100dvh-6.5rem)] lg:min-h-[36rem] lg:overflow-hidden lg:pb-4",
@@ -18,7 +16,8 @@ export const MAIL_INSET = cn(
 );
 
 export const MAIL_PILL_ACTIVE = cn(
-  "bg-[#F9F6F0] text-[#8B6F3A] ring-1 ring-[#8B6F3A]/14 shadow-sm",
+  "bg-[var(--mail-soft,#F9F6F0)] text-[var(--mail-brand,#8B6F3A)]",
+  "ring-1 ring-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_18%,transparent)] shadow-sm",
 );
 
 export const MAIL_PILL_IDLE = cn(
@@ -30,8 +29,22 @@ export const MAIL_FIELD = cn(
   "transition-[border-color,box-shadow] duration-150",
   "placeholder:text-muted-foreground/65",
   "hover:border-foreground/15",
-  "focus-visible:border-[#8B6F3A]/55 focus-visible:outline-none",
-  "focus-visible:ring-2 focus-visible:ring-[#8B6F3A]/20",
+  "focus-visible:border-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_55%,transparent)]",
+  "focus-visible:outline-none",
+  "focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_22%,transparent)]",
+);
+
+export const MAIL_PRIMARY_BTN = cn(
+  "rounded-xl bg-[var(--mail-brand,#8B6F3A)] text-[var(--mail-on-brand,#FFFDF8)]",
+  "hover:brightness-[0.94] focus-visible:ring-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_35%,transparent)]",
+);
+
+export const MAIL_CHIP = cn(
+  "rounded-md border border-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_22%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--mail-soft,#F9F6F0)_80%,transparent)]",
+  "px-2 py-1 font-mono text-[10px] text-[var(--mail-brand,#8B6F3A)]",
+  "transition-colors hover:border-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_40%,transparent)]",
+  "hover:bg-[var(--mail-soft,#F9F6F0)]",
 );
 
 export function mailStatusTone(status: string): string {
@@ -44,6 +57,12 @@ export function mailStatusTone(status: string): string {
       return "bg-emerald-500/10 text-emerald-900 ring-emerald-500/20";
     case "FAILED":
       return "bg-red-500/10 text-red-900 ring-red-500/20";
+    case "PENDING":
+      return "bg-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_12%,transparent)] text-[var(--mail-brand,#8B6F3A)] ring-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_22%,transparent)]";
+    case "SENT":
+      return "bg-emerald-500/10 text-emerald-900 ring-emerald-500/20";
+    case "SKIPPED":
+      return "bg-muted text-muted-foreground ring-border/60";
     default:
       return "bg-muted text-muted-foreground ring-border/60";
   }
@@ -253,25 +272,3 @@ export const MAIL_FILTER_FIELDS: Array<{
     ],
   },
 ];
-
-export const DEFAULT_MAIL_HTML = `<!DOCTYPE html>
-<html>
-<body style="margin:0;font-family:Georgia,'Times New Roman',serif;background:#f3efe6;color:#1c1917;">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-    <tr>
-      <td align="center" style="padding:36px 16px;">
-        <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="background:#fffdf8;border-radius:16px;padding:32px;border:1px solid #e8e0d0;">
-          <tr><td style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#8B6F3A;">{{shop}}</td></tr>
-          <tr><td style="padding-top:10px;font-size:26px;font-weight:700;letter-spacing:-0.02em;">Hi {{firstName}},</td></tr>
-          <tr><td style="padding-top:14px;font-size:15px;line-height:1.55;color:#44403c;">
-            A note from the counter. You have {{loyaltyPoints}} loyalty points waiting.
-          </td></tr>
-          <tr><td style="padding-top:24px;">
-            <a href="{{shopUrl}}" style="display:inline-block;background:#8B6F3A;color:#fffdf8;text-decoration:none;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:600;">Open the shop</a>
-          </td></tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;

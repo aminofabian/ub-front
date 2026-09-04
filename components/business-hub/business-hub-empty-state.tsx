@@ -53,7 +53,7 @@ export function BusinessHubEmptyState({
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <Link
           href={APP_ROUTES.cashier}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#141414] px-3.5 py-2 text-sm font-medium text-[#F5E6C8] transition-opacity hover:opacity-90"
+          className="inline-flex items-center gap-2 rounded-xl bg-[#141414] px-3.5 py-2 text-sm font-medium text-[#F5E6C8] transition-opacity hover:opacity-90"
         >
           <ShoppingCart className="size-3.5" aria-hidden />
           Open the till

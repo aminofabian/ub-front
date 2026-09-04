@@ -66,19 +66,14 @@ export function WebOrdersRail({
     <section
       className={cn(
         HUB_RAIL,
-        justUpdated && "hub-scan-sweep border-[#B08D48]/55",
+        justUpdated && "hub-scan-sweep ring-1 ring-[#B08D48]/35",
         className,
       )}
       aria-label="Web pickup orders"
     >
-      <div
-        className="pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-[#B08D48]"
-        aria-hidden
-      />
-
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[#E6E1D8] px-3 py-1.5">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-3.5 py-2">
         <div className="flex min-w-0 items-baseline gap-2">
-          <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
+          <p className="truncate text-[13px] font-medium tracking-[-0.01em] text-[#141414]">
             Web orders
           </p>
           {!empty ? (

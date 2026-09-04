@@ -50,26 +50,26 @@ export function CashierStageTabs({
 
   return (
     <div className={cn("bg-transparent", className)}>
-      <div className="mb-1.5 flex items-baseline justify-between gap-3">
+      <div className="mb-2 flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <p
-            className="text-[10px] font-semibold uppercase tracking-[0.16em]"
-            style={{ color: HUB_ACCENT }}
-          >
+          <p className="text-[13px] font-medium tracking-[-0.01em] text-[#141414]">
             Stage
           </p>
-          <span className="text-[11px] text-[#8A8A8A]">{modeCopy(selected)}</span>
+          <span className="text-[12px] text-[#8A8A8A]">{modeCopy(selected)}</span>
         </div>
         {live ? (
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
-            <span className="size-1.5 bg-emerald-500 hub-live-beacon" aria-hidden />
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
+            <span
+              className="size-1.5 rounded-full bg-emerald-500 hub-live-beacon"
+              aria-hidden
+            />
             Live
           </span>
         ) : null}
       </div>
 
       <div
-        className="grid gap-1.5"
+        className="grid gap-2"
         style={{
           gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
         }}
@@ -82,16 +82,16 @@ export function CashierStageTabs({
           aria-selected={viewingAll}
           onClick={selectAll}
           className={cn(
-            "group relative flex items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2.5 text-left transition-colors",
+            "group relative flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2.5 text-left ring-1 transition-colors",
             viewingAll
-              ? "border-[#B08D48] bg-[#FCFAF6] text-[#141414] shadow-[0_1px_0_rgba(20,20,20,0.04)]"
-              : "border-[#E6E1D8]/90 text-[#141414] hover:border-[#D4C4A0]",
+              ? "bg-[#FCFAF6] text-[#141414] ring-[#B08D48]/55"
+              : "text-[#141414] ring-[color-mix(in_srgb,#141414_8%,transparent)] hover:ring-[#D4C4A0]",
           )}
         >
           <span className="min-w-0">
             <span
               className={cn(
-                "block text-[9px] font-semibold uppercase tracking-[0.14em]",
+                "block text-[11px] font-medium",
                 viewingAll ? "text-[#B08D48]" : "text-[#8A8A8A]",
               )}
             >
@@ -106,7 +106,8 @@ export function CashierStageTabs({
           </span>
           {viewingAll ? (
             <span
-              className="pointer-events-none absolute inset-x-3 bottom-0 h-0.5 bg-[#B08D48]"
+              className="pointer-events-none absolute inset-x-3 bottom-0 h-0.5 rounded-full"
+              style={{ backgroundColor: HUB_ACCENT }}
               aria-hidden
             />
           ) : null}
@@ -132,10 +133,10 @@ export function CashierStageTabs({
               }
               onClick={() => toggleCashier(name)}
               className={cn(
-                "relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 text-left transition-colors",
+                "relative flex items-center gap-2.5 rounded-xl bg-white px-3 py-2.5 text-left ring-1 transition-colors",
                 active
-                  ? "border-[#B08D48] bg-[#FCFAF6] text-[#141414] shadow-[0_1px_0_rgba(20,20,20,0.04)]"
-                  : "border-[#E6E1D8]/90 text-[#141414] hover:border-[#D4C4A0]",
+                  ? "bg-[#FCFAF6] text-[#141414] ring-[#B08D48]/55"
+                  : "text-[#141414] ring-[color-mix(in_srgb,#141414_8%,transparent)] hover:ring-[#D4C4A0]",
               )}
             >
               <span
@@ -151,7 +152,7 @@ export function CashierStageTabs({
               <span className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    "block text-[9px] font-semibold uppercase tracking-[0.14em]",
+                    "block text-[11px] font-medium",
                     active ? "text-[#B08D48]" : "text-[#8A8A8A]",
                   )}
                 >
@@ -167,7 +168,8 @@ export function CashierStageTabs({
               </span>
               {active ? (
                 <span
-                  className="pointer-events-none absolute inset-x-3 bottom-0 h-0.5 bg-[#B08D48]"
+                  className="pointer-events-none absolute inset-x-3 bottom-0 h-0.5 rounded-full"
+                  style={{ backgroundColor: HUB_ACCENT }}
                   aria-hidden
                 />
               ) : null}

@@ -99,30 +99,27 @@ export function RecentTicksRail({
         HUB_RAIL,
         "flex h-full min-h-[16rem] flex-col",
         fillViewport && "xl:min-h-[100dvh] xl:h-[100dvh]",
-        justUpdated && "hub-scan-sweep border-[#B08D48]/55",
+        justUpdated && "hub-scan-sweep ring-1 ring-[#B08D48]/35",
         className,
       )}
       aria-label={title}
     >
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full",
-          accent === "ink" ? "bg-[#141414]" : "bg-[#B08D48]",
-        )}
-        aria-hidden
-      />
-
-      <header className="shrink-0 border-b border-[#E6E1D8] px-3.5 py-2.5">
+      <header className="shrink-0 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-3.5 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               {laneIndex != null ? (
-                <span className="font-mono text-[10px] tabular-nums text-[#C4BBA8]">
+                <span
+                  className={cn(
+                    "font-mono text-[10px] tabular-nums",
+                    accent === "ink" ? "text-[#8A8A8A]" : "text-[#B08D48]",
+                  )}
+                >
                   {String(laneIndex + 1).padStart(2, "0")}
                 </span>
               ) : null}
               <p
-                className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]"
+                className="truncate text-[13px] font-medium tracking-[-0.01em] text-[#141414]"
                 title={title}
               >
                 {title}
@@ -167,7 +164,7 @@ export function RecentTicksRail({
         ) : (
           <div>
             {ticks.length > 0 ? (
-              <ol className="divide-y divide-[#EDE8DF]">
+              <ol className="divide-y divide-[color-mix(in_srgb,#141414_6%,transparent)]">
                 {ticks.map((tick, i) => {
                   const newest = i === 0 && justUpdated;
                   const payTone = paymentTone(tick.paymentLabel);
@@ -200,15 +197,15 @@ export function RecentTicksRail({
                         </div>
                         <span
                           className={cn(
-                            "shrink-0 border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                            "shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
                             payTone === "cash" &&
-                              "border-[#E6E1D8] bg-[#F7F5F1] text-[#5A5A5A]",
+                              "bg-[#F3F1EC] text-[#5A5A5A]",
                             payTone === "mpesa" &&
-                              "border-emerald-200 bg-emerald-500/10 text-emerald-800",
+                              "bg-emerald-500/10 text-emerald-800",
                             payTone === "split" &&
-                              "border-[#E8DFD0] bg-[#F9F6F0] text-[#8A6B2E]",
+                              "bg-[#F9F6F0] text-[#8A6B2E]",
                             payTone === "other" &&
-                              "border-[#E6E1D8] bg-white text-[#666666]",
+                              "bg-[#F7F5F1] text-[#666666]",
                           )}
                           title={tick.paymentLabel}
                         >
@@ -256,7 +253,7 @@ export function RecentTicksRail({
                         ))}
                       </ul>
 
-                      <div className="mt-3.5 flex items-center justify-between gap-2 border-t border-dashed border-[#E6E1D8] pt-3">
+                      <div className="mt-3.5 flex items-center justify-between gap-2 border-t border-dashed border-[color-mix(in_srgb,#141414_8%,transparent)] pt-3">
                         <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8A8A8A]">
                           Total · {tick.items.length}
                         </span>
@@ -278,7 +275,7 @@ export function RecentTicksRail({
             {drawouts.length > 0 ? (
               <section
                 className={cn(
-                  "border-t border-[#E6E1D8]",
+                  "border-t border-[color-mix(in_srgb,#141414_8%,transparent)]",
                   ticks.length > 0 && "mt-0",
                 )}
               >
@@ -324,7 +321,7 @@ export function RecentTicksRail({
                 </button>
 
                 {drawoutsOpen ? (
-                  <ol className="divide-y divide-[#EDE8DF] border-t border-[#EDE8DF]">
+                  <ol className="divide-y divide-[color-mix(in_srgb,#141414_6%,transparent)] border-t border-[color-mix(in_srgb,#141414_6%,transparent)]">
                     {drawouts.map((row, i) => {
                       const tone = statusTone(row.status);
                       return (
@@ -351,15 +348,15 @@ export function RecentTicksRail({
                             <div className="flex shrink-0 items-center gap-1.5">
                               <span
                                 className={cn(
-                                  "border px-1 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                                  "rounded-md px-1 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
                                   tone === "pending" &&
-                                    "border-amber-200 bg-amber-500/10 text-amber-800",
+                                    "bg-amber-500/10 text-amber-800",
                                   tone === "approved" &&
-                                    "border-emerald-200 bg-emerald-500/10 text-emerald-800",
+                                    "bg-emerald-500/10 text-emerald-800",
                                   tone === "rejected" &&
-                                    "border-rose-200 bg-rose-500/10 text-rose-700",
+                                    "bg-rose-500/10 text-rose-700",
                                   tone === "other" &&
-                                    "border-[#E6E1D8] bg-[#F7F5F1] text-[#5A5A5A]",
+                                    "bg-[#F3F1EC] text-[#5A5A5A]",
                                 )}
                               >
                                 {drawoutStatusLabel(row.status)}
@@ -418,7 +415,7 @@ export function RecentTicksRail({
       <Link
         href={APP_ROUTES.shifts}
         className={cn(
-          "mt-auto shrink-0 border-t border-[#E6E1D8] bg-[#FCFAF6] px-2.5 py-1.5",
+          "mt-auto shrink-0 border-t border-[color-mix(in_srgb,#141414_8%,transparent)] bg-[#FCFAF6] px-2.5 py-1.5",
           "text-[9px] font-semibold uppercase tracking-[0.12em] text-[#8A8A8A]",
           "transition-colors hover:bg-[#F7F5F1] hover:text-[#B08D48]",
         )}

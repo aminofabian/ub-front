@@ -55,12 +55,12 @@ export function StockShelvesBanner({
     <section
       className={cn(
         HUB_SURFACE,
-        "flex flex-col gap-2.5 border-[#B08D48]/30 bg-[#FCFAF6] px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col gap-2.5 bg-[#FCFAF6] px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between",
         className,
       )}
     >
       <div className="flex min-w-0 items-start gap-2.5">
-        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center bg-[#141414] text-[#F5E6C8]">
+        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#141414] text-[#F5E6C8]">
           <Package className="size-3.5" aria-hidden />
         </div>
         <div className="min-w-0">

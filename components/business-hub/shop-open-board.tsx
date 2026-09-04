@@ -80,42 +80,38 @@ export function ShopOpenBoard({
             </span>
 
             <span className="mt-4 flex items-start gap-3">
-              <span className="flex size-[4.5rem] shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-[#E6E1D8] bg-[#FCFAF6] text-[#8A8A8A] sm:size-[5.25rem]">
+              <span className="flex size-[4.5rem] shrink-0 flex-col items-center justify-center rounded-xl bg-[#F3F1EC] text-[#8A8A8A] sm:size-[5.25rem]">
                 <ImagePlus className="size-5" aria-hidden />
                 <span className="mt-1 text-[10px] font-medium">Photo</span>
               </span>
               <span className="min-w-0 flex-1 space-y-2">
-                <span className="block h-9 rounded-lg bg-[#F7F5F1] px-3 text-[13px] leading-9 text-[#B0AAA0]">
+                <span className="block h-9 rounded-lg bg-[#F3F1EC] px-3 text-[13px] leading-9 text-[#B0AAA0]">
                   e.g. Brookside 500ml
                 </span>
                 <span className="grid grid-cols-2 gap-2">
-                  <span className="block h-8 rounded-lg bg-[#F7F5F1] px-2.5 text-[11px] leading-8 text-[#B0AAA0]">
+                  <span className="block h-8 rounded-lg bg-[#F3F1EC] px-2.5 text-[11px] leading-8 text-[#B0AAA0]">
                     Buying
                   </span>
-                  <span className="block h-8 rounded-lg bg-[#F7F5F1] px-2.5 text-[11px] leading-8 text-[#B0AAA0]">
+                  <span className="block h-8 rounded-lg bg-[#F3F1EC] px-2.5 text-[11px] leading-8 text-[#B0AAA0]">
                     Selling
                   </span>
                 </span>
                 <span className="grid grid-cols-2 gap-2">
-                  <span className="block h-8 rounded-lg bg-[#F7F5F1] px-2.5 font-mono text-[11px] leading-8 text-[#B0AAA0]">
+                  <span className="block h-8 rounded-lg bg-[#F3F1EC] px-2.5 font-mono text-[11px] leading-8 text-[#B0AAA0]">
                     Barcode
                   </span>
-                  <span className="block h-8 rounded-lg bg-[#F7F5F1] px-2.5 text-[11px] leading-8 text-[#B0AAA0]">
+                  <span className="block h-8 rounded-lg bg-[#F3F1EC] px-2.5 text-[11px] leading-8 text-[#B0AAA0]">
                     How many
                   </span>
                 </span>
               </span>
             </span>
           </span>
-          <span className="flex items-center justify-center gap-1.5 bg-[#141414] px-4 py-3 text-[14px] font-medium text-[#F5E6C8] group-hover:bg-[#2A2A2A]">
-            <Plus className="size-4" aria-hidden />
+          <span className="flex items-center justify-center gap-1.5 border-t border-[color-mix(in_srgb,#141414_6%,transparent)] bg-[#FAF9F6] px-4 py-3 text-[14px] font-medium text-[#141414] transition-colors group-hover:bg-[#F5F2EB]">
+            <Plus className="size-4 text-[#B08D48]" aria-hidden />
             Add your first product
           </span>
         </span>
-        <span
-          aria-hidden
-          className="mx-auto mt-0 block h-1.5 w-[calc(100%+0.5rem)] rounded-b-sm bg-[#141414]/12"
-        />
       </Link>
 
       <p className={cn("px-0.5 text-[12px] leading-relaxed", HUB_MUTED)}>
@@ -128,25 +124,25 @@ export function ShopOpenBoard({
             href={APP_ROUTES.businessSettings}
             className={cn(
               HUB_SURFACE,
-              "group flex flex-col overflow-hidden transition-colors hover:border-[#B08D48]/50",
+              "group flex flex-col overflow-hidden transition-colors hover:border-[#B08D48]/40",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/40",
             )}
           >
-            <span className="flex items-center justify-between gap-3 bg-[#141414] px-4 py-3">
+            <span className="flex items-center justify-between gap-3 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] bg-[#FAF9F6] px-4 py-3">
               <span className="min-w-0">
-                <span className="block truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[#F5E6C8]">
+                <span className="block truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[#141414]">
                   {displayName}
                 </span>
-                <span className="mt-0.5 block truncate text-[11px] text-[#F5E6C8]/75">
+                <span className="mt-0.5 block truncate text-[11px] text-[#8A8A8A]">
                   {shopHost ?? "your-shop.kiosk.ke"}
                 </span>
               </span>
               <span
                 className={cn(
-                  "shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
+                  "shrink-0 rounded-md px-2 py-0.5 text-[10px] font-medium",
                   storefrontEnabled
-                    ? "bg-[#F5E6C8] text-[#141414]"
-                    : "border border-[#F5E6C8]/30 text-[#F5E6C8]/80",
+                    ? "bg-emerald-500/10 text-emerald-800"
+                    : "bg-[#F0EEE9] text-[#8A8A8A]",
                 )}
               >
                 {storefrontEnabled ? "Live" : "Off"}
@@ -176,12 +172,12 @@ export function ShopOpenBoard({
             href={APP_ROUTES.businessThemes}
             className={cn(
               HUB_SURFACE,
-              "group flex flex-col overflow-hidden transition-colors hover:border-[#B08D48]/50",
+              "group flex flex-col overflow-hidden transition-colors hover:border-[#B08D48]/40",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/40",
             )}
           >
             <span
-              className="flex justify-center bg-[#FCFAF6] px-4 py-3"
+              className="flex justify-center bg-[#FAF9F6] px-4 py-3"
               aria-hidden
             >
               <span className="w-[5.25rem] pointer-events-none sm:w-24">
@@ -221,17 +217,17 @@ export function ShopOpenBoard({
       {canListUsers ? (
         <Link
           href={APP_ROUTES.users}
-            className={cn(
-              HUB_SURFACE,
-              "group flex items-center gap-3 px-4 py-3.5 transition-colors hover:border-[#B08D48]/50",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/40",
-            )}
+          className={cn(
+            HUB_SURFACE,
+            "group flex items-center gap-3 px-4 py-3.5 transition-colors hover:border-[#B08D48]/40",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/40",
+          )}
         >
           <span className="flex -space-x-1.5" aria-hidden>
-            <span className="flex size-9 items-center justify-center rounded-full border border-dashed border-[#E6E1D8] bg-[#FCFAF6] text-[#8A6B2E]">
+            <span className="flex size-9 items-center justify-center rounded-full bg-[#F3F1EC] text-[#8A6B2E]">
               <User className="size-3.5" />
             </span>
-            <span className="flex size-9 items-center justify-center rounded-full border border-dashed border-[#E6E1D8] bg-white text-[#C8C2B6]">
+            <span className="flex size-9 items-center justify-center rounded-full bg-white text-[#C8C2B6] ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)]">
               <User className="size-3.5" />
             </span>
           </span>

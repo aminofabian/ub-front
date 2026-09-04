@@ -61,19 +61,14 @@ export function SupplyBillsRail({
     <section
       className={cn(
         HUB_RAIL,
-        justUpdated && "hub-scan-sweep border-[#B08D48]/55",
+        justUpdated && "hub-scan-sweep ring-1 ring-[#B08D48]/35",
         className,
       )}
       aria-label="Today's supply bills"
     >
-      <div
-        className="pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-[#141414]"
-        aria-hidden
-      />
-
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[#E6E1D8] px-3 py-1.5">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-3.5 py-2">
         <div className="flex min-w-0 items-baseline gap-2">
-          <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
+          <p className="truncate text-[13px] font-medium tracking-[-0.01em] text-[#141414]">
             Supply tape
           </p>
           {!empty ? (

@@ -1,22 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Loader2, Mail } from "lucide-react";
 
 import {
   MAIL_PANEL,
+  MAIL_PRIMARY_BTN,
   MAIL_SHELL,
   mailSkipLabel,
   mailStatusTone,
 } from "@/components/credits/customer-email-campaign-ui";
 import { CustomerEmailCampaignComposer } from "@/components/credits/customer-email-campaign-composer";
+import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import {
   fetchCustomerEmailCampaign,
   type CustomerEmailCampaignDetail,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { resolveShopMailBrand } from "@/lib/shop-mail-brand";
 import { cn } from "@/lib/utils";
 
 export function CustomerEmailCampaignDetailView({
@@ -24,6 +27,11 @@ export function CustomerEmailCampaignDetailView({
 }: {
   campaignId: string;
 }) {
+  const { business } = useDashboard();
+  const brand = useMemo(
+    () => resolveShopMailBrand(business?.branding, business?.name),
+    [business?.branding, business?.name],
+  );
   const [campaign, setCampaign] = useState<CustomerEmailCampaignDetail | null>(
     null,
   );
@@ -75,7 +83,10 @@ export function CustomerEmailCampaignDetailView({
   }
 
   return (
-    <div className={cn(MAIL_SHELL, "lg:h-auto lg:overflow-visible")}>
+    <div
+      className={cn(MAIL_SHELL, "lg:h-auto lg:overflow-visible")}
+      style={brand.cssVars}
+    >
       <div className="mx-auto max-w-4xl space-y-5">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
@@ -89,6 +100,14 @@ export function CustomerEmailCampaignDetailView({
                 <ArrowLeft className="size-4" />
               </Link>
             </Button>
+            {brand.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brand.logoUrl}
+                alt=""
+                className="mt-0.5 hidden h-8 w-auto max-w-[6rem] object-contain sm:block"
+              />
+            ) : null}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="truncate text-xl font-semibold tracking-tight">
@@ -106,9 +125,12 @@ export function CustomerEmailCampaignDetailView({
               <p className="mt-1 truncate text-sm text-muted-foreground">
                 {campaign.subject}
               </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Sent as {brand.displayName}
+              </p>
             </div>
           </div>
-          <Button asChild variant="outline" size="sm" className="rounded-xl">
+          <Button asChild size="sm" className={MAIL_PRIMARY_BTN}>
             <Link href={APP_ROUTES.customerEmailCampaignNew}>
               <Mail className="mr-1.5 size-3.5" />
               New campaign

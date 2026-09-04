@@ -1150,8 +1150,9 @@ export function BusinessHubWorkspace() {
             onClick={() => void load()}
             disabled={refreshing}
             className={cn(
-              "inline-flex size-9 items-center justify-center rounded-lg border border-[#E6E1D8] bg-white text-[#666666]",
-              "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
+              "inline-flex size-9 items-center justify-center rounded-xl bg-white text-[#666666]",
+              "ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)]",
+              "transition-colors hover:text-[#8A6B2E] hover:ring-[#B08D48]/40",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
               "disabled:cursor-not-allowed disabled:opacity-60",
             )}
@@ -1169,8 +1170,9 @@ export function BusinessHubWorkspace() {
             <Link
               href={APP_ROUTES.businessSettings}
               className={cn(
-                "inline-flex size-9 items-center justify-center rounded-lg border border-[#E6E1D8] bg-white text-[#666666]",
-                "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
+                "inline-flex size-9 items-center justify-center rounded-xl bg-white text-[#666666]",
+                "ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)]",
+                "transition-colors hover:text-[#8A6B2E] hover:ring-[#B08D48]/40",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
               )}
               aria-label="Business settings"
@@ -1189,7 +1191,7 @@ export function BusinessHubWorkspace() {
           dualLanes && "max-w-7xl",
         )}
       >
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3.5">
           {canManageBusinessSettings ? (
             <SetupProgressBanner />
           ) : null}
@@ -1221,7 +1223,7 @@ export function BusinessHubWorkspace() {
                 "flex flex-col gap-3",
                 showTillStage &&
                   !galleryOpen &&
-                  "xl:border-r xl:border-[#E6E1D8]/70 xl:pr-4",
+                  "xl:border-r xl:border-[color-mix(in_srgb,#141414_6%,transparent)] xl:pr-4",
               )}
             >
               {shopNotReady ? (
@@ -1385,7 +1387,7 @@ export function BusinessHubWorkspace() {
                       "hidden xl:block xl:self-stretch",
                       dualLanes &&
                         index === 0 &&
-                        "xl:border-r xl:border-[#E6E1D8]",
+                        "xl:border-r xl:border-[color-mix(in_srgb,#141414_6%,transparent)]",
                     )}
                   >
                     <RecentTicksRail
@@ -1400,7 +1402,7 @@ export function BusinessHubWorkspace() {
                       accent={lane.accent}
                       laneIndex={dualLanes ? index : undefined}
                       fillViewport={false}
-                      className="h-full max-h-[min(40rem,72dvh)] border-0 xl:rounded-xl xl:border xl:border-[#E6E1D8]/90"
+                      className="h-full max-h-[min(40rem,72dvh)] border-0 shadow-none ring-0 xl:rounded-2xl xl:border xl:border-[color-mix(in_srgb,#141414_7%,transparent)] xl:shadow-[0_1px_2px_rgba(20,20,20,0.04),0_8px_24px_-12px_rgba(20,20,20,0.08)]"
                     />
                   </div>
                 ))

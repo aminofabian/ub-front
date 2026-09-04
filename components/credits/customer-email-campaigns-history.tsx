@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, Mail, Plus, Send } from "lucide-react";
 
 import {
   MAIL_PANEL,
+  MAIL_PRIMARY_BTN,
   mailStatusTone,
 } from "@/components/credits/customer-email-campaign-ui";
+import { useDashboard } from "@/components/dashboard-provider";
 import {
   DASHBOARD_MAX_WIDE,
   DashboardFeedback,
@@ -18,9 +20,15 @@ import {
   type CustomerEmailCampaignSummary,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { resolveShopMailBrand } from "@/lib/shop-mail-brand";
 import { cn } from "@/lib/utils";
 
 export function CustomerEmailCampaignsHistory() {
+  const { business } = useDashboard();
+  const brand = useMemo(
+    () => resolveShopMailBrand(business?.branding, business?.name),
+    [business?.branding, business?.name],
+  );
   const [rows, setRows] = useState<CustomerEmailCampaignSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,27 +56,35 @@ export function CustomerEmailCampaignsHistory() {
   }, []);
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-6 pb-16")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-6 pb-16")} style={brand.cssVars}>
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-[#F9F6F0] text-[#8B6F3A] shadow-sm">
-            <Mail className="size-[18px]" aria-hidden />
-          </span>
+          {brand.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={brand.logoUrl}
+              alt=""
+              className="h-10 w-auto max-w-[7rem] shrink-0 object-contain"
+            />
+          ) : (
+            <span
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--mail-brand)_20%,transparent)] bg-[var(--mail-soft)] text-[var(--mail-brand)] shadow-sm"
+              aria-hidden
+            >
+              <Mail className="size-[18px]" />
+            </span>
+          )}
           <div className="min-w-0">
             <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
               Email campaigns
             </h1>
             <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
-              Compose HTML email for customers in this shop — specific people,
+              Compose HTML email as {brand.displayName} — specific people,
               filtered lists, or everyone eligible.
             </p>
           </div>
         </div>
-        <Button
-          asChild
-          size="sm"
-          className="rounded-xl bg-[#8B6F3A] text-[#FFFDF8] hover:bg-[#7a6133]"
-        >
+        <Button asChild size="sm" className={MAIL_PRIMARY_BTN}>
           <Link href={APP_ROUTES.customerEmailCampaignNew}>
             <Plus className="mr-1 size-3.5" />
             New campaign
@@ -84,7 +100,7 @@ export function CustomerEmailCampaignsHistory() {
           Loading campaigns…
         </div>
       ) : rows.length === 0 ? (
-        <EmptyCampaigns />
+        <EmptyCampaigns shopName={brand.displayName} logoUrl={brand.logoUrl} />
       ) : (
         <div className={MAIL_PANEL}>
           <div className="overflow-x-auto">
@@ -103,7 +119,7 @@ export function CustomerEmailCampaignsHistory() {
                   <tr
                     key={row.id}
                     className={cn(
-                      "border-b border-border/40 transition-colors last:border-0 hover:bg-[#8B6F3A]/[0.04]",
+                      "border-b border-border/40 transition-colors last:border-0 hover:bg-[color-mix(in_srgb,var(--mail-brand)_5%,transparent)]",
                       "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300",
                     )}
                     style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
@@ -113,7 +129,7 @@ export function CustomerEmailCampaignsHistory() {
                         href={APP_ROUTES.customerEmailCampaign(row.id)}
                         className="group block min-w-0"
                       >
-                        <span className="font-medium text-foreground group-hover:text-[#8B6F3A]">
+                        <span className="font-medium text-foreground group-hover:text-[var(--mail-brand)]">
                           {row.name}
                         </span>
                         <span className="mt-0.5 block truncate text-xs text-muted-foreground">
@@ -160,7 +176,13 @@ export function CustomerEmailCampaignsHistory() {
   );
 }
 
-function EmptyCampaigns() {
+function EmptyCampaigns({
+  shopName,
+  logoUrl,
+}: {
+  shopName: string;
+  logoUrl: string | null;
+}) {
   return (
     <div
       className={cn(
@@ -170,23 +192,29 @@ function EmptyCampaigns() {
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,#8B6F3A_12%,transparent)_0%,transparent_55%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--mail-brand)_14%,transparent)_0%,transparent_55%)]"
       />
       <div className="relative mx-auto flex max-w-md flex-col items-center">
-        <span className="flex size-14 items-center justify-center rounded-2xl border border-[#8B6F3A]/20 bg-[#F9F6F0] text-[#8B6F3A] shadow-sm">
-          <Send className="size-6" />
-        </span>
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoUrl}
+            alt=""
+            className="h-12 w-auto max-w-[10rem] object-contain"
+          />
+        ) : (
+          <span className="flex size-14 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--mail-brand)_20%,transparent)] bg-[var(--mail-soft)] text-[var(--mail-brand)] shadow-sm">
+            <Send className="size-6" />
+          </span>
+        )}
         <h2 className="mt-5 text-lg font-semibold tracking-tight">
           No campaigns yet
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Write one email, pick who should get it, preview on desktop and phone,
-          then send with a clear confirmation.
+          Write one email in {shopName}&apos;s colors, pick who should get it,
+          preview on desktop and phone, then send.
         </p>
-        <Button
-          asChild
-          className="mt-6 rounded-xl bg-[#8B6F3A] text-[#FFFDF8] hover:bg-[#7a6133]"
-        >
+        <Button asChild className={cn("mt-6", MAIL_PRIMARY_BTN)}>
           <Link href={APP_ROUTES.customerEmailCampaignNew}>
             <Plus className="mr-1.5 size-3.5" />
             Compose first email

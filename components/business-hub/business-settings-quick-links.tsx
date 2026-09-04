@@ -35,21 +35,21 @@ export function BusinessSettingsQuickLinks({
           href={href}
           className={cn(
             HUB_SURFACE,
-            "group flex items-start gap-3 p-3.5 transition-colors hover:border-[#B08D48]/55",
+            "group flex items-start gap-3 p-3.5 transition-colors hover:border-[#B08D48]/40",
           )}
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#E6E1D8]/80 bg-[#FCFAF6] text-[#B08D48] transition-colors group-hover:border-[#B08D48]/40 group-hover:bg-[#F9F6F0]">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#F3F1EC] text-[#B08D48] transition-colors group-hover:bg-[#F9F6F0]">
             <Icon className="size-4" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1 text-[13px] font-semibold tracking-[-0.01em] text-[#141414]">
+            <span className="flex items-center gap-1 text-[13px] font-medium tracking-[-0.01em] text-[#141414]">
               {label}
               <ArrowUpRight
-                className="size-3 shrink-0 text-[#DDDDDD] transition-colors group-hover:text-[#B08D48]"
+                className="size-3 shrink-0 text-[#D4CBB8] transition-colors group-hover:text-[#B08D48]"
                 aria-hidden
               />
             </span>
-            <span className="mt-0.5 block text-[11px] leading-snug text-[#7A7A7A]">
+            <span className="mt-0.5 block text-[12px] leading-snug text-[#7A7A7A]">
               {desc}
             </span>
           </span>
