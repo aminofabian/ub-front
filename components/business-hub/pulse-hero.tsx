@@ -43,38 +43,48 @@ export function PulseHero({
         "relative",
         justUpdated && "hub-scan-sweep",
       )}
+      aria-label={`${eyebrow}. ${revenueLabel} ${revenue}. ${headline}`}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,#B08D48_0%,#B08D48_28%,transparent_28%)]" aria-hidden />
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,#B08D48_0%,#B08D48_18%,transparent_18%)]"
+        aria-hidden
+      />
 
-      <div className="relative grid gap-0 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-        <div className="flex flex-col justify-center gap-2 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-4 py-3.5 lg:border-b-0 lg:border-r">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="font-heading text-[15px] font-medium tracking-[-0.02em] text-[#141414]">
-              {eyebrow}
-            </p>
-            <span className="text-[#C9BFA8]" aria-hidden>
-              /
-            </span>
-            <p className={cn("text-[12px]", HUB_MUTED)}>{revenueLabel}</p>
-            {live ? (
-              <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-emerald-800">
-                <span
-                  className={cn(
-                    "size-1.5 rounded-full bg-emerald-500 hub-live-beacon",
-                    justUpdated && "animate-pulse",
-                  )}
-                  aria-hidden
-                />
-                Live
-              </span>
-            ) : null}
-          </div>
+      {/* Title row */}
+      <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-1">
+        <div className="flex min-w-0 items-baseline gap-1.5">
+          <p className="truncate text-[12px] font-medium tracking-[-0.01em] text-[#141414]">
+            {eyebrow}
+          </p>
+          <span className="hidden text-[#C9BFA8] sm:inline" aria-hidden>
+            ·
+          </span>
+          <p className={cn("hidden truncate text-[11px] sm:inline", HUB_MUTED)}>
+            {revenueLabel}
+          </p>
+        </div>
+        {live ? (
+          <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-medium tracking-wide text-emerald-800">
+            <span
+              className={cn(
+                "size-1.5 rounded-full bg-emerald-500 hub-live-beacon",
+                justUpdated && "animate-pulse",
+              )}
+              aria-hidden
+            />
+            Live
+          </span>
+        ) : null}
+      </div>
 
-          <div className="flex flex-wrap items-end gap-2.5">
+      {/* Instrument strip: revenue + metrics on one band */}
+      <div className="flex flex-col lg:flex-row lg:items-stretch">
+        <div className="flex min-w-0 flex-[1.15] flex-col justify-center gap-1 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-2 lg:border-b-0 lg:border-r">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <p
               key={justUpdated ? `${revenue}-tick` : revenue}
               className={cn(
-                "text-[clamp(1.85rem,3.2vw,2.35rem)] font-medium leading-none tracking-[-0.035em] text-[#141414] tabular-nums",
+                "text-[1.45rem] font-medium leading-none tracking-[-0.035em] text-[#141414] tabular-nums sm:text-[1.6rem]",
                 justUpdated && "hub-figure-pop",
               )}
               style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
@@ -84,7 +94,7 @@ export function PulseHero({
             {trend ? (
               <span
                 className={cn(
-                  "mb-0.5 inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium tabular-nums",
+                  "inline-flex items-center px-1 py-px text-[10px] font-medium tabular-nums",
                   trendTone === "positive" &&
                     "bg-emerald-500/10 text-emerald-800",
                   trendTone === "warning" &&
@@ -100,61 +110,70 @@ export function PulseHero({
           </div>
 
           {revenueBreakdown ? (
-            <dl className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] tabular-nums text-[#5C5C5C]">
-              <div>
-                <dt className="inline">Cash </dt>
-                <dd className="inline font-medium text-[#141414]">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-0 text-[11px] tabular-nums text-[#6B6B6B]">
+              <span>
+                Cash{" "}
+                <span className="font-medium text-[#141414]">
                   {revenueBreakdown.cash}
-                </dd>
-              </div>
+                </span>
+              </span>
               <span aria-hidden className="text-[#C9BFA8]">
                 ·
               </span>
-              <div>
-                <dt className="inline">M-Pesa </dt>
-                <dd className="inline font-medium text-[#141414]">
+              <span>
+                M-Pesa{" "}
+                <span className="font-medium text-[#141414]">
                   {revenueBreakdown.mpesa}
-                </dd>
-              </div>
+                </span>
+              </span>
               <span aria-hidden className="text-[#C9BFA8]">
                 ·
               </span>
-              <div>
-                <dt className="inline">Credit </dt>
-                <dd className="inline font-medium text-[#141414]">
+              <span>
+                Credit{" "}
+                <span className="font-medium text-[#141414]">
                   {revenueBreakdown.credit}
-                </dd>
-              </div>
-            </dl>
-          ) : null}
-
-          <p className="line-clamp-2 max-w-prose text-[13px] leading-snug text-[#4A4A4A]">
-            {headline}
-          </p>
+                </span>
+              </span>
+            </p>
+          ) : (
+            <p className="truncate text-[11px] text-[#7A7A7A]" title={headline}>
+              {headline}
+            </p>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 divide-x divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)] sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+        <div
+          className={cn(
+            "grid min-w-0 flex-1 divide-x divide-[color-mix(in_srgb,#141414_8%,transparent)]",
+            metrics.length <= 2 && "grid-cols-2",
+            metrics.length === 3 && "grid-cols-3",
+            metrics.length >= 4 && "grid-cols-2 sm:grid-cols-4",
+          )}
+        >
           {metrics.map((metric) => {
             const body = (
-              <div className="bg-transparent px-3.5 py-3 transition-colors hover:bg-[#FAF8F3]">
-                <p className={cn("text-[11px] font-medium", HUB_MUTED)}>
+              <div className="flex h-full flex-col justify-center gap-0.5 px-2.5 py-2 transition-colors hover:bg-[#FAF8F3] sm:px-3">
+                <p className={cn("truncate text-[10px] font-medium", HUB_MUTED)}>
                   {metric.label}
                 </p>
                 <p
-                  className="mt-1 text-[16px] font-semibold tracking-[-0.02em] text-[#141414] tabular-nums"
-                  style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+                  className="truncate text-[14px] font-semibold leading-none tracking-[-0.02em] text-[#141414] tabular-nums sm:text-[15px]"
+                  style={{
+                    fontFamily: "var(--font-heading), Georgia, serif",
+                  }}
                 >
                   {metric.value}
                 </p>
                 {metric.hint ? (
                   <p
                     className={cn(
-                      "mt-1 truncate text-[11px] leading-tight",
+                      "truncate text-[10px] leading-tight",
                       metric.tone === "positive" && "text-emerald-700",
                       metric.tone === "warning" && "text-[#C47A5A]",
                       metric.tone === "negative" && "text-rose-600",
                       (!metric.tone || metric.tone === "muted") &&
-                        "text-[#7A7A7A]",
+                        "text-[#8A8A8A]",
                     )}
                   >
                     {metric.hint}
@@ -163,11 +182,18 @@ export function PulseHero({
               </div>
             );
             return metric.href ? (
-              <Link key={metric.label} href={metric.href} className="block">
+              <Link
+                key={metric.label}
+                href={metric.href}
+                className="min-w-0"
+                title={`${metric.label}: ${metric.value}${metric.hint ? ` · ${metric.hint}` : ""}`}
+              >
                 {body}
               </Link>
             ) : (
-              <div key={metric.label}>{body}</div>
+              <div key={metric.label} className="min-w-0">
+                {body}
+              </div>
             );
           })}
         </div>
