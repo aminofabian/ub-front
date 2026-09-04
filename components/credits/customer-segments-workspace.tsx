@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Download,
   Filter,
+  Mail,
   MessageSquare,
   Search,
   Users,
@@ -362,6 +363,35 @@ export function CustomerSegmentsWorkspace() {
                   >
                     <MessageSquare className="mr-1.5 size-4" />
                     Message ({selectedIds.size})
+                  </Button>
+                ) : null}
+                {canManageCustomers ? (
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    disabled={selectedIds.size === 0}
+                  >
+                    <Link
+                      href={
+                        selectedIds.size === 0
+                          ? APP_ROUTES.customerEmailCampaignNew
+                          : `${APP_ROUTES.customerEmailCampaignNew}?customerIds=${Array.from(selectedIds)
+                              .slice(0, 500)
+                              .map(encodeURIComponent)
+                              .join(",")}`
+                      }
+                      aria-disabled={selectedIds.size === 0}
+                      className={
+                        selectedIds.size === 0
+                          ? "pointer-events-none opacity-50"
+                          : undefined
+                      }
+                    >
+                      <Mail className="mr-1.5 size-4" />
+                      Email ({selectedIds.size})
+                    </Link>
                   </Button>
                 ) : null}
               </div>

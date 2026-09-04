@@ -376,6 +376,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: APP_ROUTES.customers, label: "All customers" },
       { href: APP_ROUTES.customerSegments, label: "Segments" },
+      { href: APP_ROUTES.customerEmailCampaigns, label: "Email campaigns" },
       { href: APP_ROUTES.analyticsCustomers, label: "Shoppers" },
       { href: APP_ROUTES.customerPhones, label: "Phone numbers" },
     ],
@@ -648,6 +649,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewSalesIntelligence || gate.canViewCustomers;
   if (item.href === APP_ROUTES.customers) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.customerPhones) return gate.canViewCustomers;
+  if (item.href === APP_ROUTES.customerEmailCampaigns) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.customerSegments) return gate.canViewAnalytics;
   if (item.href === APP_ROUTES.messages) return gate.canViewMessages;
   if (item.href === APP_ROUTES.businessLogs)

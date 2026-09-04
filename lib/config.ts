@@ -111,6 +111,10 @@ export const APP_ROUTES = {
   customer: (id: string) => `/customers/${encodeURIComponent(id)}`,
   customerPhones: "/customers/phones",
   customerSegments: "/customers/segments",
+  customerEmailCampaigns: "/customers/email-campaigns",
+  customerEmailCampaignNew: "/customers/email-campaigns/new",
+  customerEmailCampaign: (id: string) =>
+    `/customers/email-campaigns/${encodeURIComponent(id)}`,
   claimTab: "/claim-tab",
   messages: "/messages",
   /** Live support chat with the Kiosk platform team. */

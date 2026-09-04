@@ -11387,6 +11387,172 @@ export async function bulkSendCustomerSms(body: {
   });
 }
 
+export type CustomerEmailRecipientMethod =
+  | "specific"
+  | "filtered"
+  | "all_eligible";
+
+export type CustomerEmailFilterCondition = {
+  field: string;
+  op: string;
+  value?: string | null;
+  valueTo?: string | null;
+  days?: number | null;
+  itemId?: string | null;
+};
+
+export type CustomerEmailAudienceFilter = {
+  matchMode?: "ALL" | "ANY";
+  conditions?: CustomerEmailFilterCondition[];
+};
+
+export type CustomerEmailAudienceRecipient = {
+  customerId: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  skipReason: string | null;
+};
+
+export type CustomerEmailAudiencePreview = {
+  matched: number;
+  automaticallyExcluded: number;
+  finalRecipients: number;
+  sample: CustomerEmailAudienceRecipient[];
+  excludedSample: CustomerEmailAudienceRecipient[];
+};
+
+export type CustomerEmailCampaignSummary = {
+  id: string;
+  name: string;
+  subject: string;
+  recipientMethod: CustomerEmailRecipientMethod | string;
+  status: string;
+  recipientsTargeted: number;
+  recipientsSent: number;
+  recipientsFailed: number;
+  recipientsSkipped: number;
+  createdAt: string;
+  completedAt: string | null;
+};
+
+export type CustomerEmailCampaignDetail = CustomerEmailCampaignSummary & {
+  bodyHtml: string;
+  filter: CustomerEmailAudienceFilter | null;
+  updatedAt: string;
+  startedAt: string | null;
+  recipients: Array<{
+    id: string;
+    customerId: string;
+    email: string;
+    customerName: string | null;
+    status: string;
+    skipReason: string | null;
+    error: string | null;
+    sentAt: string | null;
+  }>;
+};
+
+export type CustomerEmailPreview = {
+  subject: string;
+  html: string;
+  sampleCustomerId: string;
+  sampleCustomerName: string;
+  sampleEmail: string | null;
+  unknownVariables: string[];
+  matched: number;
+  automaticallyExcluded: number;
+  finalRecipients: number;
+};
+
+export async function previewCustomerEmailAudience(body: {
+  recipientMethod: CustomerEmailRecipientMethod;
+  customerIds?: string[];
+  filter?: CustomerEmailAudienceFilter;
+}): Promise<CustomerEmailAudiencePreview> {
+  return request("/api/v1/customer-email-campaigns/audience-preview", {
+    method: "POST",
+    body,
+  });
+}
+
+export async function previewCustomerEmail(body: {
+  subject: string;
+  bodyHtml: string;
+  recipientMethod: CustomerEmailRecipientMethod;
+  customerIds?: string[];
+  filter?: CustomerEmailAudienceFilter;
+  customerId?: string;
+}): Promise<CustomerEmailPreview> {
+  return request("/api/v1/customer-email-campaigns/preview", {
+    method: "POST",
+    body,
+  });
+}
+
+export async function fetchCustomerEmailCampaigns(opts?: {
+  page?: number;
+  size?: number;
+}): Promise<{
+  content: CustomerEmailCampaignSummary[];
+  totalElements: number;
+}> {
+  const params = new URLSearchParams({
+    page: String(opts?.page ?? 0),
+    size: String(opts?.size ?? 50),
+  });
+  return request(`/api/v1/customer-email-campaigns?${params}`);
+}
+
+export async function createCustomerEmailCampaign(body: {
+  name: string;
+  subject: string;
+  bodyHtml: string;
+  recipientMethod: CustomerEmailRecipientMethod;
+  customerIds?: string[];
+  filter?: CustomerEmailAudienceFilter;
+}): Promise<CustomerEmailCampaignDetail> {
+  return request("/api/v1/customer-email-campaigns", {
+    method: "POST",
+    body,
+  });
+}
+
+export async function fetchCustomerEmailCampaign(
+  id: string,
+): Promise<CustomerEmailCampaignDetail> {
+  return request(
+    `/api/v1/customer-email-campaigns/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function updateCustomerEmailCampaign(
+  id: string,
+  body: {
+    name?: string;
+    subject?: string;
+    bodyHtml?: string;
+    recipientMethod?: CustomerEmailRecipientMethod;
+    customerIds?: string[];
+    filter?: CustomerEmailAudienceFilter;
+  },
+): Promise<CustomerEmailCampaignDetail> {
+  return request(
+    `/api/v1/customer-email-campaigns/${encodeURIComponent(id)}`,
+    { method: "PUT", body },
+  );
+}
+
+export async function sendCustomerEmailCampaign(
+  id: string,
+  body?: { confirmPhrase?: string },
+): Promise<CustomerEmailCampaignDetail> {
+  return request(
+    `/api/v1/customer-email-campaigns/${encodeURIComponent(id)}/send`,
+    { method: "POST", body: body ?? {} },
+  );
+}
+
 export type CreditSaleReminderSettingsRecord = {
   enabled: boolean;
   paymentAccountUrl: string;

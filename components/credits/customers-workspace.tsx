@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Mail,
   MessageCircle,
   MessageSquare,
   Plus,
@@ -358,6 +359,23 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
               >
                 <MessageSquare className="size-3.5" />
                 {selectedIds.size}
+              </Button>
+            ) : null}
+            {canManageCustomers && selectedIds.size > 0 ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1 text-xs"
+                onClick={() => {
+                  const ids = Array.from(selectedIds).slice(0, 500);
+                  router.push(
+                    `${APP_ROUTES.customerEmailCampaignNew}?customerIds=${ids.map(encodeURIComponent).join(",")}`,
+                  );
+                }}
+              >
+                <Mail className="size-3.5" />
+                Email
               </Button>
             ) : null}
           </>
