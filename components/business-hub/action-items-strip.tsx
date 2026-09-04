@@ -28,7 +28,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
       <div
         className={cn(
           HUB_SURFACE,
-          "flex flex-wrap items-stretch divide-y divide-[color-mix(in_srgb,#141414_6%,transparent)] sm:divide-x sm:divide-y-0",
+          "flex flex-wrap items-stretch divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)] sm:divide-x sm:divide-y-0",
         )}
       >
         {items.map((item) => {
@@ -37,7 +37,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
             <Link
               key={item.id}
               href={item.href}
-              className="group flex min-w-0 flex-1 basis-full items-center gap-2 px-3 py-1.5 transition-colors hover:bg-[#FAF9F6] sm:basis-0"
+              className="group flex min-w-0 flex-1 basis-full items-center gap-2 px-3 py-1.5 transition-colors hover:bg-[#FAF8F3] sm:basis-0"
             >
               <Icon
                 className={cn(

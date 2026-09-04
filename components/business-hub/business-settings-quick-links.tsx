@@ -38,7 +38,7 @@ export function BusinessSettingsQuickLinks({
             "group flex items-start gap-3 p-3.5 transition-colors hover:border-[#B08D48]/40",
           )}
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#F3F1EC] text-[#B08D48] transition-colors group-hover:bg-[#F9F6F0]">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-none bg-[#F0EEE9] text-[#B08D48] transition-colors group-hover:bg-[#F7F2E8]">
             <Icon className="size-4" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">

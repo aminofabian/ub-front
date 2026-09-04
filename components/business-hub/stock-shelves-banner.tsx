@@ -60,7 +60,7 @@ export function StockShelvesBanner({
       )}
     >
       <div className="flex min-w-0 items-start gap-2.5">
-        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#141414] text-[#F5E6C8]">
+        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-none bg-[#141414] text-[#F5E6C8]">
           <Package className="size-3.5" aria-hidden />
         </div>
         <div className="min-w-0">

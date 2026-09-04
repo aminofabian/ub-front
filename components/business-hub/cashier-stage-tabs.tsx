@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { HUB_BTN } from "@/lib/business-hub/constants";
 
 const DUAL_LANE_MAX = 2;
 
@@ -54,10 +55,12 @@ export function CashierStageTabs({
       )}
     >
       <div className="flex items-center gap-2">
-        <p className="text-[12px] font-medium text-[#141414]">Stage</p>
+        <p className="inline-flex items-center gap-2 text-[12px] font-medium text-[#141414] before:block before:h-px before:w-2.5 before:bg-[#B08D48] before:content-['']">
+          Stage
+        </p>
         <span className="text-[11px] text-[#8A8A8A]">{modeCopy(selected)}</span>
         {live ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800">
             <span
               className="size-1.5 rounded-full bg-emerald-500 hub-live-beacon"
               aria-hidden
@@ -78,10 +81,11 @@ export function CashierStageTabs({
           aria-selected={viewingAll}
           onClick={selectAll}
           className={cn(
-            "inline-flex h-8 items-center rounded-lg px-2.5 text-[12px] font-medium transition-colors",
+            HUB_BTN,
+            "inline-flex h-8 items-center px-2.5 text-[12px] font-medium",
             viewingAll
               ? "bg-[#141414] text-[#F5E6C8]"
-              : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)] hover:text-[#141414]",
+              : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_9%,transparent)] hover:text-[#141414]",
           )}
         >
           Floor
@@ -107,10 +111,11 @@ export function CashierStageTabs({
               }
               onClick={() => toggleCashier(name)}
               className={cn(
-                "inline-flex h-8 max-w-[9rem] items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium transition-colors",
+                HUB_BTN,
+                "inline-flex h-8 max-w-[9rem] items-center gap-1.5 px-2.5 text-[12px] font-medium",
                 active
                   ? "bg-[#141414] text-[#F5E6C8]"
-                  : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)] hover:text-[#141414]",
+                  : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_9%,transparent)] hover:text-[#141414]",
               )}
             >
               <span

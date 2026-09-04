@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils";
 
 export const BUSINESS_HUB_VARS = {
   ["--hub-ink" as string]: "#141414",
-  ["--hub-paper" as string]: "#f7f6f3",
+  ["--hub-paper" as string]: "#f4f2ed",
   ["--hub-accent" as string]: "#B08D48",
   ["--hub-accent-deep" as string]: "#8A6B2E",
   ["--hub-slip" as string]: "#ffffff",
-  ["--hub-rule" as string]: "color-mix(in srgb, #141414 8%, transparent)",
+  ["--hub-rule" as string]: "color-mix(in srgb, #141414 9%, transparent)",
 } as const;
 
 export function BusinessPageLayout({
@@ -45,21 +45,25 @@ export function BusinessPageLayout({
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-3">
         {showNav ? (
-          <div className="rounded-xl bg-[color-mix(in_srgb,var(--hub-slip)_78%,transparent)] p-0.5 ring-1 ring-[color-mix(in_srgb,var(--hub-ink)_6%,transparent)] backdrop-blur-sm">
+          <div className="rounded-none border border-[color-mix(in_srgb,var(--hub-ink)_9%,transparent)] bg-[color-mix(in_srgb,var(--hub-slip)_92%,transparent)] p-0.5 backdrop-blur-[2px]">
             <BusinessHubNav setupHome={setupHome} />
           </div>
         ) : null}
 
-        <header className="flex flex-wrap items-center justify-between gap-2 px-0.5 sm:px-1">
+        <header className="flex flex-wrap items-end justify-between gap-2 border-b border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)] px-0.5 pb-3 sm:px-1">
           <div className="min-w-0 flex-1">
-            <h1 className="font-heading text-xl font-semibold leading-none tracking-[-0.03em] text-[var(--hub-ink)] sm:text-[1.35rem]">
+            <h1 className="font-heading text-xl font-semibold leading-none tracking-[-0.03em] text-[var(--hub-ink)] sm:text-[1.4rem]">
               {title}
             </h1>
-            <p className="mt-1 max-w-2xl truncate text-[12px] leading-snug text-[color-mix(in_srgb,var(--hub-ink)_52%,transparent)] sm:text-[13px]">
+            <p className="mt-1.5 max-w-2xl text-[12px] leading-snug text-[color-mix(in_srgb,var(--hub-ink)_52%,transparent)] sm:text-[13px]">
               {description}
             </p>
+            <span
+              className="mt-2.5 block h-px w-10 bg-[var(--hub-accent)]"
+              aria-hidden
+            />
           </div>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 pb-0.5">
             <OnlineStoreHeaderSwitch />
             {headerActions}
           </div>

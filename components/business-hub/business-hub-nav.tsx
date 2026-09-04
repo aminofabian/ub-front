@@ -79,7 +79,7 @@ export function BusinessHubNav({
   return (
     <nav
       className={cn(
-        "grid gap-0.5 p-0.5",
+        "grid gap-0.5",
         columns === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
         className,
       )}
@@ -97,7 +97,7 @@ export function BusinessHubNav({
             href={tab.href}
             title={hint}
             className={cn(
-              "group relative flex h-9 items-center gap-2 rounded-lg px-2.5 transition-[background-color,color] duration-150 sm:px-3",
+              "group relative flex h-9 items-center gap-2 rounded-none px-2.5 transition-[background-color,color] duration-150 sm:px-3",
               active
                 ? "bg-[var(--hub-ink,#141414)] text-white"
                 : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_58%,transparent)] hover:bg-[color-mix(in_srgb,var(--hub-ink,#141414)_4%,transparent)] hover:text-[var(--hub-ink,#141414)]",
@@ -125,6 +125,12 @@ export function BusinessHubNav({
             >
               {hint}
             </span>
+            {active ? (
+              <span
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[var(--hub-accent,#B08D48)]"
+                aria-hidden
+              />
+            ) : null}
           </Link>
         );
       })}

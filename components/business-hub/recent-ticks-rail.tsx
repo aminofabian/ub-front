@@ -197,7 +197,7 @@ export function RecentTicksRail({
                         </div>
                         <span
                           className={cn(
-                            "shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                            "shrink-0 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
                             payTone === "cash" &&
                               "bg-[#F3F1EC] text-[#5A5A5A]",
                             payTone === "mpesa" &&
@@ -348,7 +348,7 @@ export function RecentTicksRail({
                             <div className="flex shrink-0 items-center gap-1.5">
                               <span
                                 className={cn(
-                                  "rounded-md px-1 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                                  "px-1 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
                                   tone === "pending" &&
                                     "bg-amber-500/10 text-amber-800",
                                   tone === "approved" &&

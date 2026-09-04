@@ -20,24 +20,24 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
   const rows = movers.slice(0, 3);
 
   return (
-    <section className="space-y-2.5">
+    <section className="space-y-2">
       <h2 className={HUB_SECTION}>Top sellers · 30d</h2>
       <div className={cn(HUB_SURFACE, "overflow-hidden")}>
-        <div className="divide-y divide-[color-mix(in_srgb,#141414_6%,transparent)]">
+        <div className="divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)]">
           {rows.map((sku, i) => {
             const revenue = toNum(sku.revenueLast30Days);
             return (
               <Link
                 key={sku.itemId}
                 href={`/products?search=${encodeURIComponent(sku.itemName)}`}
-                className="group flex items-center gap-2.5 px-3.5 py-2.5 transition-colors hover:bg-[#FAF9F6]"
+                className="group flex items-center gap-2.5 px-3.5 py-2.5 transition-colors hover:bg-[#FAF8F3]"
               >
                 <span
                   className={cn(
-                    "flex size-5 shrink-0 items-center justify-center rounded-md font-mono text-[10px] font-medium tabular-nums",
+                    "flex size-5 shrink-0 items-center justify-center font-mono text-[10px] font-medium tabular-nums",
                     i === 0
-                      ? "bg-[#F9F6F0] text-[#8A6B2E]"
-                      : "bg-[#F3F1EC] text-[#666666]",
+                      ? "bg-[#F7F2E8] text-[#8A6B2E]"
+                      : "bg-[#F0EEE9] text-[#666666]",
                   )}
                 >
                   {i + 1}
@@ -45,7 +45,10 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
                 <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[#141414] group-hover:text-[#8A6B2E]">
                   {sku.itemName}
                 </span>
-                <span className="shrink-0 text-[13px] font-semibold tabular-nums text-[#141414]">
+                <span
+                  className="shrink-0 text-[13px] font-semibold tabular-nums text-[#141414]"
+                  style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+                >
                   {formatMoneyCompact(revenue)}
                 </span>
               </Link>

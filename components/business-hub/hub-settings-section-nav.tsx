@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { HUB_BTN } from "@/lib/business-hub/constants";
 
 export function HubSettingsSectionNav({
   items,
@@ -15,7 +16,7 @@ export function HubSettingsSectionNav({
     <nav
       aria-label={ariaLabel}
       className={cn(
-        "inline-flex max-w-full flex-wrap gap-0.5 rounded-xl bg-white p-0.5 ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)]",
+        "inline-flex max-w-full flex-wrap gap-0.5 rounded-none border border-[color-mix(in_srgb,#141414_9%,transparent)] bg-white p-0.5",
         className,
       )}
     >
@@ -23,7 +24,10 @@ export function HubSettingsSectionNav({
         <a
           key={item.id}
           href={`#${item.id}`}
-          className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-[#666666] transition-colors hover:bg-[#F7F5F1] hover:text-[#141414]"
+          className={cn(
+            HUB_BTN,
+            "px-3 py-1.5 text-[12px] font-medium text-[#666666] hover:bg-[#F4F2ED] hover:text-[#141414]",
+          )}
         >
           {item.label}
         </a>

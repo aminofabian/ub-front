@@ -14,8 +14,7 @@ export function OnlineStoreHeaderSwitch() {
   return (
     <div
       className={cn(
-        "inline-flex h-9 max-w-full items-center gap-2 rounded-xl bg-white pl-2.5 pr-1.5",
-        "ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)]",
+        "inline-flex h-9 max-w-full items-center gap-2 rounded-none border border-[color-mix(in_srgb,#141414_9%,transparent)] bg-white pl-2.5 pr-1.5",
         saving && "opacity-70",
       )}
     >
@@ -46,7 +45,7 @@ export function OnlineStoreHeaderSwitch() {
             : "Turn on the online store"
         }
         className={cn(
-          "ml-0.5 data-checked:bg-[#141414] data-unchecked:bg-[#E6E1D8]",
+          "ml-0.5 rounded-full data-checked:bg-[#141414] data-unchecked:bg-[#E6E1D8]",
           "focus-visible:border-[#B08D48] focus-visible:ring-[#B08D48]/35",
         )}
       />

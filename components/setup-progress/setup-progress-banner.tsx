@@ -73,7 +73,7 @@ export function SetupProgressBanner({
   };
 
   const primaryCtaClass =
-    "inline-flex h-8 items-center gap-1 rounded-lg bg-[#141414] px-2.5 text-xs font-medium text-[#F5E6C8] hover:bg-[#2A2A2A]";
+    "inline-flex h-8 items-center gap-1 rounded-md bg-[#141414] px-2.5 text-xs font-medium text-[#F5E6C8] hover:bg-[#2A2A2A]";
 
   return (
     <>

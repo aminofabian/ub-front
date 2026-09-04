@@ -1150,9 +1150,9 @@ export function BusinessHubWorkspace() {
             onClick={() => void load()}
             disabled={refreshing}
             className={cn(
-              "inline-flex size-9 items-center justify-center rounded-xl bg-white text-[#666666]",
-              "ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)]",
-              "transition-colors hover:text-[#8A6B2E] hover:ring-[#B08D48]/40",
+              "inline-flex size-9 items-center justify-center rounded-md bg-white text-[#666666]",
+              "border border-[color-mix(in_srgb,#141414_9%,transparent)]",
+              "transition-colors hover:text-[#8A6B2E] hover:border-[#B08D48]/45",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
               "disabled:cursor-not-allowed disabled:opacity-60",
             )}
@@ -1170,9 +1170,9 @@ export function BusinessHubWorkspace() {
             <Link
               href={APP_ROUTES.businessSettings}
               className={cn(
-                "inline-flex size-9 items-center justify-center rounded-xl bg-white text-[#666666]",
-                "ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)]",
-                "transition-colors hover:text-[#8A6B2E] hover:ring-[#B08D48]/40",
+                "inline-flex size-9 items-center justify-center rounded-md bg-white text-[#666666]",
+                "border border-[color-mix(in_srgb,#141414_9%,transparent)]",
+                "transition-colors hover:text-[#8A6B2E] hover:border-[#B08D48]/45",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
               )}
               aria-label="Business settings"
@@ -1402,7 +1402,7 @@ export function BusinessHubWorkspace() {
                       accent={lane.accent}
                       laneIndex={dualLanes ? index : undefined}
                       fillViewport={false}
-                      className="h-full max-h-[min(40rem,72dvh)] border-0 shadow-none ring-0 xl:rounded-2xl xl:border xl:border-[color-mix(in_srgb,#141414_7%,transparent)] xl:shadow-[0_1px_2px_rgba(20,20,20,0.04),0_8px_24px_-12px_rgba(20,20,20,0.08)]"
+                      className="h-full max-h-[min(40rem,72dvh)] border-0 shadow-none ring-0 xl:rounded-none xl:border xl:border-[color-mix(in_srgb,#141414_9%,transparent)] xl:shadow-[0_1px_0_rgba(20,20,20,0.04),0_10px_28px_-14px_rgba(20,20,20,0.14)]"
                     />
                   </div>
                 ))

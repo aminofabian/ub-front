@@ -152,7 +152,7 @@ export function SupplyBillsRail({
                       type="button"
                       onClick={() => onPayBill?.(bill)}
                       className={cn(
-                        "shrink-0 rounded-sm px-1 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-colors",
+                        "shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-colors",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/45",
                         unpaid
                           ? "bg-[#F3EBD9] text-[#8A6B2E] hover:bg-[#E8D9B8] hover:text-[#141414]"

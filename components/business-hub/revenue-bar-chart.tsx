@@ -30,7 +30,6 @@ export function RevenueBarChart({
 }: {
   points: DailyRevenuePoint[];
   ariaLabel: string;
-  /** Kept for callers; stats are derived from points instead of a caption string. */
   caption?: string;
   title?: string;
 }) {
@@ -69,9 +68,9 @@ export function RevenueBarChart({
 
   return (
     <section className={cn(HUB_SURFACE, "overflow-hidden")}>
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-3 py-1.5 sm:px-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-1.5 sm:px-3.5">
         <div className="flex min-w-0 items-baseline gap-2">
-          <h2 className="text-[13px] font-medium tracking-[-0.01em] text-[#141414]">
+          <h2 className="inline-flex items-center gap-2 text-[13px] font-medium tracking-[-0.015em] text-[#141414] before:block before:h-px before:w-3 before:bg-[#B08D48] before:content-['']">
             {title}
           </h2>
           <p className={cn("text-[11px] tabular-nums", HUB_MUTED)}>
@@ -96,7 +95,7 @@ export function RevenueBarChart({
 
       <div className="px-3 py-2 sm:px-3.5" role="img" aria-label={ariaLabel}>
         <div
-          className="grid items-end gap-1"
+          className="grid items-end gap-px"
           style={{
             gridTemplateColumns: `repeat(${Math.max(points.length, 1)}, minmax(0, 1fr))`,
           }}
@@ -112,17 +111,17 @@ export function RevenueBarChart({
             return (
               <div
                 key={point.day}
-                className="group relative flex min-w-0 flex-col items-stretch gap-1"
+                className="group relative flex min-w-0 flex-col items-stretch gap-1 px-px"
                 title={`${point.label} · ${formatMoneyCompact(point.value)}`}
               >
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded-md bg-white px-1.5 py-0.5 text-[10px] shadow-[0_4px_16px_-4px_rgba(20,20,20,0.18)] ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)] group-hover:block">
-                  <span className="whitespace-nowrap font-medium text-[#141414]">
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded-none bg-[#141414] px-1.5 py-0.5 text-[10px] text-[#F5E6C8] group-hover:block">
+                  <span className="whitespace-nowrap font-medium">
                     {point.label}
                   </span>
-                  <span className="mx-1 text-[#C4BBA8]" aria-hidden>
+                  <span className="mx-1 text-[#C9BFA8]" aria-hidden>
                     ·
                   </span>
-                  <span className="whitespace-nowrap font-semibold tabular-nums text-[#8A6B2E]">
+                  <span className="whitespace-nowrap font-semibold tabular-nums">
                     {formatMoneyCompact(point.value)}
                   </span>
                 </div>
@@ -133,10 +132,7 @@ export function RevenueBarChart({
                 >
                   {point.value > 0 ? (
                     <div
-                      className={cn(
-                        "hub-bar-grow w-full rounded-sm",
-                        isToday && "ring-1 ring-[#B08D48]/50",
-                      )}
+                      className="hub-bar-grow w-full rounded-none"
                       style={{
                         height: heightPx,
                         backgroundColor: isToday
@@ -147,7 +143,7 @@ export function RevenueBarChart({
                       }}
                     />
                   ) : (
-                    <div className="w-full bg-[#EDE8DF]" style={{ height: 2 }} />
+                    <div className="w-full bg-[#E8E2D6]" style={{ height: 2 }} />
                   )}
                 </div>
 
