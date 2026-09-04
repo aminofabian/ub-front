@@ -799,7 +799,7 @@ export function CashierCreateProductModal({
         className={cn(
           styles.root,
           "gap-0 overflow-hidden p-0 sm:rounded-l-2xl",
-          "w-[min(100%,40rem)] max-w-[40rem]",
+          "w-[min(100%,60rem)] max-w-[60rem]",
         )}
         style={brandTheme}
       >
