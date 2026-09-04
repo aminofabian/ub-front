@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   ChevronDown,
   ImagePlus,
+  Layers,
   Minus,
+  PackagePlus,
   Plus,
   ScanBarcode,
-  X,
 } from "lucide-react";
 
 import { BarcodeScanner } from "@/components/barcode-scanner";
@@ -17,6 +18,8 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { FormDrawerProps } from "@/components/form-drawer";
@@ -198,58 +201,6 @@ function QtyStepper({
   );
 }
 
-function FamilyModeSwitch({
-  checked,
-  onCheckedChange,
-  disabled,
-}: {
-  checked: boolean;
-  onCheckedChange: (next: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label="Product family. One name, several sizes or packs."
-      disabled={disabled}
-      onClick={() => onCheckedChange(!checked)}
-      className={cn(
-        "inline-flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-2.5",
-        "transition-[background-color,color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_40%,transparent)]",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        checked
-          ? "bg-[var(--catalog-ink,#15231f)] text-white shadow-[0_1px_0_color-mix(in_srgb,#fff_12%,transparent)]"
-          : "bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_88%,white)] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_68%,transparent)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)]",
-      )}
-    >
-      <span
-        aria-hidden
-        className={cn(
-          "relative inline-flex h-[1.375rem] w-[2.25rem] items-center rounded-full p-0.5 transition-colors duration-200",
-          checked
-            ? "bg-white/20"
-            : "bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_16%,transparent)]",
-        )}
-      >
-        <span
-          className={cn(
-            "size-4 rounded-full shadow-[0_1px_2px_rgba(21,35,31,0.28)] transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
-            checked
-              ? "translate-x-[0.875rem] bg-white"
-              : "translate-x-0 bg-white",
-          )}
-        />
-      </span>
-      <span className="pr-0.5 text-[12px] font-semibold tracking-[-0.01em]">
-        Family
-      </span>
-    </button>
-  );
-}
-
 export function ProductCreateModal({
   open,
   onClose,
@@ -264,6 +215,7 @@ export function ProductCreateModal({
   canCreateCategory = false,
   onOpenExistingProduct,
 }: Props) {
+  const modeId = useId();
   const { business } = useDashboard();
   const showButcherTemplates = isButcheryBusiness(business);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -311,7 +263,6 @@ export function ProductCreateModal({
           globalProductSourceId: null,
         }));
         setLinkedGlobalLabel(null);
-        setMoreOpen(true);
         return;
       }
       m.setParentDraft((p) => ({
@@ -590,66 +541,85 @@ export function ProductCreateModal({
       }}
     >
       <DialogContent
-        showCloseButton={false}
-        side="center"
+        side="right"
         data-onboarding-target={ONBOARDING_TARGETS.productsDrawer}
         style={PRODUCTS_CATALOG_VARS}
+        overlayClassName="bg-black/40 supports-[backdrop-filter]:backdrop-blur-[2px]"
         className={cn(
           styles.root,
-          "max-h-[min(92dvh,48rem)] w-[calc(100vw-1.25rem)] max-w-[34rem] gap-0 overflow-hidden p-0 shadow-none",
+          "gap-0 overflow-hidden p-0 sm:rounded-l-2xl",
+          "w-[min(100%,40rem)] max-w-[40rem]",
         )}
       >
         <form
           id="create-parent-form"
-          className="flex max-h-[min(92dvh,46rem)] min-h-0 flex-col overflow-hidden"
+          className="flex h-full min-h-0 flex-col overflow-hidden"
           onSubmit={handleSubmit}
         >
           <header className={styles.header}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1 pr-1">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                  <DialogTitle className="font-heading text-[1.35rem] font-semibold tracking-[-0.03em] text-[var(--catalog-ink,#15231f)]">
-                    {isGroup ? "New family" : "Add a product"}
-                  </DialogTitle>
-                  <FamilyModeSwitch
-                    checked={isGroup}
-                    disabled={m.parentCreateBusy}
-                    onCheckedChange={setFamilyMode}
-                  />
-                </div>
-                <DialogDescription className="mt-1.5 text-[13px] leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)]">
-                  {isGroup
-                    ? "Name the family. You'll add each size or pack after this."
-                    : justAdded
-                      ? "Added. Name the next one."
-                      : "Name and selling price are enough to sell. Photo and barcode can wait."}
-                </DialogDescription>
-              </div>
+            <DialogHeader className="space-y-1 text-left">
+              <DialogTitle className="flex items-center gap-2 text-lg text-[var(--catalog-ink,#15231f)]">
+                <span className={styles.iconMark}>
+                  <PackagePlus className="size-3.5" aria-hidden />
+                </span>
+                Add product
+              </DialogTitle>
+              <DialogDescription className="text-[13px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)]">
+                {isGroup
+                  ? "Name the family, then add each size or pack after this."
+                  : justAdded
+                    ? "Added. Name the next one."
+                    : "Name and selling price are enough to sell. Photo and barcode can wait."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div
+              className={styles.modeTrack}
+              data-mode={isGroup ? "group" : "single"}
+              role="tablist"
+              aria-label="Product shape"
+            >
+              <div className={styles.modeThumb} aria-hidden />
               <button
                 type="button"
-                onClick={onClose}
+                role="tab"
+                id={`${modeId}-single`}
+                aria-selected={!isGroup}
                 disabled={m.parentCreateBusy}
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_80%,white)] hover:text-[var(--catalog-ink,#15231f)]"
-                aria-label="Close"
+                className={styles.modeBtn}
+                onClick={() => setFamilyMode(false)}
               >
-                <X className="size-4" aria-hidden />
+                <PackagePlus className="size-3.5" aria-hidden />
+                Single item
+              </button>
+              <button
+                type="button"
+                role="tab"
+                id={`${modeId}-group`}
+                aria-selected={isGroup}
+                disabled={m.parentCreateBusy}
+                className={styles.modeBtn}
+                onClick={() => setFamilyMode(true)}
+              >
+                <Layers className="size-3.5" aria-hidden />
+                Family + options
               </button>
             </div>
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-            {banner ? <div className="mb-3">{banner}</div> : null}
+          <div className={styles.body}>
+            {banner ? <div className="mb-1">{banner}</div> : null}
 
             {catalog.itemTypes.length === 0 ? (
-              <div className="mb-3 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
                 {canCreateCategory
-                  ? "Add a department under More details, or generate with AI."
+                  ? "Add a department below, or generate with AI under More details."
                   : "Add a department first (Your shop → Departments), then come back here."}
               </div>
             ) : null}
 
             {m.parentDraft.globalProductSourceId ? (
-              <div className="mb-3 flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_65%,white)] px-3 py-2 text-[12px] text-[var(--catalog-ink,#15231f)]">
+              <div className="flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_65%,white)] px-3 py-2 text-[12px] text-[var(--catalog-ink,#15231f)]">
                 <span className="min-w-0 flex-1">
                   Filled from shared catalog
                   {linkedGlobalLabel ? ` (${linkedGlobalLabel})` : ""}
@@ -674,13 +644,15 @@ export function ProductCreateModal({
               <div className={cn(!isGroup && styles.identity)}>
                 <div className="space-y-1.5">
                   <FieldLabel htmlFor="create-product-name">
-                    {isGroup ? "Family name" : "Product name"}
+                    {isGroup ? "Family name" : "Name"}
                   </FieldLabel>
                   <input
                     id="create-product-name"
                     className={fieldClass}
                     placeholder={
-                      isGroup ? "e.g. Fresh milk" : "e.g. Brookside 500ml"
+                      isGroup
+                        ? "e.g. Fresh milk, Phone cases"
+                        : "e.g. Brookside 500ml"
                     }
                     value={m.parentDraft.name}
                     onChange={(e) =>
@@ -756,6 +728,91 @@ export function ProductCreateModal({
                   if (file) m.setPendingCreateImage(file);
                 }}
               />
+
+              <div className="space-y-1.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className={labelClass}>Department</span>
+                  {canCreateCategory ? (
+                    <button
+                      type="button"
+                      disabled={m.parentCreateBusy || departmentCreate.busy}
+                      onClick={() => departmentSelectRef.current?.openForCreate()}
+                      aria-label="New department"
+                      className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)] transition-colors hover:text-[var(--catalog-ink,#15231f)] disabled:opacity-50"
+                    >
+                      <Plus className="size-3" aria-hidden />
+                      New
+                    </button>
+                  ) : null}
+                </div>
+                <SearchableSelect
+                  ref={departmentSelectRef}
+                  className={cn(productFormInputClass, "h-11 rounded-xl")}
+                  value={m.parentDraft.itemTypeId}
+                  onChange={(itemTypeId) =>
+                    m.setParentDraft((p) => ({ ...p, itemTypeId }))
+                  }
+                  options={departmentOptions}
+                  placeholder={
+                    canCreateCategory ? "Find or create…" : "Pick one"
+                  }
+                  required
+                  disabled={m.parentCreateBusy}
+                  aria-label="Department"
+                  onCreate={
+                    canCreateCategory ? handleCreateDepartment : undefined
+                  }
+                  createBusy={departmentCreate.busy}
+                  createError={departmentCreate.error}
+                  createNoun="department"
+                />
+                {isGroup ? (
+                  <span className="text-[11px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
+                    Options inherit this department.
+                  </span>
+                ) : null}
+              </div>
+
+              {isGroup ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className={labelClass}>Category</span>
+                    {canCreateCategory ? (
+                      <button
+                        type="button"
+                        disabled={m.parentCreateBusy || categoryCreate.busy}
+                        onClick={() => categorySelectRef.current?.openForCreate()}
+                        aria-label="New category"
+                        className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)] transition-colors hover:text-[var(--catalog-ink,#15231f)] disabled:opacity-50"
+                      >
+                        <Plus className="size-3" aria-hidden />
+                        New
+                      </button>
+                    ) : null}
+                  </div>
+                  <SearchableSelect
+                    ref={categorySelectRef}
+                    className={cn(productFormInputClass, "h-11 rounded-xl")}
+                    value={m.parentDraft.categoryId}
+                    onChange={(categoryId) =>
+                      m.setParentDraft((p) => ({ ...p, categoryId }))
+                    }
+                    options={categoryOptions}
+                    noneLabel="Pick one"
+                    placeholder={
+                      canCreateCategory ? "Find or create…" : "Type to find…"
+                    }
+                    required
+                    disabled={m.parentCreateBusy}
+                    aria-label="Category"
+                    onCreate={
+                      canCreateCategory ? handleCreateCategory : undefined
+                    }
+                    createBusy={categoryCreate.busy}
+                    createError={categoryCreate.error}
+                  />
+                </div>
+              ) : null}
 
               {!isGroup && !m.parentDraft.globalProductSourceId ? (
                 <ProductNameSuggestions
@@ -887,7 +944,12 @@ export function ProductCreateModal({
                     </div>
                   </div>
                 </>
-              ) : null}
+              ) : (
+                <p className={cn(styles.hintCard, styles.enter)}>
+                  After you create the family, you&apos;ll add each size, pack,
+                  or flavour as its own option — same flow as on the till.
+                </p>
+              )}
 
               <button
                 type="button"
@@ -908,93 +970,49 @@ export function ProductCreateModal({
               {moreOpen ? (
                 <div className={cn(styles.morePanel, "space-y-3 rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_45%,white)] p-3")}>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className={labelClass}>Department</span>
-                        {canCreateCategory ? (
-                          <button
-                            type="button"
-                            disabled={
-                              m.parentCreateBusy || departmentCreate.busy
-                            }
-                            onClick={() => {
-                              setMoreOpen(true);
-                              departmentSelectRef.current?.openForCreate();
-                            }}
-                            aria-label="New department"
-                            className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)] transition-colors hover:text-[var(--catalog-ink,#15231f)] disabled:opacity-50"
-                          >
-                            <Plus className="size-3" aria-hidden />
-                            New
-                          </button>
-                        ) : null}
+                    {!isGroup ? (
+                      <div className="space-y-1.5">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className={labelClass}>Category</span>
+                          {canCreateCategory ? (
+                            <button
+                              type="button"
+                              disabled={m.parentCreateBusy || categoryCreate.busy}
+                              onClick={() => {
+                                setMoreOpen(true);
+                                categorySelectRef.current?.openForCreate();
+                              }}
+                              aria-label="New category"
+                              className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)] transition-colors hover:text-[var(--catalog-ink,#15231f)] disabled:opacity-50"
+                            >
+                              <Plus className="size-3" aria-hidden />
+                              New
+                            </button>
+                          ) : null}
+                        </div>
+                        <SearchableSelect
+                          ref={categorySelectRef}
+                          className={cn(productFormInputClass, "h-10 rounded-lg")}
+                          value={m.parentDraft.categoryId}
+                          onChange={(categoryId) =>
+                            m.setParentDraft((p) => ({ ...p, categoryId }))
+                          }
+                          options={categoryOptions}
+                          noneLabel="None"
+                          placeholder={
+                            canCreateCategory ? "Find or create…" : "Type to find…"
+                          }
+                          disabled={m.parentCreateBusy}
+                          aria-label="Category"
+                          onCreate={
+                            canCreateCategory ? handleCreateCategory : undefined
+                          }
+                          createBusy={categoryCreate.busy}
+                          createError={categoryCreate.error}
+                        />
                       </div>
-                      <SearchableSelect
-                        ref={departmentSelectRef}
-                        className={cn(productFormInputClass, "h-10 rounded-lg")}
-                        value={m.parentDraft.itemTypeId}
-                        onChange={(itemTypeId) =>
-                          m.setParentDraft((p) => ({ ...p, itemTypeId }))
-                        }
-                        options={departmentOptions}
-                        placeholder={
-                          canCreateCategory ? "Find or create…" : "Pick one"
-                        }
-                        required
-                        disabled={m.parentCreateBusy}
-                        aria-label="Department"
-                        onCreate={
-                          canCreateCategory
-                            ? handleCreateDepartment
-                            : undefined
-                        }
-                        createBusy={departmentCreate.busy}
-                        createError={departmentCreate.error}
-                        createNoun="department"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className={labelClass}>Category</span>
-                        {canCreateCategory ? (
-                          <button
-                            type="button"
-                            disabled={m.parentCreateBusy || categoryCreate.busy}
-                            onClick={() => {
-                              setMoreOpen(true);
-                              categorySelectRef.current?.openForCreate();
-                            }}
-                            aria-label="New category"
-                            className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)] transition-colors hover:text-[var(--catalog-ink,#15231f)] disabled:opacity-50"
-                          >
-                            <Plus className="size-3" aria-hidden />
-                            New
-                          </button>
-                        ) : null}
-                      </div>
-                      <SearchableSelect
-                        ref={categorySelectRef}
-                        className={cn(productFormInputClass, "h-10 rounded-lg")}
-                        value={m.parentDraft.categoryId}
-                        onChange={(categoryId) =>
-                          m.setParentDraft((p) => ({ ...p, categoryId }))
-                        }
-                        options={categoryOptions}
-                        noneLabel={isGroup ? "Pick one" : "None"}
-                        placeholder={
-                          canCreateCategory ? "Find or create…" : "Type to find…"
-                        }
-                        required={isGroup}
-                        disabled={m.parentCreateBusy}
-                        aria-label="Category"
-                        onCreate={
-                          canCreateCategory ? handleCreateCategory : undefined
-                        }
-                        createBusy={categoryCreate.busy}
-                        createError={categoryCreate.error}
-                      />
-                    </div>
-                    <div className="space-y-1.5 sm:col-span-2">
+                    ) : null}
+                    <div className={cn("space-y-1.5", !isGroup && "sm:col-span-1", isGroup && "sm:col-span-2")}>
                       <div className="flex items-baseline justify-between gap-2">
                         <span className={labelClass}>Shelf zone</span>
                         {canCreateCategory ? (
@@ -1246,49 +1264,47 @@ export function ProductCreateModal({
             </div>
           </div>
 
-          <footer className="shrink-0 border-t border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-white px-5 py-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <button
+          <DialogFooter className="shrink-0 gap-2 border-t border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-white px-4 py-3 sm:justify-between">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={keepOpen}
+              aria-label="Keep adding after save"
+              disabled={isGroup || m.parentCreateBusy}
+              onClick={() => setKeepOpen((v) => !v)}
+              className={styles.keep}
+            >
+              <span className={styles.keepDot} aria-hidden />
+              Keep adding
+            </button>
+            <div className="flex items-center gap-2">
+              <Button
                 type="button"
-                role="switch"
-                aria-checked={keepOpen}
-                aria-label="Keep adding after save"
-                disabled={isGroup || m.parentCreateBusy}
-                onClick={() => setKeepOpen((v) => !v)}
-                className={styles.keep}
+                variant="ghost"
+                className="h-9 px-3 text-[13px]"
+                onClick={onClose}
+                disabled={m.parentCreateBusy}
               >
-                <span className={styles.keepDot} aria-hidden />
-                Keep adding
+                Cancel
+              </Button>
+              <button
+                type="submit"
+                disabled={catalog.itemTypes.length === 0 || m.parentCreateBusy}
+                data-armed={canArm ? "true" : "false"}
+                data-busy={m.parentCreateBusy ? "true" : undefined}
+                data-stamp={canArm && stamp > 0 ? stamp : undefined}
+                className={styles.create}
+              >
+                {m.parentCreateBusy
+                  ? "Saving…"
+                  : isGroup
+                    ? "Create family"
+                    : keepOpen
+                      ? "Add & next"
+                      : "Add product"}
               </button>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-10 rounded-xl px-3 text-[13px]"
-                  onClick={onClose}
-                  disabled={m.parentCreateBusy}
-                >
-                  Cancel
-                </Button>
-                <button
-                  type="submit"
-                  disabled={catalog.itemTypes.length === 0 || m.parentCreateBusy}
-                  data-armed={canArm ? "true" : "false"}
-                  data-busy={m.parentCreateBusy ? "true" : undefined}
-                  data-stamp={canArm && stamp > 0 ? stamp : undefined}
-                  className={styles.create}
-                >
-                  {m.parentCreateBusy
-                    ? "Saving…"
-                    : isGroup
-                      ? "Create family"
-                      : keepOpen
-                        ? "Add & next"
-                        : "Add product"}
-                </button>
-              </div>
             </div>
-          </footer>
+          </DialogFooter>
         </form>
 
         {scannerOpen ? (
