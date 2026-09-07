@@ -167,6 +167,8 @@ type Props = {
   onOpenPackageSales?: () => void;
   onOpenBaseStock?: () => void;
   onOpenAddVariant?: () => void;
+  /** Attach existing standalone SKUs under this family (keeps their history). */
+  onOpenAttachExisting?: () => void;
   /** When provided, the panel shows a "Change department" quick action. */
   onOpenChangeItemType?: () => void;
   /** When provided, the panel shows an "Assign shelf zone" quick action. */
@@ -265,6 +267,7 @@ export function ProductDetailPanel(props: Props) {
     onOpenPackageSales,
     onOpenBaseStock,
     onOpenAddVariant,
+    onOpenAttachExisting,
     onOpenChangeItemType,
     onOpenChangeAisle,
     itemTypeLabel,
@@ -1332,6 +1335,18 @@ export function ProductDetailPanel(props: Props) {
                     Add variant
                   </Button>
                 ) : null}
+                {canCatalogWrite && onOpenAttachExisting ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1 text-[11px] shadow-none"
+                    onClick={onOpenAttachExisting}
+                  >
+                    <GitBranchPlus className="size-3.5" aria-hidden />
+                    Attach existing
+                  </Button>
+                ) : null}
               </div>
             ) : null}
             {variantRows.length === 0 ? (
@@ -1344,7 +1359,7 @@ export function ProductDetailPanel(props: Props) {
                     No SKUs yet
                   </p>
                   <p className="text-[11px] leading-relaxed text-muted-foreground">
-                    Use Add package or Add variant above.
+                    Use Add package, Add variant, or Attach existing above.
                   </p>
                 </div>
               </div>

@@ -810,7 +810,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
           "Leave Single product selected.",
           "Enter name, price, barcode, and opening stock.",
           "Optionally enable Sell in different units for trays/crates of that same item.",
-          "Or import many SKUs at once from Business → Import / CSV — then convert families into groups + variants as you tidy the catalog.",
+          "Or import many SKUs at once from Business → Import / CSV — then use Group as family to nest related sizes under one parent without recreating SKUs.",
         ],
       },
       {
@@ -824,7 +824,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
           {
             question: "Can I turn an existing single product into a group later?",
             answer:
-              "Yes — open the product and use Add variant / Add sibling to grow a family under a parent. Starting as a group is cleaner when you already know sizes are coming.",
+              "Yes — select the size products in Products (for example Dry Hook #12–#24), then use Group as family. Palmart nests those same SKUs under one parent without deleting them, so stock and sales history stay put. You can also open a family and use Attach existing.",
           },
           {
             question: "Do groups appear on the cashier?",
@@ -1311,7 +1311,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
         items: [
           "Select any product in the catalog to open its detail panel — edit name, SKU, barcode, sell price, and stock inline without leaving the page.",
           "Use Edit for photos, description, supplier link, and buying cost.",
-          "Add variant grows a family; Package sales adds tray or crate SKUs; Change department moves the product between departments.",
+          "Add variant grows a family with new SKUs; Attach existing / Group as family nests products you already have; Package sales adds tray or crate SKUs; Change department moves the product between departments.",
           "Track down problems from the header: missing barcode, no price, zero stock, and low stock counters filter the list in one tap.",
           "Big cleanup? Import hundreds of SKUs from Business → Import, or fix barcodes in bulk from Inventory → Missing barcodes.",
         ],
@@ -1329,7 +1329,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
           {
             question: "I already added sizes as separate single products — can I fix it?",
             answer:
-              "Yes. Open the product and use Add variant / Add sibling to grow a family under one parent, or merge duplicates during a cleanup pass. Starting as a group is cleaner when you know sizes are coming.",
+              "Yes. In Products, multi-select the size SKUs and tap Group as family. Choose a new family name (e.g. Dry Hook) or an existing family, confirm the option labels (#12, #16…), and save. The same barcodes, stock, and sales history stay on those products — only the family link changes. From a family detail panel you can also use Attach existing.",
           },
           {
             question: "What is the difference between a package variant and an option variant?",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Layers, Loader2, MapPin, Power, Trash2, Warehouse, X } from "lucide-react";
+import { GitBranchPlus, Layers, Loader2, MapPin, Power, Trash2, Warehouse, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,11 +31,13 @@ type Props = {
   bulkChangeDepartmentBusy?: boolean;
   bulkChangeAisleBusy?: boolean;
   bulkActivateBusy?: boolean;
+  bulkRegroupBusy?: boolean;
   onBulkDelete: () => void | Promise<void>;
   onBulkChangeDepartment?: () => void;
   onBulkChangeAisle?: () => void;
   onBulkActivate?: () => void;
   onBulkAdjustStock?: () => void;
+  onBulkRegroup?: () => void;
   onAddFromCatalog?: () => void;
   canAddFromCatalog?: boolean;
   onCreateNew?: () => void;
@@ -62,11 +64,13 @@ export function CatalogListColumn({
   bulkChangeDepartmentBusy = false,
   bulkChangeAisleBusy = false,
   bulkActivateBusy = false,
+  bulkRegroupBusy = false,
   onBulkDelete,
   onBulkChangeDepartment,
   onBulkChangeAisle,
   onBulkActivate,
   onBulkAdjustStock,
+  onBulkRegroup,
   onAddFromCatalog,
   canAddFromCatalog = false,
   onCreateNew,
@@ -78,7 +82,8 @@ export function CatalogListColumn({
     bulkDeleteBusy ||
     bulkChangeDepartmentBusy ||
     bulkChangeAisleBusy ||
-    bulkActivateBusy;
+    bulkActivateBusy ||
+    bulkRegroupBusy;
   const listBodyRef = useRef<VirtualizedCatalogBodyHandle>(null);
   const pendingScrollIndexRef = useRef<number | null>(null);
   const [activeLetter, setActiveLetter] = useState<CatalogLetterKey | null>(
@@ -163,6 +168,24 @@ export function CatalogListColumn({
             {selectionCount} selected
           </span>
           <div className="flex items-center gap-1">
+            {canCatalogWrite && onBulkRegroup ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1 border px-2 text-xs"
+                disabled={selectionBusy}
+                onClick={onBulkRegroup}
+              >
+                {bulkRegroupBusy ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <GitBranchPlus className="size-3.5" aria-hidden />
+                )}
+                <span className="sm:hidden">Family</span>
+                <span className="hidden sm:inline">Group as family</span>
+              </Button>
+            ) : null}
             {canCatalogWrite && onBulkActivate ? (
               <Button
                 type="button"

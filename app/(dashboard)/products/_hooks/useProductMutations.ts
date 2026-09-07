@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ApiRequestError,
   addItemSupplierLink,
+  attachItemVariants,
+  createGroupFromItems,
   createItem,
   createItemVariant,
   deleteItem,
@@ -56,6 +58,7 @@ import type {
   BulkStockAdjustParams,
   BulkStockAdjustSummary,
 } from "../_components/BulkStockAdjustModal";
+import type { RegroupParams } from "../_components/RegroupProductsModal";
 
 type Dependencies = {
   selectedId: string | null;
@@ -157,6 +160,7 @@ export function useProductMutations(d: Dependencies) {
   const [packageCreateBusy, setPackageCreateBusy] = useState(false);
   const [changeItemTypeBusy, setChangeItemTypeBusy] = useState(false);
   const [changeAisleBusy, setChangeAisleBusy] = useState(false);
+  const [regroupBusy, setRegroupBusy] = useState(false);
 
   const defaultBranchId = useMemo(
     () => headerBranchId.trim() || branches[0]?.id?.trim() || "",
@@ -1904,19 +1908,18 @@ export function useProductMutations(d: Dependencies) {
           await refreshSelectedDetail();
         }
         setRowSelection(new Set());
-        const zoneLabel = aid
-          ? aisles.find((a) => a.id === aid)?.name || "shelf zone"
-          : "no shelf zone";
-        if (failed.length === 0) {
+        if (failed.length > 0) {
           setMessage(
-            `Updated shelf zone for ${ids.length} item${ids.length === 1 ? "" : "s"}${
-              aid ? ` (${zoneLabel})` : ""
-            }.`,
+            `Updated shelf zone for ${ids.length - failed.length} of ${ids.length}. Failed: ${failed.slice(0, 3).join(", ")}${failed.length > 3 ? "…" : ""}`,
           );
-          return true;
+          return false;
         }
-        setMessage(`Partial success. Failed: ${failed.join(", ")}`);
-        return failed.length < ids.length;
+        setMessage(
+          aid
+            ? `Shelf zone updated for ${ids.length} product${ids.length === 1 ? "" : "s"}.`
+            : `Cleared shelf zone for ${ids.length} product${ids.length === 1 ? "" : "s"}.`,
+        );
+        return true;
       } finally {
         setChangeAisleBusy(false);
       }
@@ -1930,6 +1933,58 @@ export function useProductMutations(d: Dependencies) {
       selectedId,
       refreshSelectedDetail,
       setRowSelection,
+      setMessage,
+    ],
+  );
+
+  const onRegroupProducts = useCallback(
+    async (params: RegroupParams): Promise<boolean> => {
+      if (!canCatalogWrite) {
+        setMessage("You do not have permission to edit products.");
+        return false;
+      }
+      if (params.items.length === 0) {
+        setMessage("Select at least one product to group.");
+        return false;
+      }
+      setRegroupBusy(true);
+      setMessage("");
+      try {
+        const result =
+          params.mode === "create"
+            ? await createGroupFromItems({
+                name: params.name,
+                itemTypeId: params.itemTypeId,
+                categoryId: params.categoryId,
+                aisleId: params.aisleId,
+                items: params.items,
+              })
+            : await attachItemVariants(params.parentId, {
+                items: params.items,
+                makeParentNonSellable: true,
+              });
+        await refreshFullCatalog();
+        setRowSelection(new Set());
+        selectProduct(result.id);
+        const n = params.items.length;
+        setMessage(
+          params.mode === "create"
+            ? `Created family “${result.name}” with ${n} option${n === 1 ? "" : "s"}. SKUs and stock were kept.`
+            : `Attached ${n} product${n === 1 ? "" : "s"} under “${result.name}”. SKUs and stock were kept.`,
+        );
+        return true;
+      } catch (err) {
+        setMessage(formatMutationError(err, "Could not group products."));
+        return false;
+      } finally {
+        setRegroupBusy(false);
+      }
+    },
+    [
+      canCatalogWrite,
+      refreshFullCatalog,
+      setRowSelection,
+      selectProduct,
       setMessage,
     ],
   );
@@ -1985,6 +2040,8 @@ export function useProductMutations(d: Dependencies) {
     onChangeAisle,
     onBulkChangeAisle,
     changeAisleBusy,
+    onRegroupProducts,
+    regroupBusy,
     onToggleWeighed,
     weighedBusy,
   };

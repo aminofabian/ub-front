@@ -923,6 +923,8 @@ export type ItemSummaryRecord = {
   aisleId?: string | null;
   aisleCode?: string | null;
   aisleName?: string | null;
+  /** Department / item type ID when provided by list/detail. */
+  itemTypeId?: string | null;
 };
 
 /** Resolved HTTPS URL for catalog lists / quick sale (prefers {@link ItemSummaryRecord.thumbnailUrl}). */
@@ -5086,6 +5088,55 @@ export async function createItemVariant(
     await import("@/lib/tenant-catalog-events");
   notifyTenantCatalogChanged();
   return created;
+}
+
+/** One existing product to nest under a family (keeps the same item id / SKU). */
+export type AttachVariantLinePayload = {
+  itemId: string;
+  variantName: string;
+};
+
+export type AttachVariantsPayload = {
+  items: AttachVariantLinePayload[];
+  /** Default true on the server — family label is not sold at the till. */
+  makeParentNonSellable?: boolean;
+};
+
+export type CreateGroupFromItemsPayload = {
+  name: string;
+  itemTypeId: string;
+  categoryId?: string;
+  aisleId?: string;
+  items: AttachVariantLinePayload[];
+};
+
+/** Nest existing standalones under an existing parent. Returns the parent with variants. */
+export async function attachItemVariants(
+  parentItemId: string,
+  body: AttachVariantsPayload,
+): Promise<ItemDetailRecord> {
+  const result = await request<ItemDetailRecord>(
+    `${API_ROUTES.items}/${parentItemId}/variants/attach`,
+    { method: "POST", body },
+  );
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
+  return result;
+}
+
+/** Create a non-sellable family and attach existing standalones under it. */
+export async function createGroupFromItems(
+  body: CreateGroupFromItemsPayload,
+): Promise<ItemDetailRecord> {
+  const result = await request<ItemDetailRecord>(
+    `${API_ROUTES.items}/groups/from-items`,
+    { method: "POST", body },
+  );
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
+  return result;
 }
 
 // --- Global catalog ---------------------------------------------------------

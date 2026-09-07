@@ -33,6 +33,13 @@ import { AddPackageModal } from "./_components/AddPackageModal";
 import { ChangeItemTypeModal } from "./_components/ChangeItemTypeModal";
 import { ChangeAisleModal } from "./_components/ChangeAisleModal";
 import { BulkStockAdjustModal } from "./_components/BulkStockAdjustModal";
+import {
+  RegroupProductsModal,
+} from "./_components/RegroupProductsModal";
+import {
+  buildVariantIdsByParentId,
+  catalogListDisplayType,
+} from "./_components/catalog-list-styles";
 import { resolveCatalogParentId } from "./_utils";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
 import { ProductEditDrawer } from "./_components/ProductEditDrawer";
@@ -122,6 +129,11 @@ export function ProductsWorkspace() {
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [variantParentPickBusy, setVariantParentPickBusy] = useState(false);
   const [bulkStockOpen, setBulkStockOpen] = useState(false);
+  const [regroupOpen, setRegroupOpen] = useState(false);
+  const [regroupLockedParent, setRegroupLockedParent] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [unassignedAisleCount, setUnassignedAisleCount] = useState<number | null>(
     null,
   );
@@ -219,6 +231,29 @@ export function ProductsWorkspace() {
     [catalog.listRows, catalog.rowSelection],
   );
 
+  /** Standalone products in the selection that can be nested under a family. */
+  const regroupEligibleRows = useMemo(() => {
+    const selected = catalog.listRows.filter((r) =>
+      catalog.rowSelection.has(r.id),
+    );
+    const variantIdsByParent = buildVariantIdsByParentId(catalog.listRows);
+    return selected.filter((row) => {
+      const variantCount = variantIdsByParent.get(row.id)?.length ?? 0;
+      return catalogListDisplayType(row, variantCount) === "standalone";
+    });
+  }, [catalog.listRows, catalog.rowSelection]);
+
+  const openRegroupFromSelection = useCallback(() => {
+    if (regroupEligibleRows.length === 0) {
+      catalog.setMessage(
+        "Select standalone products (not families or sizes already in a family) to group.",
+      );
+      return;
+    }
+    setRegroupLockedParent(null);
+    setRegroupOpen(true);
+  }, [regroupEligibleRows.length, catalog]);
+
   usePosEvents({
     onPriceChanged: (frame) => {
       const itemId = String(frame.data.itemId ?? "");
@@ -241,6 +276,14 @@ export function ProductsWorkspace() {
 
   const D = detail.detail;
   const isViewingVariant = !!D?.variantOfItemId?.trim();
+  const openAttachExistingToParent = useCallback(() => {
+    if (!D || D.variantOfItemId?.trim()) return;
+    setRegroupLockedParent({
+      id: D.id,
+      name: D.name?.trim() || "Family",
+    });
+    setRegroupOpen(true);
+  }, [D]);
   const variantDrawerParentName =
     (isViewingVariant && detail.variantParentDisplayName?.trim()) ||
     D?.name?.trim() ||
@@ -413,6 +456,9 @@ export function ProductsWorkspace() {
         }
       : undefined,
     onOpenAddVariant: canCatalogWrite ? handleOpenAddVariant : undefined,
+    onOpenAttachExisting: canCatalogWrite
+      ? openAttachExistingToParent
+      : undefined,
     itemTypeLabel:
       catalog.itemTypes.find((t) => t.id === D?.itemTypeId)?.label?.trim() ||
       undefined,
@@ -630,6 +676,10 @@ export function ProductsWorkspace() {
                 onBulkAdjustStock={
                   canInventoryWrite ? () => setBulkStockOpen(true) : undefined
                 }
+                onBulkRegroup={
+                  canCatalogWrite ? openRegroupFromSelection : undefined
+                }
+                bulkRegroupBusy={m.regroupBusy}
                 onBulkChangeDepartment={
                   canCatalogWrite
                     ? () => {
@@ -871,6 +921,20 @@ export function ProductsWorkspace() {
         branches={m.branches}
         currencyCode={business?.currency?.trim() || ""}
         apply={m.onBulkAdjustStock}
+      />
+
+      <RegroupProductsModal
+        open={regroupOpen}
+        onOpenChange={(o) => {
+          setRegroupOpen(o);
+          if (!o) setRegroupLockedParent(null);
+        }}
+        rows={regroupEligibleRows}
+        itemTypes={catalog.itemTypes}
+        defaultItemTypeId={dashboardItemTypeId}
+        lockedParent={regroupLockedParent}
+        busy={m.regroupBusy}
+        apply={m.onRegroupProducts}
       />
 
       <ProductMobileDetailDrawer
