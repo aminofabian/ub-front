@@ -22,7 +22,9 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
       <div
         className={cn(
           "grid divide-x divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)]",
-          items.length <= 3 && "grid-cols-3 divide-y-0",
+          items.length === 1 && "grid-cols-1",
+          items.length === 2 && "grid-cols-2 divide-y-0",
+          items.length === 3 && "grid-cols-3 divide-y-0 max-sm:grid-cols-1 max-sm:divide-x-0 max-sm:divide-y",
           items.length === 4 && "grid-cols-2 sm:grid-cols-4 sm:divide-y-0",
           items.length >= 5 &&
             "grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 xl:divide-y-0",
@@ -33,7 +35,7 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
             key={item.id}
             href={item.href}
             title={`${item.label}: ${item.value} — ${item.detail}`}
-            className="group flex min-w-0 items-center gap-2 px-2.5 py-1.5 transition-colors hover:bg-[#FAF8F3] sm:px-3"
+            className="group flex min-h-[3.75rem] min-w-0 items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-[#FAF8F3] sm:min-h-[3.25rem] sm:px-3 sm:py-2"
           >
             <span
               className={cn(
@@ -51,10 +53,13 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
                 {item.label}
               </span>
               <span
-                className="mt-0.5 block truncate text-[13px] font-semibold leading-none tracking-[-0.02em] text-[#141414] tabular-nums"
+                className="mt-0.5 block truncate text-[14px] font-semibold leading-none tracking-[-0.02em] text-[#141414] tabular-nums sm:text-[13px]"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 {item.value}
+              </span>
+              <span className="mt-0.5 block truncate text-[10px] text-[#8A8A8A] max-sm:hidden">
+                {item.detail}
               </span>
             </span>
           </Link>

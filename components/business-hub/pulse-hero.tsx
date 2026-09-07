@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HUB_MUTED, HUB_SECTION, HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export type PulseMetric = {
@@ -13,8 +13,12 @@ export type PulseMetric = {
   href?: string;
 };
 
+/**
+ * Summary board: revenue leads, then a tidy stats grid.
+ * Phone = 2-col tiles under the figure; desktop = figure + side metrics.
+ */
 export function PulseHero({
-  eyebrow,
+  eyebrow: _eyebrow,
   revenueLabel,
   revenue,
   revenueBreakdown,
@@ -36,50 +40,44 @@ export function PulseHero({
   live?: boolean;
   justUpdated?: boolean;
 }) {
-  const a11y = [eyebrow, revenueLabel, revenue, headline]
-    .filter(Boolean)
-    .join(". ");
-
-  const metricCols =
-    metrics.length <= 2
-      ? "grid-cols-2 divide-y-0"
-      : metrics.length === 3
-        ? "grid-cols-3 divide-y-0 max-sm:grid-cols-3"
-        : metrics.length === 4
-          ? "grid-cols-2 sm:grid-cols-4 sm:divide-y-0"
-          : "grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 xl:divide-y-0";
+  void _eyebrow;
+  const a11y = [revenueLabel, revenue, headline].filter(Boolean).join(". ");
 
   return (
-    <section
-      className={cn(HUB_SURFACE, "relative", justUpdated && "hub-scan-sweep")}
-      aria-label={a11y}
-    >
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,#B08D48_0%,#B08D48_14%,transparent_14%)]"
-        aria-hidden
-      />
+    <section className="space-y-2" aria-label={a11y}>
+      <div className="flex items-baseline justify-between gap-2 px-0.5">
+        <h2 className={HUB_SECTION}>Summary</h2>
+        {live ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium tracking-wide text-emerald-800">
+            <span
+              className={cn(
+                "size-1.5 bg-emerald-500 hub-live-beacon",
+                justUpdated && "animate-pulse",
+              )}
+              aria-hidden
+            />
+            Live
+          </span>
+        ) : null}
+      </div>
 
-      <div className="flex flex-col md:flex-row md:items-stretch">
-        {/* Revenue leads the first phone viewport. */}
+      <div className={cn(HUB_SURFACE, "relative", justUpdated && "hub-scan-sweep")}>
         <div
-          className={cn(
-            "flex min-w-0 flex-col justify-center gap-1.5 border-b border-[color-mix(in_srgb,#141414_8%,transparent)]",
-            "min-h-[7.5rem] px-3.5 py-3.5",
-            "sm:min-h-0 sm:px-3 sm:py-2.5",
-            "md:w-[min(42%,22rem)] md:shrink-0 md:border-b-0 md:border-r md:py-2",
-          )}
-        >
-          {revenueLabel ? (
-            <p className="text-[11px] font-medium text-[#6B6B6B] sm:hidden">
-              {revenueLabel}
-            </p>
-          ) : null}
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,#B08D48_0%,#B08D48_14%,transparent_14%)]"
+          aria-hidden
+        />
+
+        {/* Row 1 — revenue figure */}
+        <div className="border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3.5 py-3.5 sm:px-4 sm:py-3">
+          <p className="text-[11px] font-medium text-[#6B6B6B]">
+            {revenueLabel ?? "Revenue"}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-end gap-x-2.5 gap-y-1">
             <p
               key={justUpdated ? `${revenue}-tick` : revenue}
               className={cn(
-                "font-medium leading-none tracking-[-0.035em] text-[#141414] tabular-nums",
-                "text-[2rem] sm:text-[1.55rem]",
+                "font-medium leading-none tracking-[-0.04em] text-[#141414] tabular-nums",
+                "text-[2.15rem] sm:text-[1.85rem]",
                 justUpdated && "hub-figure-pop",
               )}
               style={{ fontFamily: "var(--font-heading)" }}
@@ -89,7 +87,7 @@ export function PulseHero({
             {trend ? (
               <span
                 className={cn(
-                  "inline-flex items-center px-1 py-px text-[10px] font-medium tabular-nums",
+                  "mb-0.5 inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
                   trendTone === "positive" &&
                     "bg-emerald-500/10 text-emerald-800",
                   trendTone === "warning" &&
@@ -102,106 +100,93 @@ export function PulseHero({
                 {trend}
               </span>
             ) : null}
-            {live ? (
-              <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-medium tracking-wide text-emerald-800">
-                <span
-                  className={cn(
-                    "size-1.5 rounded-none bg-emerald-500 hub-live-beacon",
-                    justUpdated && "animate-pulse",
-                  )}
-                  aria-hidden
-                />
-                Live
-              </span>
-            ) : null}
           </div>
 
           {revenueBreakdown ? (
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] tabular-nums text-[#6B6B6B]">
-              <span>
-                Cash{" "}
-                <span className="font-medium text-[#141414]">
-                  {revenueBreakdown.cash}
-                </span>
-              </span>
-              <span aria-hidden className="text-[#C9BFA8]">
-                ·
-              </span>
-              <span>
-                M-Pesa{" "}
-                <span className="font-medium text-[#141414]">
-                  {revenueBreakdown.mpesa}
-                </span>
-              </span>
-              <span aria-hidden className="text-[#C9BFA8]">
-                ·
-              </span>
-              <span>
-                Credit{" "}
-                <span className="font-medium text-[#141414]">
-                  {revenueBreakdown.credit}
-                </span>
-              </span>
-            </p>
+            <div className="mt-3 grid grid-cols-3 gap-px overflow-hidden border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-[color-mix(in_srgb,#141414_8%,transparent)]">
+              {(
+                [
+                  ["Cash", revenueBreakdown.cash],
+                  ["M-Pesa", revenueBreakdown.mpesa],
+                  ["Credit", revenueBreakdown.credit],
+                ] as const
+              ).map(([label, value]) => (
+                <div
+                  key={label}
+                  className="bg-white px-2.5 py-2 text-center sm:text-left"
+                >
+                  <p className={cn("text-[10px] font-medium", HUB_MUTED)}>
+                    {label}
+                  </p>
+                  <p className="mt-0.5 text-[12px] font-semibold tabular-nums text-[#141414] sm:text-[13px]">
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
           ) : headline ? (
-            <p className="truncate text-[11px] text-[#7A7A7A]" title={headline}>
+            <p className="mt-2 truncate text-[11px] text-[#7A7A7A]" title={headline}>
               {headline}
             </p>
           ) : null}
         </div>
 
-        <div
-          className={cn(
-            "grid min-w-0 flex-1 divide-x divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)]",
-            metricCols,
-          )}
-        >
-          {metrics.map((metric) => {
-            const body = (
-              <div className="flex h-full min-h-[3.5rem] flex-col justify-center gap-0.5 px-2.5 py-2 transition-colors hover:bg-[#FAF8F3] sm:min-h-[3.25rem] sm:px-3 sm:py-2">
-                <p className={cn("truncate text-[10px] font-medium", HUB_MUTED)}>
-                  {metric.label}
-                </p>
-                <p
-                  className="truncate text-[13px] font-semibold leading-none tracking-[-0.02em] text-[#141414] tabular-nums sm:text-[14px]"
-                  style={{
-                    fontFamily: "var(--font-heading)",
-                  }}
-                >
-                  {metric.value}
-                </p>
-                {metric.hint ? (
-                  <p
-                    className={cn(
-                      "truncate text-[10px] leading-tight",
-                      metric.tone === "positive" && "text-emerald-700",
-                      metric.tone === "warning" && "text-[#C47A5A]",
-                      metric.tone === "negative" && "text-rose-600",
-                      (!metric.tone || metric.tone === "muted") &&
-                        "text-[#8A8A8A]",
-                    )}
-                  >
-                    {metric.hint}
+        {/* Row 2 — summary stats grid */}
+        {metrics.length > 0 ? (
+          <div
+            className={cn(
+              "grid divide-x divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)]",
+              "grid-cols-2",
+              metrics.length === 3 && "sm:grid-cols-3",
+              metrics.length === 4 && "sm:grid-cols-4",
+              metrics.length >= 5 && "sm:grid-cols-3 lg:grid-cols-5",
+            )}
+          >
+            {metrics.map((metric) => {
+              const body = (
+                <div className="flex h-full min-h-[4.25rem] flex-col justify-center gap-1 px-3 py-2.5 transition-colors hover:bg-[#FAF8F3] sm:min-h-[3.75rem]">
+                  <p className={cn("truncate text-[10px] font-medium", HUB_MUTED)}>
+                    {metric.label}
                   </p>
-                ) : null}
-              </div>
-            );
-            return metric.href ? (
-              <Link
-                key={metric.label}
-                href={metric.href}
-                className="min-w-0"
-                title={`${metric.label}: ${metric.value}${metric.hint ? ` · ${metric.hint}` : ""}`}
-              >
-                {body}
-              </Link>
-            ) : (
-              <div key={metric.label} className="min-w-0">
-                {body}
-              </div>
-            );
-          })}
-        </div>
+                  <p
+                    className="truncate text-[15px] font-semibold leading-none tracking-[-0.025em] text-[#141414] tabular-nums sm:text-[14px]"
+                    style={{ fontFamily: "var(--font-heading)" }}
+                  >
+                    {metric.value}
+                  </p>
+                  {metric.hint ? (
+                    <p
+                      className={cn(
+                        "truncate text-[10px] leading-tight",
+                        metric.tone === "positive" && "text-emerald-700",
+                        metric.tone === "warning" && "text-[#C47A5A]",
+                        metric.tone === "negative" && "text-rose-600",
+                        (!metric.tone || metric.tone === "muted") &&
+                          "text-[#8A8A8A]",
+                      )}
+                    >
+                      {metric.hint}
+                    </p>
+                  ) : null}
+                </div>
+              );
+              return metric.href ? (
+                <Link
+                  key={metric.label}
+                  href={metric.href}
+                  className="min-w-0"
+                  title={`${metric.label}: ${metric.value}${metric.hint ? ` · ${metric.hint}` : ""}`}
+                >
+                  {body}
+                </Link>
+              ) : (
+                <div key={metric.label} className="min-w-0">
+                  {body}
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </section>
   );

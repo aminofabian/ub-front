@@ -28,6 +28,7 @@ import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
 import { CommandGrid, type CommandLink } from "@/components/business-hub/command-grid";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
+import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
@@ -1248,35 +1249,9 @@ export function BusinessHubWorkspace() {
                 />
               ) : null}
 
-              {showTillStage && !galleryOpen ? (
-                <div
-                  className={cn(
-                    "grid gap-2 xl:hidden",
-                    dualLanes && "sm:grid-cols-2",
-                  )}
-                >
-                  {tickLanes.map((lane, index) => (
-                    <RecentTicksRail
-                      key={lane.key}
-                      ticks={lane.ticks}
-                      drawouts={lane.drawouts}
-                      currency={currency}
-                      live={pulseLive}
-                      justUpdated={justUpdated && index === 0}
-                      title={lane.title}
-                      subtitle={lane.subtitle}
-                      showCashier={lane.showCashier}
-                      accent={lane.accent}
-                      laneIndex={dualLanes ? index : undefined}
-                      fillViewport={false}
-                      className="max-h-[22rem]"
-                    />
-                  ))}
-                </div>
-              ) : null}
-
               {shopNotReady ? null : (
-                <>
+                <div className="flex flex-col gap-3 sm:gap-3.5">
+                  {/* 1 — Summary */}
                   {salesEmpty ? null : (
                     <PulseHero
                       eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
@@ -1294,71 +1269,7 @@ export function BusinessHubWorkspace() {
                     />
                   )}
 
-                  {/* Jump-in sits under the pulse on phone so destinations aren't buried. */}
-                  <CommandGrid links={commandLinks} />
-
-                  {(canViewSupplyBills &&
-                    !(salesEmpty && todaySupplies.length === 0)) ||
-                  (canViewCreditTabs &&
-                    !(salesEmpty && openCreditTabs.length === 0)) ||
-                  (canShowWebOrders &&
-                    !(salesEmpty && openWebOrders.length === 0)) ? (
-                    <div className="flex flex-col gap-1.5">
-                      {canViewSupplyBills &&
-                      !(salesEmpty && todaySupplies.length === 0) ? (
-                        <SupplyBillsRail
-                          bills={todaySupplies}
-                          currency={currency}
-                          live={pulseLive}
-                          justUpdated={supplyJustUpdated}
-                          onPayBill={
-                            canOpenSupplyPay ? openSupplyPay : undefined
-                          }
-                          onInspect={openSupplyHistory}
-                        />
-                      ) : null}
-
-                      {canViewCreditTabs &&
-                      !(salesEmpty && openCreditTabs.length === 0) ? (
-                        <CreditTabsRail
-                          tabs={openCreditTabs}
-                          currency={currency}
-                          live={pulseLive}
-                          justUpdated={creditJustUpdated}
-                          onPayTab={
-                            canOpenCreditPay ? openCreditPay : undefined
-                          }
-                          onInspect={openCreditHistory}
-                          paidTotal={creditActivity?.totalPaid ?? null}
-                          paidCount={creditActivity?.paymentCount ?? null}
-                          paidPeriodLabel={isToday ? "today" : "this week"}
-                        />
-                      ) : null}
-
-                      {canShowWebOrders &&
-                      !(salesEmpty && openWebOrders.length === 0) ? (
-                        <WebOrdersRail
-                          orders={openWebOrders}
-                          currency={currency}
-                          live={pulseLive}
-                          justUpdated={webOrdersJustUpdated}
-                          onInspect={openShopperHistory}
-                        />
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {salesEmpty ? null : (
-                    <RevenueBarChart
-                      points={chartPoints}
-                      ariaLabel={chartAriaLabel}
-                      caption={chartCaption}
-                      title={
-                        isToday ? "Twelve-day runway" : "Seven-day runway"
-                      }
-                    />
-                  )}
-
+                  {/* 2 — Attention */}
                   {showAttentionSection ? (
                     actionItems.length > 0 ? (
                       <ActionItemsStrip items={actionItems} />
@@ -1367,22 +1278,138 @@ export function BusinessHubWorkspace() {
                     )
                   ) : null}
 
-                  {(stockItems.length > 0 || showMovers) ? (
-                    <div
-                      className={cn(
-                        "grid gap-2",
-                        stockItems.length > 0 &&
-                          showMovers &&
-                          "lg:grid-cols-[1.35fr_0.65fr] lg:items-start",
-                      )}
-                    >
-                      <StockHealthPanel items={stockItems} />
-                      {showMovers ? (
-                        <TopMoversPanel movers={topMovers} />
-                      ) : null}
-                    </div>
+                  {/* 3 — Open work */}
+                  {(canViewSupplyBills &&
+                    !(salesEmpty && todaySupplies.length === 0)) ||
+                  (canViewCreditTabs &&
+                    !(salesEmpty && openCreditTabs.length === 0)) ||
+                  (canShowWebOrders &&
+                    !(salesEmpty && openWebOrders.length === 0)) ? (
+                    <section className="space-y-1.5">
+                      <HubSectionLabel title="Open work" />
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {canViewSupplyBills &&
+                        !(salesEmpty && todaySupplies.length === 0) ? (
+                          <SupplyBillsRail
+                            bills={todaySupplies}
+                            currency={currency}
+                            live={pulseLive}
+                            justUpdated={supplyJustUpdated}
+                            onPayBill={
+                              canOpenSupplyPay ? openSupplyPay : undefined
+                            }
+                            onInspect={openSupplyHistory}
+                          />
+                        ) : null}
+
+                        {canViewCreditTabs &&
+                        !(salesEmpty && openCreditTabs.length === 0) ? (
+                          <CreditTabsRail
+                            tabs={openCreditTabs}
+                            currency={currency}
+                            live={pulseLive}
+                            justUpdated={creditJustUpdated}
+                            onPayTab={
+                              canOpenCreditPay ? openCreditPay : undefined
+                            }
+                            onInspect={openCreditHistory}
+                            paidTotal={creditActivity?.totalPaid ?? null}
+                            paidCount={creditActivity?.paymentCount ?? null}
+                            paidPeriodLabel={isToday ? "today" : "this week"}
+                          />
+                        ) : null}
+
+                        {canShowWebOrders &&
+                        !(salesEmpty && openWebOrders.length === 0) ? (
+                          <WebOrdersRail
+                            orders={openWebOrders}
+                            currency={currency}
+                            live={pulseLive}
+                            justUpdated={webOrdersJustUpdated}
+                            onInspect={openShopperHistory}
+                            className="sm:col-span-2 xl:col-span-1"
+                          />
+                        ) : null}
+                      </div>
+                    </section>
                   ) : null}
-                </>
+
+                  {/* 4 — Floor tape (phone / tablet; xl uses side column) */}
+                  {showTillStage && !galleryOpen ? (
+                    <section className="space-y-1.5 xl:hidden">
+                      <HubSectionLabel
+                        title={
+                          tickLanes.length > 1 ? "Till lanes" : "Floor tape"
+                        }
+                      />
+                      <div
+                        className={cn(
+                          "grid gap-2",
+                          dualLanes && "sm:grid-cols-2",
+                        )}
+                      >
+                        {tickLanes.map((lane, index) => (
+                          <RecentTicksRail
+                            key={lane.key}
+                            ticks={lane.ticks}
+                            drawouts={lane.drawouts}
+                            currency={currency}
+                            live={pulseLive}
+                            justUpdated={justUpdated && index === 0}
+                            title={lane.title}
+                            subtitle={lane.subtitle}
+                            showCashier={lane.showCashier}
+                            accent={lane.accent}
+                            laneIndex={dualLanes ? index : undefined}
+                            fillViewport={false}
+                            className="max-h-[18rem]"
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+
+                  {/* 5 — Trend */}
+                  {salesEmpty ? null : (
+                    <section className="space-y-1.5">
+                      <HubSectionLabel
+                        title="Trend"
+                        meta={isToday ? "12 days" : "7 days"}
+                      />
+                      <RevenueBarChart
+                        points={chartPoints}
+                        ariaLabel={chartAriaLabel}
+                        caption={chartCaption}
+                        title={
+                          isToday ? "Twelve-day runway" : "Seven-day runway"
+                        }
+                      />
+                    </section>
+                  )}
+
+                  {/* 6 — Stock */}
+                  {(stockItems.length > 0 || showMovers) ? (
+                    <section className="space-y-1.5">
+                      <HubSectionLabel title="Stock" />
+                      <div
+                        className={cn(
+                          "grid gap-2",
+                          stockItems.length > 0 &&
+                            showMovers &&
+                            "lg:grid-cols-[1.4fr_0.6fr] lg:items-start",
+                        )}
+                      >
+                        <StockHealthPanel items={stockItems} />
+                        {showMovers ? (
+                          <TopMoversPanel movers={topMovers} />
+                        ) : null}
+                      </div>
+                    </section>
+                  ) : null}
+
+                  {/* 7 — Destinations */}
+                  <CommandGrid links={commandLinks} />
+                </div>
               )}
             </div>
 
