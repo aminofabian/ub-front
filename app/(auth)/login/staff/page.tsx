@@ -96,8 +96,6 @@ function LoginPageContent() {
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
   const isOffice = isOfficeLoginMode(searchParams);
-  const secretIsPin = !isOffice && looksLikeStaffPin(secret);
-
   useEffect(() => {
     if (searchParams.get("switch") === "1") {
       return;
@@ -649,25 +647,16 @@ function LoginPageContent() {
               <div className="relative">
                 <input
                   id="login-secret"
-                  className={cn(
-                    authInputClassName,
-                    "pr-12 transition-[letter-spacing,font-size]",
-                    secretIsPin &&
-                      "text-center text-2xl font-semibold tracking-[0.35em]",
-                  )}
+                  className={cn(authInputClassName, "pr-12")}
                   type={showSecret ? "text" : "password"}
                   name="password"
-                  placeholder={
-                    isOffice
-                      ? "Office password"
-                      : secretIsPin
-                        ? "••••"
-                        : "PIN or password"
-                  }
+                  placeholder={isOffice ? "Office password" : "PIN or password"}
                   value={secret}
                   onChange={(event) => setSecret(event.target.value)}
                   autoComplete="current-password"
-                  inputMode={secretIsPin ? "numeric" : "text"}
+                  // Do not flip to numeric mid-entry — passwords that start with
+                  // digits must stay on a full keyboard. PIN vs password is decided on submit.
+                  inputMode="text"
                   required
                 />
                 <button
@@ -686,9 +675,7 @@ function LoginPageContent() {
               <p className="mt-1.5 text-xs text-muted-foreground">
                 {isOffice
                   ? "Cashiers at the counter can still enter a 4–6 digit till PIN here."
-                  : secretIsPin
-                    ? "Recognized as a till PIN — your assigned branch is used automatically."
-                    : "4–6 digit PIN for the till, or your office password."}
+                  : "4–6 digit PIN for the till, or your office password."}
               </p>
             </div>
             {errorMessage ? (

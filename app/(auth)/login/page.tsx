@@ -254,21 +254,16 @@ function CustomerLoginPageContent() {
           <div className="relative">
             <input
               id="login-password"
-              className={cn(
-                authInputClassName,
-                "pr-12 transition-[letter-spacing,font-size]",
-                looksLikeStaffPin(password) &&
-                  "text-center text-2xl font-semibold tracking-[0.35em]",
-              )}
+              className={cn(authInputClassName, "pr-12")}
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder={
-                looksLikeStaffPin(password) ? "••••" : "PIN or password"
-              }
+              placeholder="PIN or password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              inputMode={looksLikeStaffPin(password) ? "numeric" : "text"}
+              // Keep text keyboard: live PIN detection used to flip to numeric after
+              // 4 digits and blocked passwords that start with numbers.
+              inputMode="text"
               required
             />
             <button

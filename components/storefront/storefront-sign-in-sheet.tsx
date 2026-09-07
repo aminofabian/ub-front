@@ -847,7 +847,9 @@ export function UnifiedSignInForm({
           <input
             type={showSecret ? "text" : "password"}
             autoComplete="current-password"
-            inputMode={kind === "phone" || looksLikeStaffPin(secret) ? "numeric" : "text"}
+            // Phone-only PIN: numeric keyboard. Email / mixed secret: keep text so a
+            // password that starts with digits is not trapped on a number pad.
+            inputMode={kind === "phone" ? "numeric" : "text"}
             value={secret}
             onChange={(e) =>
               setSecret(
@@ -860,7 +862,7 @@ export function UnifiedSignInForm({
             className={cn(
               fieldClass,
               "pr-10",
-              (kind === "phone" || looksLikeStaffPin(secret)) &&
+              kind === "phone" &&
                 "text-center text-xl font-semibold tracking-[0.35em]",
             )}
             placeholder={kind === "phone" ? "••••" : "Your PIN or password"}
