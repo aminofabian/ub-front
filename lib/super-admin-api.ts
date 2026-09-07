@@ -46,6 +46,8 @@ export type SaBusinessRow = {
   createdAt: string;
   updatedAt: string;
   globalCatalogCode?: string | null;
+  /** Owner shop phone when linked; omitted/null when unset. */
+  ownerPhone?: string | null;
 };
 
 export type SaDomainRow = {

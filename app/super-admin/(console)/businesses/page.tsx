@@ -220,11 +220,13 @@ export default function SuperAdminBusinessesPage() {
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((b) => {
+      const phone = b.ownerPhone?.trim().toLowerCase() ?? "";
       if (
         q &&
         !b.name.toLowerCase().includes(q) &&
         !b.slug.toLowerCase().includes(q) &&
-        !b.id.toLowerCase().includes(q)
+        !b.id.toLowerCase().includes(q) &&
+        !phone.includes(q)
       ) {
         return false;
       }
@@ -559,7 +561,7 @@ export default function SuperAdminBusinessesPage() {
                 id="sa-tenant-search"
                 value={search}
                 onChange={(ev) => setSearch(ev.target.value)}
-                placeholder="Search name, slug, or tenant ID"
+                placeholder="Search name, slug, phone, or ID"
                 className={cn(
                   "h-9 rounded-lg border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_12%,transparent)] bg-white pl-8 shadow-none",
                   search ? "pr-9" : "sm:pr-12",
@@ -729,6 +731,14 @@ export default function SuperAdminBusinessesPage() {
                             {b.name}
                           </Link>
                           <p className="truncate font-mono text-xs text-muted-foreground">{b.slug}</p>
+                          {b.ownerPhone?.trim() ? (
+                            <a
+                              href={`tel:${b.ownerPhone.trim()}`}
+                              className="mt-0.5 block truncate text-xs tabular-nums text-muted-foreground hover:text-[var(--sa-accent,#6366f1)]"
+                            >
+                              {b.ownerPhone.trim()}
+                            </a>
+                          ) : null}
                         </div>
                         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
                           {stuckIds.has(b.id) ? <Badge variant="warning">Stuck</Badge> : null}
@@ -757,7 +767,7 @@ export default function SuperAdminBusinessesPage() {
             </ul>
 
             <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full min-w-[720px] text-left text-sm">
+              <table className="w-full min-w-[820px] text-left text-sm">
                 <thead className="border-b border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_4%,transparent)] text-[11px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_42%,transparent)]">
                   <tr>
                     <th className="w-12 px-4 py-3">
@@ -770,6 +780,7 @@ export default function SuperAdminBusinessesPage() {
                       />
                     </th>
                     <th className="px-4 py-3 font-medium">Tenant</th>
+                    <th className="px-4 py-3 font-medium">Phone</th>
                     <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium">Tier</th>
                     <th className="px-4 py-3 font-medium">Created</th>
@@ -818,6 +829,18 @@ export default function SuperAdminBusinessesPage() {
                               </Badge>
                             ) : null}
                           </div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-muted-foreground">
+                          {b.ownerPhone?.trim() ? (
+                            <a
+                              href={`tel:${b.ownerPhone.trim()}`}
+                              className="text-[var(--sa-ink,#0f172a)] hover:text-[var(--sa-accent,#6366f1)]"
+                            >
+                              {b.ownerPhone.trim()}
+                            </a>
+                          ) : (
+                            <span className="text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_28%,transparent)]">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-2.5">
                           <Badge variant={b.active ? "success" : "secondary"}>
