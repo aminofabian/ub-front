@@ -3,10 +3,29 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Lock, LockKeyhole, MapPin, Settings2 } from "lucide-react";
+import {
+  BookOpen,
+  Building2,
+  FileText,
+  Lock,
+  LockKeyhole,
+  LogOut,
+  MapPin,
+  MonitorSmartphone,
+  Receipt,
+  Settings2,
+  ShoppingBag,
+} from "lucide-react";
 
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
 import { RegisterTillControl } from "@/components/auth/register-till-control";
+import {
+  CashierBottomNav,
+  CashierMobileChromeProvider,
+  MoreRow,
+  MoreSection,
+  useCashierMobileChrome,
+} from "@/components/cashier/cashier-app-chrome";
 import { CashierAdminCapabilitiesModal } from "@/components/cashier/cashier-admin-capabilities-modal";
 import { CashierReceiptShopModal } from "@/components/cashier/cashier-receipt-shop-modal";
 import { BranchRequiredBanner } from "@/components/branch-required-banner";
@@ -22,6 +41,7 @@ import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import { APP_ROUTES } from "@/lib/config";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { OPEN_REGISTER_TILL_EVENT } from "@/lib/pos-guidance";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import {
@@ -152,58 +172,133 @@ export function CashierShell({ children }: CashierShellProps) {
     return () => window.removeEventListener("ub:open-receipt-shop", onOpen);
   }, []);
 
-  return (
-    <div
-      className="flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden pos-market-paper"
-      style={brandTheme}
-    >
-      <header
-        className={cn(
-          "shrink-0 z-10 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
-          "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_82%,transparent)] backdrop-blur-md",
-          "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_72%,transparent)]",
-          "dark:border-border/50 dark:bg-background/90",
-          isLedger && "hidden",
-        )}
-      >
-        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2 sm:px-4 xl:flex-nowrap">
-          <div className="flex min-w-0 shrink-0 flex-col gap-1">
-            <span className="pos-market-section-label truncate text-[1.05rem] leading-none sm:text-lg">
-              {loading ? "Loading…" : business?.name?.trim() || "Cashier"}
-            </span>
-            <div className="flex min-w-0 items-center gap-2">
-              {(cashierName && !loading) || tillLabel ? (
-                <p
-                  className="max-w-52 truncate text-[11px] font-medium text-muted-foreground"
-                  title={[cashierName, tillLabel].filter(Boolean).join(" · ")}
-                >
-                  {[cashierName && !loading ? cashierName : null, tillLabel]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              ) : null}
-              <span
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]",
-                  online
-                    ? "border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] text-[var(--pos-primary)]"
-                    : "border-amber-700/25 bg-amber-100/80 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100",
-                )}
+  const shellMore = (
+    <>
+      {canManageCashierCapabilities || roleKey !== "cashier" ? (
+        <MoreSection label="This till">
+          {canManageCashierCapabilities ? (
+            <>
+              <MoreRow
+                icon={Settings2}
+                onClick={() => {
+                  setCapsOpen(true);
+                }}
               >
+                Till settings
+              </MoreRow>
+              <MoreRow
+                icon={MonitorSmartphone}
+                disabled={tillLocked || !branchId}
+                onClick={() => {
+                  window.dispatchEvent(new Event(OPEN_REGISTER_TILL_EVENT));
+                }}
+              >
+                Register till
+              </MoreRow>
+            </>
+          ) : null}
+          {roleKey !== "cashier" ? (
+            <MoreRow
+              icon={Receipt}
+              onClick={() => setReceiptShopOpen(true)}
+            >
+              Receipt details
+            </MoreRow>
+          ) : null}
+        </MoreSection>
+      ) : null}
+      {roleKey !== "cashier" ? (
+        <MoreSection label="Pages">
+          <MoreRow icon={BookOpen} href={APP_ROUTES.paymentsDayLedger}>
+            Ledger
+          </MoreRow>
+          <MoreRow icon={ShoppingBag} href={APP_ROUTES.sales}>
+            Sales
+          </MoreRow>
+          <MoreRow icon={Building2} href={APP_ROUTES.business}>
+            Business
+          </MoreRow>
+          <MoreRow icon={FileText} href={APP_ROUTES.salesQuick} tone="leave">
+            Admin sale
+          </MoreRow>
+        </MoreSection>
+      ) : null}
+      <MoreSection label="Session">
+        <MoreRow
+          icon={LockKeyhole}
+          disabled={tillLocked}
+          onClick={() => lockTill({ reason: "manual" })}
+        >
+          Lock till
+        </MoreRow>
+        <MoreRow
+          icon={LogOut}
+          tone="leave"
+          onClick={() => {
+            void logoutRemoteAndRedirectToLogin().catch(() => undefined);
+          }}
+        >
+          Log out
+        </MoreRow>
+      </MoreSection>
+    </>
+  );
+
+  return (
+    <CashierMobileChromeProvider
+      shellMore={<ShellMoreCloseOnNavigate>{shellMore}</ShellMoreCloseOnNavigate>}
+    >
+      <div
+        className="relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden pos-market-paper"
+        style={brandTheme}
+      >
+        <header
+          className={cn(
+            "shrink-0 z-10 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+            "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_82%,transparent)] backdrop-blur-md",
+            "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_72%,transparent)]",
+            "dark:border-border/50 dark:bg-background/90",
+            isLedger && "hidden",
+          )}
+        >
+          <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 sm:px-4 xl:flex-nowrap">
+            <div className="flex min-w-0 flex-1 flex-col gap-1 lg:flex-none lg:shrink-0">
+              <span className="pos-market-section-label truncate text-[1.05rem] leading-none sm:text-lg">
+                {loading ? "Loading…" : business?.name?.trim() || "Cashier"}
+              </span>
+              <div className="flex min-w-0 items-center gap-2">
+                {(cashierName && !loading) || tillLabel ? (
+                  <p
+                    className="max-w-52 truncate text-[11px] font-medium text-muted-foreground"
+                    title={[cashierName, tillLabel].filter(Boolean).join(" · ")}
+                  >
+                    {[cashierName && !loading ? cashierName : null, tillLabel]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                ) : null}
                 <span
                   className={cn(
-                    "size-1.5 rounded-full",
-                    online ? "bg-[var(--pos-primary)]" : "bg-amber-600",
+                    "inline-flex shrink-0 items-center gap-1.5 border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]",
+                    online
+                      ? "border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] text-[var(--pos-primary)]"
+                      : "border-amber-700/25 bg-amber-100/80 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100",
                   )}
-                  aria-hidden
-                />
-                {online ? "Online" : "Offline"}
-              </span>
-              <RealtimeConnectionIndicator />
+                >
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full",
+                      online ? "bg-[var(--pos-primary)]" : "bg-amber-600",
+                    )}
+                    aria-hidden
+                  />
+                  {online ? "Online" : "Offline"}
+                </span>
+                <RealtimeConnectionIndicator />
+              </div>
             </div>
-          </div>
 
-          <div className="order-3 flex w-full flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2 xl:order-none xl:w-auto xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
+            <div className="order-3 flex w-full flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2 lg:order-none lg:w-auto lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
               {branchLockedRole ? (
                 currentBranch ? (
                   <span
@@ -270,168 +365,213 @@ export function CashierShell({ children }: CashierShellProps) {
                   </>
                 )}
               </select>
-          </div>
 
-          <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-x-1 gap-y-1">
-            {canManageCashierCapabilities ? (
-              <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setCapsOpen(true)}
-                >
-                  <Settings2 className="size-3.5" aria-hidden />
-                  Till settings
-                </Button>
-                <RegisterTillControl
-                  branchId={branchId}
-                  disabled={tillLocked}
-                  onRegistered={(label) => setTillLabel(label)}
-                />
-              </>
-            ) : null}
-            {roleKey !== "cashier" ? (
-              <>
-                <div className="mx-0.5 hidden h-4 w-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] sm:block dark:bg-border/60" aria-hidden />
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <Link href={APP_ROUTES.paymentsDayLedger}>Ledger</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <Link href={APP_ROUTES.sales}>Sales</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <Link href={APP_ROUTES.business}>Business</Link>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setReceiptShopOpen(true)}
-                >
-                  Receipt details
-                </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <Link href={APP_ROUTES.salesQuick}>Admin sale</Link>
-                </Button>
-              </>
-            ) : null}
-            <PushNotificationsEnable
-              label="Push alerts"
-              className="hidden sm:block"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
+              {/* Mobile: quick lock only — everything else lives in More. */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="ml-auto h-7 gap-1 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent px-2 text-[11px] shadow-none lg:hidden"
+                disabled={tillLocked}
+                onClick={() => lockTill({ reason: "manual" })}
+              >
+                <LockKeyhole className="size-3.5" aria-hidden />
+                Lock
+              </Button>
+            </div>
+
+            <div className="ml-auto hidden shrink-0 flex-wrap items-center justify-end gap-x-1 gap-y-1 lg:flex">
+              {canManageCashierCapabilities ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => setCapsOpen(true)}
+                  >
+                    <Settings2 className="size-3.5" aria-hidden />
+                    Till settings
+                  </Button>
+                  <RegisterTillControl
+                    branchId={branchId}
+                    disabled={tillLocked}
+                    onRegistered={(label) => setTillLabel(label)}
+                  />
+                </>
+              ) : null}
+              {roleKey !== "cashier" ? (
+                <>
+                  <div
+                    className="mx-0.5 hidden h-4 w-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] sm:block dark:bg-border/60"
+                    aria-hidden
+                  />
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Link href={APP_ROUTES.paymentsDayLedger}>Ledger</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Link href={APP_ROUTES.sales}>Sales</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Link href={APP_ROUTES.business}>Business</Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => setReceiptShopOpen(true)}
+                  >
+                    Receipt details
+                  </Button>
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Link href={APP_ROUTES.salesQuick}>Admin sale</Link>
+                  </Button>
+                </>
+              ) : null}
+              <PushNotificationsEnable
+                label="Push alerts"
+                className="hidden sm:block"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
+                disabled={tillLocked}
+                onClick={() => lockTill({ reason: "manual" })}
+              >
+                <LockKeyhole className="size-3.5" aria-hidden />
+                Lock till
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
+                onClick={() => {
+                  void logoutRemoteAndRedirectToLogin().catch(() => undefined);
+                }}
+              >
+                Log out
+              </Button>
+            </div>
+          </div>
+        </header>
+        <BranchRequiredBanner />
+        <PosReadinessBanner />
+        <main
+          className={cn(
+            "mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden",
+            isLedger
+              ? "max-w-none p-0"
+              : "max-w-[1600px] px-3 py-1.5 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:px-4 sm:py-2 lg:pb-2",
+          )}
+        >
+          {children}
+        </main>
+
+        {!isLedger ? <CashierBottomNav /> : null}
+
+        {/* Keep RegisterTillControl mounted so the event listener works on mobile. */}
+        {canManageCashierCapabilities ? (
+          <div className="hidden">
+            <RegisterTillControl
+              branchId={branchId}
               disabled={tillLocked}
-              onClick={() => lockTill({ reason: "manual" })}
-            >
-              <LockKeyhole className="size-3.5" aria-hidden />
-              Lock till
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
-              onClick={() => {
-                void logoutRemoteAndRedirectToLogin().catch(() => undefined);
-              }}
-            >
-              Log out
-            </Button>
+              onRegistered={(label) => setTillLabel(label)}
+            />
           </div>
-        </div>
-      </header>
-      <BranchRequiredBanner />
-      <PosReadinessBanner />
-      <main
-        className={cn(
-          "mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden",
-          isLedger
-            ? "max-w-none p-0"
-            : "max-w-[1600px] px-3 py-1.5 sm:px-4 sm:py-2",
-        )}
-      >
-        {children}
-      </main>
+        ) : null}
 
-      {canManageCashierCapabilities ? (
-        <CashierAdminCapabilitiesModal
-          open={capsOpen}
-          onOpenChange={setCapsOpen}
-          brandTheme={brandTheme}
-          priceEditEnabled={
-            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.priceEdit] === true
-          }
-          createProductEnabled={
-            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true
-          }
-          weighedToggleEnabled={
-            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] !== false
-          }
-          addPhotoEnabled={
-            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.addPhoto] === true
-          }
-          orderPadEnabled={
-            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderPad] !== false
-          }
-          orderConfirmEnabled={
-            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false
-          }
-          drawoutEnabled={
-            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.drawout] === true
-          }
-          drawoutAccess={business?.cashierDrawout}
-          catalogHybridEnabled={
-            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true
-          }
-          branchId={branchId}
-          onSaved={() => refreshSession()}
-        />
-      ) : null}
+        {canManageCashierCapabilities ? (
+          <CashierAdminCapabilitiesModal
+            open={capsOpen}
+            onOpenChange={setCapsOpen}
+            brandTheme={brandTheme}
+            priceEditEnabled={
+              featureFlags[POS_CASHIER_CAPABILITY_FLAGS.priceEdit] === true
+            }
+            createProductEnabled={
+              featureFlags[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true
+            }
+            weighedToggleEnabled={
+              featureFlags[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] !== false
+            }
+            addPhotoEnabled={
+              featureFlags[POS_CASHIER_CAPABILITY_FLAGS.addPhoto] === true
+            }
+            orderPadEnabled={
+              featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderPad] !== false
+            }
+            orderConfirmEnabled={
+              featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false
+            }
+            drawoutEnabled={
+              featureFlags[POS_CASHIER_CAPABILITY_FLAGS.drawout] === true
+            }
+            drawoutAccess={business?.cashierDrawout}
+            catalogHybridEnabled={
+              featureFlags[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true
+            }
+            branchId={branchId}
+            onSaved={() => refreshSession()}
+          />
+        ) : null}
 
-      {roleKey !== "cashier" ? (
-        <CashierReceiptShopModal
-          open={receiptShopOpen}
-          onOpenChange={setReceiptShopOpen}
-          brandTheme={brandTheme}
-          shopName={business?.name?.trim() || ""}
-          branchId={branchId}
-          branchName={currentBranch?.name}
-          branchAddress={currentBranch?.address}
-          branchReceipt={currentBranch?.receipt}
-          lastReceiptNo={business?.lastReceiptNo}
-          nextReceiptNo={business?.nextReceiptNo}
-          onSaved={async () => {
-            await Promise.all([refreshSession(), refreshBranches()]);
-          }}
-        />
-      ) : null}
+        {roleKey !== "cashier" ? (
+          <CashierReceiptShopModal
+            open={receiptShopOpen}
+            onOpenChange={setReceiptShopOpen}
+            brandTheme={brandTheme}
+            shopName={business?.name?.trim() || ""}
+            branchId={branchId}
+            branchName={currentBranch?.name}
+            branchAddress={currentBranch?.address}
+            branchReceipt={currentBranch?.receipt}
+            lastReceiptNo={business?.lastReceiptNo}
+            nextReceiptNo={business?.nextReceiptNo}
+            onSaved={async () => {
+              await Promise.all([refreshSession(), refreshBranches()]);
+            }}
+          />
+        ) : null}
+      </div>
+    </CashierMobileChromeProvider>
+  );
+}
+
+/** Closes the More sheet when a shell row is activated. */
+function ShellMoreCloseOnNavigate({ children }: { children: React.ReactNode }) {
+  const chrome = useCashierMobileChrome();
+  return (
+    <div
+      onClick={(e) => {
+        const t = e.target as HTMLElement | null;
+        if (t?.closest("a,button")) chrome?.closeMore();
+      }}
+    >
+      {children}
     </div>
   );
 }

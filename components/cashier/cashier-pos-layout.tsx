@@ -98,6 +98,15 @@ import { CashierEditPriceModal } from "./cashier-edit-price-modal";
 import { CashierCreditTabsModal } from "./cashier-credit-tabs-modal";
 import { CashierReceiveTillDrawer } from "./cashier-receive-till-drawer";
 import { CashierSuppliersModal } from "./cashier-suppliers-modal";
+import {
+  CASHIER_FOCUS_SELL_EVENT,
+  CASHIER_OPEN_CART_EVENT,
+  CASHIER_RUN_TOOL_EVENT,
+  dispatchCashierCartSummary,
+  dispatchCashierTools,
+  type CashierMobileTool,
+  type CashierMobileToolId,
+} from "@/lib/cashier-mobile-events";
 
 const POS_SHIFT_CHIP_CLASS = cn(
   "inline-flex items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-transparent px-2.5 py-1.5 text-xs font-medium tracking-tight text-foreground",
@@ -1095,14 +1104,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       window.setTimeout(() => {
         setJustAddedId((cur) => (cur === itemId ? null : cur));
       }, 700);
-      if (!isLg) {
-        setCheckoutDrawerOpen(true);
-      } else {
-        // Keep the wedge / keyboard ready for the next scan.
+      // Mobile: keep the shelf open so cashiers can keep tapping products;
+      // cart lives in the bottom tab. Desktop: open the side panel flow.
+      if (isLg) {
         window.requestAnimationFrame(() => focusSearch(true));
       }
     },
-    [isLg, setCheckoutDrawerOpen, focusSearch],
+    [isLg, focusSearch],
   );
 
   // Guard against concurrent barcode resolves (wedge can fire faster than fetch).
@@ -1491,9 +1499,168 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     },
   });
 
-  const cartFabBottomClass = embeddedInDashboard
-    ? "bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] sm:bottom-6"
-    : "bottom-4 sm:bottom-6";
+  // Publish cart badge + available tools to the cashier mobile bottom nav / More sheet.
+  useEffect(() => {
+    if (embeddedInDashboard) return;
+    const active =
+      cartTabs.find((t) => t.id === activeCartId) ?? cartTabs[0] ?? null;
+    dispatchCashierCartSummary({
+      itemCount: active?.itemCount ?? cart.lines.length,
+      total: active?.grandTotal ?? cart.grandTotal,
+      currency,
+      label: active?.label ?? "Sale",
+    });
+  }, [
+    embeddedInDashboard,
+    cartTabs,
+    activeCartId,
+    cart.lines.length,
+    cart.grandTotal,
+    currency,
+  ]);
+
+  useEffect(() => {
+    if (embeddedInDashboard || isLg) {
+      dispatchCashierTools([]);
+      return;
+    }
+    const tools: CashierMobileTool[] = [];
+    if (allowCreditTabs) {
+      tools.push({
+        id: "credit-tabs",
+        label: "Credit tabs",
+        section: "sale",
+      });
+    }
+    if (allowAirtime) {
+      tools.push({ id: "airtime", label: "Airtime", section: "sale" });
+    }
+    if (allowOrderPad) {
+      tools.push({ id: "order-pad", label: "Order pad", section: "sale" });
+    }
+    if (allowCreateProduct) {
+      tools.push({
+        id: "add-product",
+        label: "Add product",
+        section: "stock",
+      });
+    }
+    if (allowManageSuppliers) {
+      tools.push({ id: "suppliers", label: "Suppliers", section: "stock" });
+    }
+    if (allowSupplierOrder) {
+      tools.push({
+        id: "supplier-order",
+        label: "Supplier order",
+        section: "stock",
+      });
+    }
+    if (allowOrderConfirm) {
+      tools.push({
+        id: "order-confirm",
+        label: "Confirm order",
+        section: "stock",
+      });
+    }
+    if (posShiftLinks?.branchSelected) {
+      if (posShiftLinks.canDrawout && posShiftLinks.hasOpenShift) {
+        tools.push({ id: "drawout", label: "Drawout", section: "shift" });
+      }
+      if (posShiftLinks.canOpenShift && !posShiftLinks.hasOpenShift) {
+        tools.push({
+          id: "open-shift",
+          label: "Open shift",
+          section: "shift",
+        });
+      }
+      if (posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift) {
+        tools.push({
+          id: "close-shift",
+          label: "Close shift",
+          section: "shift",
+          tone: "danger",
+        });
+      }
+    }
+    dispatchCashierTools(tools);
+    return () => dispatchCashierTools([]);
+  }, [
+    embeddedInDashboard,
+    isLg,
+    allowCreditTabs,
+    allowAirtime,
+    allowOrderPad,
+    allowCreateProduct,
+    allowManageSuppliers,
+    allowSupplierOrder,
+    allowOrderConfirm,
+    posShiftLinks,
+  ]);
+
+  useEffect(() => {
+    if (embeddedInDashboard) return;
+    const onFocusSell = () => {
+      setCheckoutDrawerOpen(false);
+      focusSearch(true);
+    };
+    const onOpenCart = () => setCheckoutDrawerOpen(true);
+    const onRunTool = (e: Event) => {
+      const id = (e as CustomEvent<CashierMobileToolId>).detail;
+      switch (id) {
+        case "add-product":
+          setCreateProductOpen(true);
+          break;
+        case "suppliers":
+          setSuppliersOpen(true);
+          break;
+        case "credit-tabs":
+          setCreditTabsOpen(true);
+          break;
+        case "order-pad":
+          setOrderPadOpen(true);
+          break;
+        case "supplier-order":
+          setSupplierOrderOpen(true);
+          break;
+        case "order-confirm":
+          setOrderConfirmOpen(true);
+          break;
+        case "airtime":
+          window.dispatchEvent(new Event("ub:open-airtime"));
+          break;
+        case "drawout":
+          posShiftLinks?.onShortcut("new-drawout");
+          break;
+        case "open-shift":
+          posShiftLinks?.onShortcut("open-shift");
+          break;
+        case "close-shift":
+          posShiftLinks?.onShortcut("close-shift");
+          break;
+        default:
+          break;
+      }
+    };
+    window.addEventListener(CASHIER_FOCUS_SELL_EVENT, onFocusSell);
+    window.addEventListener(CASHIER_OPEN_CART_EVENT, onOpenCart);
+    window.addEventListener(CASHIER_RUN_TOOL_EVENT, onRunTool);
+    return () => {
+      window.removeEventListener(CASHIER_FOCUS_SELL_EVENT, onFocusSell);
+      window.removeEventListener(CASHIER_OPEN_CART_EVENT, onOpenCart);
+      window.removeEventListener(CASHIER_RUN_TOOL_EVENT, onRunTool);
+    };
+  }, [
+    embeddedInDashboard,
+    focusSearch,
+    setCheckoutDrawerOpen,
+    posShiftLinks,
+  ]);
+
+  const mobilePhone = !isLg && !embeddedInDashboard;
+  const tileCompact = compactShelf && !mobilePhone;
+
+  const cartDockBottomClass =
+    "bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] sm:bottom-6";
 
   return (
     <div
@@ -1501,7 +1668,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         "mx-auto w-full max-w-[1600px]",
         embeddedInDashboard
           ? "pos-market-paper max-w-none px-2 py-2 pb-28 sm:px-3 sm:py-3 lg:pb-6"
-          : "flex h-full min-h-0 flex-1 flex-col overflow-hidden pb-28 lg:pb-0",
+          : "flex h-full min-h-0 flex-1 flex-col overflow-hidden pb-4 lg:pb-0",
       )}
       style={brandTheme}
     >
@@ -1525,9 +1692,15 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         className={cn(
           "border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] dark:border-border/40",
           compactShelf ? "pb-1.5" : "pb-3",
+          mobilePhone && !offlineBanner && !tillPrinterStatus && "hidden",
         )}
       >
-        <div className="flex flex-wrap items-center justify-between gap-1.5">
+        <div
+          className={cn(
+            "flex flex-wrap items-center justify-between gap-1.5",
+            mobilePhone && "hidden",
+          )}
+        >
           <div className="min-w-0">
             {compactShelf ? (
               <div className="flex flex-wrap items-center gap-2">
@@ -1576,7 +1749,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               </>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="hidden flex-wrap items-center gap-1.5 lg:flex">
             {allowCreateProduct ? (
               <button
                 type="button"
@@ -1689,6 +1862,17 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             ) : null}
           </div>
         </div>
+        {/* Keep airtime mounted on phone so More → Airtime can open it. */}
+        {allowAirtime && mobilePhone ? (
+          <div className="sr-only" aria-hidden>
+            <AirtimeQuickAction
+              triggerClassName={POS_PRIMARY_CHIP_CLASS}
+              currency={currency}
+              channel="POS"
+              onAddToCart={onAddAirtimeToCart}
+            />
+          </div>
+        ) : null}
         {offlineBanner ? (
           <p className="mt-2 text-[10px] leading-snug text-amber-800 dark:text-amber-200">
             {offlineBanner}
@@ -2065,9 +2249,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             <div
               className={cn(
                 "grid gap-1.5 sm:gap-2",
-                compactShelf
-                  ? "grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
-                  : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
+                mobilePhone
+                  ? "min-h-[min(68dvh,36rem)] grid-cols-2 gap-2.5 content-start"
+                  : compactShelf
+                    ? "grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
+                    : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
               )}
             >
               {hits.map((item) => {
@@ -2086,7 +2272,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   showCategory={!sharedCategoryLabel}
                   cartQty={cartQtyByItem.get(item.id) ?? 0}
                   justAdded={justAddedId === item.id}
-                  compact={compactShelf}
+                  compact={tileCompact}
                   canAddPhoto={allowAddPhoto}
                   photoUploading={photoUploadingId === item.id}
                   onOpenPhotoPicker={
@@ -2151,9 +2337,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             <div
               className={cn(
                 "grid gap-1.5 sm:gap-2",
-                compactShelf
-                  ? "grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
-                  : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 lg:grid-cols-5",
+                mobilePhone
+                  ? "min-h-[min(68dvh,36rem)] grid-cols-2 gap-2.5 content-start"
+                  : compactShelf
+                    ? "grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
+                    : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 lg:grid-cols-5",
               )}
             >
               {topProducts.map((p) => {
@@ -2166,7 +2354,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   highValue={isHighValueTile(shelfLine)}
                   cartQty={cartQtyByItem.get(p.id) ?? 0}
                   justAdded={justAddedId === p.id}
-                  compact={compactShelf}
+                  compact={tileCompact}
                   canAddPhoto={allowAddPhoto}
                   photoUploading={photoUploadingId === p.id}
                   onOpenPhotoPicker={
@@ -2387,82 +2575,76 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         />
       </div>
 
-      {/* ── Stacked cart buttons (mobile / tablet) ─────────────────── */}
+      {/* Dashboard embed keeps a cart dock; /cashier phone uses bottom-nav Cart. */}
+      {embeddedInDashboard ? (
       <div
         className={cn(
-          "fixed left-1/2 z-30 flex -translate-x-1/2 flex-col-reverse items-stretch gap-2 lg:hidden",
-          cartFabBottomClass,
-          "sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end",
+          "fixed inset-x-3 z-30 lg:hidden",
+          cartDockBottomClass,
+          "sm:inset-x-auto sm:right-6 sm:left-auto sm:w-[min(100%-3rem,22rem)]",
         )}
       >
-        {[...cartTabs].reverse().map((tab) => {
-          const isActive = tab.id === activeCartId;
-          const hasItems = tab.itemCount > 0;
+        {(() => {
+          const active =
+            cartTabs.find((t) => t.id === activeCartId) ?? cartTabs[0];
+          if (!active) return null;
+          const hasItems = active.itemCount > 0;
           return (
             <button
-              key={tab.id}
               type="button"
-              onClick={() => {
-                if (!isActive) onSwitchCart(tab.id);
-                setCheckoutDrawerOpen(true);
-              }}
+              onClick={() => setCheckoutDrawerOpen(true)}
               className={cn(
-                "flex items-center gap-2.5 rounded-2xl px-3.5 py-2 shadow-lg transition-all duration-200",
-                "hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                isActive
-                  ? "z-30 scale-100 opacity-100"
-                  : "z-20 scale-[0.94] opacity-85 hover:opacity-100",
+                "flex w-full items-center gap-3 px-4 py-3 transition-transform duration-200",
+                "active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
                 pulseCart &&
-                  isActive &&
                   "ring-[3px] ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] ring-offset-2 ring-offset-[var(--pos-paper,#f1ece3)] dark:ring-offset-background",
               )}
               style={{
-                backgroundColor: isActive
-                  ? "var(--pos-primary)"
-                  : "color-mix(in srgb, var(--pos-primary) 65%, var(--muted-foreground))",
+                backgroundColor: "var(--pos-primary)",
                 color: "var(--pos-primary-ink)",
-                boxShadow: isActive
-                  ? "0 4px 6px -1px color-mix(in srgb, var(--pos-primary) 18%, transparent), 0 12px 28px -8px color-mix(in srgb, var(--pos-primary) 32%, transparent)"
-                  : "0 2px 4px -1px color-mix(in srgb, var(--pos-primary) 12%, transparent), 0 6px 14px -6px color-mix(in srgb, var(--pos-primary) 20%, transparent)",
+                boxShadow:
+                  "0 8px 24px -10px color-mix(in srgb, var(--pos-primary) 55%, transparent)",
               }}
-              aria-label={`${isActive ? "Open" : "Switch to"} ${tab.label}${hasItems ? ` · ${tab.grandTotal.toFixed(2)}` : ""}`}
+              aria-label={`Open cart ${active.label}${hasItems ? ` · ${active.grandTotal.toFixed(2)}` : ""}`}
             >
-              <span className="relative inline-flex size-7 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary-ink)_12%,transparent)] sm:size-8">
-                <ShoppingCart className="size-3.5 sm:size-4" />
+              <span className="relative inline-flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary-ink)_12%,transparent)]">
+                <ShoppingCart className="size-4" />
                 {hasItems ? (
                   <span
-                    className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center text-[9px] font-bold shadow sm:size-5 sm:text-[10px]"
+                    className="absolute -right-1 -top-1 inline-flex size-5 items-center justify-center text-[10px] font-bold shadow"
                     style={{
                       backgroundColor: "var(--pos-primary-ink)",
                       color: "var(--pos-primary)",
                     }}
                   >
-                    {tab.itemCount > 99 ? "99+" : tab.itemCount}
+                    {active.itemCount > 99 ? "99+" : active.itemCount}
                   </span>
                 ) : null}
               </span>
-              <span className="flex min-w-[7rem] flex-col items-stretch leading-none">
-                <span className="max-w-[10rem] truncate text-[10px] font-medium uppercase tracking-wide opacity-80">
-                  {hasItems ? tab.label : `${tab.label} · empty`}
+              <span className="flex min-w-0 flex-1 flex-col items-stretch leading-none">
+                <span className="truncate text-[10px] font-medium uppercase tracking-wide opacity-80">
+                  {hasItems ? active.label : `${active.label} · empty`}
                 </span>
                 {hasItems ? (
-                  <span className="mt-0.5 flex items-end gap-1">
+                  <span className="mt-1 flex items-end gap-1">
                     <CashierDottedLeader onPrimary />
-                    <span className="inline-flex shrink-0 items-baseline gap-0.5 text-sm font-semibold tabular-nums">
-                      <span>{tab.grandTotal.toFixed(2)}</span>
+                    <span className="inline-flex shrink-0 items-baseline gap-0.5 text-base font-semibold tabular-nums">
+                      <span>{active.grandTotal.toFixed(2)}</span>
                       <CashierCurrencySuffix code={currency} onPrimary />
                     </span>
                   </span>
                 ) : (
-                  <span className="mt-0.5 text-[10px] opacity-60">
-                    No items
+                  <span className="mt-1 text-[11px] opacity-70">
+                    Tap products to add · open cart to pay
                   </span>
                 )}
               </span>
+              <ArrowRight className="size-4 shrink-0 opacity-80" aria-hidden />
             </button>
           );
-        })}
+        })()}
       </div>
+      ) : null}
 
       <input
         ref={photoFileInputRef}

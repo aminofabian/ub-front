@@ -51,6 +51,15 @@ export function AirtimeQuickAction({
     };
   }, []);
 
+  useEffect(() => {
+    const onOpen = () => {
+      onTrigger?.();
+      setOpen(true);
+    };
+    window.addEventListener("ub:open-airtime", onOpen);
+    return () => window.removeEventListener("ub:open-airtime", onOpen);
+  }, [onTrigger]);
+
   const offerable =
     availability?.platformEnabled === true &&
     availability?.businessEnabled === true &&

@@ -4566,6 +4566,9 @@ export function QuickSaleWorkspace({
           className={cn(
             "flex items-center justify-between px-1",
             isCashier ? "shrink-0 pb-0.5" : "pb-2",
+            // On phone the shelf is the product; tuck Pending / Invoices into a
+            // single trailing chip row that doesn't steal vertical space.
+            isCashier && "max-lg:pb-1",
           )}
         >
           {!isCashier ? (
@@ -4575,7 +4578,12 @@ export function QuickSaleWorkspace({
           ) : (
             <span className="sr-only">{activeBranchName || "Point of sale"}</span>
           )}
-          <div className={cn("flex items-center gap-2", isCashier && "ml-auto")}>
+          <div
+            className={cn(
+              "flex items-center gap-2",
+              isCashier && "ml-auto max-lg:max-w-full max-lg:gap-1 max-lg:overflow-x-auto",
+            )}
+          >
             {pendingExtras}
           </div>
         </div>
