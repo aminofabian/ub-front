@@ -44,6 +44,7 @@ import { AirtimeQuickAction } from "@/components/airtime/airtime-quick-action";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { useDashboard } from "@/components/dashboard-provider";
 import { TenantOrderDrawer } from "@/components/order/tenant-order-drawer";
+import { OrderPadDrawer } from "@/components/order-pad/order-pad-drawer";
 import { PosVariantPicker } from "@/components/cashier/pos-variant-picker";
 import { CashierCartDrawer } from "@/components/cashier/cashier-cart-drawer";
 import { CashierCreateProductModal } from "@/components/cashier/cashier-create-product-modal";
@@ -163,6 +164,8 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     allowReceiveSupply = false,
     allowCreditTabs = false,
     allowOrderPad = false,
+    canWriteOrderPad = false,
+    allowSupplierOrder = false,
     allowOrderConfirm = false,
     allowClearSale = true,
     allowAirtime = false,
@@ -217,6 +220,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   } | null>(null);
   const [creditTabsOpen, setCreditTabsOpen] = useState(false);
   const [orderPadOpen, setOrderPadOpen] = useState(false);
+  const [supplierOrderOpen, setSupplierOrderOpen] = useState(false);
   const [orderConfirmOpen, setOrderConfirmOpen] = useState(false);
   const [variantPicker, setVariantPicker] = useState<{
     parent: ItemSummaryRecord;
@@ -1269,6 +1273,17 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                     Order pad
                   </MoreRow>
                 ) : null}
+                {allowSupplierOrder ? (
+                  <MoreRow
+                    icon={ShoppingBag}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      setSupplierOrderOpen(true);
+                    }}
+                  >
+                    Order
+                  </MoreRow>
+                ) : null}
                 {allowOrderConfirm ? (
                   <MoreRow
                     icon={ClipboardCheck}
@@ -1542,13 +1557,20 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
         receiptPrinter={cart.receiptPrinter}
       />
 
-      <TenantOrderDrawer
+      <OrderPadDrawer
         open={orderPadOpen}
         onOpenChange={setOrderPadOpen}
+        branchId={branchId}
+        canWrite={canWriteOrderPad}
+      />
+
+      <TenantOrderDrawer
+        open={supplierOrderOpen}
+        onOpenChange={setSupplierOrderOpen}
         onOpenConfirm={
           allowOrderConfirm
             ? () => {
-                setOrderPadOpen(false);
+                setSupplierOrderOpen(false);
                 setOrderConfirmOpen(true);
               }
             : undefined

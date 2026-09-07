@@ -401,7 +401,16 @@ export function QuickSaleWorkspace({
     variant === "cashier" && canPathBWrite && canViewSuppliers;
   const allowCreditTabs =
     variant === "cashier" && canCashierClearTabs(me, business);
+  /** Shared shopping-list pad — cashiers / stock managers have order_pad.write. */
   const allowOrderPad =
+    hasPermission(me?.permissions, Permission.OrderPadWrite) ||
+    hasPermission(me?.permissions, Permission.OrderPadRead);
+  const canWriteOrderPad = hasPermission(
+    me?.permissions,
+    Permission.OrderPadWrite,
+  );
+  /** Path A supplier Order drawer (PO + WhatsApp) — separate from the pad. */
+  const allowSupplierOrder =
     hasPermission(me?.permissions, Permission.PurchasingPathAWrite) &&
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderPad] !== false;
   const allowOrderConfirm =
@@ -4664,6 +4673,8 @@ export function QuickSaleWorkspace({
         allowReceiveSupply={allowReceiveSupply}
         allowCreditTabs={allowCreditTabs}
         allowOrderPad={allowOrderPad}
+        canWriteOrderPad={canWriteOrderPad}
+        allowSupplierOrder={allowSupplierOrder}
         allowOrderConfirm={allowOrderConfirm}
         allowClearSale={allowClearSale}
         allowAirtime={allowAirtime}

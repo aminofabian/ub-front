@@ -15,6 +15,7 @@ import {
   Camera,
   ChevronLeft,
   ClipboardCheck,
+  ClipboardList,
   Loader2,
   LogOut,
   Package,
@@ -33,6 +34,7 @@ import { toast } from "sonner";
 import { useOptionalPosTillLock } from "@/components/auth/pos-till-lock";
 import { CashierFirstSaleDrawer } from "@/components/cashier/cashier-first-sale-drawer";
 import { CashierOrderConfirmDrawer } from "@/components/cashier/cashier-order-confirm-drawer";
+import { OrderPadDrawer } from "@/components/order-pad/order-pad-drawer";
 import { TenantOrderDrawer } from "@/components/order/tenant-order-drawer";
 import { Button } from "@/components/ui/button";
 import {
@@ -268,8 +270,12 @@ export type CashierPosLayoutProps = {
   allowReceiveSupply?: boolean;
   /** View / propose credit tab clearances from POS. */
   allowCreditTabs?: boolean;
-  /** Add lines to the shared order pad. */
+  /** Open the shared shopping-list order pad. */
   allowOrderPad?: boolean;
+  /** Allow adding / removing lines on the shared order pad. */
+  canWriteOrderPad?: boolean;
+  /** Path A supplier Order drawer (place PO + WhatsApp). */
+  allowSupplierOrder?: boolean;
   /** Confirm Path A purchase orders from the till. */
   allowOrderConfirm?: boolean;
   /** One-tap Clear sale beside Checkout / Pay (tenant setting). */
@@ -963,6 +969,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     allowReceiveSupply = false,
     allowCreditTabs = false,
     allowOrderPad = false,
+    canWriteOrderPad = false,
+    allowSupplierOrder = false,
     allowOrderConfirm = false,
     allowClearSale = true,
     allowAirtime = false,
@@ -996,6 +1004,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   } | null>(null);
   const [creditTabsOpen, setCreditTabsOpen] = useState(false);
   const [orderPadOpen, setOrderPadOpen] = useState(false);
+  const [supplierOrderOpen, setSupplierOrderOpen] = useState(false);
   const [orderConfirmOpen, setOrderConfirmOpen] = useState(false);
   const [editPriceKey, setEditPriceKey] = useState<string | null>(null);
   const allowManageSuppliers =
@@ -1221,6 +1230,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       !receiveTillOpen &&
       !creditTabsOpen &&
       !orderPadOpen &&
+      !supplierOrderOpen &&
       !orderConfirmOpen &&
       editPriceKey == null,
     onScan: applyBarcodeSearch,
@@ -1600,6 +1610,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               <button
                 type="button"
                 onClick={() => setOrderPadOpen(true)}
+                className={POS_PRIMARY_CHIP_CLASS}
+              >
+                <ClipboardList className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                Order pad
+              </button>
+            ) : null}
+            {allowSupplierOrder ? (
+              <button
+                type="button"
+                onClick={() => setSupplierOrderOpen(true)}
                 className={POS_PRIMARY_CHIP_CLASS}
               >
                 <ShoppingCart className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
@@ -2566,16 +2586,26 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         receiptPrinter={cart.receiptPrinter}
       />
 
-      <TenantOrderDrawer
+      <OrderPadDrawer
         open={orderPadOpen}
         onOpenChange={(o) => {
           setOrderPadOpen(o);
           if (!o) window.requestAnimationFrame(() => focusSearch());
         }}
+        branchId={branchId}
+        canWrite={canWriteOrderPad}
+      />
+
+      <TenantOrderDrawer
+        open={supplierOrderOpen}
+        onOpenChange={(o) => {
+          setSupplierOrderOpen(o);
+          if (!o) window.requestAnimationFrame(() => focusSearch());
+        }}
         onOpenConfirm={
           allowOrderConfirm
             ? () => {
-                setOrderPadOpen(false);
+                setSupplierOrderOpen(false);
                 setOrderConfirmOpen(true);
               }
             : undefined
