@@ -372,6 +372,7 @@ export type CashierPosLayoutProps = {
     | "onStartNewSale"
     | "onClearSale"
     | "receiptPrinter"
+    | "whatsappReceiptEnabled"
   >;
 };
 

@@ -205,6 +205,8 @@ export type CashierCartDrawerProps = {
   allowClearSale?: boolean;
   /** Branch CUPS / network printer for raw ESC/POS + cut. */
   receiptPrinter?: LocalReceiptPrinterTarget | null;
+  /** Branch setting: show WhatsApp digital receipt after sale. */
+  whatsappReceiptEnabled?: boolean;
 };
 
 function PayMethodChip({
@@ -347,6 +349,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     onClearSale,
     allowClearSale = true,
     receiptPrinter,
+    whatsappReceiptEnabled = false,
   } = props;
 
   const [linesOpen, setLinesOpen] = useState(false);
@@ -580,6 +583,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
               receiptLoading={receiptLoading}
               onStartNewSale={onStartNewSale}
               receiptPrinter={receiptPrinter}
+              whatsappReceiptEnabled={whatsappReceiptEnabled}
             />
           </>
         ) : (

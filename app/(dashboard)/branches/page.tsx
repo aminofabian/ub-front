@@ -37,6 +37,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { branchReceiptDraft, branchReceiptPayload } from "@/lib/branch-receipt";
@@ -765,6 +766,39 @@ export default function BranchesPage() {
                                       }
                                       aria-label={`Receipt footer for ${branch.name}`}
                                     />
+                                    <label
+                                      className="flex items-start justify-between gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2.5 sm:col-span-2"
+                                    >
+                                      <span className="min-w-0 space-y-0.5">
+                                        <span className="block text-sm font-medium text-foreground">
+                                          WhatsApp receipt
+                                        </span>
+                                        <span className="block text-xs leading-snug text-muted-foreground">
+                                          Let cashiers send a presentable digital
+                                          receipt to customers on WhatsApp after
+                                          checkout.
+                                        </span>
+                                      </span>
+                                      <Switch
+                                        size="sm"
+                                        checked={Boolean(
+                                          row.receipt.whatsappReceiptEnabled,
+                                        )}
+                                        onCheckedChange={(checked) =>
+                                          setEdits((prev) => ({
+                                            ...prev,
+                                            [branch.id]: {
+                                              ...row,
+                                              receipt: {
+                                                ...row.receipt,
+                                                whatsappReceiptEnabled: checked,
+                                              },
+                                            },
+                                          }))
+                                        }
+                                        aria-label={`WhatsApp receipt for ${branch.name}`}
+                                      />
+                                    </label>
                                   </div>
                                   <p className={dashboardHintClass()}>
                                     <strong className="font-medium text-foreground">

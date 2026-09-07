@@ -993,6 +993,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   receiptLoading={cart.receiptLoading}
                   onStartNewSale={newSale}
                   receiptPrinter={cart.receiptPrinter}
+                  whatsappReceiptEnabled={cart.whatsappReceiptEnabled}
                 />
               ) : (
                 <p className="p-4 text-sm text-zinc-500">

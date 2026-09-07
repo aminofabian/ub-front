@@ -6,6 +6,21 @@ export type BranchReceiptSettings = {
   footerNote: string | null;
   /** Spooler / CUPS / Windows printer name on the till PC (`lpstat -v` / Detect). */
   printerCupsName: string | null;
+  /**
+   * When enabled, cashiers get a WhatsApp action after sale to send a
+   * presentable digital receipt to the customer.
+   */
+  whatsappReceiptEnabled: boolean;
+};
+
+export type BranchReceiptDraft = {
+  phone: string;
+  email: string;
+  website: string;
+  tillNumber: string;
+  footerNote: string;
+  printerCupsName: string;
+  whatsappReceiptEnabled: boolean;
 };
 
 export const EMPTY_BRANCH_RECEIPT: BranchReceiptSettings = {
@@ -15,6 +30,7 @@ export const EMPTY_BRANCH_RECEIPT: BranchReceiptSettings = {
   tillNumber: null,
   footerNote: null,
   printerCupsName: null,
+  whatsappReceiptEnabled: false,
 };
 
 export function parseBranchReceipt(raw: unknown): BranchReceiptSettings {
@@ -34,12 +50,16 @@ export function parseBranchReceipt(raw: unknown): BranchReceiptSettings {
     tillNumber: text(o.tillNumber),
     footerNote: text(o.footerNote),
     printerCupsName: text(o.printerCupsName),
+    whatsappReceiptEnabled:
+      o.whatsappReceiptEnabled === true ||
+      o.whatsappReceiptEnabled === "true" ||
+      o.whatsappReceiptEnabled === 1,
   };
 }
 
 export function branchReceiptDraft(
   settings?: BranchReceiptSettings | null,
-): Record<keyof BranchReceiptSettings, string> {
+): BranchReceiptDraft {
   return {
     phone: settings?.phone ?? "",
     email: settings?.email ?? "",
@@ -47,11 +67,12 @@ export function branchReceiptDraft(
     tillNumber: settings?.tillNumber ?? "",
     footerNote: settings?.footerNote ?? "",
     printerCupsName: settings?.printerCupsName ?? "",
+    whatsappReceiptEnabled: Boolean(settings?.whatsappReceiptEnabled),
   };
 }
 
 export function branchReceiptPayload(
-  draft: Record<keyof BranchReceiptSettings, string>,
+  draft: BranchReceiptDraft,
 ): BranchReceiptSettings {
   const trim = (s: string) => {
     const t = s.trim();
@@ -64,6 +85,7 @@ export function branchReceiptPayload(
     tillNumber: trim(draft.tillNumber),
     footerNote: trim(draft.footerNote),
     printerCupsName: trim(draft.printerCupsName),
+    whatsappReceiptEnabled: Boolean(draft.whatsappReceiptEnabled),
   };
 }
 

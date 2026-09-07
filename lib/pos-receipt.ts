@@ -43,6 +43,8 @@ export type PosReceiptSnapshot = {
   /** Cash overpay parked on the customer wallet (instead of physical change). */
   walletCredited?: number | null;
   customerName?: string | null;
+  /** Customer phone when known (for WhatsApp share). */
+  customerPhone?: string | null;
   voided: boolean;
 };
 
@@ -103,6 +105,7 @@ export type BuildPosReceiptInput = {
   cartLines: CartSessionLine[];
   sale: SaleRecord;
   customerName?: string | null;
+  customerPhone?: string | null;
   /** Cash tendered by customer (full cash checkout only). */
   cashTendered?: number | null;
   clientSoldAt?: string;
@@ -128,15 +131,30 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
   });
 
   if (lines.length === 0 && sale.items?.length) {
+    const byLineIndex = new Map<
+      number,
+      { description: string; quantity: number; unitPrice: number; lineTotal: number }
+    >();
     for (const item of sale.items) {
       const qty = toNumber(item.quantity);
       const unit = toNumber(item.unitPrice);
-      lines.push({
+      const lineTotal = roundMoney2(toNumber(item.lineTotal));
+      const idx = Number.isFinite(item.lineIndex) ? item.lineIndex : byLineIndex.size;
+      const existing = byLineIndex.get(idx);
+      if (existing) {
+        existing.quantity = roundMoney2(existing.quantity + (qty > 0 ? qty : 0));
+        existing.lineTotal = roundMoney2(existing.lineTotal + lineTotal);
+        continue;
+      }
+      byLineIndex.set(idx, {
         description: item.lineLabel?.trim() || "Item",
         quantity: qty > 0 ? qty : 1,
         unitPrice: unit,
-        lineTotal: roundMoney2(toNumber(item.lineTotal)),
+        lineTotal: lineTotal > 0 ? lineTotal : roundMoney2((qty > 0 ? qty : 1) * unit),
       });
+    }
+    for (const row of byLineIndex.values()) {
+      lines.push(row);
     }
   }
 
@@ -207,6 +225,7 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
     changeGiven,
     walletCredited,
     customerName: input.customerName ?? null,
+    customerPhone: input.customerPhone?.trim() || null,
     voided,
   };
 }

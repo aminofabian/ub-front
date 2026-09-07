@@ -23,8 +23,11 @@ import {
 } from "@/lib/api";
 import {
   branchReceiptDraft,
+  branchReceiptPayload,
+  type BranchReceiptDraft,
   type BranchReceiptSettings,
 } from "@/lib/branch-receipt";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 type CashierReceiptShopModalProps = {
@@ -41,7 +44,7 @@ type CashierReceiptShopModalProps = {
   onSaved: () => Promise<void> | void;
 };
 
-type ReceiptDraft = ReturnType<typeof branchReceiptDraft>;
+type ReceiptDraft = BranchReceiptDraft;
 
 function effectiveNextReceipt(
   lastReceiptNo: number | null | undefined,
@@ -107,6 +110,7 @@ export function CashierReceiptShopModal({
     printer: useId(),
     footer: useId(),
     receiptNo: useId(),
+    whatsapp: useId(),
   };
 
   const [name, setName] = useState(shopName);
@@ -208,14 +212,7 @@ export function CashierReceiptShopModal({
         }),
         patchBranch(branchId, {
           address: address.trim(),
-          receipt: {
-            phone: receipt.phone,
-            email: receipt.email,
-            website: receipt.website,
-            tillNumber: receipt.tillNumber,
-            footerNote: receipt.footerNote,
-            printerCupsName: receipt.printerCupsName,
-          },
+          receipt: branchReceiptPayload(receipt),
         }),
       ]);
       await onSaved();
@@ -367,6 +364,40 @@ export function CashierReceiptShopModal({
               placeholder="Thanks for shopping with us"
             />
           </Field>
+
+          <div
+            className={cn(
+              "flex items-start justify-between gap-3 rounded-md border px-3 py-3",
+              "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+              "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]",
+            )}
+          >
+            <div className="min-w-0 space-y-1">
+              <label
+                htmlFor={ids.whatsapp}
+                className="text-[13px] font-medium leading-snug"
+              >
+                WhatsApp receipt
+              </label>
+              <p className="text-[12px] leading-snug text-muted-foreground">
+                After a sale, show a button to send a presentable digital
+                receipt to the customer on WhatsApp.
+              </p>
+            </div>
+            <Switch
+              id={ids.whatsapp}
+              size="sm"
+              checked={receipt.whatsappReceiptEnabled}
+              disabled={disabled || !branchId}
+              onCheckedChange={(checked) =>
+                setReceipt((prev) => ({
+                  ...prev,
+                  whatsappReceiptEnabled: checked,
+                }))
+              }
+              aria-label="Enable WhatsApp receipt"
+            />
+          </div>
 
           <Field
             id={ids.printer}

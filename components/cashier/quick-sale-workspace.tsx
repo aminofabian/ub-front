@@ -146,6 +146,7 @@ import {
   buildPosReceiptSnapshot,
   type PosReceiptSnapshot,
 } from "@/lib/pos-receipt";
+import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import { CashierPosLayout } from "./cashier-pos-layout";
 import { CashierLedgerLayout } from "./ledger/cashier-ledger-layout";
 import { useCashierTemplate } from "@/hooks/use-cashier-template";
@@ -3562,6 +3563,15 @@ export function QuickSaleWorkspace({
     }));
     const receiptCartLines = [...lines];
     const receiptCustomerName = linkedCustomer?.name?.trim() || null;
+    const receiptCustomerPhone =
+      customerPrimaryPhone(linkedCustomer?.phones) ||
+      (isValidCustomerPhone(customerPhoneQuery)
+        ? customerPhoneQuery.trim()
+        : "") ||
+      (isStkPhoneValid(stkAreaCode, stkPhone)
+        ? buildStkPhoneNumber(stkAreaCode, stkPhone)
+        : "") ||
+      null;
     const receiptBranch = branches.find((b) => b.id === bid);
     const receiptBranchName = receiptBranch?.name?.trim() ?? "";
     const receiptCurrency = business?.currency?.trim() || "KES";
@@ -3850,6 +3860,7 @@ export function QuickSaleWorkspace({
             cartLines: receiptCartLines,
             sale,
             customerName: receiptCustomerName,
+            customerPhone: receiptCustomerPhone,
             cashTendered,
             clientSoldAt: salePayload.clientSoldAt ?? undefined,
           });
@@ -3876,8 +3887,13 @@ export function QuickSaleWorkspace({
             void kickCashDrawer(printerTarget);
           }
           if (printed) {
-            dismissCompletedSaleUi();
-            setCheckoutCompletedKey((key) => key + 1);
+            if (Boolean(receiptBranch?.receipt?.whatsappReceiptEnabled)) {
+              setLastSale(sale);
+              setLastReceipt(completedReceipt);
+            } else {
+              dismissCompletedSaleUi();
+              setCheckoutCompletedKey((key) => key + 1);
+            }
           } else {
             setLastSale(sale);
             setLastReceipt(completedReceipt);
@@ -4009,6 +4025,7 @@ export function QuickSaleWorkspace({
           cartLines: receiptCartLines,
           sale,
           customerName: receiptCustomerName,
+          customerPhone: receiptCustomerPhone,
           cashTendered,
           clientSoldAt: salePayload.clientSoldAt ?? undefined,
         });
@@ -4035,8 +4052,13 @@ export function QuickSaleWorkspace({
           void kickCashDrawer(printerTarget);
         }
         if (printed) {
-          dismissCompletedSaleUi();
-          setCheckoutCompletedKey((key) => key + 1);
+          if (Boolean(receiptBranch?.receipt?.whatsappReceiptEnabled)) {
+            setLastSale(sale);
+            setLastReceipt(completedReceipt);
+          } else {
+            dismissCompletedSaleUi();
+            setCheckoutCompletedKey((key) => key + 1);
+          }
         } else {
           setLastSale(sale);
           setLastReceipt(completedReceipt);
@@ -4771,6 +4793,10 @@ export function QuickSaleWorkspace({
                 ?.printerCupsName ?? null,
             branchId: branchId.trim() || null,
           },
+          whatsappReceiptEnabled: Boolean(
+            branches.find((b) => b.id === branchId.trim())?.receipt
+              ?.whatsappReceiptEnabled,
+          ),
         }}
       />
       {isCashier ? (
