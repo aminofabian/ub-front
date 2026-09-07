@@ -12,7 +12,7 @@ type Props = {
   onOpenConfirm?: () => void;
 };
 
-/** Full-screen drawer: supplier Order workspace (Path A place + WhatsApp). */
+/** Half-width drawer: supplier Order workspace (Path A place + WhatsApp). */
 export function TenantOrderDrawer({
   open,
   onOpenChange,
@@ -23,10 +23,10 @@ export function TenantOrderDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title="Order"
-      description="Pick from a supplier, build the list, save or WhatsApp."
+      description="Pick a supplier, build the slip, then save or WhatsApp."
       contextLabel="Suppliers"
       icon={<PackageCheck className="size-4" aria-hidden />}
-      width="full"
+      width="half"
       appearance="sharp"
       headerDensity="compact"
       bodyLayout="fill"
