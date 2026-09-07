@@ -44,7 +44,7 @@ export function PulseHero({
     metrics.length <= 2
       ? "grid-cols-2 divide-y-0"
       : metrics.length === 3
-        ? "grid-cols-3 divide-y-0"
+        ? "grid-cols-3 divide-y-0 max-sm:grid-cols-3"
         : metrics.length === 4
           ? "grid-cols-2 sm:grid-cols-4 sm:divide-y-0"
           : "grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 xl:divide-y-0";
@@ -60,12 +60,26 @@ export function PulseHero({
       />
 
       <div className="flex flex-col md:flex-row md:items-stretch">
-        <div className="flex min-w-0 md:w-[min(42%,22rem)] md:shrink-0 flex-col justify-center gap-1 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-2 md:border-b-0 md:border-r">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        {/* Revenue leads the first phone viewport. */}
+        <div
+          className={cn(
+            "flex min-w-0 flex-col justify-center gap-1.5 border-b border-[color-mix(in_srgb,#141414_8%,transparent)]",
+            "min-h-[7.5rem] px-3.5 py-3.5",
+            "sm:min-h-0 sm:px-3 sm:py-2.5",
+            "md:w-[min(42%,22rem)] md:shrink-0 md:border-b-0 md:border-r md:py-2",
+          )}
+        >
+          {revenueLabel ? (
+            <p className="text-[11px] font-medium text-[#6B6B6B] sm:hidden">
+              {revenueLabel}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <p
               key={justUpdated ? `${revenue}-tick` : revenue}
               className={cn(
-                "text-[1.4rem] font-medium leading-none tracking-[-0.035em] text-[#141414] tabular-nums sm:text-[1.55rem]",
+                "font-medium leading-none tracking-[-0.035em] text-[#141414] tabular-nums",
+                "text-[2rem] sm:text-[1.55rem]",
                 justUpdated && "hub-figure-pop",
               )}
               style={{ fontFamily: "var(--font-heading)" }}
@@ -103,7 +117,7 @@ export function PulseHero({
           </div>
 
           {revenueBreakdown ? (
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-0 text-[11px] tabular-nums text-[#6B6B6B]">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] tabular-nums text-[#6B6B6B]">
               <span>
                 Cash{" "}
                 <span className="font-medium text-[#141414]">
@@ -144,7 +158,7 @@ export function PulseHero({
         >
           {metrics.map((metric) => {
             const body = (
-              <div className="flex h-full min-h-[3.25rem] flex-col justify-center gap-0.5 px-2.5 py-1.5 transition-colors hover:bg-[#FAF8F3] sm:px-3 sm:py-2">
+              <div className="flex h-full min-h-[3.5rem] flex-col justify-center gap-0.5 px-2.5 py-2 transition-colors hover:bg-[#FAF8F3] sm:min-h-[3.25rem] sm:px-3 sm:py-2">
                 <p className={cn("truncate text-[10px] font-medium", HUB_MUTED)}>
                   {metric.label}
                 </p>

@@ -1176,7 +1176,6 @@ export function BusinessHubWorkspace() {
       <div
         className={cn(
           "mx-auto w-full max-w-5xl",
-          "pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:pb-0",
           showTillStage && "max-w-6xl xl:max-w-7xl",
           dualLanes && "max-w-7xl",
         )}
@@ -1295,6 +1294,9 @@ export function BusinessHubWorkspace() {
                     />
                   )}
 
+                  {/* Jump-in sits under the pulse on phone so destinations aren't buried. */}
+                  <CommandGrid links={commandLinks} />
+
                   {(canViewSupplyBills &&
                     !(salesEmpty && todaySupplies.length === 0)) ||
                   (canViewCreditTabs &&
@@ -1382,8 +1384,6 @@ export function BusinessHubWorkspace() {
                   ) : null}
                 </>
               )}
-
-              {shopNotReady ? null : <CommandGrid links={commandLinks} />}
             </div>
 
             {showTillStage && !galleryOpen

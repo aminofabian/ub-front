@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 type HubTab = {
   href: string;
   label: string;
+  shortLabel: string;
   hint: string;
   icon: LucideIcon;
   match: (pathname: string) => boolean;
@@ -26,6 +27,7 @@ const HUB_TABS: HubTab[] = [
   {
     href: APP_ROUTES.business,
     label: "Pulse",
+    shortLabel: "Pulse",
     hint: "Revenue & till",
     icon: Activity,
     match: (p) =>
@@ -34,6 +36,7 @@ const HUB_TABS: HubTab[] = [
   {
     href: APP_ROUTES.businessSettings,
     label: "Settings",
+    shortLabel: "Settings",
     hint: "Profile & storefront",
     icon: Settings,
     match: (p) => p.startsWith(APP_ROUTES.businessSettings),
@@ -41,6 +44,7 @@ const HUB_TABS: HubTab[] = [
   {
     href: APP_ROUTES.paymentsSettings,
     label: "Payments",
+    shortLabel: "Pay",
     hint: "Gateways & payouts",
     icon: CreditCard,
     match: (p) => p.startsWith("/payments"),
@@ -48,6 +52,7 @@ const HUB_TABS: HubTab[] = [
   {
     href: APP_ROUTES.businessConfiguration,
     label: "Configuration",
+    shortLabel: "Config",
     hint: "How the shop runs",
     icon: SlidersHorizontal,
     match: (p) =>
@@ -60,6 +65,7 @@ const HUB_TABS: HubTab[] = [
   {
     href: APP_ROUTES.users,
     label: "Users",
+    shortLabel: "Users",
     hint: "Staff & access",
     icon: Users,
     match: (p) => p.startsWith(APP_ROUTES.users),
@@ -80,7 +86,8 @@ export function BusinessHubNav({
   return (
     <nav
       className={cn(
-        "flex gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        // Phone: equal 5-up app tabs. Desktop: horizontal strip.
+        "grid grid-cols-5 gap-0.5 sm:flex sm:gap-0.5 sm:overflow-x-auto sm:[-ms-overflow-style:none] sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden",
         columns === 2 ? "sm:grid sm:grid-cols-2 sm:overflow-visible" : "",
         className,
       )}
@@ -89,6 +96,7 @@ export function BusinessHubNav({
       {HUB_TABS.map((tab) => {
         const isHome = tab.href === APP_ROUTES.business;
         const label = isHome && setupHome ? "Shop" : tab.label;
+        const shortLabel = isHome && setupHome ? "Shop" : tab.shortLabel;
         const hint = isHome && setupHome ? "Open the floor" : tab.hint;
         const active = tab.match(pathname);
         const Icon = tab.icon;
@@ -97,8 +105,11 @@ export function BusinessHubNav({
             key={tab.href}
             href={tab.href}
             title={hint}
+            aria-current={active ? "page" : undefined}
             className={cn(
-              "group relative flex h-8 shrink-0 items-center gap-1.5 rounded-none px-2.5 transition-colors sm:h-9 sm:flex-1 sm:px-3",
+              "group relative flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-none px-1 py-1.5 transition-colors",
+              "sm:h-9 sm:min-h-0 sm:flex-1 sm:flex-row sm:gap-1.5 sm:px-3 sm:py-0",
+              "active:scale-[0.98] sm:active:scale-100",
               active
                 ? "bg-[var(--hub-ink,#141414)] text-white"
                 : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_55%,transparent)] hover:bg-[color-mix(in_srgb,var(--hub-ink,#141414)_4%,transparent)] hover:text-[var(--hub-ink,#141414)]",
@@ -106,14 +117,18 @@ export function BusinessHubNav({
           >
             <Icon
               className={cn(
-                "size-3.5 shrink-0 transition-colors",
+                "size-4 shrink-0 transition-colors sm:size-3.5",
                 active
                   ? "text-[color-mix(in_srgb,#fff_88%,transparent)]"
                   : "text-[var(--hub-accent,#B08D48)]",
               )}
+              strokeWidth={active ? 2.25 : 2}
               aria-hidden
             />
-            <span className="truncate text-[12px] font-medium tracking-[-0.015em] sm:text-[13px]">
+            <span className="max-w-full truncate text-[9px] font-semibold leading-none tracking-[-0.01em] sm:hidden">
+              {shortLabel}
+            </span>
+            <span className="hidden truncate text-[12px] font-medium tracking-[-0.015em] sm:inline sm:text-[13px]">
               {label}
             </span>
             <span

@@ -28,7 +28,9 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
       <div
         className={cn(
           HUB_SURFACE,
-          "flex snap-x snap-mandatory overflow-x-auto divide-x divide-[color-mix(in_srgb,#141414_8%,transparent)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:overflow-visible",
+          "flex flex-col divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)]",
+          "sm:flex-row sm:snap-x sm:snap-mandatory sm:overflow-x-auto sm:divide-x sm:divide-y-0",
+          "sm:[-ms-overflow-style:none] sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden",
         )}
       >
         {items.map((item) => {
@@ -37,20 +39,20 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
             <Link
               key={item.id}
               href={item.href}
-              className="group flex min-w-[11rem] flex-1 snap-start items-center gap-2 px-2.5 py-1.5 transition-colors hover:bg-[#FAF8F3] sm:min-w-0"
+              className="group flex min-h-11 items-center gap-2 px-2.5 py-2.5 transition-colors hover:bg-[#FAF8F3] sm:min-h-0 sm:min-w-0 sm:flex-1 sm:snap-start sm:py-1.5"
             >
               <Icon
                 className={cn(
-                  "size-3 shrink-0",
+                  "size-3.5 shrink-0 sm:size-3",
                   item.tone === "warning" ? "text-[#C47A5A]" : "text-[#B08D48]",
                 )}
                 aria-hidden
               />
-              <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-[#141414]">
+              <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[#141414] sm:text-[12px]">
                 {item.label}
               </span>
               <ArrowRight
-                className="size-3 shrink-0 text-[#D4CBB8] group-hover:text-[#B08D48]"
+                className="size-3.5 shrink-0 text-[#D4CBB8] group-hover:text-[#B08D48] sm:size-3"
                 aria-hidden
               />
             </Link>

@@ -42,18 +42,21 @@ export function BusinessPageLayout({
   return (
     <div
       className={cn(
-        "hub-paper relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col px-3 pb-5 pt-2 sm:px-5 sm:pb-6 sm:pt-2.5",
+        "hub-paper relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col",
+        "px-3 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] pt-1.5",
+        "sm:px-5 sm:pb-6 sm:pt-2.5",
         className,
       )}
       style={BUSINESS_HUB_VARS}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col gap-2">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-2 sm:gap-2.5">
         {showNav ? (
           <div
             className={cn(
-              "shrink-0 overflow-hidden rounded-none border bg-white/95 p-0.5",
+              "sticky top-0 z-20 shrink-0 overflow-hidden border bg-white/95 p-0.5 backdrop-blur-md",
               "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
               "shadow-[0_1px_0_rgba(20,20,20,0.035),0_8px_22px_-14px_rgba(20,20,20,0.12)]",
+              "supports-[backdrop-filter]:bg-white/88",
             )}
           >
             <BusinessHubNav setupHome={setupHome} />
@@ -74,7 +77,7 @@ export function BusinessPageLayout({
                 </h1>
               ) : null}
               {blurb ? (
-                <p className="mt-1 max-w-xl text-[12px] leading-snug text-[color-mix(in_srgb,var(--hub-ink)_52%,transparent)]">
+                <p className="mt-1 max-w-xl text-[12px] leading-snug text-[color-mix(in_srgb,var(--hub-ink)_52%,transparent)] max-sm:line-clamp-2">
                   {blurb}
                 </p>
               ) : null}
