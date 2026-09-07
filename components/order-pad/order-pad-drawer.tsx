@@ -194,7 +194,7 @@ export function OrderPadDrawer({
       description="One row per item. Saved to the shared order list for this branch."
       contextLabel="Ordering"
       icon={<ClipboardList className="size-4" aria-hidden />}
-      width="full"
+      width="half"
       appearance="sharp"
       headerDensity="compact"
       banner={error ? <FormDrawerMessageBanner text={error} /> : null}
