@@ -76,6 +76,8 @@ export const APP_ROUTES = {
     `/products/p/${encodeURIComponent(slug)}`,
   itemTypes: "/item-types",
   aisles: "/aisles",
+  /** Simple store-room register — not sellable catalog / inventory stock. */
+  store: "/store",
   categories: "/categories",
   suppliers: "/suppliers",
   /** Cashier-style receive-stock till for one tenant supplier (name slug). */
@@ -242,6 +244,7 @@ export const API_ROUTES = {
   items: "/api/v1/items",
   itemTypes: "/api/v1/item-types",
   aisles: "/api/v1/aisles",
+  storeItems: "/api/v1/store-items",
   categories: "/api/v1/categories",
   globalCatalog: "/api/v1/global-catalog",
   publicMarketplace: "/api/v1/public/marketplace",

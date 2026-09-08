@@ -3722,6 +3722,67 @@ export async function updateAisle(
   );
 }
 
+export type StoreItemRecord = {
+  id: string;
+  name: string;
+  barcode: string | null;
+  quantity: number;
+  expiryDate: string | null;
+  buyingPrice: number | string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateStoreItemPayload = {
+  name: string;
+  barcode?: string | null;
+  quantity: number;
+  expiryDate?: string | null;
+  buyingPrice?: number | null;
+};
+
+export type PatchStoreItemPayload = {
+  name?: string;
+  barcode?: string | null;
+  quantity?: number;
+  expiryDate?: string | null;
+  clearExpiryDate?: boolean;
+  buyingPrice?: number | null;
+  clearBuyingPrice?: boolean;
+};
+
+export async function fetchStoreItems(): Promise<StoreItemRecord[]> {
+  return request<StoreItemRecord[]>(API_ROUTES.storeItems);
+}
+
+export async function createStoreItem(
+  body: CreateStoreItemPayload,
+): Promise<StoreItemRecord> {
+  return request<StoreItemRecord>(API_ROUTES.storeItems, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function updateStoreItem(
+  id: string,
+  body: PatchStoreItemPayload,
+): Promise<StoreItemRecord> {
+  return request<StoreItemRecord>(
+    `${API_ROUTES.storeItems}/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      body,
+    },
+  );
+}
+
+export async function deleteStoreItem(id: string): Promise<void> {
+  await request(`${API_ROUTES.storeItems}/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
 /** Uploads a custom department/type tile image and returns the Cloudinary HTTPS URL. */
 export async function uploadItemTypeIcon(
   itemTypeId: string,

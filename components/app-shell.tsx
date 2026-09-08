@@ -216,6 +216,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.itemTypes, label: "Departments" },
       { href: APP_ROUTES.aisles, label: "Shelf zones" },
       { href: APP_ROUTES.categories, label: "Categories" },
+      { href: APP_ROUTES.store, label: "Store room" },
     ],
   },
   {
