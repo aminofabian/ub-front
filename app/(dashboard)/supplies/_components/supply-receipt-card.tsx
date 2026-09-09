@@ -19,7 +19,8 @@ type SupplyReceiptCardProps = {
   canPay: boolean;
   canOpenReceiptDrawer: boolean;
   deleting?: boolean;
-  /** When set, shows a Pay all button for combined unpaid balances. */
+  /** Hide supplier name when the card sits under a supplier group header. */
+  hideSupplier?: boolean;
   payAllTotal?: number;
   payAllCount?: number;
   onEdit: () => void;
@@ -34,6 +35,7 @@ export function SupplyReceiptCard({
   canPay,
   canOpenReceiptDrawer,
   deleting = false,
+  hideSupplier = false,
   payAllTotal,
   payAllCount,
   onEdit,
@@ -44,7 +46,10 @@ export function SupplyReceiptCard({
   const st = supplyPaymentStatusBadge(row.paymentStatus);
   const bal = supplyN(row.balanceOpen);
   const needsPay = bal > 0.009 && canPay;
-  const canDelete = canEditSupplyBill && supplyN(row.amountPaid) < 0.005 && row.source !== "path_a";
+  const canDelete =
+    canEditSupplyBill &&
+    supplyN(row.amountPaid) < 0.005 &&
+    row.source !== "path_a";
   const showPayAll =
     Boolean(onPayAll) &&
     (payAllCount ?? 0) >= 2 &&
@@ -59,136 +64,143 @@ export function SupplyReceiptCard({
   return (
     <article
       className={cn(
-        "relative border-b border-border/70 bg-card",
-        "active:bg-muted/25",
+        "rounded-lg border bg-white px-3 py-2.5 transition-colors",
+        needsPay
+          ? "border-[color-mix(in_srgb,#b45309_28%,transparent)] bg-[color-mix(in_srgb,#b45309_4%,#fff)]"
+          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
       )}
     >
-      <span
-        className={cn(
-          "absolute inset-y-0 left-0 w-0.5",
-          needsPay ? "bg-amber-500" : bal <= 0.009 ? "bg-primary" : "bg-border",
-        )}
-        aria-hidden
-      />
-
-      <div className="space-y-2 py-2.5 pl-3.5 pr-3">
-        <div className="flex min-w-0 items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <h3 className="truncate text-[13px] font-semibold leading-tight text-foreground">
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          {!hideSupplier ? (
+            <h3 className="truncate text-[13px] font-semibold leading-tight text-[var(--order-ink,#15231f)]">
               <SupplierDisplayName
                 name={row.supplierName}
                 fallback="Unknown supplier"
               />
             </h3>
-            <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-              {row.invoiceNumber}
-              <span className="mx-1 text-border">·</span>
-              {created}
-              <span className="mx-1 text-border">·</span>
-              {row.lineCount} ln
+          ) : null}
+          <p
+            className={cn(
+              "truncate font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]",
+              !hideSupplier && "mt-0.5",
+            )}
+          >
+            {row.invoiceNumber}
+            <span className="mx-1 opacity-40">·</span>
+            {created}
+            <span className="mx-1 opacity-40">·</span>
+            {row.lineCount} ln
+          </p>
+          {showPayAll && !hideSupplier ? (
+            <p className="mt-0.5 text-[10px] font-medium text-amber-800">
+              {payAllCount} unpaid · {formatSupplyMoney(payAllTotal ?? 0)}
             </p>
-            {showPayAll ? (
-              <p className="mt-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
-                {payAllCount} unpaid · {formatSupplyMoney(payAllTotal ?? 0)}
-              </p>
-            ) : null}
-          </div>
-          <span
-            className={cn(
-              "shrink-0 border px-1 py-px text-[9px] font-bold uppercase tracking-wide",
-              st.className,
-            )}
-          >
-            {st.label}
-          </span>
+          ) : null}
         </div>
+        <span
+          className={cn(
+            "shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+            st.className,
+          )}
+        >
+          {st.label}
+        </span>
+      </div>
 
-        <dl className="grid grid-cols-3 gap-px border border-border bg-border">
-          <div className="bg-card px-2 py-1.5 text-center">
-            <dt className="text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
-              Total
-            </dt>
-            <dd className="font-mono text-[12px] font-semibold tabular-nums">
-              {formatSupplyMoney(supplyN(row.grandTotal))}
-            </dd>
-          </div>
-          <div className="bg-card px-2 py-1.5 text-center">
-            <dt className="text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
-              Paid
-            </dt>
-            <dd className="font-mono text-[12px] font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
-              {formatSupplyMoney(supplyN(row.amountPaid))}
-            </dd>
-          </div>
-          <div
+      <dl className="mt-2 grid grid-cols-3 gap-1.5">
+        <div className="rounded-md bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_70%,transparent)] px-2 py-1.5 text-center">
+          <dt className="text-[8px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+            Total
+          </dt>
+          <dd className="font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+            {formatSupplyMoney(supplyN(row.grandTotal))}
+          </dd>
+        </div>
+        <div className="rounded-md bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_70%,transparent)] px-2 py-1.5 text-center">
+          <dt className="text-[8px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+            Paid
+          </dt>
+          <dd className="font-mono text-[12px] font-semibold tabular-nums text-emerald-700">
+            {formatSupplyMoney(supplyN(row.amountPaid))}
+          </dd>
+        </div>
+        <div
+          className={cn(
+            "rounded-md px-2 py-1.5 text-center",
+            needsPay
+              ? "bg-[color-mix(in_srgb,#b45309_10%,transparent)]"
+              : "bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_70%,transparent)]",
+          )}
+        >
+          <dt className="text-[8px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+            Balance
+          </dt>
+          <dd
             className={cn(
-              "px-2 py-1.5 text-center",
-              needsPay ? "bg-amber-500/[0.08]" : "bg-card",
+              "font-mono text-[12px] font-semibold tabular-nums",
+              needsPay
+                ? "text-amber-900"
+                : "text-[var(--order-ink,#15231f)]",
             )}
           >
-            <dt className="text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
-              Balance
-            </dt>
-            <dd
-              className={cn(
-                "font-mono text-[12px] font-semibold tabular-nums",
-                needsPay && "text-amber-800 dark:text-amber-200",
-              )}
-            >
-              {formatSupplyMoney(bal)}
-            </dd>
-          </div>
-        </dl>
+            {formatSupplyMoney(bal)}
+          </dd>
+        </div>
+      </dl>
 
-        <div className="flex items-center justify-end gap-1">
-          {canEditSupplyBill ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-8 flex-1 gap-1 rounded-none text-[11px]"
-              onClick={onEdit}
-            >
-              <FileEdit className="size-3" aria-hidden />
-              Edit
-            </Button>
-          ) : null}
-          {canDelete ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-8 gap-1 rounded-none px-2.5 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
-              disabled={deleting}
-              onClick={onDelete}
-            >
-              <Trash2 className="size-3" aria-hidden />
-            </Button>
-          ) : null}
-          {showPayAll ? (
-            <Button
-              type="button"
-              size="sm"
-              className="h-8 flex-1 gap-1 rounded-none bg-emerald-600 text-[11px] hover:bg-emerald-700"
-              disabled={!canOpenReceiptDrawer}
-              onClick={onPayAll}
-            >
-              <CreditCard className="size-3" aria-hidden />
-              Pay all
-            </Button>
-          ) : null}
+      <div className="mt-2 flex items-center justify-end gap-1">
+        {canEditSupplyBill ? (
           <Button
             type="button"
             size="sm"
-            variant={needsPay ? "default" : "outline"}
-            className="h-8 flex-1 gap-1 rounded-none text-[11px]"
+            variant="outline"
+            className="h-8 flex-1 gap-1 rounded-md text-[11px]"
+            onClick={onEdit}
+          >
+            <FileEdit className="size-3" aria-hidden />
+            Edit
+          </Button>
+        ) : null}
+        {canDelete ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 rounded-md px-2.5 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+            disabled={deleting}
+            onClick={onDelete}
+          >
+            <Trash2 className="size-3" aria-hidden />
+          </Button>
+        ) : null}
+        {showPayAll ? (
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 flex-1 gap-1 rounded-md bg-emerald-700 text-[11px] hover:bg-emerald-800"
             disabled={!canOpenReceiptDrawer}
-            onClick={onPayOrDetails}
+            onClick={onPayAll}
           >
             <CreditCard className="size-3" aria-hidden />
-            {needsPay ? "Pay" : "Details"}
+            Pay all
           </Button>
-        </div>
+        ) : null}
+        <Button
+          type="button"
+          size="sm"
+          variant={needsPay ? "default" : "outline"}
+          className={cn(
+            "h-8 flex-1 gap-1 rounded-md text-[11px]",
+            needsPay &&
+              "bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]",
+          )}
+          disabled={!canOpenReceiptDrawer}
+          onClick={onPayOrDetails}
+        >
+          <CreditCard className="size-3" aria-hidden />
+          {needsPay ? "Pay" : "Details"}
+        </Button>
       </div>
     </article>
   );
