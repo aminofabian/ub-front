@@ -75,7 +75,7 @@ export function ProcurementHubNav({
   return (
     <nav
       className={cn(
-        "grid gap-1 p-1",
+        "grid gap-0.5 p-0.5",
         columns === 2 ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4",
         className,
       )}
@@ -88,34 +88,23 @@ export function ProcurementHubNav({
           <Link
             key={tab.href}
             href={tab.href}
+            title={tab.hint}
             className={cn(
-              "group relative flex min-h-[3.25rem] flex-col justify-center rounded-lg px-3 py-2.5 transition-[background-color,box-shadow,color] duration-200 sm:min-h-[3.5rem] sm:flex-row sm:items-center sm:gap-3 sm:px-4",
+              "group relative flex h-8 items-center justify-center gap-1.5 rounded-md px-2 transition-[background-color,color] duration-150 sm:justify-start sm:px-2.5",
               active
-                ? "bg-[var(--order-ink,#15231f)] text-white shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_12%,transparent)]"
+                ? "bg-[var(--order-ink,#15231f)] text-white"
                 : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] hover:text-[var(--order-ink,#15231f)]",
             )}
           >
-            <span className="flex items-center gap-2">
-              <Icon
-                className={cn(
-                  "size-4 shrink-0 transition-transform duration-200 group-hover:scale-105",
-                  active ? "text-[color-mix(in_srgb,#fff_88%,transparent)]" : "",
-                )}
-                aria-hidden
-              />
-              <span className="text-[13px] font-semibold tracking-[-0.01em] sm:text-sm">
-                {tab.label}
-              </span>
-            </span>
-            <span
+            <Icon
               className={cn(
-                "mt-0.5 hidden text-[11px] sm:ml-auto sm:mt-0 sm:block",
-                active
-                  ? "text-[color-mix(in_srgb,#fff_62%,transparent)]"
-                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]",
+                "size-3.5 shrink-0",
+                active ? "text-[color-mix(in_srgb,#fff_88%,transparent)]" : "",
               )}
-            >
-              {tab.hint}
+              aria-hidden
+            />
+            <span className="truncate text-[12px] font-semibold tracking-[-0.01em]">
+              {tab.label}
             </span>
           </Link>
         );

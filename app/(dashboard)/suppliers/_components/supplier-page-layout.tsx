@@ -28,8 +28,8 @@ export function SupplierPageLayout({
         className="pointer-events-none absolute inset-x-0 top-0 h-52 bg-[radial-gradient(120%_100%_at_12%_-20%,color-mix(in_srgb,var(--pos-primary)_14%,transparent),transparent_60%),linear-gradient(180deg,color-mix(in_srgb,var(--order-shelf)_85%,#fff),transparent)]"
       />
 
-      <div className="relative flex min-h-0 flex-1 flex-col gap-4">
-        <div className="rounded-xl border border-[color-mix(in_srgb,var(--order-ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip)_92%,transparent)] p-1 shadow-[0_1px_0_color-mix(in_srgb,var(--order-ink)_6%,transparent),0_12px_40px_-24px_color-mix(in_srgb,var(--order-ink)_18%,transparent)] backdrop-blur-sm">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-2.5">
+        <div className="rounded-lg border border-[color-mix(in_srgb,var(--order-ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip)_92%,transparent)] p-0.5 shadow-[0_1px_0_color-mix(in_srgb,var(--order-ink)_6%,transparent)] backdrop-blur-sm">
           <ProcurementHubNav />
         </div>
 

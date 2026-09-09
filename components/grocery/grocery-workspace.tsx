@@ -1219,9 +1219,11 @@ export function GroceryWorkspace() {
     if (counterMode === "spoils") {
       setLoading(true);
       setError(null);
+      let ok = 0;
       try {
-        let ok = 0;
-        for (const line of lines) {
+        const remaining = [...lines];
+        while (remaining.length > 0) {
+          const line = remaining[0]!;
           const cost =
             line.unitCost != null && line.unitCost > 0
               ? line.unitCost
@@ -1233,12 +1235,13 @@ export function GroceryWorkspace() {
             itemId: line.itemId,
             quantity: line.quantity,
             unitCost: cost,
-            reason: "SPOILAGE",
+            reason: "Grocery counter spoil",
             wastageReason: "SPOILAGE",
           });
+          remaining.shift();
           ok += 1;
+          setLines([...remaining]);
         }
-        setLines([]);
         setParkedSpoils(null);
         toast.success(ok === 1 ? "Spoil recorded" : `${ok} spoils recorded`, {
           description: "Stock written off as spoilage.",
@@ -1247,8 +1250,12 @@ export function GroceryWorkspace() {
       } catch (e) {
         const msg =
           e instanceof Error ? e.message : "Could not record spoils";
-        setError(msg);
-        toast.error(msg);
+        const prefix =
+          ok > 0
+            ? `${ok} recorded, then failed: `
+            : "";
+        setError(prefix + msg);
+        toast.error(prefix + msg);
       } finally {
         setLoading(false);
       }

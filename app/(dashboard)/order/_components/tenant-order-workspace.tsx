@@ -269,6 +269,12 @@ export function TenantOrderWorkspace({
   const [cart, setCart] = useState<CartQty>({});
   const [packByItemId, setPackByItemId] = useState<OrderCartPackMeta>({});
   const [priceByItemId, setPriceByItemId] = useState<OrderCartPriceMeta>({});
+  const [priceDraftByItemId, setPriceDraftByItemId] = useState<
+    Record<string, string>
+  >({});
+  const [totalDraftByItemId, setTotalDraftByItemId] = useState<
+    Record<string, string>
+  >({});
   const [packSheetItemId, setPackSheetItemId] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
   const [whatsapping, setWhatsapping] = useState(false);
@@ -860,6 +866,8 @@ export function TenantOrderWorkspace({
     setCart({});
     setPackByItemId({});
     setPriceByItemId({});
+    setPriceDraftByItemId({});
+    setTotalDraftByItemId({});
     if (businessId) {
       clearOrderCartForSupplier({
         businessId,
@@ -988,10 +996,22 @@ export function TenantOrderWorkspace({
         delete next[itemId];
         return next;
       });
+      setPriceDraftByItemId((prev) => {
+        if (prev[itemId] == null) return prev;
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
+      setTotalDraftByItemId((prev) => {
+        if (prev[itemId] == null) return prev;
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
     }
   };
 
-  const setLinePrice = (itemId: string, price: number) => {
+  const applyLinePrice = (itemId: string, price: number) => {
     const nextPrice = Number.isFinite(price) ? Math.max(0, price) : 0;
     setPriceByItemId((prev) => {
       if (nextPrice <= 0) {
@@ -1012,6 +1032,28 @@ export function TenantOrderWorkspace({
           price: nextPrice > 0 ? Math.round(nextPrice * 10000) / 10000 : null,
         },
       };
+    });
+  };
+
+  const setLinePrice = (itemId: string, price: number) => {
+    applyLinePrice(itemId, price);
+    setTotalDraftByItemId((prev) => {
+      if (prev[itemId] == null) return prev;
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
+  };
+
+  const setLineTotal = (itemId: string, total: number, qty: number) => {
+    if (!(qty > 0)) return;
+    const unit = Math.round((Math.max(0, total) / qty) * 10000) / 10000;
+    applyLinePrice(itemId, unit);
+    setPriceDraftByItemId((prev) => {
+      if (prev[itemId] == null) return prev;
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
     });
   };
 
@@ -1217,21 +1259,56 @@ export function TenantOrderWorkspace({
                       className="h-8 w-[5.25rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
                       inputMode="decimal"
                       aria-label={packed ? "Pack price" : "Unit price"}
-                      value={price > 0 ? String(price) : ""}
+                      value={
+                        priceDraftByItemId[link.itemId] ??
+                        (price > 0 ? String(price) : "")
+                      }
                       placeholder="0"
+                      onFocus={() => {
+                        setPriceDraftByItemId((prev) => ({
+                          ...prev,
+                          [link.itemId]:
+                            prev[link.itemId] ??
+                            (price > 0 ? String(price) : ""),
+                        }));
+                        setTotalDraftByItemId((prev) => {
+                          if (prev[link.itemId] == null) return prev;
+                          const next = { ...prev };
+                          delete next[link.itemId];
+                          return next;
+                        });
+                      }}
                       onChange={(e) => {
-                        const n = Number.parseFloat(e.target.value);
-                        setLinePrice(
-                          link.itemId,
-                          Number.isFinite(n) ? n : 0,
-                        );
+                        const raw = e.target.value.replace(",", ".");
+                        if (raw !== "" && !/^\d*\.?\d{0,4}$/.test(raw)) {
+                          return;
+                        }
+                        setPriceDraftByItemId((prev) => ({
+                          ...prev,
+                          [link.itemId]: raw,
+                        }));
+                        if (raw === "" || raw === "." || raw.endsWith(".")) {
+                          return;
+                        }
+                        const n = Number.parseFloat(raw);
+                        if (Number.isFinite(n)) {
+                          setLinePrice(link.itemId, n);
+                        }
                       }}
                       onBlur={(e) => {
-                        const n = Number.parseFloat(e.target.value);
-                        if (!Number.isFinite(n) || n <= 0) {
-                          const fallback = unitCost(link);
-                          if (fallback > 0) setLinePrice(link.itemId, fallback);
+                        const raw = e.target.value.replace(",", ".");
+                        const n = Number.parseFloat(raw);
+                        setPriceDraftByItemId((prev) => {
+                          const next = { ...prev };
+                          delete next[link.itemId];
+                          return next;
+                        });
+                        if (Number.isFinite(n) && n > 0) {
+                          setLinePrice(link.itemId, n);
+                          return;
                         }
+                        const fallback = unitCost(link);
+                        if (fallback > 0) setLinePrice(link.itemId, fallback);
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
@@ -1240,14 +1317,74 @@ export function TenantOrderWorkspace({
                       }}
                     />
                   </label>
-                  <div className="min-w-[4.5rem] text-right">
-                    <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
-                      Line
-                    </p>
-                    <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
-                      {price > 0 ? formatMoney(amount, ORDER_CURRENCY) : "—"}
-                    </p>
-                  </div>
+                  <label className="inline-flex flex-col items-end gap-0.5">
+                    <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+                      Line total
+                    </span>
+                    <input
+                      className="h-8 w-[5.75rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
+                      inputMode="decimal"
+                      aria-label="Line total"
+                      value={
+                        totalDraftByItemId[link.itemId] ??
+                        (amount > 0 ? String(Math.round(amount * 10000) / 10000) : "")
+                      }
+                      placeholder="0"
+                      onFocus={() => {
+                        setTotalDraftByItemId((prev) => ({
+                          ...prev,
+                          [link.itemId]:
+                            prev[link.itemId] ??
+                            (amount > 0
+                              ? String(Math.round(amount * 10000) / 10000)
+                              : ""),
+                        }));
+                        setPriceDraftByItemId((prev) => {
+                          if (prev[link.itemId] == null) return prev;
+                          const next = { ...prev };
+                          delete next[link.itemId];
+                          return next;
+                        });
+                      }}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(",", ".");
+                        if (raw !== "" && !/^\d*\.?\d{0,4}$/.test(raw)) {
+                          return;
+                        }
+                        setTotalDraftByItemId((prev) => ({
+                          ...prev,
+                          [link.itemId]: raw,
+                        }));
+                        if (raw === "" || raw === "." || raw.endsWith(".")) {
+                          return;
+                        }
+                        const n = Number.parseFloat(raw);
+                        if (Number.isFinite(n) && qty > 0) {
+                          setLineTotal(link.itemId, n, qty);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const raw = e.target.value.replace(",", ".");
+                        const n = Number.parseFloat(raw);
+                        setTotalDraftByItemId((prev) => {
+                          const next = { ...prev };
+                          delete next[link.itemId];
+                          return next;
+                        });
+                        if (Number.isFinite(n) && n >= 0 && qty > 0) {
+                          setLineTotal(link.itemId, n, qty);
+                          return;
+                        }
+                        const fallback = unitCost(link);
+                        if (fallback > 0) setLinePrice(link.itemId, fallback);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
+                    />
+                  </label>
                 </div>
               </div>
             </div>

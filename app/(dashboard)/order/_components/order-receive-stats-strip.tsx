@@ -26,16 +26,16 @@ export function OrderReceiveStatsStrip() {
   const basketActive = localStats.units > 0;
 
   return (
-    <section aria-label="Receive desk stats" className="space-y-3 px-0.5 sm:px-1">
+    <section aria-label="Receive desk stats" className="space-y-2 px-0.5 sm:px-1">
       <OrderLifetimeOverview loading={loading} lifetime={lifetime} />
 
-      <div className="space-y-2.5">
+      <div className="space-y-1.5">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
               Confirm supply
             </p>
-            <p className="mt-0.5 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+            <p className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
               {dueActive
                 ? `${receiveStats.awaitingUnits} unit${receiveStats.awaitingUnits === 1 ? "" : "s"} still to post into stock`
                 : "All caught up — nothing waiting to confirm"}

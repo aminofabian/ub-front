@@ -183,6 +183,12 @@ export function OrderReceivePanel({
   const [qtyByLine, setQtyByLine] = useState<ReceiveQty>({});
   const [orderQtyByLine, setOrderQtyByLine] = useState<OrderQty>({});
   const [priceByLine, setPriceByLine] = useState<ReceivePrice>({});
+  const [priceDraftByLine, setPriceDraftByLine] = useState<
+    Record<string, string>
+  >({});
+  const [totalDraftByLine, setTotalDraftByLine] = useState<
+    Record<string, string>
+  >({});
   const [selectedLines, setSelectedLines] = useState<Record<string, boolean>>(
     {},
   );
@@ -1264,7 +1270,8 @@ export function OrderReceivePanel({
                 const receiveQty = qtyByLine[line.id] ?? remaining;
                 const orderQty = orderQtyByLine[line.id] ?? toNum(line.qtyOrdered);
                 const unit = priceByLine[line.id] ?? toNum(line.unitEstimatedCost);
-                const amount = (canReceive ? receiveQty : orderQty) * unit;
+                const amountQty = canReceive ? receiveQty : orderQty;
+                const amount = amountQty * unit;
                 const meta = itemMeta[line.itemId];
                 const name = meta?.name ?? line.itemId.slice(0, 8);
                 const { primary: linePrimary, option: lineOption } =
@@ -1347,22 +1354,65 @@ export function OrderReceivePanel({
                           className="h-8 w-[4.5rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)] disabled:opacity-40"
                           disabled={lineBusy}
                           inputMode="decimal"
-                          value={unit}
+                          value={
+                            priceDraftByLine[line.id] ??
+                            (unit > 0 ? String(unit) : "")
+                          }
+                          onFocus={() => {
+                            setPriceDraftByLine((prev) => ({
+                              ...prev,
+                              [line.id]:
+                                prev[line.id] ??
+                                (unit > 0 ? String(unit) : ""),
+                            }));
+                            setTotalDraftByLine((prev) => {
+                              if (prev[line.id] == null) return prev;
+                              const next = { ...prev };
+                              delete next[line.id];
+                              return next;
+                            });
+                          }}
                           onChange={(e) => {
-                            const n = Number.parseFloat(e.target.value);
-                            const next = Number.isFinite(n) ? Math.max(0, n) : 0;
+                            const raw = e.target.value.replace(",", ".");
+                            if (raw !== "" && !/^\d*\.?\d{0,4}$/.test(raw)) {
+                              return;
+                            }
+                            setPriceDraftByLine((prev) => ({
+                              ...prev,
+                              [line.id]: raw,
+                            }));
+                            if (raw === "" || raw === "." || raw.endsWith(".")) {
+                              return;
+                            }
+                            const n = Number.parseFloat(raw);
+                            if (!Number.isFinite(n)) return;
+                            const next = Math.max(0, n);
                             setPriceByLine((prev) => ({
                               ...prev,
                               [line.id]: next,
                             }));
                             if (next > 0) {
-                              schedulePersist(line.id, { unitEstimatedCost: next });
+                              schedulePersist(line.id, {
+                                unitEstimatedCost: next,
+                              });
                             }
                           }}
                           onBlur={(e) => {
-                            const n = Number.parseFloat(e.target.value);
+                            const raw = e.target.value.replace(",", ".");
+                            const n = Number.parseFloat(raw);
+                            setPriceDraftByLine((prev) => {
+                              const next = { ...prev };
+                              delete next[line.id];
+                              return next;
+                            });
                             if (Number.isFinite(n) && n > 0) {
-                              void flushPersist(line.id, { unitEstimatedCost: n });
+                              setPriceByLine((prev) => ({
+                                ...prev,
+                                [line.id]: n,
+                              }));
+                              void flushPersist(line.id, {
+                                unitEstimatedCost: n,
+                              });
                               return;
                             }
                             setPriceByLine((prev) => ({
@@ -1500,9 +1550,106 @@ export function OrderReceivePanel({
                         </span>
                       )}
 
-                      <p className="pl-8 text-right font-mono text-[13px] font-bold tabular-nums text-[var(--order-ink,#15231f)] lg:pl-0">
-                        {formatMoney(amount, ORDER_CURRENCY)}
-                      </p>
+                      <label className="inline-flex items-center gap-1.5 pl-8 font-mono text-[10px] uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] lg:justify-self-end lg:pl-0">
+                        <span className="lg:hidden">Total</span>
+                        <input
+                          className="h-8 w-[5.5rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)] disabled:opacity-40"
+                          disabled={lineBusy || amountQty <= 0}
+                          inputMode="decimal"
+                          aria-label="Line total"
+                          value={
+                            totalDraftByLine[line.id] ??
+                            (amount > 0
+                              ? String(Math.round(amount * 10000) / 10000)
+                              : "")
+                          }
+                          onFocus={() => {
+                            setTotalDraftByLine((prev) => ({
+                              ...prev,
+                              [line.id]:
+                                prev[line.id] ??
+                                (amount > 0
+                                  ? String(Math.round(amount * 10000) / 10000)
+                                  : ""),
+                            }));
+                            setPriceDraftByLine((prev) => {
+                              if (prev[line.id] == null) return prev;
+                              const next = { ...prev };
+                              delete next[line.id];
+                              return next;
+                            });
+                          }}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(",", ".");
+                            if (raw !== "" && !/^\d*\.?\d{0,4}$/.test(raw)) {
+                              return;
+                            }
+                            setTotalDraftByLine((prev) => ({
+                              ...prev,
+                              [line.id]: raw,
+                            }));
+                            if (
+                              raw === "" ||
+                              raw === "." ||
+                              raw.endsWith(".") ||
+                              amountQty <= 0
+                            ) {
+                              return;
+                            }
+                            const n = Number.parseFloat(raw);
+                            if (!Number.isFinite(n)) return;
+                            const nextUnit =
+                              Math.round((Math.max(0, n) / amountQty) * 10000) /
+                              10000;
+                            setPriceByLine((prev) => ({
+                              ...prev,
+                              [line.id]: nextUnit,
+                            }));
+                            if (nextUnit > 0) {
+                              schedulePersist(line.id, {
+                                unitEstimatedCost: nextUnit,
+                              });
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const raw = e.target.value.replace(",", ".");
+                            const n = Number.parseFloat(raw);
+                            setTotalDraftByLine((prev) => {
+                              const next = { ...prev };
+                              delete next[line.id];
+                              return next;
+                            });
+                            if (
+                              Number.isFinite(n) &&
+                              n >= 0 &&
+                              amountQty > 0
+                            ) {
+                              const nextUnit =
+                                Math.round((Math.max(0, n) / amountQty) * 10000) /
+                                10000;
+                              setPriceByLine((prev) => ({
+                                ...prev,
+                                [line.id]: nextUnit,
+                              }));
+                              if (nextUnit > 0) {
+                                void flushPersist(line.id, {
+                                  unitEstimatedCost: nextUnit,
+                                });
+                              }
+                              return;
+                            }
+                            setPriceByLine((prev) => ({
+                              ...prev,
+                              [line.id]: toNum(line.unitEstimatedCost),
+                            }));
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              (e.target as HTMLInputElement).blur();
+                            }
+                          }}
+                        />
+                      </label>
 
                       <div className="flex justify-end pl-8 lg:pl-0">
                         <button
