@@ -6,6 +6,7 @@ import {
   Activity,
   BarChart3,
   Building2,
+  ChevronDown,
   ClipboardCheck,
   ClipboardList,
   CreditCard,
@@ -230,6 +231,25 @@ function groupNavItems(items: readonly DesktopNavItem[]): ItemGroup[] {
   return groups;
 }
 
+/** Buy-loop groups rendered as one stepped path with arrows between steps. */
+const BUYING_FLOW_GROUP_LABELS = new Set(["Order", "Receive", "Pay"]);
+
+function splitBuyingFlowGroups(groups: ItemGroup[]): {
+  flowItems: DesktopNavItem[];
+  otherGroups: ItemGroup[];
+} {
+  const flowItems: DesktopNavItem[] = [];
+  const otherGroups: ItemGroup[] = [];
+  for (const group of groups) {
+    if (group.label && BUYING_FLOW_GROUP_LABELS.has(group.label)) {
+      flowItems.push(...group.items);
+    } else {
+      otherGroups.push(group);
+    }
+  }
+  return { flowItems, otherGroups };
+}
+
 function clusterVisibleSections(
   sections: readonly DesktopNavSection[],
 ): DesktopNavSection[][] {
@@ -308,6 +328,7 @@ type SubNavLinkProps = {
   active: boolean;
   compact?: boolean;
   badge?: number;
+  step?: number;
 };
 
 function SubNavLink({
@@ -317,6 +338,7 @@ function SubNavLink({
   active,
   compact = false,
   badge = 0,
+  step,
 }: SubNavLinkProps) {
   return (
     <Link
@@ -326,7 +348,7 @@ function SubNavLink({
         "group relative flex items-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/30",
         compact
           ? "justify-center rounded-lg py-1.5"
-          : "gap-2.5 rounded-lg px-3 py-1.5 text-[13px] leading-snug",
+          : "gap-2 rounded-lg px-2.5 py-1.5 text-[13px] leading-snug",
         active
           ? compact
             ? "bg-primary/14 text-primary"
@@ -334,31 +356,57 @@ function SubNavLink({
           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
       )}
       aria-current={active ? "page" : undefined}
-      aria-label={label}
+      aria-label={step != null ? `Step ${step}: ${label}` : label}
     >
-      {active && !compact ? (
+      {active && !compact && step == null ? (
         <span
           aria-hidden
           className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-primary"
         />
       ) : null}
-      <span
-        className={cn(
-          "flex shrink-0 items-center justify-center",
-          compact ? "size-8" : "size-6",
-          active
-            ? "text-primary"
-            : "text-muted-foreground group-hover:text-foreground",
-        )}
-      >
-        <Icon
-          className={compact ? "size-[1.05rem]" : "size-4"}
-          strokeWidth={1.75}
+      {step != null && !compact ? (
+        <span
           aria-hidden
-        />
-      </span>
+          className={cn(
+            "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold tabular-nums",
+            active
+              ? "bg-primary text-primary-foreground"
+              : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,var(--muted))] text-[color-mix(in_srgb,var(--pos-primary,#0f766e)_80%,var(--muted-foreground))]",
+          )}
+        >
+          {step}
+        </span>
+      ) : (
+        <span
+          className={cn(
+            "flex shrink-0 items-center justify-center",
+            compact ? "size-8" : "size-6",
+            active
+              ? "text-primary"
+              : "text-muted-foreground group-hover:text-foreground",
+          )}
+        >
+          <Icon
+            className={compact ? "size-[1.05rem]" : "size-4"}
+            strokeWidth={1.75}
+            aria-hidden
+          />
+        </span>
+      )}
       {!compact ? (
-        <span className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="flex min-w-0 flex-1 items-center gap-1.5">
+          {step != null ? (
+            <span
+              className={cn(
+                "flex size-4 shrink-0 items-center justify-center",
+                active
+                  ? "text-primary"
+                  : "text-muted-foreground group-hover:text-foreground",
+              )}
+            >
+              <Icon className="size-3.5" strokeWidth={1.75} aria-hidden />
+            </span>
+          ) : null}
           <span className="truncate">{label}</span>
           {badge > 0 ? (
             <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
@@ -368,6 +416,60 @@ function SubNavLink({
         </span>
       ) : null}
     </Link>
+  );
+}
+
+function BuyingFlowSteps({
+  items,
+  pathname,
+  sectionIcon,
+  badgeByHref,
+}: {
+  items: readonly DesktopNavItem[];
+  pathname: string;
+  sectionIcon: LucideIcon;
+  badgeByHref?: Readonly<Record<string, number>>;
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_20%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)] p-1.5">
+      <p className="px-2 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--pos-primary,#0f766e)_90%,transparent)]">
+        Buy loop
+        <span className="ml-1 font-semibold normal-case tracking-normal text-muted-foreground">
+          · follow ↓
+        </span>
+      </p>
+      <ol className="flex flex-col">
+        {items.map((item, index) => {
+          const active = itemIsActive(pathname, item.href);
+          const isLast = index === items.length - 1;
+          return (
+            <li key={item.href} className="flex flex-col">
+              <SubNavLink
+                href={item.href}
+                label={item.label}
+                icon={iconForItem(item, sectionIcon)}
+                active={active}
+                badge={badgeByHref?.[item.href] ?? 0}
+                step={index + 1}
+              />
+              {!isLast ? (
+                <div
+                  className="flex items-center justify-center py-0.5"
+                  aria-hidden
+                >
+                  <ChevronDown
+                    className="size-3.5 text-[var(--pos-primary,#0f766e)] opacity-70"
+                    strokeWidth={2.5}
+                  />
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 
@@ -405,12 +507,20 @@ function SubNavPanel({
 
   const groups = useMemo(() => groupNavItems(filteredItems), [filteredItems]);
   const hasLabeledGroups = groups.some((group) => group.label);
+  const buyingFlow = useMemo(() => {
+    if (section.id !== "procurement" || compact) {
+      return { flowItems: [] as DesktopNavItem[], otherGroups: groups };
+    }
+    return splitBuyingFlowGroups(groups);
+  }, [section.id, compact, groups]);
+  const showBuyingFlow = buyingFlow.flowItems.length > 0;
+  const renderGroups = showBuyingFlow ? buyingFlow.otherGroups : groups;
 
   return (
     <aside
       className={cn(
         "flex h-screen shrink-0 flex-col border-r border-border/60 bg-background transition-[width] duration-200",
-        compact ? "w-14" : "w-52",
+        compact ? "w-14" : section.id === "procurement" ? "w-56" : "w-52",
       )}
     >
       <div
@@ -505,31 +615,43 @@ function SubNavPanel({
             />
           ))
         ) : (
-          groups.map((group, groupIndex) => (
-            <div
-              key={group.label ?? `ungrouped-${groupIndex}`}
-              className={cn(
-                "flex flex-col gap-0.5",
-                groupIndex > 0 && hasLabeledGroups ? "mt-2.5" : null,
-              )}
-            >
-              {group.label && hasLabeledGroups ? (
-                <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">
-                  {group.label}
-                </p>
-              ) : null}
-              {group.items.map((item) => (
-                <SubNavLink
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={iconForItem(item, section.icon)}
-                  active={itemIsActive(pathname, item.href)}
-                  badge={badgeByHref?.[item.href] ?? 0}
-                />
-              ))}
-            </div>
-          ))
+          <>
+            {showBuyingFlow ? (
+              <BuyingFlowSteps
+                items={buyingFlow.flowItems}
+                pathname={pathname}
+                sectionIcon={section.icon}
+                badgeByHref={badgeByHref}
+              />
+            ) : null}
+            {renderGroups.map((group, groupIndex) => (
+              <div
+                key={group.label ?? `ungrouped-${groupIndex}`}
+                className={cn(
+                  "flex flex-col gap-0.5",
+                  (groupIndex > 0 || showBuyingFlow) && hasLabeledGroups
+                    ? "mt-2.5"
+                    : null,
+                )}
+              >
+                {group.label && hasLabeledGroups ? (
+                  <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">
+                    {group.label}
+                  </p>
+                ) : null}
+                {group.items.map((item) => (
+                  <SubNavLink
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    icon={iconForItem(item, section.icon)}
+                    active={itemIsActive(pathname, item.href)}
+                    badge={badgeByHref?.[item.href] ?? 0}
+                  />
+                ))}
+              </div>
+            ))}
+          </>
         )}
       </nav>
     </aside>

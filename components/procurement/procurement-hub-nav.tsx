@@ -76,38 +76,58 @@ export function ProcurementHubNav({
   return (
     <nav
       className={cn(
-        "grid gap-0.5 p-0.5",
-        columns === 2 ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4",
+        "flex flex-wrap items-center gap-0.5 p-0.5",
         className,
       )}
-      aria-label="Buying pages"
+      aria-label="Buying flow"
     >
-      {HUB_TABS.map((tab) => {
+      {HUB_TABS.map((tab, index) => {
         const active = tab.match(pathname);
         const Icon = tab.icon;
         return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            title={tab.hint}
-            className={cn(
-              "group relative flex h-8 items-center justify-center gap-1.5 rounded-md px-2 transition-[background-color,color] duration-150 sm:justify-start sm:px-2.5",
-              active
-                ? "bg-[var(--order-ink,#15231f)] text-white"
-                : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] hover:text-[var(--order-ink,#15231f)]",
-            )}
-          >
-            <Icon
+          <div key={tab.href} className="flex items-center gap-0.5">
+            {index > 0 ? (
+              <span
+                aria-hidden
+                className="hidden px-0.5 text-[10px] font-bold text-[color-mix(in_srgb,var(--pos-primary,#0f766e)_55%,transparent)] sm:inline"
+              >
+                →
+              </span>
+            ) : null}
+            <Link
+              href={tab.href}
+              title={tab.hint}
               className={cn(
-                "size-3.5 shrink-0",
-                active ? "text-[color-mix(in_srgb,#fff_88%,transparent)]" : "",
+                "group relative flex h-8 items-center justify-center gap-1.5 rounded-md px-2 transition-[background-color,color] duration-150 sm:justify-start sm:px-2.5",
+                columns === 2 ? "min-w-[calc(50%-0.125rem)] flex-1" : "",
+                active
+                  ? "bg-[var(--order-ink,#15231f)] text-white"
+                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] hover:text-[var(--order-ink,#15231f)]",
               )}
-              aria-hidden
-            />
-            <span className="truncate text-[12px] font-semibold tracking-[-0.01em]">
-              {tab.label}
-            </span>
-          </Link>
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  "flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold tabular-nums",
+                  active
+                    ? "bg-white/20 text-white"
+                    : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)]",
+                )}
+              >
+                {index + 1}
+              </span>
+              <Icon
+                className={cn(
+                  "size-3.5 shrink-0",
+                  active ? "text-[color-mix(in_srgb,#fff_88%,transparent)]" : "",
+                )}
+                aria-hidden
+              />
+              <span className="truncate text-[12px] font-semibold tracking-[-0.01em]">
+                {tab.label}
+              </span>
+            </Link>
+          </div>
         );
       })}
     </nav>
