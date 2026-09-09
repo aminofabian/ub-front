@@ -81,7 +81,7 @@ function OrderShelfTile({
   return (
     <article
       className={cn(
-        "group flex min-w-0 flex-col rounded-none bg-white",
+        "group flex h-full min-w-0 flex-col rounded-none bg-white",
         "border transition-[border-color] duration-150",
         inCart
           ? "border-[var(--pos-primary,#0f766e)]"
@@ -117,7 +117,7 @@ function OrderShelfTile({
         )}
       </button>
 
-      <div className="flex min-w-0 flex-col border-t px-2.5 pb-2.5 pt-2" style={{ borderColor: RULE }}>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col border-t px-2.5 pb-2.5 pt-2" style={{ borderColor: RULE }}>
         <div className="min-w-0">
           <p
             className="line-clamp-2 break-words text-[12px] font-medium leading-snug tracking-[-0.02em]"
@@ -154,15 +154,16 @@ function OrderShelfTile({
               </span>
             ) : null}
           </p>
-          {lineTotal > 0 ? (
-            <p
-              key={lineTotal}
-              className="pos-tile-line-total mt-0.5 break-words font-heading text-[13px] font-semibold tabular-nums leading-snug tracking-[-0.02em]"
-              style={{ color: TEAL }}
-            >
-              {formatMoney(lineTotal, ORDER_CURRENCY)}
-            </p>
-          ) : null}
+          <p
+            key={lineTotal}
+            className={cn(
+              "mt-0.5 min-h-[1.05em] break-words font-heading text-[13px] font-semibold tabular-nums leading-snug tracking-[-0.02em]",
+              lineTotal > 0 && "pos-tile-line-total",
+            )}
+            style={{ color: TEAL }}
+          >
+            {lineTotal > 0 ? formatMoney(lineTotal, ORDER_CURRENCY) : "\u00a0"}
+          </p>
         </div>
 
         {low ? (
@@ -182,7 +183,7 @@ function OrderShelfTile({
         {pickMode ? (
           <button
             type="button"
-            className="mt-2 flex h-9 w-full items-center justify-center rounded-none border bg-white text-[12px] font-semibold tracking-[-0.02em] transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]"
+            className="mt-auto flex h-9 w-full items-center justify-center rounded-none border bg-white text-[12px] font-semibold tracking-[-0.02em] transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]"
             style={{ borderColor: TEAL, color: TEAL }}
             onClick={onAdd}
             disabled={picking}
@@ -190,12 +191,13 @@ function OrderShelfTile({
             {picking ? "Adding…" : "Add to order"}
           </button>
         ) : (
-          <div
-            className="mt-2 grid h-8 w-full min-w-0 grid-cols-[1.75rem_minmax(0,1fr)_1.75rem] rounded-none border bg-white"
-            style={{ borderColor: inCart ? TEAL : RULE, color: inCart ? TEAL : INK }}
-            role="group"
-            aria-label={`Quantity for ${primary}`}
-          >
+          <div className="mt-auto w-full pt-2">
+            <div
+              className="grid h-8 w-full min-w-0 grid-cols-[1.75rem_minmax(0,1fr)_1.75rem] rounded-none border bg-white"
+              style={{ borderColor: inCart ? TEAL : RULE, color: inCart ? TEAL : INK }}
+              role="group"
+              aria-label={`Quantity for ${primary}`}
+            >
             <button
               type="button"
               disabled={qty <= 0}
@@ -221,6 +223,7 @@ function OrderShelfTile({
             >
               <Plus className="size-3.5" strokeWidth={2.25} aria-hidden />
             </button>
+            </div>
           </div>
         )}
       </div>
