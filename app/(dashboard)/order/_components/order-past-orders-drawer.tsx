@@ -40,11 +40,13 @@ function formatWhen(iso: string | null | undefined): string {
 }
 
 const phaseStyles: Record<string, string> = {
-  draft: "bg-amber-100 text-amber-900",
-  in_flight: "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)]",
-  partial: "bg-sky-100 text-sky-900",
-  received: "bg-emerald-100 text-emerald-900",
-  cancelled: "bg-zinc-200 text-zinc-700",
+  draft: "border-amber-300 bg-white text-amber-900",
+  in_flight:
+    "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]",
+  partial: "border-sky-300 bg-white text-sky-900",
+  received: "border-emerald-300 bg-white text-emerald-900",
+  cancelled:
+    "border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]",
 };
 
 export function OrderPastOrdersDrawer({
@@ -163,15 +165,12 @@ export function OrderPastOrdersDrawer({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side="right"
-        className="flex max-h-[100dvh] w-full max-w-md flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
+        className="flex max-h-[100dvh] w-full max-w-md flex-col gap-0 overflow-hidden rounded-none p-0 sm:max-w-lg sm:rounded-l-none [&_button[aria-label=Close]]:rounded-none"
       >
-        <DialogHeader className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-4 py-4 text-left">
+        <DialogHeader className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-4 text-left">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
-                Order again
-              </p>
-              <DialogTitle className="mt-1 flex items-center gap-2 font-heading text-[18px] font-semibold tracking-[-0.02em]">
+              <DialogTitle className="flex items-center gap-2 font-heading text-[18px] font-semibold tracking-[-0.02em]">
                 <History className="size-4 text-[var(--pos-primary,#0f766e)]" />
                 Past orders
               </DialogTitle>
@@ -181,16 +180,16 @@ export function OrderPastOrdersDrawer({
               </DialogDescription>
             </div>
           </div>
-          <div className="mt-3 inline-flex rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_50%,transparent)] p-0.5">
+          <div className="mt-3 inline-flex divide-x divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
             <button
               type="button"
               disabled={!supplierId}
               onClick={() => setScope("supplier")}
               className={cn(
-                "rounded-md px-3 py-1.5 text-[11px] font-semibold transition",
+                "rounded-none px-3 py-1.5 text-[11px] font-semibold transition",
                 scope === "supplier"
-                  ? "bg-white text-[var(--order-ink,#15231f)] shadow-sm"
-                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]",
+                  ? "bg-white text-[var(--pos-primary,#0f766e)]"
+                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                 !supplierId && "opacity-40",
               )}
             >
@@ -200,10 +199,10 @@ export function OrderPastOrdersDrawer({
               type="button"
               onClick={() => setScope("all")}
               className={cn(
-                "rounded-md px-3 py-1.5 text-[11px] font-semibold transition",
+                "rounded-none px-3 py-1.5 text-[11px] font-semibold transition",
                 scope === "all"
-                  ? "bg-white text-[var(--order-ink,#15231f)] shadow-sm"
-                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]",
+                  ? "bg-white text-[var(--pos-primary,#0f766e)]"
+                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] hover:text-[var(--order-ink,#15231f)]",
               )}
             >
               All suppliers
@@ -218,7 +217,7 @@ export function OrderPastOrdersDrawer({
               Loading order history…
             </p>
           ) : rows.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-4 py-12 text-center">
+            <div className="rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-4 py-12 text-center">
               <p className="text-[13px] font-medium text-[var(--order-ink,#15231f)]">
                 No past orders yet
               </p>
@@ -237,7 +236,7 @@ export function OrderPastOrdersDrawer({
                 return (
                   <li
                     key={row.id}
-                    className="rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white p-3 shadow-sm"
+                    className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -247,7 +246,7 @@ export function OrderPastOrdersDrawer({
                           </span>
                           <span
                             className={cn(
-                              "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em]",
+                              "rounded-none border px-1.5 py-0.5 text-[10px] font-medium",
                               phaseStyles[phase],
                             )}
                           >
@@ -269,7 +268,7 @@ export function OrderPastOrdersDrawer({
                         type="button"
                         disabled={reorderingId === row.id}
                         onClick={() => void handleReorder(row)}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--pos-primary,#0f766e)] px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50"
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50"
                       >
                         {reorderingId === row.id ? (
                           <Loader2 className="size-3.5 animate-spin" />
@@ -290,7 +289,7 @@ export function OrderPastOrdersDrawer({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[12px] font-semibold text-[var(--order-ink,#15231f)]"
+            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[12px] font-semibold text-[var(--order-ink,#15231f)]"
           >
             <X className="size-3.5" />
             Close

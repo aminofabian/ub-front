@@ -25,23 +25,18 @@ export function OrderStatsStrip() {
   const confirmActive = sentStats.awaitingUnits > 0;
 
   return (
-    <section aria-label="Order stats" className="space-y-2 px-0.5 sm:px-1">
+    <section aria-label="Order stats" className="space-y-2">
       <OrderLifetimeOverview loading={loading} lifetime={lifetime} />
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
-              Right now
-            </p>
-            <p className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-              Your live basket and in-flight orders
-            </p>
-          </div>
+          <p className="text-[13px] font-medium text-[var(--order-ink,#15231f)]">
+            Live basket and in-flight orders
+          </p>
           {!loading && confirmActive ? (
             <Link
               href={APP_ROUTES.orderReceive}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--order-ink,#15231f)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white transition duration-150 ease-out hover:bg-[#0f1a17] active:scale-[0.97]"
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-2.5 text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)]"
             >
               <ClipboardCheck className="size-3.5" aria-hidden />
               Confirm supply

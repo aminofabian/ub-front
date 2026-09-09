@@ -70,8 +70,8 @@ export function OrderParentFloater({
       <div
         className={cn(
           "pointer-events-auto flex w-auto max-w-[min(100%,22rem)] flex-col overflow-hidden",
-          "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-          "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] shadow-sm",
+          "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+          "bg-white",
           open && "w-[min(100%,22rem)]",
           filtered && "border-[var(--pos-primary,#0f766e)]",
         )}
@@ -87,7 +87,7 @@ export function OrderParentFloater({
               id={panelId}
               role="region"
               aria-label="Filter by product family"
-              className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]"
+              className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]"
             >
               <div
                 ref={trayRef}
@@ -111,25 +111,27 @@ export function OrderParentFloater({
                       className={cn(
                         "flex w-[4.25rem] shrink-0 flex-col overflow-hidden border",
                         selected
-                          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)]"
-                          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-transparent",
+                          ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-transparent",
                       )}
                       title={opt.label}
                     >
-                      <span className="relative block aspect-square w-full bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_50%,transparent)]">
+                      <span className="relative block aspect-square w-full bg-white">
                         {isAll ? (
                           <span className="flex h-full w-full items-center justify-center">
                             <Layers className="size-4 text-[var(--pos-primary,#0f766e)]" />
                           </span>
                         ) : thumb ? (
-                          <Image
-                            src={thumb}
-                            alt=""
-                            fill
-                            sizes="68px"
-                            className="object-contain p-1"
-                            unoptimized
-                          />
+                          <span className="absolute left-1/2 top-1/2 h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2">
+                            <Image
+                              src={thumb}
+                              alt=""
+                              fill
+                              sizes="68px"
+                              className="object-contain"
+                              unoptimized
+                            />
+                          </span>
                         ) : (
                           <span className="flex h-full w-full items-center justify-center">
                             <Package className="size-3.5 opacity-35" />
@@ -159,8 +161,8 @@ export function OrderParentFloater({
               className={cn(
                 "relative flex size-8 shrink-0 items-center justify-center overflow-hidden border",
                 filtered
-                  ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                  : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+                  ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                  : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
               )}
             >
               {sealThumb ? (

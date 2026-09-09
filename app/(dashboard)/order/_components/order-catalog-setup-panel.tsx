@@ -17,7 +17,7 @@ type OrderCatalogSetupPanelProps = {
 };
 
 const stepClass =
-  "rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/80 px-3 py-2.5 text-left";
+  "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 text-left";
 
 export function OrderCatalogSetupPanel({
   supplierName,
@@ -32,8 +32,8 @@ export function OrderCatalogSetupPanel({
   const isFilteredEmpty = hasLinks && trimmedFilter.length > 0;
 
   return (
-    <div className="flex min-h-[14rem] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white/55 px-5 py-8 text-center sm:px-8">
-      <div className="flex size-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)]">
+    <div className="flex min-h-[14rem] flex-col items-center justify-center gap-4 rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-5 py-8 text-center sm:px-8">
+      <div className="flex size-12 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
         {isFilteredEmpty ? (
           <Search
             className="size-5 text-[var(--pos-primary,#0f766e)]"
@@ -69,7 +69,7 @@ export function OrderCatalogSetupPanel({
               type="button"
               onClick={() => onLink(trimmedFilter || undefined)}
               className={cn(
-                "inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg px-4 text-[13px] font-semibold transition",
+                "inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-none px-4 text-[13px] font-semibold transition",
                 "bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]",
               )}
             >
@@ -81,7 +81,7 @@ export function OrderCatalogSetupPanel({
             <button
               type="button"
               onClick={onCreate}
-              className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 text-[13px] font-semibold text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]"
+              className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 text-[13px] font-semibold text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]"
             >
               <PackagePlus className="size-4" aria-hidden />
               Create product

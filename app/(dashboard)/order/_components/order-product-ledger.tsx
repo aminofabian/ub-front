@@ -42,7 +42,7 @@ function ColHead({
   return (
     <div
       className={cn(
-        "flex h-8 shrink-0 items-center border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 text-[10px] font-bold uppercase tracking-[0.08em] last:border-r-0",
+        "flex h-8 shrink-0 items-center border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 text-[11px] font-medium last:border-r-0",
         width,
         align === "right" && "justify-end",
         "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]",
@@ -78,7 +78,7 @@ export function OrderProductLedger({
   );
 
   return (
-    <div className="overflow-hidden rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
       <div className="flex border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_60%,transparent)]">
         <ColHead label="#" width="w-9" />
         <ColHead label="Item" width="min-w-0 flex-1" />
@@ -157,7 +157,7 @@ export function OrderProductLedger({
                     type="button"
                     disabled={pickingItemId === link.itemId}
                     onClick={() => onPickItem(link)}
-                    className="inline-flex h-7 items-center justify-center rounded-md bg-[var(--pos-primary,#0f766e)] px-2.5 text-[10px] font-bold text-white disabled:opacity-60"
+                    className="inline-flex h-7 items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[10px] font-bold text-white disabled:opacity-60"
                   >
                     {pickingItemId === link.itemId ? "…" : "Add"}
                   </button>
@@ -167,7 +167,7 @@ export function OrderProductLedger({
                       type="button"
                       disabled={qty <= 0}
                       onClick={() => onSetQty(link.itemId, qty - 1)}
-                      className="flex size-7 items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-white disabled:opacity-25"
+                      className="flex size-7 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-white disabled:opacity-25"
                       aria-label="Decrease"
                     >
                       <Minus className="size-3.5" aria-hidden />
@@ -185,7 +185,7 @@ export function OrderProductLedger({
                     <button
                       type="button"
                       onClick={() => onSetQty(link.itemId, qty + 1)}
-                      className="flex size-7 items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-white"
+                      className="flex size-7 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-white"
                       aria-label="Increase"
                     >
                       <Plus className="size-3.5" aria-hidden />

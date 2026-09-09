@@ -27,18 +27,13 @@ export function OrderPageLayout({
   return (
     <div
       className={cn(
-        "relative mx-auto w-full max-w-[1400px] px-3 pb-6 pt-2 sm:px-5 sm:pb-8 sm:pt-3",
+        "relative mx-auto w-full max-w-[1400px] bg-white px-3 pb-6 pt-2 sm:px-5 sm:pb-8 sm:pt-3",
         className,
       )}
       style={PROCUREMENT_VARS}
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(120%_100%_at_12%_-20%,color-mix(in_srgb,var(--pos-primary)_14%,transparent),transparent_60%),linear-gradient(180deg,color-mix(in_srgb,var(--order-shelf)_85%,#fff),transparent)]"
-      />
-
-      <div className="relative space-y-2.5">
-        <div className="rounded-lg border border-[color-mix(in_srgb,var(--order-ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip)_92%,transparent)] p-0.5 shadow-[0_1px_0_color-mix(in_srgb,var(--order-ink)_6%,transparent)] backdrop-blur-sm">
+      <div className="relative space-y-3">
+        <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink)_12%,transparent)] bg-white">
           <ProcurementHubNav />
         </div>
 
@@ -46,14 +41,11 @@ export function OrderPageLayout({
 
         {showHeader && title && !header ? (
           <header className="px-0.5 sm:px-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--order-ink)_42%,transparent)]">
-              Procurement
-            </p>
-            <h1 className="mt-1 font-heading text-2xl font-semibold tracking-[-0.03em] text-[var(--order-ink)] sm:text-[1.65rem]">
+            <h1 className="font-heading text-2xl font-semibold tracking-[-0.03em] text-[var(--order-ink)] sm:text-[1.65rem]">
               {title}
             </h1>
             {description ? (
-              <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink)_58%,transparent)] sm:text-sm">
+              <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink)_62%,transparent)] sm:text-sm">
                 {description}
               </p>
             ) : null}

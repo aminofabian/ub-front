@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
+  Check,
   ChevronDown,
   ChevronUp,
   ClipboardList,
@@ -105,10 +106,10 @@ function PackChoiceChip({
       title={title}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-6 min-w-7 items-center justify-center rounded-md px-1.5 font-mono text-[10px] font-bold tabular-nums transition",
+        "inline-flex h-6 min-w-7 items-center justify-center rounded-none border px-1.5 font-mono text-[10px] font-bold tabular-nums transition",
         active
-          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white shadow-sm"
-          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--order-ink,#15231f)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]",
+          ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--order-ink,#15231f)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]",
       )}
     >
       {children}
@@ -1106,7 +1107,7 @@ export function TenantOrderWorkspace({
     <>
       {cartLines.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-          <span className="flex size-12 items-center justify-center rounded-full border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]">
+          <span className="flex size-12 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
             <ShoppingCart
               className="size-5 text-[var(--pos-primary,#0f766e)]/70"
               strokeWidth={1.5}
@@ -1136,16 +1137,18 @@ export function TenantOrderWorkspace({
               className="space-y-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-3 last:border-b-0"
             >
               <div className="flex gap-3">
-                <div className="relative size-11 shrink-0 overflow-hidden rounded-md bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,#fff)] ring-1 ring-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+                <div className="relative size-11 shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
                   {thumb ? (
-                    <Image
-                      src={thumb}
-                      alt=""
-                      fill
-                      sizes="44px"
-                      className="object-contain p-1"
-                      unoptimized
-                    />
+                    <span className="absolute left-1/2 top-1/2 h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2">
+                      <Image
+                        src={thumb}
+                        alt=""
+                        fill
+                        sizes="44px"
+                        className="object-contain"
+                        unoptimized
+                      />
+                    </span>
                   ) : (
                     <span className="flex h-full w-full items-center justify-center">
                       <Package className="size-3.5 opacity-25" aria-hidden />
@@ -1252,11 +1255,11 @@ export function TenantOrderWorkspace({
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="inline-flex flex-col items-end gap-0.5">
-                    <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+                    <span className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                       {packed ? "Pack price" : "Unit price"}
                     </span>
                     <input
-                      className="h-8 w-[5.25rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
+                      className="h-8 w-[5.25rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
                       inputMode="decimal"
                       aria-label={packed ? "Pack price" : "Unit price"}
                       value={
@@ -1318,11 +1321,11 @@ export function TenantOrderWorkspace({
                     />
                   </label>
                   <label className="inline-flex flex-col items-end gap-0.5">
-                    <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+                    <span className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                       Line total
                     </span>
                     <input
-                      className="h-8 w-[5.75rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
+                      className="h-8 w-[5.75rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
                       inputMode="decimal"
                       aria-label="Line total"
                       value={
@@ -1395,53 +1398,45 @@ export function TenantOrderWorkspace({
   );
 
   const placeFooter = (
-    <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_88%,transparent)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-[2px] sm:px-4 sm:py-4">
-      <div className="rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[var(--order-ink,#15231f)] p-3.5 text-white shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_10%,transparent)]">
+    <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-4">
+      <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5">
         <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,#fff_55%,transparent)]">
-              Order total
-            </p>
-            <p className="font-mono text-[11px] text-[color-mix(in_srgb,#fff_62%,transparent)]">
+          <div className="min-w-0 space-y-1.5">
+            <p className="text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
               {cartUnits} line{cartUnits === 1 ? "" : "s"}
             </p>
             <button
               type="button"
               onClick={() => setRoundTo10((v) => !v)}
               className={cn(
-                "inline-flex items-center gap-2 text-[11px] font-medium transition-colors",
+                "inline-flex items-center gap-2 text-[12px] font-medium transition-colors",
                 roundTo10
-                  ? "text-[color-mix(in_srgb,#fff_90%,transparent)]"
-                  : "text-[color-mix(in_srgb,#fff_55%,transparent)] hover:text-white",
+                  ? "text-[var(--pos-primary,#0f766e)]"
+                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] hover:text-[var(--order-ink,#15231f)]",
               )}
               aria-pressed={roundTo10}
               title="Round the order total to the nearest 10"
             >
               <span
                 className={cn(
-                  "relative h-4 w-7 shrink-0 rounded-full border transition-colors",
+                  "flex size-4 shrink-0 items-center justify-center rounded-none border transition-colors",
                   roundTo10
-                    ? "border-white/30 bg-[var(--pos-primary,#0f766e)]"
-                    : "border-white/25 bg-white/10",
+                    ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)] bg-white",
                 )}
                 aria-hidden
               >
-                <span
-                  className={cn(
-                    "absolute top-0.5 size-2.5 rounded-full bg-white transition-[left]",
-                    roundTo10 ? "left-3.5" : "left-0.5",
-                  )}
-                />
+                {roundTo10 ? <Check className="size-3" strokeWidth={2.5} /> : null}
               </span>
               Round to 10
             </button>
           </div>
           <div className="text-right">
-            <p className="font-mono text-[22px] font-bold leading-none tabular-nums">
+            <p className="font-heading text-[22px] font-semibold leading-none tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
               {formatMoney(effectiveTotal, ORDER_CURRENCY)}
             </p>
             {roundingActive ? (
-              <p className="mt-1 text-[10px] text-[color-mix(in_srgb,#fff_55%,transparent)]">
+              <p className="mt-1 text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                 {effectiveTotal > cartTotal ? "up" : "down"} from{" "}
                 {formatMoney(cartTotal, ORDER_CURRENCY)}
               </p>
@@ -1453,7 +1448,7 @@ export function TenantOrderWorkspace({
           type="button"
           disabled={placing || cartLines.length === 0}
           onClick={() => void placeOrder(false)}
-          className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-40"
+          className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-40"
         >
           {placing ? (
             <>
@@ -1520,7 +1515,7 @@ export function TenantOrderWorkspace({
       </div>
 
       {importOpen ? (
-        <div className="mt-2 space-y-2 rounded-lg border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_50%,transparent)] p-2.5">
+        <div className="mt-2 space-y-2 rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white p-2.5">
           <p className="text-[10px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
             Paste a marketplace `?o=` URL or an `/order?ticket=` link.
           </p>
@@ -1529,12 +1524,12 @@ export function TenantOrderWorkspace({
             onChange={(e) => setImportText(e.target.value)}
             rows={2}
             placeholder="https://…?o=… or /order?ticket=…"
-            className="w-full resize-none rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-2 text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_20%,transparent)]"
+            className="w-full resize-none rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-2 text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_20%,transparent)]"
           />
           <button
             type="button"
             onClick={() => applyImportedTicket(importText)}
-            className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-[var(--order-ink,#15231f)] text-[11px] font-semibold text-white"
+            className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] text-[11px] font-semibold text-white"
           >
             <Copy className="size-3.5" aria-hidden />
             Load into this order
@@ -1550,7 +1545,7 @@ export function TenantOrderWorkspace({
         "relative flex w-full flex-col overflow-hidden font-sans text-[var(--order-ink,#15231f)]",
         embedded
           ? "h-full min-h-0 flex-1 border-0"
-          : "h-[calc(100dvh-20rem)] min-h-[32rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] shadow-[0_1px_0_color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent),0_16px_48px_-28px_color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)] sm:h-[min(72dvh,54rem)]",
+          : "h-[calc(100dvh-20rem)] min-h-[32rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:h-[min(72dvh,54rem)]",
       )}
       style={{
         ["--pos-primary" as string]: "#0f766e",
@@ -1559,12 +1554,7 @@ export function TenantOrderWorkspace({
         ["--order-slip" as string]: "#ffffff",
       }}
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_20%_-10%,color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent),transparent_55%),linear-gradient(180deg,var(--order-shelf,#f3f6f5),color-mix(in_srgb,var(--order-shelf,#f3f6f5)_70%,#fff))]"
-      />
-
-      <div className="relative z-[1] flex shrink-0 items-stretch border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_82%,transparent)] px-1 backdrop-blur-[2px] sm:px-2">
+      <div className="relative z-[1] flex shrink-0 items-stretch border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1 sm:px-2">
         <button
           type="button"
           onClick={() => {
@@ -1572,16 +1562,13 @@ export function TenantOrderWorkspace({
             setSupplierQuery("");
           }}
           className={cn(
-            "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left transition-colors",
+            "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-none px-3 py-2.5 text-left transition-colors",
             "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] active:bg-black/[0.03]",
             !embedded && "lg:pointer-events-none",
           )}
         >
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
-              Ordering from
-            </p>
-            <p className="mt-0.5 truncate font-heading text-[16px] font-semibold leading-tight tracking-[-0.02em] text-[var(--order-ink,#15231f)] sm:text-[17px]">
+            <p className="truncate font-heading text-[16px] font-semibold leading-tight tracking-[-0.02em] text-[var(--order-ink,#15231f)] sm:text-[17px]">
               {activeSupplier?.name ?? "Select supplier"}
             </p>
           </div>
@@ -1631,7 +1618,7 @@ export function TenantOrderWorkspace({
           <button
             type="button"
             onClick={() => openLinkCatalog(filter)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
             title="Link catalog products to this supplier"
           >
             <Link2 className="size-3.5" aria-hidden />
@@ -1672,22 +1659,19 @@ export function TenantOrderWorkspace({
       >
         <aside
           className={cn(
-            "min-h-0 w-[19rem] shrink-0 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_35%,transparent)] xl:w-[21rem]",
+            "min-h-0 w-[19rem] shrink-0 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white xl:w-[21rem]",
             embedded ? "hidden" : "hidden lg:flex",
           )}
         >
-          <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-2.5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+          <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2.5">
+            <p className="font-heading text-[16px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
               Suppliers
             </p>
-            <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-              Who you order from
-            </p>
           </div>
-          <div className="relative border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-2">
+          <div className="relative border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2 py-2">
             <Search className="pointer-events-none absolute left-4 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
             <input
-              className="h-9 w-full rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white pl-8 pr-2 text-[13px] outline-none placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)] focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_15%,transparent)]"
+              className="h-9 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-8 pr-2 text-[13px] outline-none placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)] focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_15%,transparent)]"
               placeholder="Find supplier"
               value={supplierQuery}
               onChange={(e) => setSupplierQuery(e.target.value)}
@@ -1709,22 +1693,13 @@ export function TenantOrderWorkspace({
                         type="button"
                         onClick={() => selectSupplier(s.id)}
                         className={cn(
-                          "group relative flex w-full items-center rounded-lg border px-3 py-2.5 text-left text-[13px] transition-[border-color,background-color,box-shadow] duration-200",
+                          "flex w-full items-center rounded-none border px-3 py-2.5 text-left text-[13px] transition-[border-color,color] duration-150",
                           active
-                            ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_30%,transparent)] bg-white font-semibold text-[var(--pos-primary,#0f766e)] shadow-sm"
-                            : "border-transparent bg-white/60 font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] hover:bg-white hover:text-[var(--order-ink,#15231f)]",
+                            ? "border-[var(--pos-primary,#0f766e)] bg-white font-semibold text-[var(--pos-primary,#0f766e)]"
+                            : "border-transparent bg-white font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                         )}
                       >
-                        <span
-                          aria-hidden
-                          className={cn(
-                            "absolute inset-y-2 left-0 w-1 rounded-r-full transition-colors",
-                            active
-                              ? "bg-[var(--pos-primary,#0f766e)]"
-                              : "bg-transparent group-hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
-                          )}
-                        />
-                        <span className="truncate pl-1.5">{s.name}</span>
+                        <span className="truncate">{s.name}</span>
                       </button>
                     </li>
                   );
@@ -1735,11 +1710,11 @@ export function TenantOrderWorkspace({
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="flex shrink-0 items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_45%,transparent)] px-3 py-2">
+          <div className="flex shrink-0 items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
               <input
-                className="h-10 w-full rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white pl-9 pr-3 text-[14px] shadow-sm outline-none placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)] focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_15%,transparent)] sm:text-[14px]"
+                className="h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 pr-3 text-[14px] outline-none placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)] focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_15%,transparent)] sm:text-[14px]"
                 placeholder={
                   orderTemplate === "ledger"
                     ? "Search products in this list…"
@@ -1758,7 +1733,7 @@ export function TenantOrderWorkspace({
               <button
                 type="button"
                 onClick={() => openLinkCatalog(filter)}
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] px-2 py-1.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)]"
+                className="inline-flex shrink-0 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)] bg-white px-2 py-1.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)]"
                 title="Link products from your catalog"
               >
                 <Link2 className="size-3.5" aria-hidden />
@@ -1768,16 +1743,16 @@ export function TenantOrderWorkspace({
           </div>
 
           {showFamilies ? (
-            <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/50 px-3 py-2">
+            <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
               <div className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
                   onClick={() => setParentFilterId(null)}
                   className={cn(
-                    "shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition-colors",
+                    "shrink-0 rounded-none border px-3 py-1 text-[11px] font-semibold transition-colors",
                     !parentFilterId
-                      ? "bg-[var(--order-ink,#15231f)] text-white"
-                      : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                      ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                   )}
                 >
                   All
@@ -1792,10 +1767,10 @@ export function TenantOrderWorkspace({
                       )
                     }
                     className={cn(
-                      "max-w-[9.5rem] shrink-0 truncate rounded-full px-3 py-1 text-[11px] font-semibold transition-colors",
+                      "max-w-[9.5rem] shrink-0 truncate rounded-none border px-3 py-1 text-[11px] font-semibold transition-colors",
                       parentFilterId === opt.id
-                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)] ring-1 ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]"
-                        : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                        ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                        : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                     )}
                   >
                     {opt.label}
@@ -1807,7 +1782,7 @@ export function TenantOrderWorkspace({
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4 [scrollbar-width:thin]">
             {!supplierId ? (
-              <div className="flex h-full min-h-[14rem] flex-col items-center justify-center gap-3 border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white/50 px-6 text-center">
+              <div className="flex h-full min-h-[14rem] flex-col items-center justify-center gap-3 border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-6 text-center">
                 <Package
                   className="size-8 text-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]"
                   strokeWidth={1.25}
@@ -1819,7 +1794,7 @@ export function TenantOrderWorkspace({
                   </p>
                   <p className="mt-1 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
                     {embedded
-                      ? "Tap Ordering from above to open their shelf."
+                      ? "Tap the supplier name above to open their shelf."
                       : "Pick who you order from to open their product shelf."}
                   </p>
                 </div>
@@ -1878,20 +1853,15 @@ export function TenantOrderWorkspace({
 
         <aside
           className={cn(
-            "min-h-0 w-[20rem] shrink-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/80 xl:w-[22rem]",
+            "min-h-0 w-[20rem] shrink-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white xl:w-[22rem]",
             embedded ? "hidden" : "hidden lg:flex",
           )}
         >
-          <div className="flex shrink-0 items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)] px-4 py-3">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
-                This order
-              </p>
-              <p className="font-heading text-[16px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-                Order slip
-              </p>
-            </div>
-            <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-[var(--order-ink,#15231f)] px-2 font-mono text-[11px] font-bold tabular-nums text-white">
+          <div className="flex shrink-0 items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3">
+            <p className="font-heading text-[16px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+              Order slip
+            </p>
+            <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-[11px] font-bold tabular-nums text-[var(--order-ink,#15231f)]">
               {cartUnits}
             </span>
           </div>
@@ -1906,14 +1876,11 @@ export function TenantOrderWorkspace({
         type="button"
         onClick={() => setMobileOrderOpen(true)}
         className={cn(
-          "relative z-[1] flex w-full shrink-0 items-center justify-between gap-3 rounded-none border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[var(--order-ink,#15231f)] px-4 py-3 text-white shadow-[0_-8px_24px_-12px_color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)] active:brightness-95",
+          "relative z-[1] flex w-full shrink-0 items-center justify-between gap-3 rounded-none border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3 text-[var(--order-ink,#15231f)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]",
           !embedded && "lg:hidden",
         )}
       >
         <span className="text-left">
-          <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
-            This order
-          </span>
           <span className="text-[14px] font-semibold">
             {cartUnits === 0
               ? "No items yet"
@@ -1921,10 +1888,10 @@ export function TenantOrderWorkspace({
           </span>
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="font-mono text-[15px] font-semibold tabular-nums">
+          <span className="font-heading text-[15px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
             {formatMoney(effectiveTotal, ORDER_CURRENCY)}
           </span>
-          <ChevronUp className="size-4 opacity-90" aria-hidden />
+          <ChevronUp className="size-4 text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]" aria-hidden />
         </span>
       </button>
 
@@ -1942,15 +1909,10 @@ export function TenantOrderWorkspace({
             onClick={() => setSupplierPickerOpen(false)}
           />
         <div className="flex max-h-[80%] min-h-[50%] flex-col rounded-t-none border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
-                  Who you order from
-                </p>
-                <p className="font-heading text-[17px] font-semibold tracking-[-0.02em]">
-                  Suppliers
-                </p>
-              </div>
+            <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3.5 py-3">
+              <p className="font-heading text-[17px] font-semibold tracking-[-0.02em]">
+                Suppliers
+              </p>
               <button
                 type="button"
                 className="flex size-9 items-center justify-center text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] active:scale-95"
@@ -2009,15 +1971,10 @@ export function TenantOrderWorkspace({
             onClick={() => setMobileOrderOpen(false)}
           />
           <div className="flex max-h-[88%] min-h-[45%] flex-col rounded-t-none border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
-                  This order
-                </p>
-                <p className="truncate font-heading text-[16px] font-semibold tracking-[-0.02em]">
-                  {activeSupplier?.name ?? "Supplier"}
-                </p>
-              </div>
+            <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3.5 py-3">
+              <p className="truncate font-heading text-[16px] font-semibold tracking-[-0.02em]">
+                {activeSupplier?.name ?? "Supplier"}
+              </p>
               <button
                 type="button"
                 className="flex size-9 items-center justify-center text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] active:scale-95"

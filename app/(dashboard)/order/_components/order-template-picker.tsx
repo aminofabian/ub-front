@@ -25,7 +25,7 @@ export function OrderTemplatePicker({
   return (
     <div
       className={cn(
-        "inline-flex shrink-0 items-center rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white p-0.5",
+        "inline-flex shrink-0 items-stretch divide-x divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
         className,
       )}
       role="group"
@@ -42,10 +42,10 @@ export function OrderTemplatePicker({
             aria-pressed={active}
             onClick={() => onChange(t.id)}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors",
+              "inline-flex items-center gap-1 rounded-none px-2.5 py-2 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
               active
-                ? "bg-[var(--order-ink,#15231f)] text-white shadow-sm"
-                : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                ? "bg-white text-[var(--pos-primary,#0f766e)]"
+                : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
             )}
           >
             <Icon className="size-3.5" aria-hidden />

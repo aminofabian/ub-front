@@ -14,14 +14,14 @@ function LedgerMetric({
   emphasize?: boolean;
 }) {
   return (
-    <div className="min-w-0 flex items-baseline gap-1.5 sm:flex-col sm:items-start sm:gap-0">
-      <p className="shrink-0 text-[7px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,#fff_48%,transparent)]">
+    <div className="min-w-0">
+      <p className="text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
         {label}
       </p>
       <p
         className={cn(
-          "font-heading font-semibold leading-none tracking-[-0.03em] tabular-nums text-white",
-          emphasize ? "text-[13px] sm:text-[14px]" : "text-[12px] sm:text-[13px]",
+          "mt-0.5 font-heading font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--order-ink,#15231f)]",
+          emphasize ? "text-[15px] sm:text-[16px]" : "text-[14px] sm:text-[15px]",
         )}
       >
         {value}
@@ -56,49 +56,45 @@ export function OrderLifetimeOverview({
       : 0;
 
   return (
-    <div className="overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[var(--order-ink,#15231f)]">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2.5 py-1.5 sm:flex-nowrap sm:gap-x-4 sm:px-3">
-        <p className="shrink-0 text-[8px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,#fff_45%,transparent)]">
-          Ledger
-        </p>
+    <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-2 px-3 py-2.5 sm:flex-nowrap sm:gap-x-5">
+        <LedgerMetric
+          label="Spend"
+          value={loading ? "—" : formatMoney(lifetime.totalSpend, CURRENCY)}
+          emphasize
+        />
+        <LedgerMetric
+          label="Placed"
+          value={loading ? "—" : String(lifetime.ordersPlaced)}
+        />
+        <LedgerMetric
+          label="Confirmed"
+          value={loading ? "—" : String(lifetime.fullyReceived)}
+        />
+        <LedgerMetric
+          label="Paid"
+          value={loading ? "—" : formatMoney(lifetime.paidValue, CURRENCY)}
+        />
+        <LedgerMetric
+          label="Open"
+          value={loading ? "—" : formatMoney(lifetime.openBalance, CURRENCY)}
+        />
 
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-4">
-          <LedgerMetric
-            label="Spend"
-            value={loading ? "—" : formatMoney(lifetime.totalSpend, CURRENCY)}
-            emphasize
-          />
-          <LedgerMetric
-            label="Placed"
-            value={loading ? "—" : String(lifetime.ordersPlaced)}
-          />
-          <LedgerMetric
-            label="Confirmed"
-            value={loading ? "—" : String(lifetime.fullyReceived)}
-          />
-          <LedgerMetric
-            label="Paid"
-            value={loading ? "—" : formatMoney(lifetime.paidValue, CURRENCY)}
-          />
-          <LedgerMetric
-            label="Open"
-            value={loading ? "—" : formatMoney(lifetime.openBalance, CURRENCY)}
-          />
-        </div>
-
-        <div className="ml-auto flex w-[5.5rem] shrink-0 items-center gap-1.5 sm:w-[6.5rem]">
-          <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,#fff_42%,transparent)]">
-            Paid
-          </span>
-          <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,#fff_10%,transparent)]">
+        <div className="ml-auto flex w-[6.5rem] shrink-0 flex-col gap-1 sm:w-[7.5rem]">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
+              Paid
+            </span>
+            <span className="font-heading text-[12px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+              {loading ? "—" : `${Math.round(paidRatio)}%`}
+            </span>
+          </div>
+          <div className="h-1 w-full overflow-hidden rounded-none bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
             <div
-              className="h-full rounded-full bg-[var(--pos-primary,#0f766e)] transition-[width] duration-500"
+              className="h-full rounded-none bg-[var(--pos-primary,#0f766e)] transition-[width] duration-500"
               style={{ width: loading ? "0%" : `${paidRatio}%` }}
             />
           </div>
-          <span className="tabular-nums text-[9px] font-semibold text-[color-mix(in_srgb,#fff_70%,transparent)]">
-            {loading ? "—" : `${Math.round(paidRatio)}%`}
-          </span>
         </div>
       </div>
     </div>
