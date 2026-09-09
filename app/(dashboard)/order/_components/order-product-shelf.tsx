@@ -30,14 +30,14 @@ function linkPacks(link: SupplierItemLinkRecord): ItemLinkPackOfferRecord[] {
 
 function packUnitPrice(
   link: SupplierItemLinkRecord,
-  pack: { size: number } | null,
+  pack: { size: number; price?: number | null } | null,
 ): number {
-  const base =
+  if (pack && pack.price != null && pack.price > 0) return pack.price;
+  return (
     toNum(link.lastCostPrice) ||
     toNum(link.defaultCostPrice) ||
-    toNum(link.catalogBuyingPrice);
-  if (!pack || pack.size <= 1) return base;
-  return base;
+    toNum(link.catalogBuyingPrice)
+  );
 }
 
 function OrderTileTitle({
@@ -49,11 +49,11 @@ function OrderTileTitle({
 }) {
   return (
     <div className="min-w-0 space-y-0.5">
-      <p className="line-clamp-2 break-words text-[12px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
+      <p className="break-words text-[12px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
         {primary}
       </p>
       {option ? (
-        <p className="line-clamp-1 break-words text-[10px] font-semibold leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_72%,transparent)]">
+        <p className="break-words text-[10px] font-semibold leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_72%,transparent)]">
           {option}
         </p>
       ) : null}

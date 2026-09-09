@@ -44,7 +44,7 @@ export function SupplyReceiptCard({
   const st = supplyPaymentStatusBadge(row.paymentStatus);
   const bal = supplyN(row.balanceOpen);
   const needsPay = bal > 0.009 && canPay;
-  const canDelete = canEditSupplyBill && supplyN(row.amountPaid) < 0.005;
+  const canDelete = canEditSupplyBill && supplyN(row.amountPaid) < 0.005 && row.source !== "path_a";
   const showPayAll =
     Boolean(onPayAll) &&
     (payAllCount ?? 0) >= 2 &&

@@ -10249,6 +10249,8 @@ export type PathBSupplyListRowRecord = {
   balanceOpen: number | string;
   paymentStatus: string;
   branchId?: string | null;
+  /** Direct receive (`path_b`) or confirmed order / GRN (`path_a`). */
+  source?: "path_a" | "path_b" | string | null;
 };
 
 export type SupplyPaymentHistoryRecord = {
@@ -10322,6 +10324,8 @@ export type PathBSupplyInvoiceDetailRecord = {
   supplyBatchId?: string | null;
   expenses?: PathBSupplyExpenseRecord[];
   lines: PathBSupplyInvoiceLineRecord[];
+  /** Direct receive (`path_b`) or confirmed order / GRN (`path_a`). */
+  source?: "path_a" | "path_b" | string | null;
 };
 
 export async function fetchPathBSupplyInvoiceDetail(

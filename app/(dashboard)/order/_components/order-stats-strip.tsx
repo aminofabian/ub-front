@@ -25,16 +25,16 @@ export function OrderStatsStrip() {
   const confirmActive = sentStats.awaitingUnits > 0;
 
   return (
-    <section aria-label="Order stats" className="space-y-3 px-0.5 sm:px-1">
+    <section aria-label="Order stats" className="space-y-2 px-0.5 sm:px-1">
       <OrderLifetimeOverview loading={loading} lifetime={lifetime} />
 
-      <div className="space-y-2.5">
+      <div className="space-y-1.5">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
               Right now
             </p>
-            <p className="mt-0.5 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+            <p className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
               Your live basket and in-flight orders
             </p>
           </div>

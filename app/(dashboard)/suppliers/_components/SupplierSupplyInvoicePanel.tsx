@@ -47,6 +47,8 @@ function toListRow(d: PathBSupplyInvoiceDetailRecord): PathBSupplyListRowRecord 
     amountPaid: d.amountPaid,
     balanceOpen: d.balanceOpen,
     paymentStatus: d.paymentStatus,
+    branchId: d.branchId,
+    source: d.source,
   };
 }
 
@@ -98,6 +100,10 @@ export function SupplierSupplyInvoicePanel({
 
   const onDelete = useCallback(() => {
     if (!detail) return;
+    if (detail.source === "path_a") {
+      toast.error("Order delivery invoices cannot be deleted from Supplies.");
+      return;
+    }
     if (supplyN(detail.amountPaid) >= 0.005) {
       toast.error("Remove payments from this invoice before deleting it.");
       return;
@@ -257,7 +263,10 @@ export function SupplierSupplyInvoicePanel({
             Edit
           </Button>
         ) : null}
-        {canPathBWrite && listRow && supplyN(detail.amountPaid) < 0.005 ? (
+        {canPathBWrite &&
+        listRow &&
+        supplyN(detail.amountPaid) < 0.005 &&
+        detail.source !== "path_a" ? (
           <Button
             type="button"
             size="sm"

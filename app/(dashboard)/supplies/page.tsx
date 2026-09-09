@@ -116,6 +116,10 @@ export default function SuppliesPage() {
 
   const onDeleteSupply = useCallback(
     (row: PathBSupplyListRowRecord) => {
+      if (row.source === "path_a") {
+        toast.error("Order delivery invoices cannot be deleted from Supplies.");
+        return;
+      }
       if (supplyN(row.amountPaid) >= 0.005) {
         toast.error("Remove payments from this invoice before deleting it.");
         return;
@@ -588,7 +592,8 @@ export default function SuppliesPage() {
                                 </Button>
                               ) : null}
                               {canEditSupplyBill &&
-                              supplyN(r.amountPaid) < 0.005 ? (
+                              supplyN(r.amountPaid) < 0.005 &&
+                              r.source !== "path_a" ? (
                                 <Button
                                   type="button"
                                   size="icon"

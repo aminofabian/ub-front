@@ -106,7 +106,10 @@ export function EditSupplyBillDrawer({
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const canEditLines = useMemo(
-    () => (detail ? supplyN(detail.amountPaid) < 0.005 : false),
+    () =>
+      detail
+        ? supplyN(detail.amountPaid) < 0.005 && detail.source !== "path_a"
+        : false,
     [detail],
   );
 
@@ -450,9 +453,9 @@ export function EditSupplyBillDrawer({
 
             {!canEditLines ? (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/8 px-3.5 py-2.5 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
-                This bill has supplier payments. Quantity and buying price are
-                locked — you can still edit invoice details, selling prices, and
-                extra costs.
+                {detail.source === "path_a"
+                  ? "This bill came from a confirmed order. Quantity and buying price stay with the order receive — you can still edit invoice details, selling prices, and extra costs."
+                  : "This bill has supplier payments. Quantity and buying price are locked — you can still edit invoice details, selling prices, and extra costs."}
               </div>
             ) : null}
 

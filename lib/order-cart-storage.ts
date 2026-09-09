@@ -19,6 +19,9 @@ export type OrderCartPackSelection = {
 
 export type OrderCartPackMeta = Record<string, OrderCartPackSelection>;
 
+/** Buyer-adjusted price for one cart line (unit or pack, matching the qty unit). */
+export type OrderCartPriceMeta = Record<string, number>;
+
 export type OrderCartPersisted = {
   v: 1;
   updatedAt: number;
@@ -28,6 +31,8 @@ export type OrderCartPersisted = {
   cartsBySupplier: Record<string, OrderCartQty>;
   /** Optional pack choices keyed like cartsBySupplier. */
   packsBySupplier?: Record<string, OrderCartPackMeta>;
+  /** Optional unit/pack price overrides keyed like cartsBySupplier. */
+  pricesBySupplier?: Record<string, OrderCartPriceMeta>;
 };
 
 function storageKey(businessId: string, branchId: string): string {
@@ -103,6 +108,20 @@ function sanitizePackMeta(
   return next;
 }
 
+function sanitizePriceMeta(
+  prices: OrderCartPriceMeta | undefined | null,
+): OrderCartPriceMeta {
+  if (!prices || typeof prices !== "object") return {};
+  const next: OrderCartPriceMeta = {};
+  for (const [itemId, raw] of Object.entries(prices)) {
+    const id = itemId.trim();
+    const n = typeof raw === "number" ? raw : Number(raw);
+    if (!id || !Number.isFinite(n) || n < 0) continue;
+    next[id] = Math.round(n * 10000) / 10000;
+  }
+  return next;
+}
+
 export function readOrderCartDraft(
   businessId: string,
   branchId: string,
@@ -127,6 +146,12 @@ export function readOrderCartDraft(
         sanitizePackMeta(packs),
       ]),
     ),
+    pricesBySupplier: Object.fromEntries(
+      Object.entries(draft.pricesBySupplier ?? {}).map(([supplierId, prices]) => [
+        supplierId,
+        sanitizePriceMeta(prices),
+      ]),
+    ),
   };
 }
 
@@ -136,6 +161,7 @@ export function writeOrderCartDraft(input: {
   selectedSupplierId: string | null;
   cartsBySupplier: Record<string, OrderCartQty>;
   packsBySupplier?: Record<string, OrderCartPackMeta>;
+  pricesBySupplier?: Record<string, OrderCartPriceMeta>;
 }): void {
   const businessId = input.businessId.trim();
   if (!businessId) return;
@@ -160,6 +186,19 @@ export function writeOrderCartDraft(input: {
     if (Object.keys(pruned).length === 0) continue;
     packsBySupplier[supplierId] = pruned;
   }
+  const pricesBySupplier: Record<string, OrderCartPriceMeta> = {};
+  for (const [supplierId, prices] of Object.entries(
+    input.pricesBySupplier ?? {},
+  )) {
+    if (!cartsBySupplier[supplierId]) continue;
+    const clean = sanitizePriceMeta(prices);
+    const pruned: OrderCartPriceMeta = {};
+    for (const [itemId, price] of Object.entries(clean)) {
+      if (cartsBySupplier[supplierId][itemId] != null) pruned[itemId] = price;
+    }
+    if (Object.keys(pruned).length === 0) continue;
+    pricesBySupplier[supplierId] = pruned;
+  }
   writeJson(storageKey(businessId, branchId), {
     v: 1,
     updatedAt: Date.now(),
@@ -169,6 +208,8 @@ export function writeOrderCartDraft(input: {
     cartsBySupplier,
     packsBySupplier:
       Object.keys(packsBySupplier).length > 0 ? packsBySupplier : undefined,
+    pricesBySupplier:
+      Object.keys(pricesBySupplier).length > 0 ? pricesBySupplier : undefined,
   });
 }
 
@@ -183,11 +224,14 @@ export function clearOrderCartForSupplier(input: {
   delete cartsBySupplier[input.supplierId];
   const packsBySupplier = { ...(draft.packsBySupplier ?? {}) };
   delete packsBySupplier[input.supplierId];
+  const pricesBySupplier = { ...(draft.pricesBySupplier ?? {}) };
+  delete pricesBySupplier[input.supplierId];
   writeOrderCartDraft({
     businessId: input.businessId,
     branchId: input.branchId,
     selectedSupplierId: draft.selectedSupplierId,
     cartsBySupplier,
     packsBySupplier,
+    pricesBySupplier,
   });
 }

@@ -56,6 +56,7 @@ import {
   writeOrderCartDraft,
   type OrderCartPackMeta,
   type OrderCartPackSelection,
+  type OrderCartPriceMeta,
   type OrderCartQty,
 } from "@/lib/order-cart-storage";
 import {
@@ -154,7 +155,9 @@ function linkPacks(link: SupplierItemLinkRecord): ItemLinkPackOfferRecord[] {
 function packUnitPrice(
   link: SupplierItemLinkRecord,
   pack: OrderCartPackSelection | null,
+  priceOverride: number | null = null,
 ): number {
+  if (priceOverride != null && priceOverride > 0) return priceOverride;
   if (pack && pack.size > 1) {
     if (pack.price != null && pack.price > 0) return pack.price;
     return unitCost(link);
@@ -166,8 +169,9 @@ function lineTotal(
   link: SupplierItemLinkRecord,
   qty: number,
   pack: OrderCartPackSelection | null = null,
+  priceOverride: number | null = null,
 ): number {
-  return packUnitPrice(link, pack) * qty;
+  return packUnitPrice(link, pack, priceOverride) * qty;
 }
 
 /** Stock units for a Path A PO line (packs × size when packed). */
@@ -183,13 +187,15 @@ function stockQtyOrdered(
 function stockUnitCost(
   link: SupplierItemLinkRecord,
   pack: OrderCartPackSelection | null,
+  priceOverride: number | null = null,
 ): number {
   if (pack && pack.size > 1) {
-    const packPrice = packUnitPrice(link, pack);
+    const packPrice = packUnitPrice(link, pack, priceOverride);
     return pack.size > 0
       ? Math.round((packPrice / pack.size) * 10000) / 10000
       : packPrice;
   }
+  if (priceOverride != null && priceOverride > 0) return priceOverride;
   return unitCost(link);
 }
 
@@ -262,6 +268,7 @@ export function TenantOrderWorkspace({
   const [filter, setFilter] = useState("");
   const [cart, setCart] = useState<CartQty>({});
   const [packByItemId, setPackByItemId] = useState<OrderCartPackMeta>({});
+  const [priceByItemId, setPriceByItemId] = useState<OrderCartPriceMeta>({});
   const [packSheetItemId, setPackSheetItemId] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
   const [whatsapping, setWhatsapping] = useState(false);
@@ -280,6 +287,7 @@ export function TenantOrderWorkspace({
   const [pastOrdersOpen, setPastOrdersOpen] = useState(false);
   const cartsBySupplierRef = useRef<Record<string, CartQty>>({});
   const packsBySupplierRef = useRef<Record<string, OrderCartPackMeta>>({});
+  const pricesBySupplierRef = useRef<Record<string, OrderCartPriceMeta>>({});
   const supplierIdRef = useRef<string | null>(null);
   const ticketAppliedRef = useRef(false);
   const pendingTicketRef = useRef(parseOrderTicket(initialTicket));
@@ -296,15 +304,18 @@ export function TenantOrderWorkspace({
     selectedSupplierId: string | null,
     nextCart: CartQty,
     nextPacks: OrderCartPackMeta,
+    nextPrices: OrderCartPriceMeta,
   ) => {
     if (!businessId) return;
     const maps = { ...cartsBySupplierRef.current };
     const packMaps = { ...packsBySupplierRef.current };
+    const priceMaps = { ...pricesBySupplierRef.current };
     if (selectedSupplierId) {
       const clean = { ...nextCart };
       if (Object.keys(clean).length === 0) {
         delete maps[selectedSupplierId];
         delete packMaps[selectedSupplierId];
+        delete priceMaps[selectedSupplierId];
       } else {
         maps[selectedSupplierId] = clean;
         const pruned: OrderCartPackMeta = {};
@@ -313,16 +324,27 @@ export function TenantOrderWorkspace({
         }
         if (Object.keys(pruned).length === 0) delete packMaps[selectedSupplierId];
         else packMaps[selectedSupplierId] = pruned;
+        const prunedPrices: OrderCartPriceMeta = {};
+        for (const [itemId, price] of Object.entries(nextPrices)) {
+          if (clean[itemId] != null) prunedPrices[itemId] = price;
+        }
+        if (Object.keys(prunedPrices).length === 0) {
+          delete priceMaps[selectedSupplierId];
+        } else {
+          priceMaps[selectedSupplierId] = prunedPrices;
+        }
       }
     }
     cartsBySupplierRef.current = maps;
     packsBySupplierRef.current = packMaps;
+    pricesBySupplierRef.current = priceMaps;
     writeOrderCartDraft({
       businessId,
       branchId,
       selectedSupplierId,
       cartsBySupplier: maps,
       packsBySupplier: packMaps,
+      pricesBySupplier: priceMaps,
     });
   };
 
@@ -335,6 +357,7 @@ export function TenantOrderWorkspace({
     if (draft) {
       cartsBySupplierRef.current = draft.cartsBySupplier;
       packsBySupplierRef.current = draft.packsBySupplier ?? {};
+      pricesBySupplierRef.current = draft.pricesBySupplier ?? {};
       const preferred =
         initialSupplierId?.trim() ||
         draft.selectedSupplierId ||
@@ -345,17 +368,21 @@ export function TenantOrderWorkspace({
         if (pendingTicketRef.current.length > 0) {
           setCart({});
           setPackByItemId({});
+          setPriceByItemId({});
         } else {
           setCart(draft.cartsBySupplier[preferred] ?? {});
           setPackByItemId(draft.packsBySupplier?.[preferred] ?? {});
+          setPriceByItemId(draft.pricesBySupplier?.[preferred] ?? {});
         }
       }
     } else {
       cartsBySupplierRef.current = {};
       packsBySupplierRef.current = {};
+      pricesBySupplierRef.current = {};
       if (!initialSupplierId?.trim()) {
         setCart({});
         setPackByItemId({});
+        setPriceByItemId({});
       }
     }
     setHydrated(true);
@@ -450,6 +477,7 @@ export function TenantOrderWorkspace({
     }
     setCart(cartsBySupplierRef.current[supplierId] ?? {});
     setPackByItemId(packsBySupplierRef.current[supplierId] ?? {});
+    setPriceByItemId(pricesBySupplierRef.current[supplierId] ?? {});
     void reloadSupplierLinks();
   }, [supplierId, reloadSupplierLinks]);
 
@@ -471,6 +499,7 @@ export function TenantOrderWorkspace({
     }
     setCart(result.cart);
     setPackByItemId(result.packs);
+    setPriceByItemId({});
     setMobileOrderOpen(true);
     if (result.missed.length > 0) {
       toast.message(
@@ -501,6 +530,7 @@ export function TenantOrderWorkspace({
 
     setCart(result.cart);
     setPackByItemId(result.packs);
+    setPriceByItemId(result.prices);
     setMobileOrderOpen(true);
     if (result.missed > 0) {
       toast.message(
@@ -519,9 +549,9 @@ export function TenantOrderWorkspace({
 
   useEffect(() => {
     if (!hydrated || !businessId) return;
-    persistDraft(supplierId, cart, packByItemId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- persist cart/supplier/packs only
-  }, [hydrated, businessId, branchId, supplierId, cart, packByItemId]);
+    persistDraft(supplierId, cart, packByItemId, priceByItemId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- persist cart/supplier/packs/prices only
+  }, [hydrated, businessId, branchId, supplierId, cart, packByItemId, priceByItemId]);
 
   const selectSupplier = (nextId: string) => {
     const prev = supplierIdRef.current;
@@ -530,6 +560,8 @@ export function TenantOrderWorkspace({
       cartsBySupplierRef.current = maps;
       const packMaps = { ...packsBySupplierRef.current, [prev]: packByItemId };
       packsBySupplierRef.current = packMaps;
+      const priceMaps = { ...pricesBySupplierRef.current, [prev]: priceByItemId };
+      pricesBySupplierRef.current = priceMaps;
     }
     setSupplierId(nextId);
   };
@@ -552,6 +584,7 @@ export function TenantOrderWorkspace({
       }
       setCart(result.cart);
       setPackByItemId(result.packs);
+      setPriceByItemId(result.prices);
       setMobileOrderOpen(true);
       if (result.missed > 0) {
         toast.message(
@@ -563,7 +596,7 @@ export function TenantOrderWorkspace({
         );
       }
     },
-    [supplierId, loadingLinks, links, cart, packByItemId],
+    [supplierId, loadingLinks, links, cart, packByItemId, priceByItemId],
   );
 
   const activeSupplier = suppliers.find((s) => s.id === supplierId) ?? null;
@@ -672,13 +705,15 @@ export function TenantOrderWorkspace({
           qty: cart[l.itemId] ?? 0,
           pack: packByItemId[l.itemId] ?? null,
           packOptionId: packByItemId[l.itemId]?.packOptionId ?? null,
+          priceOverride: priceByItemId[l.itemId] ?? null,
         })),
-    [links, cart, packByItemId],
+    [links, cart, packByItemId, priceByItemId],
   );
 
   const cartUnits = cartLines.reduce((sum, line) => sum + line.qty, 0);
   const cartTotal = cartLines.reduce(
-    (sum, line) => sum + lineTotal(line.link, line.qty, line.pack),
+    (sum, line) =>
+      sum + lineTotal(line.link, line.qty, line.pack, line.priceOverride),
     0,
   );
 
@@ -719,7 +754,7 @@ export function TenantOrderWorkspace({
 
   const whatsappLines = useMemo(
     () =>
-      cartLines.map(({ link, qty, pack }) => ({
+      cartLines.map(({ link, qty, pack, priceOverride }) => ({
         name:
           pack != null && pack.size > 1
             ? `${link.itemName} (pack of ${formatPackSize(pack.size)})`
@@ -727,7 +762,7 @@ export function TenantOrderWorkspace({
         sku: link.sku,
         barcode: link.barcode,
         qty,
-        unitPrice: packUnitPrice(link, pack) || null,
+        unitPrice: packUnitPrice(link, pack, priceOverride) || null,
         currency: ORDER_CURRENCY,
       })),
     [cartLines],
@@ -754,6 +789,7 @@ export function TenantOrderWorkspace({
     }
     setCart(result.cart);
     setPackByItemId(result.packs);
+    setPriceByItemId({});
     setImportOpen(false);
     setImportText("");
     setMobileOrderOpen(true);
@@ -781,7 +817,11 @@ export function TenantOrderWorkspace({
     const linesToPost = cartLines.map((line) => ({
       itemId: line.link.itemId,
       qtyOrdered: stockQtyOrdered(line.qty, line.pack),
-      unitEstimatedCost: stockUnitCost(line.link, line.pack),
+      unitEstimatedCost: stockUnitCost(
+        line.link,
+        line.pack,
+        line.priceOverride,
+      ),
     }));
     if (roundingActive && linesToPost.length > 0) {
       const last = linesToPost[linesToPost.length - 1];
@@ -819,6 +859,7 @@ export function TenantOrderWorkspace({
 
     setCart({});
     setPackByItemId({});
+    setPriceByItemId({});
     if (businessId) {
       clearOrderCartForSupplier({
         businessId,
@@ -831,6 +872,9 @@ export function TenantOrderWorkspace({
       const packMaps = { ...packsBySupplierRef.current };
       delete packMaps[supplierId];
       packsBySupplierRef.current = packMaps;
+      const priceMaps = { ...pricesBySupplierRef.current };
+      delete priceMaps[supplierId];
+      pricesBySupplierRef.current = priceMaps;
     }
     return po.poNumber;
   };
@@ -938,7 +982,37 @@ export function TenantOrderWorkspace({
         delete next[itemId];
         return next;
       });
+      setPriceByItemId((prev) => {
+        if (prev[itemId] == null) return prev;
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
     }
+  };
+
+  const setLinePrice = (itemId: string, price: number) => {
+    const nextPrice = Number.isFinite(price) ? Math.max(0, price) : 0;
+    setPriceByItemId((prev) => {
+      if (nextPrice <= 0) {
+        if (prev[itemId] == null) return prev;
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      }
+      return { ...prev, [itemId]: Math.round(nextPrice * 10000) / 10000 };
+    });
+    setPackByItemId((prev) => {
+      const pack = prev[itemId];
+      if (!pack || pack.size <= 1) return prev;
+      return {
+        ...prev,
+        [itemId]: {
+          ...pack,
+          price: nextPrice > 0 ? Math.round(nextPrice * 10000) / 10000 : null,
+        },
+      };
+    });
   };
 
   const selectPack = useCallback(
@@ -963,6 +1037,22 @@ export function TenantOrderWorkspace({
           },
         };
       });
+      if (packOptionId == null) {
+        setPriceByItemId((prev) => {
+          if (prev[itemId] == null) return prev;
+          const next = { ...prev };
+          delete next[itemId];
+          return next;
+        });
+        return;
+      }
+      const link = links.find((l) => l.itemId === itemId);
+      const option = link ? linkPacks(link).find((p) => p.id === packOptionId) : null;
+      const seeded =
+        option?.unitPrice ?? (link ? unitCost(link) || null : null);
+      if (seeded != null && seeded > 0) {
+        setPriceByItemId((prev) => ({ ...prev, [itemId]: seeded }));
+      }
     },
     [links],
   );
@@ -992,10 +1082,10 @@ export function TenantOrderWorkspace({
           </div>
         </div>
       ) : (
-        cartLines.map(({ link, qty, pack }) => {
+        cartLines.map(({ link, qty, pack, priceOverride }) => {
           const packed = pack != null && pack.size > 1;
-          const price = packUnitPrice(link, pack);
-          const amount = lineTotal(link, qty, pack);
+          const price = packUnitPrice(link, pack, priceOverride);
+          const amount = lineTotal(link, qty, pack, priceOverride);
           const packs = linkPacks(link);
           const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
           return (
@@ -1021,15 +1111,12 @@ export function TenantOrderWorkspace({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
+                  <p className="break-words text-[13px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
                     {link.itemName}
                   </p>
                   {packed ? (
                     <p className="mt-0.5 font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
                       ×{formatPackSize(pack.size)} / {pack.unit}
-                      {price > 0
-                        ? ` · ${formatMoney(price, ORDER_CURRENCY)} / pack`
-                        : ""}
                     </p>
                   ) : null}
                 </div>
@@ -1121,15 +1208,46 @@ export function TenantOrderWorkspace({
                     <Package className="size-3.5" aria-hidden />
                   </button>
                 </div>
-                <div className="text-right">
-                  <p className="font-mono text-[13px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
-                    {price > 0 ? formatMoney(amount, ORDER_CURRENCY) : "—"}
-                  </p>
-                  {packed && price > 0 ? (
-                    <p className="font-mono text-[9px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
-                      {formatMoney(price, ORDER_CURRENCY)} / pack
+                <div className="flex items-center gap-2">
+                  <label className="inline-flex flex-col items-end gap-0.5">
+                    <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+                      {packed ? "Pack price" : "Unit price"}
+                    </span>
+                    <input
+                      className="h-8 w-[5.25rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
+                      inputMode="decimal"
+                      aria-label={packed ? "Pack price" : "Unit price"}
+                      value={price > 0 ? String(price) : ""}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const n = Number.parseFloat(e.target.value);
+                        setLinePrice(
+                          link.itemId,
+                          Number.isFinite(n) ? n : 0,
+                        );
+                      }}
+                      onBlur={(e) => {
+                        const n = Number.parseFloat(e.target.value);
+                        if (!Number.isFinite(n) || n <= 0) {
+                          const fallback = unitCost(link);
+                          if (fallback > 0) setLinePrice(link.itemId, fallback);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
+                    />
+                  </label>
+                  <div className="min-w-[4.5rem] text-right">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+                      Line
                     </p>
-                  ) : null}
+                    <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                      {price > 0 ? formatMoney(amount, ORDER_CURRENCY) : "—"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1809,17 +1927,20 @@ export function TenantOrderWorkspace({
         onApply={(result) => {
           if (!packSheetLink) return;
           const itemId = packSheetLink.itemId;
+          const nextPrice =
+            result.packPrice ?? (unitCost(packSheetLink) || null);
           setPackByItemId((prev) => ({
             ...prev,
             [itemId]: {
               packOptionId: result.packOptionId ?? null,
               size: result.unitsPerPack,
               unit: result.packUnit || "pack",
-              price:
-                result.packPrice ??
-                (unitCost(packSheetLink) || null),
+              price: nextPrice,
             },
           }));
+          if (nextPrice != null && nextPrice > 0) {
+            setPriceByItemId((prev) => ({ ...prev, [itemId]: nextPrice }));
+          }
           if ((cart[itemId] ?? 0) <= 0) {
             setQty(itemId, result.packCount > 0 ? result.packCount : 1);
           } else if (result.packCount > 0) {

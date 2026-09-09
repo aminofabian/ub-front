@@ -5,7 +5,7 @@ import type {
   PurchasingIntelligenceDashboardResponse,
   SupplierItemLinkRecord,
 } from "@/lib/api";
-import type { OrderCartPackMeta, OrderCartQty } from "@/lib/order-cart-storage";
+import type { OrderCartPackMeta, OrderCartPriceMeta, OrderCartQty } from "@/lib/order-cart-storage";
 import { toOrderStatNum } from "@/app/(dashboard)/order/_hooks/use-order-pipeline-stats";
 
 export type PoReceivePhase =
@@ -133,12 +133,14 @@ export function applyPoDetailToCart(
 ): {
   cart: OrderCartQty;
   packs: OrderCartPackMeta;
+  prices: OrderCartPriceMeta;
   matched: number;
   missed: number;
   estimatedTotal: number;
 } {
   const cart: OrderCartQty = {};
   const packs: OrderCartPackMeta = {};
+  const prices: OrderCartPriceMeta = {};
   let matched = 0;
   let missed = 0;
   let estimatedTotal = 0;
@@ -155,9 +157,10 @@ export function applyPoDetailToCart(
     matched += 1;
     const unit = toOrderStatNum(line.unitEstimatedCost);
     estimatedTotal += qty * unit;
+    if (unit > 0) prices[line.itemId] = unit;
   }
 
-  return { cart, packs, matched, missed, estimatedTotal };
+  return { cart, packs, prices, matched, missed, estimatedTotal };
 }
 
 export function sortPastOrders(

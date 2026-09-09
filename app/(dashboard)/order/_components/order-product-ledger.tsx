@@ -20,14 +20,14 @@ function toNum(v: unknown): number {
 
 function packUnitPrice(
   link: SupplierItemLinkRecord,
-  pack: { size: number } | null,
+  pack: { size: number; price?: number | null } | null,
 ): number {
-  const base =
+  if (pack && pack.price != null && pack.price > 0) return pack.price;
+  return (
     toNum(link.lastCostPrice) ||
     toNum(link.defaultCostPrice) ||
-    toNum(link.catalogBuyingPrice);
-  if (!pack || pack.size <= 1) return base;
-  return base;
+    toNum(link.catalogBuyingPrice)
+  );
 }
 
 function ColHead({
@@ -123,11 +123,11 @@ export function OrderProductLedger({
                 className="flex min-w-0 flex-1 items-center border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-2 py-1.5 text-left disabled:opacity-60"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-[var(--order-ink,#15231f)]">
+                  <p className="break-words font-medium leading-snug text-[var(--order-ink,#15231f)]">
                     {primary}
                   </p>
                   {option ? (
-                    <p className="truncate text-[10px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                    <p className="break-words text-[10px] font-semibold leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                       {option}
                     </p>
                   ) : null}
