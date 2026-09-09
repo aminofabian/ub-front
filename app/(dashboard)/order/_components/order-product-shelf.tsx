@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Package } from "lucide-react";
+import { Minus, Package, Plus } from "lucide-react";
 
 import type { ItemLinkPackOfferRecord, SupplierItemLinkRecord } from "@/lib/api";
 import type { OrderCartPackMeta, OrderCartQty } from "@/lib/order-cart-storage";
@@ -10,6 +10,11 @@ import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
 
 const ORDER_CURRENCY = "KES";
+
+const INK = "var(--order-ink,#15231f)";
+const TEAL = "var(--pos-primary,#0f766e)";
+const RULE = `color-mix(in srgb, ${INK} 12%, transparent)`;
+const MUTED = `color-mix(in srgb, ${INK} 62%, transparent)`;
 
 function formatPackSize(n: number): string {
   return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
@@ -40,24 +45,190 @@ function packUnitPrice(
   );
 }
 
-function OrderTileTitle({
-  primary,
-  option,
+const STEP =
+  "flex size-9 items-center justify-center touch-manipulation text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#fff)] hover:text-[var(--order-ink,#15231f)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,#fff)] disabled:pointer-events-none disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]";
+
+function OrderShelfTile({
+  link,
+  qty,
+  pack,
+  pickMode,
+  picking,
+  onAdd,
+  onSetQty,
 }: {
-  primary: string;
-  option: string | null;
+  link: SupplierItemLinkRecord;
+  qty: number;
+  pack: { size: number; price?: number | null } | null;
+  pickMode: boolean;
+  picking: boolean;
+  onAdd: () => void;
+  onSetQty: (qty: number) => void;
 }) {
+  const stock = toNum(link.currentStock);
+  const reorder = toNum(link.reorderLevel);
+  const low = reorder > 0 && stock <= reorder;
+  const packed = pack != null && pack.size > 1;
+  const cost = packUnitPrice(link, pack);
+  const lineTotal = cost > 0 && qty > 0 ? cost * qty : 0;
+  const packs = linkPacks(link);
+  const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
+  const { primary, option } = orderLinkTitleParts(link);
+  const inCart = qty > 0;
+  const hasPrice = cost > 0;
+
   return (
-    <div className="min-w-0 space-y-0.5">
-      <p className="line-clamp-2 break-words text-[12px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
-        {primary}
-      </p>
-      {option ? (
-        <p className="truncate text-[11px] font-medium tabular-nums leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-          {option}
-        </p>
-      ) : null}
-    </div>
+    <article
+      className={cn(
+        "group flex min-w-0 flex-col overflow-hidden rounded-none bg-white",
+        "border transition-[border-color] duration-150",
+        inCart
+          ? "border-[var(--pos-primary,#0f766e)]"
+          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]",
+      )}
+    >
+      <button
+        type="button"
+        className={cn(
+          "relative aspect-[3/4] w-full overflow-hidden rounded-none bg-white",
+          "touch-manipulation disabled:opacity-60",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+        )}
+        onClick={onAdd}
+        disabled={pickMode && picking}
+        aria-label={pickMode ? `Add ${link.itemName}` : `Add ${link.itemName}`}
+      >
+        {thumb ? (
+          <span className="absolute left-1/2 top-1/2 h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2">
+            <Image
+              src={thumb}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 48vw, (min-width: 1024px) 18vw, 180px"
+              className="object-contain object-center"
+              unoptimized
+            />
+          </span>
+        ) : (
+          <span className="absolute left-1/2 top-1/2 flex h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2 items-center justify-center">
+            <Package className="size-10 opacity-20" strokeWidth={1.5} aria-hidden />
+          </span>
+        )}
+      </button>
+
+      <div className="flex min-w-0 flex-col border-t px-2.5 pb-2.5 pt-2" style={{ borderColor: RULE }}>
+        <div className="min-w-0">
+          <p
+            className="line-clamp-2 break-words text-[12px] font-medium leading-snug tracking-[-0.02em]"
+            style={{ color: INK }}
+            title={primary}
+          >
+            {primary}
+          </p>
+          {option ? (
+            <p
+              className="mt-0.5 truncate font-heading text-[15px] font-semibold tabular-nums leading-none tracking-[-0.03em]"
+              style={{ color: INK }}
+            >
+              {option}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="mt-2 flex min-w-0 items-baseline justify-between gap-2">
+          <p
+            className={cn(
+              "min-w-0 truncate font-heading text-[16px] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+              !hasPrice && "font-sans text-[12px] font-medium tracking-normal",
+            )}
+            style={{ color: hasPrice ? INK : MUTED }}
+          >
+            {hasPrice ? formatMoney(cost, ORDER_CURRENCY) : "No price"}
+            {packed && hasPrice ? (
+              <span
+                className="ml-1 align-baseline font-sans text-[10px] font-medium tracking-normal"
+                style={{ color: MUTED }}
+              >
+                / pack
+              </span>
+            ) : null}
+          </p>
+          {lineTotal > 0 ? (
+            <p
+              key={lineTotal}
+              className="pos-tile-line-total shrink-0 font-heading text-[12px] font-semibold tabular-nums leading-none tracking-[-0.02em]"
+              style={{ color: TEAL }}
+            >
+              {formatMoney(lineTotal, ORDER_CURRENCY)}
+            </p>
+          ) : null}
+        </div>
+
+        {low ? (
+          <p className="mt-1 text-[11px] font-medium tabular-nums" style={{ color: "#9a3412" }}>
+            {stock} on hand
+          </p>
+        ) : null}
+        {packs.length > 0 ? (
+          <p
+            className="mt-1 truncate font-mono text-[10px] font-medium tabular-nums"
+            style={{ color: MUTED }}
+          >
+            {packs.map((p) => `×${formatPackSize(p.unitsPerPack)}`).join("  ")}
+          </p>
+        ) : null}
+
+        {pickMode ? (
+          <button
+            type="button"
+            className="mt-2 flex h-9 w-full items-center justify-center rounded-none border bg-white text-[12px] font-semibold tracking-[-0.02em] transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]"
+            style={{ borderColor: TEAL, color: TEAL }}
+            onClick={onAdd}
+            disabled={picking}
+          >
+            {picking ? "Adding…" : "Add to order"}
+          </button>
+        ) : (
+          <div
+            className="mt-2 grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] overflow-hidden rounded-none border bg-white"
+            style={{ borderColor: inCart ? TEAL : RULE }}
+            role="group"
+            aria-label={`Quantity for ${primary}`}
+          >
+            <button
+              type="button"
+              disabled={qty <= 0}
+              className={cn(STEP, "border-r")}
+              style={{ borderColor: inCart ? TEAL : RULE }}
+              onClick={() => onSetQty(qty - 1)}
+              aria-label="Decrease"
+            >
+              <Minus className="size-3.5" strokeWidth={2.25} aria-hidden />
+            </button>
+            <span
+              key={qty}
+              className={cn(
+                "flex h-9 items-center justify-center font-heading text-[15px] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+                qty > 0 && "pos-tile-qty-badge",
+              )}
+              style={{ color: inCart ? TEAL : INK }}
+              aria-live="polite"
+            >
+              {qty}
+            </span>
+            <button
+              type="button"
+              className={cn(STEP, "border-l")}
+              style={{ borderColor: inCart ? TEAL : RULE }}
+              onClick={() => onSetQty(qty + 1)}
+              aria-label="Increase"
+            >
+              <Plus className="size-3.5" strokeWidth={2.25} aria-hidden />
+            </button>
+          </div>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -82,141 +253,23 @@ export function OrderProductShelf({
   const pickMode = onPickItem != null;
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-2.5">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-3">
       {links.map((link) => {
         const qty = cart[link.itemId] ?? 0;
-        const stock = toNum(link.currentStock);
-        const reorder = toNum(link.reorderLevel);
-        const low = reorder > 0 && stock <= reorder;
         const pack = packByItemId[link.itemId] ?? null;
-        const packed = pack != null && pack.size > 1;
-        const cost = packUnitPrice(link, pack);
-        const lineTotal = cost > 0 && qty > 0 ? cost * qty : 0;
-        const packs = linkPacks(link);
-        const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
-        const { primary, option } = orderLinkTitleParts(link);
-        const inCart = qty > 0;
-
         return (
-          <div
+          <OrderShelfTile
             key={link.id}
-            className={cn(
-              "group flex min-w-0 flex-col overflow-hidden rounded-none bg-white",
-              "border transition-[border-color] duration-150",
-              inCart
-                ? "border-[var(--pos-primary,#0f766e)]"
-                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)]",
-            )}
-          >
-            <button
-              type="button"
-              className={cn(
-                "relative aspect-[3/4] w-full overflow-hidden rounded-none bg-white",
-                "touch-manipulation disabled:opacity-60",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
-              )}
-              onClick={() =>
-                pickMode
-                  ? onPickItem(link)
-                  : onSetQty(link.itemId, qty + 1)
-              }
-              disabled={pickMode && pickingItemId === link.itemId}
-              aria-label={
-                pickMode ? `Add ${link.itemName}` : `Add ${link.itemName}`
-              }
-            >
-              {thumb ? (
-                <Image
-                  src={thumb}
-                  alt=""
-                  fill
-                  sizes="(max-width: 640px) 48vw, (min-width: 1024px) 18vw, 160px"
-                  className="object-contain object-center scale-[1.22] transition-transform duration-200 group-hover:scale-[1.26]"
-                  unoptimized
-                />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center">
-                  <Package
-                    className="size-10 opacity-15"
-                    strokeWidth={1.5}
-                    aria-hidden
-                  />
-                </span>
-              )}
-            </button>
-
-            <div className="flex min-w-0 flex-col gap-1 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 pb-2 pt-1.5">
-              <OrderTileTitle primary={primary} option={option} />
-              <div className="flex min-w-0 items-baseline justify-between gap-2">
-                <p
-                  className={cn(
-                    "min-w-0 truncate text-[13px] font-semibold tabular-nums leading-none",
-                    cost > 0
-                      ? "text-[var(--order-ink,#15231f)]"
-                      : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]",
-                  )}
-                >
-                  {cost > 0 ? formatMoney(cost, ORDER_CURRENCY) : "No price"}
-                  {packed ? (
-                    <span className="ml-1 text-[9px] font-medium uppercase tracking-wide text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
-                      / pack
-                    </span>
-                  ) : null}
-                </p>
-                {lineTotal > 0 ? (
-                  <p className="shrink-0 text-[11px] font-semibold tabular-nums leading-none text-[var(--pos-primary,#0f766e)]">
-                    {formatMoney(lineTotal, ORDER_CURRENCY)}
-                  </p>
-                ) : null}
-              </div>
-              {low ? (
-                <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-amber-800">
-                  Stock {stock}
-                </p>
-              ) : null}
-              {packs.length > 0 ? (
-                <p className="truncate font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
-                  {packs
-                    .map((p) => `×${formatPackSize(p.unitsPerPack)}`)
-                    .join(" · ")}
-                </p>
-              ) : null}
-
-              {pickMode ? (
-                <button
-                  type="button"
-                  className="mt-1 flex h-8 w-full items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[11px] font-bold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]"
-                  onClick={() => onPickItem(link)}
-                  disabled={pickingItemId === link.itemId}
-                >
-                  {pickingItemId === link.itemId ? "Adding…" : "Add to order"}
-                </button>
-              ) : (
-                <div className="mt-1 grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-                  <button
-                    type="button"
-                    disabled={qty <= 0}
-                    className="flex h-8 items-center justify-center touch-manipulation border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[16px] leading-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,#fff)] disabled:opacity-25"
-                    onClick={() => onSetQty(link.itemId, qty - 1)}
-                    aria-label="Decrease"
-                  >
-                    −
-                  </button>
-                  <span className="flex h-8 items-center justify-center font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
-                    {qty}
-                  </span>
-                  <button
-                    type="button"
-                    className="flex h-8 items-center justify-center touch-manipulation border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[16px] leading-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,#fff)]"
-                    onClick={() => onSetQty(link.itemId, qty + 1)}
-                    aria-label="Increase"
-                  >
-                    +
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+            link={link}
+            qty={qty}
+            pack={pack}
+            pickMode={pickMode}
+            picking={pickingItemId === link.itemId}
+            onAdd={() =>
+              pickMode ? onPickItem(link) : onSetQty(link.itemId, qty + 1)
+            }
+            onSetQty={(next) => onSetQty(link.itemId, next)}
+          />
         );
       })}
     </div>
