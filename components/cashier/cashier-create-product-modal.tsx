@@ -14,6 +14,11 @@ import { Check, ImagePlus, Layers, PackagePlus, Plus, Trash2, X } from "lucide-r
 import { toast } from "sonner";
 
 import { SearchableSelect } from "@/app/(dashboard)/products/_components/SearchableSelect";
+import {
+  composeOptionLabel,
+  normalizeFamilyPrefix,
+  stripFamilyPrefixFromInput,
+} from "@/app/(dashboard)/products/_components/CreateGroupOptionsPad";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -539,9 +544,10 @@ export function CashierCreateProductModal({
   const stockOk = Number.isFinite(stockNum) && (forReceive ? stockNum >= 0 : stockNum > 0);
   const variantLinkOk = !linkAsVariant || relatedItem != null;
 
+  const familyPrefix = normalizeFamilyPrefix(name);
   const readyGroupVariants = groupVariants
     .map((row) => {
-      const label = row.label.trim();
+      const label = composeOptionLabel(familyPrefix, row.label);
       const sell = parsePosMoney(row.unitPrice);
       const buy = parseNonNegMoney(row.buyingPrice);
       const stock = parsePosQty(row.stock, forReceive);
@@ -795,7 +801,9 @@ export function CashierCreateProductModal({
   const incompleteGroupCount = startedGroupCount - readyGroupVariants.length;
   const groupStatus =
     startedGroupCount === 0
-      ? "Each option needs a name and sell price"
+      ? familyPrefix
+        ? "Add the size or flavour after the family name"
+        : "Each option needs a name and sell price"
       : incompleteGroupCount > 0
         ? `${incompleteGroupCount} still need a name and sell price`
         : readyGroupVariants.length === 1
@@ -1203,7 +1211,8 @@ export function CashierCreateProductModal({
                 />
                 {groupVariants.map((row, index) => {
                   const sellOk = parsePosMoney(row.unitPrice) != null;
-                  const labelOk = row.label.trim().length > 0;
+                  const labelOk =
+                    composeOptionLabel(familyPrefix, row.label).length > 0;
                   const started = labelOk || row.unitPrice.trim().length > 0;
                   const rowReady = sellOk && labelOk;
                   const onRowEnter = (
@@ -1259,22 +1268,57 @@ export function CashierCreateProductModal({
                         </button>
                       </div>
                       <div className={styles.cell}>
-                        <input
-                          id={`${modeId}-opt-${row.key}`}
-                          className={cellClass}
-                          value={row.label}
-                          disabled={busy}
-                          onChange={(e) =>
-                            patchVariant(row.key, {
-                              label: e.target.value,
-                            })
-                          }
-                          onKeyDown={onRowEnter}
-                          placeholder={
-                            index === 0 ? "500ml, Red…" : undefined
-                          }
-                          aria-label={`Option ${index + 1} name`}
-                        />
+                        {familyPrefix ? (
+                          <div
+                            className={cn(
+                              "flex h-9 w-full min-w-0 items-stretch overflow-hidden rounded-md border border-zinc-300 bg-white",
+                              "focus-within:border-[var(--pos-primary)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
+                            )}
+                          >
+                            <span
+                              className="flex max-w-[42%] shrink-0 items-center truncate border-r border-zinc-200 bg-zinc-50 px-2 text-[12px] font-medium text-zinc-500"
+                              title={familyPrefix}
+                            >
+                              {familyPrefix}
+                            </span>
+                            <input
+                              id={`${modeId}-opt-${row.key}`}
+                              className="h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-sm text-zinc-900 shadow-none outline-none focus-visible:ring-0"
+                              value={row.label}
+                              disabled={busy}
+                              onChange={(e) =>
+                                patchVariant(row.key, {
+                                  label: stripFamilyPrefixFromInput(
+                                    e.target.value,
+                                    familyPrefix,
+                                  ),
+                                })
+                              }
+                              onKeyDown={onRowEnter}
+                              placeholder={
+                                index === 0 ? "1kg, 2kg…" : undefined
+                              }
+                              aria-label={`Option ${index + 1} size or flavour after ${familyPrefix}`}
+                            />
+                          </div>
+                        ) : (
+                          <input
+                            id={`${modeId}-opt-${row.key}`}
+                            className={cellClass}
+                            value={row.label}
+                            disabled={busy}
+                            onChange={(e) =>
+                              patchVariant(row.key, {
+                                label: e.target.value,
+                              })
+                            }
+                            onKeyDown={onRowEnter}
+                            placeholder={
+                              index === 0 ? "500ml, Red…" : undefined
+                            }
+                            aria-label={`Option ${index + 1} name`}
+                          />
+                        )}
                       </div>
                       <div className={cn(styles.cell, styles.cellSell)}>
                         <input

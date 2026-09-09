@@ -478,9 +478,10 @@ export function ProductCreateModal({
   );
 
   const currency = currencyCode.trim() || "KES";
+  const familyName = m.parentDraft.name.trim();
   const readyOptions = useMemo(
-    () => readyGroupOptions(groupOptions),
-    [groupOptions],
+    () => readyGroupOptions(groupOptions, familyName),
+    [groupOptions, familyName],
   );
   const startedOptions = groupOptions.filter(
     (r) => r.label.trim() || r.unitPrice.trim(),
@@ -983,6 +984,7 @@ export function ProductCreateModal({
                   rows={groupOptions}
                   onChange={setGroupOptions}
                   currency={currency}
+                  familyName={familyName}
                   disabled={m.parentCreateBusy}
                 />
               )}

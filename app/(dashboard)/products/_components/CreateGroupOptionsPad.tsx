@@ -14,6 +14,7 @@ import styles from "./product-create-modal.module.css";
 
 export type GroupOptionRow = {
   key: string;
+  /** Distinguishing part only (e.g. "1kg"). Family name is shown as a prefix in the UI. */
   label: string;
   barcode: string;
   buyingPrice: string;
@@ -55,6 +56,40 @@ function parseQty(raw: string): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
+export function normalizeFamilyPrefix(familyName: string): string {
+  return familyName.trim().replace(/\s+/g, " ");
+}
+
+/**
+ * Build the stored option / variant label. Users type only the size or flavour;
+ * we prepend the live family name unless they already included it.
+ */
+export function composeOptionLabel(familyName: string, suffix: string): string {
+  const family = normalizeFamilyPrefix(familyName);
+  const option = suffix.trim().replace(/\s+/g, " ");
+  if (!option) return "";
+  if (!family) return option;
+  if (option.toLowerCase().startsWith(family.toLowerCase())) {
+    return option;
+  }
+  return `${family} ${option}`;
+}
+
+/** If the clerk re-types the family name into the option field, drop the duplicate. */
+export function stripFamilyPrefixFromInput(
+  raw: string,
+  familyName: string,
+): string {
+  const family = normalizeFamilyPrefix(familyName);
+  if (!family) return raw;
+  const trimmedStart = raw.replace(/^\s+/, "");
+  if (trimmedStart.toLowerCase().startsWith(family.toLowerCase())) {
+    const rest = trimmedStart.slice(family.length);
+    return rest.replace(/^[\s·•\-–,]+/, "");
+  }
+  return raw;
+}
+
 export type ReadyGroupOption = {
   key: string;
   label: string;
@@ -65,10 +100,13 @@ export type ReadyGroupOption = {
   imageFile: File | null;
 };
 
-export function readyGroupOptions(rows: GroupOptionRow[]): ReadyGroupOption[] {
+export function readyGroupOptions(
+  rows: GroupOptionRow[],
+  familyName = "",
+): ReadyGroupOption[] {
   return rows
     .map((row) => {
-      const label = row.label.trim();
+      const label = composeOptionLabel(familyName, row.label);
       const sell = parseMoney(row.unitPrice);
       const buy =
         row.buyingPrice.trim() === ""
@@ -95,15 +133,23 @@ const cellClass = cn(
   "focus:outline-none focus-visible:border-[var(--catalog-primary,#0f766e)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_22%,transparent)]",
 );
 
+const optionShellClass = cn(
+  "flex h-9 w-full min-w-0 items-stretch overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white shadow-none",
+  "focus-within:border-[var(--catalog-primary,#0f766e)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_22%,transparent)]",
+);
+
 export function CreateGroupOptionsPad({
   rows,
   onChange,
   currency,
+  familyName = "",
   disabled,
 }: {
   rows: GroupOptionRow[];
   onChange: (next: GroupOptionRow[]) => void;
   currency: string;
+  /** Live family / parent name shown as a non-editable prefix in each option field. */
+  familyName?: string;
   disabled?: boolean;
 }) {
   const modeId = useId();
@@ -114,14 +160,17 @@ export function CreateGroupOptionsPad({
   const prevReady = useRef(0);
   const [inviteOn, setInviteOn] = useState(false);
 
-  const ready = readyGroupOptions(rows);
+  const familyPrefix = normalizeFamilyPrefix(familyName);
+  const ready = readyGroupOptions(rows, familyPrefix);
   const startedCount = rows.filter(
     (r) => r.label.trim() || r.unitPrice.trim(),
   ).length;
   const incomplete = startedCount - ready.length;
   const status =
     startedCount === 0
-      ? "Each option needs a name and sell price"
+      ? familyPrefix
+        ? "Add the size or flavour after the family name"
+        : "Each option needs a name and sell price"
       : incomplete > 0
         ? `${incomplete} still need a name and sell price`
         : ready.length === 1
@@ -227,7 +276,8 @@ export function CreateGroupOptionsPad({
         />
         {rows.map((row, index) => {
           const sellOk = parseMoney(row.unitPrice) != null;
-          const labelOk = row.label.trim().length > 0;
+          const labelOk =
+            composeOptionLabel(familyPrefix, row.label).length > 0;
           const started = labelOk || row.unitPrice.trim().length > 0;
           const rowReady = sellOk && labelOk;
           const handleEnter = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -282,16 +332,44 @@ export function CreateGroupOptionsPad({
                 </button>
               </div>
               <div className={styles.cell}>
-                <input
-                  id={`${modeId}-opt-${row.key}`}
-                  className={cellClass}
-                  value={row.label}
-                  disabled={disabled}
-                  onChange={(e) => patch(row.key, { label: e.target.value })}
-                  onKeyDown={handleEnter}
-                  placeholder={index === 0 ? "500ml, Red…" : undefined}
-                  aria-label={`Option ${index + 1} name`}
-                />
+                {familyPrefix ? (
+                  <div className={optionShellClass}>
+                    <span
+                      className="flex max-w-[42%] shrink-0 items-center truncate border-r border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_70%,white)] px-2 text-[12px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)]"
+                      title={familyPrefix}
+                    >
+                      {familyPrefix}
+                    </span>
+                    <input
+                      id={`${modeId}-opt-${row.key}`}
+                      className="h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-[13px] text-[var(--catalog-ink,#15231f)] shadow-none outline-none focus-visible:ring-0"
+                      value={row.label}
+                      disabled={disabled}
+                      onChange={(e) =>
+                        patch(row.key, {
+                          label: stripFamilyPrefixFromInput(
+                            e.target.value,
+                            familyPrefix,
+                          ),
+                        })
+                      }
+                      onKeyDown={handleEnter}
+                      placeholder={index === 0 ? "1kg, 2kg…" : undefined}
+                      aria-label={`Option ${index + 1} size or flavour after ${familyPrefix}`}
+                    />
+                  </div>
+                ) : (
+                  <input
+                    id={`${modeId}-opt-${row.key}`}
+                    className={cellClass}
+                    value={row.label}
+                    disabled={disabled}
+                    onChange={(e) => patch(row.key, { label: e.target.value })}
+                    onKeyDown={handleEnter}
+                    placeholder={index === 0 ? "500ml, Red…" : undefined}
+                    aria-label={`Option ${index + 1} name`}
+                  />
+                )}
               </div>
               <div className={cn(styles.cell, styles.cellSell)}>
                 <input
