@@ -53,7 +53,7 @@ function OrderTileTitle({
         {primary}
       </p>
       {option ? (
-        <p className="truncate text-[10px] font-medium leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+        <p className="truncate text-[11px] font-medium tabular-nums leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
           {option}
         </p>
       ) : null}
@@ -82,7 +82,7 @@ export function OrderProductShelf({
   const pickMode = onPickItem != null;
 
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-3">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-2.5">
       {links.map((link) => {
         const qty = cart[link.itemId] ?? 0;
         const stock = toNum(link.currentStock);
@@ -95,20 +95,27 @@ export function OrderProductShelf({
         const packs = linkPacks(link);
         const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
         const { primary, option } = orderLinkTitleParts(link);
+        const inCart = qty > 0;
 
         return (
           <div
             key={link.id}
             className={cn(
-              "group flex min-w-0 flex-col overflow-hidden rounded-xl bg-white transition-[box-shadow,transform,ring-color] duration-150",
-              qty > 0
-                ? "shadow-[0_10px_24px_-16px_color-mix(in_srgb,var(--pos-primary,#0f766e)_55%,transparent)] ring-2 ring-[var(--pos-primary,#0f766e)]"
-                : "shadow-sm ring-1 ring-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] hover:-translate-y-px hover:shadow-md hover:ring-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
+              "group flex min-w-0 flex-col overflow-hidden rounded-none bg-white",
+              "border transition-[border-color,background-color] duration-150",
+              inCart
+                ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,#fff)]"
+                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)]",
             )}
           >
             <button
               type="button"
-              className="relative aspect-[5/4] w-full touch-manipulation rounded-t-[10px] bg-[linear-gradient(180deg,#fbfcfa_0%,#f3f6f4_100%)] transition-transform active:scale-[0.985] disabled:opacity-60"
+              className={cn(
+                "relative aspect-square w-full touch-manipulation rounded-none",
+                "bg-[linear-gradient(180deg,#fbfcfa_0%,#f3f6f4_100%)]",
+                "transition-colors duration-150 active:bg-[#eef1ef] disabled:opacity-60",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+              )}
               onClick={() =>
                 pickMode
                   ? onPickItem(link)
@@ -120,72 +127,69 @@ export function OrderProductShelf({
               }
             >
               {thumb ? (
-                <Image
-                  src={thumb}
-                  alt=""
-                  fill
-                  sizes="(max-width: 640px) 48vw, (min-width: 1024px) 18vw, 160px"
-                  className="object-contain p-3 transition-transform duration-200 group-hover:scale-[1.03]"
-                  unoptimized
-                />
+                <span className="absolute inset-[12.5%]">
+                  <Image
+                    src={thumb}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 48vw, (min-width: 1024px) 18vw, 160px"
+                    className="object-contain transition-transform duration-200 group-hover:scale-[1.03]"
+                    unoptimized
+                  />
+                </span>
               ) : (
-                <span className="flex h-full w-full items-center justify-center">
+                <span className="absolute inset-[12.5%] flex items-center justify-center">
                   <Package
-                    className="size-5 opacity-15"
+                    className="size-8 opacity-15"
                     strokeWidth={1.5}
                     aria-hidden
                   />
                 </span>
               )}
+            </button>
 
-              {qty > 0 ? (
-                <span className="absolute left-1.5 top-1.5 z-[1] inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--pos-primary,#0f766e)] px-1.5 font-mono text-[10px] font-bold text-white shadow-sm">
-                  {qty}
+            {/* Price lives under the image as a till ticket, never over the logo. */}
+            <div
+              className={cn(
+                "flex items-end justify-between gap-2 px-2 py-1.5",
+                inCart
+                  ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                  : cost > 0
+                    ? "bg-[var(--order-ink,#15231f)] text-white"
+                    : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,#fff)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]",
+              )}
+            >
+              <span className="min-w-0">
+                <span className="block text-[8px] font-bold uppercase tracking-[0.14em] opacity-70">
+                  {inCart ? `Qty ×${qty}` : packed ? "Per pack" : "Buy"}
                 </span>
-              ) : null}
-              {packed ? (
-                <span className="absolute right-1.5 top-1.5 z-[1] rounded-full bg-amber-100 px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-amber-950">
+                <span className="block truncate font-heading text-[13px] font-semibold leading-none tabular-nums tracking-[-0.02em]">
+                  {cost > 0 ? formatMoney(cost, ORDER_CURRENCY) : "No price"}
+                </span>
+              </span>
+              {lineTotal > 0 ? (
+                <span className="shrink-0 text-right">
+                  <span className="block text-[8px] font-bold uppercase tracking-[0.1em] opacity-70">
+                    Line
+                  </span>
+                  <span className="block font-mono text-[10px] font-bold tabular-nums leading-none">
+                    {formatMoney(lineTotal, ORDER_CURRENCY)}
+                  </span>
+                </span>
+              ) : packed && !inCart ? (
+                <span className="shrink-0 font-mono text-[10px] font-bold tabular-nums leading-none opacity-80">
                   ×{formatPackSize(pack.size)}
                 </span>
               ) : null}
-              {low ? (
-                <span className="absolute bottom-9 left-1.5 z-[1] rounded bg-amber-700/90 px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-white">
-                  stock {stock}
-                </span>
-              ) : null}
-
-              {/* Price ticket pinned to the image */}
-              <span
-                className={cn(
-                  "absolute inset-x-1.5 bottom-1.5 z-[1] flex items-end justify-between gap-1 rounded-md px-2 py-1 shadow-sm backdrop-blur-[2px]",
-                  cost > 0
-                    ? "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,transparent)] text-white"
-                    : "bg-white/90 text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
-                )}
-              >
-                <span className="min-w-0">
-                  <span className="block text-[8px] font-bold uppercase tracking-[0.12em] opacity-70">
-                    {packed ? "Per pack" : "Buy"}
-                  </span>
-                  <span className="block truncate font-heading text-[13px] font-semibold leading-none tabular-nums tracking-[-0.02em]">
-                    {cost > 0 ? formatMoney(cost, ORDER_CURRENCY) : "No price"}
-                  </span>
-                </span>
-                {lineTotal > 0 ? (
-                  <span className="shrink-0 text-right">
-                    <span className="block text-[8px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,#fff_70%,transparent)]">
-                      Line
-                    </span>
-                    <span className="block font-mono text-[10px] font-bold tabular-nums text-[color-mix(in_srgb,var(--pos-primary,#5eead4)_85%,#fff)]">
-                      {formatMoney(lineTotal, ORDER_CURRENCY)}
-                    </span>
-                  </span>
-                ) : null}
-              </span>
-            </button>
+            </div>
 
             <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-2 pb-2 pt-1.5">
               <OrderTileTitle primary={primary} option={option} />
+              {low ? (
+                <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-amber-800">
+                  Stock {stock}
+                </p>
+              ) : null}
               {packs.length > 0 ? (
                 <p className="truncate font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
                   {packs
@@ -197,29 +201,29 @@ export function OrderProductShelf({
               {pickMode ? (
                 <button
                   type="button"
-                  className="mt-auto flex h-8 w-full items-center justify-center rounded-md bg-[var(--pos-primary,#0f766e)] text-[11px] font-bold text-white transition hover:bg-[#0d6b63] disabled:opacity-60"
+                  className="mt-auto flex h-8 w-full items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] text-[11px] font-bold text-white transition hover:bg-[#0d6b63] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]"
                   onClick={() => onPickItem(link)}
                   disabled={pickingItemId === link.itemId}
                 >
                   {pickingItemId === link.itemId ? "Adding…" : "Add to order"}
                 </button>
               ) : (
-                <div className="mt-auto inline-flex w-full items-center overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)]">
+                <div className="mt-auto grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
                   <button
                     type="button"
                     disabled={qty <= 0}
-                    className="flex h-8 w-9 shrink-0 items-center justify-center touch-manipulation text-[15px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-white disabled:opacity-25"
+                    className="flex h-8 items-center justify-center touch-manipulation border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[16px] leading-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#fff)] disabled:opacity-25"
                     onClick={() => onSetQty(link.itemId, qty - 1)}
                     aria-label="Decrease"
                   >
                     −
                   </button>
-                  <span className="min-w-0 flex-1 text-center font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                  <span className="flex h-8 items-center justify-center bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_70%,#fff)] font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
                     {qty}
                   </span>
                   <button
                     type="button"
-                    className="flex h-8 w-9 shrink-0 items-center justify-center touch-manipulation text-[15px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-white"
+                    className="flex h-8 items-center justify-center touch-manipulation border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[16px] leading-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#fff)]"
                     onClick={() => onSetQty(link.itemId, qty + 1)}
                     aria-label="Increase"
                   >
