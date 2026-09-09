@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 
 import {
-  DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
   DashboardFeedback,
 } from "@/components/dashboard-page-ui";
@@ -99,29 +98,29 @@ const BUCKETS: BucketDef[] = [
 
 const TONE = {
   ok: {
-    bar: "bg-emerald-500",
-    chip: "border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-900 dark:text-emerald-100",
-    amount: "text-emerald-700 dark:text-emerald-400",
+    bar: "bg-[var(--pos-primary,#0f766e)]",
+    chip: "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]",
+    amount: "text-[var(--pos-primary,#0f766e)]",
   },
   watch: {
-    bar: "bg-amber-500",
-    chip: "border-amber-500/25 bg-amber-500/[0.08] text-amber-950 dark:text-amber-100",
-    amount: "text-amber-700 dark:text-amber-400",
+    bar: "bg-amber-700",
+    chip: "border-amber-700/40 bg-white text-amber-800 dark:text-amber-200",
+    amount: "text-amber-800 dark:text-amber-200",
   },
   due: {
-    bar: "bg-orange-500",
-    chip: "border-orange-500/25 bg-orange-500/[0.08] text-orange-950 dark:text-orange-100",
-    amount: "text-orange-700 dark:text-orange-400",
+    bar: "bg-orange-700",
+    chip: "border-orange-700/40 bg-white text-orange-800 dark:text-orange-200",
+    amount: "text-orange-800 dark:text-orange-200",
   },
   late: {
-    bar: "bg-rose-500",
-    chip: "border-rose-500/25 bg-rose-500/[0.08] text-rose-950 dark:text-rose-100",
-    amount: "text-rose-700 dark:text-rose-400",
+    bar: "bg-rose-600",
+    chip: "border-rose-500/40 bg-white text-rose-800 dark:text-rose-200",
+    amount: "text-rose-800 dark:text-rose-200",
   },
   critical: {
-    bar: "bg-rose-700",
-    chip: "border-rose-700/30 bg-rose-700/[0.12] text-rose-950 dark:text-rose-50",
-    amount: "text-rose-800 dark:text-rose-300",
+    bar: "bg-rose-800",
+    chip: "border-rose-700/50 bg-white text-rose-800 dark:text-rose-200",
+    amount: "text-rose-800 dark:text-rose-200",
   },
 } as const;
 
@@ -243,7 +242,7 @@ export default function ApAgingPage() {
           <>
             You do not have permission to view accounts payable. Ask an
             administrator to grant{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">
+            <code className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1 py-0.5 text-xs">
               {Permission.PurchasingPaymentRead}
             </code>
             .
@@ -262,71 +261,86 @@ export default function ApAgingPage() {
 
   return (
     <div
-      className={cn(DASHBOARD_MAX_WIDE, "pb-10")}
+      className="relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col bg-white px-3 pt-1 sm:px-5 sm:pt-1.5"
       style={PROCUREMENT_VARS}
     >
-      <div className="mb-4 rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_92%,transparent)] p-0.5 shadow-sm">
-        <ProcurementHubNav />
-      </div>
+      <div className="relative flex min-h-0 flex-1 flex-col gap-1">
+        <div className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink)_12%,transparent)] bg-white">
+          <ProcurementHubNav />
+        </div>
 
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] pb-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5">
-            <span className="inline-flex size-9 items-center justify-center rounded-lg bg-[var(--pos-primary,#0f766e)] text-white shadow-[0_8px_20px_-12px_color-mix(in_srgb,var(--pos-primary,#0f766e)_70%,transparent)]">
-              <Receipt className="size-4" aria-hidden />
-            </span>
-            <h1 className="font-heading text-2xl font-semibold tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
-              Unpaid bills
-            </h1>
-          </div>
-          <p className="mt-1.5 max-w-xl text-sm text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-            What you still owe suppliers
-            {branchName ? (
-              <>
-                {" "}
-                · <span className="font-medium text-foreground/80">{branchName}</span>
-              </>
-            ) : null}
-            . Settle from Supplies when you are ready.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-card px-2.5 py-1.5 text-xs">
-            <CalendarClock className="size-3.5 text-muted-foreground" aria-hidden />
-            <span className="text-muted-foreground">As of</span>
-            <input
-              type="date"
-              className="border-0 bg-transparent text-sm tabular-nums outline-none"
-              value={asOf}
-              onChange={(e) => setAsOf(e.target.value)}
-            />
-          </label>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 gap-1.5"
-            disabled={loading}
-            onClick={() => void load()}
-          >
-            <RefreshCw
-              className={cn("size-3.5", loading && "animate-spin")}
+        <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1 sm:px-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
+                <Receipt className="size-3.5" aria-hidden />
+              </span>
+              <h1 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                Unpaid bills
+              </h1>
+            </div>
+            <span
               aria-hidden
+              className="hidden h-3.5 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:block"
             />
-            Refresh
-          </Button>
-          <Button asChild className="h-9 gap-1.5">
-            <Link href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}>
-              <CreditCard className="size-3.5" aria-hidden />
-              Pay on Supplies
-            </Link>
-          </Button>
-        </div>
-      </header>
+            <p className="min-w-0 truncate text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+              What you still owe
+              {branchName ? (
+                <>
+                  {" "}
+                  ·{" "}
+                  <span className="font-medium text-[var(--order-ink,#15231f)]">
+                    {branchName}
+                  </span>
+                </>
+              ) : null}
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-1">
+            <label className="flex h-8 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[12px]">
+              <CalendarClock
+                className="size-3.5 text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
+                aria-hidden
+              />
+              <span className="font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                As of
+              </span>
+              <input
+                type="date"
+                className="border-0 bg-transparent text-sm tabular-nums outline-none"
+                value={asOf}
+                onChange={(e) => setAsOf(e.target.value)}
+              />
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-8 gap-1.5 rounded-none"
+              disabled={loading}
+              onClick={() => void load()}
+            >
+              <RefreshCw
+                className={cn("size-3.5", loading && "animate-spin")}
+                aria-hidden
+              />
+              Refresh
+            </Button>
+            <Button
+              asChild
+              className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 font-semibold text-white hover:bg-[#0d6b63]"
+            >
+              <Link href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}>
+                <CreditCard className="size-3.5" aria-hidden />
+                Pay on Supplies
+              </Link>
+            </Button>
+          </div>
+        </header>
 
       {message ? <DashboardFeedback kind="error" text={message} /> : null}
 
-      {/* Pulse strip */}
-      <section className="mb-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-y-auto pb-4">
+      <section className="grid grid-cols-2 gap-1 lg:grid-cols-4" aria-label="Payables pulse">
         <PulseCard
           label="Still owing"
           value={`${currency} ${money(totalOpen)}`}
@@ -365,26 +379,25 @@ export default function ApAgingPage() {
         />
       </section>
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-        {/* Aging urgency */}
-        <aside className="space-y-4 lg:sticky lg:top-4">
-          <section className="overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_94%,transparent)] shadow-[0_10px_28px_-22px_rgba(21,35,31,0.35)]">
-            <header className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-2.5">
+      <div className="grid min-h-0 flex-1 items-start gap-1 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
+        <aside className="space-y-1 lg:sticky lg:top-0">
+          <section className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+            <header className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-1.5">
               <h2 className="text-sm font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
                 How late is it?
               </h2>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
+              <p className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 Open AP by due-date age
                 {aging?.asOf ? ` · as of ${aging.asOf}` : ""}
               </p>
             </header>
-            <div className="space-y-3 p-3.5">
+            <div className="space-y-1 p-2">
               {loading && !aging ? (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <div
                       key={i}
-                      className="h-12 animate-pulse rounded-lg bg-muted/40"
+                      className="h-12 animate-pulse rounded-none bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]"
                     />
                   ))}
                 </div>
@@ -397,16 +410,16 @@ export default function ApAgingPage() {
                     <div
                       key={def.key}
                       className={cn(
-                        "rounded-lg border px-3 py-2.5",
+                        "rounded-none border bg-white px-3 py-2",
                         tone.chip,
                       )}
                     >
                       <div className="flex items-baseline justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-[11px] font-bold uppercase tracking-[0.1em]">
+                          <p className="text-[12px] font-semibold tracking-[-0.02em]">
                             {def.label}
                           </p>
-                          <p className="mt-0.5 text-[10px] opacity-80">
+                          <p className="mt-0.5 text-[11px] opacity-80">
                             {def.hint}
                           </p>
                         </div>
@@ -419,9 +432,9 @@ export default function ApAgingPage() {
                           {money(amount)}
                         </p>
                       </div>
-                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-none bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
                         <div
-                          className={cn("h-full rounded-full transition-all", tone.bar)}
+                          className={cn("h-full rounded-none transition-all", tone.bar)}
                           style={{ width: `${amount > 0 ? Math.max(pct, 4) : 0}%` }}
                         />
                       </div>
@@ -429,7 +442,7 @@ export default function ApAgingPage() {
                   );
                 })
               ) : (
-                <p className="py-4 text-center text-sm text-muted-foreground">
+                <p className="py-4 text-center text-sm text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                   Aging buckets unavailable.
                 </p>
               )}
@@ -437,80 +450,89 @@ export default function ApAgingPage() {
           </section>
 
           <nav
-            className="flex flex-col gap-1.5 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] p-3"
+            className="flex flex-col gap-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
             aria-label="Related"
           >
             <Link
               href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
-              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]"
+              className="inline-flex h-8 items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 text-[12px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
             >
               <CreditCard className="size-3.5" aria-hidden />
               Pay on Supplies
             </Link>
             <Link
               href={APP_ROUTES.purchasingIntelligence}
-              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              className="inline-flex h-8 items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 text-[12px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]"
             >
               <LineChart className="size-3.5" aria-hidden />
-              Supplier intelligence
+              Compare
             </Link>
             <Link
               href={APP_ROUTES.suppliers}
-              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              className="inline-flex h-8 items-center gap-2 px-3 text-[12px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]"
             >
               <Truck className="size-3.5" aria-hidden />
-              Supplier directory
+              Suppliers
             </Link>
           </nav>
         </aside>
 
-        {/* Unpaid bill list */}
-        <section className="min-w-0 overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_94%,transparent)] shadow-[0_10px_28px_-22px_rgba(21,35,31,0.35)]">
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-2.5">
+        <section className="min-w-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+          <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-1.5">
             <div>
               <h2 className="text-sm font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
                 Open invoices
               </h2>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 Largest balances first · pay from Supplies
               </p>
             </div>
             <label className="relative block w-full max-w-[14rem]">
               <span className="sr-only">Search unpaid bills</span>
               <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]"
                 aria-hidden
               />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Vendor or invoice…"
-                className="h-8 w-full rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background pl-8 pr-2.5 text-sm outline-none focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]"
+                className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-8 pr-2.5 text-sm outline-none focus-visible:border-[var(--pos-primary,#0f766e)]"
               />
             </label>
           </header>
 
           {loading && unpaid.length === 0 ? (
-            <div className="space-y-2 p-4">
+            <div className="space-y-1 p-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 animate-pulse rounded-lg bg-muted/40" />
+                <div
+                  key={i}
+                  className="h-16 animate-pulse rounded-none bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]"
+                />
               ))}
             </div>
           ) : filteredUnpaid.length === 0 ? (
             <div className="flex flex-col items-center px-4 py-12 text-center">
-              <CheckCircle2 className="mb-3 size-8 text-emerald-600" aria-hidden />
-              <p className="text-sm font-semibold text-foreground">
+              <CheckCircle2
+                className="mb-3 size-8 text-[var(--pos-primary,#0f766e)]"
+                aria-hidden
+              />
+              <p className="text-sm font-semibold text-[var(--order-ink,#15231f)]">
                 {query.trim()
                   ? "No matching unpaid bills"
                   : "You are clear — nothing unpaid"}
               </p>
-              <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+              <p className="mt-1 max-w-sm text-xs text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 {query.trim()
                   ? "Try another supplier or invoice number."
                   : "When deliveries post with a balance, they show up here so you can settle them on Supplies."}
               </p>
               {!query.trim() ? (
-                <Button asChild variant="outline" className="mt-4 h-9 gap-1.5">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="mt-4 h-8 gap-1.5 rounded-none"
+                >
                   <Link href={APP_ROUTES.purchasingAddSupplies}>
                     View supplies
                     <ArrowRight className="size-3.5" aria-hidden />
@@ -519,15 +541,15 @@ export default function ApAgingPage() {
               ) : null}
             </div>
           ) : (
-            <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+            <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
               {bySupplier.map((group) => (
-                <li key={group.supplierId} className="p-3.5">
-                  <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
+                <li key={group.supplierId} className="p-3">
+                  <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-[var(--order-ink,#15231f)]">
                         {group.supplierName}
                       </p>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                         {group.count} open bill{group.count === 1 ? "" : "s"}
                       </p>
                     </div>
@@ -537,24 +559,24 @@ export default function ApAgingPage() {
                       </p>
                       <Link
                         href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
-                        className="inline-flex h-8 items-center gap-1 rounded-md border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] px-2.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)]"
+                        className="inline-flex h-8 items-center gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[12px] font-semibold tracking-[-0.02em] text-white hover:bg-[#0d6b63]"
                       >
                         Pay
                         <ArrowRight className="size-3" aria-hidden />
                       </Link>
                     </div>
                   </div>
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-1">
                     {group.bills.map((bill) => (
                       <li
                         key={bill.supplierInvoiceId}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)] px-3 py-2"
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2"
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">
+                          <p className="truncate text-sm font-medium text-[var(--order-ink,#15231f)]">
                             {bill.invoiceNumber}
                           </p>
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                             {statusLabel(bill.paymentStatus)}
                             {bill.createdAt
                               ? ` · ${new Date(bill.createdAt).toLocaleDateString("en-KE", {
@@ -569,10 +591,10 @@ export default function ApAgingPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold tabular-nums">
+                          <p className="text-sm font-semibold tabular-nums text-amber-800">
                             {money(bill.balanceOpen)}
                           </p>
-                          <p className="text-[10px] tabular-nums text-muted-foreground">
+                          <p className="text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                             of {money(bill.grandTotal)} · paid{" "}
                             {money(bill.amountPaid)}
                           </p>
@@ -585,6 +607,8 @@ export default function ApAgingPage() {
             </ul>
           )}
         </section>
+      </div>
+      </div>
       </div>
     </div>
   );
@@ -609,54 +633,54 @@ function PulseCard({
 }) {
   const body = (
     <>
-      <div className="flex items-start justify-between gap-2">
-        <span
-          className={cn(
-            "inline-flex size-7 items-center justify-center rounded-md border",
-            tone === "ok" &&
-              "border-emerald-500/25 text-emerald-700 dark:text-emerald-400",
-            tone === "warn" &&
-              "border-amber-500/25 text-amber-700 dark:text-amber-400",
-            tone === "default" &&
-              "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-muted-foreground",
-            emphasize &&
-              "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] text-[var(--pos-primary,#0f766e)]",
-          )}
-        >
-          <Icon className="size-3.5" aria-hidden />
-        </span>
-      </div>
-      <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </p>
-      <p
+      <span
         className={cn(
-          "mt-0.5 font-heading font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]",
-          emphasize ? "text-lg tabular-nums" : "text-base",
-          !emphasize && value.includes(" ") === false && "tabular-nums",
+          "inline-flex size-5 shrink-0 items-center justify-center rounded-none border",
+          tone === "ok" &&
+            "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
+          tone === "warn" && "border-amber-700/40 text-amber-800",
+          tone === "default" &&
+            "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]",
+          emphasize &&
+            "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
         )}
       >
+        <Icon className="size-3" aria-hidden />
+      </span>
+      <span className="min-w-0 truncate text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
+        {label}
+      </span>
+      <span
+        className={cn(
+          "ml-auto shrink-0 font-heading text-[13px] font-semibold leading-none tracking-[-0.03em] text-[var(--order-ink,#15231f)]",
+          tone === "ok" && "text-[var(--pos-primary,#0f766e)]",
+          tone === "warn" && "text-amber-800",
+        )}
+        title={hint}
+      >
         {value}
-      </p>
-      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{hint}</p>
+      </span>
     </>
   );
 
   const className = cn(
-    "rounded-xl border px-3.5 py-3 transition",
-    emphasize
-      ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]"
-      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_94%,transparent)]",
-    href &&
-      "hover:-translate-y-px hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_30%,transparent)]",
+    "flex min-w-0 w-full items-center gap-1.5 rounded-none border bg-white px-2 py-1",
+    emphasize || href
+      ? "border-[var(--pos-primary,#0f766e)]"
+      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+    href && "hover:text-[var(--pos-primary,#0f766e)]",
   );
 
   if (href) {
     return (
-      <Link href={href} className={className}>
+      <Link href={href} className={className} title={hint}>
         {body}
       </Link>
     );
   }
-  return <div className={className}>{body}</div>;
+  return (
+    <div className={className} title={hint}>
+      {body}
+    </div>
+  );
 }

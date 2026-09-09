@@ -338,13 +338,13 @@ export default function SuppliesPage() {
               type="button"
               onClick={() => setBillFilter("unpaid")}
               className={cn(
-                "rounded-md px-1.5 py-0.5 tabular-nums transition",
+                "rounded-none px-1.5 py-0.5 tabular-nums transition",
                 isUnpaid
-                  ? "bg-amber-800/10 font-semibold text-amber-900"
-                  : "hover:bg-amber-800/10 hover:text-amber-900",
+                  ? "font-semibold text-[var(--pos-primary,#0f766e)]"
+                  : "hover:text-[var(--pos-primary,#0f766e)]",
               )}
             >
-              <span className="font-semibold text-amber-900">
+              <span className="font-semibold text-[var(--order-ink,#15231f)]">
                 {summary.unpaidCount}
               </span>{" "}
               unpaid · {formatSupplyMoney(summary.openBalance, currency)}
@@ -372,9 +372,8 @@ export default function SuppliesPage() {
           <DashboardFeedback kind="error" text={listError} />
         ) : null}
 
-        {/* Pulse strip */}
         <section
-          className="grid grid-cols-2 gap-2 lg:grid-cols-4"
+          className="grid grid-cols-2 gap-1 lg:grid-cols-4"
           aria-label="Supply pulse"
         >
           <PulseTile
@@ -417,21 +416,13 @@ export default function SuppliesPage() {
             <button
               type="button"
               onClick={() => setAdvanceOpen(true)}
-              className={cn(
-                "flex flex-col justify-between rounded-xl border px-3 py-2.5 text-left transition",
-                "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,#fff)]",
-                "hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)]",
-              )}
+              className="flex min-w-0 w-full items-center gap-1.5 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-2 py-1 text-left"
             >
-              <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--pos-primary,#0f766e)]">
+              <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]">
                 <Wallet className="size-3" aria-hidden />
-                Supplier wallet
               </span>
-              <span className="mt-2 font-heading text-sm font-semibold text-[var(--order-ink,#15231f)]">
+              <span className="min-w-0 truncate text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
                 Deposit credit
-              </span>
-              <span className="mt-0.5 text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-                Prepay — applies on next supply
               </span>
             </button>
           ) : (
@@ -445,8 +436,8 @@ export default function SuppliesPage() {
           )}
         </section>
 
-        <section className="flex min-h-[20rem] flex-1 flex-col overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_94%,transparent)] shadow-[0_10px_28px_-22px_rgba(21,35,31,0.35)]">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-2 sm:px-3.5">
+        <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-1.5 sm:px-3.5">
             <div className="min-w-0">
               <h2 className="truncate text-sm font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
                 {isUnpaid
@@ -471,7 +462,7 @@ export default function SuppliesPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Vendor or invoice…"
-                className="h-8 w-full rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-8 pr-2.5 text-sm outline-none focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]"
+                className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-8 pr-2.5 text-sm outline-none focus-visible:border-[var(--pos-primary,#0f766e)]"
               />
             </label>
           </div>
@@ -513,7 +504,7 @@ export default function SuppliesPage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-7 rounded-lg text-xs"
+                      className="h-8 rounded-none text-xs"
                       onClick={() => setQuery("")}
                     >
                       Clear search
@@ -523,7 +514,7 @@ export default function SuppliesPage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-7 rounded-lg text-xs"
+                      className="h-8 rounded-none text-xs"
                       onClick={() => setBillFilter("all")}
                     >
                       Show all
@@ -532,7 +523,7 @@ export default function SuppliesPage() {
                     <Button
                       type="button"
                       size="sm"
-                      className="h-7 gap-1 rounded-lg text-xs font-semibold"
+                      className="h-8 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] text-xs font-semibold text-white hover:bg-[#0d6b63]"
                       onClick={() => setNewOpen(true)}
                     >
                       <Package className="size-3" aria-hidden />
@@ -593,7 +584,7 @@ export default function SuppliesPage() {
                 </div>
 
                 <table className="hidden w-full border-collapse text-left text-[13px] lg:table">
-                  <thead className="sticky top-0 z-10 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_85%,#fff)] text-[10px] uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                  <thead className="sticky top-0 z-10 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                     <tr>
                       <th className="px-3.5 py-2 font-semibold">Supplier</th>
                       <th className="px-2 py-2 font-semibold">Invoice</th>
@@ -634,11 +625,7 @@ export default function SuppliesPage() {
                       return (
                         <tr
                           key={r.supplierInvoiceId}
-                          className={cn(
-                            "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)]",
-                            needsPay &&
-                              "bg-[color-mix(in_srgb,#b45309_3%,transparent)]",
-                          )}
+                          className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
                         >
                           <td className="max-w-[14rem] truncate px-3.5 py-2 font-medium text-[var(--order-ink,#15231f)]">
                             <span className="block truncate">
@@ -663,13 +650,13 @@ export default function SuppliesPage() {
                           <td className="px-2 py-2 text-right font-mono text-[12px] tabular-nums">
                             {formatSupplyMoney(supplyN(r.grandTotal), currency)}
                           </td>
-                          <td className="px-2 py-2 text-right font-mono text-[12px] tabular-nums text-emerald-700">
+                          <td className="px-2 py-2 text-right font-mono text-[12px] tabular-nums text-[var(--pos-primary,#0f766e)]">
                             {formatSupplyMoney(supplyN(r.amountPaid), currency)}
                           </td>
                           <td
                             className={cn(
                               "px-2 py-2 text-right font-mono text-[12px] font-semibold tabular-nums",
-                              needsPay && "text-amber-900",
+                              needsPay && "text-amber-800",
                             )}
                           >
                             {formatSupplyMoney(bal, currency)}
@@ -677,7 +664,7 @@ export default function SuppliesPage() {
                           <td className="px-2 py-2">
                             <span
                               className={cn(
-                                "inline-flex rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                                "inline-flex px-1.5 py-0.5 text-[11px] font-semibold tracking-[-0.02em]",
                                 st.className,
                               )}
                             >
@@ -699,7 +686,7 @@ export default function SuppliesPage() {
                                   type="button"
                                   size="icon"
                                   variant="ghost"
-                                  className="size-7 rounded-md text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] hover:text-[var(--order-ink,#15231f)]"
+                                  className="size-7 rounded-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] hover:text-[var(--order-ink,#15231f)]"
                                   aria-label={`Edit ${r.invoiceNumber}`}
                                   onClick={() => {
                                     setEditRow(r);
@@ -716,7 +703,7 @@ export default function SuppliesPage() {
                                   type="button"
                                   size="icon"
                                   variant="ghost"
-                                  className="size-7 rounded-md text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] hover:bg-destructive/10 hover:text-destructive"
+                                  className="size-7 rounded-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] hover:bg-destructive/10 hover:text-destructive"
                                   aria-label={`Delete ${r.invoiceNumber}`}
                                   disabled={
                                     deletingId === r.supplierInvoiceId
@@ -730,7 +717,7 @@ export default function SuppliesPage() {
                                 <Button
                                   type="button"
                                   size="sm"
-                                  className="h-7 gap-1 rounded-md bg-emerald-700 px-2 text-[10px] font-semibold hover:bg-emerald-800"
+                                  className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2 text-[10px] font-semibold hover:bg-[#0d6b63]"
                                   disabled={!canOpenReceiptDrawer}
                                   onClick={() => openPay(r, true)}
                                   title={`Clear ${unpaid!.count} unpaid invoices`}
@@ -744,7 +731,7 @@ export default function SuppliesPage() {
                                 size="sm"
                                 variant={needsPay ? "default" : "outline"}
                                 className={cn(
-                                  "h-7 gap-1 rounded-md px-2 text-[10px] font-semibold",
+                                  "h-7 gap-1 rounded-none px-2 text-[10px] font-semibold",
                                   needsPay &&
                                     "bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]",
                                 )}
@@ -812,8 +799,7 @@ export default function SuppliesPage() {
           onClick={() => setNewOpen(true)}
           aria-label="Receive new supply"
           className={cn(
-            "fixed z-40 flex items-center gap-2 rounded-full bg-[var(--order-ink,#15231f)] px-5 py-3.5 text-sm font-semibold text-white",
-            "shadow-[0_12px_32px_-8px_color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]",
+            "fixed z-40 flex items-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] px-4 py-3 text-sm font-semibold text-white",
             "right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))]",
             "active:scale-95 touch-manipulation sm:hidden",
           )}
@@ -849,35 +835,33 @@ function PulseTile({
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "rounded-xl border px-3 py-2.5 text-left transition",
+        "relative flex min-w-0 w-full items-center gap-1.5 rounded-none border bg-white px-2 py-1 text-left transition-[border-color] duration-150",
         active
-          ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,#fff)] shadow-sm"
-          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/90",
+          ? "border-[var(--pos-primary,#0f766e)]"
+          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
         onClick &&
           !active &&
-          "hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
+          "hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]",
         emphasize &&
           !active &&
-          "border-[color-mix(in_srgb,#b45309_22%,transparent)]",
+          "border-amber-700/40",
       )}
+      title={hint}
     >
-      <span className="block text-[9px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+      <span className="min-w-0 truncate text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
         {label}
       </span>
       <span
         className={cn(
-          "mt-1.5 block font-heading text-[15px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
+          "ml-auto shrink-0 font-heading text-[13px] font-semibold leading-none tabular-nums tracking-[-0.03em]",
           tone === "ok"
-            ? "text-emerald-700"
+            ? "text-[var(--pos-primary,#0f766e)]"
             : emphasize
-              ? "text-amber-900"
+              ? "text-amber-800"
               : "text-[var(--order-ink,#15231f)]",
         )}
       >
         {value}
-      </span>
-      <span className="mt-1 block text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-        {hint}
       </span>
     </Comp>
   );
@@ -924,14 +908,14 @@ function UnpaidByVendor({
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <p className="font-heading text-base font-semibold tabular-nums text-amber-900">
+                <p className="font-heading text-base font-semibold tabular-nums text-amber-800">
                   {formatSupplyMoney(group.total, currency)}
                 </p>
                 {showPayAll && first ? (
                   <Button
                     type="button"
                     size="sm"
-                    className="h-8 gap-1 rounded-md bg-emerald-700 px-2.5 text-[11px] font-semibold hover:bg-emerald-800"
+                    className="h-8 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[11px] font-semibold hover:bg-[#0d6b63]"
                     disabled={!canOpenReceiptDrawer}
                     onClick={() => onPay(first, true)}
                   >
@@ -969,7 +953,7 @@ function UnpaidByVendor({
                 return (
                   <li
                     key={r.supplierInvoiceId}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_45%,transparent)] px-3 py-2"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2"
                   >
                     <div className="min-w-0">
                       <p className="truncate font-mono text-sm font-medium text-[var(--order-ink,#15231f)]">
@@ -978,7 +962,7 @@ function UnpaidByVendor({
                       <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                         <span
                           className={cn(
-                            "mr-1.5 inline-flex rounded px-1 py-px text-[9px] font-bold uppercase",
+                            "mr-1.5 inline-flex px-1 py-px text-[11px] font-semibold tracking-[-0.02em]",
                             st.className,
                           )}
                         >
@@ -994,7 +978,7 @@ function UnpaidByVendor({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <div className="text-right">
-                        <p className="text-sm font-semibold tabular-nums text-amber-900">
+                        <p className="text-sm font-semibold tabular-nums text-amber-800">
                           {formatSupplyMoney(bal, currency)}
                         </p>
                         <p className="text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
@@ -1008,7 +992,7 @@ function UnpaidByVendor({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="size-8 rounded-md"
+                          className="size-8 rounded-none"
                           aria-label={`Edit ${r.invoiceNumber}`}
                           onClick={() => onEdit(r)}
                         >
@@ -1022,7 +1006,7 @@ function UnpaidByVendor({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="size-8 rounded-md text-destructive hover:bg-destructive/10"
+                          className="size-8 rounded-none text-destructive hover:bg-destructive/10"
                           aria-label={`Delete ${r.invoiceNumber}`}
                           disabled={deletingId === r.supplierInvoiceId}
                           onClick={() => onDelete(r)}
@@ -1034,7 +1018,7 @@ function UnpaidByVendor({
                         type="button"
                         size="sm"
                         className={cn(
-                          "h-8 gap-1 rounded-md px-2.5 text-[11px] font-semibold",
+                          "h-8 gap-1 rounded-none px-2.5 text-[11px] font-semibold",
                           needsPay
                             ? "bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]"
                             : "",

@@ -37,7 +37,6 @@ import {
 } from "lucide-react";
 
 import {
-  DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
   DashboardFeedback,
 } from "@/components/dashboard-page-ui";
@@ -46,6 +45,10 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
+import {
+  PROCUREMENT_VARS,
+  ProcurementHubNav,
+} from "@/components/procurement/procurement-hub-nav";
 import {
   fetchPurchasingIntelligenceDashboard,
   type PurchasingIntelligenceDashboardResponse,
@@ -153,16 +156,23 @@ const CHART_AXIS = "#71717a";
 const CHART_GRID = "rgba(113, 113, 122, 0.18)";
 
 const fieldClass = cn(
-  "h-9 w-full rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
-  "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] px-2.5 text-sm tabular-nums",
+  "h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+  "bg-white px-2.5 text-sm tabular-nums",
   "outline-none focus-visible:border-[var(--pos-primary,#0f766e)]",
-  "focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
 );
+
+const chip = cn(
+  "inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[12px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+  "transition-colors hover:text-[var(--order-ink,#15231f)]",
+);
+
+const tableHead =
+  "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]";
 
 function InsightStack({ insights }: { insights: PurchasingInsight[] }) {
   if (insights.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-3 py-4 text-center text-xs text-muted-foreground">
+      <div className="rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-4 text-center text-xs text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
         No briefing notes for this range — spend looks quiet.
       </div>
     );
@@ -177,17 +187,15 @@ function InsightStack({ insights }: { insights: PurchasingInsight[] }) {
           <li
             key={`${insight.kind}-${i}`}
             className={cn(
-              "flex gap-2.5 rounded-lg border px-3 py-2.5 text-[13px] leading-snug",
-              danger &&
-                "border-rose-500/25 bg-rose-500/[0.07] text-rose-950 dark:text-rose-50",
-              warning &&
-                "border-amber-500/25 bg-amber-500/[0.08] text-amber-950 dark:text-amber-50",
+              "flex gap-2.5 rounded-none border bg-white px-3 py-2.5 text-[13px] leading-snug",
+              danger && "border-rose-500/40 text-rose-800 dark:text-rose-200",
+              warning && "border-amber-700/40 text-amber-800 dark:text-amber-200",
               success &&
-                "border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-950 dark:text-emerald-50",
+                "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
               !danger &&
                 !warning &&
                 !success &&
-                "border-sky-500/20 bg-sky-500/[0.07] text-sky-950 dark:text-sky-50",
+                "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[var(--order-ink,#15231f)]",
             )}
           >
             {danger ? (
@@ -217,17 +225,17 @@ function MetricRow({
   tone?: "default" | "good" | "warn" | "bad";
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] py-2 last:border-b-0">
-      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+    <div className="flex items-baseline justify-between gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] py-2 last:border-b-0">
+      <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
         {label}
       </span>
       <span
         className={cn(
           "font-heading text-[15px] font-semibold tabular-nums tracking-[-0.02em]",
-          tone === "good" && "text-emerald-700 dark:text-emerald-400",
-          tone === "warn" && "text-amber-700 dark:text-amber-400",
+          tone === "good" && "text-[var(--pos-primary,#0f766e)]",
+          tone === "warn" && "text-amber-800 dark:text-amber-400",
           tone === "bad" && "text-rose-700 dark:text-rose-400",
-          tone === "default" && "text-foreground",
+          tone === "default" && "text-[var(--order-ink,#15231f)]",
         )}
       >
         {value}
@@ -252,17 +260,17 @@ function PanelShell({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
-        "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] shadow-[0_10px_28px_-22px_rgba(28,25,21,0.35)]",
+        "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+        "bg-white",
         className,
       )}
     >
-      <header className="flex items-center justify-between gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-3.5 py-2.5">
+      <header className="flex items-center justify-between gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-1.5">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="inline-flex size-7 items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] text-[var(--pos-primary,#0f766e)]">
+          <span className="inline-flex size-7 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
             <Icon className="size-3.5" aria-hidden />
           </span>
-          <h2 className="truncate text-sm font-semibold tracking-tight text-foreground">
+          <h2 className="truncate text-sm font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
             {title}
           </h2>
         </div>
@@ -293,32 +301,29 @@ function DossierButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "group flex min-w-0 flex-1 flex-col gap-1 rounded-xl border px-3.5 py-3 text-left transition",
-        "hover:-translate-y-px active:scale-[0.99]",
+        "group flex min-w-0 flex-1 flex-col gap-1 rounded-none border bg-white px-3 py-2.5 text-left transition-colors",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pos-primary,#0f766e)]",
-        tone === "bad" &&
-          "border-rose-500/25 bg-rose-500/[0.05] hover:border-rose-500/40",
-        tone === "warn" &&
-          "border-amber-500/25 bg-amber-500/[0.05] hover:border-amber-500/40",
+        tone === "bad" && "border-rose-500/40 hover:border-rose-500/60",
+        tone === "warn" && "border-amber-700/40 hover:border-amber-700/60",
         tone === "default" &&
-          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)]",
+          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:border-[var(--pos-primary,#0f766e)]",
       )}
     >
       <div className="flex items-center justify-between gap-2">
         <span
           className={cn(
-            "inline-flex size-7 items-center justify-center rounded-md border",
-            tone === "bad" && "border-rose-500/25 text-rose-700",
-            tone === "warn" && "border-amber-500/25 text-amber-700",
+            "inline-flex size-7 items-center justify-center rounded-none border",
+            tone === "bad" && "border-rose-500/40 text-rose-700",
+            tone === "warn" && "border-amber-700/40 text-amber-800",
             tone === "default" &&
-              "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] text-muted-foreground group-hover:text-[var(--pos-primary,#0f766e)]",
+              "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] group-hover:border-[var(--pos-primary,#0f766e)] group-hover:text-[var(--pos-primary,#0f766e)]",
           )}
         >
           <Icon className="size-3.5" aria-hidden />
         </span>
         <ArrowUpRight className="size-3.5 text-muted-foreground opacity-60 transition group-hover:opacity-100 group-hover:text-[var(--pos-primary,#0f766e)]" />
       </div>
-      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="mt-1 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
         {title}
       </p>
       <p className="font-heading text-xl font-semibold tabular-nums tracking-[-0.03em] text-foreground">
@@ -331,7 +336,7 @@ function DossierButton({
 
 function EmptyChart({ label }: { label: string }) {
   return (
-    <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-muted/15 text-sm text-muted-foreground">
+    <div className="flex h-full items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-sm text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
       {label}
     </div>
   );
@@ -422,7 +427,7 @@ export default function PurchasingIntelligencePage() {
           <>
             You do not have permission to view purchasing intelligence. Ask an
             administrator to grant{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">
+            <code className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1 py-0.5 text-xs">
               {Permission.PurchasingIntelligenceRead}
             </code>
             .
@@ -440,71 +445,74 @@ export default function PurchasingIntelligencePage() {
 
   return (
     <div
-      className={cn(
-        DASHBOARD_MAX_WIDE,
-        "pb-10 [--pi-paper:#f4f0e8] dark:[--pi-paper:transparent]",
-      )}
+      className="relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col bg-white px-3 pt-1 sm:px-5 sm:pt-1.5"
+      style={PROCUREMENT_VARS}
     >
-      {/* Masthead */}
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pb-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5">
-            <span className="inline-flex size-9 items-center justify-center rounded-lg bg-[var(--pos-primary,#0f766e)] text-white shadow-[0_8px_20px_-12px_color-mix(in_srgb,var(--pos-primary,#0f766e)_70%,transparent)]">
-              <LineChart className="size-4" aria-hidden />
-            </span>
-            <h1 className="font-heading text-2xl font-semibold tracking-[-0.03em] text-foreground">
-              Supplier intelligence
-            </h1>
-          </div>
-          <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
-            Briefing on spend, price pressure, and supply risk
-            {headerBranchName ? (
-              <>
-                {" "}
-                · <span className="font-medium text-foreground/80">{headerBranchName}</span>
-              </>
-            ) : null}
-            .
-          </p>
+      <div className="relative flex min-h-0 flex-1 flex-col gap-1">
+        <div className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink)_12%,transparent)] bg-white">
+          <ProcurementHubNav />
         </div>
-        <nav className="flex flex-wrap gap-1.5" aria-label="Related purchasing links">
-          {[
-            { href: APP_ROUTES.purchasingApAging, label: "AP aging", icon: BarChart3 },
-            {
-              href: `${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`,
-              label: "Pay open",
-              icon: CreditCard,
-            },
-            { href: APP_ROUTES.suppliers, label: "Suppliers", icon: Truck },
-          ].map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-card px-3 py-1.5 text-[11px] font-semibold text-foreground transition hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] hover:text-[var(--pos-primary,#0f766e)]"
-            >
-              <link.icon className="size-3.5 opacity-70" aria-hidden />
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-      </header>
 
-      {/* Range bar */}
-      <div className="sticky top-0 z-30 mb-5 rounded-xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]/95 p-3 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--card)_72%,#f7f3eb)]/85">
+        <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1 sm:px-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
+                <LineChart className="size-3.5" aria-hidden />
+              </span>
+              <h1 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                Compare
+              </h1>
+            </div>
+            <span
+              aria-hidden
+              className="hidden h-3.5 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:block"
+            />
+            <p className="min-w-0 truncate text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+              Spend, price pressure, supply risk
+              {headerBranchName ? (
+                <>
+                  {" "}
+                  ·{" "}
+                  <span className="font-medium text-[var(--order-ink,#15231f)]">
+                    {headerBranchName}
+                  </span>
+                </>
+              ) : null}
+            </p>
+          </div>
+          <nav className="flex shrink-0 flex-wrap gap-1" aria-label="Related purchasing links">
+            {[
+              { href: APP_ROUTES.purchasingApAging, label: "AP aging", icon: BarChart3 },
+              {
+                href: `${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`,
+                label: "Pay open",
+                icon: CreditCard,
+              },
+              { href: APP_ROUTES.suppliers, label: "Suppliers", icon: Truck },
+            ].map((link) => (
+              <Link key={link.href} href={link.href} className={chip}>
+                <link.icon className="size-3 opacity-70" aria-hidden />
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </header>
+
+        <div className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5">
         <form
-          className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
+          className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between"
           onSubmit={(e) => {
             e.preventDefault();
             setActivePreset("");
             void load().catch(() => setMessage("Failed to load reports."));
           }}
         >
-          <div className="min-w-0 space-y-2">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="min-w-0 space-y-1.5">
+            <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
               <CalendarRange className="size-3.5" aria-hidden />
               Window · {rangeLabel}
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1">
               {RANGE_PRESETS.map((p) => (
                 <button
                   key={p.id}
@@ -520,10 +528,10 @@ export default function PurchasingIntelligencePage() {
                     );
                   }}
                   className={cn(
-                    "rounded-md px-2.5 py-1 text-xs font-semibold transition",
+                    "h-8 rounded-none border px-2.5 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
                     activePreset === p.id
-                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                      : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground",
+                      ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                   )}
                 >
                   {p.label}
@@ -533,7 +541,7 @@ export default function PurchasingIntelligencePage() {
           </div>
           <div className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                 From
               </span>
               <input
@@ -548,7 +556,7 @@ export default function PurchasingIntelligencePage() {
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                 To
               </span>
               <input
@@ -562,7 +570,11 @@ export default function PurchasingIntelligencePage() {
                 }}
               />
             </label>
-            <Button type="submit" disabled={loading} className="h-9 gap-1.5">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 font-semibold text-white hover:bg-[#0d6b63]"
+            >
               <RefreshCw
                 className={cn("size-3.5", loading && "animate-spin")}
                 aria-hidden
@@ -572,7 +584,7 @@ export default function PurchasingIntelligencePage() {
             <Button
               type="button"
               variant="outline"
-              className="h-9"
+              className="h-8 rounded-none"
               disabled={loading || (!from && !to)}
               onClick={() => {
                 setFrom("");
@@ -586,21 +598,23 @@ export default function PurchasingIntelligencePage() {
             </Button>
           </div>
         </form>
-      </div>
+        </div>
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto pb-4">
 
       {message ? <DashboardFeedback kind="error" text={message} /> : null}
 
       {!data && loading ? (
-        <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-          <div className="h-72 animate-pulse rounded-xl bg-muted/40" />
-          <div className="h-72 animate-pulse rounded-xl bg-muted/40" />
+        <div className="mt-1 grid gap-1 lg:grid-cols-[280px_1fr]">
+          <div className="h-72 animate-pulse rounded-none bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]" />
+          <div className="h-72 animate-pulse rounded-none bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]" />
         </div>
       ) : null}
 
       {data ? (
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)]">
+        <div className="mt-1 grid items-start gap-1 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)]">
           {/* Left briefing rail */}
-          <aside className="space-y-4 lg:sticky lg:top-[5.25rem]">
+          <aside className="space-y-1 lg:sticky lg:top-0">
             <PanelShell title="Briefing" icon={AlertTriangle}>
               <InsightStack insights={data.insights} />
             </PanelShell>
@@ -650,8 +664,8 @@ export default function PurchasingIntelligencePage() {
           </aside>
 
           {/* Main column */}
-          <div className="min-w-0 space-y-4">
-            <div className="grid gap-4 xl:grid-cols-2">
+          <div className="min-w-0 space-y-1">
+            <div className="grid gap-1 xl:grid-cols-2">
               <PanelShell title="Spend trend" icon={BarChart3}>
                 <div className="h-56">
                   {spendTrendData.length > 0 ? (
@@ -678,16 +692,16 @@ export default function PurchasingIntelligencePage() {
                         <Tooltip
                           formatter={(value) => formatMoney(Number(value))}
                           contentStyle={{
-                            borderRadius: 8,
-                            border: "1px solid rgba(28,25,21,0.12)",
+                            borderRadius: 0,
+                            border: "1px solid color-mix(in srgb, var(--order-ink, #15231f) 12%, transparent)",
                             fontSize: 12,
-                            backgroundColor: "var(--card, #fff)",
+                            backgroundColor: "#fff",
                           }}
                         />
                         <Bar
                           dataKey="spend"
                           fill="var(--pos-primary, #0f766e)"
-                          radius={[3, 3, 0, 0]}
+                          radius={[0, 0, 0, 0]}
                           name="Spend"
                         />
                       </BarChart>
@@ -722,17 +736,17 @@ export default function PurchasingIntelligencePage() {
                         <Tooltip
                           formatter={(value) => formatMoney(Number(value))}
                           contentStyle={{
-                            borderRadius: 8,
-                            border: "1px solid rgba(28,25,21,0.12)",
+                            borderRadius: 0,
+                            border: "1px solid color-mix(in srgb, var(--order-ink, #15231f) 12%, transparent)",
                             fontSize: 12,
-                            backgroundColor: "var(--card, #fff)",
+                            backgroundColor: "#fff",
                           }}
                         />
                         <Legend
                           verticalAlign="bottom"
                           height={28}
                           iconSize={7}
-                          iconType="circle"
+                          iconType="square"
                           wrapperStyle={{ fontSize: 10 }}
                         />
                       </PieChart>
@@ -785,9 +799,9 @@ export default function PurchasingIntelligencePage() {
                           </p>
                         </div>
                         <div className="w-24 shrink-0">
-                          <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div className="mb-1 h-1.5 overflow-hidden rounded-none bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
                             <div
-                              className="h-full rounded-full bg-[var(--pos-primary,#0f766e)]"
+                              className="h-full rounded-none bg-[var(--pos-primary,#0f766e)]"
                               style={{ width: `${Math.min(pct, 100)}%` }}
                             />
                           </div>
@@ -806,7 +820,7 @@ export default function PurchasingIntelligencePage() {
             </PanelShell>
 
             {/* Dossier launchers */}
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-1 sm:grid-cols-3">
               <DossierButton
                 title="Price variance"
                 count={data.priceAlerts.length}
@@ -842,6 +856,7 @@ export default function PurchasingIntelligencePage() {
           </div>
         </div>
       ) : null}
+        </div>
 
       {/* Drawers */}
       <FormDrawer
@@ -857,7 +872,7 @@ export default function PurchasingIntelligencePage() {
         {data && data.topSuppliers.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-left text-sm">
-              <thead className="border-b border-border/50 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              <thead className={tableHead}>
                 <tr>
                   <th className="px-1 py-2">Supplier</th>
                   <th className="px-1 py-2 text-right">Lines</th>
@@ -908,7 +923,7 @@ export default function PurchasingIntelligencePage() {
         {data && data.priceAlerts.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[32rem] text-left text-sm">
-              <thead className="border-b border-border/50 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              <thead className={tableHead}>
                 <tr>
                   <th className="px-1 py-2">SKU</th>
                   <th className="px-1 py-2 text-right">Paid</th>
@@ -942,10 +957,10 @@ export default function PurchasingIntelligencePage() {
                       <td className="px-1 py-2.5">
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold",
+                            "inline-flex items-center gap-1 rounded-none border px-2 py-0.5 text-[11px] font-semibold tracking-[-0.02em]",
                             above
-                              ? "bg-rose-500/10 text-rose-800 dark:text-rose-200"
-                              : "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+                              ? "border-rose-500/40 bg-white text-rose-800 dark:text-rose-200"
+                              : "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]",
                           )}
                         >
                           {above ? (
@@ -1016,7 +1031,7 @@ export default function PurchasingIntelligencePage() {
         {data && data.singleSourceRisks.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-left text-sm">
-              <thead className="border-b border-border/50 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              <thead className={tableHead}>
                 <tr>
                   <th className="px-1 py-2">SKU</th>
                   <th className="px-1 py-2">Name</th>
@@ -1029,7 +1044,7 @@ export default function PurchasingIntelligencePage() {
                     <td className="px-1 py-2.5 font-medium">{row.sku}</td>
                     <td className="px-1 py-2.5">{row.name}</td>
                     <td className="px-1 py-2.5">
-                      <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-800 dark:text-rose-200">
+                      <span className="inline-flex items-center gap-1 rounded-none border border-rose-500/40 bg-white px-2 py-0.5 text-[11px] font-semibold tracking-[-0.02em] text-rose-800 dark:text-rose-200">
                         <AlertTriangle className="size-3" aria-hidden />
                         {row.soleSupplierName}
                       </span>
@@ -1045,6 +1060,7 @@ export default function PurchasingIntelligencePage() {
           </p>
         )}
       </FormDrawer>
+      </div>
     </div>
   );
 }

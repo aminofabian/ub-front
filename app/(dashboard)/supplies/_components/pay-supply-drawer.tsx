@@ -903,14 +903,14 @@ export function PaySupplyDrawer({
       banner={error ? <FormDrawerMessageBanner text={error} /> : undefined}
       footer={
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy || deletingSupply}>
+          <Button type="button" variant="outline" className="rounded-none" onClick={() => onOpenChange(false)} disabled={busy || deletingSupply}>
             Cancel
           </Button>
           {canClearUnpaid && row ? (
             <Button
               type="button"
               variant="outline"
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="rounded-none text-destructive hover:bg-destructive/10 hover:text-destructive"
               disabled={busy || deletingSupply}
               onClick={() => {
                 void (async () => {
@@ -948,7 +948,7 @@ export function PaySupplyDrawer({
               <Button
                 type="button"
                 variant="outline"
-                className="gap-1.5"
+                className="gap-1.5 rounded-none"
                 title="Record payment in PalMart without SMS or portal alert"
                 onClick={() => void markPaidWithoutNotify()}
                 disabled={
@@ -967,7 +967,7 @@ export function PaySupplyDrawer({
               </Button>
               <Button
                 type="button"
-                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+                className="gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]"
                 onClick={() => void onConfirmPay()}
                 disabled={
                   busy ||
@@ -1002,7 +1002,7 @@ export function PaySupplyDrawer({
         <div className="space-y-5 px-1 pb-4">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <div className={supStatTile}>
-              <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className={cn(supFieldLabel, "block")}>
                 Invoice
               </span>
               <span className="mt-1 block font-mono text-sm font-semibold">
@@ -1010,7 +1010,7 @@ export function PaySupplyDrawer({
               </span>
             </div>
             <div className={supStatTile}>
-              <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className={cn(supFieldLabel, "block")}>
                 Invoice total
               </span>
               <span className="mt-1 block font-mono text-sm font-semibold tabular-nums">
@@ -1018,7 +1018,7 @@ export function PaySupplyDrawer({
               </span>
             </div>
             <div className={supStatTile}>
-              <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className={cn(supFieldLabel, "block")}>
                 {multiSelect ? "Paying now" : "Balance due"}
               </span>
               <span className="mt-1 block font-mono text-lg font-bold tabular-nums text-foreground">
@@ -1029,7 +1029,7 @@ export function PaySupplyDrawer({
 
           {!paidFull && canPay && (openInvoices.length > 1 || openInvoicesLoading) ? (
             <section
-              className="rounded-xl border border-amber-500/25 bg-amber-500/[0.04] p-3"
+              className="rounded-none border border-amber-700/40 bg-white p-3"
               aria-labelledby="open-balances-heading"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -1052,7 +1052,7 @@ export function PaySupplyDrawer({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-7 text-xs"
+                      className="h-7 rounded-none text-xs"
                       disabled={busy}
                       onClick={selectOnlyCurrent}
                     >
@@ -1061,7 +1061,7 @@ export function PaySupplyDrawer({
                     <Button
                       type="button"
                       size="sm"
-                      className="h-7 bg-emerald-600 text-xs hover:bg-emerald-700"
+                      className="h-7 rounded-none bg-[var(--pos-primary,#0f766e)] text-xs hover:bg-[#0d6b63]"
                       disabled={busy}
                       onClick={selectAllOpen}
                     >
@@ -1079,15 +1079,15 @@ export function PaySupplyDrawer({
                       <li key={inv.id}>
                         <label
                           className={cn(
-                            "flex cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-2 text-sm transition-colors",
+                            "flex cursor-pointer items-center gap-2.5 rounded-none border px-2.5 py-2 text-sm transition-colors",
                             checked
-                              ? "border-emerald-500/40 bg-emerald-500/5"
-                              : "border-border/60 bg-card hover:bg-muted/40",
+                              ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white hover:text-[var(--order-ink,#15231f)]",
                           )}
                         >
                           <input
                             type="checkbox"
-                            className="size-3.5 accent-emerald-600"
+                            className="size-3.5 accent-[var(--pos-primary,#0f766e)]"
                             checked={checked}
                             disabled={busy || (checked && selectedInvoiceIds.length <= 1)}
                             onChange={() => toggleInvoice(inv.id)}
@@ -1098,11 +1098,11 @@ export function PaySupplyDrawer({
                                 {inv.invoiceNumber}
                               </span>
                               {isCurrent ? (
-                                <span className="rounded bg-muted px-1 py-px text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                                <span className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1 py-px text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                                   Current
                                 </span>
                               ) : (
-                                <span className="rounded bg-amber-500/15 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-amber-800 dark:text-amber-200">
+                                <span className="rounded-none border border-amber-700/40 bg-white px-1 py-px text-[11px] font-semibold tracking-[-0.02em] text-amber-800 dark:text-amber-200">
                                   Prev
                                 </span>
                               )}
@@ -1134,7 +1134,7 @@ export function PaySupplyDrawer({
           ) : null}
 
           {paidFull ? (
-            <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-900 dark:text-emerald-100">
+            <p className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-3 py-2 text-sm text-[var(--pos-primary,#0f766e)]">
               This supply is fully paid.
             </p>
           ) : !canPay ? (
@@ -1146,12 +1146,12 @@ export function PaySupplyDrawer({
 
           {/* Always show remittance details — including when the bill is already paid */}
           <section
-            className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] via-card to-card p-4 shadow-sm ring-1 ring-primary/10"
+            className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3"
             aria-labelledby="supplier-payment-heading"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
                   {preferredMethod === "mpesa" ? (
                     <Smartphone className="size-5" aria-hidden />
                   ) : (
@@ -1192,7 +1192,7 @@ export function PaySupplyDrawer({
             </div>
 
             {supplierDeleted ? (
-              <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+              <p className="mt-3 flex items-start gap-2 rounded-none border border-amber-700/40 bg-white px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                 This supplier was deleted.
                 {!paidFull
@@ -1207,12 +1207,12 @@ export function PaySupplyDrawer({
                 Loading payment details…
               </div>
             ) : !canReadSupplier ? (
-              <p className="mt-3 flex items-start gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 text-xs text-muted-foreground">
+              <p className="mt-3 flex items-start gap-2 rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2.5 text-xs text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                 You need supplier read access to view remittance details.
               </p>
             ) : supplierError ? (
-              <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+              <p className="mt-3 flex items-start gap-2 rounded-none border border-amber-700/40 bg-white px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                 {supplierError}
                 {canClearUnpaid
@@ -1222,8 +1222,8 @@ export function PaySupplyDrawer({
             ) : paymentDetails || hasPayoutDestination || needsKopokopoSupplierSetup ? (
               <div className="mt-3 space-y-3">
                 {hasPayoutDestination ? (
-                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
+                  <div className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-3.5 py-3">
+                    <p className="text-[11px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
                       {payoutType === "till"
                         ? "KopoKopo till payout"
                         : payoutType === "paybill"
@@ -1262,8 +1262,8 @@ export function PaySupplyDrawer({
                     ) : null}
                   </div>
                 ) : needsKopokopoSupplierSetup ? (
-                  <div className="rounded-xl border border-emerald-500/35 bg-emerald-500/[0.06] px-3.5 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
+                  <div className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-3.5 py-3">
+                    <p className="text-[11px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
                       Pay with KopoKopo
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -1345,7 +1345,7 @@ export function PaySupplyDrawer({
                         ) : null}
                         <Button
                           type="button"
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 sm:w-auto"
+                          className="w-full rounded-none bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63] sm:w-auto"
                           disabled={busy || enablingKopokopo || !setupReady}
                           onClick={() => void enableKopokopoPayout(true)}
                         >
@@ -1373,7 +1373,7 @@ export function PaySupplyDrawer({
                     )}
                   </div>
                 ) : payOptions && !payOptions.supplierPayoutEnabled ? (
-                  <div className="rounded-xl border border-dashed border-border px-3.5 py-3 text-xs text-muted-foreground">
+                  <div className="rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3.5 py-3 text-xs text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                     To pay suppliers via KopoKopo, enable{" "}
                     <Link href={APP_ROUTES.paymentsSettings} className="font-semibold underline">
                       Supplier payouts
@@ -1383,7 +1383,7 @@ export function PaySupplyDrawer({
                 ) : null}
                 {paymentDetails ? (
                   <div className={cn(supCardInset, "px-3.5 py-3")}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                       Payment &amp; remittance
                     </p>
                     <p className="mt-2 whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground">
@@ -1393,7 +1393,7 @@ export function PaySupplyDrawer({
                 ) : null}
               </div>
             ) : (
-              <p className="mt-3 flex items-start gap-2 rounded-lg border border-dashed border-amber-300/80 bg-amber-50/80 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+              <p className="mt-3 flex items-start gap-2 rounded-none border border-dashed border-amber-700/40 bg-white px-3 py-2.5 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                 No payment details on file for this supplier. Add paybill, till, or bank info under{" "}
                 <Link href={APP_ROUTES.suppliers} className="font-semibold underline">
@@ -1407,8 +1407,8 @@ export function PaySupplyDrawer({
           {!paidFull && canPay ? (
             <>
               {kopokopoPhase === "pending" ? (
-                <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-center text-sm text-foreground">
-                  <span className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
+                <p className="rounded-none border border-amber-700/40 bg-white px-3 py-2.5 text-center text-sm text-[var(--order-ink,#15231f)]">
+                  <span className="inline-flex items-center gap-1.5 font-semibold tracking-[-0.02em] text-amber-800 dark:text-amber-200">
                     <Loader2 className="size-3.5 animate-spin" aria-hidden />
                     Pending
                   </span>
@@ -1420,8 +1420,8 @@ export function PaySupplyDrawer({
                   </span>
                 </p>
               ) : kopokopoPhase === "failed" && kopokopoMessage ? (
-                <p className="rounded-lg border border-rose-500/30 bg-rose-500/5 px-3 py-2.5 text-center text-sm text-rose-950 dark:text-rose-100">
-                  <span className="block text-[11px] font-semibold uppercase tracking-wide">
+                <p className="rounded-none border border-rose-500/40 bg-white px-3 py-2.5 text-center text-sm text-rose-800 dark:text-rose-200">
+                  <span className="block text-[11px] font-semibold tracking-[-0.02em]">
                     Failed
                   </span>
                   <span className="mt-1 block">{kopokopoMessage}</span>
@@ -1430,7 +1430,7 @@ export function PaySupplyDrawer({
                   </span>
                 </p>
               ) : kopokopoPhase === "success" ? (
-                <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-center text-sm text-emerald-900 dark:text-emerald-100">
+                <p className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-3 py-2 text-center text-sm text-[var(--pos-primary,#0f766e)]">
                   {kopokopoMessage ?? "Payment confirmed."}
                 </p>
               ) : (
@@ -1449,7 +1449,7 @@ export function PaySupplyDrawer({
                     <>
                       Supplier payouts are on. Use{" "}
                       <span className="font-semibold text-foreground">Enable &amp; send</span>{" "}
-                      above to pay this supplier for real — the green confirm button will not record
+                      above to pay this supplier for real — the confirm button below will not record
                       a fake payment. Or use{" "}
                       <span className="font-semibold text-foreground">Mark paid · no SMS</span> if
                       you already transferred funds yourself.
@@ -1472,7 +1472,7 @@ export function PaySupplyDrawer({
                 </p>
               )}
 
-              <div className="rounded-xl border border-border/60">
+              <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
                 <button
                   type="button"
                   className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/30"
@@ -1619,9 +1619,9 @@ export function PaySupplyDrawer({
             ) : history.length === 0 ? (
               <p className={cn("text-xs text-muted-foreground", "mt-1")}>No payments recorded yet.</p>
             ) : (
-              <div className="mt-2 overflow-x-auto rounded-lg border">
+              <div className="mt-2 overflow-x-auto rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
                 <table className="w-full border-collapse text-left text-xs">
-                  <thead className="bg-muted/80 text-[10px] font-semibold uppercase text-muted-foreground">
+                  <thead className="bg-white text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                     <tr>
                       <th className="px-2 py-1.5">When</th>
                       <th className="px-2 py-1.5">Method</th>

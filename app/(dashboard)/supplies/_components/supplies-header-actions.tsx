@@ -18,8 +18,13 @@ import { cn } from "@/lib/utils";
 import { SupplierGuideDrawer } from "../../suppliers/_components/SupplierGuideDrawer";
 
 const chip = cn(
-  "inline-flex h-7 items-center gap-1 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_40%,transparent)] px-2 text-[10px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
-  "transition hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+  "inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[12px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+  "transition-colors hover:text-[var(--order-ink,#15231f)]",
+);
+
+const chipActive = cn(
+  chip,
+  "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
 );
 
 export function SuppliesHeaderActions({
@@ -59,11 +64,7 @@ export function SuppliesHeaderActions({
             <button
               type="button"
               onClick={onPayOpen}
-              className={cn(
-                chip,
-                unpaidActive &&
-                  "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] text-[var(--pos-primary,#0f766e)]",
-              )}
+              className={unpaidActive ? chipActive : chip}
             >
               <CreditCard className="size-3" aria-hidden />
               Unpaid
@@ -71,11 +72,7 @@ export function SuppliesHeaderActions({
           ) : (
             <Link
               href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
-              className={cn(
-                chip,
-                unpaidActive &&
-                  "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] text-[var(--pos-primary,#0f766e)]",
-              )}
+              className={unpaidActive ? chipActive : chip}
             >
               <CreditCard className="size-3" aria-hidden />
               Unpaid
@@ -100,7 +97,7 @@ export function SuppliesHeaderActions({
         disabled={listLoading}
         onClick={onRefresh}
         className={cn(
-          "inline-flex size-7 items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white",
+          "inline-flex size-8 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
           "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]",
           "disabled:cursor-not-allowed disabled:opacity-60",
         )}
@@ -113,7 +110,7 @@ export function SuppliesHeaderActions({
           type="button"
           size="sm"
           variant="outline"
-          className="h-7 gap-1 rounded-md border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] px-2 text-[10px] font-semibold text-[var(--pos-primary,#0f766e)] shadow-none"
+          className="h-8 gap-1 rounded-none border-[var(--pos-primary,#0f766e)] px-2.5 text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] shadow-none"
           onClick={onPayAdvance}
         >
           <Wallet className="size-3" aria-hidden />
@@ -124,7 +121,7 @@ export function SuppliesHeaderActions({
         <Button
           type="button"
           size="sm"
-          className="h-7 gap-1 rounded-md bg-[var(--pos-primary,#0f766e)] px-2.5 text-[10px] font-semibold text-white shadow-none hover:bg-[#0d6b63]"
+          className="h-8 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[12px] font-semibold text-white shadow-none hover:bg-[#0d6b63]"
           onClick={onNewSupply}
         >
           <PackagePlus className="size-3" aria-hidden />

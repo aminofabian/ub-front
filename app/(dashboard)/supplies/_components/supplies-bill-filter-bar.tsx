@@ -25,7 +25,7 @@ export function SuppliesBillFilterBar({
 
   return (
     <div
-      className="flex flex-col gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_40%,transparent)] px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:px-3.5"
+      className="flex flex-col gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:px-3.5"
       role="toolbar"
       aria-label="Filter supply receipts"
     >
@@ -69,7 +69,7 @@ function FilterGroup({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+      <span className="shrink-0 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
         {label}
       </span>
       <div className="-mx-0.5 flex min-w-0 gap-1 overflow-x-auto px-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -85,15 +85,13 @@ function FilterGroup({
               aria-pressed={active}
               onClick={() => onChange(f.id)}
               className={cn(
-                "inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-[11px] font-medium tabular-nums transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_30%,transparent)]",
+                "inline-flex h-8 shrink-0 items-center gap-1 rounded-none border px-2.5 text-[12px] font-semibold tracking-[-0.02em] tabular-nums transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
                 active
-                  ? f.id === "unpaid"
-                    ? "bg-amber-800 text-white shadow-sm"
-                    : "bg-[var(--order-ink,#15231f)] text-white shadow-sm"
+                  ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
                   : emphasize
-                    ? "bg-[color-mix(in_srgb,#b45309_12%,transparent)] text-amber-900 ring-1 ring-[color-mix(in_srgb,#b45309_28%,transparent)]"
-                    : "bg-white/80 text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                    ? "border-amber-700/40 bg-white text-amber-800"
+                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                 disabled && "pointer-events-none opacity-50",
               )}
             >
@@ -103,7 +101,7 @@ function FilterGroup({
                   className={cn(
                     "font-mono text-[10px]",
                     active
-                      ? "text-white/70"
+                      ? "text-[var(--pos-primary,#0f766e)]"
                       : emphasize
                         ? "text-amber-800/80"
                         : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]",

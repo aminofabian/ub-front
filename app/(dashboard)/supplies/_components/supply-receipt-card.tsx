@@ -64,10 +64,10 @@ export function SupplyReceiptCard({
   return (
     <article
       className={cn(
-        "rounded-lg border bg-white px-3 py-2.5 transition-colors",
+        "rounded-none border bg-white px-3 py-2.5",
         needsPay
-          ? "border-[color-mix(in_srgb,#b45309_28%,transparent)] bg-[color-mix(in_srgb,#b45309_4%,#fff)]"
-          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
+          ? "border-amber-700/40"
+          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
       )}
     >
       <div className="flex min-w-0 items-start justify-between gap-2">
@@ -100,7 +100,7 @@ export function SupplyReceiptCard({
         </div>
         <span
           className={cn(
-            "shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+            "shrink-0 px-1.5 py-0.5 text-[11px] font-semibold tracking-[-0.02em]",
             st.className,
           )}
         >
@@ -109,38 +109,38 @@ export function SupplyReceiptCard({
       </div>
 
       <dl className="mt-2 grid grid-cols-3 gap-1.5">
-        <div className="rounded-md bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_70%,transparent)] px-2 py-1.5 text-center">
-          <dt className="text-[8px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+        <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-1.5 text-center">
+          <dt className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
             Total
           </dt>
           <dd className="font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
             {formatSupplyMoney(supplyN(row.grandTotal))}
           </dd>
         </div>
-        <div className="rounded-md bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_70%,transparent)] px-2 py-1.5 text-center">
-          <dt className="text-[8px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+        <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-1.5 text-center">
+          <dt className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
             Paid
           </dt>
-          <dd className="font-mono text-[12px] font-semibold tabular-nums text-emerald-700">
+          <dd className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
             {formatSupplyMoney(supplyN(row.amountPaid))}
           </dd>
         </div>
         <div
           className={cn(
-            "rounded-md px-2 py-1.5 text-center",
+            "rounded-none border bg-white px-2 py-1.5 text-center",
             needsPay
-              ? "bg-[color-mix(in_srgb,#b45309_10%,transparent)]"
-              : "bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_70%,transparent)]",
+              ? "border-amber-700/40"
+              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
           )}
         >
-          <dt className="text-[8px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+          <dt className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
             Balance
           </dt>
           <dd
             className={cn(
               "font-mono text-[12px] font-semibold tabular-nums",
               needsPay
-                ? "text-amber-900"
+                ? "text-amber-800"
                 : "text-[var(--order-ink,#15231f)]",
             )}
           >
@@ -155,7 +155,7 @@ export function SupplyReceiptCard({
             type="button"
             size="sm"
             variant="outline"
-            className="h-8 flex-1 gap-1 rounded-md text-[11px]"
+            className="h-8 flex-1 gap-1 rounded-none text-[11px]"
             onClick={onEdit}
           >
             <FileEdit className="size-3" aria-hidden />
@@ -167,7 +167,7 @@ export function SupplyReceiptCard({
             type="button"
             size="sm"
             variant="outline"
-            className="h-8 gap-1 rounded-md px-2.5 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="h-8 gap-1 rounded-none px-2.5 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
             disabled={deleting}
             onClick={onDelete}
           >
@@ -178,7 +178,7 @@ export function SupplyReceiptCard({
           <Button
             type="button"
             size="sm"
-            className="h-8 flex-1 gap-1 rounded-md bg-emerald-700 text-[11px] hover:bg-emerald-800"
+            className="h-8 flex-1 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] text-[11px] hover:bg-[#0d6b63]"
             disabled={!canOpenReceiptDrawer}
             onClick={onPayAll}
           >
@@ -191,7 +191,7 @@ export function SupplyReceiptCard({
           size="sm"
           variant={needsPay ? "default" : "outline"}
           className={cn(
-            "h-8 flex-1 gap-1 rounded-md text-[11px]",
+            "h-8 flex-1 gap-1 rounded-none text-[11px]",
             needsPay &&
               "bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]",
           )}
