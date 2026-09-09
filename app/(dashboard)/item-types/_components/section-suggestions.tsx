@@ -57,24 +57,24 @@ export function SectionSuggestions({
       className={cn(
         "space-y-3",
         onboardingHighlight &&
-          "rounded-xl ring-2 ring-primary/60 ring-offset-2 ring-offset-background",
+          "rounded-none ring-2 ring-[var(--pos-primary,#0f766e)] ring-offset-2 ring-offset-white",
       )}
       data-onboarding-emphasis={ONBOARDING_EMPHASIS.itemTypesSuggestions}
     >
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1">
         {STORE_SECTION_STARTER_KITS.map((kit) => (
           <button
             key={kit.id}
             type="button"
             onClick={() => addKit(kit.sections)}
-            className="rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs font-medium hover:bg-muted/50"
+            className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-[12px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]"
           >
             + {kit.label}
           </button>
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1">
         {SUGGESTED_STORE_SECTIONS.map((name) => {
           const exists = taken(name, existingKeySet, existingLabelSet);
           const on = picked.has(name.trim().toLowerCase());
@@ -85,17 +85,17 @@ export function SectionSuggestions({
               disabled={exists}
               onClick={() => onTogglePick(name)}
               className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                "h-8 rounded-none border bg-white px-2.5 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
                 on
-                  ? "border-primary bg-primary text-primary-foreground"
+                  ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
                   : exists
-                    ? "cursor-not-allowed border-border/50 text-muted-foreground opacity-50"
-                    : "border-border bg-background hover:border-primary/40",
+                    ? "cursor-not-allowed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] opacity-50"
+                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
               )}
             >
               {name}
               {exists ? (
-                <span className="ml-1 text-[10px] font-normal opacity-80">· Added</span>
+                <span className="ml-1 text-[11px] font-medium opacity-80">· Added</span>
               ) : null}
             </button>
           );

@@ -3,8 +3,9 @@
 import { Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { dashboardInputClass } from "@/components/dashboard-page-ui";
 import { cn } from "@/lib/utils";
+
+import { supInput } from "../../suppliers/_components/supplier-ui-tokens";
 
 type Props = {
   names: string[];
@@ -30,14 +31,16 @@ export function ExtraSectionNames({ names, onChange }: Props) {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Other departments (optional)</p>
-      <ul className="space-y-2">
+      <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+        Other departments (optional)
+      </p>
+      <ul className="space-y-1">
         {names.map((name, index) => {
           const isLast = index === names.length - 1;
           return (
-            <li key={index} className="flex items-center gap-2">
+            <li key={index} className="flex items-center gap-1">
               <input
-                className={cn(dashboardInputClass(), "min-w-0 flex-1")}
+                className={cn(supInput, "min-w-0 flex-1")}
                 value={name}
                 onChange={(e) => update(index, e.target.value)}
                 placeholder="e.g. Retail shop"
@@ -48,7 +51,7 @@ export function ExtraSectionNames({ names, onChange }: Props) {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="size-9 shrink-0 text-muted-foreground hover:text-destructive"
+                  className="size-8 shrink-0 rounded-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] hover:text-destructive"
                   onClick={() => removeRow(index)}
                   aria-label={`Remove department name ${index + 1}`}
                 >
@@ -60,7 +63,7 @@ export function ExtraSectionNames({ names, onChange }: Props) {
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="size-9 shrink-0"
+                  className="size-8 shrink-0 rounded-none"
                   onClick={addRow}
                   aria-label="Add another department name"
                 >

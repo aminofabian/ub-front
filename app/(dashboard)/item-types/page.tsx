@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Building2,
@@ -16,21 +17,15 @@ import {
 } from "lucide-react";
 
 import {
-  DASHBOARD_MAX_WIDE,
-  DASHBOARD_TABLE_SURFACE,
-  DASHBOARD_SECTION_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoadError,
   DashboardLoading,
-  DashboardPageHero,
-  DashboardQuickLinks,
-  dashboardHintClass,
-  dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { FormDrawer } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { PROCUREMENT_VARS } from "@/components/procurement/procurement-hub-nav";
 import { APP_ROUTES } from "@/lib/config";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import {
@@ -48,6 +43,13 @@ import { categoryIconImageUrl, cn } from "@/lib/utils";
 
 import { ExtraSectionNames } from "./_components/extra-section-names";
 import { SectionSuggestions } from "./_components/section-suggestions";
+import {
+  supBtnOutline,
+  supBtnPrimary,
+  supChipIdle,
+  supFieldLabel,
+  supInput,
+} from "../suppliers/_components/supplier-ui-tokens";
 
 const INITIAL_EXTRA_NAMES = [""];
 
@@ -331,56 +333,66 @@ export default function ItemTypesPage() {
 
   return (
     <>
-      <div className="h-full overflow-y-auto overscroll-contain">
-        <div className={DASHBOARD_MAX_WIDE}>
-          <div className="space-y-4">
-            <DashboardPageHero
-              compact
-              icon={Tags}
-              eyebrow="Catalog"
-              title="Departments"
-              description="Name each area how you run the shop — Grocery, Fruits, Retail shop, Mali mali. Not products. Not Categories."
-            />
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <DashboardQuickLinks
-                compact
-                links={[
-                  {
-                    href: APP_ROUTES.business,
-                    label: "Business",
-                    desc: "Workspace",
-                    icon: Building2,
-                  },
-                  {
-                    href: APP_ROUTES.products,
-                    label: "Products",
-                    desc: "Catalog items",
-                    icon: Package,
-                  },
+      <div
+        className="relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col bg-white px-3 pt-1 sm:px-5 sm:pt-1.5"
+        style={PROCUREMENT_VARS}
+      >
+        <div className="relative flex min-h-0 flex-1 flex-col gap-1">
+          <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1 sm:px-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
+                  <Tags className="size-3.5" aria-hidden />
+                </span>
+                <h1 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                  Departments
+                </h1>
+              </div>
+              <span
+                aria-hidden
+                className="hidden h-3.5 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:block"
+              />
+              <p className="min-w-0 truncate text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                Shop areas — Grocery, Fruits, Retail. Not products or categories.
+              </p>
+              <nav
+                aria-label="Related pages"
+                className="flex min-w-0 flex-wrap items-center gap-1"
+              >
+                {[
+                  { href: APP_ROUTES.business, label: "Business", icon: Building2 },
+                  { href: APP_ROUTES.products, label: "Products", icon: Package },
                   {
                     href: APP_ROUTES.categories,
                     label: "Categories",
-                    desc: "Separate product tree",
                     icon: LayoutGrid,
                   },
-                ]}
-              />
-              {canWrite ? (
-                <Button
-                  type="button"
-                  className="h-10 min-h-10 gap-2 self-start px-4 text-sm shadow-sm transition-shadow hover:shadow-md"
-                  onClick={() => {
-                    resetCreateForm();
-                    setCreateOpen(true);
-                    setFeedback(null);
-                  }}
-                >
-                  <Plus className="size-4" aria-hidden />
-                  Add department
-                </Button>
-              ) : null}
+                ].map(({ href, label, icon: Icon }) => (
+                  <Link key={href} href={href} className={supChipIdle}>
+                    <Icon className="mr-1 size-3 shrink-0 opacity-70" aria-hidden />
+                    {label}
+                  </Link>
+                ))}
+              </nav>
             </div>
-          </div>
+            {canWrite ? (
+              <Button
+                type="button"
+                className={cn(
+                  supBtnPrimary,
+                  "h-8 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[12px] text-white hover:bg-[#0d6b63]",
+                )}
+                onClick={() => {
+                  resetCreateForm();
+                  setCreateOpen(true);
+                  setFeedback(null);
+                }}
+              >
+                <Plus className="size-3.5" aria-hidden />
+                Add department
+              </Button>
+            ) : null}
+          </header>
 
           {feedback ? (
             <DashboardFeedback
@@ -392,236 +404,205 @@ export default function ItemTypesPage() {
           {!canWrite ? (
             <div
               role="note"
-              className="flex gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3.5 text-sm leading-relaxed text-amber-950 shadow-sm dark:text-amber-50"
+              className="flex gap-2 rounded-none border border-amber-700/40 bg-white px-3 py-2 text-[13px] leading-relaxed text-amber-800"
             >
-              <span className="mt-0.5 size-2 shrink-0 rounded-full bg-amber-500" aria-hidden />
               <p>
-                View-only mode. Ask an admin for{" "}
-                <span className="rounded bg-background/60 px-1 py-0.5 font-mono text-xs dark:bg-background/20">
-                  catalog.items.write
-                </span>
-                .
+                View-only. Ask an admin for{" "}
+                <span className="font-mono text-xs">catalog.items.write</span>.
               </p>
             </div>
           ) : null}
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="shadow-sm"
-                onClick={() => void load()}
-              >
-                Refresh
-              </Button>
-            </div>
-            <p className={cn(dashboardHintClass(), "tabular-nums")}>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={supBtnOutline}
+              onClick={() => void load()}
+            >
+              Refresh
+            </Button>
+            <p className="text-[11px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
               {rows.length} department{rows.length !== 1 ? "s" : ""}
             </p>
           </div>
 
-          {rows.length === 0 ? (
-            <div
-              className={cn(
-                DASHBOARD_SECTION_SURFACE,
-                "border-dashed bg-muted/15 py-12 text-center",
-              )}
-            >
-              <Tags
-                className="mx-auto size-10 text-muted-foreground/60"
-                aria-hidden
-              />
-              <h2 className="mt-4 text-base font-semibold tracking-tight text-foreground">
-                No departments yet
-              </h2>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-                e.g. Grocery, Retail shop, Fruits
-              </p>
-              {canWrite ? (
-                <Button
-                  type="button"
-                  className="mt-6 gap-2 shadow-sm transition-shadow hover:shadow-md"
-                  onClick={() => {
-                    resetCreateForm();
-                    setCreateOpen(true);
-                    setFeedback(null);
-                  }}
-                >
-                  <Plus className="size-4" aria-hidden />
-                  Add department
-                </Button>
-              ) : null}
-            </div>
-          ) : null}
-
-          {rows.length > 0 ? (
-            <div className={DASHBOARD_TABLE_SURFACE}>
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-border/50 bg-muted/25">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                    >
-                      Short code
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                    >
-                      Department
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                    >
-                      Icon
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                    >
-                      Color
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                    >
-                      Sort
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                    >
-                      Active
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                    >
-                      Default
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                    >
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="transition-colors hover:bg-muted/30"
-                    >
-                      <td className="px-5 py-4 font-mono text-xs text-foreground sm:px-6">
-                        {row.key}
-                      </td>
-                      <td className="px-5 py-4 font-medium text-foreground sm:px-6">
-                        {row.label}
-                      </td>
-                      <td className="px-5 py-4 text-muted-foreground sm:px-6">
-                        {categoryIconImageUrl(row.icon) ? (
-                          <span className="relative inline-block size-8 overflow-hidden rounded border border-border/60 bg-muted">
-                            <Image
-                              src={categoryIconImageUrl(row.icon)!}
-                              alt=""
-                              fill
-                              className="object-cover"
-                              sizes="32px"
-                              unoptimized
-                            />
-                          </span>
-                        ) : row.icon ? (
-                          <span className="font-mono text-xs">{row.icon}</span>
-                        ) : (
-                          "\u2014"
-                        )}
-                      </td>
-                      <td className="px-5 py-4 sm:px-6">
-                        {row.color ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <span
-                              className="inline-block size-4 rounded-full border border-border/60"
-                              style={{ backgroundColor: row.color }}
-                            />
-                            <span className="text-xs text-muted-foreground">
-                              {row.color}
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">&mdash;</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 text-muted-foreground sm:px-6">
-                        {row.sortOrder}
-                      </td>
-                      <td className="px-5 py-4 sm:px-6">
-                        {row.active ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                            <X className="size-3.5 shrink-0" aria-hidden />
-                            Inactive
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 sm:px-6">
-                        {row.isDefault ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
-                            <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
-                            Default
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            &mdash;
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 text-right sm:px-6">
-                        {canWrite ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 gap-1.5 px-2 text-xs hover:bg-muted"
-                              onClick={() => openEdit(row)}
-                            >
-                              <Save className="size-3.5" aria-hidden />
-                              Edit
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                              onClick={() =>
-                                setConfirmDelete({
-                                  id: row.id,
-                                  key: row.key,
-                                  label: row.label,
-                                })
-                              }
-                            >
-                              <Trash2 className="size-3.5" aria-hidden />
-                              Delete
-                            </Button>
-                          </div>
-                        ) : null}
-                      </td>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+            {rows.length === 0 ? (
+              <div className="flex flex-1 flex-col items-center justify-center px-4 py-12 text-center">
+                <span className="inline-flex size-11 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_35%,transparent)]">
+                  <Tags className="size-5" aria-hidden />
+                </span>
+                <h2 className="mt-4 text-sm font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
+                  No departments yet
+                </h2>
+                <p className="mx-auto mt-1 max-w-sm text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                  e.g. Grocery, Retail shop, Fruits
+                </p>
+                {canWrite ? (
+                  <Button
+                    type="button"
+                    className="mt-4 h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 text-[12px] font-semibold text-white hover:bg-[#0d6b63]"
+                    onClick={() => {
+                      resetCreateForm();
+                      setCreateOpen(true);
+                      setFeedback(null);
+                    }}
+                  >
+                    <Plus className="size-3.5" aria-hidden />
+                    Add department
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <div className="min-h-0 flex-1 overflow-auto">
+                <table className="w-full border-collapse text-left text-[13px]">
+                  <thead className="sticky top-0 z-10 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                    <tr>
+                      <th scope="col" className="px-3 py-2 font-semibold">
+                        Short code
+                      </th>
+                      <th scope="col" className="px-3 py-2 font-semibold">
+                        Department
+                      </th>
+                      <th scope="col" className="px-3 py-2 font-semibold">
+                        Icon
+                      </th>
+                      <th scope="col" className="px-3 py-2 font-semibold">
+                        Color
+                      </th>
+                      <th scope="col" className="px-3 py-2 font-semibold">
+                        Sort
+                      </th>
+                      <th scope="col" className="px-3 py-2 font-semibold">
+                        Active
+                      </th>
+                      <th scope="col" className="px-3 py-2 font-semibold">
+                        Default
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-3 py-2 text-right font-semibold"
+                      >
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
+                      >
+                        <td className="px-3 py-2 font-mono text-xs text-[var(--order-ink,#15231f)]">
+                          {row.key}
+                        </td>
+                        <td className="px-3 py-2 font-medium text-[var(--order-ink,#15231f)]">
+                          {row.label}
+                        </td>
+                        <td className="px-3 py-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                          {categoryIconImageUrl(row.icon) ? (
+                            <span className="relative inline-block size-8 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+                              <Image
+                                src={categoryIconImageUrl(row.icon)!}
+                                alt=""
+                                fill
+                                className="object-cover"
+                                sizes="32px"
+                                unoptimized
+                              />
+                            </span>
+                          ) : row.icon ? (
+                            <span className="font-mono text-xs">{row.icon}</span>
+                          ) : (
+                            "\u2014"
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          {row.color ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span
+                                className="inline-block size-4 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
+                                style={{ backgroundColor: row.color }}
+                              />
+                              <span className="text-xs text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                                {row.color}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                              &mdash;
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                          {row.sortOrder}
+                        </td>
+                        <td className="px-3 py-2">
+                          {row.active ? (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
+                              <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                              <X className="size-3.5 shrink-0" aria-hidden />
+                              Inactive
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          {row.isDefault ? (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
+                              <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+                              Default
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                              &mdash;
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-1.5 text-right">
+                          {canWrite ? (
+                            <div className="inline-flex items-center justify-end gap-0.5">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 rounded-none px-2 text-[11px]"
+                                onClick={() => openEdit(row)}
+                              >
+                                <Save className="size-3.5" aria-hidden />
+                                Edit
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 rounded-none px-2 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() =>
+                                  setConfirmDelete({
+                                    id: row.id,
+                                    key: row.key,
+                                    label: row.label,
+                                  })
+                                }
+                              >
+                                <Trash2 className="size-3.5" aria-hidden />
+                                Delete
+                              </Button>
+                            </div>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -653,6 +634,7 @@ export default function ItemTypesPage() {
             <Button
               type="button"
               variant="outline"
+              className="h-8 rounded-none"
               onClick={() => {
                 setCreateOpen(false);
                 resetCreateForm();
@@ -664,6 +646,7 @@ export default function ItemTypesPage() {
               type="submit"
               form="create-item-type-form"
               disabled={createBusy || pendingSectionCount === 0}
+              className="h-8 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 font-semibold text-white hover:bg-[#0d6b63]"
             >
               {createBusy
                 ? "Creating…"
@@ -679,6 +662,7 @@ export default function ItemTypesPage() {
         <form
           id="create-item-type-form"
           className="space-y-4"
+          style={PROCUREMENT_VARS}
           onSubmit={(e) => void handleCreate(e)}
         >
           <SectionSuggestions
@@ -711,18 +695,25 @@ export default function ItemTypesPage() {
 
       {/* Delete confirmation dialog */}
       {confirmDelete ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
-          <div className="w-full max-w-sm rounded-2xl border border-border/70 bg-card p-6 shadow-lg ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div
+            className="w-full max-w-sm rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-5"
+            style={PROCUREMENT_VARS}
+          >
+            <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
               Delete department?
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Delete <strong className="text-foreground">{confirmDelete.label}</strong>? This
-              cannot be undone.
+            <p className="mt-2 text-sm text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+              Delete{" "}
+              <strong className="text-[var(--order-ink,#15231f)]">
+                {confirmDelete.label}
+              </strong>
+              ? This cannot be undone.
             </p>
-            <div className="mt-8 flex justify-end gap-2">
+            <div className="mt-6 flex justify-end gap-2">
               <Button
                 variant="outline"
+                className="h-8 rounded-none"
                 onClick={() => setConfirmDelete(null)}
                 disabled={deleteBusy}
               >
@@ -730,6 +721,7 @@ export default function ItemTypesPage() {
               </Button>
               <Button
                 variant="destructive"
+                className="h-8 rounded-none"
                 onClick={() => void handleDelete()}
                 disabled={deleteBusy}
               >
@@ -821,13 +813,14 @@ function EditItemTypeDrawer({
       }
       footer={
         <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" className="h-8 rounded-none" onClick={onClose}>
             Cancel
           </Button>
           <Button
             type="submit"
             form="edit-item-type-form"
             disabled={busy || iconUploading}
+            className="h-8 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 font-semibold text-white hover:bg-[#0d6b63]"
           >
             {busy ? "Saving…" : "Save"}
           </Button>
@@ -837,37 +830,36 @@ function EditItemTypeDrawer({
       <form
         id="edit-item-type-form"
         className="space-y-4"
+        style={PROCUREMENT_VARS}
         onSubmit={(e) => void onSave(e, row.id, draft)}
       >
-        <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+        <label className={cn(supFieldLabel, "flex flex-col gap-1")}>
           Name
           <input
-            className={dashboardInputClass()}
+            className={supInput}
             value={draft.label}
             onChange={(e) => setDraft((p) => ({ ...p, label: e.target.value }))}
             aria-label="Department name"
           />
         </label>
-        <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+        <label className={cn(supFieldLabel, "flex flex-col gap-1")}>
           Short code
           <input
-            className={dashboardInputClass()}
+            className={supInput}
             value={draft.key}
             onChange={(e) => setDraft((p) => ({ ...p, key: e.target.value }))}
             aria-label="Department short code"
           />
         </label>
 
-        <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
-          <p className="text-xs font-medium text-muted-foreground">
-            Custom icon
-          </p>
-          <p className={dashboardHintClass()}>
+        <div className="space-y-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3">
+          <p className={supFieldLabel}>Custom icon</p>
+          <p className="text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
             Shown on the storefront type filters. Upload an image or paste an
             HTTPS URL.
           </p>
           {iconPreview ? (
-            <span className="relative block size-14 overflow-hidden rounded-md border border-border/60 bg-muted">
+            <span className="relative block size-14 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
               <Image
                 src={iconPreview}
                 alt=""
@@ -878,13 +870,13 @@ function EditItemTypeDrawer({
               />
             </span>
           ) : null}
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+          <label className={cn(supFieldLabel, "flex flex-col gap-1")}>
             Upload image
             <input
               type="file"
               accept="image/*"
               disabled={iconUploading || busy}
-              className="max-w-full text-xs file:mr-2 file:rounded file:border file:bg-background file:px-2 file:py-1"
+              className="max-w-full text-xs file:mr-2 file:rounded-none file:border file:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] file:bg-white file:px-2 file:py-1"
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 void handleIconFile(f);
@@ -893,12 +885,14 @@ function EditItemTypeDrawer({
             />
           </label>
           {iconUploading ? (
-            <p className="text-xs text-muted-foreground">Uploading…</p>
+            <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+              Uploading…
+            </p>
           ) : null}
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+          <label className={cn(supFieldLabel, "flex flex-col gap-1")}>
             Or image URL
             <input
-              className={dashboardInputClass()}
+              className={supInput}
               value={draft.icon ?? ""}
               onChange={(e) =>
                 setDraft((p) => ({ ...p, icon: e.target.value }))
@@ -912,7 +906,7 @@ function EditItemTypeDrawer({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-xs text-muted-foreground"
+              className="h-8 rounded-none px-2 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]"
               disabled={iconUploading || busy}
               onClick={() => setDraft((p) => ({ ...p, icon: "" }))}
             >
@@ -924,19 +918,19 @@ function EditItemTypeDrawer({
           ) : null}
         </div>
 
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-sm text-[var(--order-ink,#15231f)]">
           <input
             type="checkbox"
-            className="size-4 rounded border-input accent-primary"
+            className="size-4 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] accent-[var(--pos-primary,#0f766e)]"
             checked={draft.active}
             onChange={(e) => setDraft((p) => ({ ...p, active: e.target.checked }))}
           />
           Active
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-sm text-[var(--order-ink,#15231f)]">
           <input
             type="checkbox"
-            className="size-4 rounded border-input accent-primary"
+            className="size-4 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] accent-[var(--pos-primary,#0f766e)]"
             checked={draft.isDefault ?? false}
             onChange={(e) =>
               setDraft((p) => ({ ...p, isDefault: e.target.checked }))
