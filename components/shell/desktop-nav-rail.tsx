@@ -6,10 +6,10 @@ import {
   Activity,
   BarChart3,
   Building2,
-  ChevronDown,
   ClipboardCheck,
   ClipboardList,
   CreditCard,
+  FilePlus,
   FileUp,
   FolderTree,
   Globe,
@@ -20,7 +20,6 @@ import {
   Megaphone,
   Monitor,
   Package,
-  PackagePlus,
   PanelLeftClose,
   PanelLeftOpen,
   Palette,
@@ -30,7 +29,6 @@ import {
   Search,
   Settings,
   ShoppingBag,
-  ShoppingCart,
   Signal,
   SlidersHorizontal,
   Smartphone,
@@ -98,9 +96,9 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.categories]: FolderTree,
   [APP_ROUTES.suppliers]: Truck,
   [APP_ROUTES.marketplace]: Store,
-  [APP_ROUTES.order]: ShoppingCart,
+  [APP_ROUTES.order]: FilePlus,
   [APP_ROUTES.orderReceive]: ClipboardCheck,
-  [APP_ROUTES.purchasingAddSupplies]: PackagePlus,
+  [APP_ROUTES.purchasingAddSupplies]: Package,
   [APP_ROUTES.purchasingIntelligence]: BarChart3,
   [APP_ROUTES.purchasingApAging]: Receipt,
   [APP_ROUTES.purchasingRecordPayment]: CreditCard,
@@ -159,7 +157,7 @@ const RAIL_SHORT_LABEL_BY_HREF: Partial<Record<string, string>> = {
   [APP_ROUTES.inventorySupplyBatches]: "Batches",
   [APP_ROUTES.inventoryValuation]: "Value",
   [APP_ROUTES.inventoryTransfers]: "Moves",
-  [APP_ROUTES.purchasingAddSupplies]: "Supplies",
+  [APP_ROUTES.purchasingAddSupplies]: "Delivery",
   [APP_ROUTES.order]: "Order",
   [APP_ROUTES.orderReceive]: "Confirm",
   [APP_ROUTES.purchasingApAging]: "Unpaid",
@@ -229,25 +227,6 @@ function groupNavItems(items: readonly DesktopNavItem[]): ItemGroup[] {
   }
 
   return groups;
-}
-
-/** Buy-loop groups rendered as one stepped path with arrows between steps. */
-const BUYING_FLOW_GROUP_LABELS = new Set(["Order", "Receive", "Pay"]);
-
-function splitBuyingFlowGroups(groups: ItemGroup[]): {
-  flowItems: DesktopNavItem[];
-  otherGroups: ItemGroup[];
-} {
-  const flowItems: DesktopNavItem[] = [];
-  const otherGroups: ItemGroup[] = [];
-  for (const group of groups) {
-    if (group.label && BUYING_FLOW_GROUP_LABELS.has(group.label)) {
-      flowItems.push(...group.items);
-    } else {
-      otherGroups.push(group);
-    }
-  }
-  return { flowItems, otherGroups };
 }
 
 function clusterVisibleSections(
@@ -328,7 +307,6 @@ type SubNavLinkProps = {
   active: boolean;
   compact?: boolean;
   badge?: number;
-  step?: number;
 };
 
 function SubNavLink({
@@ -338,7 +316,6 @@ function SubNavLink({
   active,
   compact = false,
   badge = 0,
-  step,
 }: SubNavLinkProps) {
   return (
     <Link
@@ -352,61 +329,35 @@ function SubNavLink({
         active
           ? compact
             ? "bg-primary/14 text-primary"
-            : "bg-primary/10 font-medium text-foreground"
+            : "bg-primary/10 font-semibold text-foreground"
           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
       )}
       aria-current={active ? "page" : undefined}
-      aria-label={step != null ? `Step ${step}: ${label}` : label}
+      aria-label={label}
     >
-      {active && !compact && step == null ? (
+      {active && !compact ? (
         <span
           aria-hidden
           className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-primary"
         />
       ) : null}
-      {step != null && !compact ? (
-        <span
+      <span
+        className={cn(
+          "flex shrink-0 items-center justify-center",
+          compact ? "size-8" : "size-6",
+          active
+            ? "text-primary"
+            : "text-muted-foreground group-hover:text-foreground",
+        )}
+      >
+        <Icon
+          className={compact ? "size-[1.05rem]" : "size-4"}
+          strokeWidth={1.75}
           aria-hidden
-          className={cn(
-            "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold tabular-nums",
-            active
-              ? "bg-primary text-primary-foreground"
-              : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,var(--muted))] text-[color-mix(in_srgb,var(--pos-primary,#0f766e)_80%,var(--muted-foreground))]",
-          )}
-        >
-          {step}
-        </span>
-      ) : (
-        <span
-          className={cn(
-            "flex shrink-0 items-center justify-center",
-            compact ? "size-8" : "size-6",
-            active
-              ? "text-primary"
-              : "text-muted-foreground group-hover:text-foreground",
-          )}
-        >
-          <Icon
-            className={compact ? "size-[1.05rem]" : "size-4"}
-            strokeWidth={1.75}
-            aria-hidden
-          />
-        </span>
-      )}
+        />
+      </span>
       {!compact ? (
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
-          {step != null ? (
-            <span
-              className={cn(
-                "flex size-4 shrink-0 items-center justify-center",
-                active
-                  ? "text-primary"
-                  : "text-muted-foreground group-hover:text-foreground",
-              )}
-            >
-              <Icon className="size-3.5" strokeWidth={1.75} aria-hidden />
-            </span>
-          ) : null}
           <span className="truncate">{label}</span>
           {badge > 0 ? (
             <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
@@ -416,60 +367,6 @@ function SubNavLink({
         </span>
       ) : null}
     </Link>
-  );
-}
-
-function BuyingFlowSteps({
-  items,
-  pathname,
-  sectionIcon,
-  badgeByHref,
-}: {
-  items: readonly DesktopNavItem[];
-  pathname: string;
-  sectionIcon: LucideIcon;
-  badgeByHref?: Readonly<Record<string, number>>;
-}) {
-  if (items.length === 0) return null;
-
-  return (
-    <div className="rounded-xl border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_20%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)] p-1.5">
-      <p className="px-2 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--pos-primary,#0f766e)_90%,transparent)]">
-        Buy loop
-        <span className="ml-1 font-semibold normal-case tracking-normal text-muted-foreground">
-          · follow ↓
-        </span>
-      </p>
-      <ol className="flex flex-col">
-        {items.map((item, index) => {
-          const active = itemIsActive(pathname, item.href);
-          const isLast = index === items.length - 1;
-          return (
-            <li key={item.href} className="flex flex-col">
-              <SubNavLink
-                href={item.href}
-                label={item.label}
-                icon={iconForItem(item, sectionIcon)}
-                active={active}
-                badge={badgeByHref?.[item.href] ?? 0}
-                step={index + 1}
-              />
-              {!isLast ? (
-                <div
-                  className="flex items-center justify-center py-0.5"
-                  aria-hidden
-                >
-                  <ChevronDown
-                    className="size-3.5 text-[var(--pos-primary,#0f766e)] opacity-70"
-                    strokeWidth={2.5}
-                  />
-                </div>
-              ) : null}
-            </li>
-          );
-        })}
-      </ol>
-    </div>
   );
 }
 
@@ -507,14 +404,6 @@ function SubNavPanel({
 
   const groups = useMemo(() => groupNavItems(filteredItems), [filteredItems]);
   const hasLabeledGroups = groups.some((group) => group.label);
-  const buyingFlow = useMemo(() => {
-    if (section.id !== "procurement" || compact) {
-      return { flowItems: [] as DesktopNavItem[], otherGroups: groups };
-    }
-    return splitBuyingFlowGroups(groups);
-  }, [section.id, compact, groups]);
-  const showBuyingFlow = buyingFlow.flowItems.length > 0;
-  const renderGroups = showBuyingFlow ? buyingFlow.otherGroups : groups;
 
   return (
     <aside
@@ -530,7 +419,7 @@ function SubNavPanel({
             ? "flex-col items-center gap-1 px-1.5 py-3"
             : section.hidePanelHeading
               ? "justify-end px-2 py-2"
-              : "items-start justify-between gap-2 px-4 py-[0.9rem]",
+              : "items-start justify-between gap-3 px-3 py-3",
         )}
       >
         {compact ? (
@@ -546,12 +435,12 @@ function SubNavPanel({
         ) : (
           <>
             {!section.hidePanelHeading ? (
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold tracking-tight text-foreground">
+              <div className="min-w-0 flex-1 pr-1">
+                <p className="text-sm font-semibold tracking-tight text-foreground">
                   {section.title}
                 </p>
                 {section.blurb ? (
-                  <p className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
+                  <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
                     {section.blurb}
                   </p>
                 ) : null}
@@ -562,10 +451,7 @@ function SubNavPanel({
               onClick={onCollapse}
               title="Collapse to icons"
               aria-label="Collapse to icons"
-              className={cn(
-                "flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/30",
-                !section.hidePanelHeading && "-mr-1 mt-0.5",
-              )}
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               <PanelLeftClose className="size-4" strokeWidth={1.75} aria-hidden />
             </button>
@@ -574,7 +460,7 @@ function SubNavPanel({
       </div>
 
       {showSearch ? (
-        <div className="border-b border-border/40 px-2.5 py-2">
+        <div className="border-b border-border/50 bg-muted/35 px-3 py-2.5">
           <label className="relative block">
             <span className="sr-only">Filter {section.title} pages</span>
             <Search
@@ -586,7 +472,7 @@ function SubNavPanel({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Filter pages…"
-              className="h-8 border-border/60 bg-muted/30 pl-8 text-xs shadow-none"
+              className="h-8 border-border/80 bg-background pl-8 text-xs shadow-none"
             />
           </label>
         </div>
@@ -595,7 +481,7 @@ function SubNavPanel({
       <nav
         className={cn(
           "flex flex-1 flex-col overflow-y-auto",
-          compact ? "gap-0.5 p-1.5" : "gap-0.5 p-2",
+          compact ? "gap-1 p-1.5" : "gap-1 px-2 py-2.5",
         )}
         aria-label={section.title}
       >
@@ -615,43 +501,31 @@ function SubNavPanel({
             />
           ))
         ) : (
-          <>
-            {showBuyingFlow ? (
-              <BuyingFlowSteps
-                items={buyingFlow.flowItems}
-                pathname={pathname}
-                sectionIcon={section.icon}
-                badgeByHref={badgeByHref}
-              />
-            ) : null}
-            {renderGroups.map((group, groupIndex) => (
-              <div
-                key={group.label ?? `ungrouped-${groupIndex}`}
-                className={cn(
-                  "flex flex-col gap-0.5",
-                  (groupIndex > 0 || showBuyingFlow) && hasLabeledGroups
-                    ? "mt-2.5"
-                    : null,
-                )}
-              >
-                {group.label && hasLabeledGroups ? (
-                  <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80">
-                    {group.label}
-                  </p>
-                ) : null}
-                {group.items.map((item) => (
-                  <SubNavLink
-                    key={item.href}
-                    href={item.href}
-                    label={item.label}
-                    icon={iconForItem(item, section.icon)}
-                    active={itemIsActive(pathname, item.href)}
-                    badge={badgeByHref?.[item.href] ?? 0}
-                  />
-                ))}
-              </div>
-            ))}
-          </>
+          groups.map((group, groupIndex) => (
+            <div
+              key={group.label ?? `ungrouped-${groupIndex}`}
+              className={cn(
+                "flex flex-col gap-1",
+                groupIndex > 0 && hasLabeledGroups ? "mt-3" : null,
+              )}
+            >
+              {group.label && hasLabeledGroups ? (
+                <p className="px-2.5 pb-1 pt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  {group.label}
+                </p>
+              ) : null}
+              {group.items.map((item) => (
+                <SubNavLink
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={iconForItem(item, section.icon)}
+                  active={itemIsActive(pathname, item.href)}
+                  badge={badgeByHref?.[item.href] ?? 0}
+                />
+              ))}
+            </div>
+          ))
         )}
       </nav>
     </aside>

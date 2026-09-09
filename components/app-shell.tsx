@@ -221,43 +221,43 @@ const NAV_SECTIONS: readonly NavSection[] = [
   },
   {
     id: "procurement",
-    title: "Buying",
+    title: "Suppliers & bills",
     shortLabel: "Buying",
-    blurb: "Order → Confirm → Supplies → Pay",
+    blurb: "Suppliers, deliveries & bills",
     icon: Truck,
     entryHref: APP_ROUTES.order,
     items: [
-      { href: APP_ROUTES.order, label: "New order", group: "Order" },
-      {
-        href: APP_ROUTES.orderReceive,
-        label: "Confirm supply",
-        group: "Order",
-      },
-      {
-        href: APP_ROUTES.purchasingAddSupplies,
-        label: "Supplies",
-        group: "Receive",
-      },
-      {
-        href: APP_ROUTES.purchasingApAging,
-        label: "Unpaid bills",
-        group: "Pay",
-      },
-      {
-        href: APP_ROUTES.purchasingRecordPayment,
-        label: "Pay bills",
-        group: "Pay",
-      },
-      { href: APP_ROUTES.suppliers, label: "Suppliers", group: "Vendors" },
       {
         href: APP_ROUTES.marketplace,
         label: "Find suppliers",
-        group: "Vendors",
+        group: "Suppliers",
+      },
+      { href: APP_ROUTES.suppliers, label: "Suppliers", group: "Suppliers" },
+      { href: APP_ROUTES.order, label: "New order", group: "Suppliers" },
+      {
+        href: APP_ROUTES.orderReceive,
+        label: "Confirm supply",
+        group: "Suppliers",
       },
       {
         href: APP_ROUTES.purchasingIntelligence,
         label: "Compare suppliers",
-        group: "Vendors",
+        group: "Suppliers",
+      },
+      {
+        href: APP_ROUTES.purchasingAddSupplies,
+        label: "Record delivery",
+        group: "Goods in",
+      },
+      {
+        href: APP_ROUTES.purchasingApAging,
+        label: "Unpaid bills",
+        group: "Bills",
+      },
+      {
+        href: APP_ROUTES.purchasingRecordPayment,
+        label: "Pay bills",
+        group: "Bills",
       },
     ],
   },
@@ -1011,10 +1011,14 @@ export function AppShell({ children }: AppShellProps) {
     };
     return NAV_SECTIONS.map((section) => {
       const items = section.items.filter((item) => isNavItemVisible(item, gate));
+      const preferredEntry =
+        items.find((item) => item.href === section.entryHref)?.href ??
+        items[0]?.href ??
+        section.entryHref;
       return {
         ...section,
         items,
-        entryHref: items[0]?.href ?? section.entryHref,
+        entryHref: preferredEntry,
       };
     }).filter((s) => s.items.length > 0);
   }, [

@@ -21,7 +21,7 @@ type HubTab = {
   match: (pathname: string) => boolean;
 };
 
-/** Same buy loop as the Buying sidebar: order → confirm → supplies → vendors. */
+/** Buying pages: order, confirm, record delivery, suppliers. */
 const HUB_TABS: HubTab[] = [
   {
     href: APP_ROUTES.order,
