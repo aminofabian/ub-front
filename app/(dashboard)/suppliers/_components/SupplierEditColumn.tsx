@@ -124,7 +124,7 @@ export function SupplierEditColumn({
   return (
     <div
       className={cn(
-        compact ? "flex min-h-0 flex-1 flex-col gap-0 bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_28%,white)]" : "flex flex-col gap-2",
+        compact ? "flex min-h-0 flex-1 flex-col gap-0 bg-white" : "flex flex-col gap-2",
       )}
     >
       {compact ? (
@@ -136,7 +136,7 @@ export function SupplierEditColumn({
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <span
                 className={cn(
-                  "inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-semibold capitalize",
+                  "inline-flex rounded-none px-1.5 py-0.5 text-[10px] font-semibold capitalize",
                   statusBadgeClass(detail.status),
                 )}
               >
@@ -148,12 +148,12 @@ export function SupplierEditColumn({
                 </span>
               ) : null}
               {detail.supplierType?.trim() ? (
-                <span className="rounded-md bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_80%,transparent)] px-1.5 py-0.5 text-[10px] font-medium capitalize text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                <span className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 py-0.5 text-[10px] font-medium capitalize text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                   {detail.supplierType.trim()}
                 </span>
               ) : null}
               {detail.taxExempt ? (
-                <span className="rounded-md bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--pos-primary,#0f766e)]">
+                <span className="rounded-none bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--pos-primary,#0f766e)]">
                   Tax exempt
                 </span>
               ) : null}
@@ -164,7 +164,7 @@ export function SupplierEditColumn({
                 <Button
                   type="button"
                   size="sm"
-                  className="h-8 flex-1 gap-1.5 rounded-md bg-[var(--order-ink,#15231f)] px-2.5 text-[11px] font-semibold text-white shadow-none hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,#000)]"
+                  className="h-8 flex-1 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[11px] font-semibold text-white shadow-none hover:bg-[#0d6b63]"
                   onClick={onEditProfile}
                 >
                   <PencilLine className="size-3.5" aria-hidden />
@@ -174,7 +174,7 @@ export function SupplierEditColumn({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 text-[11px] font-semibold shadow-none"
+                  className="h-8 gap-1 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 text-[11px] font-semibold shadow-none"
                   onClick={onAddContact}
                   aria-label="Add contact"
                 >
@@ -185,7 +185,7 @@ export function SupplierEditColumn({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 text-[11px] font-semibold shadow-none"
+                  className="h-8 gap-1 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 text-[11px] font-semibold shadow-none"
                   disabled={inviteBusy}
                   onClick={() => void onInvite()}
                   aria-label={inviteBusy ? "Sending invite" : "Invite to portal"}
@@ -198,7 +198,7 @@ export function SupplierEditColumn({
           </div>
 
           {canDeposit && onDeposit ? (
-            <div className="flex items-center justify-between gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)] px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                   Wallet credit
@@ -211,7 +211,7 @@ export function SupplierEditColumn({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-8 gap-1.5 rounded-md border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] shadow-none hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
+                className="h-8 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] shadow-none hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
                 onClick={onDeposit}
               >
                 <Wallet className="size-3.5" aria-hidden />
@@ -328,7 +328,7 @@ export function SupplierEditColumn({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-8 min-w-0 flex-1 gap-1.5 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
+                className="h-8 min-w-0 flex-1 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
                 onClick={onEditProfile}
               >
                 <PencilLine className="size-3.5" aria-hidden />
@@ -338,7 +338,7 @@ export function SupplierEditColumn({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-8 min-w-0 flex-1 gap-1.5 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
+                className="h-8 min-w-0 flex-1 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
                 onClick={onAddContact}
               >
                 <UserPlus className="size-3.5" aria-hidden />
@@ -348,7 +348,7 @@ export function SupplierEditColumn({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-8 min-w-0 flex-1 gap-1.5 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
+                className="h-8 min-w-0 flex-1 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
                 disabled={inviteBusy}
                 onClick={() => void onInvite()}
               >
@@ -360,7 +360,7 @@ export function SupplierEditColumn({
           {canDeposit && onDeposit ? (
             <div className="flex items-center justify-between gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)] px-3 py-2.5">
               <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+                <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                   Wallet credit
                 </p>
                 <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
@@ -373,7 +373,7 @@ export function SupplierEditColumn({
               <Button
                 type="button"
                 size="sm"
-                className="h-8 gap-1.5 rounded-md bg-[var(--order-ink,#15231f)] px-3 text-xs font-semibold text-white shadow-none hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,#000)]"
+                className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 text-xs font-semibold text-white shadow-none hover:bg-[#0d6b63]"
                 onClick={onDeposit}
               >
                 <Wallet className="size-3.5" aria-hidden />
@@ -572,7 +572,7 @@ function ContactRowActions({
           variant="ghost"
           className={cn(
             sizeClass,
-            "rounded-md text-muted-foreground hover:text-foreground",
+            "rounded-none text-muted-foreground hover:text-foreground",
           )}
           aria-label={`Edit ${label}`}
           onClick={() => onEditContact(contact)}
@@ -587,7 +587,7 @@ function ContactRowActions({
           variant="ghost"
           className={cn(
             sizeClass,
-            "rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
+            "rounded-none text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
           )}
           aria-label={`Delete ${label}`}
           disabled={deletingContactId === contact.id}
@@ -635,7 +635,7 @@ function SupplierSidebarContactsDock({
         {canWrite && onAddContact ? (
           <button
             type="button"
-            className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]"
+            className="inline-flex h-7 items-center gap-1 rounded-none px-2 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]"
             onClick={onAddContact}
           >
             <UserPlus className="size-3" aria-hidden />
@@ -870,10 +870,10 @@ function SupplierSidebarPaymentSection({
   }, [dirty]);
 
   return (
-    <section className="overflow-hidden rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white">
+    <section className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white">
       <button
         type="button"
-        className="flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_45%,transparent)]"
+        className="flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
         aria-expanded={payoutOpen}
         onClick={() => setPayoutOpen((o) => !o)}
       >
@@ -883,7 +883,7 @@ function SupplierSidebarPaymentSection({
               Payment
             </h3>
             {dirty ? (
-              <span className="rounded-md bg-amber-100 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-amber-800">
+              <span className="rounded-none bg-amber-100 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-amber-800">
                 Unsaved
               </span>
             ) : null}
@@ -912,11 +912,11 @@ function SupplierSidebarPaymentSection({
       {payoutOpen ? (
         <div className="space-y-2.5 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-2.5">
         <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+          <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
             KopoKopo Send Money
           </span>
           <select
-            className="h-8 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs"
+            className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs"
             value={payoutType}
             disabled={!canWrite || !onSavePayout || savingPayout}
             onChange={(e) => setPayoutType(e.target.value as PayoutType)}
@@ -934,11 +934,11 @@ function SupplierSidebarPaymentSection({
 
         {payoutType === "mobile_wallet" ? (
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
               M-Pesa payout phone
             </span>
             <input
-              className="h-8 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
+              className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
               value={payoutPhone}
               onChange={(e) => setPayoutPhone(e.target.value)}
               placeholder="0710514157 or 2547…"
@@ -950,11 +950,11 @@ function SupplierSidebarPaymentSection({
 
         {payoutType === "till" ? (
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
               Till number
             </span>
             <input
-              className="h-8 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
+              className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
               value={payoutTillNumber}
               onChange={(e) => setPayoutTillNumber(e.target.value)}
               placeholder="e.g. 567890"
@@ -967,11 +967,11 @@ function SupplierSidebarPaymentSection({
         {payoutType === "paybill" ? (
           <>
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 Paybill number
               </span>
               <input
-                className="h-8 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
+                className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
                 value={payoutPaybillNumber}
                 onChange={(e) => setPayoutPaybillNumber(e.target.value)}
                 placeholder="e.g. 247247"
@@ -980,11 +980,11 @@ function SupplierSidebarPaymentSection({
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 Account number
               </span>
               <input
-                className="h-8 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
+                className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
                 value={payoutPaybillAccount}
                 onChange={(e) => setPayoutPaybillAccount(e.target.value)}
                 placeholder="Account or reference"
@@ -1010,9 +1010,9 @@ function SupplierSidebarPaymentSection({
             type="button"
             size="sm"
             className={cn(
-              "h-8 w-full rounded-md text-xs font-semibold shadow-none",
+              "h-8 w-full rounded-none text-xs font-semibold shadow-none",
               dirty
-                ? "bg-[var(--order-ink,#15231f)] text-white hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,#000)]"
+                ? "bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
                 : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]",
             )}
             disabled={savingPayout || !dirty}

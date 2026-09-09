@@ -65,7 +65,7 @@ export function SupplierWorkspaceEmpty({
     <div
       className={cn(
         "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [scrollbar-width:thin]",
-        "bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_45%,transparent)]",
+        "bg-white",
         className,
       )}
     >
@@ -76,7 +76,7 @@ export function SupplierWorkspaceEmpty({
         )}
       >
         <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+          <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
             Workspace
           </p>
           <h2 className="font-heading text-xl font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)] sm:text-2xl">
@@ -98,7 +98,7 @@ export function SupplierWorkspaceEmpty({
           {canWrite ? (
             <Button
               type="button"
-              className="h-10 justify-start gap-2 rounded-lg bg-[var(--pos-primary,#0f766e)] px-3 font-semibold hover:bg-[#0d6b63]"
+              className="h-9 justify-start gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 font-semibold hover:bg-[#0d6b63]"
               onClick={onNewSupplier}
             >
               <Plus className="size-3.5" aria-hidden />
@@ -109,7 +109,7 @@ export function SupplierWorkspaceEmpty({
             <Button
               type="button"
               variant="outline"
-              className="h-10 justify-start gap-2 rounded-lg border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
+              className="h-9 justify-start gap-2 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
               onClick={onNewSupply}
             >
               <PackagePlus className="size-3.5" aria-hidden />
@@ -119,21 +119,21 @@ export function SupplierWorkspaceEmpty({
           <Button
             type="button"
             variant="outline"
-            className="h-10 justify-start gap-2 rounded-lg border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
+            className="h-9 justify-start gap-2 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
             onClick={() =>
               document.getElementById("supplier-directory-search")?.focus()
             }
           >
             <Search className="size-3.5" aria-hidden />
             Search directory
-            <kbd className="ml-auto hidden rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_50%,transparent)] px-1.5 py-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] sm:inline">
+            <kbd className="ml-auto hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 py-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] sm:inline">
               /
             </kbd>
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="h-10 justify-start gap-2 rounded-lg border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
+            className="h-9 justify-start gap-2 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
             asChild
           >
             <Link href={APP_ROUTES.supplierDirectory}>
@@ -144,8 +144,8 @@ export function SupplierWorkspaceEmpty({
         </div>
 
         {picks.length > 0 ? (
-          <section className="overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white shadow-sm">
-            <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)] px-3 py-2">
+          <section className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+            <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
               <div className="flex items-center gap-1.5">
                 <BookUser
                   className="size-3.5 text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]"
@@ -191,7 +191,7 @@ export function SupplierWorkspaceEmpty({
                     ) : null}
                     <span
                       className={cn(
-                        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize",
+                        "shrink-0 rounded-none px-2 py-0.5 text-[10px] font-semibold capitalize",
                         statusBadgeClass(row.status),
                       )}
                     >
@@ -213,10 +213,10 @@ export function SupplierWorkspaceEmpty({
           {STEPS.map((step) => (
             <li
               key={step.n}
-              className="rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white px-3 py-3 shadow-sm"
+              className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3"
             >
-              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
-                <span className="flex size-5 items-center justify-center rounded-full bg-[var(--order-ink,#15231f)] text-[9px] font-bold text-white">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                <span className="flex size-5 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] text-[10px] font-bold text-[var(--pos-primary,#0f766e)]">
                   {step.n}
                 </span>
                 {step.title}

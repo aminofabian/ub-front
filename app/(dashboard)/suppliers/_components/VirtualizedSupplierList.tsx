@@ -113,7 +113,7 @@ export function VirtualizedSupplierList({
           compact ? "px-2 py-1" : "px-2.5 py-1",
         )}
       >
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
           Directory
         </span>
         {totalElements > 0 ? (
@@ -207,10 +207,7 @@ export function VirtualizedSupplierList({
                     "cursor-pointer",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]",
                     active
-                      ? cn(
-                          supTableRowActive,
-                          "shadow-[inset_3px_0_0_0_var(--pos-primary,#0f766e)]",
-                        )
+                      ? cn(supTableRowActive)
                       : cn(
                           supRowHover,
                           vi.index % 2 === 1 &&
@@ -279,7 +276,7 @@ export function VirtualizedSupplierList({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="size-6 rounded-md text-muted-foreground hover:text-foreground"
+                          className="size-6 rounded-none text-muted-foreground hover:text-foreground"
                           aria-label={`Edit ${displayName}`}
                           onClick={() => onEdit(row.id)}
                         >
@@ -291,7 +288,7 @@ export function VirtualizedSupplierList({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="size-6 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          className="size-6 rounded-none text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                           aria-label={`Delete ${displayName}`}
                           disabled={deletingId === row.id}
                           onClick={() => onDelete(row)}

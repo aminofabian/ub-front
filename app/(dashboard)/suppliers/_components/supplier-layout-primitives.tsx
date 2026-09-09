@@ -45,7 +45,7 @@ export function SupSection({
     >
       <div
         className={cn(
-          "flex flex-wrap items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)]",
+          "flex flex-wrap items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
           compact ? "px-2 py-1.5" : "px-3 py-2",
         )}
       >
@@ -120,7 +120,7 @@ export function SupWorkflowRail({
 }) {
   return (
     <nav
-      className="flex shrink-0 flex-wrap items-center gap-2 border border-border bg-muted/15 px-2.5 py-2"
+      className="flex shrink-0 flex-wrap items-center gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1.5"
       aria-label="Workspace steps"
     >
       <span className={supKicker}>Workspace</span>
@@ -128,7 +128,7 @@ export function SupWorkflowRail({
         {steps.map(({ n, label }, i, arr) => (
           <li key={n} className="flex items-center gap-1">
             <span className="inline-flex items-center gap-1.5 border border-border bg-background px-2 py-0.5 text-xs font-medium text-foreground">
-              <span className="flex size-4 shrink-0 items-center justify-center bg-primary text-[9px] font-bold text-primary-foreground">
+              <span className="flex size-4 shrink-0 items-center justify-center bg-[var(--pos-primary,#0f766e)] text-[9px] font-bold text-white">
                 {n}
               </span>
               {label}
@@ -143,7 +143,7 @@ export function SupWorkflowRail({
         ))}
       </ol>
       {activeLabel ? (
-        <span className="max-w-[12rem] truncate border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+        <span className="max-w-[12rem] truncate border border-[var(--pos-primary,#0f766e)] bg-white px-2 py-0.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)]">
           {activeLabel}
         </span>
       ) : null}
@@ -199,9 +199,9 @@ export function SupMobileSelectionBar({
   children: React.ReactNode;
 }) {
   return (
-    <div className="shrink-0 overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white shadow-sm">
-      <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)] px-3 py-2">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+    <div className="shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+      <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
+        <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
           Selected
         </p>
         <p className="truncate text-sm font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
@@ -227,7 +227,7 @@ export function SupFormSection({
 }) {
   return (
     <section className={cn("overflow-hidden bg-white", className)}>
-      <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)] px-2.5 py-1.5">
+      <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1.5">
         <h3 className={supSectionTitle}>{title}</h3>
         {hint ? <p className={supSectionHint}>{hint}</p> : null}
       </div>

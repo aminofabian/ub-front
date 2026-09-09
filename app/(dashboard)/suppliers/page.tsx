@@ -1005,13 +1005,13 @@ export default function SuppliersPage() {
             className={cn(
               "flex min-h-0 min-w-0 flex-col",
               isLg
-                ? "overflow-hidden border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_35%,transparent)]"
+                ? "overflow-hidden border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
                 : "max-h-[min(70dvh,32rem)] sm:max-h-[calc(100dvh-12rem)]",
             )}
           >
             <div
               className={cn(
-                "flex shrink-0 flex-col gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_50%,transparent)] px-3 py-2.5",
+                "flex shrink-0 flex-col gap-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5",
               )}
             >
               <div className="relative">
@@ -1023,7 +1023,7 @@ export default function SuppliersPage() {
                   id="supplier-directory-search"
                   className={cn(
                     dashboardInputClass(listLoadingInitial),
-                    "h-9 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]",
+                    "h-8 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 text-sm focus-visible:ring-0 focus-visible:border-[var(--pos-primary,#0f766e)]",
                   )}
                   placeholder="Search name or code…"
                   value={listSearch}
@@ -1046,10 +1046,10 @@ export default function SuppliersPage() {
                         disabled={listLoadingInitial}
                         onClick={() => setStatusFilter(opt.value)}
                         className={cn(
-                          "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                          "h-8 rounded-none border px-2.5 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
                           active
-                            ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_30%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white"
-                            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                            ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                         )}
                       >
                         {opt.label}
@@ -1062,7 +1062,7 @@ export default function SuppliersPage() {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "shrink-0 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                    "shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                     isLg ? "size-8" : "h-8 gap-1 px-2.5 text-xs",
                   )}
                   disabled={listLoadingInitial}
@@ -1117,7 +1117,7 @@ export default function SuppliersPage() {
                   <Button
                     type="button"
                     size="sm"
-                    className="h-10 min-h-10 flex-1 gap-1.5 rounded-lg shadow-sm"
+                    className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
                     onClick={() => setEditDrawerOpen(true)}
                   >
                     <Building2 className="size-3.5" aria-hidden />
@@ -1128,7 +1128,7 @@ export default function SuppliersPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-10 min-h-10 flex-1 gap-1.5 rounded-lg"
+                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
                       onClick={() => setCatalogDrawerOpen(true)}
                     >
                       <Link2 className="size-3.5" aria-hidden />
@@ -1140,7 +1140,7 @@ export default function SuppliersPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-10 min-h-10 flex-1 gap-1.5 rounded-lg"
+                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
                       onClick={() => router.push(supplierReceivePath(detail))}
                     >
                       <PackagePlus className="size-3.5" aria-hidden />
@@ -1152,7 +1152,7 @@ export default function SuppliersPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-10 min-h-10 flex-1 gap-1.5 rounded-lg"
+                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
                       onClick={() => setNewSupplyOpen(true)}
                     >
                       <PackagePlus className="size-3.5" aria-hidden />
@@ -1164,7 +1164,7 @@ export default function SuppliersPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-10 min-h-10 flex-1 gap-1.5 rounded-lg border-primary/35 text-primary"
+                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-none border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
                       onClick={() => setAdvanceOpen(true)}
                     >
                       <Wallet className="size-3.5" aria-hidden />
@@ -1178,7 +1178,7 @@ export default function SuppliersPage() {
 
           {isLg ? (
             !detail ? (
-              <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/70">
+              <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
                 <SupplierWorkspaceEmpty
                   canWrite={canWrite}
                   canOpenNewSupply={canOpenNewSupply}
@@ -1199,8 +1199,8 @@ export default function SuppliersPage() {
                   className={cn(
                     "flex min-h-0 flex-col overflow-hidden",
                     isXl
-                      ? "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_20%,white)]"
-                      : "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-card",
+                      ? "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
+                      : "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
                   )}
                 >
                   {!isXl ? (
@@ -1222,7 +1222,7 @@ export default function SuppliersPage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-7 shrink-0 gap-1 rounded-lg px-2 text-[11px]"
+                            className="h-7 shrink-0 gap-1 rounded-none px-2 text-[11px]"
                             onClick={() => setCatalogDrawerOpen(true)}
                           >
                             <Link2 className="size-3" aria-hidden />
@@ -1266,7 +1266,7 @@ export default function SuppliersPage() {
                   </div>
                 </aside>
                 {isXl ? (
-                  <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/70">
+                  <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
                     <div className={cn(supPanelHeader)}>
                       <div className="flex min-w-0 flex-1 items-center gap-2">
                         {selectedInvoice ? (
@@ -1275,7 +1275,7 @@ export default function SuppliersPage() {
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="h-7 shrink-0 gap-1 rounded-md px-2 text-xs"
+                              className="h-7 shrink-0 gap-1 rounded-none px-2 text-xs"
                               onClick={() => setSelectedInvoice(null)}
                             >
                               <ChevronLeft className="size-3.5" aria-hidden />
@@ -1285,7 +1285,7 @@ export default function SuppliersPage() {
                               <Receipt className="size-3.5" aria-hidden />
                             </span>
                             <div className="min-w-0">
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                              <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                                 Invoice
                               </p>
                               <p className="truncate text-sm font-semibold leading-tight text-foreground">
@@ -1299,7 +1299,7 @@ export default function SuppliersPage() {
                               <Link2 className="size-3.5" aria-hidden />
                             </span>
                             <div className="min-w-0">
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                              <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                                 Catalog
                               </p>
                               <p className="truncate text-sm font-semibold leading-tight text-foreground">
@@ -1342,7 +1342,7 @@ export default function SuppliersPage() {
       </div>
 
       {!isLg && !detail ? (
-        <div className="overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/80 shadow-sm">
+        <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
           <SupplierWorkspaceEmpty
             compact
             canWrite={canWrite}

@@ -171,10 +171,10 @@ export function SupplierPurchaseHistorySection({
       compact={compact}
       title={compact ? "Purchases" : "Purchase history"}
       hint="Posted invoices and what you still owe this vendor."
-      className={compact ? "rounded-lg border-x border-b border-t" : undefined}
+      className={compact ? "rounded-none border-x border-b border-t" : undefined}
       action={
         totalCount > 0 ? (
-          <span className="inline-flex items-center gap-0.5 rounded-md bg-muted/50 px-1.5 py-px text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">
+          <span className="inline-flex items-center gap-0.5 rounded-none bg-muted/50 px-1.5 py-px text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">
             <History className="size-2.5 opacity-70" aria-hidden />
             {totalCount}
           </span>
@@ -323,7 +323,7 @@ export function SupplierPurchaseHistorySection({
               type="button"
               variant="outline"
               size="sm"
-              className="h-7 gap-1 rounded-md text-sm"
+              className="h-7 gap-1 rounded-none text-sm"
               asChild
             >
               <Link href={APP_ROUTES.purchasingAddSupplies}>

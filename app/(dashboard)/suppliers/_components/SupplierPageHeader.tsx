@@ -60,13 +60,13 @@ export function SupplierPageHeader({
   onNewSupply: () => void;
 }) {
   return (
-    <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/90 px-2.5 py-1.5 shadow-sm backdrop-blur-sm sm:px-3">
+    <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1 sm:px-3">
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--pos-primary,#0f766e)] text-white">
+          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
             <Truck className="size-3.5" aria-hidden />
           </span>
-          <h1 className="truncate font-heading text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)] sm:text-[1.05rem]">
+          <h1 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
             Suppliers
           </h1>
         </div>
@@ -97,8 +97,8 @@ export function SupplierPageHeader({
               key={href}
               href={href}
               className={cn(
-                "inline-flex h-7 items-center gap-1 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_40%,transparent)] px-2 text-[10px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
-                "transition hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                "inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[12px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+                "transition-colors hover:text-[var(--order-ink,#15231f)]",
               )}
             >
               <Icon className="size-3 shrink-0 opacity-70" aria-hidden />
@@ -110,8 +110,8 @@ export function SupplierPageHeader({
               <button
                 type="button"
                 className={cn(
-                  "inline-flex h-7 items-center gap-1 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_40%,transparent)] px-2 text-[10px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
-                  "transition hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                  "inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[12px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+                  "transition-colors hover:text-[var(--order-ink,#15231f)]",
                 )}
                 title="The complete supplier flow — summary + full guide"
               >
@@ -130,7 +130,7 @@ export function SupplierPageHeader({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1 rounded-md px-2.5 text-xs font-medium"
+              className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-medium"
               asChild
             >
               <Link href={receiveTillHref}>
@@ -144,7 +144,7 @@ export function SupplierPageHeader({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1 rounded-md px-2.5 text-xs font-medium"
+              className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-medium"
               onClick={onNewSupply}
             >
               <PackagePlus className="size-3.5" aria-hidden />
@@ -157,7 +157,7 @@ export function SupplierPageHeader({
               size="sm"
               className={cn(
                 supBtnPrimary,
-                "h-8 bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs hover:bg-[#0d6b63]",
+                "h-8 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[12px] hover:bg-[#0d6b63]",
               )}
               disabled={listLoadingInitial}
               onClick={onNewSupplier}
