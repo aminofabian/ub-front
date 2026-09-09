@@ -995,7 +995,7 @@ export default function SuppliersPage() {
           className={cn(
             "grid min-h-0",
             isXl && detail
-              ? "min-h-0 flex-1 grid-cols-[minmax(15rem,18rem)_minmax(17rem,20rem)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
+              ? "min-h-0 flex-1 grid-cols-[minmax(15rem,17rem)_minmax(19rem,23rem)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
               : isLg
                 ? "min-h-0 flex-1 grid-cols-[minmax(16rem,min(24rem,38%))_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
                 : "gap-0",
@@ -1197,40 +1197,41 @@ export default function SuppliersPage() {
               <>
                 <aside
                   className={cn(
-                    "flex min-h-0 flex-col overflow-hidden bg-card",
-                    !isXl && "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
+                    "flex min-h-0 flex-col overflow-hidden",
+                    isXl
+                      ? "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_20%,white)]"
+                      : "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-card",
                   )}
                 >
-                  <div className={cn(supPanelHeader)}>
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className={supPanelHeaderIcon()}>
-                        <Building2 className="size-3" aria-hidden />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                          Profile
-                        </p>
-                        <p className="truncate text-xs font-semibold leading-tight text-foreground">
-                          <SupplierDisplayName
-                            name={detail.name}
-                            code={detail.code}
-                          />
-                        </p>
+                  {!isXl ? (
+                    <div className={cn(supPanelHeader)}>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className={supPanelHeaderIcon()}>
+                          <Building2 className="size-3" aria-hidden />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-semibold leading-tight text-foreground">
+                            <SupplierDisplayName
+                              name={detail.name}
+                              code={detail.code}
+                            />
+                          </p>
+                        </div>
+                        {canReadCatalog ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 shrink-0 gap-1 rounded-lg px-2 text-[11px]"
+                            onClick={() => setCatalogDrawerOpen(true)}
+                          >
+                            <Link2 className="size-3" aria-hidden />
+                            Catalog
+                          </Button>
+                        ) : null}
                       </div>
-                      {!isXl && canReadCatalog ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 shrink-0 gap-1 rounded-lg px-2 text-[11px]"
-                          onClick={() => setCatalogDrawerOpen(true)}
-                        >
-                          <Link2 className="size-3" aria-hidden />
-                          Catalog
-                        </Button>
-                      ) : null}
                     </div>
-                  </div>
+                  ) : null}
                   <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
                     <SupplierEditColumn
                       variant="sidebar"

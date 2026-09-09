@@ -171,7 +171,7 @@ export function SupplierPurchaseHistorySection({
       compact={compact}
       title={compact ? "Purchases" : "Purchase history"}
       hint="Posted invoices and what you still owe this vendor."
-      className={compact ? "border-x-0" : undefined}
+      className={compact ? "rounded-lg border-x border-b border-t" : undefined}
       action={
         totalCount > 0 ? (
           <span className="inline-flex items-center gap-0.5 rounded-md bg-muted/50 px-1.5 py-px text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">

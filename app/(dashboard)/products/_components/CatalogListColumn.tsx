@@ -38,6 +38,8 @@ type Props = {
   onBulkActivate?: () => void;
   onBulkAdjustStock?: () => void;
   onBulkRegroup?: () => void;
+  /** Label for the regroup bulk action (e.g. "Change family" when variants are selected). */
+  bulkRegroupLabel?: string;
   onAddFromCatalog?: () => void;
   canAddFromCatalog?: boolean;
   onCreateNew?: () => void;
@@ -71,6 +73,7 @@ export function CatalogListColumn({
   onBulkActivate,
   onBulkAdjustStock,
   onBulkRegroup,
+  bulkRegroupLabel = "Group as family",
   onAddFromCatalog,
   canAddFromCatalog = false,
   onCreateNew,
@@ -183,7 +186,7 @@ export function CatalogListColumn({
                   <GitBranchPlus className="size-3.5" aria-hidden />
                 )}
                 <span className="sm:hidden">Family</span>
-                <span className="hidden sm:inline">Group as family</span>
+                <span className="hidden sm:inline">{bulkRegroupLabel}</span>
               </Button>
             ) : null}
             {canCatalogWrite && onBulkActivate ? (

@@ -1970,7 +1970,7 @@ export function useProductMutations(d: Dependencies) {
         setMessage(
           params.mode === "create"
             ? `Created family “${result.name}” with ${n} option${n === 1 ? "" : "s"}. SKUs and stock were kept.`
-            : `Attached ${n} product${n === 1 ? "" : "s"} under “${result.name}”. SKUs and stock were kept.`,
+            : `Moved ${n} option${n === 1 ? "" : "s"} under “${result.name}”. SKUs and stock were kept.`,
         );
         return true;
       } catch (err) {

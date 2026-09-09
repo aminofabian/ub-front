@@ -7,6 +7,7 @@ import { FormDrawer, type FormDrawerProps } from "@/components/form-drawer";
 import type { BranchRecord, CategoryRecord, SupplierRecord } from "@/lib/api";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import { VariantDrawerForm } from "../variant-drawer-form";
+import type { ExistingFamilyOption } from "../variant-drawer-form";
 
 type Props = {
   open: boolean;
@@ -18,6 +19,8 @@ type Props = {
   parentCategoryName?: string;
   /** When adding a sibling, the currently selected variant label for drawer context. */
   siblingContextLabel?: string;
+  /** Options already under this family (shown above the create form). */
+  existingOptions?: ExistingFamilyOption[];
   variantCreateSubmitCount: number;
   sortedCategories: CategoryRecord[];
   branches: BranchRecord[];
@@ -52,6 +55,7 @@ export function VariantCreateDrawer({
   parentCategoryId,
   parentCategoryName,
   siblingContextLabel,
+  existingOptions = [],
   variantCreateSubmitCount,
   sortedCategories,
   branches,
@@ -137,6 +141,8 @@ export function VariantCreateDrawer({
         parentIsProductGroup={parentIsProductGroup}
         parentCategoryId={parentCategoryId}
         parentCategoryName={parentCategoryName}
+        familyName={parentDisplayName}
+        existingOptions={existingOptions}
         suggestedNextSku={m.nextAutoSkuHint}
         sortedCategories={sortedCategories}
         branches={branches}

@@ -173,8 +173,21 @@ export function RegroupProductsModal({
       activeTypes[0]?.id ||
       "";
     setItemTypeId(fromRow || fallback);
-    setMode(lockedParent ? "attach" : "create");
-    setSelectedParent(lockedParent);
+    const mostlyVariants =
+      rows.length > 0 &&
+      rows.filter((r) => Boolean(r.variantOfItemId?.trim())).length >=
+        Math.ceil(rows.length / 2);
+    if (lockedParent) {
+      setMode("attach");
+      setSelectedParent(lockedParent);
+    } else if (mostlyVariants) {
+      // Moving existing sizes: default to picking another family.
+      setMode("attach");
+      setSelectedParent(null);
+    } else {
+      setMode("create");
+      setSelectedParent(null);
+    }
     setParentQuery("");
     setParentHits([]);
     setAddQuery("");
@@ -278,6 +291,11 @@ export function RegroupProductsModal({
     setAddHits([]);
   };
 
+  const movingExistingVariants = useMemo(
+    () => rows.some((r) => Boolean(r.variantOfItemId?.trim())),
+    [rows],
+  );
+
   const labelsOk = lines.every((l) => l.variantName.trim().length > 0);
   const canSubmit =
     !busy &&
@@ -322,11 +340,12 @@ export function RegroupProductsModal({
           <DialogHeader className="border-b border-border/50 px-5 py-4">
             <DialogTitle className="flex items-center gap-2 text-base">
               <GitBranchPlus className="size-5 text-primary" aria-hidden />
-              Group as family
+              {movingExistingVariants ? "Change family" : "Group as family"}
             </DialogTitle>
             <DialogDescription>
-              Nest the selected sizes under one product. Each keeps its SKU,
-              stock, and sales history — only the family link changes.
+              {movingExistingVariants
+                ? "Move the selected sizes under a different product family — or create a new one. Each keeps its SKU, stock, and sales history."
+                : "Nest the selected sizes under one product. Each keeps its SKU, stock, and sales history — only the family link changes."}
             </DialogDescription>
           </DialogHeader>
 
@@ -631,7 +650,11 @@ export function RegroupProductsModal({
               ) : (
                 <GitBranchPlus className="size-4" aria-hidden />
               )}
-              {mode === "create" ? "Create family" : "Attach to family"}
+              {mode === "create"
+                ? "Create family"
+                : movingExistingVariants
+                  ? "Move to family"
+                  : "Attach to family"}
             </Button>
           </DialogFooter>
         </form>

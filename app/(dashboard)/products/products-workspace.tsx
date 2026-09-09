@@ -40,7 +40,12 @@ import {
   buildVariantIdsByParentId,
   catalogListDisplayType,
 } from "./_components/catalog-list-styles";
-import { resolveCatalogParentId } from "./_utils";
+import {
+  formatAmount,
+  formatStockLabel,
+  resolveCatalogParentId,
+  toNumber,
+} from "./_utils";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
 import { ProductEditDrawer } from "./_components/ProductEditDrawer";
 import {
@@ -231,7 +236,7 @@ export function ProductsWorkspace() {
     [catalog.listRows, catalog.rowSelection],
   );
 
-  /** Standalone products in the selection that can be nested under a family. */
+  /** Standalone products and option variants that can join / move between families. */
   const regroupEligibleRows = useMemo(() => {
     const selected = catalog.listRows.filter((r) =>
       catalog.rowSelection.has(r.id),
@@ -239,14 +244,24 @@ export function ProductsWorkspace() {
     const variantIdsByParent = buildVariantIdsByParentId(catalog.listRows);
     return selected.filter((row) => {
       const variantCount = variantIdsByParent.get(row.id)?.length ?? 0;
-      return catalogListDisplayType(row, variantCount) === "standalone";
+      const kind = catalogListDisplayType(row, variantCount);
+      return kind === "standalone" || kind === "variant";
     });
   }, [catalog.listRows, catalog.rowSelection]);
+
+  const regroupSelectionIsMostlyVariants = useMemo(
+    () =>
+      regroupEligibleRows.length > 0 &&
+      regroupEligibleRows.filter((r) => Boolean(r.variantOfItemId?.trim()))
+        .length >=
+        Math.ceil(regroupEligibleRows.length / 2),
+    [regroupEligibleRows],
+  );
 
   const openRegroupFromSelection = useCallback(() => {
     if (regroupEligibleRows.length === 0) {
       catalog.setMessage(
-        "Select standalone products (not families or sizes already in a family) to group.",
+        "Select sizes or standalone products to change or create a family. Family header rows cannot be moved.",
       );
       return;
     }
@@ -305,6 +320,7 @@ export function ProductsWorkspace() {
       ""
     : "";
   const handleOpenAddVariant = useCallback(() => {
+    catalog.setMessage("");
     const seed = emptyVariantDraft();
     const parentCategory =
       variantDrawerParentCategoryId ||
@@ -320,7 +336,33 @@ export function ProductsWorkspace() {
     }
     m.setVariantDraftRows([seed]);
     setActiveDrawer("add-variant");
-  }, [D, isViewingVariant, m, variantDrawerParentCategoryId]);
+  }, [
+    D,
+    catalog,
+    isViewingVariant,
+    m,
+    variantDrawerParentCategoryId,
+  ]);
+  const currencyCode = business?.currency?.trim() || "";
+  const variantDrawerExistingOptions = useMemo(() => {
+    return detail.variantRows.map((v) => {
+      const label = v.variantName?.trim() || v.name?.trim() || "Option";
+      const price = toNumber(v.bundlePrice);
+      const priceLabel =
+        price != null
+          ? currencyCode
+            ? `${currencyCode} ${formatAmount(price)}`
+            : formatAmount(price)
+          : null;
+      const stock = formatStockLabel(v);
+      return {
+        id: v.id,
+        label: v.packageVariant ? `${label} · pack` : label,
+        priceLabel,
+        stockLabel: stock === "—" ? null : stock,
+      };
+    });
+  }, [currencyCode, detail.variantRows]);
   const variantCreateSubmitCount = m.variantDraftRows.filter((r) =>
     r.variantName.trim(),
   ).length;
@@ -339,6 +381,7 @@ export function ProductsWorkspace() {
       }
       m.setVariantDraftRows([emptyVariantDraft()]);
       m.setPendingVariantImage(null);
+      catalog.setMessage("");
       setActiveDrawer("add-variant");
       setVariantParentPickBusy(false);
     },
@@ -680,6 +723,11 @@ export function ProductsWorkspace() {
                   canCatalogWrite ? openRegroupFromSelection : undefined
                 }
                 bulkRegroupBusy={m.regroupBusy}
+                bulkRegroupLabel={
+                  regroupSelectionIsMostlyVariants
+                    ? "Change family"
+                    : "Group as family"
+                }
                 onBulkChangeDepartment={
                   canCatalogWrite
                     ? () => {
@@ -826,6 +874,7 @@ export function ProductsWorkspace() {
             ? D?.variantName?.trim() || D?.name?.trim() || undefined
             : undefined
         }
+        existingOptions={variantDrawerExistingOptions}
         variantCreateSubmitCount={variantCreateSubmitCount}
         sortedCategories={catalog.sortedCategories}
         branches={m.branches}
@@ -834,7 +883,7 @@ export function ProductsWorkspace() {
         canListSuppliers={canListSuppliers}
         canSetSellPrice={canSetSellPrice}
         canInventoryWrite={canInventoryWrite}
-        currencyCode={business?.currency?.trim() || ""}
+        currencyCode={currencyCode}
       />
 
       {D ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Building2, Pencil, PencilLine, Send, Trash2, UserPlus, Wallet } from "lucide-react";
+import { Building2, ChevronDown, Pencil, PencilLine, Send, Trash2, UserPlus, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import type {
@@ -124,118 +124,112 @@ export function SupplierEditColumn({
   return (
     <div
       className={cn(
-        compact ? "flex min-h-0 flex-1 flex-col gap-0" : "flex flex-col gap-2",
+        compact ? "flex min-h-0 flex-1 flex-col gap-0 bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_28%,white)]" : "flex flex-col gap-2",
       )}
     >
-      <div
-        className={cn(
-          compact
-            ? "min-h-0 flex-1 space-y-0 overflow-y-auto overscroll-contain"
-            : "contents",
-        )}
-      >
       {compact ? (
-        <div className="space-y-0">
-          <SupFieldTable
-            rows={[
-              {
-                label: "Name",
-                value: (
-                  <SupplierDisplayName
-                    name={detail.name}
-                    code={detail.code}
-                  />
-                ),
-              },
-              {
-                label: "Code",
-                value: (
-                  <span className="font-mono">
-                    {isPlaceholderSupplier ? "—" : detail.code?.trim() || "—"}
-                  </span>
-                ),
-              },
-              {
-                label: "Status",
-                value: (
-                  <span
-                    className={cn(
-                      "inline-flex px-1 py-px text-[10px] font-semibold capitalize",
-                      statusBadgeClass(detail.status),
-                    )}
-                  >
-                    {detail.status}
-                  </span>
-                ),
-              },
-              {
-                label: "Type",
-                value: detail.supplierType?.trim() || "—",
-              },
-              {
-                label: "Tax",
-                value: detail.taxExempt ? "Exempt" : "Standard",
-              },
-            ]}
-          />
-          {canWrite && onEditProfile && onAddContact && !isPlaceholderSupplier ? (
-            <div className="flex flex-wrap gap-1 border-x border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1.5">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-7 min-w-0 flex-1 gap-1 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2 text-[11px] font-semibold shadow-none"
-                onClick={onEditProfile}
+        <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white">
+          <div className="px-3 py-3">
+            <h2 className="text-balance text-[15px] font-semibold leading-snug tracking-tight text-[var(--order-ink,#15231f)]">
+              <SupplierDisplayName name={detail.name} code={detail.code} />
+            </h2>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <span
+                className={cn(
+                  "inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-semibold capitalize",
+                  statusBadgeClass(detail.status),
+                )}
               >
-                <PencilLine className="size-3" aria-hidden />
-                Edit
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-7 min-w-0 flex-1 gap-1 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2 text-[11px] font-semibold shadow-none"
-                onClick={onAddContact}
-              >
-                <UserPlus className="size-3" aria-hidden />
-                Contact
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-7 min-w-0 flex-1 gap-1 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2 text-[11px] font-semibold shadow-none"
-                disabled={inviteBusy}
-                onClick={() => void onInvite()}
-              >
-                <Send className="size-3" aria-hidden />
-                {inviteBusy ? "…" : "Invite"}
-              </Button>
+                {detail.status}
+              </span>
+              {!isPlaceholderSupplier && detail.code?.trim() ? (
+                <span className="font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                  {detail.code.trim()}
+                </span>
+              ) : null}
+              {detail.supplierType?.trim() ? (
+                <span className="rounded-md bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_80%,transparent)] px-1.5 py-0.5 text-[10px] font-medium capitalize text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                  {detail.supplierType.trim()}
+                </span>
+              ) : null}
+              {detail.taxExempt ? (
+                <span className="rounded-md bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--pos-primary,#0f766e)]">
+                  Tax exempt
+                </span>
+              ) : null}
             </div>
-          ) : null}
+
+            {canWrite && onEditProfile && onAddContact && !isPlaceholderSupplier ? (
+              <div className="mt-3 flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 flex-1 gap-1.5 rounded-md bg-[var(--order-ink,#15231f)] px-2.5 text-[11px] font-semibold text-white shadow-none hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,#000)]"
+                  onClick={onEditProfile}
+                >
+                  <PencilLine className="size-3.5" aria-hidden />
+                  Edit profile
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 text-[11px] font-semibold shadow-none"
+                  onClick={onAddContact}
+                  aria-label="Add contact"
+                >
+                  <UserPlus className="size-3.5" aria-hidden />
+                  Contact
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 text-[11px] font-semibold shadow-none"
+                  disabled={inviteBusy}
+                  onClick={() => void onInvite()}
+                  aria-label={inviteBusy ? "Sending invite" : "Invite to portal"}
+                >
+                  <Send className="size-3.5" aria-hidden />
+                  {inviteBusy ? "…" : "Invite"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+
           {canDeposit && onDeposit ? (
-            <div className="flex items-center justify-between gap-2 border-x border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)] px-2.5 py-2">
+            <div className="flex items-center justify-between gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)] px-3 py-2.5">
               <div className="min-w-0">
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+                <p className="text-[10px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                   Wallet credit
                 </p>
-                <p className="font-mono text-[13px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                <p className="mt-0.5 font-mono text-[15px] font-semibold tabular-nums tracking-tight text-[var(--order-ink,#15231f)]">
                   {formatSupplyMoney(walletCredit, currency)}
                 </p>
               </div>
               <Button
                 type="button"
                 size="sm"
-                className="h-7 gap-1 rounded-md bg-[var(--order-ink,#15231f)] px-2.5 text-[11px] font-semibold text-white shadow-none hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,#000)]"
+                variant="outline"
+                className="h-8 gap-1.5 rounded-md border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] shadow-none hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
                 onClick={onDeposit}
               >
-                <Wallet className="size-3" aria-hidden />
+                <Wallet className="size-3.5" aria-hidden />
                 Deposit
               </Button>
             </div>
           ) : null}
         </div>
-      ) : (
+      ) : null}
+
+      <div
+        className={cn(
+          compact
+            ? "min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-2 py-2 [scrollbar-width:thin]"
+            : "contents",
+        )}
+      >
+      {!compact ? (
         <div className="border border-border">
           <table className={supKvTable}>
             <tbody>
@@ -388,7 +382,7 @@ export function SupplierEditColumn({
             </div>
           ) : null}
         </div>
-      )}
+      ) : null}
 
       {!compact ? <SupplierCommercialSection s={detail} compact={compact} /> : null}
 
@@ -628,110 +622,95 @@ function SupplierSidebarContactsDock({
   const showActions = canWrite && Boolean(onEditContact || onDeleteContact);
 
   return (
-    <SupSection
-      compact
-      title="Contacts"
-      action={
-        <div className="flex items-center gap-1.5">
+    <section className="shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white">
+      <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <h3 className="text-[12px] font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
+          Contacts
           {contacts.length > 0 ? (
-            <span className="text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+            <span className="ml-1.5 text-[11px] font-medium tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
               {contacts.length}
             </span>
           ) : null}
-          {canWrite && onAddContact ? (
-            <button
-              type="button"
-              className="text-[10px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
-              onClick={onAddContact}
-            >
-              + Add
-            </button>
-          ) : null}
-        </div>
-      }
-      className="shrink-0 border-x-0 border-b-0"
-      bodyClassName="p-0"
-    >
+        </h3>
+        {canWrite && onAddContact ? (
+          <button
+            type="button"
+            className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]"
+            onClick={onAddContact}
+          >
+            <UserPlus className="size-3" aria-hidden />
+            Add
+          </button>
+        ) : null}
+      </div>
       {sorted.length === 0 ? (
-        <p className="px-2 py-2 text-center text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-          No contacts on file.
+        <p className="px-3 pb-3 text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+          No contacts yet.
+          {canWrite && onAddContact ? " Add a phone or email for this vendor." : null}
         </p>
       ) : (
-        <div className="max-h-[min(9rem,26vh)] overflow-y-auto overscroll-contain">
-          <table className="w-full border-collapse text-left text-[11px]">
-            <thead className={cn("sticky top-0 z-10", supTableHead)}>
-              <tr>
-                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-0.5 font-semibold">
-                  Name
-                </th>
-                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-0.5 font-semibold">
-                  Phone
-                </th>
-                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-0.5 font-semibold">
-                  Email
-                </th>
-                {showActions ? (
-                  <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-0.5 font-semibold">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                ) : null}
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((c) => {
-                const phone = c.phone?.trim();
-                const email = c.email?.trim();
-                const name = c.name?.trim() || "Unnamed";
-                return (
-                  <tr key={c.id} className={supTableRow}>
-                    <td className="max-w-0 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-1.5 py-0.5">
-                      <span className="block truncate font-medium">
-                        {name}
-                        {c.primaryContact ? (
-                          <span className="ml-1 text-[9px] font-bold text-[var(--pos-primary,#0f766e)]">
-                            *
-                          </span>
-                        ) : null}
+        <ul className="max-h-[min(11rem,28vh)] space-y-0 overflow-y-auto overscroll-contain border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] [scrollbar-width:thin]">
+          {sorted.map((c) => {
+            const phone = c.phone?.trim();
+            const email = c.email?.trim();
+            const name = c.name?.trim() || "Unnamed";
+            const role = c.roleLabel?.trim();
+            return (
+              <li
+                key={c.id}
+                className="flex items-start gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-3 py-2 last:border-b-0"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-medium text-[var(--order-ink,#15231f)]">
+                    {name}
+                    {c.primaryContact ? (
+                      <span className="ml-1.5 rounded bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] px-1 py-px text-[9px] font-bold uppercase tracking-wide text-[var(--pos-primary,#0f766e)]">
+                        Primary
                       </span>
-                    </td>
-                    <td className="max-w-0 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-1.5 py-0.5">
-                      {phone ? (
-                        <TelLink phone={phone} className="block truncate" />
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="max-w-0 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-1.5 py-0.5">
-                      {email ? (
-                        <a
-                          href={`mailto:${email}`}
-                          className="block truncate text-[var(--pos-primary,#0f766e)] hover:underline"
-                        >
-                          {email}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    {showActions ? (
-                      <td className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-0.5 py-0">
-                        <ContactRowActions
-                          contact={c}
-                          onEditContact={onEditContact}
-                          onDeleteContact={onDeleteContact}
-                          deletingContactId={deletingContactId}
-                          compact
-                        />
-                      </td>
                     ) : null}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  </p>
+                  {role ? (
+                    <p className="truncate text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                      {role}
+                    </p>
+                  ) : null}
+                  <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px]">
+                    {phone ? (
+                      <TelLink
+                        phone={phone}
+                        className="text-[var(--order-ink,#15231f)] underline-offset-2 hover:underline"
+                      />
+                    ) : null}
+                    {email ? (
+                      <a
+                        href={`mailto:${email}`}
+                        className="truncate text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                      >
+                        {email}
+                      </a>
+                    ) : null}
+                    {!phone && !email ? (
+                      <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+                        No phone or email
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                {showActions ? (
+                  <ContactRowActions
+                    contact={c}
+                    onEditContact={onEditContact}
+                    onDeleteContact={onDeleteContact}
+                    deletingContactId={deletingContactId}
+                    compact
+                  />
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
       )}
-    </SupSection>
+    </section>
   );
 }
 
@@ -773,6 +752,7 @@ function SupplierSidebarPaymentSection({
     detail.payoutPaybillAccount?.trim() ?? "",
   );
   const [savingPayout, setSavingPayout] = useState(false);
+  const [payoutOpen, setPayoutOpen] = useState(false);
 
   useEffect(() => {
     setPayoutType((detail.payoutType as PayoutType) || "manual");
@@ -870,14 +850,67 @@ function SupplierSidebarPaymentSection({
             : "—"
           : null;
 
+  const summaryChips = [
+    creditTerms,
+    preferredPay,
+    creditLimit ? `Limit ${creditLimit}` : null,
+    savedType === "manual"
+      ? "Manual payout"
+      : savedType === "mobile_wallet"
+        ? "M-Pesa"
+        : savedType === "till"
+          ? "Till"
+          : savedType === "paybill"
+            ? "Paybill"
+            : null,
+  ].filter(Boolean) as string[];
+
+  useEffect(() => {
+    if (dirty) setPayoutOpen(true);
+  }, [dirty]);
+
   return (
-    <SupSection
-      compact
-      title="Payment"
-      hint="KopoKopo Send Money payout destination"
-      className="border-x-0"
-      bodyClassName="space-y-2.5 px-2.5 py-2.5"
-    >
+    <section className="overflow-hidden rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white">
+      <button
+        type="button"
+        className="flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_45%,transparent)]"
+        aria-expanded={payoutOpen}
+        onClick={() => setPayoutOpen((o) => !o)}
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-[12px] font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
+              Payment
+            </h3>
+            {dirty ? (
+              <span className="rounded-md bg-amber-100 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-amber-800">
+                Unsaved
+              </span>
+            ) : null}
+          </div>
+          {summaryChips.length > 0 || destinationSummary ? (
+            <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
+              {[...summaryChips, destinationSummary && savedType !== "manual" ? destinationSummary : null]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          ) : (
+            <p className="mt-1 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+              Terms, remittance, and KopoKopo destination
+            </p>
+          )}
+        </div>
+        <ChevronDown
+          className={cn(
+            "mt-0.5 size-4 shrink-0 text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] transition-transform duration-200",
+            payoutOpen && "rotate-180",
+          )}
+          aria-hidden
+        />
+      </button>
+
+      {payoutOpen ? (
+        <div className="space-y-2.5 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-2.5">
         <label className="flex flex-col gap-1">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
             KopoKopo Send Money
@@ -996,7 +1029,9 @@ function SupplierSidebarPaymentSection({
         )}
 
       {rows.length > 0 ? <SupFieldTable rows={rows} /> : null}
-    </SupSection>
+        </div>
+      ) : null}
+    </section>
   );
 }
 

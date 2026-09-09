@@ -9,6 +9,10 @@ import { BarcodeScanner } from "@/components/barcode-scanner";
 import { FormDrawerFields, FormDrawerSheet } from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
 import type { BranchRecord, CategoryRecord, SupplierRecord } from "@/lib/api";
+import {
+  normalizeFamilyPrefix,
+  stripFamilyPrefixFromInput,
+} from "./_components/CreateGroupOptionsPad";
 import { type VariantDraft, emptyVariantDraft } from "./_types";
 import { formatAmount, toNumber } from "./_utils";
 import { StockIncreaseFields } from "./_components/StockIncreaseFields";
@@ -27,6 +31,13 @@ import {
 
 export type VariantDrawerDraft = VariantDraft;
 
+export type ExistingFamilyOption = {
+  id: string;
+  label: string;
+  priceLabel?: string | null;
+  stockLabel?: string | null;
+};
+
 type Props = {
   variantDraftRows: VariantDraft[];
   setVariantDraftRows: Dispatch<SetStateAction<VariantDraft[]>>;
@@ -35,6 +46,10 @@ type Props = {
   parentIsProductGroup: boolean;
   parentCategoryId?: string;
   parentCategoryName?: string;
+  /** Live family / parent name shown as a prefix on each option field. */
+  familyName?: string;
+  /** Options already under this family (read-only context). */
+  existingOptions?: ExistingFamilyOption[];
   sortedCategories: CategoryRecord[];
   branches: BranchRecord[];
   suppliersForLink: SupplierRecord[];
@@ -258,6 +273,7 @@ function VariantRowFields({
   canInventoryWrite,
   parentIsProductGroup,
   parentCategoryId,
+  familyName = "",
   sortedCategories,
   onScanBarcode,
 }: {
@@ -272,9 +288,11 @@ function VariantRowFields({
   canInventoryWrite: boolean;
   parentIsProductGroup: boolean;
   parentCategoryId?: string;
+  familyName?: string;
   sortedCategories: CategoryRecord[];
   onScanBarcode: () => void;
 }) {
+  const familyPrefix = normalizeFamilyPrefix(familyName);
   const costPerUnit = useMemo(() => {
     const buy = toNumber(row.defaultCostPrice);
     const pack = Math.max(1, toNumber(row.bundleQty) ?? 1);
@@ -303,6 +321,12 @@ function VariantRowFields({
       />
     </Label>
   );
+
+  const namePlaceholder = row.isPackageVariant
+    ? "Tray of 30"
+    : familyPrefix
+      ? "1kg, 20ml…"
+      : "500 g · Blue";
 
   return (
     <div className="space-y-2">
@@ -338,16 +362,56 @@ function VariantRowFields({
 
         <Label
           required
-          label={row.isPackageVariant ? "Package name" : "Variant name"}
+          label={row.isPackageVariant ? "Package name" : "Size or flavour"}
         >
-          <input
-            className={icClass()}
-            placeholder={row.isPackageVariant ? "Tray of 30" : "500 g · Blue"}
-            value={row.variantName}
-            onChange={(e) => onPatch({ variantName: e.target.value })}
-            required={index === 0}
-            autoComplete="off"
-          />
+          {familyPrefix && !row.isPackageVariant ? (
+            <div
+              className={cn(
+                "flex h-9 w-full min-w-0 items-stretch overflow-hidden border border-border bg-background",
+                "focus-within:border-[var(--catalog-primary,#0f766e)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_22%,transparent)]",
+              )}
+            >
+              <span
+                className="flex max-w-[46%] shrink-0 items-center truncate border-r border-border bg-muted/40 px-2.5 text-[12px] font-medium text-muted-foreground"
+                title={familyPrefix}
+              >
+                {familyPrefix}
+              </span>
+              <input
+                className={cn(
+                  icClass(),
+                  "min-w-0 flex-1 border-0 shadow-none focus-visible:ring-0",
+                )}
+                placeholder={namePlaceholder}
+                value={row.variantName}
+                onChange={(e) =>
+                  onPatch({
+                    variantName: stripFamilyPrefixFromInput(
+                      e.target.value,
+                      familyPrefix,
+                    ),
+                  })
+                }
+                required={index === 0}
+                autoComplete="off"
+                aria-label={`Size or flavour after ${familyPrefix}`}
+              />
+            </div>
+          ) : (
+            <input
+              className={icClass()}
+              placeholder={namePlaceholder}
+              value={row.variantName}
+              onChange={(e) => onPatch({ variantName: e.target.value })}
+              required={index === 0}
+              autoComplete="off"
+            />
+          )}
+          {familyPrefix && !row.isPackageVariant ? (
+            <span className={productFormHintClass}>
+              Only type what’s different — the family name is already set.
+            </span>
+          ) : null}
         </Label>
 
         {row.isPackageVariant ? (
@@ -463,6 +527,8 @@ export function VariantDrawerForm({
   parentIsProductGroup,
   parentCategoryId,
   parentCategoryName: _parentCategoryName,
+  familyName = "",
+  existingOptions = [],
   sortedCategories,
   branches,
   suppliersForLink,
@@ -482,6 +548,7 @@ export function VariantDrawerForm({
   const [moreExpanded, setMoreExpanded] = useState(false);
   const [scannerRow, setScannerRow] = useState<number | null>(null);
   const coverImageInputRef = useRef<HTMLInputElement>(null);
+  const familyPrefix = normalizeFamilyPrefix(familyName);
 
   useEffect(() => {
     setExtrasRow((i) => Math.min(i, Math.max(0, variantDraftRows.length - 1)));
@@ -526,7 +593,69 @@ export function VariantDrawerForm({
   );
 
   return (
-    <form id="add-variant-form" className="space-y-2" onSubmit={onSubmit}>
+    <form id="add-variant-form" className="space-y-3" onSubmit={onSubmit}>
+      {existingOptions.length > 0 ? (
+        <section className="overflow-hidden border border-border bg-[linear-gradient(180deg,color-mix(in_srgb,var(--catalog-primary,#0f766e)_6%,transparent),transparent_72%)]">
+          <div className="flex items-center justify-between gap-2 border-b border-border/70 px-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold tracking-tight text-foreground">
+                Family roster
+              </p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {familyPrefix
+                  ? `Sizes already under “${familyPrefix}”`
+                  : "Sizes already in this family"}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-md bg-background px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground ring-1 ring-border">
+              {existingOptions.length}
+            </span>
+          </div>
+          <ol className="max-h-[min(12rem,32vh)] divide-y divide-border/55 overflow-y-auto overscroll-contain [scrollbar-width:thin]">
+            {existingOptions.map((opt, i) => (
+              <li
+                key={opt.id}
+                className="flex items-baseline gap-2.5 px-3 py-2"
+              >
+                <span
+                  className="w-4 shrink-0 text-right text-[10px] font-semibold tabular-nums text-muted-foreground/70"
+                  aria-hidden
+                >
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
+                  {opt.label}
+                </span>
+                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                  {[opt.priceLabel, opt.stockLabel].filter(Boolean).join(" · ") ||
+                    "—"}
+                </span>
+              </li>
+            ))}
+          </ol>
+          <div className="flex items-center gap-2 border-t border-dashed border-border/80 bg-background/70 px-3 py-2">
+            <span
+              className="w-4 shrink-0 text-right text-[10px] font-semibold tabular-nums text-[var(--catalog-primary,#0f766e)]"
+              aria-hidden
+            >
+              +
+            </span>
+            <span className="text-[12px] font-medium text-[var(--catalog-primary,#0f766e)]">
+              New size below
+            </span>
+          </div>
+        </section>
+      ) : null}
+
+      <div className="space-y-1">
+        <p className={productFormSectionTitleClass}>New size</p>
+        {familyPrefix ? (
+          <p className={productFormHintClass}>
+            Type only the size or flavour — “{familyPrefix}” stays as the family.
+          </p>
+        ) : null}
+      </div>
+
       {variantDraftRows.map((row, index) => (
         <VariantRowFields
           key={index}
@@ -541,6 +670,7 @@ export function VariantDrawerForm({
           canInventoryWrite={canInventoryWrite}
           parentIsProductGroup={parentIsProductGroup}
           parentCategoryId={parentCategoryId}
+          familyName={familyPrefix}
           sortedCategories={sortedCategories}
           onScanBarcode={() => setScannerRow(index)}
         />
@@ -555,7 +685,7 @@ export function VariantDrawerForm({
           onClick={addVariantDraftRow}
         >
           <Plus className="size-3.5" aria-hidden />
-          Add another variant
+          Add another size
         </Button>
       </div>
 
