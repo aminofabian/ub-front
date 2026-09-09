@@ -14,14 +14,14 @@ function LedgerMetric({
   emphasize?: boolean;
 }) {
   return (
-    <div className="min-w-0">
-      <p className="text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
+    <div className="flex min-w-0 items-baseline gap-1.5">
+      <p className="shrink-0 text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
         {label}
       </p>
       <p
         className={cn(
-          "mt-0.5 font-heading font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--order-ink,#15231f)]",
-          emphasize ? "text-[15px] sm:text-[16px]" : "text-[14px] sm:text-[15px]",
+          "truncate font-heading font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--order-ink,#15231f)]",
+          emphasize ? "text-[13px]" : "text-[12px]",
         )}
       >
         {value}
@@ -57,7 +57,7 @@ export function OrderLifetimeOverview({
 
   return (
     <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-      <div className="flex flex-wrap items-end gap-x-4 gap-y-2 px-3 py-2.5 sm:flex-nowrap sm:gap-x-5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2.5 py-1 sm:flex-nowrap sm:gap-x-4">
         <LedgerMetric
           label="Spend"
           value={loading ? "—" : formatMoney(lifetime.totalSpend, CURRENCY)}
@@ -80,16 +80,11 @@ export function OrderLifetimeOverview({
           value={loading ? "—" : formatMoney(lifetime.openBalance, CURRENCY)}
         />
 
-        <div className="ml-auto flex w-[6.5rem] shrink-0 flex-col gap-1 sm:w-[7.5rem]">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
-              Paid
-            </span>
-            <span className="font-heading text-[12px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-              {loading ? "—" : `${Math.round(paidRatio)}%`}
-            </span>
-          </div>
-          <div className="h-1 w-full overflow-hidden rounded-none bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+        <div className="ml-auto flex w-[5.5rem] shrink-0 items-center gap-1.5 sm:w-[6.5rem]">
+          <span className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+            {loading ? "—" : `${Math.round(paidRatio)}%`}
+          </span>
+          <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-none bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
             <div
               className="h-full rounded-none bg-[var(--pos-primary,#0f766e)] transition-[width] duration-500"
               style={{ width: loading ? "0%" : `${paidRatio}%` }}

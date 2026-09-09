@@ -29,39 +29,32 @@ export function PipelineStat({
     <>
       <span
         className={cn(
-          "inline-flex size-8 shrink-0 items-center justify-center rounded-none border",
+          "inline-flex size-5 shrink-0 items-center justify-center rounded-none border",
           active
             ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
             : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]",
         )}
       >
-        <Icon className="size-3.5" strokeWidth={1.75} aria-hidden />
+        <Icon className="size-3" strokeWidth={1.75} aria-hidden />
       </span>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          {loading ? (
-            <Loader2
-              className="size-3.5 shrink-0 animate-spin text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
-              aria-hidden
-            />
-          ) : (
-            <p className="font-heading shrink-0 text-[18px] font-semibold leading-none tracking-[-0.03em] text-[var(--order-ink,#15231f)] tabular-nums">
-              {value}
-            </p>
-          )}
-          <p className="truncate text-[12px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
-            {label}
-          </p>
-        </div>
-        <p className="mt-1 truncate text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-          {hint}
+      {loading ? (
+        <Loader2
+          className="size-3 shrink-0 animate-spin text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
+          aria-hidden
+        />
+      ) : (
+        <p className="font-heading shrink-0 text-[13px] font-semibold leading-none tracking-[-0.03em] text-[var(--order-ink,#15231f)] tabular-nums">
+          {value}
         </p>
-      </div>
+      )}
+      <p className="min-w-0 truncate text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
+        {label}
+      </p>
 
       {href ? (
         <ArrowRight
-          className="size-3.5 shrink-0 text-[color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] transition group-hover:text-[var(--pos-primary,#0f766e)]"
+          className="size-3 shrink-0 text-[color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] transition group-hover:text-[var(--pos-primary,#0f766e)]"
           aria-hidden
         />
       ) : null}
@@ -69,7 +62,7 @@ export function PipelineStat({
   );
 
   const className = cn(
-    "relative flex min-w-0 flex-1 items-center gap-2.5 rounded-none border bg-white px-2.5 py-2.5 transition-[border-color] duration-150",
+    "relative flex min-w-0 flex-1 items-center gap-1.5 rounded-none border bg-white px-2 py-1 transition-[border-color] duration-150",
     active
       ? "border-[var(--pos-primary,#0f766e)]"
       : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]",
@@ -79,17 +72,21 @@ export function PipelineStat({
 
   if (href) {
     return (
-      <Link href={href} className={className}>
+      <Link href={href} className={className} title={hint}>
         {inner}
       </Link>
     );
   }
 
-  return <div className={className}>{inner}</div>;
+  return (
+    <div className={className} title={hint}>
+      {inner}
+    </div>
+  );
 }
 
 export function PipelineStatsGrid({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
+    <div className="grid grid-cols-2 gap-1 lg:grid-cols-4">{children}</div>
   );
 }

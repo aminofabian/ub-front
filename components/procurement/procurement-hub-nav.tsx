@@ -87,7 +87,7 @@ export function ProcurementHubNav({
             href={tab.href}
             title={tab.hint}
             className={cn(
-              "group relative flex h-10 min-w-0 flex-1 items-center justify-center gap-2 px-2.5 transition-colors duration-150 sm:justify-start sm:px-3",
+              "group relative flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 px-2 transition-colors duration-150 sm:justify-start sm:px-2.5",
               columns === 2 ? "min-w-[50%]" : "",
               active
                 ? "bg-white text-[var(--pos-primary,#0f766e)]"
@@ -100,8 +100,8 @@ export function ProcurementHubNav({
                 className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--pos-primary,#0f766e)]"
               />
             ) : null}
-            <Icon className="size-3.5 shrink-0" aria-hidden />
-            <span className="truncate text-[13px] font-semibold tracking-[-0.02em]">
+            <Icon className="size-3 shrink-0" aria-hidden />
+            <span className="truncate text-[12px] font-semibold tracking-[-0.02em]">
               {tab.label}
             </span>
           </Link>
