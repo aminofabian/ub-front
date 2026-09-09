@@ -6,6 +6,7 @@ import type { SupplierItemLinkRecord } from "@/lib/api";
 import type { OrderCartPackMeta, OrderCartQty } from "@/lib/order-cart-storage";
 import { orderLinkTitleParts } from "@/app/(dashboard)/order/_lib/order-link-display";
 import { cn, formatMoney } from "@/lib/utils";
+import { OrderQtyField } from "./order-qty-field";
 
 const ORDER_CURRENCY = "KES";
 
@@ -85,7 +86,7 @@ export function OrderProductLedger({
         <ColHead label="SKU" width="w-[5.5rem] hidden md:flex" />
         <ColHead label="Stock" width="w-[4rem]" align="right" />
         <ColHead label="Price" width="w-[5.5rem]" align="right" />
-        <ColHead label="Qty" width="w-[7.5rem]" align="right" />
+        <ColHead label="Qty" width="w-[8.25rem]" align="right" />
       </div>
 
       <div className="max-h-[calc(100vh-18rem)] overflow-y-auto [scrollbar-width:thin]">
@@ -151,7 +152,7 @@ export function OrderProductLedger({
               <div className="flex w-[5.5rem] shrink-0 items-center justify-end border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-2 font-mono text-[11px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
                 {cost > 0 ? formatMoney(cost, ORDER_CURRENCY) : "—"}
               </div>
-              <div className="flex w-[7.5rem] shrink-0 items-center justify-end gap-1 px-1.5">
+              <div className="flex w-[8.25rem] shrink-0 items-center justify-end gap-1 px-1.5">
                 {pickMode ? (
                   <button
                     type="button"
@@ -172,16 +173,17 @@ export function OrderProductLedger({
                     >
                       <Minus className="size-3.5" aria-hidden />
                     </button>
-                    <span
+                    <OrderQtyField
+                      qty={qty}
+                      onSetQty={(next) => onSetQty(link.itemId, next)}
+                      ariaLabel={`Quantity for ${primary}`}
                       className={cn(
-                        "min-w-6 text-center font-mono text-[12px] font-bold tabular-nums",
+                        "h-7 w-12 text-[12px]",
                         inCart
                           ? "text-[var(--pos-primary,#0f766e)]"
                           : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]",
                       )}
-                    >
-                      {qty}
-                    </span>
+                    />
                     <button
                       type="button"
                       onClick={() => onSetQty(link.itemId, qty + 1)}

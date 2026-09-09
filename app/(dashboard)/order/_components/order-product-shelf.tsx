@@ -8,6 +8,7 @@ import type { OrderCartPackMeta, OrderCartQty } from "@/lib/order-cart-storage";
 import { orderLinkTitleParts } from "@/app/(dashboard)/order/_lib/order-link-display";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
+import { OrderQtyField } from "./order-qty-field";
 
 const ORDER_CURRENCY = "KES";
 
@@ -205,17 +206,20 @@ function OrderShelfTile({
             >
               <Minus className="size-3.5" strokeWidth={2.25} aria-hidden />
             </button>
-            <span
-              key={qty}
+            <div
               className={cn(
-                "flex h-9 items-center justify-center font-heading text-[15px] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+                "flex h-9 min-w-0 items-center justify-center px-0.5",
                 qty > 0 && "pos-tile-qty-badge",
               )}
               style={{ color: inCart ? TEAL : INK }}
-              aria-live="polite"
             >
-              {qty}
-            </span>
+              <OrderQtyField
+                qty={qty}
+                onSetQty={onSetQty}
+                ariaLabel={`Quantity for ${primary}`}
+                className="h-9 text-[15px]"
+              />
+            </div>
             <button
               type="button"
               className={cn(STEP, "border-l")}

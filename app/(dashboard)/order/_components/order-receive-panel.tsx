@@ -1049,7 +1049,7 @@ export function OrderReceivePanel({
         "relative flex min-h-[28rem] flex-col overflow-hidden font-sans text-[var(--order-ink,#15231f)] lg:flex-row",
         embedded
           ? "h-[min(82dvh,52rem)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
-          : "h-[calc(100dvh-16rem)] min-h-[32rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] shadow-[0_1px_0_color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent),0_16px_48px_-28px_color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)] sm:h-[min(72dvh,54rem)]",
+          : "min-h-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
       )}
       style={{
         ["--pos-primary" as string]: "#0f766e",

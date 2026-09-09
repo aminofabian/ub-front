@@ -77,6 +77,7 @@ import { OrderCatalogSetupPanel } from "./order-catalog-setup-panel";
 import { OrderPastOrdersDrawer } from "./order-past-orders-drawer";
 import { OrderProductLedger } from "./order-product-ledger";
 import { OrderProductShelf } from "./order-product-shelf";
+import { OrderQtyField } from "./order-qty-field";
 import { OrderTemplatePicker } from "./order-template-picker";
 import { type OrderParentOption } from "./order-parent-floater";
 
@@ -1223,9 +1224,12 @@ export function TenantOrderWorkspace({
                   >
                     −
                   </button>
-                  <span className="min-w-7 text-center font-mono text-[12px] font-semibold tabular-nums">
-                    {qty}
-                  </span>
+                  <OrderQtyField
+                    qty={qty}
+                    onSetQty={(next) => setQty(link.itemId, next)}
+                    ariaLabel={`Quantity for ${link.itemName}`}
+                    className="h-8 w-12 text-[12px] font-mono"
+                  />
                   <button
                     type="button"
                     className="flex size-8 items-center justify-center text-[15px] text-[var(--order-ink,#15231f)]/70 transition-colors hover:bg-white hover:text-[var(--order-ink,#15231f)]"
@@ -1545,7 +1549,7 @@ export function TenantOrderWorkspace({
         "relative flex w-full flex-col overflow-hidden font-sans text-[var(--order-ink,#15231f)]",
         embedded
           ? "h-full min-h-0 flex-1 border-0"
-          : "h-[calc(100dvh-20rem)] min-h-[32rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:h-[min(72dvh,54rem)]",
+          : "min-h-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
       )}
       style={{
         ["--pos-primary" as string]: "#0f766e",
