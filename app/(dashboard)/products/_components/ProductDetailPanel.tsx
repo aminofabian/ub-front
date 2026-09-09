@@ -1490,7 +1490,9 @@ export function ProductDetailPanel(props: Props) {
                         </div>
                       </div>
                       <p className="mt-2 text-[11px] text-muted-foreground">
-                        Variant name and SKU are set at creation — adjust from{" "}
+                        Display name defaults to the variant label so sizes stay
+                        identifiable in history. Variant label and SKU are set at
+                        creation — adjust from{" "}
                         <button
                           type="button"
                           className="font-medium text-primary underline-offset-2 hover:underline"
