@@ -306,7 +306,7 @@ export function GroceryInvoiceCart({
           <button
             type="button"
             onClick={onClearCart}
-            className="shrink-0 px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:text-destructive"
+            className="shrink-0 px-1.5 py-1 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-destructive"
             aria-label="Clear cart"
           >
             Clear
@@ -360,7 +360,7 @@ export function GroceryInvoiceCart({
 
       {/* ── Footer ── */}
       {!isEmpty ? (
-        <footer className="shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-2.5 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] dark:border-border/40 dark:bg-background">
+        <footer className="shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] dark:border-border/40 dark:bg-background">
           {hasDiscount ? (
             <div className="mb-1.5 space-y-0.5 text-[10px] tabular-nums">
               <div className="flex items-center justify-between text-muted-foreground">
@@ -382,10 +382,10 @@ export function GroceryInvoiceCart({
           ) : null}
 
           <div className="mb-2 flex items-baseline justify-between gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <span className="text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
               {isSpoils ? "Write-off qty" : "Total"}
             </span>
-            <span className="text-lg font-bold tabular-nums tracking-tight text-foreground">
+            <span className="font-heading text-lg font-semibold tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
               {isSpoils
                 ? formatCartQtyLabel(cartItemCount)
                 : (formatShelfPriceLabel(grandTotal, currency) ??
@@ -400,8 +400,8 @@ export function GroceryInvoiceCart({
             className={cn(
               "flex w-full items-center justify-center gap-1.5 rounded-none px-3 py-2.5 text-[12px] font-semibold",
               isSpoils
-                ? "bg-amber-800 text-amber-50 shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] hover:bg-amber-900"
-                : "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
+                ? "bg-amber-800 text-amber-50 hover:bg-amber-900"
+                : "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
               "transition-colors active:scale-[0.98]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40 focus-visible:ring-offset-1",
               "disabled:pointer-events-none disabled:opacity-50",

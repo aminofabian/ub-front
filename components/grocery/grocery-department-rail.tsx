@@ -19,12 +19,9 @@ function departmentLabel(t: ItemTypeRecord): string {
 }
 
 /**
- * Vertical floating department filter for the grocery counter — a shelf-edge
- * ticket rail in the marketplace paper/ink/teal grammar. The teal lip is the
- * shelf edge; each department is a ticket clipped to it (punched hole, ink
- * hairline, vertical label). The active ticket is teal with a notched bottom,
- * like a pulled shelf ticket. Shown when the clerk is assigned to more than
- * one department so they can narrow the catalog without leaving the POS.
+ * Vertical department filter for the grocery counter. Active = teal border
+ * and teal text; inactive = hairline. No filled tickets, punch holes, or
+ * offset shadows.
  */
 export function GroceryDepartmentRail({
   departments,
@@ -38,21 +35,13 @@ export function GroceryDepartmentRail({
     <nav
       aria-label="Department filters"
       className={cn(
-        "pointer-events-auto relative flex w-[2.9rem] shrink-0 flex-col gap-1 overflow-y-auto overscroll-contain rounded-none border",
-        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-        "bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] p-1 pt-2.5",
-        "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+        "pointer-events-auto relative flex w-[2.9rem] shrink-0 flex-col gap-1 overflow-y-auto overscroll-contain rounded-none border bg-white p-1",
+        "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
         "[scrollbar-width:thin] [&::-webkit-scrollbar]:w-1",
-        "[&::-webkit-scrollbar-thumb]:rounded-full",
-        "[&::-webkit-scrollbar-thumb]:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
+        "[&::-webkit-scrollbar-thumb]:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)]",
         className,
       )}
     >
-      {/* Shelf lip */}
-      <span
-        aria-hidden
-        className="pointer-events-none sticky top-0 z-[1] -mx-1 -mt-2.5 mb-0 h-1.5 shrink-0 bg-[var(--pos-primary,#0f766e)]"
-      />
       <DepartmentRailButton
         active={selectedId == null}
         label="All"
@@ -98,26 +87,16 @@ function DepartmentRailButton({
       aria-pressed={active}
       className={cn(
         "relative flex min-h-[3.25rem] w-full shrink-0 flex-col items-center justify-center gap-1 rounded-none border px-0.5 py-2 text-center transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
         "touch-manipulation select-none",
         active
-          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] [clip-path:polygon(0_0,100%_0,100%_calc(100%-6px),calc(50%+6px)_100%,calc(50%-6px)_100%,0_calc(100%-6px))]"
-          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] text-muted-foreground hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
+          ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)] hover:text-[var(--order-ink,#15231f)]",
       )}
     >
-      {/* Ticket punch hole */}
-      <span
-        aria-hidden
-        className={cn(
-          "absolute left-1/2 top-1 -translate-x-1/2 size-1.5 rounded-full border",
-          active
-            ? "border-white/60 bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,transparent)]"
-            : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_35%,transparent)] bg-[var(--pos-paper,#f1ece3)]",
-        )}
-      />
       {icon}
       <span
-        className="max-h-[4.5rem] w-full overflow-hidden text-[9px] font-semibold uppercase leading-[1.05] tracking-wide"
+        className="max-h-[4.5rem] w-full overflow-hidden text-[10px] font-semibold leading-[1.05] tracking-[-0.02em]"
         style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
       >
         {label}

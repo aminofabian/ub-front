@@ -54,7 +54,7 @@ export function GroceryModeSwitcher({
       role="tablist"
       aria-label="Counter mode"
       className={cn(
-        "inline-flex max-w-full items-stretch gap-0.5 rounded-none border border-white/25 bg-black/15 p-0.5",
+        "inline-flex max-w-full items-stretch divide-x divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
         className,
       )}
     >
@@ -71,10 +71,10 @@ export function GroceryModeSwitcher({
             title={meta.hint}
             onClick={() => onChange(id)}
             className={cn(
-              "inline-flex min-w-0 items-center gap-1 rounded-none px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors",
+              "inline-flex h-8 min-w-0 items-center gap-1 rounded-none px-2.5 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
               active
-                ? "bg-white text-[var(--pos-primary,#0f766e)] shadow-sm"
-                : "text-[var(--pos-primary-ink,#fff)]/80 hover:bg-white/10 hover:text-[var(--pos-primary-ink,#fff)]",
+                ? "bg-white text-[var(--pos-primary,#0f766e)]"
+                : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
             )}
           >
             <Icon className="size-3 shrink-0" strokeWidth={2.25} aria-hidden />

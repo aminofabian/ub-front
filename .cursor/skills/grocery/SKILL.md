@@ -46,8 +46,29 @@ Read via `readSessionBootstrap()` / `useSessionBootstrapSnapshot()`. Dashboard p
 ## Layout rules
 
 - **`/grocery` must not use `AppShell`** — AppShell shows desktop sidebar when `me` is null; grocery has its own header.
-- Grocery workspace height: `100dvh` (no AppShell offset).
-- Bottom nav for grocery lives **inside** the workspace header (Invoices link), not AppShell.
+- Grocery workspace height: `100dvh` (no AppShell offset). Compact chrome; fill remaining viewport.
+- Bottom nav lives **inside** the grocery workspace (and invoices page), not AppShell.
+
+## Visual language
+
+Same grammar as `/order`. Tokens (set on `.grocery-market-paper`):
+
+- `--pos-primary`: `#0f766e`
+- `--order-ink`: `#15231f`
+- `--order-shelf`: `#f3f6f5`
+- `--order-slip`: `#ffffff`
+
+Rules:
+
+- White page, hairline `color-mix(ink 12%)` borders, `rounded-none` everywhere.
+- Selection = teal border + teal text. Do not fill chips, tabs, or tiles with teal or ink.
+- Primary CTAs only may be teal filled squares: Scan, Generate Invoice, Record spoils.
+- Product image covers **~3/4** of the image well (`h-3/4 w-3/4`, `object-contain`, centered). Price and qty sit **under** the image, never overlay it.
+- Header is **white**. Heading is the mode title (Counter / Spoils / …). Tenant name is a subtitle, not an uppercase kicker.
+- Compact chrome (`h-8` controls, `py-1`). Mode switcher and bottom nav: divided segments, active = teal text + 2px bottom teal rule.
+- No cream `--pos-paper` washes, no offset shadows (`2px 2px 0`), no uppercase tracked eyebrows.
+
+Reference: `app/(dashboard)/order/_components/order-product-shelf.tsx`, `components/procurement/procurement-hub-nav.tsx`.
 
 ## Debugging checklist (iPad)
 

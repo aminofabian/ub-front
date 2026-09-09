@@ -180,7 +180,7 @@ export function GroceryStockEditDialog({
               <span className="font-semibold text-foreground">{current}</span>
             </p>
             <label className="block">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              <span className="text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                 New quantity
               </span>
               <input
@@ -196,7 +196,7 @@ export function GroceryStockEditDialog({
             </label>
             {allowMinStock ? (
               <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                <span className="text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                   Minimum stock
                 </span>
                 <input
@@ -214,7 +214,7 @@ export function GroceryStockEditDialog({
             ) : null}
             {allowParLevel ? (
               <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                <span className="text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                   Order up to
                 </span>
                 <input
@@ -232,7 +232,7 @@ export function GroceryStockEditDialog({
             ) : null}
             {increasing ? (
               <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                <span className="text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                   Unit cost (optional)
                 </span>
                 <input

@@ -163,39 +163,24 @@ export function GroceryInvoiceSuccess({
   const status = statusConfig[lifecycle];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_90%,#f1ece3)] shadow-[4px_4px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent),0_28px_80px_rgba(0,0,0,0.28)] ring-1 ring-black/[0.04] dark:bg-card dark:ring-white/[0.06] animate-in zoom-in-95 fade-in duration-300">
-        {/* Teal shelf rail */}
-        <div
-          aria-hidden
-          className="absolute inset-x-0 top-0 h-2 bg-[var(--pos-primary,#0f766e)]"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-x-0 top-2 h-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]"
-        />
-
-        {/* Close button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white dark:bg-card animate-in zoom-in-95 fade-in duration-300">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_80%,transparent)] text-muted-foreground shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] transition-all duration-200 hover:bg-white hover:text-foreground active:scale-90 dark:bg-white/10 dark:hover:bg-white/20"
+          className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]"
           aria-label="Close"
         >
           <X className="size-4" />
         </button>
 
-        <div className="relative flex flex-col items-center px-6 pb-7 pt-12 text-center sm:px-8 sm:pt-14">
-          {/* Success icon */}
-          <div className="relative mb-5">
-            <div className="absolute inset-0 -m-3 bg-[var(--pos-primary,#0f766e)]/15 blur-2xl dark:bg-[var(--pos-primary,#0f766e)]/20" />
-            <div className="relative flex size-20 items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] shadow-[3px_3px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]">
-              <CheckCircle2 className="size-11 text-[var(--pos-primary-ink,#fff)]" strokeWidth={2.25} />
-            </div>
+        <div className="relative flex flex-col items-center px-6 pb-7 pt-10 text-center sm:px-8">
+          <div className="mb-5 flex size-16 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white">
+            <CheckCircle2 className="size-8 text-[var(--pos-primary,#0f766e)]" strokeWidth={2.25} />
           </div>
 
-          <h2 className="text-[24px] font-bold tracking-tight text-foreground">
-            Invoice Ready
+          <h2 className="font-heading text-[22px] font-semibold tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
+            Invoice ready
           </h2>
           <p
             className={`mt-2 inline-flex max-w-[18rem] items-center justify-center gap-1.5 text-[13.5px] leading-relaxed ${status.tone}`}
@@ -205,7 +190,7 @@ export function GroceryInvoiceSuccess({
           </p>
 
           {/* Barcode */}
-          <div className="mt-6 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-white p-5 shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] dark:bg-white">
+          <div className="mt-6 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-5 dark:bg-white">
             <div
               className="mx-auto flex max-w-[280px] justify-center"
               dangerouslySetInnerHTML={{ __html: barcodeSvg }}
@@ -216,7 +201,7 @@ export function GroceryInvoiceSuccess({
           </div>
 
           {/* Invoice summary */}
-          <div className="mt-5 w-full space-y-2.5 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,transparent)] p-4 text-left">
+          <div className="mt-5 w-full space-y-2.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 text-left">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
                 <ShoppingBasket className="size-3.5" />
@@ -230,7 +215,7 @@ export function GroceryInvoiceSuccess({
               <span className="text-[13px] font-medium text-muted-foreground">
                 Total
               </span>
-              <span className="text-[22px] font-bold tabular-nums tracking-tight text-foreground">
+              <span className="font-heading text-[22px] font-semibold tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
                 {currency} {invoice.grandTotal.toFixed(2)}
               </span>
             </div>
@@ -250,7 +235,7 @@ export function GroceryInvoiceSuccess({
             <button
               type="button"
               onClick={() => window.print()}
-              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-white px-4 text-[13.5px] font-semibold text-foreground shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] transition-all duration-200 hover:bg-muted/50 active:scale-[0.97] touch-manipulation dark:bg-white/[0.02]"
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 text-[13px] font-semibold text-[var(--order-ink,#15231f)] transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)] active:scale-[0.97] touch-manipulation"
             >
               <Printer className="size-4" />
               Print
@@ -258,7 +243,7 @@ export function GroceryInvoiceSuccess({
             <button
               type="button"
               onClick={onNewInvoice}
-              className="group relative flex h-12 flex-1 items-center justify-center gap-2 overflow-hidden rounded-none bg-[var(--pos-primary,#0f766e)] px-4 text-[13.5px] font-bold text-[var(--pos-primary-ink,#fff)] shadow-[3px_3px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] transition-all duration-200 hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)] active:scale-[0.97] touch-manipulation"
+              className="group relative flex h-11 flex-1 items-center justify-center gap-2 overflow-hidden rounded-none bg-[var(--pos-primary,#0f766e)] px-4 text-[13px] font-semibold text-[var(--pos-primary-ink,#fff)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)] active:scale-[0.97] touch-manipulation"
             >
               <PlusCircle className="size-4 transition-transform duration-200 group-hover:rotate-90" />
               New Sale

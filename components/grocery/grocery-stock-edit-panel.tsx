@@ -23,7 +23,7 @@ export function GroceryStockEditPanel({
         </p>
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
-        <span className="flex size-10 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]">
+        <span className="flex size-10 items-center justify-center border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
           <PencilLine className="size-4" aria-hidden />
         </span>
         {lastLabel != null && lastQty != null ? (

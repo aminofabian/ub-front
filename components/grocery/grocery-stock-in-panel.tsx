@@ -101,7 +101,7 @@ export function GroceryStockInPanel({ onOpenTill }: GroceryStockInPanelProps) {
                       "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)] dark:border-border/40",
                     )}
                   >
-                    <span className="flex size-8 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]">
+                    <span className="flex size-8 shrink-0 items-center justify-center border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
                       <Truck className="size-3.5" aria-hidden />
                     </span>
                     <span className="min-w-0 flex-1">

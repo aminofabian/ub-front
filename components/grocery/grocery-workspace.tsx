@@ -1,18 +1,13 @@
 "use client";
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * THE GROCERY COUNTER — marketplace shelf grammar (paper · ink · teal)
+ * THE GROCERY COUNTER — same visual language as /order
  *
- * THESIS: the counter is a till shelf — paper product tiles, a teal rail
- *   header, and a department strip that reads like tickets clipped to the
- *   shelf edge. Refuses the generic dashboard card look.
- * OWN-WORLD: pos-paper ground, ink hairlines, sharp corners, teal rails and
- *   active states, uppercase tracked micro-labels, tabular ledger figures.
- * STORY: the clerk scans the shelf, taps a product to add it to the cart,
- *   and the cart panel reads like the day's paper ledger.
- * FIRST VIEWPORT: teal rail header (tenant mark, branch, clock, online);
- *   paper search with scan; department ticket rail (left, md+); product
- *   shelf tiles; right paper cart ledger.
+ * White page, hairline ink borders, rounded-none. Selection is teal border
+ * + teal text. Primary CTAs (Scan, Generate) may be teal filled squares.
+ * Product image covers ~3/4 of the well (object-contain); price and qty sit
+ * under the image, never over it. No cream paper, no offset shadows, no
+ * uppercase tracked kickers, no dark filled header.
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 import {
@@ -178,7 +173,7 @@ function LiveClock() {
   });
 
   return (
-    <span className="hidden items-center gap-1.5 rounded-none border border-white/25 bg-white/10 px-2 py-1 text-xs font-medium tabular-nums text-[var(--pos-primary-ink,#fff)]/85 sm:inline-flex">
+    <span className="hidden items-center gap-1 text-[11px] font-medium tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] sm:inline-flex">
       <Clock3 className="size-3" />
       {time}
     </span>
@@ -237,7 +232,7 @@ function ProductCardAddPhotoButton({
           inputRef.current?.click();
         }}
         onPointerDown={(e) => e.stopPropagation()}
-        className="absolute bottom-1 right-1 z-[3] flex size-7 items-center justify-center rounded-none border border-white/50 bg-black/55 text-white shadow-sm backdrop-blur-[1px] transition-colors hover:bg-black/70 disabled:opacity-70"
+        className="absolute bottom-1 right-1 z-[3] flex size-7 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--order-ink,#15231f)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,#fff)] disabled:opacity-70"
         aria-label={`Update photo for ${itemName}`}
         title="Update photo"
       >
@@ -284,7 +279,7 @@ function ProductCard({
 }) {
   const thumb = itemListThumbnailUrl(item);
   const title = cashierItemPrimaryLabel(item);
-  const { amount, code } = splitShelfPriceDisplay(shelfLine);
+  const { amount } = splitShelfPriceDisplay(shelfLine);
   const hasPrice =
     amount &&
     amount !== CASHIER_POS_UI_COPY.tileShelfEmpty &&
@@ -314,42 +309,31 @@ function ProductCard({
             : `Add ${title} to cart`
       }
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-none border text-left",
-        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-        "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]",
-        "transition-[border-color,background-color,box-shadow] duration-150",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
+        "group relative flex flex-col overflow-hidden rounded-none border bg-white text-left",
+        "transition-[border-color] duration-150",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
         "touch-manipulation select-none",
         inCart
-          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,transparent)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-primary,#0f766e)_24%,transparent)]"
-          : "hover:z-[1] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_34%,transparent)] hover:bg-card hover:shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+          ? "border-[var(--pos-primary,#0f766e)]"
+          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]",
       )}
     >
-      {/* Image area */}
-      <div className="relative aspect-square w-full overflow-hidden bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_60%,transparent)]">
+      <div className="relative aspect-[3/4] w-full overflow-hidden bg-white">
         {thumb ? (
-          <Image
-            src={thumb}
-            alt=""
-            width={240}
-            height={240}
-            className="h-full w-full object-cover"
-            unoptimized
-            draggable={false}
-          />
+          <span className="absolute left-1/2 top-1/2 h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2">
+            <Image
+              src={thumb}
+              alt=""
+              fill
+              sizes="180px"
+              className="object-contain object-center"
+              unoptimized
+              draggable={false}
+            />
+          </span>
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <ShoppingBasket className="size-7 text-muted-foreground/40" />
-          </div>
-        )}
-
-        {inCart && (
-          <span
-            key={cartQty}
-            className="absolute right-1.5 top-1.5 z-[2] inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] px-1 text-[9px] font-semibold tabular-nums text-[var(--pos-primary-ink,#fff)]"
-            aria-hidden
-          >
-            ×{cartQty}
+          <span className="absolute left-1/2 top-1/2 flex h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2 items-center justify-center">
+            <ShoppingBasket className="size-7 text-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]" />
           </span>
         )}
 
@@ -362,56 +346,33 @@ function ProductCard({
         ) : null}
       </div>
 
-      {/* Info */}
-      <div className="flex flex-1 flex-col justify-between gap-1 px-2 pb-2 pt-1.5">
-        <p className="line-clamp-2 text-[11px] font-medium leading-snug text-foreground">
+      <div className="flex min-w-0 flex-col border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2 pb-2 pt-1.5">
+        <p className="line-clamp-2 text-[11px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
           {title}
         </p>
         {showOnHand ? (
-          <p className="text-[10px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
+          <p className="mt-0.5 text-[10px] font-medium tabular-nums text-[var(--pos-primary,#0f766e)]">
             {onHand} on hand
           </p>
         ) : null}
 
-        {lineTotalSplit ? (
-          <div className="flex min-w-0 items-end justify-between gap-2">
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="flex items-baseline gap-1 leading-none">
-                <span className="truncate text-[13px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] dark:text-[#2dd4bf]">
-                  {lineTotalSplit.amount}
-                </span>
-                {lineTotalSplit.code && (
-                  <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                    {lineTotalSplit.code}
-                  </span>
-                )}
-              </span>
-              <span className="truncate text-[10px] tabular-nums leading-none text-muted-foreground">
-                {cartQty}&thinsp;&times;&thinsp;{amount}
-                {code ? ` ${code}` : ""}
-              </span>
-            </div>
-          </div>
-        ) : (
-        <div className="flex items-baseline gap-1">
-          {hasPrice ? (
-            <>
-              <span className="text-[12px] font-semibold tabular-nums leading-none text-foreground">
-                {amount}
-              </span>
-              {code && (
-                <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {code}
-                </span>
-              )}
-            </>
-          ) : (
-            <span className="text-[11px] text-muted-foreground">
-              {shelfLine || "—"}
-            </span>
-          )}
+        <div className="mt-1.5 flex min-w-0 items-baseline justify-between gap-2">
+          <p
+            className={cn(
+              "min-w-0 truncate font-heading text-[14px] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+              hasPrice
+                ? "text-[var(--order-ink,#15231f)]"
+                : "font-sans text-[11px] font-medium tracking-normal text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]",
+            )}
+          >
+            {hasPrice ? amount : shelfLine || "—"}
+          </p>
+          {inCart ? (
+            <p className="shrink-0 font-heading text-[12px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
+              {lineTotalSplit ? lineTotalSplit.amount : `×${cartQty}`}
+            </p>
+          ) : null}
         </div>
-        )}
       </div>
     </button>
   );
@@ -1402,10 +1363,10 @@ export function GroceryWorkspace() {
         }
       >
       {/* ── App header ── */}
-      <header className="relative z-30 shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[var(--pos-primary,#0f766e)] pt-[env(safe-area-inset-top,0px)] text-[var(--pos-primary-ink,#fff)]">
-        <div className="relative flex items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-none border border-white/25 bg-white/10 sm:size-11">
+      <header className="relative z-30 shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pt-[env(safe-area-inset-top,0px)] text-[var(--order-ink,#15231f)]">
+        <div className="relative flex items-center justify-between gap-2 px-3 py-1 sm:px-4">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
               <TenantLogo
                 brand={tenantTitle}
                 logoUrl={business?.branding?.logoUrl}
@@ -1415,23 +1376,21 @@ export function GroceryWorkspace() {
               />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--pos-primary-ink,#fff)]/70">
-                {tenantTitle}
-              </p>
-              <h1 className="truncate font-heading text-lg font-semibold leading-tight tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-xl">
+              <h1 className="truncate font-heading text-[15px] font-semibold leading-tight tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
                 {groceryModeTitle(counterMode)}
               </h1>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--pos-primary-ink,#fff)]/75">
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                <span className="truncate font-medium">{tenantTitle}</span>
                 <span className="inline-flex min-w-0 items-center gap-1">
-                  <MapPin className="size-3 shrink-0 opacity-80" aria-hidden />
-                  <span className="truncate font-medium">
+                  <MapPin className="size-3 shrink-0" aria-hidden />
+                  <span className="truncate">
                     {branchesLoading
                       ? "Loading…"
                       : activeBranchName || "Select branch"}
                   </span>
                 </span>
                 {activeDepartmentLabel ? (
-                  <span className="inline-flex items-center gap-1 border-l border-white/20 pl-2">
+                  <span className="inline-flex items-center gap-1 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pl-2">
                     {activeDepartmentLabel}
                   </span>
                 ) : null}
@@ -1439,17 +1398,17 @@ export function GroceryWorkspace() {
                   <Link
                     href={`/inventory/restock-digest/${activeRestockRun.runId}${canReviewDigest ? "" : "/prep"}`}
                     title={`Tonight's list — ${activeRestockRun.lineCount} items`}
-                    className="inline-flex max-w-full items-center gap-1 border-l border-white/20 pl-2 font-semibold text-[var(--pos-primary-ink,#fff)] underline-offset-2 hover:underline"
+                    className="inline-flex max-w-full items-center gap-1 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pl-2 font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
                   >
                     <ClipboardList className="size-3 shrink-0" aria-hidden />
                     <span className="truncate">Tonight&apos;s list</span>
-                    <span className="rounded-none bg-white/25 px-1 text-[10px] font-bold tabular-nums">
+                    <span className="rounded-none border border-[var(--pos-primary,#0f766e)] px-1 text-[10px] font-bold tabular-nums">
                       {activeRestockRun.lineCount}
                     </span>
                   </Link>
                 ) : null}
                 {cashierName ? (
-                  <span className="hidden border-l border-white/20 pl-2 sm:inline">
+                  <span className="hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pl-2 sm:inline">
                     {cashierName}
                   </span>
                 ) : null}
@@ -1457,20 +1416,20 @@ export function GroceryWorkspace() {
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
+          <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
             <GroceryModeSwitcher
               mode={counterMode}
               modes={availableModes}
               onChange={switchCounterMode}
               className="order-2 w-full sm:order-1 sm:w-auto"
             />
-            <div className="order-1 flex shrink-0 items-center gap-1.5 sm:order-2">
+            <div className="order-1 flex shrink-0 items-center gap-1 sm:order-2">
             {allowGroceryOrderPad ? (
               <button
                 type="button"
                 onClick={() => setOrderPadOpen(true)}
                 title="Order"
-                className="inline-flex items-center gap-1.5 rounded-none border border-white/25 bg-white/15 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--pos-primary-ink,#fff)] transition-colors hover:bg-white/25"
+                className="inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]"
               >
                 <ShoppingBasket className="size-3" aria-hidden />
                 <span className="hidden min-[420px]:inline">Order</span>
@@ -1481,7 +1440,7 @@ export function GroceryWorkspace() {
                 type="button"
                 onClick={() => setOrderConfirmOpen(true)}
                 title="Confirm orders"
-                className="inline-flex items-center gap-1.5 rounded-none border border-white/25 bg-white/15 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--pos-primary-ink,#fff)] transition-colors hover:bg-white/25"
+                className="inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]"
               >
                 <ClipboardCheck className="size-3" aria-hidden />
                 <span className="hidden min-[420px]:inline">Confirm</span>
@@ -1498,10 +1457,10 @@ export function GroceryWorkspace() {
                     : "Update product photos"
                 }
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-none border px-2 py-1 text-[10px] font-medium uppercase tracking-wide transition-colors",
+                  "inline-flex h-8 items-center gap-1 rounded-none border bg-white px-2 text-[11px] font-semibold transition-colors",
                   imageEditMode
-                    ? "border-white bg-white text-[var(--pos-primary,#0f766e)] shadow-sm"
-                    : "border-white/25 bg-white/15 text-[var(--pos-primary-ink,#fff)] hover:bg-white/25",
+                    ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
+                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                 )}
               >
                 <ImagePlus className="size-3" aria-hidden />
@@ -1513,28 +1472,28 @@ export function GroceryWorkspace() {
             <LiveClock />
             <span
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-none border px-2 py-1 text-[10px] font-medium uppercase tracking-wide",
+                "inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] font-semibold",
                 online
-                  ? "border-white/25 bg-white/15 text-[var(--pos-primary-ink,#fff)]"
-                  : "border-white/15 bg-white/10 text-[var(--pos-primary-ink,#fff)]/80",
+                  ? "text-[var(--pos-primary,#0f766e)]"
+                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
               )}
             >
               <span
                 className={cn(
                   "size-1.5 rounded-full",
-                  online ? "bg-white" : "bg-white/60",
+                  online ? "bg-[var(--pos-primary,#0f766e)]" : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_35%,transparent)]",
                 )}
               />
               <span className="hidden min-[380px]:inline">
                 {online ? "Online" : "Offline"}
               </span>
             </span>
-            <RealtimeConnectionIndicator />
+            <RealtimeConnectionIndicator className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-0 text-[11px] font-semibold normal-case tracking-normal" />
             <button
               type="button"
               disabled={counterLocked}
               onClick={() => lockCounter({ reason: "manual" })}
-              className="inline-flex items-center gap-1.5 rounded-none border border-white/25 bg-white/15 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--pos-primary-ink,#fff)] transition-colors hover:bg-white/25 disabled:opacity-50"
+              className="inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-50"
               aria-label="Lock counter"
             >
               <LockKeyhole className="size-3" aria-hidden />
@@ -1554,7 +1513,7 @@ export function GroceryWorkspace() {
           <button
             type="button"
             onClick={() => setError(null)}
-            className="flex size-7 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-red-200/60 active:scale-90 dark:hover:bg-red-900/40"
+            className="flex size-7 shrink-0 items-center justify-center rounded-none transition-colors hover:bg-red-200/60 active:scale-90 dark:hover:bg-red-900/40"
             aria-label="Dismiss"
           >
             <X className="size-3.5" />
@@ -1566,7 +1525,7 @@ export function GroceryWorkspace() {
       <div className="relative z-10 flex min-h-0 flex-1 flex-row">
         {/* ── FIRST COLUMN: Counter QWERTY keyboard (md+) ── */}
         {keyboardOpen && (
-          <div className="hidden min-h-0 w-[24rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_35%,transparent)] md:flex lg:w-[26rem] xl:w-[28rem]">
+          <div className="hidden min-h-0 w-[24rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white md:flex lg:w-[26rem] xl:w-[28rem]">
             <CounterKeyboard
               value={search}
               onChange={setSearch}
@@ -1585,9 +1544,9 @@ export function GroceryWorkspace() {
           )}
         >
           {/* Sticky search */}
-          <div className="sticky top-0 z-20 shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[var(--pos-paper,#f1ece3)] px-3 pb-3 pt-2.5 sm:px-4 sm:pt-3">
-            <div className="flex items-center gap-2">
-              <div className="group relative flex h-11 flex-1 items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,#fff_86%,var(--pos-paper,#f1ece3))] pl-3 pr-1.5 focus-within:border-[var(--pos-primary,#0f766e)] focus-within:ring-2 focus-within:ring-[var(--pos-primary,#0f766e)]/25 sm:h-12 sm:pl-3.5">
+          <div className="sticky top-0 z-20 shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5 sm:px-4">
+            <div className="flex items-center gap-1.5">
+              <div className="group relative flex h-10 flex-1 items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-3 pr-1.5 focus-within:border-[var(--pos-primary,#0f766e)] sm:pl-3.5">
                 <Search className="size-4 shrink-0 text-muted-foreground" />
                 <input
                   ref={searchInputRef}
@@ -1610,7 +1569,7 @@ export function GroceryWorkspace() {
                 {/* ⌘K hint */}
                 <kbd
                   aria-hidden
-                  className="mr-1 hidden h-6 select-none items-center gap-0.5 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-1.5 text-[10px] font-medium text-muted-foreground md:inline-flex"
+                  className="mr-1 hidden h-6 select-none items-center gap-0.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 text-[10px] font-medium text-muted-foreground md:inline-flex"
                 >
                   <Command className="size-3" />K
                 </kbd>
@@ -1627,7 +1586,7 @@ export function GroceryWorkspace() {
                 <button
                   type="button"
                   onClick={() => setShowScanner(true)}
-                  className="ml-0.5 flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 text-xs font-medium text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]"
+                  className="ml-0.5 flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 text-[12px] font-semibold text-[var(--pos-primary-ink,#fff)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]"
                   aria-label="Scan barcode"
                 >
                   <ScanLine className="size-[17px]" strokeWidth={2.25} />
@@ -1641,12 +1600,12 @@ export function GroceryWorkspace() {
                   aria-pressed={keyboardOpen}
                   aria-label={keyboardOpen ? "Close on-screen keyboard" : "Open on-screen keyboard"}
                   className={cn(
-                    "flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-none border px-2.5 text-xs font-medium transition-colors sm:px-3",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
+                    "flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-none border bg-white px-2.5 text-[12px] font-semibold transition-colors sm:px-3",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
                     "touch-manipulation select-none",
                     keyboardOpen
-                      ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]"
-                      : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,#fff_86%,var(--pos-paper,#f1ece3))] text-[var(--pos-ink,#1c1915)] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_30%,transparent)]",
+                      ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
+                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                   )}
                 >
                   <Keyboard className="size-[17px]" strokeWidth={2.25} />
@@ -1670,12 +1629,12 @@ export function GroceryWorkspace() {
                 }
                 title="Use the device's default on-screen keyboard"
                 className={cn(
-                  "flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-none border px-2.5 text-xs font-medium transition-colors sm:px-3",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
+                  "flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-none border bg-white px-2.5 text-[12px] font-semibold transition-colors sm:px-3",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
                   "touch-manipulation select-none",
                   useSystemKeyboard
-                    ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]"
-                    : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,#fff_86%,var(--pos-paper,#f1ece3))] text-muted-foreground hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_30%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
+                    ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
+                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                 )}
               >
                 <MonitorSmartphone className="size-[17px]" strokeWidth={2.25} />
@@ -1722,7 +1681,7 @@ export function GroceryWorkspace() {
             {/* Top fade for scroll cue */}
             <span
               aria-hidden
-              className="pointer-events-none sticky top-0 z-[1] -mb-2 block h-3 w-full bg-gradient-to-b from-[var(--pos-paper,#f1ece3)] to-transparent"
+              className="pointer-events-none sticky top-0 z-[1] -mb-2 block h-3 w-full bg-gradient-to-b from-white to-transparent"
             />
 
             {/* Search results */}
@@ -1739,7 +1698,7 @@ export function GroceryWorkspace() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-6 lg:grid-cols-8">
+                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                     {hits.map((item) => {
                       const d = lineDataByItem.get(item.id);
                       return (
@@ -1770,7 +1729,7 @@ export function GroceryWorkspace() {
             {showCatalog && (
               <section className="mb-6">
                 {!online ? (
-                  <div className="rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-4 py-10 text-center">
+                  <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-10 text-center">
                     <WifiOff className="mx-auto mb-2 size-6 text-muted-foreground" />
                     <p className="text-sm font-medium text-foreground">
                       Offline
@@ -1800,7 +1759,7 @@ export function GroceryWorkspace() {
                     ) : null}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-6 lg:grid-cols-8">
+                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                     {browseCatalog.map((item) => {
                       const d = lineDataByItem.get(item.id);
                       return (
@@ -1838,7 +1797,7 @@ export function GroceryWorkspace() {
         {/* ── RIGHT: Cart side panel (iPad md+) ── */}
         <aside
           className={cn(
-            "hidden shrink-0 flex-col border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] md:flex",
+            "hidden shrink-0 flex-col border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white md:flex",
             keyboardOpen
               ? "md:w-[22rem] lg:w-[24rem] xl:w-[26rem]"
               : "md:w-[42%] lg:w-[40%] xl:w-[38%]",
@@ -1939,19 +1898,19 @@ export function GroceryWorkspace() {
                 setCartPanelTab("sale");
                 setShowCartDrawer(true);
               }}
-              className="flex h-12 flex-1 items-center gap-3 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] pl-3 pr-3 shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]"
+              className="flex h-11 flex-1 items-center gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-3 pr-3"
             >
-              <span className="relative flex size-9 shrink-0 items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]">
+              <span className="relative flex size-8 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]">
                 <ShoppingBasket className="size-4" strokeWidth={2.25} />
-                <span className="absolute -right-1.5 -top-1.5 flex min-w-[1.1rem] items-center justify-center rounded-none bg-foreground px-1 text-[9px] font-semibold leading-none text-background tabular-nums">
+                <span className="absolute -right-1.5 -top-1.5 flex min-w-[1.1rem] items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-1 text-[9px] font-semibold leading-none tabular-nums text-[var(--pos-primary,#0f766e)]">
                   {cartItemCount}
                 </span>
               </span>
               <div className="min-w-0 flex-1 text-left">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                   {cartItemCount} item{cartItemCount === 1 ? "" : "s"}
                 </p>
-                <p className="truncate text-sm font-semibold tabular-nums text-foreground">
+                <p className="truncate font-heading text-[14px] font-semibold tabular-nums tracking-[-0.03em] text-[var(--pos-primary,#0f766e)]">
                   {formatShelfPriceLabel(grandTotal, currency) ??
                     `${currency} ${grandTotal.toFixed(2)}`}
                 </p>
@@ -1974,13 +1933,13 @@ export function GroceryWorkspace() {
             }
             disabled={loading}
             className={cn(
-              "flex h-12 shrink-0 items-center justify-center gap-2 rounded-none px-4 text-sm font-medium sm:px-5",
+              "flex h-11 shrink-0 items-center justify-center gap-2 rounded-none px-4 text-[13px] font-semibold sm:px-5",
               "transition-colors active:scale-[0.98]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
               "disabled:pointer-events-none disabled:opacity-50",
               isEmptyCart
-                ? "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] text-foreground"
-                : "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
+                ? "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--order-ink,#15231f)]"
+                : "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
               isEmptyCart && "flex-1",
             )}
           >
@@ -1996,7 +1955,7 @@ export function GroceryWorkspace() {
                   {forwardedInvoices.length > 0 ? "Forwarded" : "View Cart"}
                 </span>
                 {forwardedInvoices.length > 0 ? (
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold tabular-nums text-primary">
+                  <span className="rounded-none border border-[var(--pos-primary,#0f766e)] px-2 py-0.5 text-[11px] font-bold tabular-nums text-[var(--pos-primary,#0f766e)]">
                     {forwardedInvoices.length}
                   </span>
                 ) : null}
@@ -2006,7 +1965,7 @@ export function GroceryWorkspace() {
                 <Receipt className="size-4" strokeWidth={2.25} />
                 <span className="hidden sm:inline">Generate Invoice</span>
                 <span className="sm:hidden">Generate</span>
-                <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs font-bold tabular-nums">
+                <span className="rounded-none bg-white/20 px-2 py-0.5 text-[11px] font-bold tabular-nums">
                   {cartItemCount}
                 </span>
               </>
@@ -2046,21 +2005,20 @@ export function GroceryWorkspace() {
         >
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/55 backdrop-blur-md animate-in fade-in duration-200"
+            className="absolute inset-0 bg-black/40 animate-in fade-in duration-200"
             onClick={() => setShowCartDrawer(false)}
           />
 
           <div
             className={cn(
               "absolute bottom-0 left-0 right-0 flex max-h-[88vh] flex-col",
-              "rounded-t-[1.75rem] bg-[linear-gradient(180deg,#fdfcfa_0%,#faf8f4_100%)]",
-              "shadow-[0_-16px_56px_rgba(15,23,42,0.25)]",
+              "rounded-t-none border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
               "animate-in slide-in-from-bottom duration-300",
               "dark:bg-card",
             )}
           >
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1.5 w-12 rounded-full bg-zinc-300 dark:bg-white/15" />
+            <div className="flex justify-center pt-2 pb-1">
+              <div className="h-0.5 w-10 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]" />
             </div>
 
             {counterMode === "stockIn" ? (

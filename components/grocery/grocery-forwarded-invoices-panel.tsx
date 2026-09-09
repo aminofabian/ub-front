@@ -171,7 +171,7 @@ function ForwardedInvoiceCard({
             <button
               type="button"
               onClick={() => onViewInvoice(invoice)}
-              className="rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] px-2.5 py-1.5 text-xs font-medium text-foreground hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_30%,transparent)]"
+              className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[var(--order-ink,#15231f)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]"
             >
               View
             </button>
@@ -289,34 +289,46 @@ export function GroceryCartTabs({
   forwardedCount,
 }: GroceryCartTabsProps) {
   return (
-    <div className="flex shrink-0 gap-1 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 py-2 sm:px-4">
+    <div className="flex shrink-0 divide-x divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
       <button
         type="button"
         onClick={() => onTabChange("sale")}
         className={cn(
-          "flex flex-1 items-center justify-center gap-1.5 rounded-none px-3 py-2 text-xs font-semibold transition-colors",
+          "relative flex h-8 flex-1 items-center justify-center gap-1.5 rounded-none px-3 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
           activeTab === "sale"
-            ? "border border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
-            : "border border-transparent text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
+            ? "bg-white text-[var(--pos-primary,#0f766e)]"
+            : "bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
         )}
       >
+        {activeTab === "sale" ? (
+          <span
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--pos-primary,#0f766e)]"
+          />
+        ) : null}
         <Receipt className="size-3.5" />
-        New Sale
+        New sale
       </button>
       <button
         type="button"
         onClick={() => onTabChange("forwarded")}
         className={cn(
-          "flex flex-1 items-center justify-center gap-1.5 rounded-none px-3 py-2 text-xs font-semibold transition-colors",
+          "relative flex h-8 flex-1 items-center justify-center gap-1.5 rounded-none px-3 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
           activeTab === "forwarded"
-            ? "border border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
-            : "border border-transparent text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
+            ? "bg-white text-[var(--pos-primary,#0f766e)]"
+            : "bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
         )}
       >
+        {activeTab === "forwarded" ? (
+          <span
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--pos-primary,#0f766e)]"
+          />
+        ) : null}
         <Send className="size-3.5" />
         Forwarded
         {forwardedCount > 0 ? (
-          <span className="inline-flex min-w-[1.1rem] items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] px-1 text-[10px] font-bold text-[var(--pos-primary-ink,#fff)]">
+          <span className="inline-flex min-w-[1.1rem] items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] px-1 text-[10px] font-bold text-[var(--pos-primary,#0f766e)]">
             {forwardedCount > 9 ? "9+" : forwardedCount}
           </span>
         ) : null}

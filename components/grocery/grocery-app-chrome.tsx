@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 /** Bottom inset for content above the grocery tab bar + safe area. */
 export const GROCERY_TAB_BAR_CLEARANCE =
-  "calc(4.75rem + env(safe-area-inset-bottom, 0px))";
+  "calc(2.75rem + env(safe-area-inset-bottom, 0px))";
 
 type GroceryAppBottomNavProps = {
   activeTab: "counter" | "invoices";
@@ -32,17 +32,9 @@ export function GroceryAppBottomNav({ activeTab }: GroceryAppBottomNavProps) {
   return (
     <nav
       aria-label="Grocery navigation"
-      className="grocery-bottom-nav pointer-events-none absolute inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] pt-2 sm:px-5"
+      className="grocery-bottom-nav pointer-events-none absolute inset-x-0 bottom-0 z-40 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pb-[env(safe-area-inset-bottom,0px)]"
     >
-      <div
-        className={cn(
-          "tablet-bottom-nav-dock pointer-events-auto flex w-full max-w-md items-stretch justify-between gap-1",
-          "rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
-          "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] px-1.5 py-1.5",
-          "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
-          "dark:border-white/10 dark:bg-card/70",
-        )}
-      >
+      <div className="pointer-events-auto flex w-full items-stretch divide-x divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -52,43 +44,20 @@ export function GroceryAppBottomNav({ activeTab }: GroceryAppBottomNavProps) {
               href={tab.href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "tablet-nav-tab flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-none px-1 py-1 transition-colors",
-                "active:scale-[0.97]",
-                isActive &&
-                  "tablet-nav-tab-active bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]",
+                "tablet-nav-tab relative flex h-10 min-w-0 flex-1 items-center justify-center gap-1.5 px-2 transition-colors",
+                isActive
+                  ? "tablet-nav-tab-active bg-white text-[var(--pos-primary,#0f766e)]"
+                  : "bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:text-[var(--order-ink,#15231f)]",
               )}
             >
-              <span
-                className={cn(
-                  "relative flex size-9 items-center justify-center rounded-none transition-all duration-200 sm:size-10",
-                  isActive && "scale-105",
-                )}
-              >
-                {isActive ? (
-                  <span
-                    className="absolute inset-0 rounded-none bg-white/10 ring-1 ring-white/25"
-                    aria-hidden
-                  />
-                ) : null}
-                <Icon
-                  className={cn(
-                    "relative size-[1.15rem] sm:size-5",
-                    isActive
-                      ? "text-[var(--pos-primary-ink,#fff)]"
-                      : "text-muted-foreground",
-                  )}
-                  strokeWidth={isActive ? 2.25 : 2}
+              {isActive ? (
+                <span
                   aria-hidden
+                  className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--pos-primary,#0f766e)]"
                 />
-              </span>
-              <span
-                className={cn(
-                  "max-w-[4.5rem] truncate text-[9px] font-semibold leading-none sm:text-[10px]",
-                  isActive
-                    ? "text-[var(--pos-primary-ink,#fff)]"
-                    : "text-muted-foreground",
-                )}
-              >
+              ) : null}
+              <Icon className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+              <span className="truncate text-[12px] font-semibold tracking-[-0.02em]">
                 {tab.label}
               </span>
             </Link>

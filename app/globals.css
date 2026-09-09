@@ -720,29 +720,11 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
 
 /* ── Standalone grocery POS (/grocery) — iPad app frame ─────────────── */
 .grocery-app-root {
-    background: var(--background);
+    background: #fff;
 }
 
-@media (min-width: 768px) {
-    .grocery-app-root {
-        background:
-            radial-gradient(
-                ellipse 120% 80% at 50% -20%,
-                rgba(40, 167, 69, 0.07),
-                transparent 55%
-            ),
-            rgb(245, 245, 245);
-    }
-
-    .dark .grocery-app-root {
-        background:
-            radial-gradient(
-                ellipse 120% 80% at 50% -20%,
-                rgba(40, 167, 69, 0.1),
-                transparent 55%
-            ),
-            rgb(10, 10, 10);
-    }
+.dark .grocery-app-root {
+    background: var(--background);
 }
 
 /* Premium storefront animations */
@@ -4853,15 +4835,20 @@ html:has([data-store-theme-id="comilmart"]) ::selection {
 
 /* ── Grocery counter — marketplace paper shelf atmosphere ───────────── */
 .grocery-market-paper {
-    --pos-paper: #f1ece3;
-    --pos-ink: #1c1915;
-    background-color: var(--pos-paper);
+    --pos-paper: #ffffff;
+    --pos-ink: #15231f;
+    --order-ink: #15231f;
+    --order-shelf: #f3f6f5;
+    --order-slip: #ffffff;
+    --pos-primary: #0f766e;
+    background-color: #fff;
 }
 
 .dark .grocery-market-paper {
-    --pos-paper: color-mix(in srgb, var(--background) 88%, #2a2620);
+    --pos-paper: var(--background);
     --pos-ink: var(--foreground);
-    background-color: var(--pos-paper);
+    --order-ink: var(--foreground);
+    background-color: var(--background);
 }
 
 /* ── Grocery counter — chunky finger-friendly scrollbars ─────────── */

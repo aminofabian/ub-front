@@ -9,9 +9,8 @@ import { cn } from "@/lib/utils";
  * Counter QWERTY — on-screen letter keyboard for the grocery counter on a
  * flipped touch laptop. Lives in its own full-height left column (md+) or as
  * a compact floating panel (phones). Flex-based so the keys stretch to fill
- * whatever space it is given; types into the search field. Marketplace
- * paper/ink/teal grammar: sharp keys with ink hairlines, teal pressed flash,
- * a block shadow, a teal shelf-edge rail and a live "Searching…" echo.
+ * whatever space it is given; types into the search field. White keys, ink
+ * hairlines, teal Done key.
  */
 
 const DIGIT_ROW = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"] as const;
@@ -78,11 +77,11 @@ function QKey({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
         "touch-manipulation active:translate-y-px",
         variant === "letter" &&
-          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,#fff_86%,var(--pos-paper,#f1ece3))] text-[var(--pos-ink,#1c1915)] shadow-[1px_1px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--order-ink,#15231f)]",
         variant === "action" &&
-          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_80%,transparent)] text-[var(--pos-ink,#1c1915)]",
+          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--order-ink,#15231f)]",
         variant === "accent" &&
-          "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
+          "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]",
         pressed && "translate-y-0.5 shadow-none brightness-[0.97]",
         className,
       )}
@@ -112,9 +111,8 @@ export function CounterKeyboard({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-        "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)]",
-        "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+        "flex min-h-0 flex-1 flex-col rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+        "bg-white",
         className,
       )}
     >
@@ -124,7 +122,7 @@ export function CounterKeyboard({
           aria-hidden
           className="h-1 w-8 shrink-0 bg-[var(--pos-primary,#0f766e)]"
         />
-        <span className="text-[8px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
           Keyboard
         </span>
         <span
@@ -183,14 +181,14 @@ export function CounterKeyboard({
             ariaLabel="Clear search"
             variant="action"
             onPress={() => onChange("")}
-            className="flex-1 text-xs font-semibold uppercase tracking-[0.14em]"
+            className="flex-1 text-[12px] font-semibold"
           />
           <QKey
             label="Space"
             ariaLabel="Space"
             variant="action"
             onPress={() => press(" ")}
-            className="flex-[2] text-xs font-semibold uppercase tracking-[0.14em]"
+            className="flex-[2] text-[12px] font-semibold"
           />
           <QKey
             label={<Delete className="size-4" />}
@@ -204,7 +202,7 @@ export function CounterKeyboard({
             ariaLabel="Done"
             variant="accent"
             onPress={onClose}
-            className="flex-1 text-xs font-semibold uppercase tracking-[0.14em]"
+            className="flex-1 text-[12px] font-semibold"
           />
         </div>
       </div>
