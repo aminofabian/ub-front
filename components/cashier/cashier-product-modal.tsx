@@ -40,7 +40,7 @@ import { CashierCurrencySuffix } from "./cashier-currency-inline";
 const QUICK_QTYS = [1, 2, 5, 10] as const;
 
 const MODAL_SECTION_LABEL = cn(
-  "text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+  "text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground",
 );
 
 const modalFieldClass = (extra?: string) =>
@@ -51,13 +51,13 @@ const modalFieldClass = (extra?: string) =>
     extra,
   );
 
-/** Shelf / hint text overlaid on product thumb (matches kiosk tile chips). */
+/** Shelf price chip on the product photo. */
 function ModalShelfBadge({ children }: { children: string }) {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-1 right-1 z-[1] max-w-[calc(100%-0.5rem)] truncate rounded-md border border-border px-1.5 py-0.5",
-        "bg-background text-[9px] font-bold tabular-nums leading-none text-foreground shadow-sm sm:text-[10px]",
+        "pointer-events-none absolute bottom-3 left-3 z-[1] max-w-[calc(100%-1.5rem)] truncate rounded-lg border border-border/80",
+        "bg-background px-2.5 py-1.5 text-[11px] font-bold tabular-nums leading-none text-foreground shadow-md sm:text-xs",
       )}
     >
       {children}
@@ -194,6 +194,15 @@ export function CashierProductModal({
     quantity > 0 &&
     (allowNegativeStock || maxPackages == null || quantity <= maxPackages);
 
+  const stockTone =
+    rowForStock && isPosPackageSellRow(rowForStock)
+      ? headerDetail === "Sold out"
+        ? "text-destructive"
+        : headerDetail === "0 on hand"
+          ? "text-amber-600 dark:text-amber-400"
+          : "text-[var(--pos-primary)]"
+      : "text-muted-foreground";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -202,127 +211,165 @@ export function CashierProductModal({
         overlayClassName="bg-[rgba(0,0,0,0.55)] supports-[backdrop-filter]:bg-[rgba(0,0,0,0.45)]"
         className={cn(
           "gap-0 overflow-hidden border border-border bg-background p-0 shadow-2xl",
-          "w-[calc(100vw-1.25rem)] max-w-[min(22rem,calc(100vw-1.25rem))] sm:max-w-md",
+          "w-[calc(100vw-1.25rem)] max-w-[min(26rem,calc(100vw-1.25rem))] sm:max-w-lg",
+          // Close sits on the photo — solid chip so it stays readable.
+          "[&>button]:right-3 [&>button]:top-3 [&>button]:size-9 [&>button]:border [&>button]:border-border [&>button]:bg-background [&>button]:text-foreground [&>button]:shadow-md",
         )}
         style={brandTheme}
       >
-        <div className="relative overflow-hidden border-b border-border bg-muted px-4 pb-4 pt-5">
-          <DialogHeader className="relative flex flex-col items-center space-y-0 text-center">
-            <div className="relative mx-auto aspect-square w-[min(11.5rem,calc(100vw-3.5rem))] max-w-full shrink-0">
-              {thumb ? (
-                <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border border-border bg-white shadow-lg dark:bg-muted">
-                  <Image
-                    src={thumb}
-                    alt=""
-                    fill
-                    sizes="(max-width: 640px) 70vw, 12rem"
-                    className="object-contain p-3"
-                    unoptimized
-                  />
-                  <ModalShelfBadge>{shelfCaption || uiCopy.modalShelfUnavailable}</ModalShelfBadge>
+        <DialogHeader className="space-y-0 p-0 pr-0 text-left">
+          <div className="relative aspect-[5/4] w-full overflow-hidden bg-muted sm:aspect-[16/11]">
+            {thumb ? (
+              <Image
+                src={thumb}
+                alt=""
+                fill
+                sizes="(max-width: 640px) 92vw, 28rem"
+                className="object-contain p-5 sm:p-7"
+                unoptimized
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span
+                  className="text-7xl font-bold tracking-tight text-[var(--pos-primary)] sm:text-8xl"
+                  aria-hidden
+                >
+                  {headerTitle.trim().charAt(0).toUpperCase() || "?"}
                 </span>
-              ) : (
-                <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted shadow-lg">
-                  <span className="text-5xl font-bold text-[var(--pos-primary)]" aria-hidden>
-                    {headerTitle.trim().charAt(0).toUpperCase() || "?"}
-                  </span>
-                  <ModalShelfBadge>{shelfCaption || uiCopy.modalShelfUnavailable}</ModalShelfBadge>
-                </span>
-              )}
-            </div>
-            <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              {uiCopy.shelfHeading}
-            </p>
-            <DialogTitle className="mt-1 max-w-[20rem] px-1 text-balance line-clamp-3 text-[16px] font-semibold leading-snug tracking-tight text-foreground sm:text-lg">
+              </div>
+            )}
+            <ModalShelfBadge>
+              {shelfCaption || uiCopy.modalShelfUnavailable}
+            </ModalShelfBadge>
+          </div>
+
+          <div className="space-y-1 border-b border-border px-4 pb-3.5 pt-3.5">
+            <DialogTitle className="text-balance line-clamp-2 text-[1.25rem] font-semibold leading-snug tracking-tight text-foreground sm:text-[1.35rem]">
               {item ? headerTitle : "Item"}
             </DialogTitle>
             <DialogDescription
               className={cn(
-                "mt-1 max-w-[20rem] px-1 text-balance leading-snug",
-                rowForStock && isPosPackageSellRow(rowForStock)
-                  ? headerDetail === "Sold out"
-                    ? "text-[11px] font-medium text-destructive"
-                    : headerDetail === "0 on hand"
-                      ? "text-[11px] font-medium text-amber-600 dark:text-amber-400"
-                      : "text-[13px] font-semibold tabular-nums tracking-tight text-[var(--pos-primary)]"
-                  : "text-[11px] font-medium text-muted-foreground",
+                "text-[13px] font-semibold tabular-nums leading-snug tracking-tight",
+                stockTone,
               )}
             >
               {rowForStock ? headerDetail : "—"}
             </DialogDescription>
-          </DialogHeader>
-        </div>
+            {packageQtyHint || packageMaxHint ? (
+              <p className="pt-0.5 text-[11px] leading-snug text-muted-foreground">
+                {[packageQtyHint, packageMaxHint].filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
+          </div>
+        </DialogHeader>
 
-        <div className="space-y-3.5 px-4 pb-4 pt-3.5">
-          <div className="space-y-2">
-            <p className={MODAL_SECTION_LABEL}>Quantity</p>
-            {packageQtyHint ? (
-              <p className="text-center text-[11px] font-medium leading-snug text-muted-foreground">
-                {packageQtyHint}
-              </p>
-            ) : null}
-            {packageMaxHint ? (
-              <p className="text-center text-[11px] leading-snug text-muted-foreground/90">
-                {packageMaxHint}
-              </p>
-            ) : null}
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 shrink-0 rounded-xl border-border bg-background"
-                aria-label="Decrease quantity"
-                disabled={quantity <= 1}
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              >
-                <Minus className="size-4" />
-              </Button>
+        <div className="space-y-3 px-4 pb-4 pt-3.5">
+          <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-3">
+            <div className="min-w-0 space-y-1.5">
+              <p className={MODAL_SECTION_LABEL}>Qty</p>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 shrink-0 rounded-xl border-border bg-background"
+                  aria-label="Decrease quantity"
+                  disabled={quantity <= 1}
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                >
+                  <Minus className="size-4" />
+                </Button>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  aria-label="Quantity"
+                  className={modalFieldClass(
+                    "h-11 min-w-0 flex-1 py-0 text-center text-xl font-bold tabular-nums text-foreground",
+                  )}
+                  value={quantity}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v) && v >= 0) {
+                      const capped =
+                        maxPackages != null ? Math.min(maxPackages, v) : v;
+                      setQuantity(capped);
+                    } else if (e.target.value === "") {
+                      setQuantity(0);
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 shrink-0 rounded-xl border-border bg-background"
+                  aria-label="Increase quantity"
+                  disabled={maxPackages != null && quantity >= maxPackages}
+                  onClick={() =>
+                    setQuantity((q) =>
+                      maxPackages != null ? Math.min(maxPackages, q + 1) : q + 1,
+                    )
+                  }
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </div>
+            </div>
+
+            <label className="min-w-0 space-y-1.5">
+              <span className={MODAL_SECTION_LABEL}>
+                Price
+                {currency ? (
+                  <span className="ml-1 font-medium normal-case tracking-normal text-muted-foreground">
+                    {currency}
+                  </span>
+                ) : null}
+                {!allowPriceEdit ? (
+                  <span className="ml-1 font-medium normal-case tracking-normal text-muted-foreground">
+                    · shelf
+                  </span>
+                ) : null}
+              </span>
               <input
                 type="text"
                 inputMode="decimal"
-                aria-label="Quantity"
+                autoFocus={allowPriceEdit}
+                readOnly={!allowPriceEdit}
+                placeholder={uiCopy.unitPricePlaceholder}
                 className={modalFieldClass(
-                  "h-11 w-[5.5rem] py-0 text-center text-xl font-bold tabular-nums text-foreground sm:text-2xl",
+                  cn(
+                    "h-11 w-full px-2.5 text-right text-lg font-semibold tabular-nums text-foreground",
+                    !allowPriceEdit &&
+                      "cursor-default bg-muted text-muted-foreground",
+                  ),
                 )}
-                value={quantity}
+                value={unitPrice}
                 onChange={(e) => {
-                  const v = Number(e.target.value);
-                  if (Number.isFinite(v) && v >= 0) {
-                    const capped =
-                      maxPackages != null ? Math.min(maxPackages, v) : v;
-                    setQuantity(capped);
-                  } else if (e.target.value === "") {
-                    setQuantity(0);
+                  if (!allowPriceEdit) return;
+                  setUnitPrice(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && canSubmit) {
+                    e.preventDefault();
+                    if (item) {
+                      onSubmit({ item, quantity, unitPrice });
+                    }
                   }
                 }}
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 shrink-0 rounded-xl border-border bg-background"
-                aria-label="Increase quantity"
-                disabled={maxPackages != null && quantity >= maxPackages}
-                onClick={() =>
-                  setQuantity((q) =>
-                    maxPackages != null ? Math.min(maxPackages, q + 1) : q + 1,
-                  )
-                }
-              >
-                <Plus className="size-4" />
-              </Button>
-            </div>
-            <div className="flex flex-wrap justify-center gap-1.5 pt-0.5">
-              {QUICK_QTYS.map((q) => {
-                const overMax = maxPackages != null && q > maxPackages;
-                return (
+            </label>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5">
+            {QUICK_QTYS.map((q) => {
+              const overMax = maxPackages != null && q > maxPackages;
+              return (
                 <button
                   key={q}
                   type="button"
                   disabled={overMax}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-semibold tracking-tight transition-[transform,box-shadow,border-color]",
+                    "min-w-[2.75rem] rounded-lg border px-2.5 py-1.5 text-xs font-semibold tracking-tight transition-[transform,box-shadow,border-color]",
                     "active:scale-[0.97]",
                     overMax && "cursor-not-allowed opacity-40",
                     quantity === q
@@ -331,7 +378,10 @@ export function CashierProductModal({
                   )}
                   style={
                     quantity === q
-                      ? { backgroundColor: "var(--pos-primary)", borderColor: "var(--pos-primary)" }
+                      ? {
+                          backgroundColor: "var(--pos-primary)",
+                          borderColor: "var(--pos-primary)",
+                        }
                       : undefined
                   }
                   onClick={() => setQuantity(overMax ? quantity : q)}
@@ -339,69 +389,33 @@ export function CashierProductModal({
                   ×{formatNum(q)}
                 </button>
               );
-              })}
-            </div>
+            })}
           </div>
 
-          <label className="block space-y-1.5">
-            <span className={MODAL_SECTION_LABEL}>
-              Unit price{currency ? ` (${currency})` : ""}
-              {!allowPriceEdit ? (
-                <span className="ml-1.5 font-medium normal-case tracking-normal text-muted-foreground">
-                  · shelf
-                </span>
-              ) : null}
-            </span>
-            <input
-              type="text"
-              inputMode="decimal"
-              autoFocus={allowPriceEdit}
-              readOnly={!allowPriceEdit}
-              placeholder={uiCopy.unitPricePlaceholder}
-              className={modalFieldClass(
-                cn(
-                  "h-11 w-full px-3 text-right text-lg font-semibold tabular-nums text-foreground",
-                  !allowPriceEdit && "cursor-default bg-muted text-muted-foreground",
-                ),
-              )}
-              value={unitPrice}
-              onChange={(e) => {
-                if (!allowPriceEdit) return;
-                setUnitPrice(e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && canSubmit) {
-                  e.preventDefault();
-                  if (item) {
-                    onSubmit({ item, quantity, unitPrice });
-                  }
-                }
-              }}
-            />
-            {!allowPriceEdit ? (
-              <p className="text-[10px] leading-snug text-muted-foreground">
-                Price edits are locked. An admin can enable them from Cashier
-                permissions.
-              </p>
-            ) : null}
-          </label>
-
-          {subtotalNum != null && subtotalNum > 0 ? (
-            <div className="rounded-xl border border-border bg-muted px-3 py-2.5 text-center shadow-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Line subtotal</p>
-              <p className="mt-0.5 inline-flex items-baseline justify-center gap-0.5 text-lg font-bold tabular-nums text-[var(--pos-primary)] sm:text-xl">
-                <span>{subtotalNum.toFixed(2)}</span>
-                <CashierCurrencySuffix code={currency} />
-              </p>
-            </div>
+          {!allowPriceEdit ? (
+            <p className="text-[10px] leading-snug text-muted-foreground">
+              Price edits are locked. An admin can enable them from Cashier
+              permissions.
+            </p>
           ) : null}
 
-          <DialogFooter className="gap-2 border-t border-border pt-3.5 sm:gap-2">
+          <DialogFooter className="flex-row flex-wrap items-stretch justify-stretch gap-2 border-t border-border pt-3 sm:flex-row sm:justify-stretch">
+            {subtotalNum != null && subtotalNum > 0 ? (
+              <div className="flex min-w-[5.5rem] flex-col justify-center rounded-xl border border-border bg-muted px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  Line
+                </p>
+                <p className="inline-flex items-baseline gap-0.5 text-base font-bold tabular-nums text-[var(--pos-primary)]">
+                  <span>{subtotalNum.toFixed(2)}</span>
+                  <CashierCurrencySuffix code={currency} />
+                </p>
+              </div>
+            ) : null}
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="h-11 rounded-xl border-border bg-background sm:flex-none"
+              className="h-12 shrink-0 rounded-xl border-border bg-background"
             >
               Cancel
             </Button>
@@ -414,7 +428,7 @@ export function CashierProductModal({
                   onSubmit({ item, quantity, unitPrice });
                 }
               }}
-              className="h-11 gap-2 rounded-xl text-[15px] font-semibold shadow-md transition-[transform,opacity,box-shadow] active:scale-[0.99] sm:flex-1 bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:bg-[var(--pos-primary)] hover:opacity-[0.92] hover:shadow-lg"
+              className="h-12 min-w-0 flex-1 gap-2 rounded-xl text-[15px] font-semibold shadow-md transition-[transform,opacity,box-shadow] active:scale-[0.99] bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:bg-[var(--pos-primary)] hover:opacity-[0.92] hover:shadow-lg"
             >
               <ShoppingCart className="size-4 shrink-0" />
               Add to cart
