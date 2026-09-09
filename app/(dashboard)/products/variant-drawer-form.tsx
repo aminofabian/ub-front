@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ChevronDown, ChevronRight, ImagePlus, Plus, Trash2, Upload, X } from "lucide-react";
+import { Camera, ChevronDown, ChevronRight, Plus, Trash2, Upload, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { BarcodeScanner } from "@/components/barcode-scanner";
@@ -13,7 +13,10 @@ import {
   normalizeFamilyPrefix,
   stripFamilyPrefixFromInput,
 } from "./_components/CreateGroupOptionsPad";
-import padStyles from "./_components/product-create-modal.module.css";
+import {
+  FamilyRosterPad,
+  type ExistingFamilyOption,
+} from "./_components/FamilyRosterPad";
 import { type VariantDraft, emptyVariantDraft } from "./_types";
 import { formatAmount, toNumber } from "./_utils";
 import { StockIncreaseFields } from "./_components/StockIncreaseFields";
@@ -32,16 +35,7 @@ import {
 
 export type VariantDrawerDraft = VariantDraft;
 
-export type ExistingFamilyOption = {
-  id: string;
-  label: string;
-  thumbnailUrl?: string | null;
-  sellLabel?: string | null;
-  stockLabel?: string | null;
-  costLabel?: string | null;
-  barcode?: string | null;
-  isPackage?: boolean;
-};
+export type { ExistingFamilyOption };
 
 type Props = {
   variantDraftRows: VariantDraft[];
@@ -53,8 +47,12 @@ type Props = {
   parentCategoryName?: string;
   /** Live family / parent name shown as a prefix on each option field. */
   familyName?: string;
-  /** Options already under this family (read-only context). */
+  /** Options already under this family (editable roster). */
   existingOptions?: ExistingFamilyOption[];
+  rosterBranchId?: string;
+  canCatalogWrite?: boolean;
+  onRefreshRoster?: () => void | Promise<void>;
+  onRosterMessage?: (message: string) => void;
   sortedCategories: CategoryRecord[];
   branches: BranchRecord[];
   suppliersForLink: SupplierRecord[];
@@ -75,137 +73,6 @@ function icClass(disabled?: boolean) {
   return cn(
     productFormInputClass,
     disabled && "cursor-not-allowed bg-muted/50 text-muted-foreground",
-  );
-}
-
-const rosterCellClass =
-  "flex h-9 w-full items-center overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_45%,white)] px-2 text-[13px] text-[var(--catalog-ink,#15231f)]";
-
-function FamilyRosterPad({
-  options,
-  familyPrefix,
-  currencyCode,
-}: {
-  options: ExistingFamilyOption[];
-  familyPrefix: string;
-  currencyCode: string;
-}) {
-  if (options.length === 0) return null;
-  return (
-    <section className="space-y-2 pt-1">
-      <div className="flex items-end justify-between gap-2">
-        <p className="text-[13px] font-medium text-[var(--catalog-ink,#15231f)]">
-          In this family{currencyCode ? ` · ${currencyCode}` : ""}
-        </p>
-        <span className={padStyles.tick}>
-          {options.length === 1
-            ? "1 size already listed"
-            : `${options.length} sizes already listed`}
-        </span>
-      </div>
-
-      <div className={padStyles.pad}>
-        <div className={padStyles.head}>
-          <span className={padStyles.headNum}>#</span>
-          <span className={padStyles.headPhoto}>Photo</span>
-          <span className={padStyles.headOpt}>Option</span>
-          <span className={padStyles.headSell}>Sell</span>
-          <span className={padStyles.headStock}>Stock</span>
-          <span className={padStyles.headCost}>Cost</span>
-          <span className={padStyles.headCode}>Barcode</span>
-          <span className={padStyles.headRemove} />
-        </div>
-        <div className="max-h-[min(14rem,36vh)] overflow-y-auto overscroll-contain [scrollbar-width:thin]">
-          {options.map((opt, index) => (
-            <div
-              key={opt.id}
-              className={padStyles.row}
-            >
-              <div className={padStyles.num}>
-                <span className={padStyles.index}>{index + 1}</span>
-              </div>
-              <div className={cn(padStyles.cell, padStyles.cellPhoto)}>
-                <div
-                  className={padStyles.optPhoto}
-                  data-filled={opt.thumbnailUrl ? "" : undefined}
-                  aria-hidden
-                >
-                  {opt.thumbnailUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- remote catalog thumb
-                    <img
-                      src={opt.thumbnailUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <ImagePlus className="size-3.5" aria-hidden />
-                  )}
-                </div>
-              </div>
-              <div className={padStyles.cell}>
-                {familyPrefix ? (
-                  <div className="flex h-9 w-full min-w-0 items-stretch overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_45%,white)]">
-                    <span
-                      className="flex max-w-[42%] shrink-0 items-center truncate border-r border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_70%,white)] px-2 text-[12px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)]"
-                      title={familyPrefix}
-                    >
-                      {familyPrefix}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate px-2 text-[13px] font-medium text-[var(--catalog-ink,#15231f)]">
-                      {opt.label}
-                      {opt.isPackage ? (
-                        <span className="ml-1 text-[11px] font-normal text-muted-foreground">
-                          pack
-                        </span>
-                      ) : null}
-                    </span>
-                  </div>
-                ) : (
-                  <span className={cn(rosterCellClass, "font-medium")}>
-                    {opt.label}
-                    {opt.isPackage ? (
-                      <span className="ml-1 text-[11px] font-normal text-muted-foreground">
-                        pack
-                      </span>
-                    ) : null}
-                  </span>
-                )}
-              </div>
-              <div className={cn(padStyles.cell, padStyles.cellSell)}>
-                <span
-                  className={cn(
-                    rosterCellClass,
-                    "justify-end font-semibold tabular-nums",
-                  )}
-                >
-                  {opt.sellLabel || "—"}
-                </span>
-              </div>
-              <div className={cn(padStyles.cell, padStyles.cellStock)}>
-                <span
-                  className={cn(rosterCellClass, "justify-end tabular-nums")}
-                >
-                  {opt.stockLabel || "—"}
-                </span>
-              </div>
-              <div className={cn(padStyles.cell, padStyles.cellCost)}>
-                <span
-                  className={cn(rosterCellClass, "justify-end tabular-nums")}
-                >
-                  {opt.costLabel || "—"}
-                </span>
-              </div>
-              <div className={cn(padStyles.cell, padStyles.cellCode)}>
-                <span className={cn(rosterCellClass, "font-mono text-[12px]")}>
-                  {opt.barcode?.trim() || "—"}
-                </span>
-              </div>
-              <div className={cn(padStyles.cell, padStyles.cellRemove)} />
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -665,6 +532,10 @@ export function VariantDrawerForm({
   parentCategoryName: _parentCategoryName,
   familyName = "",
   existingOptions = [],
+  rosterBranchId = "",
+  canCatalogWrite = false,
+  onRefreshRoster,
+  onRosterMessage,
   sortedCategories,
   branches,
   suppliersForLink,
@@ -1004,8 +875,13 @@ export function VariantDrawerForm({
 
       <FamilyRosterPad
         options={existingOptions}
-        familyPrefix={familyPrefix}
+        familyName={familyPrefix}
         currencyCode={currencyCode}
+        branchId={rosterBranchId}
+        canCatalogWrite={canCatalogWrite}
+        canInventoryWrite={canInventoryWrite}
+        onRefresh={onRefreshRoster}
+        onMessage={onRosterMessage}
       />
 
       {scannerRow != null ? (

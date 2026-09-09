@@ -7,7 +7,7 @@ import { FormDrawer, type FormDrawerProps } from "@/components/form-drawer";
 import type { BranchRecord, CategoryRecord, SupplierRecord } from "@/lib/api";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import { VariantDrawerForm } from "../variant-drawer-form";
-import type { ExistingFamilyOption } from "../variant-drawer-form";
+import type { ExistingFamilyOption } from "./FamilyRosterPad";
 
 type Props = {
   open: boolean;
@@ -19,8 +19,12 @@ type Props = {
   parentCategoryName?: string;
   /** When adding a sibling, the currently selected variant label for drawer context. */
   siblingContextLabel?: string;
-  /** Options already under this family (shown above the create form). */
+  /** Options already under this family (editable roster at bottom). */
   existingOptions?: ExistingFamilyOption[];
+  rosterBranchId?: string;
+  canCatalogWrite?: boolean;
+  onRefreshRoster?: () => void | Promise<void>;
+  onRosterMessage?: (message: string) => void;
   variantCreateSubmitCount: number;
   sortedCategories: CategoryRecord[];
   branches: BranchRecord[];
@@ -56,6 +60,10 @@ export function VariantCreateDrawer({
   parentCategoryName,
   siblingContextLabel,
   existingOptions = [],
+  rosterBranchId = "",
+  canCatalogWrite = false,
+  onRefreshRoster,
+  onRosterMessage,
   variantCreateSubmitCount,
   sortedCategories,
   branches,
@@ -143,6 +151,10 @@ export function VariantCreateDrawer({
         parentCategoryName={parentCategoryName}
         familyName={parentDisplayName}
         existingOptions={existingOptions}
+        rosterBranchId={rosterBranchId}
+        canCatalogWrite={canCatalogWrite}
+        onRefreshRoster={onRefreshRoster}
+        onRosterMessage={onRosterMessage}
         suggestedNextSku={m.nextAutoSkuHint}
         sortedCategories={sortedCategories}
         branches={branches}

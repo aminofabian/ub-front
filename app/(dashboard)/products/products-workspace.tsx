@@ -42,8 +42,6 @@ import {
   catalogListDisplayType,
 } from "./_components/catalog-list-styles";
 import {
-  formatAmount,
-  formatStockLabel,
   resolveCatalogParentId,
   toNumber,
 } from "./_utils";
@@ -354,21 +352,21 @@ export function ProductsWorkspace() {
         rawLabel.toLowerCase().startsWith(family.toLowerCase())
           ? rawLabel.slice(family.length).replace(/^[\s·•\-–,]+/, "") || rawLabel
           : rawLabel;
-      const sell = toNumber(v.bundlePrice);
-      const cost = toNumber(v.buyingPrice);
-      const stock = formatStockLabel(v);
       return {
         id: v.id,
         label,
         thumbnailUrl: itemListThumbnailUrl(v),
-        sellLabel: sell != null ? formatAmount(sell) : null,
-        stockLabel: stock === "—" ? null : stock,
-        costLabel: cost != null ? formatAmount(cost) : null,
+        sell: toNumber(v.bundlePrice),
+        cost: toNumber(v.buyingPrice),
+        stockQty: toNumber(v.stockQty),
         barcode: v.barcode?.trim() || null,
         isPackage: !!v.packageVariant,
       };
     });
   }, [detail.variantRows, variantDrawerParentName]);
+  const refreshVariantRoster = useCallback(async () => {
+    await detail.refreshSelectedDetail();
+  }, [detail]);
   const variantCreateSubmitCount = m.variantDraftRows.filter((r) =>
     r.variantName.trim(),
   ).length;
@@ -881,6 +879,10 @@ export function ProductsWorkspace() {
             : undefined
         }
         existingOptions={variantDrawerExistingOptions}
+        rosterBranchId={branchId || ""}
+        canCatalogWrite={canCatalogWrite}
+        onRefreshRoster={refreshVariantRoster}
+        onRosterMessage={catalog.setMessage}
         variantCreateSubmitCount={variantCreateSubmitCount}
         sortedCategories={catalog.sortedCategories}
         branches={m.branches}
