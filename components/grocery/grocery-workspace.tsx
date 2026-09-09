@@ -356,10 +356,10 @@ function ProductCard({
           </p>
         ) : null}
 
-        <div className="mt-1.5 flex min-w-0 items-baseline justify-between gap-2">
+        <div className="mt-1.5 min-w-0">
           <p
             className={cn(
-              "min-w-0 truncate font-heading text-[14px] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+              "break-words font-heading text-[13px] font-semibold tabular-nums leading-snug tracking-[-0.02em]",
               hasPrice
                 ? "text-[var(--order-ink,#15231f)]"
                 : "font-sans text-[11px] font-medium tracking-normal text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]",
@@ -368,7 +368,7 @@ function ProductCard({
             {hasPrice ? amount : shelfLine || "—"}
           </p>
           {inCart ? (
-            <p className="shrink-0 font-heading text-[12px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
+            <p className="mt-0.5 break-words font-heading text-[13px] font-semibold tabular-nums leading-snug tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
               {lineTotalSplit ? lineTotalSplit.amount : `×${cartQty}`}
             </p>
           ) : null}

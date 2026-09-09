@@ -45,6 +45,9 @@ export function OrderQtyField({
     setDraft(String(parsed));
   };
 
+  const digits = Math.max(1, draft.length);
+  const compact = digits >= 4;
+
   return (
     <input
       type="text"
@@ -57,12 +60,12 @@ export function OrderQtyField({
       aria-label={ariaLabel}
       title="Type a quantity"
       className={cn(
-        "min-w-[4ch] overflow-visible bg-transparent px-0.5 text-center font-heading font-semibold tabular-nums leading-none tracking-normal text-current outline-none",
+        "w-full min-w-0 bg-transparent text-center font-heading font-semibold tabular-nums leading-none tracking-normal text-current outline-none",
+        compact ? "text-[12px]" : "text-[13px]",
         "selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
         "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
         className,
       )}
-      size={Math.max(3, draft.length)}
       onFocus={(e) => {
         focusedRef.current = true;
         e.currentTarget.select();

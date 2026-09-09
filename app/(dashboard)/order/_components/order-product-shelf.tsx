@@ -47,7 +47,7 @@ function packUnitPrice(
 }
 
 const STEP =
-  "flex h-9 w-8 shrink-0 items-center justify-center touch-manipulation text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#fff)] hover:text-[var(--order-ink,#15231f)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,#fff)] disabled:pointer-events-none disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]";
+  "flex h-8 w-7 shrink-0 items-center justify-center touch-manipulation text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#fff)] hover:text-[var(--order-ink,#15231f)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,#fff)] disabled:pointer-events-none disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]";
 
 function OrderShelfTile({
   link,
@@ -81,7 +81,7 @@ function OrderShelfTile({
   return (
     <article
       className={cn(
-        "group flex min-w-0 flex-col overflow-hidden rounded-none bg-white",
+        "group flex min-w-0 flex-col rounded-none bg-white",
         "border transition-[border-color] duration-150",
         inCart
           ? "border-[var(--pos-primary,#0f766e)]"
@@ -136,10 +136,10 @@ function OrderShelfTile({
           ) : null}
         </div>
 
-        <div className="mt-2 flex min-w-0 items-baseline justify-between gap-2">
+        <div className="mt-2 min-w-0">
           <p
             className={cn(
-              "min-w-0 truncate font-heading text-[16px] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+              "break-words font-heading text-[13px] font-semibold tabular-nums leading-snug tracking-[-0.02em]",
               !hasPrice && "font-sans text-[12px] font-medium tracking-normal",
             )}
             style={{ color: hasPrice ? INK : MUTED }}
@@ -157,7 +157,7 @@ function OrderShelfTile({
           {lineTotal > 0 ? (
             <p
               key={lineTotal}
-              className="pos-tile-line-total shrink-0 font-heading text-[12px] font-semibold tabular-nums leading-none tracking-[-0.02em]"
+              className="pos-tile-line-total mt-0.5 break-words font-heading text-[13px] font-semibold tabular-nums leading-snug tracking-[-0.02em]"
               style={{ color: TEAL }}
             >
               {formatMoney(lineTotal, ORDER_CURRENCY)}
@@ -191,7 +191,7 @@ function OrderShelfTile({
           </button>
         ) : (
           <div
-            className="mt-2 flex h-9 items-stretch rounded-none border bg-white"
+            className="mt-2 grid h-8 w-full min-w-0 grid-cols-[1.75rem_minmax(0,1fr)_1.75rem] rounded-none border bg-white"
             style={{ borderColor: inCart ? TEAL : RULE, color: inCart ? TEAL : INK }}
             role="group"
             aria-label={`Quantity for ${primary}`}
@@ -210,7 +210,7 @@ function OrderShelfTile({
               qty={qty}
               onSetQty={onSetQty}
               ariaLabel={`Quantity for ${primary}`}
-              className="h-9 flex-1 px-1 text-[13px] sm:text-[14px]"
+              className="h-8 px-1"
             />
             <button
               type="button"
