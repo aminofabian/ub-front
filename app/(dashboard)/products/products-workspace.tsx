@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canLinkSupplierProducts } from "@/lib/supplier-access";
+import { itemListThumbnailUrl } from "@/lib/api";
 import {
   type ProductDrawerId,
   emptyVariantDraft,
@@ -346,23 +347,28 @@ export function ProductsWorkspace() {
   const currencyCode = business?.currency?.trim() || "";
   const variantDrawerExistingOptions = useMemo(() => {
     return detail.variantRows.map((v) => {
-      const label = v.variantName?.trim() || v.name?.trim() || "Option";
-      const price = toNumber(v.bundlePrice);
-      const priceLabel =
-        price != null
-          ? currencyCode
-            ? `${currencyCode} ${formatAmount(price)}`
-            : formatAmount(price)
-          : null;
+      const rawLabel = v.variantName?.trim() || v.name?.trim() || "Option";
+      const family = variantDrawerParentName.trim();
+      const label =
+        family &&
+        rawLabel.toLowerCase().startsWith(family.toLowerCase())
+          ? rawLabel.slice(family.length).replace(/^[\s·•\-–,]+/, "") || rawLabel
+          : rawLabel;
+      const sell = toNumber(v.bundlePrice);
+      const cost = toNumber(v.buyingPrice);
       const stock = formatStockLabel(v);
       return {
         id: v.id,
-        label: v.packageVariant ? `${label} · pack` : label,
-        priceLabel,
+        label,
+        thumbnailUrl: itemListThumbnailUrl(v),
+        sellLabel: sell != null ? formatAmount(sell) : null,
         stockLabel: stock === "—" ? null : stock,
+        costLabel: cost != null ? formatAmount(cost) : null,
+        barcode: v.barcode?.trim() || null,
+        isPackage: !!v.packageVariant,
       };
     });
-  }, [currencyCode, detail.variantRows]);
+  }, [detail.variantRows, variantDrawerParentName]);
   const variantCreateSubmitCount = m.variantDraftRows.filter((r) =>
     r.variantName.trim(),
   ).length;
