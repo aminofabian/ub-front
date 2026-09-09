@@ -1692,11 +1692,12 @@ export function GroceryWorkspace() {
             style={{ paddingBottom: `max(1rem, ${GROCERY_TAB_BAR_CLEARANCE})` }}
           >
             {showDepartmentRail ? (
-              <div className="pointer-events-none absolute left-2 top-1/2 z-20 hidden -translate-y-1/2 sm:block">
+              <div className="pointer-events-none absolute bottom-2 left-2 top-2 z-20 hidden sm:block">
                 <GroceryDepartmentRail
                   departments={itemTypes}
                   selectedId={selectedDepartmentId}
                   onSelect={setSelectedDepartmentId}
+                  className="h-full max-h-full"
                 />
               </div>
             ) : null}

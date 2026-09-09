@@ -38,17 +38,20 @@ export function GroceryDepartmentRail({
     <nav
       aria-label="Department filters"
       className={cn(
-        "pointer-events-auto relative flex w-[2.9rem] shrink-0 flex-col gap-1 overflow-hidden rounded-none border",
+        "pointer-events-auto relative flex w-[2.9rem] shrink-0 flex-col gap-1 overflow-y-auto overscroll-contain rounded-none border",
         "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
         "bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] p-1 pt-2.5",
         "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+        "[scrollbar-width:thin] [&::-webkit-scrollbar]:w-1",
+        "[&::-webkit-scrollbar-thumb]:rounded-full",
+        "[&::-webkit-scrollbar-thumb]:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
         className,
       )}
     >
       {/* Shelf lip */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-[var(--pos-primary,#0f766e)]"
+        className="pointer-events-none sticky top-0 z-[1] -mx-1 -mt-2.5 mb-0 h-1.5 shrink-0 bg-[var(--pos-primary,#0f766e)]"
       />
       <DepartmentRailButton
         active={selectedId == null}
@@ -94,7 +97,7 @@ function DepartmentRailButton({
       title={title}
       aria-pressed={active}
       className={cn(
-        "relative flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-1 rounded-none border px-0.5 py-2 text-center transition-colors",
+        "relative flex min-h-[3.25rem] w-full shrink-0 flex-col items-center justify-center gap-1 rounded-none border px-0.5 py-2 text-center transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
         "touch-manipulation select-none",
         active

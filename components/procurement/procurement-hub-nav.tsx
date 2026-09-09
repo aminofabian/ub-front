@@ -21,38 +21,39 @@ type HubTab = {
   match: (pathname: string) => boolean;
 };
 
+/** Same buy loop as the Buying sidebar: order → confirm → supplies → vendors. */
 const HUB_TABS: HubTab[] = [
-  {
-    href: APP_ROUTES.suppliers,
-    label: "Suppliers",
-    hint: "Directory & profiles",
-    icon: Truck,
-    match: (p) => p.startsWith(APP_ROUTES.suppliers),
-  },
-  {
-    href: APP_ROUTES.orderReceive,
-    label: "Confirm supply",
-    hint: "Receive & post supply",
-    icon: ClipboardCheck,
-    match: (p) => p.startsWith(APP_ROUTES.orderReceive),
-  },
   {
     href: APP_ROUTES.order,
     label: "New order",
-    hint: "Build & send POs",
+    hint: "Build & send purchase orders",
     icon: ShoppingCart,
     match: (p) =>
       p === APP_ROUTES.order || p.startsWith(`${APP_ROUTES.order}?`),
   },
   {
+    href: APP_ROUTES.orderReceive,
+    label: "Confirm supply",
+    hint: "Receive goods against open orders",
+    icon: ClipboardCheck,
+    match: (p) => p.startsWith(APP_ROUTES.orderReceive),
+  },
+  {
     href: APP_ROUTES.purchasingAddSupplies,
-    label: "Record delivery",
-    hint: "Goods in & bills",
+    label: "Supplies",
+    hint: "Delivery ledger & bills",
     icon: PackagePlus,
     match: (p) =>
       p === APP_ROUTES.purchasingAddSupplies ||
       p.startsWith(`${APP_ROUTES.purchasingAddSupplies}?`) ||
       p.startsWith(`${APP_ROUTES.purchasingAddSupplies}/`),
+  },
+  {
+    href: APP_ROUTES.suppliers,
+    label: "Suppliers",
+    hint: "Vendor directory",
+    icon: Truck,
+    match: (p) => p.startsWith(APP_ROUTES.suppliers),
   },
 ];
 
@@ -79,7 +80,7 @@ export function ProcurementHubNav({
         columns === 2 ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4",
         className,
       )}
-      aria-label="Procurement pages"
+      aria-label="Buying pages"
     >
       {HUB_TABS.map((tab) => {
         const active = tab.match(pathname);

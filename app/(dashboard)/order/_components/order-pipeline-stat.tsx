@@ -27,42 +27,51 @@ export function PipelineStat({
 }: PipelineStatProps) {
   const inner = (
     <>
-      <div className="flex items-start justify-between gap-2">
-        <span
-          className={cn(
-            "inline-flex size-8 items-center justify-center rounded-lg border",
-            active
-              ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)]"
-              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white/70 text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]",
+      <span
+        className={cn(
+          "inline-flex size-6 shrink-0 items-center justify-center rounded-md border",
+          active
+            ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)]"
+            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white/70 text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]",
+        )}
+      >
+        <Icon className="size-3" strokeWidth={1.75} aria-hidden />
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-1.5">
+          <p className="truncate text-[8px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+            {label}
+          </p>
+          {loading ? (
+            <Loader2
+              className="size-3 shrink-0 animate-spin text-[color-mix(in_srgb,var(--order-ink,#15231f)_35%,transparent)]"
+              aria-hidden
+            />
+          ) : (
+            <p className="font-heading shrink-0 text-[15px] font-semibold leading-none tracking-[-0.03em] text-[var(--order-ink,#15231f)] tabular-nums">
+              {value}
+            </p>
           )}
-        >
-          <Icon className="size-4" strokeWidth={1.75} aria-hidden />
-        </span>
-        {loading ? (
-          <Loader2
-            className="size-4 animate-spin text-[color-mix(in_srgb,var(--order-ink,#15231f)_35%,transparent)]"
-            aria-hidden
-          />
-        ) : null}
-      </div>
-      <div className="mt-3 space-y-0.5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
-          {label}
-        </p>
-        <p className="font-heading text-[22px] font-semibold leading-none tracking-[-0.03em] text-[var(--order-ink,#15231f)] tabular-nums">
-          {value}
-        </p>
-        <p className="text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+        </div>
+        <p className="mt-0.5 truncate text-[10px] leading-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
           {hint}
         </p>
       </div>
+
+      {href ? (
+        <ArrowRight
+          className="size-3 shrink-0 text-[color-mix(in_srgb,var(--order-ink,#15231f)_25%,transparent)] transition group-hover:text-[var(--pos-primary,#0f766e)]"
+          aria-hidden
+        />
+      ) : null}
     </>
   );
 
   const className = cn(
-    "relative min-w-0 flex-1 rounded-xl border px-3.5 py-3 transition-[box-shadow,border-color,transform] duration-150 ease-out",
+    "relative flex min-w-0 flex-1 items-center gap-2 rounded-lg border px-2 py-1.5 transition-[box-shadow,border-color,transform] duration-150 ease-out",
     active
-      ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)] shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)]"
+      ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)] shadow-[0_6px_16px_-12px_color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)]"
       : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_88%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
     href &&
       "group hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pos-primary,#0f766e)] active:scale-[0.99]",
@@ -72,10 +81,6 @@ export function PipelineStat({
     return (
       <Link href={href} className={className}>
         {inner}
-        <ArrowRight
-          className="absolute right-3 top-3 size-3.5 text-[color-mix(in_srgb,var(--order-ink,#15231f)_25%,transparent)] transition group-hover:text-[var(--pos-primary,#0f766e)]"
-          aria-hidden
-        />
       </Link>
     );
   }
@@ -85,12 +90,6 @@ export function PipelineStat({
 
 export function PipelineStatsGrid({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-[12%] top-[2.65rem] hidden h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] to-transparent sm:block"
-      />
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
-    </div>
+    <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
   );
 }

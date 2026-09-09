@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
 import {
   BarChart,
   Bar,
@@ -17,38 +18,30 @@ import {
 import {
   AlertCircle,
   AlertTriangle,
+  ArrowUpRight,
   Banknote,
   BarChart3,
   CalendarRange,
   CheckCircle2,
   CreditCard,
-  DollarSign,
   LineChart,
   Package,
   RefreshCw,
+  ShieldAlert,
   ShoppingCart,
-  Truck,
   TrendingDown,
   TrendingUp,
+  Truck,
   Users,
   X,
 } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
-  DASHBOARD_SECTION_SURFACE,
-  DASHBOARD_TABLE_HEAD,
-  DASHBOARD_TABLE_SURFACE,
-  DASHBOARD_FILTER_WELL,
   DashboardAccessDenied,
   DashboardFeedback,
-  DashboardPageHero,
-  DashboardQuickLinks,
-  dashboardFilterFieldLabelClass,
-  dashboardHintClass,
-  dashboardInputClass,
-  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
+import { FormDrawer } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSessionBranch } from "@/hooks/use-session-scope";
@@ -56,14 +49,20 @@ import { APP_ROUTES } from "@/lib/config";
 import {
   fetchPurchasingIntelligenceDashboard,
   type PurchasingIntelligenceDashboardResponse,
+  type PurchasingInsight,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
+type DrawerId = "suppliers" | "variance" | "categories" | "risk";
+
 function formatMoney(n: number | string): string {
   const val = typeof n === "number" ? n : Number(n);
   if (Number.isNaN(val)) return "0.00";
-  return val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return val.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function formatMoneyShort(n: number | string): string {
@@ -71,17 +70,25 @@ function formatMoneyShort(n: number | string): string {
   if (Number.isNaN(val)) return "0";
   if (val >= 1_000_000) return (val / 1_000_000).toFixed(1) + "M";
   if (val >= 1_000) return (val / 1_000).toFixed(1) + "k";
-  return val.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return val.toLocaleString("en-KE", { maximumFractionDigits: 0 });
 }
 
 function formatPct(n: number | string): string {
   const val = typeof n === "number" ? n : Number(n);
   if (Number.isNaN(val)) return "0.00%";
-  return val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
+  return (
+    val.toLocaleString("en-KE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + "%"
+  );
 }
 
 function formatUnit(n: number): string {
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  return n.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  });
 }
 
 function startOfLocalDay(d: Date): Date {
@@ -106,13 +113,10 @@ function toDateInputValue(d: Date): string {
 const RANGE_PRESETS = [
   { id: "today", label: "Today" },
   { id: "yesterday", label: "Yesterday" },
-  { id: "last3days", label: "Past 3 days" },
-  { id: "last7days", label: "Last week" },
-  { id: "last14days", label: "Last 2 weeks" },
-  { id: "last30days", label: "Last month (30 days)" },
-  { id: "last90days", label: "Last 3 months" },
-  { id: "last180days", label: "Last 6 months" },
-  { id: "last365days", label: "Last year" },
+  { id: "last7days", label: "7d" },
+  { id: "last30days", label: "30d" },
+  { id: "last90days", label: "90d" },
+  { id: "last365days", label: "1y" },
 ] as const;
 
 type RangePresetId = (typeof RANGE_PRESETS)[number]["id"];
@@ -124,135 +128,211 @@ function isRangePresetId(v: string): v is RangePresetId {
 function rangeForPreset(id: RangePresetId): { from: string; to: string } {
   const today = startOfLocalDay(new Date());
   const to = toDateInputValue(today);
-  if (id === "today") {
-    return { from: to, to };
-  }
+  if (id === "today") return { from: to, to };
   if (id === "yesterday") {
     const y = addLocalDays(today, -1);
     const ys = toDateInputValue(y);
     return { from: ys, to: ys };
   }
   const back =
-    id === "last3days"
-      ? 2
-      : id === "last7days"
-        ? 6
-        : id === "last14days"
-          ? 13
-          : id === "last30days"
-            ? 29
-            : id === "last90days"
-              ? 89
-              : id === "last180days"
-                ? 179
-                : 364;
-  const fromD = addLocalDays(today, -back);
-  return { from: toDateInputValue(fromD), to };
+    id === "last7days" ? 6 : id === "last30days" ? 29 : id === "last90days" ? 89 : 364;
+  return { from: toDateInputValue(addLocalDays(today, -back)), to };
 }
 
-const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316", "#84cc16"];
-
-/** Chart axes/grid: readable in light and dark without theme-aware SVG hacks */
+const CHART_COLORS = [
+  "#0f766e",
+  "#1d4ed8",
+  "#b45309",
+  "#be123c",
+  "#6d28d9",
+  "#0e7490",
+  "#c2410c",
+  "#4d7c0f",
+];
 const CHART_AXIS = "#71717a";
-const CHART_GRID = "rgba(113, 113, 122, 0.22)";
+const CHART_GRID = "rgba(113, 113, 122, 0.18)";
 
-function SummaryCard({
+const fieldClass = cn(
+  "h-9 w-full rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] px-2.5 text-sm tabular-nums",
+  "outline-none focus-visible:border-[var(--pos-primary,#0f766e)]",
+  "focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
+);
+
+function InsightStack({ insights }: { insights: PurchasingInsight[] }) {
+  if (insights.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-3 py-4 text-center text-xs text-muted-foreground">
+        No briefing notes for this range — spend looks quiet.
+      </div>
+    );
+  }
+  return (
+    <ul className="space-y-2">
+      {insights.map((insight, i) => {
+        const danger = insight.kind === "danger";
+        const warning = insight.kind === "warning";
+        const success = insight.kind === "success";
+        return (
+          <li
+            key={`${insight.kind}-${i}`}
+            className={cn(
+              "flex gap-2.5 rounded-lg border px-3 py-2.5 text-[13px] leading-snug",
+              danger &&
+                "border-rose-500/25 bg-rose-500/[0.07] text-rose-950 dark:text-rose-50",
+              warning &&
+                "border-amber-500/25 bg-amber-500/[0.08] text-amber-950 dark:text-amber-50",
+              success &&
+                "border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-950 dark:text-emerald-50",
+              !danger &&
+                !warning &&
+                !success &&
+                "border-sky-500/20 bg-sky-500/[0.07] text-sky-950 dark:text-sky-50",
+            )}
+          >
+            {danger ? (
+              <AlertCircle className="mt-0.5 size-3.5 shrink-0 text-rose-600" aria-hidden />
+            ) : warning ? (
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" aria-hidden />
+            ) : success ? (
+              <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-600" aria-hidden />
+            ) : (
+              <TrendingUp className="mt-0.5 size-3.5 shrink-0 text-sky-600" aria-hidden />
+            )}
+            <span className="min-w-0 font-medium text-foreground">{insight.message}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function MetricRow({
   label,
   value,
-  icon: Icon,
-  variant = "default",
-  subtext,
+  tone = "default",
 }: {
   label: string;
   value: string;
-  icon: React.ElementType;
-  variant?: "default" | "success" | "warning" | "danger" | "info";
-  subtext?: string;
+  tone?: "default" | "good" | "warn" | "bad";
 }) {
-  const styles = {
-    default:
-      "border-border/70 bg-card ring-1 ring-black/[0.02] dark:ring-white/[0.04]",
-    success:
-      "border-emerald-500/20 bg-emerald-500/[0.07] dark:border-emerald-500/30 dark:bg-emerald-500/10",
-    warning:
-      "border-amber-500/25 bg-amber-500/[0.08] dark:border-amber-500/30 dark:bg-amber-500/10",
-    danger:
-      "border-rose-500/25 bg-rose-500/[0.07] dark:border-rose-500/35 dark:bg-rose-500/10",
-    info: "border-sky-500/20 bg-sky-500/[0.07] dark:border-sky-500/30 dark:bg-sky-500/10",
-  };
-  const iconStyles = {
-    default: "border border-border/50 bg-muted/80 text-muted-foreground",
-    success: "border border-emerald-500/20 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-    warning: "border border-amber-500/25 bg-amber-500/15 text-amber-800 dark:text-amber-200",
-    danger: "border border-rose-500/25 bg-rose-500/15 text-rose-700 dark:text-rose-300",
-    info: "border border-sky-500/20 bg-sky-500/15 text-sky-800 dark:text-sky-200",
-  };
   return (
-    <div
-      className={cn(
-        "rounded-xl border p-4 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-5",
-        styles[variant],
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {label}
-          </p>
-          <p className="text-xl font-bold tabular-nums tracking-tight text-foreground sm:text-2xl">{value}</p>
-          {subtext ? <p className={cn(dashboardHintClass(), "pt-0.5")}>{subtext}</p> : null}
-        </div>
-        <div
-          className={cn(
-            "flex size-10 shrink-0 items-center justify-center rounded-lg shadow-sm",
-            iconStyles[variant],
-          )}
-        >
-          <Icon className="size-4" aria-hidden />
-        </div>
-      </div>
+    <div className="flex items-baseline justify-between gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] py-2 last:border-b-0">
+      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </span>
+      <span
+        className={cn(
+          "font-heading text-[15px] font-semibold tabular-nums tracking-[-0.02em]",
+          tone === "good" && "text-emerald-700 dark:text-emerald-400",
+          tone === "warn" && "text-amber-700 dark:text-amber-400",
+          tone === "bad" && "text-rose-700 dark:text-rose-400",
+          tone === "default" && "text-foreground",
+        )}
+      >
+        {value}
+      </span>
     </div>
   );
 }
 
-function Insights({ insights }: { insights: PurchasingIntelligenceDashboardResponse["insights"] }) {
-  if (insights.length === 0) return null;
+function PanelShell({
+  title,
+  icon: Icon,
+  action,
+  children,
+  className,
+}: {
+  title: string;
+  icon: React.ElementType;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="space-y-3">
-      {insights.map((insight, i) => {
-        const isDanger = insight.kind === "danger";
-        const isWarning = insight.kind === "warning";
-        const isSuccess = insight.kind === "success";
-        return (
-          <div
-            key={i}
-            className={cn(
-              "flex items-start gap-3 rounded-xl border px-4 py-3.5 text-sm leading-relaxed shadow-sm",
-              isDanger &&
-                "border-rose-500/25 bg-rose-500/[0.07] text-rose-950 dark:border-rose-500/35 dark:bg-rose-500/10 dark:text-rose-50",
-              isWarning &&
-                "border-amber-500/25 bg-amber-500/[0.08] text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-50",
-              isSuccess &&
-                "border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-950 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-50",
-              !isDanger &&
-                !isWarning &&
-                !isSuccess &&
-                "border-sky-500/20 bg-sky-500/[0.07] text-sky-950 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-50",
-            )}
-          >
-            {isDanger ? (
-              <AlertCircle className="mt-0.5 size-4 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden />
-            ) : isWarning ? (
-              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-            ) : isSuccess ? (
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-            ) : (
-              <TrendingUp className="mt-0.5 size-4 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden />
-            )}
-            <span className="min-w-0 font-medium text-foreground">{insight.message}</span>
-          </div>
-        );
-      })}
+    <section
+      className={cn(
+        "overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+        "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] shadow-[0_10px_28px_-22px_rgba(28,25,21,0.35)]",
+        className,
+      )}
+    >
+      <header className="flex items-center justify-between gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-3.5 py-2.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="inline-flex size-7 items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] text-[var(--pos-primary,#0f766e)]">
+            <Icon className="size-3.5" aria-hidden />
+          </span>
+          <h2 className="truncate text-sm font-semibold tracking-tight text-foreground">
+            {title}
+          </h2>
+        </div>
+        {action}
+      </header>
+      <div className="p-3.5">{children}</div>
+    </section>
+  );
+}
+
+function DossierButton({
+  title,
+  count,
+  hint,
+  icon: Icon,
+  tone = "default",
+  onClick,
+}: {
+  title: string;
+  count: number;
+  hint: string;
+  icon: React.ElementType;
+  tone?: "default" | "warn" | "bad";
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "group flex min-w-0 flex-1 flex-col gap-1 rounded-xl border px-3.5 py-3 text-left transition",
+        "hover:-translate-y-px active:scale-[0.99]",
+        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pos-primary,#0f766e)]",
+        tone === "bad" &&
+          "border-rose-500/25 bg-rose-500/[0.05] hover:border-rose-500/40",
+        tone === "warn" &&
+          "border-amber-500/25 bg-amber-500/[0.05] hover:border-amber-500/40",
+        tone === "default" &&
+          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)]",
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className={cn(
+            "inline-flex size-7 items-center justify-center rounded-md border",
+            tone === "bad" && "border-rose-500/25 text-rose-700",
+            tone === "warn" && "border-amber-500/25 text-amber-700",
+            tone === "default" &&
+              "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] text-muted-foreground group-hover:text-[var(--pos-primary,#0f766e)]",
+          )}
+        >
+          <Icon className="size-3.5" aria-hidden />
+        </span>
+        <ArrowUpRight className="size-3.5 text-muted-foreground opacity-60 transition group-hover:opacity-100 group-hover:text-[var(--pos-primary,#0f766e)]" />
+      </div>
+      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+        {title}
+      </p>
+      <p className="font-heading text-xl font-semibold tabular-nums tracking-[-0.03em] text-foreground">
+        {count}
+      </p>
+      <p className="truncate text-[11px] text-muted-foreground">{hint}</p>
+    </button>
+  );
+}
+
+function EmptyChart({ label }: { label: string }) {
+  return (
+    <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-muted/15 text-sm text-muted-foreground">
+      {label}
     </div>
   );
 }
@@ -261,45 +341,61 @@ export default function PurchasingIntelligencePage() {
   const { me } = useDashboard();
   const { branchId: headerBranchId, branchName: headerBranchName } =
     useSessionBranch();
-  const allowed = hasPermission(me?.permissions, Permission.PurchasingIntelligenceRead);
+  const allowed = hasPermission(
+    me?.permissions,
+    Permission.PurchasingIntelligenceRead,
+  );
 
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [activePreset, setActivePreset] = useState<RangePresetId | "">("last90days");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<PurchasingIntelligenceDashboardResponse | null>(null);
+  const [data, setData] =
+    useState<PurchasingIntelligenceDashboardResponse | null>(null);
+  const [drawer, setDrawer] = useState<DrawerId | null>(null);
 
-  const load = useCallback(async (range?: { from: string; to: string }) => {
-    setMessage("");
-    setLoading(true);
-    try {
-      const fromRaw = range?.from ?? from;
-      const toRaw = range?.to ?? to;
-      const fromArg = fromRaw.trim() || undefined;
-      const toArg = toRaw.trim() || undefined;
-      const branchArg = headerBranchId?.trim() || undefined;
-      const dashboard = await fetchPurchasingIntelligenceDashboard(
-        fromArg,
-        toArg,
-        branchArg,
-      );
-      setData(dashboard);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to load reports.");
-    } finally {
-      setLoading(false);
-    }
-  }, [from, to, headerBranchId]);
+  const load = useCallback(
+    async (range?: { from: string; to: string }) => {
+      setMessage("");
+      setLoading(true);
+      try {
+        const fromRaw = range?.from ?? from;
+        const toRaw = range?.to ?? to;
+        const dashboard = await fetchPurchasingIntelligenceDashboard(
+          fromRaw.trim() || undefined,
+          toRaw.trim() || undefined,
+          headerBranchId?.trim() || undefined,
+        );
+        setData(dashboard);
+      } catch (error) {
+        setMessage(
+          error instanceof Error ? error.message : "Failed to load reports.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [from, to, headerBranchId],
+  );
 
   useEffect(() => {
     if (!allowed) return;
-    load();
-  }, [allowed, load]);
+    const r = rangeForPreset("last90days");
+    setFrom(r.from);
+    setTo(r.to);
+    void load(r);
+    // Initial load only when permission flips on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowed, headerBranchId]);
 
   const spendTrendData = useMemo(() => {
     if (!data) return [];
     return data.spendTrend.map((t) => ({
-      date: new Date(t.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      date: new Date(t.date).toLocaleDateString("en-KE", {
+        month: "short",
+        day: "numeric",
+      }),
       spend: Number(t.spend),
     }));
   }, [data]);
@@ -307,10 +403,16 @@ export default function PurchasingIntelligencePage() {
   const supplierPieData = useMemo(() => {
     if (!data) return [];
     return data.topSuppliers.slice(0, 8).map((s) => ({
-      name: s.supplierName.length > 18 ? s.supplierName.slice(0, 18) + "…" : s.supplierName,
+      name:
+        s.supplierName.length > 16
+          ? s.supplierName.slice(0, 16) + "…"
+          : s.supplierName,
       value: Number(s.spend),
     }));
   }, [data]);
+
+  const rangeLabel =
+    from && to ? `${from} → ${to}` : from || to ? `${from || "…"} → ${to || "…"}` : "Last 90 days";
 
   if (!allowed) {
     return (
@@ -318,8 +420,12 @@ export default function PurchasingIntelligencePage() {
         title="Supplier intelligence"
         description={
           <>
-            You do not have permission to view purchasing intelligence. Ask an administrator to grant{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.PurchasingIntelligenceRead}</code>.
+            You do not have permission to view purchasing intelligence. Ask an
+            administrator to grant{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">
+              {Permission.PurchasingIntelligenceRead}
+            </code>
+            .
           </>
         }
         backHref={APP_ROUTES.business}
@@ -328,550 +434,617 @@ export default function PurchasingIntelligencePage() {
     );
   }
 
-  return (
-    <div className={DASHBOARD_MAX_WIDE}>
-      <section className={DASHBOARD_SECTION_SURFACE}>
-        <DashboardPageHero
-          showActiveScope
-          icon={LineChart}
-          eyebrow="Purchasing"
-          title="Supplier intelligence"
-          description={
-            <>
-              Spend analysis, price competitiveness, and supplier risk monitoring. Use quick ranges or set
-              custom dates. Leave empty for the last 90 days.
-              {headerBranchName ? (
-                <>
-                  {" "}
-                  <span className="font-medium text-foreground/80">
-                    Branch: {headerBranchName}
-                  </span>
-                </>
-              ) : null}
-            </>
-          }
-        />
-        <div className="mt-8">
-          <DashboardQuickLinks
-            links={[
-              { href: APP_ROUTES.purchasingApAging, label: "AP aging", desc: "Balances", icon: BarChart3 },
-              { href: `${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`, label: "Pay open", desc: "Supply balances", icon: CreditCard },
-              { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Directory", icon: Truck },
-            ]}
-          />
-        </div>
-      </section>
+  const avgVar = data ? Number(data.summary.avgVariancePercent) : 0;
+  const riskCount = data?.summary.singleSourceRiskCount ?? 0;
+  const aboveCount = data?.summary.abovePrimaryCount ?? 0;
 
-      <section className={DASHBOARD_SECTION_SURFACE}>
-        <div className="flex flex-col gap-2 border-b border-border/50 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-          <div className="flex items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/50 text-foreground shadow-sm">
-              <CalendarRange className="size-[18px]" aria-hidden />
+  return (
+    <div
+      className={cn(
+        DASHBOARD_MAX_WIDE,
+        "pb-10 [--pi-paper:#f4f0e8] dark:[--pi-paper:transparent]",
+      )}
+    >
+      {/* Masthead */}
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pb-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex size-9 items-center justify-center rounded-lg bg-[var(--pos-primary,#0f766e)] text-white shadow-[0_8px_20px_-12px_color-mix(in_srgb,var(--pos-primary,#0f766e)_70%,transparent)]">
+              <LineChart className="size-4" aria-hidden />
             </span>
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">Date range</h2>
+            <h1 className="font-heading text-2xl font-semibold tracking-[-0.03em] text-foreground">
+              Supplier intelligence
+            </h1>
+          </div>
+          <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
+            Briefing on spend, price pressure, and supply risk
+            {headerBranchName ? (
+              <>
+                {" "}
+                · <span className="font-medium text-foreground/80">{headerBranchName}</span>
+              </>
+            ) : null}
+            .
+          </p>
+        </div>
+        <nav className="flex flex-wrap gap-1.5" aria-label="Related purchasing links">
+          {[
+            { href: APP_ROUTES.purchasingApAging, label: "AP aging", icon: BarChart3 },
+            {
+              href: `${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`,
+              label: "Pay open",
+              icon: CreditCard,
+            },
+            { href: APP_ROUTES.suppliers, label: "Suppliers", icon: Truck },
+          ].map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-card px-3 py-1.5 text-[11px] font-semibold text-foreground transition hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] hover:text-[var(--pos-primary,#0f766e)]"
+            >
+              <link.icon className="size-3.5 opacity-70" aria-hidden />
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+      </header>
+
+      {/* Range bar */}
+      <div className="sticky top-0 z-30 mb-5 rounded-xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]/95 p-3 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--card)_72%,#f7f3eb)]/85">
+        <form
+          className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setActivePreset("");
+            void load().catch(() => setMessage("Failed to load reports."));
+          }}
+        >
+          <div className="min-w-0 space-y-2">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              <CalendarRange className="size-3.5" aria-hidden />
+              Window · {rangeLabel}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {RANGE_PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    const r = rangeForPreset(p.id);
+                    setActivePreset(p.id);
+                    setFrom(r.from);
+                    setTo(r.to);
+                    void load(r).catch(() =>
+                      setMessage("Failed to load reports."),
+                    );
+                  }}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 text-xs font-semibold transition",
+                    activePreset === p.id
+                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                      : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
           </div>
-        </div>
-
-        <div
-          className={cn(
-            DASHBOARD_FILTER_WELL,
-            "sticky top-0 z-30 backdrop-blur-md supports-[backdrop-filter]:bg-muted/40",
-          )}
-        >
-          <form
-            className="flex flex-wrap items-end gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              load().catch(() => setMessage("Failed to load reports."));
-            }}
-          >
-            <div className="flex min-w-[12rem] flex-col gap-2">
-              <span className={dashboardFilterFieldLabelClass()}>Quick range</span>
-              <select
-                className={dashboardSelectClass(loading)}
-                value=""
-                onChange={(e) => {
-                  const id = e.target.value;
-                  if (!isRangePresetId(id)) return;
-                  const r = rangeForPreset(id);
-                  setFrom(r.from);
-                  setTo(r.to);
-                  void load(r).catch(() => setMessage("Failed to load reports."));
-                }}
-              >
-                <option value="">Choose preset…</option>
-                {RANGE_PRESETS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex min-w-[10.5rem] flex-col gap-2">
-              <span className={dashboardFilterFieldLabelClass()}>From</span>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                From
+              </span>
               <input
                 type="date"
-                className={dashboardInputClass(loading)}
+                className={cn(fieldClass, "min-w-[9.5rem]")}
                 value={from}
-                onChange={(e) => setFrom(e.target.value)}
+                disabled={loading}
+                onChange={(e) => {
+                  setActivePreset("");
+                  setFrom(e.target.value);
+                }}
               />
-            </div>
-            <div className="flex min-w-[10.5rem] flex-col gap-2">
-              <span className={dashboardFilterFieldLabelClass()}>To</span>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                To
+              </span>
               <input
                 type="date"
-                className={dashboardInputClass(loading)}
+                className={cn(fieldClass, "min-w-[9.5rem]")}
                 value={to}
-                onChange={(e) => setTo(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-2 pb-0.5">
-              <Button
-                type="submit"
                 disabled={loading}
-                className="min-h-10 gap-2 shadow-sm transition-shadow hover:shadow-md"
-              >
-                <RefreshCw className={cn("size-4", loading && "animate-spin")} aria-hidden />
-                {loading ? "Loading…" : "Refresh"}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                className="min-h-10 shadow-sm"
-                onClick={() => {
-                  setFrom("");
-                  setTo("");
+                onChange={(e) => {
+                  setActivePreset("");
+                  setTo(e.target.value);
                 }}
-                disabled={!from && !to}
-              >
-                <X className="size-4" aria-hidden />
-                Clear
-              </Button>
-            </div>
-          </form>
-        </div>
-      </section>
+              />
+            </label>
+            <Button type="submit" disabled={loading} className="h-9 gap-1.5">
+              <RefreshCw
+                className={cn("size-3.5", loading && "animate-spin")}
+                aria-hidden
+              />
+              {loading ? "Loading…" : "Apply"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9"
+              disabled={loading || (!from && !to)}
+              onClick={() => {
+                setFrom("");
+                setTo("");
+                setActivePreset("");
+                void load({ from: "", to: "" });
+              }}
+            >
+              <X className="size-3.5" aria-hidden />
+              Clear
+            </Button>
+          </div>
+        </form>
+      </div>
 
       {message ? <DashboardFeedback kind="error" text={message} /> : null}
 
-      {data && (
-        <div className="space-y-12">
-          <section
-            aria-labelledby="pi-summary-heading"
-            className={cn(DASHBOARD_SECTION_SURFACE, "space-y-6")}
-          >
-            <h2 id="pi-summary-heading" className="sr-only">
-              Summary
-            </h2>
-            <Insights insights={data.insights} />
+      {!data && loading ? (
+        <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+          <div className="h-72 animate-pulse rounded-xl bg-muted/40" />
+          <div className="h-72 animate-pulse rounded-xl bg-muted/40" />
+        </div>
+      ) : null}
 
-            <div className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <SummaryCard
-                  label="Total Spend"
-                  value={formatMoneyShort(data.summary.totalSpend)}
-                  icon={DollarSign}
-                  variant="info"
-                  subtext={formatMoney(data.summary.totalSpend)}
-                />
-                <SummaryCard
-                  label="Suppliers"
-                  value={String(data.summary.supplierCount)}
-                  icon={Users}
-                  variant="default"
-                />
-                <SummaryCard
-                  label="Invoice Lines"
-                  value={String(data.summary.invoiceLineCount)}
-                  icon={ShoppingCart}
-                  variant="default"
-                />
-                <SummaryCard
-                  label="Items Purchased"
-                  value={String(data.summary.itemCount)}
-                  icon={Package}
-                  variant="default"
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <SummaryCard
-                  label="Avg Variance"
-                  value={formatPct(data.summary.avgVariancePercent)}
-                  icon={TrendingUp}
-                  variant={Number(data.summary.avgVariancePercent) > 0 ? "warning" : "success"}
-                />
-                <SummaryCard
-                  label="Above Primary Cost"
-                  value={String(data.summary.abovePrimaryCount)}
-                  icon={TrendingUp}
-                  variant={data.summary.abovePrimaryCount > 0 ? "warning" : "success"}
-                />
-                <SummaryCard
-                  label="Below Primary Cost"
-                  value={String(data.summary.belowPrimaryCount)}
-                  icon={TrendingDown}
-                  variant="success"
-                />
-                <SummaryCard
-                  label="Single-Source Risks"
-                  value={String(data.summary.singleSourceRiskCount)}
-                  icon={AlertTriangle}
-                  variant={data.summary.singleSourceRiskCount > 0 ? "danger" : "success"}
-                />
-              </div>
-            </div>
-          </section>
+      {data ? (
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)]">
+          {/* Left briefing rail */}
+          <aside className="space-y-4 lg:sticky lg:top-[5.25rem]">
+            <PanelShell title="Briefing" icon={AlertTriangle}>
+              <InsightStack insights={data.insights} />
+            </PanelShell>
 
-          <section aria-labelledby="pi-spend-heading" className="space-y-6 border-t border-border/50 pt-10">
-            <h2 id="pi-spend-heading" className="sr-only">
-              Spend and suppliers
-            </h2>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div className={DASHBOARD_SECTION_SURFACE}>
-                <div className="mb-5 flex items-center gap-3 border-b border-border/50 pb-4">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
-                    <BarChart3 className="size-4" aria-hidden />
-                  </span>
-                  <h3 className="text-base font-semibold tracking-tight text-foreground">Spend Trend</h3>
-                </div>
-                <div className="h-64 min-h-[16rem]">
+            <PanelShell title="Pulse" icon={Banknote}>
+              <MetricRow
+                label="Total spend"
+                value={formatMoneyShort(data.summary.totalSpend)}
+              />
+              <MetricRow
+                label="Exact"
+                value={formatMoney(data.summary.totalSpend)}
+              />
+              <MetricRow
+                label="Suppliers"
+                value={String(data.summary.supplierCount)}
+              />
+              <MetricRow
+                label="Invoice lines"
+                value={String(data.summary.invoiceLineCount)}
+              />
+              <MetricRow
+                label="Items"
+                value={String(data.summary.itemCount)}
+              />
+              <MetricRow
+                label="Avg variance"
+                value={formatPct(data.summary.avgVariancePercent)}
+                tone={avgVar > 0 ? "warn" : "good"}
+              />
+              <MetricRow
+                label="Above primary"
+                value={String(data.summary.abovePrimaryCount)}
+                tone={aboveCount > 0 ? "warn" : "good"}
+              />
+              <MetricRow
+                label="Below primary"
+                value={String(data.summary.belowPrimaryCount)}
+                tone="good"
+              />
+              <MetricRow
+                label="Single-source"
+                value={String(data.summary.singleSourceRiskCount)}
+                tone={riskCount > 0 ? "bad" : "good"}
+              />
+            </PanelShell>
+          </aside>
+
+          {/* Main column */}
+          <div className="min-w-0 space-y-4">
+            <div className="grid gap-4 xl:grid-cols-2">
+              <PanelShell title="Spend trend" icon={BarChart3}>
+                <div className="h-56">
                   {spendTrendData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={spendTrendData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
-                        <XAxis dataKey="date" tick={{ fontSize: 11, fill: CHART_AXIS }} tickLine={false} axisLine={{ stroke: CHART_GRID }} />
-                        <YAxis tick={{ fontSize: 11, fill: CHART_AXIS }} tickLine={false} axisLine={{ stroke: CHART_GRID }} tickFormatter={(v) => formatMoneyShort(v)} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke={CHART_GRID}
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 10, fill: CHART_AXIS }}
+                          tickLine={false}
+                          axisLine={{ stroke: CHART_GRID }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 10, fill: CHART_AXIS }}
+                          tickLine={false}
+                          axisLine={{ stroke: CHART_GRID }}
+                          tickFormatter={(v) => formatMoneyShort(v)}
+                          width={42}
+                        />
                         <Tooltip
                           formatter={(value) => formatMoney(Number(value))}
                           contentStyle={{
                             borderRadius: 8,
-                            border: "1px solid oklch(0.922 0 0)",
+                            border: "1px solid rgba(28,25,21,0.12)",
                             fontSize: 12,
-                            backgroundColor: "oklch(1 0 0)",
-                            boxShadow: "0 4px 12px rgb(0 0 0 / 0.08)",
+                            backgroundColor: "var(--card, #fff)",
                           }}
-                          labelStyle={{ fontWeight: 600 }}
                         />
-                        <Bar dataKey="spend" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Spend" />
+                        <Bar
+                          dataKey="spend"
+                          fill="var(--pos-primary, #0f766e)"
+                          radius={[3, 3, 0, 0]}
+                          name="Spend"
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 text-sm text-muted-foreground">
-                      No spend data for this range
-                    </div>
+                    <EmptyChart label="No spend in this window" />
                   )}
                 </div>
-              </div>
+              </PanelShell>
 
-              <div className={DASHBOARD_SECTION_SURFACE}>
-                <div className="mb-5 flex items-center gap-3 border-b border-border/50 pb-4">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
-                    <Banknote className="size-4" aria-hidden />
-                  </span>
-                  <h3 className="text-base font-semibold tracking-tight text-foreground">Spend by Supplier</h3>
-                </div>
-                <div className="h-64 min-h-[16rem]">
+              <PanelShell title="Spend by supplier" icon={Users}>
+                <div className="h-56">
                   {supplierPieData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={supplierPieData}
                           cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={90}
-                          paddingAngle={3}
+                          cy="46%"
+                          innerRadius={48}
+                          outerRadius={74}
+                          paddingAngle={2}
                           dataKey="value"
-                          label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
-                          labelLine={false}
                         >
                           {supplierPieData.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={CHART_COLORS[index % CHART_COLORS.length]}
+                            />
                           ))}
                         </Pie>
                         <Tooltip
                           formatter={(value) => formatMoney(Number(value))}
                           contentStyle={{
                             borderRadius: 8,
-                            border: "1px solid oklch(0.922 0 0)",
+                            border: "1px solid rgba(28,25,21,0.12)",
                             fontSize: 12,
-                            backgroundColor: "oklch(1 0 0)",
-                            boxShadow: "0 4px 12px rgb(0 0 0 / 0.08)",
+                            backgroundColor: "var(--card, #fff)",
                           }}
                         />
-                        <Legend verticalAlign="bottom" height={24} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: 11 }} />
+                        <Legend
+                          verticalAlign="bottom"
+                          height={28}
+                          iconSize={7}
+                          iconType="circle"
+                          wrapperStyle={{ fontSize: 10 }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 text-sm text-muted-foreground">
-                      No supplier data
-                    </div>
+                    <EmptyChart label="No supplier split yet" />
                   )}
                 </div>
-              </div>
+              </PanelShell>
             </div>
 
-            {data.topSuppliers.length > 0 ? (
-              <div className={DASHBOARD_TABLE_SURFACE}>
-                <div className={DASHBOARD_TABLE_HEAD}>
-                  <h3 className="text-base font-semibold tracking-tight text-foreground">Top Suppliers</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px] text-left text-sm">
-                    <thead className="border-b border-border/50 bg-muted/25">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                        >
-                          Supplier
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                        >
-                          Lines
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                        >
-                          Spend
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                        >
-                          % of Total
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/40">
-                      {data.topSuppliers.map((row) => {
-                        const pct =
-                          Number(data.summary.totalSpend) > 0
-                            ? (Number(row.spend) / Number(data.summary.totalSpend)) * 100
-                            : 0;
-                        return (
-                          <tr key={row.supplierId} className="transition-colors hover:bg-muted/30">
-                            <td className="px-5 py-4 font-medium text-foreground sm:px-6">{row.supplierName}</td>
-                            <td className="px-5 py-4 text-right tabular-nums text-foreground sm:px-6">{row.lineCount}</td>
-                            <td className="px-5 py-4 text-right tabular-nums text-foreground sm:px-6">{formatMoney(row.spend)}</td>
-                            <td className="px-5 py-4 text-right tabular-nums sm:px-6">
-                              <div className="flex items-center justify-end gap-2">
-                                <div className="h-2 w-20 overflow-hidden rounded-full bg-muted ring-1 ring-inset ring-border/40">
-                                  <div
-                                    className="h-full rounded-full bg-primary transition-all"
-                                    style={{ width: `${Math.min(pct, 100)}%` }}
-                                  />
-                                </div>
-                                <span className={cn(dashboardHintClass(), "w-12 text-right tabular-nums")}>{pct.toFixed(1)}%</span>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : null}
-          </section>
-
-          {data.priceAlerts.length > 0 ? (
-            <section aria-labelledby="pi-variance-heading" className="border-t border-border/50 pt-10">
-              <div className={DASHBOARD_TABLE_SURFACE}>
-                <div className={DASHBOARD_TABLE_HEAD}>
-                  <h3 id="pi-variance-heading" className="text-base font-semibold tracking-tight text-foreground">
-                    Price Variance Alerts
-                  </h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[640px] text-left text-sm">
-                  <thead className="border-b border-border/50 bg-muted/25">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+            <PanelShell
+              title="Top suppliers"
+              icon={Truck}
+              action={
+                data.topSuppliers.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setDrawer("suppliers")}
+                    className="text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] hover:underline"
+                  >
+                    Open dossier
+                  </button>
+                ) : null
+              }
+            >
+              {data.topSuppliers.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  No supplier spend in this range.
+                </p>
+              ) : (
+                <ul className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
+                  {data.topSuppliers.slice(0, 5).map((row) => {
+                    const pct =
+                      Number(data.summary.totalSpend) > 0
+                        ? (Number(row.spend) / Number(data.summary.totalSpend)) *
+                          100
+                        : 0;
+                    return (
+                      <li
+                        key={row.supplierId}
+                        className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
                       >
-                        SKU
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                      >
-                        Paid / unit
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                      >
-                        Primary cost
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                      >
-                        Variance
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                      >
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40">
-                    {data.priceAlerts.map((row, i) => (
-                      <tr key={i} className="transition-colors hover:bg-muted/30">
-                        <td className="px-5 py-4 font-medium text-foreground sm:px-6">{row.itemSku}</td>
-                        <td className="px-5 py-4 text-right tabular-nums text-foreground sm:px-6">
-                          {formatUnit(Number(row.paidUnitCost))}
-                        </td>
-                        <td className="px-5 py-4 text-right tabular-nums text-muted-foreground sm:px-6">
-                          {row.primaryLastCost ? formatUnit(Number(row.primaryLastCost)) : "—"}
-                        </td>
-                        <td className="px-5 py-4 text-right tabular-nums sm:px-6">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1.5 font-medium",
-                              Number(row.variancePercent) > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400",
-                            )}
-                          >
-                            <span
-                              className={cn("size-1.5 shrink-0 rounded-full bg-current opacity-80")}
-                              aria-hidden
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {row.supplierName}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {row.lineCount} line{row.lineCount === 1 ? "" : "s"}
+                          </p>
+                        </div>
+                        <div className="w-24 shrink-0">
+                          <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-[var(--pos-primary,#0f766e)]"
+                              style={{ width: `${Math.min(pct, 100)}%` }}
                             />
-                            {formatPct(row.variancePercent)}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 sm:px-6">
-                          {Number(row.variancePercent) > 0 ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-800 dark:text-rose-200">
-                              <TrendingUp className="size-3.5 shrink-0" aria-hidden /> Above primary
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-200">
-                              <TrendingDown className="size-3.5 shrink-0" aria-hidden /> Below primary
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </div>
-            </section>
-          ) : null}
+                          </div>
+                          <p className="text-right text-[10px] tabular-nums text-muted-foreground">
+                            {pct.toFixed(1)}%
+                          </p>
+                        </div>
+                        <p className="w-[5.5rem] shrink-0 text-right text-sm font-semibold tabular-nums text-foreground">
+                          {formatMoneyShort(row.spend)}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </PanelShell>
 
-          {data.topCategories.length > 0 ? (
-            <section aria-labelledby="pi-categories-heading" className="border-t border-border/50 pt-10">
-              <div className={DASHBOARD_TABLE_SURFACE}>
-                <div className={DASHBOARD_TABLE_HEAD}>
-                  <h3 id="pi-categories-heading" className="text-base font-semibold tracking-tight text-foreground">
-                    Spend by Category
-                  </h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[480px] text-left text-sm">
-                  <thead className="border-b border-border/50 bg-muted/25">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                      >
-                        Category
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                      >
-                        Lines
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                      >
-                        Spend
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40">
-                    {data.topCategories.map((row) => (
-                      <tr key={row.categoryId} className="transition-colors hover:bg-muted/30">
-                        <td className="px-5 py-4 font-medium text-foreground sm:px-6">{row.categoryName}</td>
-                        <td className="px-5 py-4 text-right tabular-nums text-foreground sm:px-6">{row.lineCount}</td>
-                        <td className="px-5 py-4 text-right tabular-nums text-foreground sm:px-6">{formatMoney(row.spend)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </div>
-            </section>
-          ) : null}
-
-          {data.singleSourceRisks.length > 0 ? (
-            <section aria-labelledby="pi-risk-heading" className="border-t border-border/50 pt-10">
-              <div className={DASHBOARD_TABLE_SURFACE}>
-                <div className={DASHBOARD_TABLE_HEAD}>
-                  <h3 id="pi-risk-heading" className="flex flex-wrap items-center gap-2 text-base font-semibold tracking-tight text-foreground">
-                    <AlertTriangle className="size-5 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden />
-                    <span>
-                      Single-Source Risk ({data.singleSourceRisks.length})
-                    </span>
-                  </h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[480px] text-left text-sm">
-                  <thead className="border-b border-border/50 bg-muted/25">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                      >
-                        SKU
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                      >
-                        Name
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
-                      >
-                        Sole Supplier
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40">
-                    {data.singleSourceRisks.map((row) => (
-                      <tr key={row.itemId} className="transition-colors hover:bg-muted/30">
-                        <td className="px-5 py-4 font-medium text-foreground sm:px-6">{row.sku}</td>
-                        <td className="px-5 py-4 text-foreground sm:px-6">{row.name}</td>
-                        <td className="px-5 py-4 sm:px-6">
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-800 dark:text-rose-200">
-                            <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
-                            {row.soleSupplierName}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </div>
-            </section>
-          ) : null}
+            {/* Dossier launchers */}
+            <div className="grid gap-2 sm:grid-cols-3">
+              <DossierButton
+                title="Price variance"
+                count={data.priceAlerts.length}
+                hint={
+                  data.priceAlerts.length
+                    ? "Paid vs primary cost"
+                    : "No alerts in range"
+                }
+                icon={TrendingUp}
+                tone={aboveCount > 0 ? "warn" : "default"}
+                onClick={() => setDrawer("variance")}
+              />
+              <DossierButton
+                title="Categories"
+                count={data.topCategories.length}
+                hint="Where money landed"
+                icon={Package}
+                onClick={() => setDrawer("categories")}
+              />
+              <DossierButton
+                title="Single-source"
+                count={data.singleSourceRisks.length}
+                hint={
+                  riskCount > 0
+                    ? "Items with one supplier"
+                    : "No concentration risk"
+                }
+                icon={ShieldAlert}
+                tone={riskCount > 0 ? "bad" : "default"}
+                onClick={() => setDrawer("risk")}
+              />
+            </div>
+          </div>
         </div>
-      )}
+      ) : null}
+
+      {/* Drawers */}
+      <FormDrawer
+        open={drawer === "suppliers"}
+        onOpenChange={(open) => !open && setDrawer(null)}
+        title="Supplier dossier"
+        description="Full spend ranking for the selected window."
+        contextLabel="Intelligence"
+        icon={<Truck className="size-5" aria-hidden />}
+        width="wide"
+        headerDensity="compact"
+      >
+        {data && data.topSuppliers.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[28rem] text-left text-sm">
+              <thead className="border-b border-border/50 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                <tr>
+                  <th className="px-1 py-2">Supplier</th>
+                  <th className="px-1 py-2 text-right">Lines</th>
+                  <th className="px-1 py-2 text-right">Spend</th>
+                  <th className="px-1 py-2 text-right">Share</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {data.topSuppliers.map((row) => {
+                  const pct =
+                    Number(data.summary.totalSpend) > 0
+                      ? (Number(row.spend) / Number(data.summary.totalSpend)) *
+                        100
+                      : 0;
+                  return (
+                    <tr key={row.supplierId}>
+                      <td className="px-1 py-2.5 font-medium">{row.supplierName}</td>
+                      <td className="px-1 py-2.5 text-right tabular-nums">
+                        {row.lineCount}
+                      </td>
+                      <td className="px-1 py-2.5 text-right tabular-nums">
+                        {formatMoney(row.spend)}
+                      </td>
+                      <td className="px-1 py-2.5 text-right tabular-nums text-muted-foreground">
+                        {pct.toFixed(1)}%
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No suppliers to list.</p>
+        )}
+      </FormDrawer>
+
+      <FormDrawer
+        open={drawer === "variance"}
+        onOpenChange={(open) => !open && setDrawer(null)}
+        title="Price variance"
+        description="Lines paid above or below the primary supplier cost."
+        contextLabel="Intelligence"
+        icon={<TrendingUp className="size-5" aria-hidden />}
+        width="wide"
+        headerDensity="compact"
+      >
+        {data && data.priceAlerts.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[32rem] text-left text-sm">
+              <thead className="border-b border-border/50 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                <tr>
+                  <th className="px-1 py-2">SKU</th>
+                  <th className="px-1 py-2 text-right">Paid</th>
+                  <th className="px-1 py-2 text-right">Primary</th>
+                  <th className="px-1 py-2 text-right">Variance</th>
+                  <th className="px-1 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {data.priceAlerts.map((row, i) => {
+                  const above = Number(row.variancePercent) > 0;
+                  return (
+                    <tr key={`${row.itemId}-${row.invoiceId}-${i}`}>
+                      <td className="px-1 py-2.5 font-medium">{row.itemSku}</td>
+                      <td className="px-1 py-2.5 text-right tabular-nums">
+                        {formatUnit(Number(row.paidUnitCost))}
+                      </td>
+                      <td className="px-1 py-2.5 text-right tabular-nums text-muted-foreground">
+                        {row.primaryLastCost
+                          ? formatUnit(Number(row.primaryLastCost))
+                          : "—"}
+                      </td>
+                      <td
+                        className={cn(
+                          "px-1 py-2.5 text-right tabular-nums font-medium",
+                          above ? "text-rose-600" : "text-emerald-600",
+                        )}
+                      >
+                        {formatPct(row.variancePercent)}
+                      </td>
+                      <td className="px-1 py-2.5">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold",
+                            above
+                              ? "bg-rose-500/10 text-rose-800 dark:text-rose-200"
+                              : "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+                          )}
+                        >
+                          {above ? (
+                            <TrendingUp className="size-3" aria-hidden />
+                          ) : (
+                            <TrendingDown className="size-3" aria-hidden />
+                          )}
+                          {above ? "Above" : "Below"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No price variance alerts in this window.
+          </p>
+        )}
+      </FormDrawer>
+
+      <FormDrawer
+        open={drawer === "categories"}
+        onOpenChange={(open) => !open && setDrawer(null)}
+        title="Spend by category"
+        description="Category mix for the selected window."
+        contextLabel="Intelligence"
+        icon={<ShoppingCart className="size-5" aria-hidden />}
+        width="default"
+        headerDensity="compact"
+      >
+        {data && data.topCategories.length > 0 ? (
+          <ul className="divide-y divide-border/40">
+            {data.topCategories.map((row) => (
+              <li
+                key={row.categoryId}
+                className="flex items-center justify-between gap-3 py-2.5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{row.categoryName}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {row.lineCount} line{row.lineCount === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <p className="shrink-0 text-sm font-semibold tabular-nums">
+                  {formatMoney(row.spend)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">No category spend yet.</p>
+        )}
+      </FormDrawer>
+
+      <FormDrawer
+        open={drawer === "risk"}
+        onOpenChange={(open) => !open && setDrawer(null)}
+        title="Single-source risk"
+        description="SKUs that depend on one supplier only."
+        contextLabel="Intelligence"
+        icon={<ShieldAlert className="size-5" aria-hidden />}
+        width="wide"
+        headerDensity="compact"
+      >
+        {data && data.singleSourceRisks.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[28rem] text-left text-sm">
+              <thead className="border-b border-border/50 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                <tr>
+                  <th className="px-1 py-2">SKU</th>
+                  <th className="px-1 py-2">Name</th>
+                  <th className="px-1 py-2">Sole supplier</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {data.singleSourceRisks.map((row) => (
+                  <tr key={row.itemId}>
+                    <td className="px-1 py-2.5 font-medium">{row.sku}</td>
+                    <td className="px-1 py-2.5">{row.name}</td>
+                    <td className="px-1 py-2.5">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-800 dark:text-rose-200">
+                        <AlertTriangle className="size-3" aria-hidden />
+                        {row.soleSupplierName}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No single-source concentration in this catalog snapshot.
+          </p>
+        )}
+      </FormDrawer>
     </div>
   );
 }

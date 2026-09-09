@@ -32,7 +32,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.inventoryOrderPad]: "Shopping list",
     [APP_ROUTES.inventorySupplyBatches]: "Deliveries",
     [APP_ROUTES.inventoryCostIssues]: "Selling too cheap",
-    [APP_ROUTES.purchasingAddSupplies]: "Record delivery",
+    [APP_ROUTES.purchasingAddSupplies]: "Supplies",
     [APP_ROUTES.order]: "New order",
     [APP_ROUTES.orderReceive]: "Confirm supply",
     [APP_ROUTES.purchasingIntelligence]: "Compare suppliers",
@@ -78,7 +78,7 @@ export function shellPageTitle(pathname: string): string {
     path.startsWith("/purchasing") ||
     path.startsWith(APP_ROUTES.purchasingAddSupplies)
   )
-    return "Suppliers & bills";
+    return "Buying";
   if (path.startsWith(APP_ROUTES.sales)) return "Sales";
   if (path.startsWith(APP_ROUTES.business)) return "Business";
   if (path.startsWith(APP_ROUTES.grocery)) return "Grocery";

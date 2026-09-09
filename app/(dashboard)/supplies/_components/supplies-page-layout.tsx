@@ -43,13 +43,13 @@ export function SuppliesPageLayout({
         <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 px-0.5 sm:px-1">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--order-ink)_42%,transparent)]">
-              Procurement
+              Buying
             </p>
             <h1 className="mt-1 font-heading text-2xl font-semibold tracking-[-0.03em] text-[var(--order-ink)] sm:text-[1.65rem]">
-              Record delivery
+              Supplies
             </h1>
             <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink)_58%,transparent)] sm:text-sm">
-              Vendor receipts, open payables, and supplier wallet deposits
+              Delivery ledger, open payables, and supplier wallet deposits
               {branchScope ? (
                 <>
                   {" "}
