@@ -102,18 +102,17 @@ export function OrderProductShelf({
             key={link.id}
             className={cn(
               "group flex min-w-0 flex-col overflow-hidden rounded-none bg-white",
-              "border transition-[border-color,background-color] duration-150",
+              "border transition-[border-color] duration-150",
               inCart
-                ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,#fff)]"
+                ? "border-[var(--pos-primary,#0f766e)]"
                 : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)]",
             )}
           >
             <button
               type="button"
               className={cn(
-                "relative aspect-square w-full touch-manipulation rounded-none",
-                "bg-[linear-gradient(180deg,#fbfcfa_0%,#f3f6f4_100%)]",
-                "transition-colors duration-150 active:bg-[#eef1ef] disabled:opacity-60",
+                "relative aspect-[3/4] w-full overflow-hidden rounded-none bg-white",
+                "touch-manipulation disabled:opacity-60",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
               )}
               onClick={() =>
@@ -127,20 +126,18 @@ export function OrderProductShelf({
               }
             >
               {thumb ? (
-                <span className="absolute inset-[12.5%]">
-                  <Image
-                    src={thumb}
-                    alt=""
-                    fill
-                    sizes="(max-width: 640px) 48vw, (min-width: 1024px) 18vw, 160px"
-                    className="object-contain transition-transform duration-200 group-hover:scale-[1.03]"
-                    unoptimized
-                  />
-                </span>
+                <Image
+                  src={thumb}
+                  alt=""
+                  fill
+                  sizes="(max-width: 640px) 48vw, (min-width: 1024px) 18vw, 160px"
+                  className="object-contain object-center scale-[1.22] transition-transform duration-200 group-hover:scale-[1.26]"
+                  unoptimized
+                />
               ) : (
-                <span className="absolute inset-[12.5%] flex items-center justify-center">
+                <span className="flex h-full w-full items-center justify-center">
                   <Package
-                    className="size-8 opacity-15"
+                    className="size-10 opacity-15"
                     strokeWidth={1.5}
                     aria-hidden
                   />
@@ -148,43 +145,30 @@ export function OrderProductShelf({
               )}
             </button>
 
-            {/* Price lives under the image as a till ticket, never over the logo. */}
-            <div
-              className={cn(
-                "flex items-end justify-between gap-2 px-2 py-1.5",
-                inCart
-                  ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                  : cost > 0
-                    ? "bg-[var(--order-ink,#15231f)] text-white"
-                    : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,#fff)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]",
-              )}
-            >
-              <span className="min-w-0">
-                <span className="block text-[8px] font-bold uppercase tracking-[0.14em] opacity-70">
-                  {inCart ? `Qty ×${qty}` : packed ? "Per pack" : "Buy"}
-                </span>
-                <span className="block truncate font-heading text-[13px] font-semibold leading-none tabular-nums tracking-[-0.02em]">
-                  {cost > 0 ? formatMoney(cost, ORDER_CURRENCY) : "No price"}
-                </span>
-              </span>
-              {lineTotal > 0 ? (
-                <span className="shrink-0 text-right">
-                  <span className="block text-[8px] font-bold uppercase tracking-[0.1em] opacity-70">
-                    Line
-                  </span>
-                  <span className="block font-mono text-[10px] font-bold tabular-nums leading-none">
-                    {formatMoney(lineTotal, ORDER_CURRENCY)}
-                  </span>
-                </span>
-              ) : packed && !inCart ? (
-                <span className="shrink-0 font-mono text-[10px] font-bold tabular-nums leading-none opacity-80">
-                  ×{formatPackSize(pack.size)}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-2 pb-2 pt-1.5">
+            <div className="flex min-w-0 flex-col gap-1 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 pb-2 pt-1.5">
               <OrderTileTitle primary={primary} option={option} />
+              <div className="flex min-w-0 items-baseline justify-between gap-2">
+                <p
+                  className={cn(
+                    "min-w-0 truncate text-[13px] font-semibold tabular-nums leading-none",
+                    cost > 0
+                      ? "text-[var(--order-ink,#15231f)]"
+                      : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]",
+                  )}
+                >
+                  {cost > 0 ? formatMoney(cost, ORDER_CURRENCY) : "No price"}
+                  {packed ? (
+                    <span className="ml-1 text-[9px] font-medium uppercase tracking-wide text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
+                      / pack
+                    </span>
+                  ) : null}
+                </p>
+                {lineTotal > 0 ? (
+                  <p className="shrink-0 text-[11px] font-semibold tabular-nums leading-none text-[var(--pos-primary,#0f766e)]">
+                    {formatMoney(lineTotal, ORDER_CURRENCY)}
+                  </p>
+                ) : null}
+              </div>
               {low ? (
                 <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-amber-800">
                   Stock {stock}
@@ -201,29 +185,29 @@ export function OrderProductShelf({
               {pickMode ? (
                 <button
                   type="button"
-                  className="mt-auto flex h-8 w-full items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] text-[11px] font-bold text-white transition hover:bg-[#0d6b63] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]"
+                  className="mt-1 flex h-8 w-full items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[11px] font-bold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]"
                   onClick={() => onPickItem(link)}
                   disabled={pickingItemId === link.itemId}
                 >
                   {pickingItemId === link.itemId ? "Adding…" : "Add to order"}
                 </button>
               ) : (
-                <div className="mt-auto grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
+                <div className="mt-1 grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
                   <button
                     type="button"
                     disabled={qty <= 0}
-                    className="flex h-8 items-center justify-center touch-manipulation border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[16px] leading-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#fff)] disabled:opacity-25"
+                    className="flex h-8 items-center justify-center touch-manipulation border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[16px] leading-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,#fff)] disabled:opacity-25"
                     onClick={() => onSetQty(link.itemId, qty - 1)}
                     aria-label="Decrease"
                   >
                     −
                   </button>
-                  <span className="flex h-8 items-center justify-center bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_70%,#fff)] font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                  <span className="flex h-8 items-center justify-center font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
                     {qty}
                   </span>
                   <button
                     type="button"
-                    className="flex h-8 items-center justify-center touch-manipulation border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[16px] leading-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#fff)]"
+                    className="flex h-8 items-center justify-center touch-manipulation border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[16px] leading-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,#fff)]"
                     onClick={() => onSetQty(link.itemId, qty + 1)}
                     aria-label="Increase"
                   >
