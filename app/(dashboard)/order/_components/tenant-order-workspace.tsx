@@ -1228,7 +1228,7 @@ export function TenantOrderWorkspace({
                     qty={qty}
                     onSetQty={(next) => setQty(link.itemId, next)}
                     ariaLabel={`Quantity for ${link.itemName}`}
-                    className="h-8 w-12 text-[12px] font-mono"
+                    className="h-8 min-w-[4.5rem] w-[4.5rem] text-[13px]"
                   />
                   <button
                     type="button"

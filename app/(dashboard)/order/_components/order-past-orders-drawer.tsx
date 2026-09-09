@@ -18,7 +18,6 @@ import {
   type SupplierRecord,
 } from "@/lib/api";
 import {
-  applyPoDetailToCart,
   poPhaseLabel,
   poReceivePhase,
   sortPastOrders,

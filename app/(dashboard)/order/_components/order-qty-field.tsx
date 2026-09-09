@@ -57,11 +57,12 @@ export function OrderQtyField({
       aria-label={ariaLabel}
       title="Type a quantity"
       className={cn(
-        "h-full min-w-0 w-full bg-transparent text-center font-heading text-[15px] font-semibold tabular-nums leading-none tracking-[-0.03em] text-current outline-none",
+        "min-w-[4ch] overflow-visible bg-transparent px-0.5 text-center font-heading font-semibold tabular-nums leading-none tracking-normal text-current outline-none",
         "selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
         "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
         className,
       )}
+      size={Math.max(3, draft.length)}
       onFocus={(e) => {
         focusedRef.current = true;
         e.currentTarget.select();

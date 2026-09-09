@@ -47,7 +47,7 @@ function packUnitPrice(
 }
 
 const STEP =
-  "flex size-9 items-center justify-center touch-manipulation text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#fff)] hover:text-[var(--order-ink,#15231f)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,#fff)] disabled:pointer-events-none disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]";
+  "flex h-9 w-8 shrink-0 items-center justify-center touch-manipulation text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#fff)] hover:text-[var(--order-ink,#15231f)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,#fff)] disabled:pointer-events-none disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]";
 
 function OrderShelfTile({
   link,
@@ -191,8 +191,8 @@ function OrderShelfTile({
           </button>
         ) : (
           <div
-            className="mt-2 grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] overflow-hidden rounded-none border bg-white"
-            style={{ borderColor: inCart ? TEAL : RULE }}
+            className="mt-2 flex h-9 items-stretch rounded-none border bg-white"
+            style={{ borderColor: inCart ? TEAL : RULE, color: inCart ? TEAL : INK }}
             role="group"
             aria-label={`Quantity for ${primary}`}
           >
@@ -206,20 +206,12 @@ function OrderShelfTile({
             >
               <Minus className="size-3.5" strokeWidth={2.25} aria-hidden />
             </button>
-            <div
-              className={cn(
-                "flex h-9 min-w-0 items-center justify-center px-0.5",
-                qty > 0 && "pos-tile-qty-badge",
-              )}
-              style={{ color: inCart ? TEAL : INK }}
-            >
-              <OrderQtyField
-                qty={qty}
-                onSetQty={onSetQty}
-                ariaLabel={`Quantity for ${primary}`}
-                className="h-9 text-[15px]"
-              />
-            </div>
+            <OrderQtyField
+              qty={qty}
+              onSetQty={onSetQty}
+              ariaLabel={`Quantity for ${primary}`}
+              className="h-9 flex-1 px-1 text-[13px] sm:text-[14px]"
+            />
             <button
               type="button"
               className={cn(STEP, "border-l")}
@@ -257,7 +249,7 @@ export function OrderProductShelf({
   const pickMode = onPickItem != null;
 
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-3">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-3 xl:grid-cols-5">
       {links.map((link) => {
         const qty = cart[link.itemId] ?? 0;
         const pack = packByItemId[link.itemId] ?? null;
