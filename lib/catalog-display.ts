@@ -199,6 +199,22 @@ export function joinProductNameParts(
   return `${fam} ${opt}`;
 }
 
+/**
+ * When option labels were stored as "Family 1kg", peel the family so two-line
+ * UIs can show family + size without repeating the family name.
+ */
+export function stripLeadingFamilyPrefix(
+  option: string | null | undefined,
+  family: string | null | undefined,
+): string {
+  const opt = option?.trim().replace(/\s+/g, " ") ?? "";
+  const fam = family?.trim().replace(/\s+/g, " ") ?? "";
+  if (!opt || !fam) return opt;
+  if (!opt.toLowerCase().startsWith(fam.toLowerCase())) return opt;
+  const rest = opt.slice(fam.length).replace(/^[\s·•\-–,]+/, "").trim();
+  return rest || opt;
+}
+
 /** Appends a code (SKU / barcode) that identifies a row but isn't part of the product's name. */
 export function withProductCode(name: string, code: string): string {
   return `${name} (${code})`;
@@ -344,9 +360,13 @@ export function resolveCatalogVariantListTitle(
   },
 ): CatalogVariantListTitle {
   const optionRes = resolveCatalogVariantPrimaryName(row);
-  const option = optionRes.label;
+  const optionRaw = optionRes.label;
 
   if (opts?.parentInList) {
+    const parent = usableLabel(opts?.parentRow?.name);
+    const option = parent
+      ? stripLeadingFamilyPrefix(optionRaw, parent)
+      : optionRaw;
     return {
       family: null,
       option,
@@ -361,33 +381,39 @@ export function resolveCatalogVariantListTitle(
 
   // "Rhino Kubwa Single 60 Sticks" + option "Single 60 Sticks" → family "Rhino Kubwa".
   const peeledFromName =
-    fromOwnName && fromOwnName.length > option.length
+    fromOwnName && fromOwnName.length > optionRaw.length
       ? fromOwnName
-          .replace(new RegExp(`[\\s·•|-]+${escapeRegExp(option)}\\s*$`, "i"), "")
+          .replace(
+            new RegExp(`[\\s·•|-]+${escapeRegExp(optionRaw)}\\s*$`, "i"),
+            "",
+          )
           .trim()
       : "";
   const peeledFamily =
     peeledFromName &&
     peeledFromName.length < fromOwnName!.length &&
-    !labelsMatch(peeledFromName, option)
+    !labelsMatch(peeledFromName, optionRaw)
       ? peeledFromName
       : null;
 
   const family =
     fromParent ??
     peeledFamily ??
-    (fromOwnName && !labelsMatch(fromOwnName, option) ? fromOwnName : null) ??
-    (fromBrand && !labelsMatch(fromBrand, option) ? fromBrand : null);
+    (fromOwnName && !labelsMatch(fromOwnName, optionRaw)
+      ? fromOwnName
+      : null) ??
+    (fromBrand && !labelsMatch(fromBrand, optionRaw) ? fromBrand : null);
 
   if (!family) {
     return {
       family: null,
-      option,
-      combined: option,
+      option: optionRaw,
+      combined: optionRaw,
       needsNameFix: optionRes.needsNameFix,
     };
   }
 
+  const option = stripLeadingFamilyPrefix(optionRaw, family);
   return {
     family,
     option,

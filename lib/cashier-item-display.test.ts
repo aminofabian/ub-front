@@ -272,6 +272,29 @@ describe("cashier labels", () => {
     ).toEqual({ primary: "Eggs", option: "Tray of 30" });
   });
 
+  it("does not repeat the family name on two-line POS tiles", () => {
+    expect(
+      cashierItemTitleParts({
+        id: "m",
+        name: "molped 444",
+        sku: "MOLPED-444",
+        variantName: "molped 444",
+        variantOfItemId: "parent",
+        parentName: "molped",
+      }),
+    ).toEqual({ primary: "molped", option: "444" });
+    expect(
+      cashierItemPrimaryLabel({
+        id: "m",
+        name: "molped 444",
+        sku: "MOLPED-444",
+        variantName: "molped 444",
+        variantOfItemId: "parent",
+        parentName: "molped",
+      }),
+    ).toBe("molped 444");
+  });
+
   it("keeps coded inventory names exact on POS tiles", () => {
     const row: ItemSummaryRecord = {
       id: "hook",

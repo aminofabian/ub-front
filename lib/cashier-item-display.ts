@@ -5,6 +5,7 @@ import {
   looksLikeUuid,
   resolveCatalogItemName,
   resolveCatalogVariantListTitle,
+  stripLeadingFamilyPrefix,
   withProductCode,
 } from "@/lib/catalog-display";
 
@@ -79,7 +80,13 @@ export function cashierItemTitleParts(row: ItemSummaryRecord): {
     }
     const option = disambiguatorForPos(row);
     if (option && !fallback.toLowerCase().includes(option.toLowerCase())) {
-      return { primary: fallback, option };
+      const cleaned = stripLeadingFamilyPrefix(option, fallback);
+      if (
+        cleaned &&
+        !fallback.toLowerCase().includes(cleaned.toLowerCase())
+      ) {
+        return { primary: fallback, option: cleaned };
+      }
     }
     return { primary: fallback, option: null };
   }
@@ -98,7 +105,11 @@ export function cashierItemTitleParts(row: ItemSummaryRecord): {
       const peeled = peelTrailingOption(fixed);
       return peeled ?? { primary: fixed, option: null };
     }
-    return { primary: name, option };
+    const cleaned = stripLeadingFamilyPrefix(option, name);
+    if (cleaned && !name.toLowerCase().includes(cleaned.toLowerCase())) {
+      return { primary: name, option: cleaned };
+    }
+    return { primary: name, option: null };
   }
   // Prefer peeling a trailing " · size" off long catalog names so the unit stays visible.
   const peeled = peelTrailingOption(name);

@@ -144,4 +144,17 @@ describe("resolveCatalogVariantListTitle", () => {
     expect(title.family).toBe("Rhino Kubwa");
     expect(title.combined).toBe("Rhino Kubwa Single 60 Sticks");
   });
+
+  it("strips a family-prefixed option so two-line titles do not repeat the family", () => {
+    const title = resolveCatalogVariantListTitle(
+      {
+        name: "molped 444",
+        variantName: "molped 444",
+      },
+      { parentRow: { name: "molped" } },
+    );
+    expect(title.family).toBe("molped");
+    expect(title.option).toBe("444");
+    expect(title.combined).toBe("molped 444");
+  });
 });
