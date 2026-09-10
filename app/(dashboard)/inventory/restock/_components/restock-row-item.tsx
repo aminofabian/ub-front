@@ -95,7 +95,9 @@ export function RestockRowItem({
           aria-label={`Unit cost for ${name}`}
         />
       </td>
-      <td className={cn(supTableCell, "w-[4.5rem] p-0 text-right align-middle")}>
+      <td
+        className={cn(supTableCell, "w-[4.5rem] p-0 text-right align-middle")}
+      >
         <Button
           type="button"
           size="sm"

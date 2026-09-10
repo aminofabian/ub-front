@@ -120,7 +120,7 @@ export function BusinessHubNav({
                 "size-4 shrink-0 transition-colors sm:size-3.5",
                 active
                   ? "text-[color-mix(in_srgb,#fff_88%,transparent)]"
-                  : "text-[var(--hub-accent,#B08D48)]",
+                  : "text-[var(--hub-accent,#0f766e)]",
               )}
               strokeWidth={active ? 2.25 : 2}
               aria-hidden
@@ -143,7 +143,7 @@ export function BusinessHubNav({
             </span>
             {active ? (
               <span
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[var(--hub-accent,#B08D48)]"
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[var(--hub-accent,#0f766e)]"
                 aria-hidden
               />
             ) : null}

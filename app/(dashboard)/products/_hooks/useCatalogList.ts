@@ -64,7 +64,8 @@ export function useCatalogList(
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
-  const [includeCategoryDescendants, setIncludeCategoryDescendants] = useState(true);
+  const [includeCategoryDescendants, setIncludeCategoryDescendants] =
+    useState(true);
   const [catalogScope, setCatalogScope] = useState<CatalogListScope>("ALL");
   const [barcodeExact, setBarcodeExact] = useState("");
   const [filterNoBarcode, setFilterNoBarcode] = useState(false);
@@ -74,7 +75,9 @@ export function useCatalogList(
   const [filterLowStock, setFilterLowStock] = useState(false);
   const [aisles, setAisles] = useState<AisleRecord[]>([]);
 
-  const [rowSelection, setRowSelection] = useState<Set<string>>(() => new Set());
+  const [rowSelection, setRowSelection] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [variantIdsByParentId, setVariantIdsByParentId] = useState<
     Record<string, string[]>
   >({});
@@ -117,7 +120,8 @@ export function useCatalogList(
   catalogRowsRef.current = catalogRows;
 
   const rowTypeFilterActive =
-    rowTypeFilter.size > 0 && rowTypeFilter.size < CATALOG_LIST_DISPLAY_TYPES.length;
+    rowTypeFilter.size > 0 &&
+    rowTypeFilter.size < CATALOG_LIST_DISPLAY_TYPES.length;
 
   const attentionFiltersActive =
     filterNoBarcode ||
@@ -187,7 +191,10 @@ export function useCatalogList(
   }, []);
 
   const sortedCategories = useMemo(
-    () => [...categories].sort((a, b) => a.position - b.position || a.name.localeCompare(b.name)),
+    () =>
+      [...categories].sort(
+        (a, b) => a.position - b.position || a.name.localeCompare(b.name),
+      ),
     [categories],
   );
 
@@ -262,11 +269,16 @@ export function useCatalogList(
         nextPageRef.current = page.last ? 0 : 1;
         setRowSelection(new Set());
       }
-      const stats = await fetchCatalogListStats(debouncedSearch || undefined, listStatsOpts);
+      const stats = await fetchCatalogListStats(
+        debouncedSearch || undefined,
+        listStatsOpts,
+      );
       setCatalogStats(stats);
     } catch (error) {
       if (!(error instanceof ApiRequestError)) {
-        setMessage(error instanceof Error ? error.message : "Failed to load catalog.");
+        setMessage(
+          error instanceof Error ? error.message : "Failed to load catalog.",
+        );
       }
     } finally {
       setListLoadingInitial(false);
@@ -312,7 +324,13 @@ export function useCatalogList(
   );
 
   const loadMoreCatalog = useCallback(async () => {
-    if (listLast || listLoadingMore || listLoadingInitial || nextPageRef.current <= 0) return;
+    if (
+      listLast ||
+      listLoadingMore ||
+      listLoadingInitial ||
+      nextPageRef.current <= 0
+    )
+      return;
     const rowTypes = catalogRowTypesForApi(rowTypeFilter);
     if (rowTypes === null) return;
     setListLoadingMore(true);
@@ -329,12 +347,21 @@ export function useCatalogList(
       nextPageRef.current = page.last ? 0 : pagen + 1;
     } catch (error) {
       if (!(error instanceof ApiRequestError)) {
-        setMessage(error instanceof Error ? error.message : "Failed to load more.");
+        setMessage(
+          error instanceof Error ? error.message : "Failed to load more.",
+        );
       }
     } finally {
       setListLoadingMore(false);
     }
-  }, [listLast, listLoadingMore, listLoadingInitial, debouncedSearch, listFetchOpts, rowTypeFilter]);
+  }, [
+    listLast,
+    listLoadingMore,
+    listLoadingInitial,
+    debouncedSearch,
+    listFetchOpts,
+    rowTypeFilter,
+  ]);
 
   /**
    * Ensure rows for `letter` are loaded (paging ahead if needed), then return
@@ -378,7 +405,9 @@ export function useCatalogList(
       } catch (error) {
         if (!(error instanceof ApiRequestError)) {
           setMessage(
-            error instanceof Error ? error.message : "Failed to jump to letter.",
+            error instanceof Error
+              ? error.message
+              : "Failed to jump to letter.",
           );
         }
         return -1;
@@ -414,8 +443,7 @@ export function useCatalogList(
         .map((r) => r.id);
       const cachedVariantIds = variantIdsByParentId[id];
       const isGroupLabel = row.groupLabelOnly === true;
-      const variantCount =
-        cachedVariantIds?.length ?? localVariantIds.length;
+      const variantCount = cachedVariantIds?.length ?? localVariantIds.length;
       const isParentSelector = isCatalogParentSelectorRow(row, variantCount);
 
       let variantIds = cachedVariantIds ?? localVariantIds;
@@ -471,7 +499,9 @@ export function useCatalogList(
   useEffect(() => {
     void loadCategoriesAndTypes().catch((error) => {
       if (!(error instanceof ApiRequestError)) {
-        setMessage(error instanceof Error ? error.message : "Failed to load categories.");
+        setMessage(
+          error instanceof Error ? error.message : "Failed to load categories.",
+        );
       }
     });
   }, [loadCategoriesAndTypes]);
@@ -479,7 +509,9 @@ export function useCatalogList(
   useEffect(() => {
     void refreshFullCatalog().catch((error) => {
       if (!(error instanceof ApiRequestError)) {
-        setMessage(error instanceof Error ? error.message : "Failed to load catalog.");
+        setMessage(
+          error instanceof Error ? error.message : "Failed to load catalog.",
+        );
       }
     });
   }, [refreshFullCatalog]);
@@ -487,8 +519,18 @@ export function useCatalogList(
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const tag = event.target;
-      if (tag instanceof HTMLInputElement || tag instanceof HTMLTextAreaElement || tag instanceof HTMLSelectElement) return;
-      if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (
+        tag instanceof HTMLInputElement ||
+        tag instanceof HTMLTextAreaElement ||
+        tag instanceof HTMLSelectElement
+      )
+        return;
+      if (
+        event.key === "/" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
         event.preventDefault();
         document.getElementById("catalog-omni")?.focus();
       }
@@ -507,7 +549,11 @@ export function useCatalogList(
   );
 
   return {
-    itemTypes, categories, aisles, sortedCategories, categoryById,
+    itemTypes,
+    categories,
+    aisles,
+    sortedCategories,
+    categoryById,
     listRows: catalogRows,
     displayRows: catalogRows,
     listRowsRaw: listRows,
@@ -519,21 +565,48 @@ export function useCatalogList(
     stockFiltersNeedBranch,
     toggleRowTypeFilter,
     setRowTypeFilter,
-    listTotalElements, listLast, listLoadingInitial, listLoadingMore,
+    listTotalElements,
+    listLast,
+    listLoadingInitial,
+    listLoadingMore,
     letterJumpBusy,
-    search, setSearch, debouncedSearch, setDebouncedSearch,
-    filterCategoryId, setFilterCategoryId,
-    includeCategoryDescendants, setIncludeCategoryDescendants,
-    catalogScope, setCatalogScope,
-    barcodeExact, setBarcodeExact,
-    filterNoBarcode, setFilterNoBarcode,
-    filterInactiveOnly, setFilterInactiveOnly,
-    filterNoPrice, setFilterNoPrice,
-    filterZeroStock, setFilterZeroStock,
-    filterLowStock, setFilterLowStock,
-    rowSelection, setRowSelection, onToggleRowSelect, variantIdsByParent,
-    message, setMessage,
-    loadCategoriesAndTypes, upsertCategory, upsertItemType, upsertAisle, refreshFullCatalog, syncListRowFromDetail, loadMoreCatalog, jumpToLetter, resetFilters,
+    search,
+    setSearch,
+    debouncedSearch,
+    setDebouncedSearch,
+    filterCategoryId,
+    setFilterCategoryId,
+    includeCategoryDescendants,
+    setIncludeCategoryDescendants,
+    catalogScope,
+    setCatalogScope,
+    barcodeExact,
+    setBarcodeExact,
+    filterNoBarcode,
+    setFilterNoBarcode,
+    filterInactiveOnly,
+    setFilterInactiveOnly,
+    filterNoPrice,
+    setFilterNoPrice,
+    filterZeroStock,
+    setFilterZeroStock,
+    filterLowStock,
+    setFilterLowStock,
+    rowSelection,
+    setRowSelection,
+    onToggleRowSelect,
+    variantIdsByParent,
+    message,
+    setMessage,
+    loadCategoriesAndTypes,
+    upsertCategory,
+    upsertItemType,
+    upsertAisle,
+    refreshFullCatalog,
+    syncListRowFromDetail,
+    loadMoreCatalog,
+    jumpToLetter,
+    resetFilters,
   };
 }
 

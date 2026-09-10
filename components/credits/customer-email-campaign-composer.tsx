@@ -104,7 +104,9 @@ export function CustomerEmailCampaignComposer({
   const [bodyHtml, setBodyHtml] = useState(
     () => initialCampaign?.bodyHtml ?? defaultShopMailHtml(brand),
   );
-  const [bodyTouched, setBodyTouched] = useState(Boolean(initialCampaign?.bodyHtml));
+  const [bodyTouched, setBodyTouched] = useState(
+    Boolean(initialCampaign?.bodyHtml),
+  );
   const [method, setMethod] = useState<CustomerEmailRecipientMethod>(
     (initialCampaign?.recipientMethod as CustomerEmailRecipientMethod) ??
       "specific",
@@ -421,13 +423,18 @@ export function CustomerEmailCampaignComposer({
       <div
         className={cn(
           "flex min-h-0 flex-col gap-3",
-          "lg:h-full lg:gap-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border/70 lg:bg-card lg:shadow-sm lg:ring-1 lg:ring-black/[0.02]",
+          "lg:h-full lg:gap-0 lg:overflow-hidden lg:rounded-none lg:border lg:border-border/70 lg:bg-card lg:shadow-none lg:ring-1 lg:ring-black/[0.02]",
         )}
       >
         {/* Top bar */}
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--mail-brand,#8B6F3A)_8%,transparent)_0%,transparent_100%)] px-3 py-3 sm:px-5">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--mail-brand,#0f766e)_8%,transparent)_0%,transparent_100%)] px-3 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
-            <Button asChild variant="ghost" size="icon" className="size-8 shrink-0">
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+            >
               <Link href={APP_ROUTES.customerEmailCampaigns} aria-label="Back">
                 <ArrowLeft className="size-4" />
               </Link>
@@ -441,7 +448,7 @@ export function CustomerEmailCampaignComposer({
               />
             ) : (
               <span
-                className="hidden size-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold sm:flex"
+                className="hidden size-8 shrink-0 items-center justify-center rounded-none text-[11px] font-bold sm:flex"
                 style={{
                   background: "var(--mail-soft)",
                   color: "var(--mail-brand)",
@@ -465,7 +472,7 @@ export function CustomerEmailCampaignComposer({
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-xl"
+              className="rounded-none"
               disabled={busy}
               onClick={() => void saveDraft()}
             >
@@ -489,13 +496,13 @@ export function CustomerEmailCampaignComposer({
             {error ? (
               <div
                 role="alert"
-                className="rounded-xl border border-red-200/80 bg-red-50 px-3 py-2 text-sm text-red-900 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200"
+                className="rounded-none border border-red-200/80 bg-red-50 px-3 py-2 text-sm text-red-900 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200"
               >
                 {error}
               </div>
             ) : null}
             {status && !error ? (
-              <div className="rounded-xl border border-emerald-200/80 bg-emerald-50 px-3 py-2 text-sm text-emerald-950 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+              <div className="rounded-none border border-emerald-200/80 bg-emerald-50 px-3 py-2 text-sm text-emerald-950 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
                 {status}
               </div>
             ) : null}
@@ -542,7 +549,7 @@ export function CustomerEmailCampaignComposer({
                 <div
                   role="tablist"
                   aria-label="Recipient method"
-                  className="inline-flex w-full flex-wrap gap-1 rounded-xl border border-border/60 bg-muted/30 p-1 sm:w-auto"
+                  className="inline-flex w-full flex-wrap gap-1 rounded-none border border-border/60 bg-muted/30 p-1 sm:w-auto"
                 >
                   {METHODS.map((tab) => (
                     <button
@@ -552,7 +559,7 @@ export function CustomerEmailCampaignComposer({
                       aria-selected={method === tab.id}
                       onClick={() => setMethod(tab.id)}
                       className={cn(
-                        "min-w-[6.5rem] flex-1 rounded-lg px-3 py-2 text-left transition-colors duration-150 sm:flex-none",
+                        "min-w-[6.5rem] flex-1 rounded-none px-3 py-2 text-left transition-colors duration-150 sm:flex-none",
                         method === tab.id ? MAIL_PILL_ACTIVE : MAIL_PILL_IDLE,
                       )}
                     >
@@ -591,17 +598,23 @@ export function CustomerEmailCampaignComposer({
                 ) : null}
 
                 {method === "all_eligible" ? (
-                  <div className={cn(MAIL_INSET, "px-3.5 py-3 text-sm text-muted-foreground")}>
+                  <div
+                    className={cn(
+                      MAIL_INSET,
+                      "px-3.5 py-3 text-sm text-muted-foreground",
+                    )}
+                  >
                     Every active customer with a usable email. Final send asks
-                    you to type <span className="font-semibold text-foreground">SEND</span>.
+                    you to type{" "}
+                    <span className="font-semibold text-foreground">SEND</span>.
                   </div>
                 ) : null}
 
                 {audience && audience.excludedSample.length > 0 ? (
-                  <div className="rounded-xl border border-amber-200/70 bg-amber-50/80 px-3.5 py-2.5 text-xs text-amber-950">
+                  <div className="rounded-none border border-amber-200/70 bg-amber-50/80 px-3.5 py-2.5 text-xs text-amber-950">
                     <p className="font-medium">
-                      {audience.automaticallyExcluded.toLocaleString()} automatically
-                      excluded
+                      {audience.automaticallyExcluded.toLocaleString()}{" "}
+                      automatically excluded
                     </p>
                     <ul className="mt-1.5 space-y-0.5 text-amber-900/80">
                       {audience.excludedSample.slice(0, 4).map((row) => (
@@ -619,7 +632,7 @@ export function CustomerEmailCampaignComposer({
                 className={cn(
                   "space-y-3",
                   fullscreen &&
-                    "fixed inset-3 z-50 flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-2xl",
+                    "fixed inset-3 z-50 flex flex-col overflow-hidden rounded-none border border-border bg-card p-4 shadow-2xl",
                 )}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -629,7 +642,7 @@ export function CustomerEmailCampaignComposer({
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-8 rounded-lg text-xs"
+                      className="h-8 rounded-none text-xs"
                       onClick={() => setBodyHtml((v) => formatMailHtml(v))}
                     >
                       Format
@@ -638,7 +651,7 @@ export function CustomerEmailCampaignComposer({
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-8 rounded-lg text-xs"
+                      className="h-8 rounded-none text-xs"
                       onClick={() => setFullscreen((v) => !v)}
                     >
                       {fullscreen ? (
@@ -672,7 +685,7 @@ export function CustomerEmailCampaignComposer({
                   }}
                   spellCheck={false}
                   className={cn(
-                    "w-full flex-1 rounded-xl border border-border/70 bg-[#1a1714] p-3.5 font-mono text-[12px] leading-5 text-[#f5f0e8]",
+                    "w-full flex-1 rounded-none border border-border/70 bg-[#1a1714] p-3.5 font-mono text-[12px] leading-5 text-[#f5f0e8]",
                     "outline-none selection:bg-[color-mix(in_srgb,var(--mail-brand)_45%,transparent)]",
                     "focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--mail-brand)_35%,transparent)]",
                     fullscreen ? "min-h-0" : "min-h-[220px]",
@@ -694,7 +707,7 @@ export function CustomerEmailCampaignComposer({
                   type="button"
                   size="sm"
                   variant="ghost"
-                  className="h-8 rounded-lg text-xs"
+                  className="h-8 rounded-none text-xs"
                   disabled={busy}
                   onClick={() => void runPreview()}
                 >
@@ -723,11 +736,11 @@ export function CustomerEmailCampaignComposer({
               >
                 <div
                   className={cn(
-                    "overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--mail-brand)_18%,#d9cfc0)] bg-white shadow-[0_18px_40px_-18px_rgba(60,40,10,0.45)]",
+                    "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--mail-brand)_18%,#d9cfc0)] bg-white shadow-[0_18px_40px_-18px_rgba(60,40,10,0.45)]",
                     device === "mobile" && "rounded-[1.35rem]",
                   )}
                 >
-                  <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--mail-brand)_10%,#efe8dc)] bg-[#FFFDF8] px-3 py-2">
+                  <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--mail-brand)_10%,#efe8dc)] bg-[#ffffff] px-3 py-2">
                     {brand.logoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -761,8 +774,8 @@ export function CustomerEmailCampaignComposer({
                     srcDoc={
                       preview?.html ??
                       `<div style="font-family:system-ui,sans-serif;color:#78716c;padding:48px 28px;text-align:center;font-size:14px;line-height:1.5">
-                        Refresh preview to render with customer sample data.
-                      </div>`
+ Refresh preview to render with customer sample data.
+ </div>`
                     }
                     className="min-h-[420px] w-full bg-white"
                   />
@@ -808,7 +821,7 @@ export function CustomerEmailCampaignComposer({
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+    <h2 className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
       {children}
     </h2>
   );
@@ -869,7 +882,7 @@ function DeviceToggle({
   onDevice: (d: "desktop" | "mobile") => void;
 }) {
   return (
-    <div className="inline-flex rounded-lg border border-border/60 bg-muted/30 p-0.5">
+    <div className="inline-flex rounded-none border border-border/60 bg-muted/30 p-0.5">
       {(
         [
           { id: "desktop" as const, Icon: Monitor },
@@ -925,7 +938,7 @@ function SpecificPicker({
           <Loader2 className="absolute right-3 top-2.5 size-4 animate-spin text-muted-foreground" />
         ) : null}
         {hits.length > 0 ? (
-          <div className="absolute z-30 mt-1.5 max-h-56 w-full overflow-auto rounded-xl border border-border/70 bg-card shadow-lg ring-1 ring-black/[0.03]">
+          <div className="absolute z-30 mt-1.5 max-h-56 w-full overflow-auto rounded-none border border-border/70 bg-card shadow-none ring-1 ring-black/[0.03]">
             {hits.map((hit) => {
               const picked = selected.some((s) => s.id === hit.id);
               return (
@@ -940,7 +953,9 @@ function SpecificPicker({
                     {customerInitials(hit.name)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{hit.name}</span>
+                    <span className="block truncate font-medium">
+                      {hit.name}
+                    </span>
                     <span className="block truncate text-xs text-muted-foreground">
                       {hit.email || "No email"}
                     </span>
@@ -1061,7 +1076,7 @@ function FilterBuilder({
             type="button"
             onClick={() => onMatchMode(opt.id)}
             className={cn(
-              "rounded-lg px-2.5 py-1.5 transition-colors duration-150",
+              "rounded-none px-2.5 py-1.5 transition-colors duration-150",
               matchMode === opt.id ? MAIL_PILL_ACTIVE : MAIL_PILL_IDLE,
             )}
           >
@@ -1242,7 +1257,7 @@ function FilterBuilder({
         type="button"
         variant="outline"
         size="sm"
-        className="rounded-xl"
+        className="rounded-none"
         onClick={() =>
           onConditions((prev) => [
             ...prev,
@@ -1287,12 +1302,15 @@ function ReviewSheet({
         aria-modal="true"
         aria-labelledby="review-title"
         className={cn(
-          "w-full max-w-md overflow-hidden rounded-t-2xl border border-border bg-card shadow-2xl sm:rounded-2xl",
+          "w-full max-w-md overflow-hidden rounded-t-2xl border border-border bg-card shadow-2xl sm:rounded-none",
           "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-200 sm:motion-safe:zoom-in-95",
         )}
       >
         <div className="border-b border-border/60 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--mail-brand)_10%,transparent),transparent)] px-5 py-4">
-          <h3 id="review-title" className="text-base font-semibold tracking-tight">
+          <h3
+            id="review-title"
+            className="text-base font-semibold tracking-tight"
+          >
             Ready to send?
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -1302,11 +1320,7 @@ function ReviewSheet({
         <dl className="space-y-2.5 px-5 py-4 text-sm">
           <Row label="Name" value={name} />
           <Row label="Subject" value={subject} />
-          <Row
-            label="Audience"
-            value={method.replace("_", " ")}
-            capitalize
-          />
+          <Row label="Audience" value={method.replace("_", " ")} capitalize />
           <Row
             label="Matched"
             value={(audience?.matched ?? 0).toLocaleString()}
@@ -1342,7 +1356,7 @@ function ReviewSheet({
           <Button
             type="button"
             variant="outline"
-            className="rounded-xl"
+            className="rounded-none"
             disabled={busy}
             onClick={onBack}
           >

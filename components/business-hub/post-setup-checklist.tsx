@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
-import { HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HUB_DIVIDE, HUB_SURFACE } from "@/lib/business-hub/constants";
 import { getOnboardingQuestionnaireState } from "@/lib/onboarding-questionnaire";
 import { cn } from "@/lib/utils";
 import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
@@ -109,20 +109,20 @@ export function PostSetupChecklist({
           Dismiss
         </button>
       </div>
-      <div className={cn(HUB_SURFACE, "divide-y divide-[#E6E1D8]")}>
+      <div className={cn(HUB_SURFACE, HUB_DIVIDE, "divide-y")}>
         {items.map((item) => (
           <Link
             key={item.href + item.label}
             href={item.href}
             className={cn(
-              "flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-[#FCFAF6]",
+              "flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-[#ffffff]",
               item.done && "opacity-60",
             )}
           >
             <item.icon
               className={cn(
                 "size-3.5 shrink-0",
-                item.done ? "text-[#0D9488]" : "text-[#B08D48]",
+                item.done ? "text-[#0D9488]" : "text-[#0f766e]",
               )}
               aria-hidden
             />

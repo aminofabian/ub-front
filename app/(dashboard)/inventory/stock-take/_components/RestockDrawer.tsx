@@ -171,7 +171,9 @@ export function RestockDrawer({
       onSaved(saved);
       onOpenChange(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save restock suggestion");
+      setError(
+        e instanceof Error ? e.message : "Could not save restock suggestion",
+      );
     } finally {
       setSaving(false);
     }
@@ -181,7 +183,9 @@ export function RestockDrawer({
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={pendingSuggestion ? "Update restock suggestion" : "Add to restock list"}
+      title={
+        pendingSuggestion ? "Update restock suggestion" : "Add to restock list"
+      }
       description={`Recommend restocking for ${itemName}. Price is set from the supplier link.`}
       contextLabel="Daily audit"
       icon={<PackagePlus className="h-5 w-5" />}
@@ -189,10 +193,17 @@ export function RestockDrawer({
       banner={error ? <FormDrawerMessageBanner text={error} /> : null}
       footer={
         <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
             Cancel
           </Button>
-          <Button onClick={() => void submit()} disabled={saving || options.length === 0}>
+          <Button
+            onClick={() => void submit()}
+            disabled={saving || options.length === 0}
+          >
             {saving ? "Saving…" : pendingSuggestion ? "Update" : "Add to list"}
           </Button>
         </div>
@@ -213,7 +224,7 @@ export function RestockDrawer({
               <label
                 key={opt.supplierId}
                 className={cn(
-                  "flex cursor-pointer gap-3 rounded-xl border p-3 text-sm transition-colors",
+                  "flex cursor-pointer gap-3 rounded-none border p-3 text-sm transition-colors",
                   supplierId === opt.supplierId
                     ? "border-primary bg-primary/5"
                     : "border-border hover:bg-muted/40",
@@ -232,7 +243,12 @@ export function RestockDrawer({
                     {opt.primary ? " · Primary" : ""}
                   </span>
                   <span className="mt-1 block text-muted-foreground">
-                    KES {formatPrice(opt.buyingPrice ?? opt.defaultCostPrice ?? opt.lastCostPrice)}
+                    KES{" "}
+                    {formatPrice(
+                      opt.buyingPrice ??
+                        opt.defaultCostPrice ??
+                        opt.lastCostPrice,
+                    )}
                     {packLabel}
                     {lastPurchase ? ` · Last purchase: ${lastPurchase}` : ""}
                   </span>
@@ -255,20 +271,20 @@ export function RestockDrawer({
               ) : null}
             </div>
             {linkedLoading ? (
-              <div className="flex items-center gap-2 rounded-lg border border-border/70 px-3 py-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-4 text-xs text-muted-foreground">
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
                 Loading linked products…
               </div>
             ) : linkedError ? (
-              <p className="rounded-lg border border-amber-500/30 bg-amber-500/8 px-3 py-2 text-xs text-amber-950 dark:text-amber-100">
+              <p className="rounded-none border border-amber-500/30 bg-amber-500/8 px-3 py-2 text-xs text-amber-950 dark:text-amber-100">
                 {linkedError}
               </p>
             ) : activeLinked.length === 0 ? (
-              <p className="rounded-lg border border-dashed px-3 py-3 text-xs text-muted-foreground">
+              <p className="rounded-none border border-dashed px-3 py-3 text-xs text-muted-foreground">
                 No catalog products are linked to this supplier yet.
               </p>
             ) : (
-              <div className="max-h-[min(16rem,40vh)] overflow-auto rounded-lg border border-border/70">
+              <div className="max-h-[min(16rem,40vh)] overflow-auto rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
                 <table className="w-full border-collapse text-left text-xs">
                   <thead className="sticky top-0 z-10 bg-muted/90 backdrop-blur-sm">
                     <tr>
@@ -287,84 +303,92 @@ export function RestockDrawer({
                   <tbody>
                     {[...activeLinked]
                       .sort((a, b) => {
-                        const ap = (a.parentItemName || a.itemName || "").toLowerCase();
-                        const bp = (b.parentItemName || b.itemName || "").toLowerCase();
+                        const ap = (
+                          a.parentItemName ||
+                          a.itemName ||
+                          ""
+                        ).toLowerCase();
+                        const bp = (
+                          b.parentItemName ||
+                          b.itemName ||
+                          ""
+                        ).toLowerCase();
                         if (ap !== bp) return ap.localeCompare(bp);
-                        return (a.itemName || "").localeCompare(b.itemName || "");
+                        return (a.itemName || "").localeCompare(
+                          b.itemName || "",
+                        );
                       })
                       .map((link) => {
-                      const isCurrent = link.itemId === itemId;
-                      const pack =
-                        link.packSize != null && link.packUnit
-                          ? `${formatQty(link.packSize)} / ${link.packUnit}`
-                          : link.packUnit || "—";
-                      return (
-                        <tr
-                          key={link.id}
-                          className={cn(
-                            "border-t border-border/50",
-                            isCurrent
-                              ? "bg-primary/10"
-                              : "hover:bg-muted/40",
-                          )}
-                        >
-                          <td className="max-w-0 px-2.5 py-1.5">
-                            <div className="flex min-w-0 items-center gap-1.5">
-                              <span
-                                className={cn(
-                                  "truncate font-medium",
-                                  isCurrent && "text-primary",
-                                )}
-                                title={link.itemName || link.itemId}
-                              >
-                                {link.itemName || link.itemId}
-                              </span>
-                              {isCurrent ? (
-                                <span className="shrink-0 rounded bg-primary/15 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-primary">
-                                  This item
-                                </span>
-                              ) : null}
-                              {link.packageVariant ? (
-                                <span className="shrink-0 text-[9px] font-bold uppercase text-primary">
-                                  Pack
-                                </span>
-                              ) : null}
-                              {link.primary ? (
+                        const isCurrent = link.itemId === itemId;
+                        const pack =
+                          link.packSize != null && link.packUnit
+                            ? `${formatQty(link.packSize)} / ${link.packUnit}`
+                            : link.packUnit || "—";
+                        return (
+                          <tr
+                            key={link.id}
+                            className={cn(
+                              "border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+                              isCurrent ? "bg-primary/10" : "hover:bg-muted/40",
+                            )}
+                          >
+                            <td className="max-w-0 px-2.5 py-1.5">
+                              <div className="flex min-w-0 items-center gap-1.5">
                                 <span
-                                  className="shrink-0 text-[9px] font-bold uppercase text-muted-foreground"
-                                  title="Primary supplier for this product"
+                                  className={cn(
+                                    "truncate font-medium",
+                                    isCurrent && "text-primary",
+                                  )}
+                                  title={link.itemName || link.itemId}
                                 >
-                                  1°
+                                  {link.itemName || link.itemId}
                                 </span>
+                                {isCurrent ? (
+                                  <span className="shrink-0 rounded bg-primary/15 px-1 py-px text-[9px] font-bold tracking-[-0.02em] text-primary">
+                                    This item
+                                  </span>
+                                ) : null}
+                                {link.packageVariant ? (
+                                  <span className="shrink-0 text-[9px] font-semibold tracking-[-0.02em] text-primary">
+                                    Pack
+                                  </span>
+                                ) : null}
+                                {link.primary ? (
+                                  <span
+                                    className="shrink-0 text-[9px] font-semibold tracking-[-0.02em] text-muted-foreground"
+                                    title="Primary supplier for this product"
+                                  >
+                                    1°
+                                  </span>
+                                ) : null}
+                              </div>
+                              {link.parentItemName?.trim() ? (
+                                <p className="truncate text-[10px] text-muted-foreground">
+                                  Parent · {link.parentItemName.trim()}
+                                </p>
+                              ) : link.sku ? (
+                                <p className="truncate font-mono text-[10px] text-muted-foreground">
+                                  {link.sku}
+                                </p>
                               ) : null}
-                            </div>
-                            {link.parentItemName?.trim() ? (
-                              <p className="truncate text-[10px] text-muted-foreground">
-                                Parent · {link.parentItemName.trim()}
-                              </p>
-                            ) : link.sku ? (
-                              <p className="truncate font-mono text-[10px] text-muted-foreground">
-                                {link.sku}
-                              </p>
-                            ) : null}
-                          </td>
-                          <td className="px-2.5 py-1.5 text-right font-mono tabular-nums">
-                            {formatQty(link.currentStock)}
-                          </td>
-                          <td className="px-2.5 py-1.5 text-right font-mono tabular-nums">
-                            {formatMoneyShort(linkCost(link))}
-                          </td>
-                          <td className="px-2.5 py-1.5 text-right text-muted-foreground">
-                            {pack}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            </td>
+                            <td className="px-2.5 py-1.5 text-right font-mono tabular-nums">
+                              {formatQty(link.currentStock)}
+                            </td>
+                            <td className="px-2.5 py-1.5 text-right font-mono tabular-nums">
+                              {formatMoneyShort(linkCost(link))}
+                            </td>
+                            <td className="px-2.5 py-1.5 text-right text-muted-foreground">
+                              {pack}
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
             )}
-            <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+            <p className="rounded-none bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
               Buying price for {itemName}: KES{" "}
               {formatPrice(
                 selected.buyingPrice ??

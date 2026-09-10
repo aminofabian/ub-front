@@ -61,14 +61,14 @@ const INK =
 const PAPER =
   "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_72%,transparent)]";
 const GHOST = cn(
-  "inline-flex h-9 items-center justify-center gap-1 border text-[10px] font-semibold uppercase tracking-[0.08em]",
+  "inline-flex h-9 items-center justify-center gap-1 border text-[10px] font-semibold tracking-[-0.02em]",
   INK,
   "bg-[color-mix(in_srgb,var(--card)_92%,#faf7f1)] text-[var(--pos-ink,#1c1915)]",
   "hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]",
   "disabled:pointer-events-none disabled:opacity-50",
 );
 const PRIMARY = cn(
-  "inline-flex h-9 items-center justify-center gap-1 border text-[10px] font-semibold uppercase tracking-[0.08em]",
+  "inline-flex h-9 items-center justify-center gap-1 border text-[10px] font-semibold tracking-[-0.02em]",
   "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)]",
   "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] text-[var(--pos-ink,#1c1915)]",
   "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)]",
@@ -171,8 +171,15 @@ function QtyControl({
         step="any"
         disabled={disabled}
         className="min-w-0 flex-1 border-x bg-transparent text-center text-[13px] font-semibold tabular-nums outline-none"
-        style={{ borderColor: "color-mix(in srgb, var(--pos-ink, #1c1915) 12%, transparent)" }}
-        value={Number.isInteger(qty) ? String(qty) : String(Math.round(qty * 100) / 100)}
+        style={{
+          borderColor:
+            "color-mix(in srgb, var(--pos-ink, #1c1915) 12%, transparent)",
+        }}
+        value={
+          Number.isInteger(qty)
+            ? String(qty)
+            : String(Math.round(qty * 100) / 100)
+        }
         onChange={(e) => {
           const n = Number(e.target.value);
           if (e.target.value === "") onChange(0);
@@ -236,7 +243,8 @@ export function DigestBoard({
   onSnooze: (id: string) => void;
   onPdf: (opts: PdfOpts) => void;
 }) {
-  const selected = rail.find((item) => item.key === selectedKey) ?? rail[0] ?? null;
+  const selected =
+    rail.find((item) => item.key === selectedKey) ?? rail[0] ?? null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:grid lg:grid-cols-[13rem_minmax(0,1fr)_17rem] lg:items-stretch">
@@ -269,8 +277,15 @@ export function DigestBoard({
           onPdf={onPdf}
         />
       ) : (
-        <div className={cn("flex min-h-[50vh] items-center justify-center px-6 text-center", PAPER)}>
-          <p className="text-sm text-muted-foreground">Pick a supplier to review their list.</p>
+        <div
+          className={cn(
+            "flex min-h-[50vh] items-center justify-center px-6 text-center",
+            PAPER,
+          )}
+        >
+          <p className="text-sm text-muted-foreground">
+            Pick a supplier to review their list.
+          </p>
         </div>
       )}
     </div>
@@ -291,8 +306,14 @@ function SupplierRail({
   qty: Record<string, string>;
 }) {
   return (
-    <aside className={cn("flex min-w-0 shrink-0 flex-col border-b lg:h-full lg:min-h-0 lg:border-b-0 lg:border-r", INK, PAPER)}>
-      <div className="flex h-9 shrink-0 items-center bg-[var(--pos-primary,#0f766e)] px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--pos-primary-ink,#fff)]">
+    <aside
+      className={cn(
+        "flex min-w-0 shrink-0 flex-col border-b lg:h-full lg:min-h-0 lg:border-b-0 lg:border-r",
+        INK,
+        PAPER,
+      )}
+    >
+      <div className="flex h-9 shrink-0 items-center bg-[var(--pos-primary,#0f766e)] px-3 text-[10px] font-bold tracking-[-0.02em] text-[var(--pos-primary-ink,#fff)]">
         Aisle
       </div>
       <nav
@@ -300,11 +321,15 @@ function SupplierRail({
         aria-label="Suppliers"
       >
         {rail.map((item) => {
-          const pending = item.lines.filter((l) => l.status === "pending").length;
+          const pending = item.lines.filter(
+            (l) => l.status === "pending",
+          ).length;
           const est = item.lines.reduce((sum, s) => sum + lineValue(s, qty), 0);
           const selected = item.key === selectedKey;
           const thumb = item.lines.find((l) => l.thumbnailUrl)?.thumbnailUrl;
-          const label = item.lines[0] ? restockProductCombinedName(item.lines[0]) : item.name;
+          const label = item.lines[0]
+            ? restockProductCombinedName(item.lines[0])
+            : item.name;
           return (
             <button
               key={item.key}
@@ -486,8 +511,14 @@ function SupplierStall({
         window.open(url, "_blank", "noopener,noreferrer");
         toast.success("WhatsApp opened with your order list.");
       } else {
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
-        toast.message("No phone on this supplier — pick a WhatsApp chat to send.");
+        window.open(
+          `https://wa.me/?text=${encodeURIComponent(text)}`,
+          "_blank",
+          "noopener,noreferrer",
+        );
+        toast.message(
+          "No phone on this supplier — pick a WhatsApp chat to send.",
+        );
       }
     } finally {
       setWaBusy(false);
@@ -510,12 +541,21 @@ function SupplierStall({
 
   const showPdf =
     item.kind !== "handled" &&
-    !(item.kind === "po" && (!item.supplierId || item.supplierId === "unassigned"));
+    !(
+      item.kind === "po" &&
+      (!item.supplierId || item.supplierId === "unassigned")
+    );
 
   return (
     <>
       <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[color-mix(in_srgb,var(--card)_94%,#f4efe6)]">
-        <div className={cn("flex shrink-0 items-end justify-between gap-3 border-b px-4 py-3", INK, PAPER)}>
+        <div
+          className={cn(
+            "flex shrink-0 items-end justify-between gap-3 border-b px-4 py-3",
+            INK,
+            PAPER,
+          )}
+        >
           <div className="min-w-0">
             <h2 className="truncate font-[family-name:var(--font-heading)] text-[1.35rem] font-semibold leading-none tracking-[-0.03em] text-[var(--pos-ink,#1c1915)]">
               {item.name}
@@ -523,7 +563,11 @@ function SupplierStall({
             <p className="mt-1.5 truncate text-[12px] tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_62%,transparent)]">
               {item.lines.length} on the shelf
               {showDeptHint ? ` · ${showDeptHint}` : ""}
-              {waDigits ? " · WhatsApp" : phoneBusy ? " · looking up phone" : ""}
+              {waDigits
+                ? " · WhatsApp"
+                : phoneBusy
+                  ? " · looking up phone"
+                  : ""}
             </p>
           </div>
         </div>
@@ -539,7 +583,8 @@ function SupplierStall({
               const total =
                 s.unitCost != null && q > 0 ? q * toNum(s.unitCost) : null;
               const busy =
-                busyAction === `dismiss:${s.id}` || busyAction === `snooze:${s.id}`;
+                busyAction === `dismiss:${s.id}` ||
+                busyAction === `snooze:${s.id}`;
               const reason = s.reasonCode
                 .split("+")
                 .map((r) => REASON_LABELS[r] ?? r)
@@ -564,7 +609,10 @@ function SupplierStall({
                         <button
                           type="button"
                           className="flex size-7 items-center justify-center border bg-[color-mix(in_srgb,var(--card)_92%,white)] text-[var(--pos-ink,#1c1915)]/70 hover:text-[var(--pos-ink,#1c1915)]"
-                          style={{ borderColor: "color-mix(in srgb, var(--pos-ink, #1c1915) 14%, transparent)" }}
+                          style={{
+                            borderColor:
+                              "color-mix(in srgb, var(--pos-ink, #1c1915) 14%, transparent)",
+                          }}
                           disabled={busyAction !== null}
                           onClick={() => onSnooze(s.id)}
                           aria-label={`Snooze ${label}`}
@@ -578,7 +626,10 @@ function SupplierStall({
                         <button
                           type="button"
                           className="flex size-7 items-center justify-center border-y border-r bg-[color-mix(in_srgb,var(--card)_92%,white)] text-[var(--pos-ink,#1c1915)]/70 hover:text-destructive"
-                          style={{ borderColor: "color-mix(in srgb, var(--pos-ink, #1c1915) 14%, transparent)" }}
+                          style={{
+                            borderColor:
+                              "color-mix(in srgb, var(--pos-ink, #1c1915) 14%, transparent)",
+                          }}
                           disabled={busyAction !== null}
                           onClick={() => onDismiss(s.id)}
                           aria-label={`Dismiss ${label}`}
@@ -603,11 +654,15 @@ function SupplierStall({
                     />
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="text-[14px] font-semibold tabular-nums tracking-tight text-[var(--pos-ink,#1c1915)]">
-                        {s.unitCost != null ? formatMoney(s.unitCost, currency) : "Ask"}
+                        {s.unitCost != null
+                          ? formatMoney(s.unitCost, currency)
+                          : "Ask"}
                       </p>
                       <p className="text-[11px] tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_50%,transparent)]">
                         {formatQty(s.onHand)}/{formatQty(s.par)}
-                        {total != null && q > 0 ? ` · ${formatMoney(total, currency)}` : ""}
+                        {total != null && q > 0
+                          ? ` · ${formatMoney(total, currency)}`
+                          : ""}
                       </p>
                     </div>
                     <div className="mt-auto">
@@ -632,8 +687,14 @@ function SupplierStall({
         </div>
       </section>
 
-      <aside className={cn("flex min-h-0 flex-col border-t lg:border-l lg:border-t-0", INK, PAPER)}>
-        <div className="flex h-9 shrink-0 items-center justify-between gap-2 bg-[var(--pos-primary,#0f766e)] px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--pos-primary-ink,#fff)]">
+      <aside
+        className={cn(
+          "flex min-h-0 flex-col border-t lg:border-l lg:border-t-0",
+          INK,
+          PAPER,
+        )}
+      >
+        <div className="flex h-9 shrink-0 items-center justify-between gap-2 bg-[var(--pos-primary,#0f766e)] px-3 text-[10px] font-bold tracking-[-0.02em] text-[var(--pos-primary-ink,#fff)]">
           <span>Ticket</span>
           <span className="min-w-0 truncate font-semibold normal-case tracking-normal opacity-90">
             {item.name}
@@ -641,8 +702,12 @@ function SupplierStall({
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {orderLines.length === 0 ? (
-            <div className="m-4 border border-dashed px-3 py-10 text-center text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]"
-              style={{ borderColor: "color-mix(in srgb, var(--pos-ink, #1c1915) 20%, transparent)" }}
+            <div
+              className="m-4 border border-dashed px-3 py-10 text-center text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--pos-ink, #1c1915) 20%, transparent)",
+              }}
             >
               Add packs from the shelf. This ticket is what you send or order.
             </div>
@@ -656,9 +721,16 @@ function SupplierStall({
                   <li
                     key={s.id}
                     className="flex items-center gap-2.5 border-b px-3 py-2.5"
-                    style={{ borderColor: "color-mix(in srgb, var(--pos-ink, #1c1915) 8%, transparent)" }}
+                    style={{
+                      borderColor:
+                        "color-mix(in srgb, var(--pos-ink, #1c1915) 8%, transparent)",
+                    }}
                   >
-                    <ProductImage name={label} thumbnailUrl={s.thumbnailUrl} compact />
+                    <ProductImage
+                      name={label}
+                      thumbnailUrl={s.thumbnailUrl}
+                      compact
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-2 text-[12px] font-medium leading-snug text-[var(--pos-ink,#1c1915)]">
                         {label}
@@ -756,7 +828,12 @@ function SupplierStall({
                 type="button"
                 className={PRIMARY}
                 disabled={busyAction !== null}
-                onClick={() => onAccept(orderLines.map((l) => l.id), "po")}
+                onClick={() =>
+                  onAccept(
+                    orderLines.map((l) => l.id),
+                    "po",
+                  )
+                }
               >
                 <ShoppingCart className="size-3.5" />
                 Order
@@ -766,7 +843,12 @@ function SupplierStall({
                 type="button"
                 className={PRIMARY}
                 disabled={busyAction !== null}
-                onClick={() => onAccept(orderLines.map((l) => l.id), "pad")}
+                onClick={() =>
+                  onAccept(
+                    orderLines.map((l) => l.id),
+                    "pad",
+                  )
+                }
               >
                 <PackageSearch className="size-3.5" />
                 Pad

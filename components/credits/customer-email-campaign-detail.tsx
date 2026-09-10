@@ -71,7 +71,7 @@ export function CustomerEmailCampaignDetailView({
     return (
       <div className="mx-auto max-w-lg space-y-4 px-6 py-12">
         <p className="text-sm text-red-700">{error ?? "Campaign not found"}</p>
-        <Button asChild variant="outline" size="sm" className="rounded-xl">
+        <Button asChild variant="outline" size="sm" className="rounded-none">
           <Link href={APP_ROUTES.customerEmailCampaigns}>Back to history</Link>
         </Button>
       </div>
@@ -162,7 +162,7 @@ export function CustomerEmailCampaignDetailView({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[36rem] text-left text-sm">
               <thead>
-                <tr className="border-b border-border/50 bg-muted/25 text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+                <tr className="border-b border-border/50 bg-muted/25 text-[11px] tracking-[-0.02em] text-muted-foreground">
                   <th className="px-4 py-2.5 font-medium sm:px-5">Customer</th>
                   <th className="px-4 py-2.5 font-medium">Email</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
@@ -218,7 +218,7 @@ function Stat({
 }) {
   return (
     <div className={cn(MAIL_PANEL, "px-4 py-3")}>
-      <div className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+      <div className="text-[11px] tracking-[-0.02em] text-muted-foreground">
         {label}
       </div>
       <div

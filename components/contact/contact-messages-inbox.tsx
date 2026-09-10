@@ -185,7 +185,7 @@ export function ContactMessagesInbox({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
-        <div className="min-h-[20rem] overflow-hidden rounded-xl border border-border/70">
+        <div className="min-h-[20rem] overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
           {listLoading ? (
             <div className="p-4">
               <DashboardLoading label="Loading messages…" />
@@ -201,7 +201,8 @@ export function ContactMessagesInbox({
                     onClick={() => setSelectedId(row.id)}
                     className={cn(
                       "flex w-full flex-col gap-1 px-3 py-3 text-left transition hover:bg-muted/50",
-                      selectedId === row.id && "bg-muted/70",
+                      selectedId === row.id &&
+                        "border-l-2 border-[#0f766e] bg-white text-[#0f766e]",
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -225,7 +226,7 @@ export function ContactMessagesInbox({
           )}
         </div>
 
-        <div className="min-h-[20rem] rounded-xl border border-border/70 p-4">
+        <div className="min-h-[20rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] p-4">
           {!selectedId ? (
             <p className="text-sm text-muted-foreground">
               Select a message to read and reply.

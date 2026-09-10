@@ -36,7 +36,7 @@ function fulfillmentLabel(status: string | null | undefined): string {
 function fulfillmentTone(status: string | null | undefined): string {
   const s = (status ?? "awaiting_confirmation").trim().toLowerCase();
   if (s === "dispatched") return "text-emerald-800";
-  if (s === "confirmed") return "text-[#8A6B2E]";
+  if (s === "confirmed") return "text-[#0f766e]";
   if (s === "completed") return "text-[#8A8A8A]";
   return "text-[#C47A5A]";
 }
@@ -66,7 +66,7 @@ export function WebOrdersRail({
     <section
       className={cn(
         HUB_RAIL,
-        justUpdated && "hub-scan-sweep ring-1 ring-[#B08D48]/35",
+        justUpdated && "hub-scan-sweep ring-1 ring-[#0f766e]/35",
         className,
       )}
       aria-label="Web pickup orders"
@@ -84,7 +84,7 @@ export function WebOrdersRail({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {live ? (
-            <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-800">
+            <span className="inline-flex items-center gap-1 text-[9px] font-semibold tracking-[-0.02em] text-emerald-800">
               <span
                 className="size-1.5 bg-emerald-500 hub-live-beacon"
                 aria-hidden
@@ -94,7 +94,7 @@ export function WebOrdersRail({
           ) : null}
           <Link
             href={APP_ROUTES.storefrontWebOrders}
-            className="text-[10px] font-medium text-[#8A6B2E] transition-colors hover:text-[#141414]"
+            className="text-[10px] font-medium text-[#0f766e] transition-colors hover:text-[#141414]"
           >
             All
           </Link>
@@ -114,16 +114,17 @@ export function WebOrdersRail({
             VIEWPORT_CLASS,
           )}
         >
-          <ol className="divide-y divide-[#EDE8DF]">
+          <ol className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
             {orders.map((order, i) => {
               const newest = i === 0 && justUpdated;
-              const fulfillment = order.fulfillmentStatus ?? "awaiting_confirmation";
+              const fulfillment =
+                order.fulfillmentStatus ?? "awaiting_confirmation";
               return (
                 <li
                   key={order.id}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 transition-colors hover:bg-[#FCFAF6]",
-                    newest && "bg-[#FCFAF6] hub-figure-pop",
+                    "flex items-center gap-2 px-3 py-1.5 transition-colors hover:bg-[#ffffff]",
+                    newest && "bg-[#ffffff] hub-figure-pop",
                   )}
                 >
                   <Link
@@ -143,7 +144,7 @@ export function WebOrdersRail({
                       className={cn(
                         "block max-w-full truncate text-left text-[12px] font-medium text-[#141414]",
                         onInspect &&
-                          "underline decoration-[#B08D48]/40 underline-offset-2 hover:decoration-[#B08D48]",
+                          "underline decoration-[#0f766e]/40 underline-offset-2 hover:decoration-[#0f766e]",
                       )}
                     >
                       {order.customerName?.trim() || "Customer"}
@@ -152,7 +153,7 @@ export function WebOrdersRail({
                   <Link
                     href={`${APP_ROUTES.storefrontWebOrders}?orderId=${encodeURIComponent(order.id)}`}
                     className={cn(
-                      "shrink-0 text-[9px] font-semibold uppercase tracking-[0.06em]",
+                      "shrink-0 text-[9px] font-semibold tracking-[-0.02em]",
                       fulfillmentTone(fulfillment),
                     )}
                   >

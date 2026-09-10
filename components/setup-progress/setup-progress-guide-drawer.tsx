@@ -75,7 +75,7 @@ export function SetupProgressGuideDrawer({
                 key={i}
                 className={cn(
                   "size-1.5 rounded-full transition-colors",
-                  i === index ? "bg-[#B08D48]" : "bg-[#E6E1D8]",
+                  i === index ? "bg-[#0f766e]" : "bg-[#e4e7e6]",
                 )}
                 aria-hidden
               />
@@ -118,7 +118,7 @@ export function SetupProgressGuideDrawer({
       }
     >
       <div className="space-y-4">
-        <div className="overflow-hidden border border-[#E6E1D8] bg-[#FCFAF6]">
+        <div className="overflow-hidden border border-[#e4e7e6] bg-[#ffffff]">
           <div className="relative aspect-[4/3] w-full">
             <Image
               src={shot.src}

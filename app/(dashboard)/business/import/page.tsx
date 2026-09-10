@@ -125,7 +125,7 @@ function ImportResultCard({
     <div
       role="status"
       className={cn(
-        "flex flex-col gap-1 rounded-xl border px-4 py-3.5 text-sm leading-relaxed shadow-sm",
+        "flex flex-col gap-1 rounded-none border px-4 py-3.5 text-sm leading-relaxed shadow-none",
         failed
           ? "border-destructive/25 bg-destructive/5"
           : "border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-950 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-50",
@@ -133,9 +133,15 @@ function ImportResultCard({
     >
       <div className="flex items-start gap-3">
         {failed ? (
-          <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+          <AlertCircle
+            className="mt-0.5 size-4 shrink-0 text-destructive"
+            aria-hidden
+          />
         ) : warnings.length > 0 ? (
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+          <AlertTriangle
+            className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400"
+            aria-hidden
+          />
         ) : (
           <CheckCircle2
             className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
@@ -144,26 +150,34 @@ function ImportResultCard({
         )}
         <div className="min-w-0 flex-1">
           <p className="font-medium text-foreground">
-            {result.dryRun ? "Validation" : "Import"} · {result.rowsParsed} row(s) parsed
-            {result.rowsCommitted != null ? ` · ${result.rowsCommitted} committed` : null}
+            {result.dryRun ? "Validation" : "Import"} · {result.rowsParsed}{" "}
+            row(s) parsed
+            {result.rowsCommitted != null
+              ? ` · ${result.rowsCommitted} committed`
+              : null}
           </p>
           {result.errors.length > 0 ? (
             <ul className="mt-3 max-h-64 list-inside list-disc space-y-1 overflow-y-auto text-xs text-muted-foreground">
               {result.errors.map((err, i) => (
                 <li key={`err-${err.line}-${i}`}>
-                  <span className="font-mono text-foreground">Line {err.line}</span>: {err.message}
+                  <span className="font-mono text-foreground">
+                    Line {err.line}
+                  </span>
+                  : {err.message}
                 </li>
               ))}
             </ul>
           ) : failureMessage ? (
-            <p className="mt-2 text-xs leading-relaxed text-destructive">{failureMessage}</p>
+            <p className="mt-2 text-xs leading-relaxed text-destructive">
+              {failureMessage}
+            </p>
           ) : (
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
               {successMessage}
             </p>
           )}
           {warnings.length > 0 ? (
-            <div className="mt-3 rounded-lg border border-amber-600/25 bg-amber-500/[0.06] px-3 py-2">
+            <div className="mt-3 rounded-none border border-amber-600/25 bg-amber-500/[0.06] px-3 py-2">
               <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
                 {warnings.length} non-blocking note(s)
               </p>
@@ -171,7 +185,9 @@ function ImportResultCard({
                 {warnings.map((w, i) => (
                   <li key={`warn-${w.line}-${i}`}>
                     {w.line > 0 ? (
-                      <span className="font-mono text-foreground">Line {w.line}</span>
+                      <span className="font-mono text-foreground">
+                        Line {w.line}
+                      </span>
                     ) : null}
                     {w.line > 0 ? ": " : null}
                     {w.message}
@@ -215,7 +231,7 @@ function SectionHead({
     <div className="flex items-center gap-2.5 border-b border-border/50 pb-4">
       <span
         className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-lg border",
+          "flex size-9 shrink-0 items-center justify-center rounded-none border",
           accent
             ? "border-primary/20 bg-primary/10 text-primary"
             : "border-border/50 bg-muted/60 text-foreground",
@@ -224,7 +240,9 @@ function SectionHead({
         <Icon className="size-4" aria-hidden />
       </span>
       <div>
-        <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+        <h2 className="text-lg font-semibold tracking-tight text-foreground">
+          {title}
+        </h2>
         <p className={cn(dashboardHintClass(), "mt-0.5 max-w-prose")}>{desc}</p>
       </div>
     </div>
@@ -250,7 +268,7 @@ function FileDropzone({
   return (
     <label
       className={cn(
-        "group relative flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-7 text-center transition-colors duration-150",
+        "group relative flex cursor-pointer flex-col items-center justify-center gap-2 rounded-none border-2 border-dashed px-6 py-7 text-center transition-colors duration-150",
         "border-border/80 bg-muted/20 hover:border-primary/40 hover:bg-muted/30",
         "focus-within:border-primary/50 focus-within:bg-muted/30 focus-within:ring-2 focus-within:ring-ring/40 focus-within:ring-offset-2 focus-within:ring-offset-background",
         "has-disabled:cursor-not-allowed has-disabled:opacity-60",
@@ -304,23 +322,30 @@ function ImportProgress({
   const total = progress?.rowsTotal ?? null;
   const done = Math.max(0, progress?.rowsProcessed ?? 0);
   const pct =
-    total != null && total > 0 ? Math.min(100, Math.round((done / total) * 100)) : null;
+    total != null && total > 0
+      ? Math.min(100, Math.round((done / total) * 100))
+      : null;
   const validating = busy === "dry";
   const stages = [
     { label: "Upload", state: "done" as const },
-    { label: validating ? "Validating" : "Processing", state: "active" as const },
+    {
+      label: validating ? "Validating" : "Processing",
+      state: "active" as const,
+    },
     { label: "Done", state: "todo" as const },
   ];
 
   return (
     <div
       role="progressbar"
-      aria-label={validating ? "CSV validation progress" : "CSV import progress"}
+      aria-label={
+        validating ? "CSV validation progress" : "CSV import progress"
+      }
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={pct ?? undefined}
       aria-valuetext={pct != null ? `${pct}% complete` : "queued"}
-      className="rounded-xl border border-primary/15 bg-primary/4 p-4 sm:p-5"
+      className="rounded-none border border-primary/15 bg-primary/4 p-4 sm:p-5"
     >
       {/* Pipeline stepper */}
       <div className="flex items-center">
@@ -330,7 +355,9 @@ function ImportProgress({
               <div
                 className={cn(
                   "mx-2 h-px flex-1 sm:mx-3",
-                  stages[i - 1].state === "todo" ? "bg-border" : "bg-primary/40",
+                  stages[i - 1].state === "todo"
+                    ? "bg-border"
+                    : "bg-primary/40",
                 )}
                 aria-hidden
               />
@@ -340,8 +367,10 @@ function ImportProgress({
                 className={cn(
                   "flex size-6 items-center justify-center rounded-full text-[11px] font-bold",
                   stage.state === "done" && "bg-primary text-white",
-                  stage.state === "active" && "border-2 border-primary bg-background text-primary",
-                  stage.state === "todo" && "border border-border bg-muted text-muted-foreground",
+                  stage.state === "active" &&
+                    "border-2 border-primary bg-background text-primary",
+                  stage.state === "todo" &&
+                    "border border-border bg-muted text-muted-foreground",
                 )}
               >
                 {stage.state === "done" ? (
@@ -355,7 +384,9 @@ function ImportProgress({
               <span
                 className={cn(
                   "text-[11px] font-medium tracking-tight",
-                  stage.state === "todo" ? "text-muted-foreground" : "text-foreground",
+                  stage.state === "todo"
+                    ? "text-muted-foreground"
+                    : "text-foreground",
                 )}
               >
                 {stage.label}
@@ -392,13 +423,16 @@ function ImportProgress({
 }
 
 export default function BusinessImportPage() {
-  const { loading, canManageImports, branches, branchId, branchesLoading } = useDashboard();
+  const { loading, canManageImports, branches, branchId, branchesLoading } =
+    useDashboard();
   const [importKind, setImportKind] = useState<ImportKind>("products");
   const [file, setFile] = useState<File | null>(null);
   const [branchForStock, setBranchForStock] = useState("");
   const [busy, setBusy] = useState<"dry" | "commit" | null>(null);
   const [result, setResult] = useState<JsonImportResponse | null>(null);
-  const [templateBusy, setTemplateBusy] = useState<CsvTemplateKind | null>(null);
+  const [templateBusy, setTemplateBusy] = useState<CsvTemplateKind | null>(
+    null,
+  );
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [exportBusy, setExportBusy] = useState<CsvTemplateKind | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -606,7 +640,8 @@ export default function BusinessImportPage() {
             <code className="rounded bg-muted px-1 py-0.5 text-xs">
               {Permission.IntegrationsImportsManage}
             </code>{" "}
-            to upload data. Ask an administrator to grant this permission on your role.
+            to upload data. Ask an administrator to grant this permission on
+            your role.
           </>
         }
         backHref={APP_ROUTES.business}
@@ -630,7 +665,8 @@ export default function BusinessImportPage() {
       : csvKind === "suppliers"
         ? "No blocking issues reported. Suppliers should appear under Suppliers; refresh that page if it was already open."
         : "No blocking issues reported. Opening stock is applied to the listed branch(es).";
-  const csvKindLabel = CSV_TEMPLATES.find((t) => t.kind === csvKind)?.label ?? csvKind;
+  const csvKindLabel =
+    CSV_TEMPLATES.find((t) => t.kind === csvKind)?.label ?? csvKind;
 
   return (
     <div className={DASHBOARD_MAX}>
@@ -674,7 +710,12 @@ export default function BusinessImportPage() {
         {/* Main column — the two import flows */}
         <div className="min-w-0 space-y-6">
           {/* CSV import — the primary task */}
-          <section className={cn(DASHBOARD_SECTION_SURFACE, "relative overflow-hidden")}>
+          <section
+            className={cn(
+              DASHBOARD_SECTION_SURFACE,
+              "relative overflow-hidden",
+            )}
+          >
             <SectionHead
               accent
               icon={FileSpreadsheet}
@@ -682,7 +723,11 @@ export default function BusinessImportPage() {
               desc="Upload a file completed from one of the templates. Validate first to catch row errors, then import — jobs run in the background with live progress."
             />
 
-            <div className={cn("mt-5 flex flex-wrap gap-2 rounded-xl border border-border/50 bg-muted/25 p-1.5")}>
+            <div
+              className={cn(
+                "mt-5 flex flex-wrap gap-2 rounded-none border border-border/50 bg-muted/25 p-1.5",
+              )}
+            >
               {CSV_TEMPLATES.map((t) => {
                 const Icon = CSV_KIND_ICONS[t.kind];
                 return (
@@ -693,7 +738,8 @@ export default function BusinessImportPage() {
                     size="sm"
                     className={cn(
                       "flex-1 gap-1.5 sm:flex-initial",
-                      csvKind !== t.kind && "text-muted-foreground hover:text-foreground",
+                      csvKind !== t.kind &&
+                        "text-muted-foreground hover:text-foreground",
                     )}
                     disabled={csvBusy != null}
                     onClick={() => {
@@ -724,17 +770,29 @@ export default function BusinessImportPage() {
               <div>
                 <p className={cn(dashboardHintClass(), "mb-1.5")}>
                   Columns expected for{" "}
-                  <span className="font-semibold text-foreground">{csvKindLabel}</span>
+                  <span className="font-semibold text-foreground">
+                    {csvKindLabel}
+                  </span>
                   {csvKind === "items" ? (
                     <>
                       {" "}
-                      — only <code className="rounded bg-muted px-1">sku</code> and{" "}
-                      <code className="rounded bg-muted px-1">name</code> are required; leave the rest blank or omit
-                      them. Optional{" "}
-                      <code className="rounded bg-muted px-1">supplier_name</code> /{" "}
-                      <code className="rounded bg-muted px-1">supplier_code</code> link the item to an existing
-                      supplier (matched by exact code, then exact name); unmatched values are reported as notes.
-                      Optional <code className="rounded bg-muted px-1">image_url</code> sets the product image.
+                      — only <code className="rounded bg-muted px-1">
+                        sku
+                      </code>{" "}
+                      and <code className="rounded bg-muted px-1">name</code>{" "}
+                      are required; leave the rest blank or omit them. Optional{" "}
+                      <code className="rounded bg-muted px-1">
+                        supplier_name
+                      </code>{" "}
+                      /{" "}
+                      <code className="rounded bg-muted px-1">
+                        supplier_code
+                      </code>{" "}
+                      link the item to an existing supplier (matched by exact
+                      code, then exact name); unmatched values are reported as
+                      notes. Optional{" "}
+                      <code className="rounded bg-muted px-1">image_url</code>{" "}
+                      sets the product image.
                     </>
                   ) : null}
                   :
@@ -756,7 +814,7 @@ export default function BusinessImportPage() {
                   type="button"
                   variant="secondary"
                   size="lg"
-                  className="shadow-sm transition-shadow hover:shadow-md"
+                  className="shadow-none transition-shadow "
                   disabled={!csvFile || csvBusy != null}
                   onClick={() => void runCsv(true)}
                 >
@@ -775,7 +833,7 @@ export default function BusinessImportPage() {
                 <Button
                   type="button"
                   size="lg"
-                  className="shadow-sm transition-shadow hover:shadow-md"
+                  className="shadow-none transition-shadow "
                   disabled={!csvFile || csvBusy != null}
                   onClick={() => void runCsv(false)}
                 >
@@ -793,7 +851,10 @@ export default function BusinessImportPage() {
                 </Button>
                 {csvFile && csvBusy == null ? (
                   <span className="text-xs text-muted-foreground">
-                    Ready: <span className="font-medium text-foreground">{csvFile.name}</span>
+                    Ready:{" "}
+                    <span className="font-medium text-foreground">
+                      {csvFile.name}
+                    </span>
                   </span>
                 ) : null}
               </div>
@@ -823,7 +884,11 @@ export default function BusinessImportPage() {
               desc="For exports from the old system: products, suppliers, buying prices, or selling prices. CSV is recommended for new imports."
             />
 
-            <div className={cn("mt-5 flex flex-wrap gap-2 rounded-xl border border-border/50 bg-muted/25 p-1.5")}>
+            <div
+              className={cn(
+                "mt-5 flex flex-wrap gap-2 rounded-none border border-border/50 bg-muted/25 p-1.5",
+              )}
+            >
               {(
                 [
                   ["products", "Products"] as const,
@@ -839,7 +904,8 @@ export default function BusinessImportPage() {
                   size="sm"
                   className={cn(
                     "flex-1 sm:flex-initial",
-                    importKind !== key && "text-muted-foreground hover:text-foreground",
+                    importKind !== key &&
+                      "text-muted-foreground hover:text-foreground",
                   )}
                   onClick={() => {
                     setImportKind(key);
@@ -866,9 +932,13 @@ export default function BusinessImportPage() {
 
               {importKind === "products" ? (
                 <label className="flex flex-col gap-2">
-                  <span className="text-sm font-semibold text-foreground">Branch for opening stock</span>
+                  <span className="text-sm font-semibold text-foreground">
+                    Branch for opening stock
+                  </span>
                   <select
-                    className={dashboardSelectClass(busy != null || branchesLoading)}
+                    className={dashboardSelectClass(
+                      busy != null || branchesLoading,
+                    )}
                     disabled={busy != null || branchesLoading}
                     value={branchForStock || branchId || ""}
                     onChange={(e) => setBranchForStock(e.target.value)}
@@ -881,54 +951,88 @@ export default function BusinessImportPage() {
                     ))}
                   </select>
                   <span className={dashboardHintClass()}>
-                    Pulls shelf price, buying/cost, and stock from the product export when present
-                    (<code className="rounded bg-muted px-1">current_sell_price</code> /{" "}
-                    <code className="rounded bg-muted px-1">selling_price</code>,{" "}
-                    <code className="rounded bg-muted px-1">buying_price</code> /{" "}
-                    <code className="rounded bg-muted px-1">cost_price</code>,{" "}
-                    <code className="rounded bg-muted px-1">current_stock</code> /{" "}
-                    <code className="rounded bg-muted px-1">quantity</code>). Branch is required for stock &gt; 0
-                    (defaults to the first branch if left blank). Re-importing the same file updates prices on
-                    existing SKUs; opening stock is only posted when on-hand is still zero. Opening unit cost
-                    uses the buying price when available.
+                    Pulls shelf price, buying/cost, and stock from the product
+                    export when present (
+                    <code className="rounded bg-muted px-1">
+                      current_sell_price
+                    </code>{" "}
+                    /{" "}
+                    <code className="rounded bg-muted px-1">selling_price</code>
+                    ,{" "}
+                    <code className="rounded bg-muted px-1">buying_price</code>{" "}
+                    / <code className="rounded bg-muted px-1">cost_price</code>,{" "}
+                    <code className="rounded bg-muted px-1">current_stock</code>{" "}
+                    / <code className="rounded bg-muted px-1">quantity</code>).
+                    Branch is required for stock &gt; 0 (defaults to the first
+                    branch if left blank). Re-importing the same file updates
+                    prices on existing SKUs; opening stock is only posted when
+                    on-hand is still zero. Opening unit cost uses the buying
+                    price when available.
                   </span>
                 </label>
               ) : importKind === "suppliers" ? (
                 <p className={dashboardHintClass()}>
-                  Each row needs a display name: <code className="rounded bg-muted px-1">name</code>,{" "}
-                  <code className="rounded bg-muted px-1">company_name</code>, nested{" "}
-                  <code className="rounded bg-muted px-1">supplier.name</code>, or fallback <code className="rounded bg-muted px-1">code</code>. Optional{" "}
-                  <code className="rounded bg-muted px-1">id</code> from the export (UUID) is stored to map buying prices. Supported
-                  wrappers: top-level array or <code className="rounded bg-muted px-1">suppliers</code> /{" "}
-                  <code className="rounded bg-muted px-1">vendors</code> / <code className="rounded bg-muted px-1">data</code> /{" "}
-                  <code className="rounded bg-muted px-1">results</code> arrays. Duplicate <em>legacy ids</em> are dropped (first
-                  wins); duplicate <em>display names</em> get a short suffix so each row can be imported and mapped.
+                  Each row needs a display name:{" "}
+                  <code className="rounded bg-muted px-1">name</code>,{" "}
+                  <code className="rounded bg-muted px-1">company_name</code>,
+                  nested{" "}
+                  <code className="rounded bg-muted px-1">supplier.name</code>,
+                  or fallback{" "}
+                  <code className="rounded bg-muted px-1">code</code>. Optional{" "}
+                  <code className="rounded bg-muted px-1">id</code> from the
+                  export (UUID) is stored to map buying prices. Supported
+                  wrappers: top-level array or{" "}
+                  <code className="rounded bg-muted px-1">suppliers</code> /{" "}
+                  <code className="rounded bg-muted px-1">vendors</code> /{" "}
+                  <code className="rounded bg-muted px-1">data</code> /{" "}
+                  <code className="rounded bg-muted px-1">results</code> arrays.
+                  Duplicate <em>legacy ids</em> are dropped (first wins);
+                  duplicate <em>display names</em> get a short suffix so each
+                  row can be imported and mapped.
                 </p>
               ) : importKind === "buying_prices" ? (
                 <p className={dashboardHintClass()}>
-                  Each row matches the legacy export: <code className="rounded bg-muted px-1">item_id</code> or{" "}
-                  <code className="rounded bg-muted px-1">product_id</code> (UUID — same values as your product export’s id; Palmart matches by item id, stored legacy id, SKU{" "}
-                  <code className="rounded bg-muted px-1">IMP-{"<uuid>"}</code> when the product had no code, or optional{" "}
-                  <code className="rounded bg-muted px-1">product_code</code> / <code className="rounded bg-muted px-1">barcode</code>),{" "}
-                  <code className="rounded bg-muted px-1">supplier_id</code> (UUID or supplier code; if the UUID is not in Palmart,
-                  cost is attached to SYS-UNASSIGNED and the note records the original id), optional{" "}
-                  <code className="rounded bg-muted px-1">price</code> (number, stored as unit cost; alias{" "}
+                  Each row matches the legacy export:{" "}
+                  <code className="rounded bg-muted px-1">item_id</code> or{" "}
+                  <code className="rounded bg-muted px-1">product_id</code>{" "}
+                  (UUID — same values as your product export’s id; Palmart
+                  matches by item id, stored legacy id, SKU{" "}
+                  <code className="rounded bg-muted px-1">IMP-{"<uuid>"}</code>{" "}
+                  when the product had no code, or optional{" "}
+                  <code className="rounded bg-muted px-1">product_code</code> /{" "}
+                  <code className="rounded bg-muted px-1">barcode</code>),{" "}
+                  <code className="rounded bg-muted px-1">supplier_id</code>{" "}
+                  (UUID or supplier code; if the UUID is not in Palmart, cost is
+                  attached to SYS-UNASSIGNED and the note records the original
+                  id), optional{" "}
+                  <code className="rounded bg-muted px-1">price</code> (number,
+                  stored as unit cost; alias{" "}
                   <code className="rounded bg-muted px-1">unit_cost</code>),{" "}
-                  <code className="rounded bg-muted px-1">effective_from</code> (unix timestamp), optional{" "}
-                  <code className="rounded bg-muted px-1">notes</code>. Export-only fields are not applied:{" "}
-                  <code className="rounded bg-muted px-1">id</code>, <code className="rounded bg-muted px-1">set_by</code>,{" "}
-                  <code className="rounded bg-muted px-1">created_at</code> — the signed-in user is stored as setter and{" "}
-                  <code className="rounded bg-muted px-1">created_at</code> is the server import time. CamelCase keys are OK.
+                  <code className="rounded bg-muted px-1">effective_from</code>{" "}
+                  (unix timestamp), optional{" "}
+                  <code className="rounded bg-muted px-1">notes</code>.
+                  Export-only fields are not applied:{" "}
+                  <code className="rounded bg-muted px-1">id</code>,{" "}
+                  <code className="rounded bg-muted px-1">set_by</code>,{" "}
+                  <code className="rounded bg-muted px-1">created_at</code> —
+                  the signed-in user is stored as setter and{" "}
+                  <code className="rounded bg-muted px-1">created_at</code> is
+                  the server import time. CamelCase keys are OK.
                 </p>
               ) : (
                 <p className={dashboardHintClass()}>
-                  Each row: <code className="rounded bg-muted px-1">item_id</code>,{" "}
+                  Each row:{" "}
+                  <code className="rounded bg-muted px-1">item_id</code>,{" "}
                   <code className="rounded bg-muted px-1">price</code>,{" "}
-                  <code className="rounded bg-muted px-1">effective_from</code> (unix). Optional{" "}
-                  <code className="rounded bg-muted px-1">branch_id</code> for branch-specific list prices; omit for business-wide
-                  sell price. Ignored export fields: <code className="rounded bg-muted px-1">id</code>,{" "}
-                  <code className="rounded bg-muted px-1">supplier_id</code>, <code className="rounded bg-muted px-1">set_by</code>
-                  , <code className="rounded bg-muted px-1">created_at</code>.
+                  <code className="rounded bg-muted px-1">effective_from</code>{" "}
+                  (unix). Optional{" "}
+                  <code className="rounded bg-muted px-1">branch_id</code> for
+                  branch-specific list prices; omit for business-wide sell
+                  price. Ignored export fields:{" "}
+                  <code className="rounded bg-muted px-1">id</code>,{" "}
+                  <code className="rounded bg-muted px-1">supplier_id</code>,{" "}
+                  <code className="rounded bg-muted px-1">set_by</code>,{" "}
+                  <code className="rounded bg-muted px-1">created_at</code>.
                 </p>
               )}
 
@@ -937,7 +1041,7 @@ export default function BusinessImportPage() {
                   type="button"
                   variant="secondary"
                   size="lg"
-                  className="shadow-sm transition-shadow hover:shadow-md"
+                  className="shadow-none transition-shadow "
                   disabled={!file || busy != null}
                   onClick={() => void run(true)}
                 >
@@ -956,7 +1060,7 @@ export default function BusinessImportPage() {
                 <Button
                   type="button"
                   size="lg"
-                  className="shadow-sm transition-shadow hover:shadow-md"
+                  className="shadow-none transition-shadow "
                   disabled={!file || busy != null}
                   onClick={() => void run(false)}
                 >
@@ -977,7 +1081,10 @@ export default function BusinessImportPage() {
 
             {result ? (
               <div className="mt-5">
-                <ImportResultCard result={result} successMessage={jsonSuccessMessage} />
+                <ImportResultCard
+                  result={result}
+                  successMessage={jsonSuccessMessage}
+                />
               </div>
             ) : null}
           </section>
@@ -987,7 +1094,7 @@ export default function BusinessImportPage() {
         <aside className="min-w-0 space-y-6">
           <section className={DASHBOARD_SECTION_SURFACE}>
             <div className="flex items-center gap-2.5">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-none border border-border/50 bg-muted/60 text-foreground">
                 <FileSpreadsheet className="size-4" aria-hidden />
               </span>
               <div>
@@ -1007,13 +1114,15 @@ export default function BusinessImportPage() {
                 return (
                   <div
                     key={t.kind}
-                    className="flex items-center gap-3 rounded-xl border border-border/60 bg-background p-3 shadow-sm transition-colors hover:border-border"
+                    className="flex items-center gap-3 rounded-none border border-border/60 bg-background p-3 shadow-none transition-colors hover:border-border"
                   >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-muted/50 text-muted-foreground">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-none border border-border/40 bg-muted/50 text-muted-foreground">
                       <Icon className="size-4" aria-hidden />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold leading-tight text-foreground">{t.label}</p>
+                      <p className="text-sm font-semibold leading-tight text-foreground">
+                        {t.label}
+                      </p>
                       <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
                         {CSV_COLUMNS[t.kind].length} columns · {t.hint}
                       </p>
@@ -1046,7 +1155,7 @@ export default function BusinessImportPage() {
 
           <section className={DASHBOARD_SECTION_SURFACE}>
             <div className="flex items-center gap-2.5">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-none border border-border/50 bg-muted/60 text-foreground">
                 <Download className="size-4" aria-hidden />
               </span>
               <div>
@@ -1054,8 +1163,8 @@ export default function BusinessImportPage() {
                   Export current data
                 </h2>
                 <p className={cn(dashboardHintClass(), "mt-0.5")}>
-                  Same columns as the templates — edit and re-upload. Extra item columns
-                  (prices, on-hand, category) are optional on import.
+                  Same columns as the templates — edit and re-upload. Extra item
+                  columns (prices, on-hand, category) are optional on import.
                 </p>
               </div>
             </div>
@@ -1067,13 +1176,15 @@ export default function BusinessImportPage() {
                 return (
                   <div
                     key={`export-${t.kind}`}
-                    className="flex items-center gap-3 rounded-xl border border-border/60 bg-background p-3 shadow-sm transition-colors hover:border-border"
+                    className="flex items-center gap-3 rounded-none border border-border/60 bg-background p-3 shadow-none transition-colors hover:border-border"
                   >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-muted/50 text-muted-foreground">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-none border border-border/40 bg-muted/50 text-muted-foreground">
                       <Icon className="size-4" aria-hidden />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold leading-tight text-foreground">{t.label}</p>
+                      <p className="text-sm font-semibold leading-tight text-foreground">
+                        {t.label}
+                      </p>
                       <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
                         {CSV_COLUMNS[t.kind].length} columns · live catalog
                       </p>
@@ -1103,19 +1214,22 @@ export default function BusinessImportPage() {
               </p>
             ) : null}
             <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-              Items and suppliers import creates new rows — existing SKUs / supplier names will
-              fail validation. Opening stock posts additional quantity (it does not replace
-              on-hand). Prefer export for backup and for adding only new rows.
+              Items and suppliers import creates new rows — existing SKUs /
+              supplier names will fail validation. Opening stock posts
+              additional quantity (it does not replace on-hand). Prefer export
+              for backup and for adding only new rows.
             </p>
           </section>
 
           <section className={DASHBOARD_SECTION_SURFACE}>
             <div className="flex items-center gap-2.5">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-none border border-border/50 bg-muted/60 text-foreground">
                 <ListChecks className="size-4" aria-hidden />
               </span>
               <div>
-                <h2 className="text-sm font-semibold tracking-tight text-foreground">How it works</h2>
+                <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                  How it works
+                </h2>
                 <p className={cn(dashboardHintClass(), "mt-0.5")}>
                   CSV round-trip.
                 </p>
@@ -1124,27 +1238,43 @@ export default function BusinessImportPage() {
 
             <ol className="mt-4 space-y-3.5">
               {[
-                ["Export or download a template", "Start from live data or an empty pre-mapped file."],
-                ["Edit in Excel", "Keep the header row; save as .csv when done."],
-                ["Upload & validate", "A dry run checks every row and reports line-level errors."],
-                ["Import & track", "Rows are committed in the background — watch the progress bar."],
+                [
+                  "Export or download a template",
+                  "Start from live data or an empty pre-mapped file.",
+                ],
+                [
+                  "Edit in Excel",
+                  "Keep the header row; save as .csv when done.",
+                ],
+                [
+                  "Upload & validate",
+                  "A dry run checks every row and reports line-level errors.",
+                ],
+                [
+                  "Import & track",
+                  "Rows are committed in the background — watch the progress bar.",
+                ],
               ].map(([title, desc], i) => (
                 <li key={title} className="flex gap-3">
                   <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted text-[11px] font-bold text-foreground">
                     {i + 1}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold leading-tight text-foreground">{title}</p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{desc}</p>
+                    <p className="text-sm font-semibold leading-tight text-foreground">
+                      {title}
+                    </p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      {desc}
+                    </p>
                   </div>
                 </li>
               ))}
             </ol>
           </section>
 
-          <section className="rounded-2xl border border-primary/15 bg-primary/4 p-5 shadow-sm">
+          <section className="rounded-none border border-primary/15 bg-primary/4 p-5 shadow-none">
             <div className="flex items-start gap-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-none bg-primary/10 text-primary">
                 <Info className="size-4" aria-hidden />
               </span>
               <div className="min-w-0">
@@ -1152,8 +1282,9 @@ export default function BusinessImportPage() {
                   Large imports run in the background
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Files with hundreds or thousands of rows are processed as a job on our side. You can
-                  leave this page while it runs — progress updates here every few seconds.
+                  Files with hundreds or thousands of rows are processed as a
+                  job on our side. You can leave this page while it runs —
+                  progress updates here every few seconds.
                 </p>
               </div>
             </div>

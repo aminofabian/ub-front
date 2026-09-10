@@ -125,19 +125,21 @@ export function StockIncreaseFields({
 
   const addQty = toNumber(quantity.trim());
   const receiptUnitCost = toNumber(unitCost.trim());
-  const hasAddQty =
-    addQty != null && Number.isFinite(addQty) && addQty > 0;
-  const newOnHand =
-    onHand != null && hasAddQty ? onHand + addQty! : null;
+  const hasAddQty = addQty != null && Number.isFinite(addQty) && addQty > 0;
+  const newOnHand = onHand != null && hasAddQty ? onHand + addQty! : null;
 
   const catalogCost = currentUnitCost;
-  const showCostPreview =
-    catalogCost != null || receiptUnitCost != null;
+  const showCostPreview = catalogCost != null || receiptUnitCost != null;
 
   return (
     <div className={cn(productFormSectionClass, className)}>
       {!minimal ? (
-        <p className={cn("flex items-center gap-1.5", productFormSectionTitleClass)}>
+        <p
+          className={cn(
+            "flex items-center gap-1.5",
+            productFormSectionTitleClass,
+          )}
+        >
           <Building2 className="size-3" aria-hidden />
           {isOpening ? "Opening stock" : "Add stock"}
         </p>
@@ -147,7 +149,9 @@ export function StockIncreaseFields({
           {resolvedHint}
         </p>
       ) : null}
-      <div className={cn(minimal ? "flex flex-col gap-2" : productFormStackClass)}>
+      <div
+        className={cn(minimal ? "flex flex-col gap-2" : productFormStackClass)}
+      >
         <ProductFormField label="Branch" required>
           <select
             className={productFormSelectClass}
@@ -195,7 +199,9 @@ export function StockIncreaseFields({
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               {isOpening || branchId ? (
                 !isOpening && onHandLoading ? (
-                  <span className={productFormPreviewClass}>Loading stock…</span>
+                  <span className={productFormPreviewClass}>
+                    Loading stock…
+                  </span>
                 ) : (
                   <>
                     <PreviewStat
@@ -247,10 +253,10 @@ export function StockIncreaseFields({
               hint={
                 minimal
                   ? undefined
-                  : unitCostHint ??
+                  : (unitCostHint ??
                     (isOpening
                       ? "Values this stock batch in inventory — usually buy price ÷ pack qty"
-                      : "Cost per unit for this stock-in")
+                      : "Cost per unit for this stock-in"))
               }
             >
               <input

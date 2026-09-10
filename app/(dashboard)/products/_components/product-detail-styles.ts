@@ -28,11 +28,10 @@ export type DetailPanelTone = {
 /** Quiet sheet tones — kind is signaled by badge ink, not candy gradients. */
 export function detailPanelTone(kind: DetailPanelKind): DetailPanelTone {
   const base = {
-    heroGradient: "bg-muted/20",
+    heroGradient: "bg-white",
     heroRing: "",
     accent: "bg-foreground",
-    accentLight:
-      "border-border bg-muted/40 text-foreground/55",
+    accentLight: "border-border bg-muted/40 text-foreground/55",
     statHighlight: "",
     notice: "border-border bg-muted/20 text-foreground/70",
     variantRowHover: "hover:bg-muted/30",
@@ -65,7 +64,7 @@ export const detailSkuListClass =
   "max-h-[min(22rem,42vh)] divide-y divide-border overflow-y-auto overscroll-contain border-t border-border bg-background";
 
 export const detailHeroClass = cn(
-  "relative overflow-hidden rounded-none border-0 bg-muted/15 p-2.5 shadow-none",
+  "relative overflow-hidden rounded-none border-0 bg-white p-2.5 shadow-none",
 );
 
 export const detailSectionClass = cn(
@@ -74,7 +73,7 @@ export const detailSectionClass = cn(
 
 export const detailSectionHeadClass = cn(
   "flex items-center gap-1.5 border-b border-border px-2.5 py-1.5",
-  "bg-muted/20",
+  "bg-white",
 );
 
 export const detailMetricGridClass =
@@ -101,15 +100,16 @@ export const detailStickyBarClass = cn(
   "lg:hidden",
 );
 
-export const detailQuickActionGridClass = "grid grid-cols-2 gap-px bg-border sm:grid-cols-3";
+export const detailQuickActionGridClass =
+  "grid grid-cols-2 gap-px bg-border sm:grid-cols-3";
 
-/** Section kickers — quiet uppercase, even ink */
+/** Section labels — small, no uppercase kickers */
 export const detailSectionLabelClass =
-  "text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40";
+  "text-[10px] font-semibold tracking-[-0.02em] text-foreground/40";
 
 /** Metric / field labels */
 export const detailFieldLabelClass =
-  "text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40";
+  "text-[10px] font-semibold tracking-[-0.02em] text-foreground/40";
 
 export const detailFieldValueClass =
   "text-[11px] font-medium tracking-tight text-foreground truncate";

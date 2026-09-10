@@ -25,10 +25,7 @@ import {
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
-import {
-  formatPlanCount,
-  planFitsUsage,
-} from "@/lib/subscription-plan-fit";
+import { formatPlanCount, planFitsUsage } from "@/lib/subscription-plan-fit";
 import { cn } from "@/lib/utils";
 
 type BillingPeriod = 1 | 12;
@@ -89,7 +86,9 @@ export default function BillingRenewPage() {
         );
         setStatus(billing);
         setPlans(catalogue.filter((p) => p.active));
-        const recommended = billing.planFit?.recommendedTier?.trim().toLowerCase();
+        const recommended = billing.planFit?.recommendedTier
+          ?.trim()
+          .toLowerCase();
         const current = billing.tier?.trim().toLowerCase();
         const next =
           (requestedTier &&
@@ -114,24 +113,21 @@ export default function BillingRenewPage() {
     };
   }, [requestedTier]);
 
-  const loadQuote = useCallback(
-    async (tier: string, months: BillingPeriod) => {
-      if (!tier || tier === "free" || tier === "enterprise") {
-        setQuote(null);
-        return;
-      }
-      setQuoteLoading(true);
-      try {
-        const q = await fetchSubscriptionRenewalQuote(months, tier);
-        setQuote(q);
-      } catch {
-        setQuote(null);
-      } finally {
-        setQuoteLoading(false);
-      }
-    },
-    [],
-  );
+  const loadQuote = useCallback(async (tier: string, months: BillingPeriod) => {
+    if (!tier || tier === "free" || tier === "enterprise") {
+      setQuote(null);
+      return;
+    }
+    setQuoteLoading(true);
+    try {
+      const q = await fetchSubscriptionRenewalQuote(months, tier);
+      setQuote(q);
+    } catch {
+      setQuote(null);
+    } finally {
+      setQuoteLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!selectedTier) return;
@@ -204,7 +200,7 @@ export default function BillingRenewPage() {
                         disabled={!fits && plan.tierCode !== "enterprise"}
                         onClick={() => setSelectedTier(plan.tierCode)}
                         className={cn(
-                          "flex w-full items-start justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
+                          "flex w-full items-start justify-between gap-3 rounded-none border px-4 py-3 text-left transition-colors",
                           "disabled:cursor-not-allowed disabled:opacity-50",
                           selected
                             ? "border-primary/40 bg-primary/[0.06]"
@@ -258,7 +254,7 @@ export default function BillingRenewPage() {
                   })}
                 </div>
               ) : (
-                <p className="rounded-lg border border-dashed border-border/70 bg-muted/15 px-4 py-6 text-center text-sm text-muted-foreground">
+                <p className="rounded-none border border-dashed border-border/70 bg-muted/15 px-4 py-6 text-center text-sm text-muted-foreground">
                   Could not load plans. Try again later.
                 </p>
               )}
@@ -271,13 +267,17 @@ export default function BillingRenewPage() {
               ) : null}
 
               {talkToUs && selectedPlan ? (
-                <div className="space-y-3 rounded-xl border border-border/60 bg-muted/15 px-4 py-4">
+                <div className="space-y-3 rounded-none border border-border/60 bg-muted/15 px-4 py-4">
                   <p className="text-sm leading-relaxed text-foreground">
                     {selectedPlan.tierCode === "free"
                       ? "Free does not cover this shop. Pick a paid plan that fits, or talk to us if you need a custom quote."
                       : "This shop is past self-serve plans. We will quote Enterprise around what you already run."}
                   </p>
-                  <Button type="button" className="h-11 w-full sm:w-auto" asChild>
+                  <Button
+                    type="button"
+                    className="h-11 w-full sm:w-auto"
+                    asChild
+                  >
                     <Link href={APP_ROUTES.support}>Talk to us</Link>
                   </Button>
                 </div>
@@ -296,7 +296,7 @@ export default function BillingRenewPage() {
               ) : quote ? (
                 <SubscriptionRenewalForm quote={quote} canPay={canPay} />
               ) : selectedPlan ? (
-                <p className="rounded-lg border border-dashed border-border/70 bg-muted/15 px-4 py-6 text-center text-sm text-muted-foreground">
+                <p className="rounded-none border border-dashed border-border/70 bg-muted/15 px-4 py-6 text-center text-sm text-muted-foreground">
                   Could not load a quote for {selectedPlan.displayName}.
                 </p>
               ) : null}

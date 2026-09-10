@@ -251,7 +251,7 @@ export function ProductPickCell({
             className={cn(
               "fixed z-[400] rounded-sm",
               nsdDropdownPanel,
-              !sharp && "rounded-lg shadow-lg",
+              !sharp && "rounded-none shadow-none",
             )}
             style={{
               top: dropdownPos.top,
@@ -318,7 +318,7 @@ export function ProductPickCell({
       {inlineResults && showResults ? (
         <div
           className={cn(
-            "mt-1 max-h-44 overflow-auto rounded-sm border border-border bg-popover shadow-md",
+            "mt-1 max-h-44 overflow-auto rounded-sm border border-border bg-popover shadow-none",
           )}
         >
           {resultsPanel}

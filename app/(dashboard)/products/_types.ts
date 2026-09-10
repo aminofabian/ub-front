@@ -235,30 +235,29 @@ export {
 } from "./_components/product-form-styles";
 
 export const panelClass = cn(
-  "rounded-lg border border-border bg-card",
-  "dark:bg-card/90",
+  "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
 );
 
 export const filterLabelClass =
-  "text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/90";
+  "text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]";
 
 // ─── detail-panel section style tokens ───────────────────────────────────────
 
 /** @deprecated Prefer product-detail-styles — kept for drawers that import _types */
 export const sectionCls =
-  "overflow-hidden rounded-xl border border-border/55 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/50 dark:ring-white/[0.04]";
+  "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none";
 
 export const sectionHeadCls =
-  "flex items-center gap-2 border-b border-border/45 px-3 py-2.5 bg-muted/30 dark:bg-muted/35";
+  "flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2 bg-white";
 
 export const sectionLabelCls =
-  "text-[10px] font-bold uppercase tracking-[0.12em] text-foreground/70";
+  "text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]";
 
 export const fieldRowCls =
-  "group flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-[background-color,box-shadow] duration-150 hover:bg-muted/40";
+  "group flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]";
 
 export const fieldLabelCls =
-  "text-[10px] font-medium uppercase tracking-wide text-muted-foreground";
+  "text-[11px] font-medium tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]";
 
 export const fieldValueCls = "text-sm font-medium text-foreground truncate";
 

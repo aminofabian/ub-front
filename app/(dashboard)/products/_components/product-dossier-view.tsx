@@ -109,7 +109,7 @@ export function ProductDossierView({ slug }: { slug: string }) {
   }, [itemId, branchId]);
 
   const thumb = detail
-    ? coverImageUrl(detail) ?? itemListThumbnailUrl(detail)
+    ? (coverImageUrl(detail) ?? itemListThumbnailUrl(detail))
     : null;
   const displayName = detail ? resolveCatalogItemName(detail) : null;
   const title = displayName?.label || econ?.name || "Product";
@@ -129,23 +129,26 @@ export function ProductDossierView({ slug }: { slug: string }) {
 
   return (
     <div
-      className={cn(styles.page, "relative mx-auto flex h-full min-h-0 w-full max-w-[1440px] flex-col px-3 pb-8 pt-2 sm:px-5 sm:pt-3")}
+      className={cn(
+        styles.page,
+        "relative mx-auto flex h-full min-h-0 w-full max-w-[1440px] flex-col px-3 pb-8 pt-2 sm:px-5 sm:pt-3",
+      )}
       style={PRODUCTS_CATALOG_VARS}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(90%_80%_at_8%_-10%,color-mix(in_srgb,var(--catalog-primary)_16%,transparent),transparent_58%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-white"
       />
 
       <div className="relative flex min-h-0 flex-1 flex-col gap-4">
-        <div className="shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--catalog-ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--catalog-slip)_92%,transparent)] p-1">
+        <div className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--catalog-ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--catalog-slip)_92%,transparent)] p-1">
           <ProductsHubNav />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Link
             href={APP_ROUTES.products}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-1.5 text-[13px] font-medium text-[color-mix(in_srgb,var(--catalog-ink)_62%,transparent)] hover:text-[var(--catalog-ink)]"
+            className="inline-flex h-9 items-center gap-1.5 rounded-none px-1.5 text-[13px] font-medium text-[color-mix(in_srgb,var(--catalog-ink)_62%,transparent)] hover:text-[var(--catalog-ink)]"
           >
             <ArrowLeft className="size-3.5" aria-hidden />
             Catalog
@@ -153,7 +156,7 @@ export function ProductDossierView({ slug }: { slug: string }) {
           {detail ? (
             <Link
               href={`${APP_ROUTES.products}?product=${encodeURIComponent(detail.id)}`}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--catalog-ink)] px-3 text-[12px] font-medium text-white hover:bg-[color-mix(in_srgb,var(--catalog-ink)_88%,#000)]"
+              className="inline-flex h-9 items-center gap-1.5 rounded-none bg-[var(--catalog-primary,#0f766e)] px-3 text-[12px] font-medium text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]"
             >
               <PencilLine className="size-3.5" aria-hidden />
               Edit
@@ -164,7 +167,7 @@ export function ProductDossierView({ slug }: { slug: string }) {
         {loading ? (
           <DossierSkeleton />
         ) : error || !econ || !detail ? (
-          <div className="rounded-xl bg-[var(--catalog-shelf)] px-4 py-12 text-center text-sm text-[color-mix(in_srgb,var(--catalog-ink)_62%,transparent)]">
+          <div className="rounded-none bg-white px-4 py-12 text-center text-sm text-[color-mix(in_srgb,var(--catalog-ink)_62%,transparent)]">
             {error ?? "Product not found."}
           </div>
         ) : (
@@ -190,19 +193,41 @@ export function ProductDossierView({ slug }: { slug: string }) {
                 {title}
               </h1>
               <p className="mt-2 text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--catalog-ink)_58%,transparent)]">
-                {detail.sku ? <span className="font-mono">{detail.sku}</span> : null}
+                {detail.sku ? (
+                  <span className="font-mono">{detail.sku}</span>
+                ) : null}
                 {detail.sku ? " " : null}
                 {formatQty(econ.onHand)}
                 {detail.unitType ? ` ${detail.unitType}` : ""} on the shelf
-                {sellPrice != null ? `, selling at ${formatMoney(sellPrice, currency)}` : ""}
-                {econ.includesVariants ? `, ${econ.skuCount} SKUs in the family` : ""}
+                {sellPrice != null
+                  ? `, selling at ${formatMoney(sellPrice, currency)}`
+                  : ""}
+                {econ.includesVariants
+                  ? `, ${econ.skuCount} SKUs in the family`
+                  : ""}
               </p>
 
               <dl className={styles.tape}>
-                <TapeStat label="Sold" value={formatQty(sold)} hint={`${econ.saleCount} receipts`} />
-                <TapeStat label="Took in" value={formatMoney(revenue, currency)} hint="Till" />
-                <TapeStat label="Paid out" value={formatMoney(spend, currency)} hint={`${formatQty(bought)} bought`} />
-                <TapeStat label="Kept" value={formatMoney(gross, currency)} hint="After cost" />
+                <TapeStat
+                  label="Sold"
+                  value={formatQty(sold)}
+                  hint={`${econ.saleCount} receipts`}
+                />
+                <TapeStat
+                  label="Took in"
+                  value={formatMoney(revenue, currency)}
+                  hint="Till"
+                />
+                <TapeStat
+                  label="Paid out"
+                  value={formatMoney(spend, currency)}
+                  hint={`${formatQty(bought)} bought`}
+                />
+                <TapeStat
+                  label="Kept"
+                  value={formatMoney(gross, currency)}
+                  hint="After cost"
+                />
               </dl>
 
               <div className="mt-5">
@@ -210,7 +235,12 @@ export function ProductDossierView({ slug }: { slug: string }) {
                   <h2 className="font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--catalog-ink)]">
                     Last 30 days
                   </h2>
-                  <p className={cn(styles.mono, "text-[11px] text-[color-mix(in_srgb,var(--catalog-ink)_48%,transparent)]")}>
+                  <p
+                    className={cn(
+                      styles.mono,
+                      "text-[11px] text-[color-mix(in_srgb,var(--catalog-ink)_48%,transparent)]",
+                    )}
+                  >
                     {formatQty(econ.unitsSold30d)} out
                   </p>
                 </div>
@@ -222,7 +252,10 @@ export function ProductDossierView({ slug }: { slug: string }) {
                   <div className={styles.bars} aria-hidden>
                     {econ.last30Days.map((day) => {
                       const qty = n(day.unitsSold);
-                      const h = Math.max(qty > 0 ? 10 : 3, Math.round((qty / maxDay) * 72));
+                      const h = Math.max(
+                        qty > 0 ? 10 : 3,
+                        Math.round((qty / maxDay) * 72),
+                      );
                       return (
                         <span
                           key={day.date}
@@ -253,14 +286,20 @@ export function ProductDossierView({ slug }: { slug: string }) {
                 <h2 className="font-heading text-[17px] font-semibold tracking-[-0.02em] text-[var(--catalog-ink)]">
                   Who bought this
                 </h2>
-                <p className={cn(styles.mono, "text-[12px] text-[color-mix(in_srgb,var(--catalog-ink)_48%,transparent)]")}>
+                <p
+                  className={cn(
+                    styles.mono,
+                    "text-[12px] text-[color-mix(in_srgb,var(--catalog-ink)_48%,transparent)]",
+                  )}
+                >
                   {namedBuyers.length}
                   {walkIn ? ` + walk-in` : ""}
                 </p>
               </div>
               {(econ.buyers ?? []).length === 0 ? (
                 <p className="text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--catalog-ink)_55%,transparent)]">
-                  No named till sales yet. Attach a customer on the sale and they show up here.
+                  No named till sales yet. Attach a customer on the sale and
+                  they show up here.
                 </p>
               ) : (
                 <ol className={styles.list}>
@@ -286,7 +325,13 @@ export function ProductDossierView({ slug }: { slug: string }) {
                   No completed sales on this SKU yet.
                 </p>
               ) : (
-                <ol className={cn(styles.list, styles.scroll, "max-h-[28rem] overflow-y-auto pr-1")}>
+                <ol
+                  className={cn(
+                    styles.list,
+                    styles.scroll,
+                    "max-h-[28rem] overflow-y-auto pr-1",
+                  )}
+                >
                   {econ.sales.map((row, i) => (
                     <SaleRow
                       key={`${row.saleId}-${row.soldAt}-${i}`}
@@ -304,7 +349,8 @@ export function ProductDossierView({ slug }: { slug: string }) {
                   Who you buy from
                 </h2>
               </div>
-              {econ.supplierSpendBreakdown.length === 0 && econ.purchases.length === 0 ? (
+              {econ.supplierSpendBreakdown.length === 0 &&
+              econ.purchases.length === 0 ? (
                 <p className="text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--catalog-ink)_55%,transparent)]">
                   No posted supplier invoices for this SKU yet.
                 </p>
@@ -314,11 +360,13 @@ export function ProductDossierView({ slug }: { slug: string }) {
                     <ol className={styles.list}>
                       {econ.supplierSpendBreakdown.map((row) => {
                         const share =
-                          spend > 0 ? Math.round((n(row.spend) / spend) * 100) : 0;
+                          spend > 0
+                            ? Math.round((n(row.spend) / spend) * 100)
+                            : 0;
                         return (
                           <li key={row.supplierId} className={styles.person}>
                             <span
-                              className="flex size-8 items-center justify-center rounded-full bg-[var(--catalog-shelf)] text-[11px] font-semibold text-[var(--catalog-ink)]"
+                              className="flex size-8 items-center justify-center rounded-full bg-white text-[11px] font-semibold text-[var(--catalog-ink)]"
                               aria-hidden
                             >
                               {initials(row.supplierName)}
@@ -331,7 +379,12 @@ export function ProductDossierView({ slug }: { slug: string }) {
                                 {formatQty(row.quantity)} in, {share}% of spend
                               </p>
                             </div>
-                            <p className={cn(styles.mono, "text-right text-[13px] font-semibold text-[var(--catalog-ink)]")}>
+                            <p
+                              className={cn(
+                                styles.mono,
+                                "text-right text-[13px] font-semibold text-[var(--catalog-ink)]",
+                              )}
+                            >
                               {formatMoney(n(row.spend), currency)}
                             </p>
                           </li>
@@ -348,7 +401,13 @@ export function ProductDossierView({ slug }: { slug: string }) {
                       Invoices will list here once they are posted.
                     </p>
                   ) : (
-                    <ol className={cn(styles.list, styles.scroll, "mt-1 max-h-[22rem] overflow-y-auto pr-1")}>
+                    <ol
+                      className={cn(
+                        styles.list,
+                        styles.scroll,
+                        "mt-1 max-h-[22rem] overflow-y-auto pr-1",
+                      )}
+                    >
                       {econ.purchases.map((row, i) => (
                         <PurchaseRow
                           key={`${row.invoiceId}-${row.invoiceDate}-${i}`}
@@ -382,7 +441,12 @@ function TapeStat({
       <dt className="text-[11px] text-[color-mix(in_srgb,var(--catalog-ink)_52%,transparent)]">
         {label}
       </dt>
-      <dd className={cn(styles.mono, "mt-0.5 font-heading text-[1.05rem] font-semibold tracking-[-0.03em] text-[var(--catalog-ink)]")}>
+      <dd
+        className={cn(
+          styles.mono,
+          "mt-0.5 font-heading text-[1.05rem] font-semibold tracking-[-0.03em] text-[var(--catalog-ink)]",
+        )}
+      >
         {value}
       </dd>
       <p className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--catalog-ink)_46%,transparent)]">
@@ -417,7 +481,12 @@ function BuyerRow({
           {row.lastSoldAt ? `, last ${formatWhen(row.lastSoldAt)}` : ""}
         </p>
       </div>
-      <p className={cn(styles.mono, "text-right text-[13px] font-semibold text-[var(--catalog-ink)]")}>
+      <p
+        className={cn(
+          styles.mono,
+          "text-right text-[13px] font-semibold text-[var(--catalog-ink)]",
+        )}
+      >
         {formatMoney(n(row.spend), currency)}
       </p>
     </>
@@ -428,7 +497,10 @@ function BuyerRow({
       <li>
         <Link
           href={APP_ROUTES.customer(row.customerId)}
-          className={cn(styles.person, "rounded-lg hover:bg-[color-mix(in_srgb,var(--catalog-shelf)_80%,transparent)]")}
+          className={cn(
+            styles.person,
+            "rounded-none hover:bg-white",
+          )}
         >
           {inner}
         </Link>
@@ -450,7 +522,7 @@ function SaleRow({
   return (
     <li className={styles.person}>
       <span
-        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--catalog-shelf)] text-[10px] font-semibold text-[var(--catalog-ink)]"
+        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-semibold text-[var(--catalog-ink)]"
         aria-hidden
       >
         {initials(name)}
@@ -475,10 +547,20 @@ function SaleRow({
         </p>
       </div>
       <div className="text-right">
-        <p className={cn(styles.mono, "text-[13px] font-semibold text-[var(--catalog-ink)]")}>
+        <p
+          className={cn(
+            styles.mono,
+            "text-[13px] font-semibold text-[var(--catalog-ink)]",
+          )}
+        >
           {formatMoney(n(row.lineTotal), currency)}
         </p>
-        <p className={cn(styles.mono, "text-[11px] text-[color-mix(in_srgb,var(--catalog-ink)_48%,transparent)]")}>
+        <p
+          className={cn(
+            styles.mono,
+            "text-[11px] text-[color-mix(in_srgb,var(--catalog-ink)_48%,transparent)]",
+          )}
+        >
           {formatQty(row.quantity)}
         </p>
       </div>
@@ -496,7 +578,7 @@ function PurchaseRow({
   return (
     <li className={styles.person}>
       <span
-        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--catalog-shelf)] text-[10px] font-semibold text-[var(--catalog-ink)]"
+        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-semibold text-[var(--catalog-ink)]"
         aria-hidden
       >
         {initials(row.supplierName)}
@@ -510,10 +592,20 @@ function PurchaseRow({
         </p>
       </div>
       <div className="text-right">
-        <p className={cn(styles.mono, "text-[13px] font-semibold text-[var(--catalog-ink)]")}>
+        <p
+          className={cn(
+            styles.mono,
+            "text-[13px] font-semibold text-[var(--catalog-ink)]",
+          )}
+        >
           {formatMoney(n(row.lineTotal), currency)}
         </p>
-        <p className={cn(styles.mono, "text-[11px] text-[color-mix(in_srgb,var(--catalog-ink)_48%,transparent)]")}>
+        <p
+          className={cn(
+            styles.mono,
+            "text-[11px] text-[color-mix(in_srgb,var(--catalog-ink)_48%,transparent)]",
+          )}
+        >
           {formatMoney(n(row.unitCost), currency)} each
         </p>
       </div>
@@ -524,14 +616,14 @@ function PurchaseRow({
 function DossierSkeleton() {
   return (
     <div className="grid animate-pulse gap-5 lg:grid-cols-[18rem_1fr_1fr]">
-      <div className="aspect-[4/5] rounded-[14px] bg-[color-mix(in_srgb,var(--catalog-ink)_8%,transparent)]" />
+      <div className="aspect-[4/5] rounded-none bg-[color-mix(in_srgb,var(--catalog-ink)_8%,transparent)]" />
       <div className="space-y-3 pt-2">
-        <div className="h-6 w-1/2 rounded-md bg-[color-mix(in_srgb,var(--catalog-ink)_8%,transparent)]" />
-        <div className="h-24 rounded-md bg-[color-mix(in_srgb,var(--catalog-ink)_6%,transparent)]" />
+        <div className="h-6 w-1/2 rounded-none bg-[color-mix(in_srgb,var(--catalog-ink)_8%,transparent)]" />
+        <div className="h-24 rounded-none bg-[color-mix(in_srgb,var(--catalog-ink)_6%,transparent)]" />
       </div>
       <div className="space-y-3 pt-2">
-        <div className="h-6 w-1/3 rounded-md bg-[color-mix(in_srgb,var(--catalog-ink)_8%,transparent)]" />
-        <div className="h-24 rounded-md bg-[color-mix(in_srgb,var(--catalog-ink)_6%,transparent)]" />
+        <div className="h-6 w-1/3 rounded-none bg-[color-mix(in_srgb,var(--catalog-ink)_8%,transparent)]" />
+        <div className="h-24 rounded-none bg-[color-mix(in_srgb,var(--catalog-ink)_6%,transparent)]" />
       </div>
     </div>
   );

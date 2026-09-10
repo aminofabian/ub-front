@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Check, ImagePlus, Plus, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -335,7 +329,7 @@ export function CreateGroupOptionsPad({
                 {familyPrefix ? (
                   <div className={optionShellClass}>
                     <span
-                      className="flex max-w-[42%] shrink-0 items-center truncate border-r border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_70%,white)] px-2 text-[12px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)]"
+                      className="flex max-w-[42%] shrink-0 items-center truncate border-r border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_70%,white)] px-2 text-[12px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)]"
                       title={familyPrefix}
                     >
                       {familyPrefix}

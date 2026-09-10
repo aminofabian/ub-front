@@ -1,8 +1,7 @@
 import { cn } from "@/lib/utils";
 
-/** Soft desk lift — sharp corners, quiet depth. */
-export const CATALOG_SHADOW =
-  "shadow-[0_1px_0_color-mix(in_srgb,var(--catalog-ink,#15231f)_6%,transparent),0_10px_28px_-18px_color-mix(in_srgb,var(--catalog-ink,#15231f)_22%,transparent)]";
+/** No lift — hairline only. */
+export const CATALOG_SHADOW = "shadow-none";
 
 export const CATALOG_EDGE =
   "border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)]";
@@ -21,13 +20,13 @@ export const CATALOG_BTN =
 export const CATALOG_BTN_OUTLINE = cn(
   CATALOG_BTN,
   "h-8 gap-1 border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-[12px] shadow-none",
-  "text-[var(--catalog-ink,#15231f)] hover:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_22%,transparent)] hover:bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_55%,transparent)]",
+  "text-[var(--catalog-ink,#15231f)] hover:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_22%,transparent)] hover:bg-white",
 );
 
 export const CATALOG_BTN_PRIMARY = cn(
   CATALOG_BTN,
-  "h-8 gap-1.5 bg-[var(--catalog-ink,#15231f)] px-3 text-[12px] text-white shadow-none",
-  "hover:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_88%,#000)]",
+  "h-8 gap-1.5 bg-[var(--catalog-primary,#0f766e)] px-3 text-[12px] text-white shadow-none",
+  "hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]",
 );
 
 export const CATALOG_BTN_GHOST = cn(

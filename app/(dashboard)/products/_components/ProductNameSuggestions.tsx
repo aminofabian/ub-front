@@ -154,7 +154,9 @@ export function ProductNameSuggestions({
   if (dismissed && hasMatches) {
     return (
       <div className="flex items-center justify-between gap-2 border border-border bg-muted/15 px-2 py-1.5">
-        <p className="text-[11px] text-muted-foreground">Creating as a new product</p>
+        <p className="text-[11px] text-muted-foreground">
+          Creating as a new product
+        </p>
         <button
           type="button"
           onClick={() => setDismissedKey(null)}
@@ -177,7 +179,7 @@ export function ProductNameSuggestions({
 
       {tenantHits.length > 0 ? (
         <section className="space-y-1">
-          <h3 className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <h3 className="flex items-center gap-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
             <Store className="size-3" aria-hidden />
             Already in your catalog
           </h3>
@@ -193,14 +195,20 @@ export function ProductNameSuggestions({
                   >
                     <SuggestionThumb
                       src={thumb}
-                      fallback={<Package className="size-3 text-muted-foreground" aria-hidden />}
+                      fallback={
+                        <Package
+                          className="size-3 text-muted-foreground"
+                          aria-hidden
+                        />
+                      }
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-xs font-medium text-foreground">
                         {itemCatalogDisplayTitle(hit)}
                       </span>
                       <span className="block truncate font-mono text-[10px] text-muted-foreground">
-                        {[hit.sku, hit.barcode].filter(Boolean).join(" · ") || "No SKU"}
+                        {[hit.sku, hit.barcode].filter(Boolean).join(" · ") ||
+                          "No SKU"}
                         {hit.active === false ? " · inactive" : ""}
                       </span>
                     </span>
@@ -217,7 +225,7 @@ export function ProductNameSuggestions({
 
       {globalHits.length > 0 ? (
         <section className="space-y-1">
-          <h3 className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <h3 className="flex items-center gap-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
             <Globe2 className="size-3" aria-hidden />
             Shared catalog
           </h3>
@@ -240,14 +248,24 @@ export function ProductNameSuggestions({
                   >
                     <SuggestionThumb
                       src={hit.imageUrl}
-                      fallback={<Globe2 className="size-3 text-muted-foreground" aria-hidden />}
+                      fallback={
+                        <Globe2
+                          className="size-3 text-muted-foreground"
+                          aria-hidden
+                        />
+                      }
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-xs font-medium text-foreground">
                         {hit.name}
                       </span>
                       <span className="block truncate text-[10px] text-muted-foreground">
-                        {[hit.brand, hit.size, hit.barcode, sell ? `sell ${sell}` : null]
+                        {[
+                          hit.brand,
+                          hit.size,
+                          hit.barcode,
+                          sell ? `sell ${sell}` : null,
+                        ]
                           .filter(Boolean)
                           .join(" · ")}
                       </span>

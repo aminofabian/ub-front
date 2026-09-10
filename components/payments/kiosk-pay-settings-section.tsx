@@ -159,31 +159,31 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
       ) : (
         <div className={cn(HUB_SURFACE, "space-y-4 p-4")}>
           {!platformOn ? (
-            <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            <p className="rounded-none border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
               Kiosk Pay is not enabled on this platform yet. Ask your platform admin to
               turn it on and configure credentials.
             </p>
           ) : null}
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="border border-border/60 bg-muted/20 px-3 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <div className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3 py-3">
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 Available
               </p>
               <p className="mt-1 font-heading text-xl font-semibold tabular-nums">
                 {money(account?.availableBalance)}
               </p>
             </div>
-            <div className="border border-border/60 bg-muted/20 px-3 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <div className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3 py-3">
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 Pending withdraw
               </p>
               <p className="mt-1 font-heading text-xl font-semibold tabular-nums">
                 {money(account?.pendingBalance)}
               </p>
             </div>
-            <div className="border border-border/60 bg-muted/20 px-3 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <div className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3 py-3">
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 Status
               </p>
               <p className="mt-1 flex items-center gap-2 text-sm font-medium">
@@ -209,14 +209,14 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
               </span>
               <input
                 type="tel"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
                 placeholder="2547…"
                 value={payoutPhone}
                 disabled={!canWrite || saving}
                 onChange={(e) => setPayoutPhone(e.target.value)}
               />
             </label>
-            <div className="flex items-end justify-between gap-3 rounded-lg border border-border/60 px-3 py-2">
+            <div className="flex items-end justify-between gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2">
               <div>
                 <p className="text-sm font-medium">Offer on storefront checkout</p>
                 <p className="text-xs text-muted-foreground">
@@ -266,8 +266,8 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
           ) : null}
 
           {active && canWrite ? (
-            <div className="space-y-3 border border-border/60 bg-muted/15 px-3 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <div className="space-y-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-3 py-3">
+              <p className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
                 Withdraw to M-Pesa
               </p>
               <KioskPayWithdrawFeeNotice />
@@ -286,14 +286,14 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
                   type="number"
                   min={0}
                   step="0.01"
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                  className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
                   placeholder="Amount"
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
                 />
                 <input
                   type="tel"
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                  className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
                   placeholder={payoutPhone || "Phone (optional override)"}
                   value={withdrawPhone}
                   onChange={(e) => setWithdrawPhone(e.target.value)}

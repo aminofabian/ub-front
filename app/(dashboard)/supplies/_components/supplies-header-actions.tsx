@@ -78,7 +78,10 @@ export function SuppliesHeaderActions({
               Unpaid
             </Link>
           )}
-          <Link href={APP_ROUTES.suppliers} className={cn(chip, "hidden sm:inline-flex")}>
+          <Link
+            href={APP_ROUTES.suppliers}
+            className={cn(chip, "hidden sm:inline-flex")}
+          >
             <Truck className="size-3" aria-hidden />
             Vendors
           </Link>
@@ -86,7 +89,11 @@ export function SuppliesHeaderActions({
       ) : null}
       <SupplierGuideDrawer
         trigger={
-          <button type="button" className={cn(chip, "hidden md:inline-flex")} title="Supplier flow guide">
+          <button
+            type="button"
+            className={cn(chip, "hidden md:inline-flex")}
+            title="Supplier flow guide"
+          >
             <BookOpen className="size-3" aria-hidden />
             Guide
           </button>
@@ -103,7 +110,10 @@ export function SuppliesHeaderActions({
         )}
         aria-label="Refresh supplies"
       >
-        <RefreshCw className={cn("size-3", listLoading && "animate-spin")} aria-hidden />
+        <RefreshCw
+          className={cn("size-3", listLoading && "animate-spin")}
+          aria-hidden
+        />
       </button>
       {canPayAdvance && onPayAdvance ? (
         <Button

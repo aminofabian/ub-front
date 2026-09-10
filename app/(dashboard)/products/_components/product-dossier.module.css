@@ -1,7 +1,7 @@
 .page {
   --dossier-ink: var(--catalog-ink, #15231f);
   --dossier-teal: var(--catalog-primary, #0f766e);
-  --dossier-shelf: var(--catalog-shelf, #f3f6f5);
+  --dossier-shelf: var(--catalog-shelf, #ffffff);
   --dossier-slip: var(--catalog-slip, #ffffff);
   isolation: isolate;
 }
@@ -89,8 +89,8 @@
   position: relative;
   aspect-ratio: 4 / 5;
   overflow: hidden;
-  border-radius: 14px;
-  background: var(--dossier-shelf);
+  border-radius: 0;
+  background: #ffffff;
 }
 
 .tape {

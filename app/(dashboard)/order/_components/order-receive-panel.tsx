@@ -206,14 +206,10 @@ export function OrderReceivePanel({
   const [sharing, setSharing] = useState<"whatsapp" | "pdf" | "copy" | null>(
     null,
   );
-  const [savedLineIds, setSavedLineIds] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [savedLineIds, setSavedLineIds] = useState<Record<string, boolean>>({});
   const persistTimers = useRef<Record<string, number>>({});
   const persistInflight = useRef<Record<string, Promise<boolean>>>({});
-  const persistQueued = useRef<Record<string, LinePersistOpts | undefined>>(
-    {},
-  );
+  const persistQueued = useRef<Record<string, LinePersistOpts | undefined>>({});
   const savedClearTimers = useRef<Record<string, number>>({});
   const detailRef = useRef(detail);
   const orderQtyRef = useRef(orderQtyByLine);
@@ -1054,7 +1050,7 @@ export function OrderReceivePanel({
       style={{
         ["--pos-primary" as string]: "#0f766e",
         ["--order-ink" as string]: "#15231f",
-        ["--order-shelf" as string]: "#f3f6f5",
+        ["--order-shelf" as string]: "#ffffff",
         ["--order-slip" as string]: "#ffffff",
       }}
     >
@@ -1150,7 +1146,9 @@ export function OrderReceivePanel({
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-1.5 sm:items-center">
           <div className="min-w-0">
             <h2 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-              {detail ? `${detail.poNumber} · ${supplierName}` : "Confirm supply"}
+              {detail
+                ? `${detail.poNumber} · ${supplierName}`
+                : "Confirm supply"}
             </h2>
             {detail ? (
               <p className="mt-0.5 font-mono text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
@@ -1218,7 +1216,8 @@ export function OrderReceivePanel({
                 strokeWidth={1.25}
               />
               <p className="max-w-xs text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
-                Select an open order to adjust prices, quantities, and confirm delivery.
+                Select an open order to adjust prices, quantities, and confirm
+                delivery.
               </p>
             </div>
           ) : displayLines.length === 0 ? (
@@ -1243,272 +1242,175 @@ export function OrderReceivePanel({
                 <span className="sr-only">Remove</span>
               </div>
               <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]">
-              {displayLines.map((line) => {
-                const remaining = roundQty(
-                  (orderQtyByLine[line.id] ?? toNum(line.qtyOrdered)) -
-                    toNum(line.qtyReceived),
-                );
-                const canReceive = remaining > 0;
-                const checked = canReceive && Boolean(selectedLines[line.id]);
-                const receiveQty = qtyByLine[line.id] ?? remaining;
-                const orderQty = orderQtyByLine[line.id] ?? toNum(line.qtyOrdered);
-                const unit = priceByLine[line.id] ?? toNum(line.unitEstimatedCost);
-                const amountQty = canReceive ? receiveQty : orderQty;
-                const amount = amountQty * unit;
-                const meta = itemMeta[line.itemId];
-                const name = meta?.name ?? line.itemId.slice(0, 8);
-                const { primary: linePrimary, option: lineOption } =
-                  orderNameTitleParts(name);
-                const thumb = posTileThumbUrl(name, meta?.thumbnailUrl);
-                const lineBusy =
-                  Boolean(savingLines[line.id]) || deletingLineId === line.id;
-                const lineSaved = Boolean(savedLineIds[line.id]);
-                const canDelete = toNum(line.qtyReceived) === 0;
-                return (
-                  <li
-                    key={line.id}
-                    className={cn(
-                      "grid gap-3 px-3 py-3 transition-colors sm:px-4 lg:grid-cols-[minmax(0,1fr)_5.5rem_6rem_6.5rem_5.5rem_2rem] lg:items-center lg:gap-3 lg:py-2.5",
-                      checked
-                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)]"
-                        : "bg-transparent",
-                      !canReceive ? "opacity-80" : "",
-                    )}
-                  >
-                    <div className="flex min-w-0 items-start gap-3 lg:col-span-1">
-                      <button
-                        type="button"
-                        aria-pressed={checked}
-                        disabled={!canReceive}
-                        onClick={() =>
-                          setSelectedLines((prev) => ({
-                            ...prev,
-                            [line.id]: !prev[line.id],
-                          }))
-                        }
-                        className={cn(
-                          "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-none border transition-colors",
-                          !canReceive
-                            ? "cursor-not-allowed border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] opacity-40"
-                            : checked
-                              ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white",
-                        )}
-                      >
-                        {checked ? <Check className="size-3" /> : null}
-                      </button>
-                      <div className="relative size-11 shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-                        {thumb ? (
-                          <Image
-                            src={thumb}
-                            alt=""
-                            fill
-                            sizes="44px"
-                            className="object-contain p-0.5"
-                            unoptimized
-                          />
-                        ) : (
-                          <span className="flex h-full w-full items-center justify-center">
-                            <Package className="size-4 opacity-35" />
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 break-words text-[13px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
-                          {linePrimary}
-                        </p>
-                        {lineOption ? (
-                          <p className="line-clamp-1 break-words text-[11px] font-semibold leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
-                            {lineOption}
-                          </p>
-                        ) : null}
-                        <p className="mt-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                          Received {toNum(line.qtyReceived)}
-                          {!canReceive ? " · fully received" : ""}
-                          {lineBusy ? " · saving…" : lineSaved ? " · saved" : ""}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-2 pl-8 lg:contents">
-                      <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:justify-center">
-                        <span className="lg:hidden">Unit</span>
-                        <input
-                          className="h-8 w-[4.5rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
-                          disabled={lineBusy}
-                          inputMode="decimal"
-                          value={
-                            priceDraftByLine[line.id] ??
-                            (unit > 0 ? String(unit) : "")
+                {displayLines.map((line) => {
+                  const remaining = roundQty(
+                    (orderQtyByLine[line.id] ?? toNum(line.qtyOrdered)) -
+                      toNum(line.qtyReceived),
+                  );
+                  const canReceive = remaining > 0;
+                  const checked = canReceive && Boolean(selectedLines[line.id]);
+                  const receiveQty = qtyByLine[line.id] ?? remaining;
+                  const orderQty =
+                    orderQtyByLine[line.id] ?? toNum(line.qtyOrdered);
+                  const unit =
+                    priceByLine[line.id] ?? toNum(line.unitEstimatedCost);
+                  const amountQty = canReceive ? receiveQty : orderQty;
+                  const amount = amountQty * unit;
+                  const meta = itemMeta[line.itemId];
+                  const name = meta?.name ?? line.itemId.slice(0, 8);
+                  const { primary: linePrimary, option: lineOption } =
+                    orderNameTitleParts(name);
+                  const thumb = posTileThumbUrl(name, meta?.thumbnailUrl);
+                  const lineBusy =
+                    Boolean(savingLines[line.id]) || deletingLineId === line.id;
+                  const lineSaved = Boolean(savedLineIds[line.id]);
+                  const canDelete = toNum(line.qtyReceived) === 0;
+                  return (
+                    <li
+                      key={line.id}
+                      className={cn(
+                        "grid gap-3 px-3 py-3 transition-colors sm:px-4 lg:grid-cols-[minmax(0,1fr)_5.5rem_6rem_6.5rem_5.5rem_2rem] lg:items-center lg:gap-3 lg:py-2.5",
+                        checked
+                          ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)]"
+                          : "bg-transparent",
+                        !canReceive ? "opacity-80" : "",
+                      )}
+                    >
+                      <div className="flex min-w-0 items-start gap-3 lg:col-span-1">
+                        <button
+                          type="button"
+                          aria-pressed={checked}
+                          disabled={!canReceive}
+                          onClick={() =>
+                            setSelectedLines((prev) => ({
+                              ...prev,
+                              [line.id]: !prev[line.id],
+                            }))
                           }
-                          onFocus={() => {
-                            setPriceDraftByLine((prev) => ({
-                              ...prev,
-                              [line.id]:
-                                prev[line.id] ??
-                                (unit > 0 ? String(unit) : ""),
-                            }));
-                            setTotalDraftByLine((prev) => {
-                              if (prev[line.id] == null) return prev;
-                              const next = { ...prev };
-                              delete next[line.id];
-                              return next;
-                            });
-                          }}
-                          onChange={(e) => {
-                            const raw = e.target.value.replace(",", ".");
-                            if (raw !== "" && !/^\d*\.?\d{0,4}$/.test(raw)) {
-                              return;
-                            }
-                            setPriceDraftByLine((prev) => ({
-                              ...prev,
-                              [line.id]: raw,
-                            }));
-                            if (raw === "" || raw === "." || raw.endsWith(".")) {
-                              return;
-                            }
-                            const n = Number.parseFloat(raw);
-                            if (!Number.isFinite(n)) return;
-                            const next = Math.max(0, n);
-                            setPriceByLine((prev) => ({
-                              ...prev,
-                              [line.id]: next,
-                            }));
-                            if (next > 0) {
-                              schedulePersist(line.id, {
-                                unitEstimatedCost: next,
-                              });
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const raw = e.target.value.replace(",", ".");
-                            const n = Number.parseFloat(raw);
-                            setPriceDraftByLine((prev) => {
-                              const next = { ...prev };
-                              delete next[line.id];
-                              return next;
-                            });
-                            if (Number.isFinite(n) && n > 0) {
-                              setPriceByLine((prev) => ({
-                                ...prev,
-                                [line.id]: n,
-                              }));
-                              void flushPersist(line.id, {
-                                unitEstimatedCost: n,
-                              });
-                              return;
-                            }
-                            setPriceByLine((prev) => ({
-                              ...prev,
-                              [line.id]: toNum(line.unitEstimatedCost),
-                            }));
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              (e.target as HTMLInputElement).blur();
-                            }
-                          }}
-                        />
-                      </label>
+                          className={cn(
+                            "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-none border transition-colors",
+                            !canReceive
+                              ? "cursor-not-allowed border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] opacity-40"
+                              : checked
+                                ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white",
+                          )}
+                        >
+                          {checked ? <Check className="size-3" /> : null}
+                        </button>
+                        <div className="relative size-11 shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+                          {thumb ? (
+                            <Image
+                              src={thumb}
+                              alt=""
+                              fill
+                              sizes="44px"
+                              className="object-contain p-0.5"
+                              unoptimized
+                            />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center">
+                              <Package className="size-4 opacity-35" />
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 break-words text-[13px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
+                            {linePrimary}
+                          </p>
+                          {lineOption ? (
+                            <p className="line-clamp-1 break-words text-[11px] font-semibold leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
+                              {lineOption}
+                            </p>
+                          ) : null}
+                          <p className="mt-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                            Received {toNum(line.qtyReceived)}
+                            {!canReceive ? " · fully received" : ""}
+                            {lineBusy
+                              ? " · saving…"
+                              : lineSaved
+                                ? " · saved"
+                                : ""}
+                          </p>
+                        </div>
+                      </div>
 
-                      <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:justify-center">
-                        <span className="lg:hidden">Order</span>
-                        <input
-                          className="h-8 w-[4.5rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
-                          disabled={lineBusy}
-                          inputMode="decimal"
-                          value={orderQty}
-                          onChange={(e) => {
-                            const n = Number.parseFloat(e.target.value);
-                            const next = roundQty(
-                              Number.isFinite(n) ? Math.max(0, n) : 0,
-                            );
-                            setOrderQtyByLine((prev) => ({
-                              ...prev,
-                              [line.id]: next,
-                            }));
-                            const already = roundQty(toNum(line.qtyReceived));
-                            const remaining = roundQty(
-                              Math.max(0, next - already),
-                            );
-                            setQtyByLine((prev) => ({
-                              ...prev,
-                              [line.id]: remaining,
-                            }));
-                            if (remaining > 0) {
-                              setSelectedLines((prev) => ({
+                      <div className="flex items-center justify-between gap-2 pl-8 lg:contents">
+                        <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:justify-center">
+                          <span className="lg:hidden">Unit</span>
+                          <input
+                            className="h-8 w-[4.5rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
+                            disabled={lineBusy}
+                            inputMode="decimal"
+                            value={
+                              priceDraftByLine[line.id] ??
+                              (unit > 0 ? String(unit) : "")
+                            }
+                            onFocus={() => {
+                              setPriceDraftByLine((prev) => ({
                                 ...prev,
-                                [line.id]: true,
+                                [line.id]:
+                                  prev[line.id] ??
+                                  (unit > 0 ? String(unit) : ""),
                               }));
-                            }
-                            if (next > 0) {
-                              schedulePersist(line.id, { qtyOrdered: next });
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const n = Number.parseFloat(e.target.value);
-                            if (Number.isFinite(n) && n > 0) {
-                              const next = roundQty(n);
-                              const already = roundQty(toNum(line.qtyReceived));
-                              const remaining = roundQty(
-                                Math.max(0, next - already),
-                              );
-                              setOrderQtyByLine((prev) => ({
+                              setTotalDraftByLine((prev) => {
+                                if (prev[line.id] == null) return prev;
+                                const next = { ...prev };
+                                delete next[line.id];
+                                return next;
+                              });
+                            }}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(",", ".");
+                              if (raw !== "" && !/^\d*\.?\d{0,4}$/.test(raw)) {
+                                return;
+                              }
+                              setPriceDraftByLine((prev) => ({
+                                ...prev,
+                                [line.id]: raw,
+                              }));
+                              if (
+                                raw === "" ||
+                                raw === "." ||
+                                raw.endsWith(".")
+                              ) {
+                                return;
+                              }
+                              const n = Number.parseFloat(raw);
+                              if (!Number.isFinite(n)) return;
+                              const next = Math.max(0, n);
+                              setPriceByLine((prev) => ({
                                 ...prev,
                                 [line.id]: next,
                               }));
-                              setQtyByLine((prev) => ({
-                                ...prev,
-                                [line.id]: remaining,
-                              }));
-                              void flushPersist(line.id, { qtyOrdered: next });
-                              return;
-                            }
-                            setOrderQtyByLine((prev) => ({
-                              ...prev,
-                              [line.id]: toNum(line.qtyOrdered),
-                            }));
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              (e.target as HTMLInputElement).blur();
-                            }
-                          }}
-                        />
-                      </label>
-
-                      {canReceive ? (
-                        <div className="inline-flex min-w-0 items-stretch overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white lg:justify-self-center">
-                          <button
-                            type="button"
-                            className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
-                            disabled={!checked || lineBusy}
-                            onClick={() =>
-                              applyReceiveQty(line.id, receiveQty - 1, true)
-                            }
-                          >
-                            <Minus className="size-3.5" />
-                          </button>
-                          <input
-                            className="h-8 min-w-[3.25rem] w-[4.5rem] border-x border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-transparent px-1 text-center font-heading text-[13px] font-semibold tabular-nums outline-none disabled:opacity-40"
-                            disabled={!checked || lineBusy}
-                            inputMode="decimal"
-                            value={receiveQty}
-                            onChange={(e) => {
-                              const n = Number.parseFloat(e.target.value);
-                              applyReceiveQty(
-                                line.id,
-                                Number.isFinite(n) ? n : 0,
-                                false,
-                              );
+                              if (next > 0) {
+                                schedulePersist(line.id, {
+                                  unitEstimatedCost: next,
+                                });
+                              }
                             }}
                             onBlur={(e) => {
-                              const n = Number.parseFloat(e.target.value);
-                              applyReceiveQty(
-                                line.id,
-                                Number.isFinite(n) ? n : 0,
-                                true,
-                              );
+                              const raw = e.target.value.replace(",", ".");
+                              const n = Number.parseFloat(raw);
+                              setPriceDraftByLine((prev) => {
+                                const next = { ...prev };
+                                delete next[line.id];
+                                return next;
+                              });
+                              if (Number.isFinite(n) && n > 0) {
+                                setPriceByLine((prev) => ({
+                                  ...prev,
+                                  [line.id]: n,
+                                }));
+                                void flushPersist(line.id, {
+                                  unitEstimatedCost: n,
+                                });
+                                return;
+                              }
+                              setPriceByLine((prev) => ({
+                                ...prev,
+                                [line.id]: toNum(line.unitEstimatedCost),
+                              }));
                             }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
@@ -1516,147 +1418,260 @@ export function OrderReceivePanel({
                               }
                             }}
                           />
-                          <button
-                            type="button"
-                            className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
-                            disabled={!checked || lineBusy}
-                            onClick={() =>
-                              applyReceiveQty(line.id, receiveQty + 1, true)
-                            }
-                          >
-                            <Plus className="size-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="hidden text-center font-mono text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] lg:block">
-                          —
-                        </span>
-                      )}
+                        </label>
 
-                      <label className="inline-flex items-center gap-1.5 pl-8 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:justify-self-end lg:pl-0">
-                        <span className="lg:hidden">Total</span>
-                        <input
-                          className="h-8 w-[5.5rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
-                          disabled={lineBusy || amountQty <= 0}
-                          inputMode="decimal"
-                          aria-label="Line total"
-                          value={
-                            totalDraftByLine[line.id] ??
-                            (amount > 0
-                              ? String(Math.round(amount * 10000) / 10000)
-                              : "")
-                          }
-                          onFocus={() => {
-                            setTotalDraftByLine((prev) => ({
-                              ...prev,
-                              [line.id]:
-                                prev[line.id] ??
-                                (amount > 0
-                                  ? String(Math.round(amount * 10000) / 10000)
-                                  : ""),
-                            }));
-                            setPriceDraftByLine((prev) => {
-                              if (prev[line.id] == null) return prev;
-                              const next = { ...prev };
-                              delete next[line.id];
-                              return next;
-                            });
-                          }}
-                          onChange={(e) => {
-                            const raw = e.target.value.replace(",", ".");
-                            if (raw !== "" && !/^\d*\.?\d{0,4}$/.test(raw)) {
-                              return;
+                        <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:justify-center">
+                          <span className="lg:hidden">Order</span>
+                          <input
+                            className="h-8 w-[4.5rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
+                            disabled={lineBusy}
+                            inputMode="decimal"
+                            value={orderQty}
+                            onChange={(e) => {
+                              const n = Number.parseFloat(e.target.value);
+                              const next = roundQty(
+                                Number.isFinite(n) ? Math.max(0, n) : 0,
+                              );
+                              setOrderQtyByLine((prev) => ({
+                                ...prev,
+                                [line.id]: next,
+                              }));
+                              const already = roundQty(toNum(line.qtyReceived));
+                              const remaining = roundQty(
+                                Math.max(0, next - already),
+                              );
+                              setQtyByLine((prev) => ({
+                                ...prev,
+                                [line.id]: remaining,
+                              }));
+                              if (remaining > 0) {
+                                setSelectedLines((prev) => ({
+                                  ...prev,
+                                  [line.id]: true,
+                                }));
+                              }
+                              if (next > 0) {
+                                schedulePersist(line.id, { qtyOrdered: next });
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const n = Number.parseFloat(e.target.value);
+                              if (Number.isFinite(n) && n > 0) {
+                                const next = roundQty(n);
+                                const already = roundQty(
+                                  toNum(line.qtyReceived),
+                                );
+                                const remaining = roundQty(
+                                  Math.max(0, next - already),
+                                );
+                                setOrderQtyByLine((prev) => ({
+                                  ...prev,
+                                  [line.id]: next,
+                                }));
+                                setQtyByLine((prev) => ({
+                                  ...prev,
+                                  [line.id]: remaining,
+                                }));
+                                void flushPersist(line.id, {
+                                  qtyOrdered: next,
+                                });
+                                return;
+                              }
+                              setOrderQtyByLine((prev) => ({
+                                ...prev,
+                                [line.id]: toNum(line.qtyOrdered),
+                              }));
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                (e.target as HTMLInputElement).blur();
+                              }
+                            }}
+                          />
+                        </label>
+
+                        {canReceive ? (
+                          <div className="inline-flex min-w-0 items-stretch overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white lg:justify-self-center">
+                            <button
+                              type="button"
+                              className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
+                              disabled={!checked || lineBusy}
+                              onClick={() =>
+                                applyReceiveQty(line.id, receiveQty - 1, true)
+                              }
+                            >
+                              <Minus className="size-3.5" />
+                            </button>
+                            <input
+                              className="h-8 min-w-[3.25rem] w-[4.5rem] border-x border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-transparent px-1 text-center font-heading text-[13px] font-semibold tabular-nums outline-none disabled:opacity-40"
+                              disabled={!checked || lineBusy}
+                              inputMode="decimal"
+                              value={receiveQty}
+                              onChange={(e) => {
+                                const n = Number.parseFloat(e.target.value);
+                                applyReceiveQty(
+                                  line.id,
+                                  Number.isFinite(n) ? n : 0,
+                                  false,
+                                );
+                              }}
+                              onBlur={(e) => {
+                                const n = Number.parseFloat(e.target.value);
+                                applyReceiveQty(
+                                  line.id,
+                                  Number.isFinite(n) ? n : 0,
+                                  true,
+                                );
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  (e.target as HTMLInputElement).blur();
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
+                              disabled={!checked || lineBusy}
+                              onClick={() =>
+                                applyReceiveQty(line.id, receiveQty + 1, true)
+                              }
+                            >
+                              <Plus className="size-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="hidden text-center font-mono text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] lg:block">
+                            —
+                          </span>
+                        )}
+
+                        <label className="inline-flex items-center gap-1.5 pl-8 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:justify-self-end lg:pl-0">
+                          <span className="lg:hidden">Total</span>
+                          <input
+                            className="h-8 w-[5.5rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
+                            disabled={lineBusy || amountQty <= 0}
+                            inputMode="decimal"
+                            aria-label="Line total"
+                            value={
+                              totalDraftByLine[line.id] ??
+                              (amount > 0
+                                ? String(Math.round(amount * 10000) / 10000)
+                                : "")
                             }
-                            setTotalDraftByLine((prev) => ({
-                              ...prev,
-                              [line.id]: raw,
-                            }));
-                            if (
-                              raw === "" ||
-                              raw === "." ||
-                              raw.endsWith(".") ||
-                              amountQty <= 0
-                            ) {
-                              return;
-                            }
-                            const n = Number.parseFloat(raw);
-                            if (!Number.isFinite(n)) return;
-                            const nextUnit =
-                              Math.round((Math.max(0, n) / amountQty) * 10000) /
-                              10000;
-                            setPriceByLine((prev) => ({
-                              ...prev,
-                              [line.id]: nextUnit,
-                            }));
-                            if (nextUnit > 0) {
-                              schedulePersist(line.id, {
-                                unitEstimatedCost: nextUnit,
+                            onFocus={() => {
+                              setTotalDraftByLine((prev) => ({
+                                ...prev,
+                                [line.id]:
+                                  prev[line.id] ??
+                                  (amount > 0
+                                    ? String(Math.round(amount * 10000) / 10000)
+                                    : ""),
+                              }));
+                              setPriceDraftByLine((prev) => {
+                                if (prev[line.id] == null) return prev;
+                                const next = { ...prev };
+                                delete next[line.id];
+                                return next;
                               });
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const raw = e.target.value.replace(",", ".");
-                            const n = Number.parseFloat(raw);
-                            setTotalDraftByLine((prev) => {
-                              const next = { ...prev };
-                              delete next[line.id];
-                              return next;
-                            });
-                            if (
-                              Number.isFinite(n) &&
-                              n >= 0 &&
-                              amountQty > 0
-                            ) {
+                            }}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(",", ".");
+                              if (raw !== "" && !/^\d*\.?\d{0,4}$/.test(raw)) {
+                                return;
+                              }
+                              setTotalDraftByLine((prev) => ({
+                                ...prev,
+                                [line.id]: raw,
+                              }));
+                              if (
+                                raw === "" ||
+                                raw === "." ||
+                                raw.endsWith(".") ||
+                                amountQty <= 0
+                              ) {
+                                return;
+                              }
+                              const n = Number.parseFloat(raw);
+                              if (!Number.isFinite(n)) return;
                               const nextUnit =
-                                Math.round((Math.max(0, n) / amountQty) * 10000) /
-                                10000;
+                                Math.round(
+                                  (Math.max(0, n) / amountQty) * 10000,
+                                ) / 10000;
                               setPriceByLine((prev) => ({
                                 ...prev,
                                 [line.id]: nextUnit,
                               }));
                               if (nextUnit > 0) {
-                                void flushPersist(line.id, {
+                                schedulePersist(line.id, {
                                   unitEstimatedCost: nextUnit,
                                 });
                               }
-                              return;
-                            }
-                            setPriceByLine((prev) => ({
-                              ...prev,
-                              [line.id]: toNum(line.unitEstimatedCost),
-                            }));
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              (e.target as HTMLInputElement).blur();
-                            }
-                          }}
-                        />
-                      </label>
+                            }}
+                            onBlur={(e) => {
+                              const raw = e.target.value.replace(",", ".");
+                              const n = Number.parseFloat(raw);
+                              setTotalDraftByLine((prev) => {
+                                const next = { ...prev };
+                                delete next[line.id];
+                                return next;
+                              });
+                              if (
+                                Number.isFinite(n) &&
+                                n >= 0 &&
+                                amountQty > 0
+                              ) {
+                                const nextUnit =
+                                  Math.round(
+                                    (Math.max(0, n) / amountQty) * 10000,
+                                  ) / 10000;
+                                setPriceByLine((prev) => ({
+                                  ...prev,
+                                  [line.id]: nextUnit,
+                                }));
+                                if (nextUnit > 0) {
+                                  void flushPersist(line.id, {
+                                    unitEstimatedCost: nextUnit,
+                                  });
+                                }
+                                return;
+                              }
+                              setPriceByLine((prev) => ({
+                                ...prev,
+                                [line.id]: toNum(line.unitEstimatedCost),
+                              }));
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                (e.target as HTMLInputElement).blur();
+                              }
+                            }}
+                          />
+                        </label>
 
-                      <div className="flex justify-end pl-8 lg:pl-0">
-                        <button
-                          type="button"
-                          disabled={!canDelete || lineBusy}
-                          onClick={() => void removeLine(line.id)}
-                          className="inline-flex size-8 items-center justify-center rounded-none border border-transparent text-red-600 transition hover:border-red-100 hover:bg-red-50 disabled:opacity-30"
-                          title={
-                            canDelete
-                              ? "Remove line"
-                              : "Cannot remove received lines"
-                          }
-                        >
-                          {deletingLineId === line.id ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="size-3.5" />
-                          )}
-                        </button>
+                        <div className="flex justify-end pl-8 lg:pl-0">
+                          <button
+                            type="button"
+                            disabled={!canDelete || lineBusy}
+                            onClick={() => void removeLine(line.id)}
+                            className="inline-flex size-8 items-center justify-center rounded-none border border-transparent text-red-600 transition hover:border-red-100 hover:bg-red-50 disabled:opacity-30"
+                            title={
+                              canDelete
+                                ? "Remove line"
+                                : "Cannot remove received lines"
+                            }
+                          >
+                            {deletingLineId === line.id ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="size-3.5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </li>
-                );
-              })}
+                    </li>
+                  );
+                })}
               </ul>
             </>
           )}
@@ -1804,7 +1819,10 @@ export function OrderReceivePanel({
                 >
                   {sharing === "whatsapp" ? "Opening…" : "WhatsApp"}
                 </button>
-                <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]" aria-hidden>
+                <span
+                  className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]"
+                  aria-hidden
+                >
                   ·
                 </span>
                 <button
@@ -1815,7 +1833,10 @@ export function OrderReceivePanel({
                 >
                   {sharing === "copy" ? "Copying…" : "Copy"}
                 </button>
-                <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]" aria-hidden>
+                <span
+                  className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]"
+                  aria-hidden
+                >
                   ·
                 </span>
                 <button

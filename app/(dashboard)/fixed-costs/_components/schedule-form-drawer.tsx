@@ -9,10 +9,7 @@ import {
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
-import {
-  createExpenseSchedule,
-  type ExpenseScheduleRecord,
-} from "@/lib/api";
+import { createExpenseSchedule, type ExpenseScheduleRecord } from "@/lib/api";
 import {
   EXPENSE_FREQUENCY_OPTIONS,
   EXPENSE_PAYMENT_METHOD_OPTIONS,
@@ -47,11 +44,13 @@ export function ScheduleFormDrawer({
   const [step, setStep] = useState(0);
   const [presetId, setPresetId] = useState<string>("shop_rent");
   const [name, setName] = useState("Shop rent");
-  const [categoryType, setCategoryType] = useState<"fixed" | "variable">("fixed");
+  const [categoryType, setCategoryType] = useState<"fixed" | "variable">(
+    "fixed",
+  );
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<ExpenseFrequency>("monthly");
-  const [startDate, setStartDate] = useState(
-    () => new Date().toISOString().slice(0, 10),
+  const [startDate, setStartDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
   );
   const [endDate, setEndDate] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("mpesa_manual");
@@ -153,7 +152,11 @@ export function ScheduleFormDrawer({
       footer={
         <div className="flex flex-wrap justify-end gap-2">
           {step > 0 ? (
-            <Button type="button" variant="outline" onClick={() => setStep(step - 1)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setStep(step - 1)}
+            >
               Back
             </Button>
           ) : null}
@@ -162,7 +165,11 @@ export function ScheduleFormDrawer({
               Continue
             </Button>
           ) : (
-            <Button type="button" disabled={saving} onClick={() => void submit()}>
+            <Button
+              type="button"
+              disabled={saving}
+              onClick={() => void submit()}
+            >
               {saving ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
@@ -179,7 +186,9 @@ export function ScheduleFormDrawer({
       <FormDrawerFields>
         {step === 0 ? (
           <>
-            <p className="text-sm text-muted-foreground">What kind of cost is this?</p>
+            <p className="text-sm text-muted-foreground">
+              What kind of cost is this?
+            </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {FIXED_COST_PRESETS.map((preset) => (
                 <button
@@ -188,8 +197,8 @@ export function ScheduleFormDrawer({
                   onClick={() => applyPreset(preset.id)}
                   className={
                     presetId === preset.id
-                      ? "rounded-lg border-2 border-primary bg-primary/5 px-3 py-2 text-left text-sm font-medium"
-                      : "rounded-lg border border-border/60 px-3 py-2 text-left text-sm hover:bg-muted/30"
+                      ? "rounded-none border-2 border-primary bg-primary/5 px-3 py-2 text-left text-sm font-medium"
+                      : "rounded-none border border-border/60 px-3 py-2 text-left text-sm hover:bg-muted/30"
                   }
                 >
                   {preset.label}
@@ -223,7 +232,9 @@ export function ScheduleFormDrawer({
               <select
                 className={dashboardSelectClass(false)}
                 value={frequency}
-                onChange={(e) => setFrequency(e.target.value as ExpenseFrequency)}
+                onChange={(e) =>
+                  setFrequency(e.target.value as ExpenseFrequency)
+                }
               >
                 {EXPENSE_FREQUENCY_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -307,8 +318,8 @@ export function ScheduleFormDrawer({
                 <option value="remind">Wait for me to confirm</option>
               </select>
             </label>
-            <div className="space-y-2 rounded-lg border border-border/50 p-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="space-y-2 rounded-none border border-border/50 p-3">
+              <p className="text-xs font-medium tracking-[-0.02em] text-muted-foreground">
                 Landlord / vendor (optional)
               </p>
               <label className="flex flex-col gap-1 text-sm">
@@ -349,7 +360,7 @@ export function ScheduleFormDrawer({
         ) : null}
 
         {step === 3 ? (
-          <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4 text-sm">
+          <div className="space-y-3 rounded-none border border-border/60 bg-muted/20 p-4 text-sm">
             <p className="font-medium">Review</p>
             <p>
               <span className="text-muted-foreground">Name:</span> {name}
@@ -369,8 +380,8 @@ export function ScheduleFormDrawer({
               </p>
             ) : null}
             <p className="text-xs text-muted-foreground">
-              Posted automatically after 02:00 each due day (shop timezone). Shows in
-              finance reports and today&apos;s takings.
+              Posted automatically after 02:00 each due day (shop timezone).
+              Shows in finance reports and today&apos;s takings.
             </p>
           </div>
         ) : null}

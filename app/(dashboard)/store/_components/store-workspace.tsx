@@ -1,11 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Package, Pencil, Plus, Search, Trash2, Warehouse } from "lucide-react";
+import {
+  Loader2,
+  Package,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  Warehouse,
+} from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
   DASHBOARD_SECTION_SURFACE,
+  DASHBOARD_TABLE_HEAD,
   DASHBOARD_TABLE_SURFACE,
   DashboardFeedback,
   DashboardLoadError,
@@ -37,7 +46,10 @@ import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
 import { cn } from "@/lib/utils";
 
-function mutationError(error: unknown, fallback = DEFAULT_PROBLEM_TITLE): string {
+function mutationError(
+  error: unknown,
+  fallback = DEFAULT_PROBLEM_TITLE,
+): string {
   if (error instanceof ApiRequestError) return error.message;
   if (error instanceof Error && error.message.trim()) return error.message;
   return fallback;
@@ -162,11 +174,17 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
       return;
     }
     if (quantity == null) {
-      setFeedback({ kind: "error", text: "Quantity must be a whole number ≥ 0." });
+      setFeedback({
+        kind: "error",
+        text: "Quantity must be a whole number ≥ 0.",
+      });
       return;
     }
     if (buyingPrice === undefined) {
-      setFeedback({ kind: "error", text: "Buying price must be a number ≥ 0." });
+      setFeedback({
+        kind: "error",
+        text: "Buying price must be a number ≥ 0.",
+      });
       return;
     }
     setCreateBusy(true);
@@ -205,11 +223,17 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
       return;
     }
     if (quantity == null) {
-      setFeedback({ kind: "error", text: "Quantity must be a whole number ≥ 0." });
+      setFeedback({
+        kind: "error",
+        text: "Quantity must be a whole number ≥ 0.",
+      });
       return;
     }
     if (buyingPrice === undefined) {
-      setFeedback({ kind: "error", text: "Buying price must be a number ≥ 0." });
+      setFeedback({
+        kind: "error",
+        text: "Buying price must be a number ≥ 0.",
+      });
       return;
     }
     setEditBusy(true);
@@ -275,7 +299,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   }
 
   return (
-    <div className={cn("mx-auto space-y-6", DASHBOARD_MAX_WIDE)}>
+    <div className={DASHBOARD_MAX_WIDE}>
       <DashboardPageHero
         icon={Warehouse}
         eyebrow="Products"
@@ -283,7 +307,11 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         description="A simple list of items in the store — name, barcode, count, optional expiry and buy price. Separate from sellable inventory."
       >
         {canWrite ? (
-          <Button type="button" className="gap-2 shadow-sm" onClick={openCreate}>
+          <Button
+            type="button"
+            className="gap-2 shadow-none"
+            onClick={openCreate}
+          >
             <Plus className="size-4" aria-hidden />
             Add item
           </Button>
@@ -334,7 +362,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
           {canWrite ? (
             <Button
               type="button"
-              className="mt-6 gap-2 shadow-sm"
+              className="mt-6 gap-2 shadow-none"
               onClick={openCreate}
             >
               <Plus className="size-4" aria-hidden />
@@ -356,70 +384,73 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
       ) : (
         <div className={DASHBOARD_TABLE_SURFACE}>
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-border/50 bg-muted/25">
+            <thead className={DASHBOARD_TABLE_HEAD}>
               <tr>
                 <th
                   scope="col"
-                  className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                  className="px-3 py-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
                 >
                   Name
                 </th>
                 <th
                   scope="col"
-                  className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                  className="px-3 py-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
                 >
                   Barcode
                 </th>
                 <th
                   scope="col"
-                  className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                  className="px-3 py-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
                 >
                   Number
                 </th>
                 <th
                   scope="col"
-                  className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                  className="px-3 py-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
                 >
                   Expiry
                 </th>
                 <th
                   scope="col"
-                  className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                  className="px-3 py-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
                 >
                   Buy price
                 </th>
                 {canWrite ? (
                   <th
                     scope="col"
-                    className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                    className="px-3 py-1.5 text-right font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
                   >
                     Actions
                   </th>
                 ) : null}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/40">
+            <tbody className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
               {filtered.map((row) => (
-                <tr key={row.id} className="transition-colors hover:bg-muted/30">
-                  <td className="px-5 py-4 font-medium text-foreground sm:px-6">
+                <tr
+                  key={row.id}
+                  className="transition-colors hover:bg-muted/30"
+                >
+                  <td className="px-3 py-2 font-medium text-foreground sm:px-3.5">
                     {row.name}
                   </td>
-                  <td className="px-5 py-4 font-mono text-xs text-muted-foreground sm:px-6">
+                  <td className="px-3 py-2 font-mono text-xs text-muted-foreground sm:px-3.5">
                     {row.barcode || "—"}
                   </td>
-                  <td className="px-5 py-4 tabular-nums text-foreground sm:px-6">
+                  <td className="px-3 py-2 tabular-nums text-foreground sm:px-3.5">
                     {row.quantity}
                   </td>
-                  <td className="px-5 py-4 tabular-nums text-muted-foreground sm:px-6">
+                  <td className="px-3 py-2 tabular-nums text-muted-foreground sm:px-3.5">
                     {row.expiryDate || "—"}
                   </td>
-                  <td className="px-5 py-4 tabular-nums text-muted-foreground sm:px-6">
+                  <td className="px-3 py-2 tabular-nums text-muted-foreground sm:px-3.5">
                     {row.buyingPrice == null || row.buyingPrice === ""
                       ? "—"
                       : formatMoney(row.buyingPrice, currency)}
                   </td>
                   {canWrite ? (
-                    <td className="px-5 py-4 text-right sm:px-6">
+                    <td className="px-3 py-2 text-right sm:px-3.5">
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           type="button"
@@ -540,10 +571,8 @@ function StoreItemFormDrawer({
   submitLabel: string;
   onSubmit: () => void;
 }) {
-  const set =
-    (key: keyof Draft) =>
-    (value: string) =>
-      onDraftChange({ ...draft, [key]: value });
+  const set = (key: keyof Draft) => (value: string) =>
+    onDraftChange({ ...draft, [key]: value });
 
   return (
     <FormDrawer
@@ -566,7 +595,9 @@ function StoreItemFormDrawer({
             Cancel
           </Button>
           <Button type="button" disabled={busy} onClick={onSubmit}>
-            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : null}
             {submitLabel}
           </Button>
         </div>
@@ -580,7 +611,7 @@ function StoreItemFormDrawer({
         }}
       >
         <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Name
           </span>
           <input
@@ -593,7 +624,7 @@ function StoreItemFormDrawer({
           />
         </label>
         <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Barcode
           </span>
           <input
@@ -604,7 +635,7 @@ function StoreItemFormDrawer({
           />
         </label>
         <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Number
           </span>
           <input
@@ -619,7 +650,7 @@ function StoreItemFormDrawer({
           />
         </label>
         <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Expiry date
           </span>
           <input
@@ -630,7 +661,7 @@ function StoreItemFormDrawer({
           />
         </label>
         <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Buying price
           </span>
           <input

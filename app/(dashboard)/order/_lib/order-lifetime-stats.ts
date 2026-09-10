@@ -5,7 +5,11 @@ import type {
   PurchasingIntelligenceDashboardResponse,
   SupplierItemLinkRecord,
 } from "@/lib/api";
-import type { OrderCartPackMeta, OrderCartPriceMeta, OrderCartQty } from "@/lib/order-cart-storage";
+import type {
+  OrderCartPackMeta,
+  OrderCartPriceMeta,
+  OrderCartQty,
+} from "@/lib/order-cart-storage";
 import { toOrderStatNum } from "@/app/(dashboard)/order/_hooks/use-order-pipeline-stats";
 
 export type PoReceivePhase =
@@ -87,10 +91,12 @@ export function summarizeLifetimeStats(
     else unpaidCount += 1;
   }
 
-  const fullyReceived = sent.filter((row) => poReceivePhase(row) === "received")
-    .length;
-  const partiallyReceived = sent.filter((row) => poReceivePhase(row) === "partial")
-    .length;
+  const fullyReceived = sent.filter(
+    (row) => poReceivePhase(row) === "received",
+  ).length;
+  const partiallyReceived = sent.filter(
+    (row) => poReceivePhase(row) === "partial",
+  ).length;
   const inFlightCount = sent.filter((row) => {
     const phase = poReceivePhase(row);
     return phase === "in_flight" || phase === "partial";

@@ -3,9 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { History, Loader2, Wallet } from "lucide-react";
 
-import {
-  dashboardInputClass,
-} from "@/components/dashboard-page-ui";
+import { dashboardInputClass } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,7 +46,8 @@ export function LogAdvanceDrawer({
   const [amountRepaid, setAmountRepaid] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState("");
-  const [repaymentMode, setRepaymentMode] = useState<AdvanceRepaymentMode>("full_balance");
+  const [repaymentMode, setRepaymentMode] =
+    useState<AdvanceRepaymentMode>("full_balance");
   const [repaymentValue, setRepaymentValue] = useState("");
 
   useEffect(() => {
@@ -106,10 +105,12 @@ export function LogAdvanceDrawer({
         amount: parsedAmount,
         advancedOn: date,
         note: note.trim() || undefined,
-        amountRepaid: mode === "past" && parsedRepaid > 0 ? parsedRepaid : undefined,
+        amountRepaid:
+          mode === "past" && parsedRepaid > 0 ? parsedRepaid : undefined,
         repaymentMode,
         repaymentValue:
-          repaymentMode === "percent_of_original" || repaymentMode === "fixed_per_pay"
+          repaymentMode === "percent_of_original" ||
+          repaymentMode === "fixed_per_pay"
             ? parsedRepaymentValue
             : undefined,
       });
@@ -132,10 +133,19 @@ export function LogAdvanceDrawer({
       icon={<Wallet className="size-5 text-primary" aria-hidden />}
       footer={
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
-          <Button type="button" disabled={saving || !userId} onClick={() => void save()}>
+          <Button
+            type="button"
+            className="rounded-none bg-[var(--pos-primary,#0f766e)] text-white"
+            disabled={saving || !userId}
+            onClick={() => void save()}
+          >
             {saving ? (
               <>
                 <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden />
@@ -149,7 +159,7 @@ export function LogAdvanceDrawer({
       }
     >
       {outstandingTotal > 0 ? (
-        <p className="mb-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+        <p className="mb-4 rounded-none border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
           Outstanding balance:{" "}
           <span className="font-semibold tabular-nums">
             {formatPayrollMoney(outstandingTotal)}
@@ -157,7 +167,7 @@ export function LogAdvanceDrawer({
         </p>
       ) : null}
 
-      <div className="mb-4 flex gap-1 rounded-lg border border-border/60 bg-muted/20 p-1">
+      <div className="mb-4 flex gap-1 rounded-none border border-border/60 bg-muted/20 p-1">
         <ModeTab
           active={mode === "new"}
           icon={<Wallet className="size-3.5" aria-hidden />}
@@ -211,7 +221,7 @@ export function LogAdvanceDrawer({
         ) : null}
 
         {balancePreview != null ? (
-          <div className="rounded-lg bg-muted/40 px-3 py-2 text-sm">
+          <div className="rounded-none bg-muted/40 px-3 py-2 text-sm">
             <span className="text-muted-foreground">Balance after save: </span>
             <span className="font-semibold tabular-nums">
               {formatPayrollMoney(balancePreview)}
@@ -273,10 +283,11 @@ function ModeTab({
     <button
       type="button"
       className={cn(
-        "flex flex-1 flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left transition-colors",
+        "flex flex-1 flex-col items-start gap-0.5 rounded-none px-3 py-2 text-left transition-colors",
         active
-          ? "bg-background text-foreground shadow-sm"
-          : "text-muted-foreground hover:text-foreground",
+        active
+          ? "border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+          : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
       )}
       onClick={onClick}
     >

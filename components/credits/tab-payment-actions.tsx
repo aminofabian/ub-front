@@ -80,7 +80,9 @@ export function TabPaymentActions({
       onFeedback("success", "Payment reversed — the tab balance was restored.");
       onChanged();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not reverse the payment.");
+      setError(
+        e instanceof Error ? e.message : "Could not reverse the payment.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -105,7 +107,9 @@ export function TabPaymentActions({
       onFeedback("success", "Payment corrected — the tab balance was updated.");
       onChanged();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update the payment.");
+      setError(
+        e instanceof Error ? e.message : "Could not update the payment.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -147,11 +151,13 @@ export function TabPaymentActions({
       <Dialog open={reverseOpen} onOpenChange={setReverseOpen}>
         <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
           <DialogHeader className="space-y-1 border-b border-border/60 px-5 py-4 text-left">
-            <DialogTitle className="text-base">Reverse this payment?</DialogTitle>
+            <DialogTitle className="text-base">
+              Reverse this payment?
+            </DialogTitle>
             <DialogDescription className="text-xs">
               Reverses the most recent payment of {fmtMoney(paid)} (
-              {fmtWhen(paymentAt) || "recent"}). The tab balance is restored and a
-              reversal line appears in the statement.
+              {fmtWhen(paymentAt) || "recent"}). The tab balance is restored and
+              a reversal line appears in the statement.
             </DialogDescription>
           </DialogHeader>
 
@@ -194,14 +200,16 @@ export function TabPaymentActions({
           <DialogHeader className="space-y-1 border-b border-border/60 px-5 py-4 text-left">
             <DialogTitle className="text-base">Edit tab payment</DialogTitle>
             <DialogDescription className="text-xs">
-              Reverses the most recent payment of {fmtMoney(paid)} and records the
-              corrected amount instead.
+              Reverses the most recent payment of {fmtMoney(paid)} and records
+              the corrected amount instead.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 px-5 py-4">
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-foreground">Amount</span>
+              <span className="text-xs font-medium text-foreground">
+                Amount
+              </span>
               <input
                 className={cn(dashboardInputClass(), "rounded-none")}
                 type="number"
@@ -226,7 +234,7 @@ export function TabPaymentActions({
                 className={cn(
                   "inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-semibold transition-colors",
                   channel === "cash"
-                    ? "bg-background text-foreground shadow-sm"
+                    ? "bg-background text-foreground shadow-none"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -239,7 +247,7 @@ export function TabPaymentActions({
                 className={cn(
                   "inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-semibold transition-colors",
                   channel === "mpesa"
-                    ? "bg-background text-foreground shadow-sm"
+                    ? "bg-background text-foreground shadow-none"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >

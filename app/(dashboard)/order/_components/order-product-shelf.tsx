@@ -3,7 +3,10 @@
 import Image from "next/image";
 import { Minus, Package, Plus } from "lucide-react";
 
-import type { ItemLinkPackOfferRecord, SupplierItemLinkRecord } from "@/lib/api";
+import type {
+  ItemLinkPackOfferRecord,
+  SupplierItemLinkRecord,
+} from "@/lib/api";
 import type { OrderCartPackMeta, OrderCartQty } from "@/lib/order-cart-storage";
 import { orderLinkTitleParts } from "@/app/(dashboard)/order/_lib/order-link-display";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
@@ -112,12 +115,19 @@ function OrderShelfTile({
           </span>
         ) : (
           <span className="absolute left-1/2 top-1/2 flex h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2 items-center justify-center">
-            <Package className="size-10 opacity-20" strokeWidth={1.5} aria-hidden />
+            <Package
+              className="size-10 opacity-20"
+              strokeWidth={1.5}
+              aria-hidden
+            />
           </span>
         )}
       </button>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col border-t px-2.5 pb-2.5 pt-2" style={{ borderColor: RULE }}>
+      <div
+        className="flex min-h-0 min-w-0 flex-1 flex-col border-t px-2.5 pb-2.5 pt-2"
+        style={{ borderColor: RULE }}
+      >
         <div className="min-w-0">
           <p
             className="line-clamp-2 break-words text-[12px] font-medium leading-snug tracking-[-0.02em]"
@@ -167,7 +177,10 @@ function OrderShelfTile({
         </div>
 
         {low ? (
-          <p className="mt-1 text-[11px] font-medium tabular-nums" style={{ color: "#9a3412" }}>
+          <p
+            className="mt-1 text-[11px] font-medium tabular-nums"
+            style={{ color: "#9a3412" }}
+          >
             {stock} on hand
           </p>
         ) : null}
@@ -176,7 +189,7 @@ function OrderShelfTile({
             className="mt-1 truncate font-mono text-[10px] font-medium tabular-nums"
             style={{ color: MUTED }}
           >
-            {packs.map((p) => `×${formatPackSize(p.unitsPerPack)}`).join("  ")}
+            {packs.map((p) => `×${formatPackSize(p.unitsPerPack)}`).join(" ")}
           </p>
         ) : null}
 
@@ -194,35 +207,38 @@ function OrderShelfTile({
           <div className="mt-auto w-full pt-2">
             <div
               className="grid h-8 w-full min-w-0 grid-cols-[1.75rem_minmax(0,1fr)_1.75rem] rounded-none border bg-white"
-              style={{ borderColor: inCart ? TEAL : RULE, color: inCart ? TEAL : INK }}
+              style={{
+                borderColor: inCart ? TEAL : RULE,
+                color: inCart ? TEAL : INK,
+              }}
               role="group"
               aria-label={`Quantity for ${primary}`}
             >
-            <button
-              type="button"
-              disabled={qty <= 0}
-              className={cn(STEP, "border-r")}
-              style={{ borderColor: inCart ? TEAL : RULE }}
-              onClick={() => onSetQty(qty - 1)}
-              aria-label="Decrease"
-            >
-              <Minus className="size-3.5" strokeWidth={2.25} aria-hidden />
-            </button>
-            <OrderQtyField
-              qty={qty}
-              onSetQty={onSetQty}
-              ariaLabel={`Quantity for ${primary}`}
-              className="h-8 px-1"
-            />
-            <button
-              type="button"
-              className={cn(STEP, "border-l")}
-              style={{ borderColor: inCart ? TEAL : RULE }}
-              onClick={() => onSetQty(qty + 1)}
-              aria-label="Increase"
-            >
-              <Plus className="size-3.5" strokeWidth={2.25} aria-hidden />
-            </button>
+              <button
+                type="button"
+                disabled={qty <= 0}
+                className={cn(STEP, "border-r")}
+                style={{ borderColor: inCart ? TEAL : RULE }}
+                onClick={() => onSetQty(qty - 1)}
+                aria-label="Decrease"
+              >
+                <Minus className="size-3.5" strokeWidth={2.25} aria-hidden />
+              </button>
+              <OrderQtyField
+                qty={qty}
+                onSetQty={onSetQty}
+                ariaLabel={`Quantity for ${primary}`}
+                className="h-8 px-1"
+              />
+              <button
+                type="button"
+                className={cn(STEP, "border-l")}
+                style={{ borderColor: inCart ? TEAL : RULE }}
+                onClick={() => onSetQty(qty + 1)}
+                aria-label="Increase"
+              >
+                <Plus className="size-3.5" strokeWidth={2.25} aria-hidden />
+              </button>
             </div>
           </div>
         )}

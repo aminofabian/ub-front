@@ -1,13 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import {
-  Camera,
-  Loader2,
-  PencilLine,
-  Save,
-  Building2,
-} from "lucide-react";
+import { Camera, Loader2, PencilLine, Save, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   FormDrawer,
@@ -85,13 +79,11 @@ export function ProductPhotosDrawer({
       {d && (
         <div className="space-y-3">
           <div className="space-y-3 rounded-none border border-border bg-muted/15 p-3 shadow-none">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
               Live cover
             </p>
             {coverImageUrl(d) ? (
-              <div
-                className="relative mx-auto h-44 w-full max-w-sm overflow-hidden rounded-none border border-border shadow-none"
-              >
+              <div className="relative mx-auto h-44 w-full max-w-sm overflow-hidden rounded-none border border-border shadow-none">
                 <Image
                   src={coverImageUrl(d)!}
                   alt=""
@@ -114,7 +106,7 @@ export function ProductPhotosDrawer({
               void m.onUploadCatalogImage(e as never);
             }}
           >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
               Upload
             </p>
             <input
@@ -286,138 +278,160 @@ export function ProductQuickEditAllDrawer({
         }}
       >
         <FormDrawerSheet>
-        <FormDrawerFields legend="Identity" appearance="sharp" embedded index={1}>
-          <F label="Display name" required>
-            <input
-              className={productFormInputClass}
-              value={quick.qeaName}
-              onChange={(e) => quick.setQeaName(e.target.value)}
-              required
-            />
-          </F>
-          <div className={productFormGrid2Class}>
-            <F label="SKU" required>
+          <FormDrawerFields
+            legend="Identity"
+            appearance="sharp"
+            embedded
+            index={1}
+          >
+            <F label="Display name" required>
               <input
-                className={productFormInputMonoClass}
-                value={quick.qeaSku}
-                onChange={(e) => quick.setQeaSku(e.target.value)}
+                className={productFormInputClass}
+                value={quick.qeaName}
+                onChange={(e) => quick.setQeaName(e.target.value)}
                 required
               />
             </F>
-            <F label="Barcode">
-              <input
-                className={productFormInputMonoClass}
-                value={quick.qeaBarcode}
-                onChange={(e) => quick.setQeaBarcode(e.target.value)}
-              />
-            </F>
-          </div>
-        </FormDrawerFields>
-        {sharedStock ? (
-          <p className="border-t border-border bg-muted/15 px-3 py-2 text-xs text-muted-foreground">
-            Stock, min level, and reorder live on the base product. Change{" "}
-            <span className="font-medium text-foreground">units per package</span>{" "}
-            in the full product editor (Package section).
-          </p>
-        ) : null}
-        <FormDrawerFields legend="Pricing" appearance="sharp" embedded index={2}>
-          {sharedStock ? (
-            <div className={productFormGrid3Class}>
-              <F label="Units per package">
+            <div className={productFormGrid2Class}>
+              <F label="SKU" required>
                 <input
-                  className={productFormInputClass}
-                  readOnly
-                  disabled
-                  value={
-                    unitsPerPackage != null ? String(unitsPerPackage) : "—"
-                  }
+                  className={productFormInputMonoClass}
+                  value={quick.qeaSku}
+                  onChange={(e) => quick.setQeaSku(e.target.value)}
+                  required
                 />
               </F>
-              <F label="Shelf price">
+              <F label="Barcode">
                 <input
-                  className={productFormInputClass}
-                  inputMode="decimal"
-                  value={quick.qeaBundlePrice}
-                  onChange={(e) => quick.setQeaBundlePrice(e.target.value)}
-                />
-              </F>
-              <F label="Cost">
-                <input
-                  className={productFormInputClass}
-                  inputMode="decimal"
-                  value={quick.qeaBuyingPrice}
-                  onChange={(e) => quick.setQeaBuyingPrice(e.target.value)}
-                />
-              </F>
-            </div>
-          ) : (
-            <div className={productFormGrid3Class}>
-              <F label="Shelf price">
-                <input
-                  className={productFormInputClass}
-                  inputMode="decimal"
-                  value={quick.qeaBundlePrice}
-                  onChange={(e) => quick.setQeaBundlePrice(e.target.value)}
-                />
-              </F>
-              <F label="Cost">
-                <input
-                  className={productFormInputClass}
-                  inputMode="decimal"
-                  value={quick.qeaBuyingPrice}
-                  onChange={(e) => quick.setQeaBuyingPrice(e.target.value)}
-                />
-              </F>
-              <F label="Pack qty">
-                <input
-                  className={productFormInputClass}
-                  inputMode="numeric"
-                  value={quick.qeaBundleQty}
-                  onChange={(e) => quick.setQeaBundleQty(e.target.value)}
-                />
-              </F>
-            </div>
-          )}
-        </FormDrawerFields>
-        {!sharedStock ? (
-          <FormDrawerFields legend="Stock" appearance="sharp" embedded index={3}>
-            <div className={productFormGrid3Class}>
-              <F label="Min stock">
-                <input
-                  className={productFormInputClass}
-                  inputMode="decimal"
-                  value={quick.qeaMinStock}
-                  onChange={(e) => quick.setQeaMinStock(e.target.value)}
-                />
-              </F>
-              <F label="Reorder at">
-                <input
-                  className={productFormInputClass}
-                  inputMode="decimal"
-                  value={quick.qeaReorderLevel}
-                  onChange={(e) => quick.setQeaReorderLevel(e.target.value)}
-                />
-              </F>
-              <F label="Order qty">
-                <input
-                  className={productFormInputClass}
-                  inputMode="decimal"
-                  value={quick.qeaReorderQty}
-                  onChange={(e) => quick.setQeaReorderQty(e.target.value)}
+                  className={productFormInputMonoClass}
+                  value={quick.qeaBarcode}
+                  onChange={(e) => quick.setQeaBarcode(e.target.value)}
                 />
               </F>
             </div>
           </FormDrawerFields>
-        ) : null}
-        <FormDrawerFields legend="Description" appearance="sharp" embedded index={4}>
-          <F label="Notes">
-            <textarea
-              className={productFormTextareaClass}
-              value={quick.qeaDescription}
-              onChange={(e) => quick.setQeaDescription(e.target.value)}
-            />
-          </F>
-        </FormDrawerFields>
+          {sharedStock ? (
+            <p className="border-t border-border bg-muted/15 px-3 py-2 text-xs text-muted-foreground">
+              Stock, min level, and reorder live on the base product. Change{" "}
+              <span className="font-medium text-foreground">
+                units per package
+              </span>{" "}
+              in the full product editor (Package section).
+            </p>
+          ) : null}
+          <FormDrawerFields
+            legend="Pricing"
+            appearance="sharp"
+            embedded
+            index={2}
+          >
+            {sharedStock ? (
+              <div className={productFormGrid3Class}>
+                <F label="Units per package">
+                  <input
+                    className={productFormInputClass}
+                    readOnly
+                    disabled
+                    value={
+                      unitsPerPackage != null ? String(unitsPerPackage) : "—"
+                    }
+                  />
+                </F>
+                <F label="Shelf price">
+                  <input
+                    className={productFormInputClass}
+                    inputMode="decimal"
+                    value={quick.qeaBundlePrice}
+                    onChange={(e) => quick.setQeaBundlePrice(e.target.value)}
+                  />
+                </F>
+                <F label="Cost">
+                  <input
+                    className={productFormInputClass}
+                    inputMode="decimal"
+                    value={quick.qeaBuyingPrice}
+                    onChange={(e) => quick.setQeaBuyingPrice(e.target.value)}
+                  />
+                </F>
+              </div>
+            ) : (
+              <div className={productFormGrid3Class}>
+                <F label="Shelf price">
+                  <input
+                    className={productFormInputClass}
+                    inputMode="decimal"
+                    value={quick.qeaBundlePrice}
+                    onChange={(e) => quick.setQeaBundlePrice(e.target.value)}
+                  />
+                </F>
+                <F label="Cost">
+                  <input
+                    className={productFormInputClass}
+                    inputMode="decimal"
+                    value={quick.qeaBuyingPrice}
+                    onChange={(e) => quick.setQeaBuyingPrice(e.target.value)}
+                  />
+                </F>
+                <F label="Pack qty">
+                  <input
+                    className={productFormInputClass}
+                    inputMode="numeric"
+                    value={quick.qeaBundleQty}
+                    onChange={(e) => quick.setQeaBundleQty(e.target.value)}
+                  />
+                </F>
+              </div>
+            )}
+          </FormDrawerFields>
+          {!sharedStock ? (
+            <FormDrawerFields
+              legend="Stock"
+              appearance="sharp"
+              embedded
+              index={3}
+            >
+              <div className={productFormGrid3Class}>
+                <F label="Min stock">
+                  <input
+                    className={productFormInputClass}
+                    inputMode="decimal"
+                    value={quick.qeaMinStock}
+                    onChange={(e) => quick.setQeaMinStock(e.target.value)}
+                  />
+                </F>
+                <F label="Reorder at">
+                  <input
+                    className={productFormInputClass}
+                    inputMode="decimal"
+                    value={quick.qeaReorderLevel}
+                    onChange={(e) => quick.setQeaReorderLevel(e.target.value)}
+                  />
+                </F>
+                <F label="Order qty">
+                  <input
+                    className={productFormInputClass}
+                    inputMode="decimal"
+                    value={quick.qeaReorderQty}
+                    onChange={(e) => quick.setQeaReorderQty(e.target.value)}
+                  />
+                </F>
+              </div>
+            </FormDrawerFields>
+          ) : null}
+          <FormDrawerFields
+            legend="Description"
+            appearance="sharp"
+            embedded
+            index={4}
+          >
+            <F label="Notes">
+              <textarea
+                className={productFormTextareaClass}
+                value={quick.qeaDescription}
+                onChange={(e) => quick.setQeaDescription(e.target.value)}
+              />
+            </F>
+          </FormDrawerFields>
         </FormDrawerSheet>
       </form>
     </FormDrawer>

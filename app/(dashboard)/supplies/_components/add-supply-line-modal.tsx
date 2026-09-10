@@ -12,10 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  fetchItemSupplierLinks,
-  type ItemSummaryRecord,
-} from "@/lib/api";
+import { fetchItemSupplierLinks, type ItemSummaryRecord } from "@/lib/api";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { cn } from "@/lib/utils";
@@ -190,7 +187,10 @@ export function LinkSupplierProductModal({
           }
         }}
       >
-        <form onSubmit={(e) => void handleSubmit(e)} className="flex min-h-0 flex-1 flex-col">
+        <form
+          onSubmit={(e) => void handleSubmit(e)}
+          className="flex min-h-0 flex-1 flex-col"
+        >
           <DialogHeader className="border-b border-border/50 px-4 py-3 sm:px-5 sm:py-4">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Link2 className="size-5 text-primary" aria-hidden />
@@ -267,7 +267,9 @@ export function LinkSupplierProductModal({
                   placeholder="Optional"
                 />
                 {costHint ? (
-                  <span className="text-[10px] text-muted-foreground">{costHint}</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {costHint}
+                  </span>
                 ) : null}
               </label>
               <label className="flex flex-col gap-1">

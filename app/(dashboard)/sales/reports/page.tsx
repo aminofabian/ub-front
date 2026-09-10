@@ -8,7 +8,10 @@ import { hasPermission, Permission } from "@/lib/permissions";
 
 export default function SalesReportsPage() {
   const { me } = useDashboard();
-  const allowed = hasPermission(me?.permissions, Permission.SalesIntelligenceRead);
+  const allowed = hasPermission(
+    me?.permissions,
+    Permission.SalesIntelligenceRead,
+  );
 
   if (!allowed) {
     return (
@@ -16,8 +19,8 @@ export default function SalesReportsPage() {
         title="Sales by category"
         description={
           <>
-            You do not have permission to view this report. Ask an administrator to
-            grant{" "}
+            You do not have permission to view this report. Ask an administrator
+            to grant{" "}
             <code className="rounded bg-muted px-1 py-0.5 text-xs">
               {Permission.SalesIntelligenceRead}
             </code>

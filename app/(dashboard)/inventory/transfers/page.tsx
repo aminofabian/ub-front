@@ -138,14 +138,14 @@ function TransferItemPicker({
   if (selected) {
     return (
       <div className={cn("flex items-center gap-1.5", className)}>
-        <span className="min-w-0 flex-1 truncate rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
+        <span className="min-w-0 flex-1 truncate rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
           {label}
         </span>
         <button
           type="button"
           disabled={disabled}
           aria-label="Change item"
-          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 text-muted-foreground hover:text-foreground disabled:opacity-50"
+          className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-muted-foreground hover:text-foreground disabled:opacity-50"
           onClick={() => {
             setQuery("");
             setResults([]);
@@ -182,7 +182,7 @@ function TransferItemPicker({
         <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
       </div>
       {open ? (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-border/70 bg-background shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background shadow-none">
           {busy ? (
             <div className="flex items-center gap-2 px-3 py-2.5 text-xs text-muted-foreground">
               <Loader2 className="size-3.5 animate-spin" />
@@ -313,9 +313,7 @@ export default function InventoryTransfersPage() {
       }))
       .filter(
         (l) =>
-          l.itemId.length > 0 &&
-          Number.isFinite(l.quantity) &&
-          l.quantity > 0,
+          l.itemId.length > 0 && Number.isFinite(l.quantity) && l.quantity > 0,
       );
     if (!fromBranchId.trim() || !toBranchId.trim()) {
       setMessage("Choose both branches.");
@@ -441,12 +439,13 @@ export default function InventoryTransfersPage() {
     );
   }
 
-  const messageIsSuccess = /created|completed|confirmed|cancelled|draft|sent|Receipt/i.test(message);
+  const messageIsSuccess =
+    /created|completed|confirmed|cancelled|draft|sent|Receipt/i.test(message);
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="space-y-4">
-        <header className="space-y-2 border-b border-border/50 pb-4">
+      <div className="space-y-1">
+        <header className="space-y-1">
           <DashboardPageHero
             compact
             showActiveScope
@@ -460,7 +459,7 @@ export default function InventoryTransfersPage() {
           ) : null}
         </header>
 
-        <div className="space-y-3 rounded-xl border border-border/60 bg-muted/15 p-3">
+        <div className="space-y-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 p-3">
           <p className="text-xs font-semibold text-foreground">Create draft</p>
 
           <div className="flex flex-wrap items-end gap-2">
@@ -563,7 +562,7 @@ export default function InventoryTransfersPage() {
             </Button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 border-t border-border/50 pt-2.5">
+          <div className="flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-2.5">
             <Button
               type="button"
               size="sm"
@@ -584,7 +583,7 @@ export default function InventoryTransfersPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border/60 bg-muted/15 p-3">
+        <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 p-3">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-xs font-semibold text-foreground">Transfers</p>
             <Button
@@ -620,12 +619,13 @@ export default function InventoryTransfersPage() {
                 return (
                   <li
                     key={t.id}
-                    className="rounded-lg border border-border/50 bg-card/60 p-2.5"
+                    className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-2.5"
                   >
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <TransferStatusBadge status={status} />
                       <span className="text-xs font-medium text-foreground">
-                        {branchName(t.fromBranchId)} → {branchName(t.toBranchId)}
+                        {branchName(t.fromBranchId)} →{" "}
+                        {branchName(t.toBranchId)}
                       </span>
                       <span className="text-[11px] text-muted-foreground">
                         {new Date(t.createdAt).toLocaleDateString(undefined, {
@@ -644,11 +644,15 @@ export default function InventoryTransfersPage() {
                       <p
                         className="mt-1 truncate text-[11px] text-muted-foreground"
                         title={t.lines
-                          .map((l) => `${l.itemName ?? l.itemId} × ${l.quantity}`)
+                          .map(
+                            (l) => `${l.itemName ?? l.itemId} × ${l.quantity}`,
+                          )
                           .join(", ")}
                       >
                         {t.lines
-                          .map((l) => `${l.itemName ?? l.itemId} × ${l.quantity}`)
+                          .map(
+                            (l) => `${l.itemName ?? l.itemId} × ${l.quantity}`,
+                          )
                           .join(", ")}
                       </p>
                     ) : null}
@@ -774,13 +778,13 @@ export default function InventoryTransfersPage() {
 
 function TransferStatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    draft: "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+    draft:
+      "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
     in_transit:
       "border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300",
     completed:
       "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
-    cancelled:
-      "border-border bg-muted text-muted-foreground",
+    cancelled: "border-border bg-muted text-muted-foreground",
   };
   const labels: Record<string, string> = {
     draft: "Draft",
@@ -791,7 +795,7 @@ function TransferStatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
         styles[status] ?? styles.cancelled,
       )}
     >

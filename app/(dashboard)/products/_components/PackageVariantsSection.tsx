@@ -92,7 +92,10 @@ export function PackageVariantsSection({
         <label className="flex cursor-pointer items-start gap-2">
           <input
             type="checkbox"
-            className={cn("size-3.5 rounded-none border-input", compact ? "mt-0.5" : "mt-1")}
+            className={cn(
+              "size-3.5 rounded-none border-input",
+              compact ? "mt-0.5" : "mt-1",
+            )}
             checked={enabled}
             onChange={(e) => onEnabledChange(e.target.checked)}
           />
@@ -100,18 +103,15 @@ export function PackageVariantsSection({
             <span
               className={cn(
                 "flex items-center gap-1.5 tracking-tight text-foreground",
-                compact ? "text-[12px] font-semibold" : "text-[13px] font-semibold",
+                compact
+                  ? "text-[12px] font-semibold"
+                  : "text-[13px] font-semibold",
               )}
             >
               <Boxes className="size-3.5 text-foreground/50" />
               Sell in different units
             </span>
-            <span
-              className={cn(
-                productFormHintClass,
-                "mt-0.5 block",
-              )}
-            >
+            <span className={cn(productFormHintClass, "mt-0.5 block")}>
               {compact
                 ? `Shared stock (e.g. 1 tray = 30 ${baseUnitHint}s).`
                 : `Add selling units (single, tray, crate, …) with their own price and barcode. Stock is shared with this product — e.g. 1 tray = 30 ${baseUnitHint}s deducted from the same inventory.`}
@@ -124,7 +124,11 @@ export function PackageVariantsSection({
         <div
           className={cn(
             compact ? "space-y-2" : "space-y-3",
-            showEnableToggle && cn("border-t border-border/40 pt-2", compact ? "mt-2" : "mt-4 pt-4"),
+            showEnableToggle &&
+              cn(
+                "border-t border-border/40 pt-2",
+                compact ? "mt-2" : "mt-4 pt-4",
+              ),
           )}
         >
           {rows.map((row, index) => (
@@ -156,7 +160,10 @@ export function PackageVariantsSection({
                     onChange={(e) => updateRow(index, { name: e.target.value })}
                   />
                 </Label>
-                <Label title={`Conversion (${baseUnitHint}s per unit)`} required>
+                <Label
+                  title={`Conversion (${baseUnitHint}s per unit)`}
+                  required
+                >
                   <input
                     type="number"
                     min={1}
@@ -169,7 +176,9 @@ export function PackageVariantsSection({
                     }
                   />
                 </Label>
-                <Label title={`Price per package${currencyCode ? ` (${currencyCode})` : ""}`}>
+                <Label
+                  title={`Price per package${currencyCode ? ` (${currencyCode})` : ""}`}
+                >
                   <input
                     type="number"
                     min={0}
@@ -177,7 +186,9 @@ export function PackageVariantsSection({
                     className={productFormInputClass}
                     placeholder="0.00"
                     value={row.price}
-                    onChange={(e) => updateRow(index, { price: e.target.value })}
+                    onChange={(e) =>
+                      updateRow(index, { price: e.target.value })
+                    }
                   />
                 </Label>
                 <Label title="SKU (optional)">
@@ -191,7 +202,9 @@ export function PackageVariantsSection({
                   <input
                     className={productFormInputClass}
                     value={row.barcode}
-                    onChange={(e) => updateRow(index, { barcode: e.target.value })}
+                    onChange={(e) =>
+                      updateRow(index, { barcode: e.target.value })
+                    }
                   />
                 </Label>
               </div>

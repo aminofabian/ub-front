@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 
 export const BUSINESS_HUB_VARS = {
   ["--hub-ink" as string]: "#141414",
-  ["--hub-paper" as string]: "#f3f1ec",
-  ["--hub-accent" as string]: "#B08D48",
-  ["--hub-accent-deep" as string]: "#8A6B2E",
+  ["--hub-paper" as string]: "#ffffff",
+  ["--hub-accent" as string]: "#0f766e",
+  ["--hub-accent-deep" as string]: "#0f766e",
   ["--hub-slip" as string]: "#ffffff",
   ["--hub-rule" as string]: "color-mix(in srgb, #141414 8%, transparent)",
 } as const;
@@ -53,10 +53,9 @@ export function BusinessPageLayout({
         {showNav ? (
           <div
             className={cn(
-              "sticky top-0 z-20 shrink-0 overflow-hidden border bg-white/95 p-0.5 backdrop-blur-md",
-              "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
-              "shadow-[0_1px_0_rgba(20,20,20,0.035),0_8px_22px_-14px_rgba(20,20,20,0.12)]",
-              "supports-[backdrop-filter]:bg-white/88",
+              "sticky top-0 z-20 shrink-0 overflow-hidden border bg-white p-0.5",
+              "border-[color-mix(in_srgb,var(--hub-ink)_12%,transparent)]",
+              "shadow-none",
             )}
           >
             <BusinessHubNav setupHome={setupHome} />

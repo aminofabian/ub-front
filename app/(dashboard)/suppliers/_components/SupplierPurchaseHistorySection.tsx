@@ -70,7 +70,8 @@ function paymentStatusLabel(status: string): string {
 }
 
 function sourceLabel(sourceType: string, compact = false): string {
-  if (sourceType === "DIRECT_SUPPLY") return compact ? "Direct" : "Direct supply";
+  if (sourceType === "DIRECT_SUPPLY")
+    return compact ? "Direct" : "Direct supply";
   if (sourceType === "GOODS_RECEIPT") return compact ? "Receipt" : "PO receipt";
   return "Invoice";
 }
@@ -111,7 +112,9 @@ export function SupplierPurchaseHistorySection({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    void fetchSupplierPurchaseHistory(supplierId, { limit: historyLimit ?? (compact ? 100 : 40) })
+    void fetchSupplierPurchaseHistory(supplierId, {
+      limit: historyLimit ?? (compact ? 100 : 40),
+    })
       .then((res) => {
         if (!cancelled) setData(res);
       })
@@ -153,9 +156,7 @@ export function SupplierPurchaseHistorySection({
       label: compact ? "Balance" : "Open balance",
       value: formatMoney(n(summary?.openBalance ?? 0)),
       valueClassName:
-        n(summary?.openBalance ?? 0) > 0.009
-          ? "text-primary"
-          : undefined,
+        n(summary?.openBalance ?? 0) > 0.009 ? "text-primary" : undefined,
     },
     {
       label: compact ? "Last bill" : "Last invoice",
@@ -171,7 +172,9 @@ export function SupplierPurchaseHistorySection({
       compact={compact}
       title={compact ? "Purchases" : "Purchase history"}
       hint="Posted invoices and what you still owe this vendor."
-      className={compact ? "rounded-none border-x border-b border-t" : undefined}
+      className={
+        compact ? "rounded-none border-x border-b border-t" : undefined
+      }
       action={
         totalCount > 0 ? (
           <span className="inline-flex items-center gap-0.5 rounded-none bg-muted/50 px-1.5 py-px text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">
@@ -197,25 +200,27 @@ export function SupplierPurchaseHistorySection({
             <table className="w-full border-collapse border-b border-border text-left text-xs">
               <tbody>
                 <tr>
-                  {summaryRows.map(({ label, value, valueClassName, mono = true }) => (
-                    <td
-                      key={label}
-                      className="border border-border px-2 py-1.5 align-top"
-                    >
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        {label}
-                      </div>
-                      <div
-                        className={cn(
-                          "mt-0.5 font-semibold tabular-nums text-foreground",
-                          mono && "font-mono",
-                          valueClassName,
-                        )}
+                  {summaryRows.map(
+                    ({ label, value, valueClassName, mono = true }) => (
+                      <td
+                        key={label}
+                        className="border border-border px-2 py-1.5 align-top"
                       >
-                        {value}
-                      </div>
-                    </td>
-                  ))}
+                        <div className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                          {label}
+                        </div>
+                        <div
+                          className={cn(
+                            "mt-0.5 font-semibold tabular-nums text-foreground",
+                            mono && "font-mono",
+                            valueClassName,
+                          )}
+                        >
+                          {value}
+                        </div>
+                      </td>
+                    ),
+                  )}
                 </tr>
               </tbody>
             </table>
@@ -243,13 +248,27 @@ export function SupplierPurchaseHistorySection({
               <table className="w-full min-w-[32rem] border-collapse text-left text-xs">
                 <thead className={supTableHead}>
                   <tr>
-                    <th className="border border-border px-2 py-1 font-semibold">Date</th>
-                    <th className="border border-border px-2 py-1 font-semibold">Invoice</th>
-                    <th className="border border-border px-2 py-1 font-semibold">Type</th>
-                    <th className="border border-border px-2 py-1 text-right font-semibold">Total</th>
-                    <th className="border border-border px-2 py-1 text-right font-semibold">Paid</th>
-                    <th className="border border-border px-2 py-1 text-right font-semibold">Balance</th>
-                    <th className="border border-border px-2 py-1 font-semibold">Status</th>
+                    <th className="border border-border px-2 py-1 font-semibold">
+                      Date
+                    </th>
+                    <th className="border border-border px-2 py-1 font-semibold">
+                      Invoice
+                    </th>
+                    <th className="border border-border px-2 py-1 font-semibold">
+                      Type
+                    </th>
+                    <th className="border border-border px-2 py-1 text-right font-semibold">
+                      Total
+                    </th>
+                    <th className="border border-border px-2 py-1 text-right font-semibold">
+                      Paid
+                    </th>
+                    <th className="border border-border px-2 py-1 text-right font-semibold">
+                      Balance
+                    </th>
+                    <th className="border border-border px-2 py-1 font-semibold">
+                      Status
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -265,9 +284,7 @@ export function SupplierPurchaseHistorySection({
                           active && supTableRowActive,
                         )}
                         onClick={
-                          selectable
-                            ? () => onSelectInvoice?.(row)
-                            : undefined
+                          selectable ? () => onSelectInvoice?.(row) : undefined
                         }
                       >
                         <td className="whitespace-nowrap border border-border/70 px-2 py-1 text-muted-foreground">
@@ -296,7 +313,7 @@ export function SupplierPurchaseHistorySection({
                         <td className="border border-border/70 px-2 py-1">
                           <span
                             className={cn(
-                              "inline-flex border px-1 py-px text-[10px] font-semibold uppercase",
+                              "inline-flex border px-1 py-px text-[10px] font-semibold tracking-[-0.02em]",
                               paymentStatusBadgeClass(row.paymentStatus),
                             )}
                           >
@@ -318,20 +335,20 @@ export function SupplierPurchaseHistorySection({
           ) : null}
 
           {!compact ? (
-          <div className="flex justify-end border-t border-border/40 pt-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 gap-1 rounded-none text-sm"
-              asChild
-            >
-              <Link href={APP_ROUTES.purchasingAddSupplies}>
-                <Receipt className="size-3" aria-hidden />
-                Supplies
-              </Link>
-            </Button>
-          </div>
+            <div className="flex justify-end border-t border-border/40 pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 rounded-none text-sm"
+                asChild
+              >
+                <Link href={APP_ROUTES.purchasingAddSupplies}>
+                  <Receipt className="size-3" aria-hidden />
+                  Supplies
+                </Link>
+              </Button>
+            </div>
           ) : null}
         </>
       )}
@@ -391,8 +408,12 @@ function SidebarInvoiceList({
       <table className="w-full border-collapse text-left text-[11px]">
         <thead className={cn("sticky top-0 z-10", supTableHead)}>
           <tr>
-            <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-1 font-semibold">Date</th>
-            <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-1 font-semibold">Invoice</th>
+            <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-1 font-semibold">
+              Date
+            </th>
+            <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-1 font-semibold">
+              Invoice
+            </th>
             <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-1 text-right font-semibold">
               Total
             </th>
@@ -413,9 +434,7 @@ function SidebarInvoiceList({
                   selectable && "cursor-pointer",
                   active && supTableRowActive,
                 )}
-                onClick={
-                  selectable ? () => onSelectInvoice?.(row) : undefined
-                }
+                onClick={selectable ? () => onSelectInvoice?.(row) : undefined}
               >
                 <td className="whitespace-nowrap border border-border/70 px-1.5 py-0.5 text-muted-foreground">
                   {formatCompactDate(row.invoiceDate)}
@@ -439,4 +458,3 @@ function SidebarInvoiceList({
     </div>
   );
 }
-

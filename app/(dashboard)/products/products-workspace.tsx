@@ -5,17 +5,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, MousePointerClick } from "lucide-react";
 
 import { DashboardNotice } from "@/components/dashboard-page-ui";
-import { FormDrawerMessageBanner, catalogMessageBannerTone } from "@/components/form-drawer";
+import {
+  FormDrawerMessageBanner,
+  catalogMessageBannerTone,
+} from "@/components/form-drawer";
 import { useDashboard } from "@/components/dashboard-provider";
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canLinkSupplierProducts } from "@/lib/supplier-access";
 import { itemListThumbnailUrl } from "@/lib/api";
-import {
-  type ProductDrawerId,
-  emptyVariantDraft,
-} from "./_types";
+import { type ProductDrawerId, emptyVariantDraft } from "./_types";
 import { useCatalogList } from "./_hooks/useCatalogList";
 import { useProductDetail } from "./_hooks/useProductDetail";
 import { useQuickEdit } from "./_hooks/useQuickEdit";
@@ -34,17 +34,12 @@ import { AddPackageModal } from "./_components/AddPackageModal";
 import { ChangeItemTypeModal } from "./_components/ChangeItemTypeModal";
 import { ChangeAisleModal } from "./_components/ChangeAisleModal";
 import { BulkStockAdjustModal } from "./_components/BulkStockAdjustModal";
-import {
-  RegroupProductsModal,
-} from "./_components/RegroupProductsModal";
+import { RegroupProductsModal } from "./_components/RegroupProductsModal";
 import {
   buildVariantIdsByParentId,
   catalogListDisplayType,
 } from "./_components/catalog-list-styles";
-import {
-  resolveCatalogParentId,
-  toNumber,
-} from "./_utils";
+import { resolveCatalogParentId, toNumber } from "./_utils";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
 import { ProductEditDrawer } from "./_components/ProductEditDrawer";
 import {
@@ -101,7 +96,11 @@ export function ProductsWorkspace() {
     Permission.CatalogCategoriesWrite,
   );
 
-  const catalog = useCatalogList(branchId, dashboardItemTypeId, dashboardAisleId);
+  const catalog = useCatalogList(
+    branchId,
+    dashboardItemTypeId,
+    dashboardAisleId,
+  );
   const detail = useProductDetail(branchId);
   const featured = useStorefrontFeatured(catalog.setMessage);
   const quick = useQuickEdit({
@@ -138,11 +137,11 @@ export function ProductsWorkspace() {
     id: string;
     name: string;
   } | null>(null);
-  const [unassignedAisleCount, setUnassignedAisleCount] = useState<number | null>(
-    null,
-  );
-  const [shelfZoneBannerDismissed, setShelfZoneBannerDismissed] = useState(
-    () => readShelfZoneBannerDismissed(business?.id),
+  const [unassignedAisleCount, setUnassignedAisleCount] = useState<
+    number | null
+  >(null);
+  const [shelfZoneBannerDismissed, setShelfZoneBannerDismissed] = useState(() =>
+    readShelfZoneBannerDismissed(business?.id),
   );
   const didAutoOpenCreate = useRef(false);
 
@@ -162,7 +161,7 @@ export function ProductsWorkspace() {
   const [dockRoot, setDockRoot] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
-    setIsLg(mq.matches);  
+    setIsLg(mq.matches);
     mq.addEventListener("change", () => setIsLg(mq.matches));
     return () => mq.removeEventListener("change", () => setIsLg(mq.matches));
   }, []);
@@ -252,8 +251,7 @@ export function ProductsWorkspace() {
     () =>
       regroupEligibleRows.length > 0 &&
       regroupEligibleRows.filter((r) => Boolean(r.variantOfItemId?.trim()))
-        .length >=
-        Math.ceil(regroupEligibleRows.length / 2),
+        .length >= Math.ceil(regroupEligibleRows.length / 2),
     [regroupEligibleRows],
   );
 
@@ -302,10 +300,9 @@ export function ProductsWorkspace() {
     (isViewingVariant && detail.variantParentDisplayName?.trim()) ||
     D?.name?.trim() ||
     "This product";
-  const variantDrawerParentIsGroup =
-    isViewingVariant
-      ? detail.variantParentIsGroup
-      : !!D && !D.variantOfItemId?.trim() && D.isSellable === false;
+  const variantDrawerParentIsGroup = isViewingVariant
+    ? detail.variantParentIsGroup
+    : !!D && !D.variantOfItemId?.trim() && D.isSellable === false;
   const variantDrawerParentCategoryId =
     (isViewingVariant
       ? detail.variantParentCategoryId?.trim()
@@ -313,8 +310,9 @@ export function ProductsWorkspace() {
         ? D.categoryId?.trim()
         : "") || "";
   const variantDrawerParentCategoryName = variantDrawerParentCategoryId
-    ? catalog.sortedCategories.find((c) => c.id === variantDrawerParentCategoryId)
-        ?.name ||
+    ? catalog.sortedCategories.find(
+        (c) => c.id === variantDrawerParentCategoryId,
+      )?.name ||
       D?.categoryName?.trim() ||
       ""
     : "";
@@ -335,22 +333,16 @@ export function ProductsWorkspace() {
     }
     m.setVariantDraftRows([seed]);
     setActiveDrawer("add-variant");
-  }, [
-    D,
-    catalog,
-    isViewingVariant,
-    m,
-    variantDrawerParentCategoryId,
-  ]);
+  }, [D, catalog, isViewingVariant, m, variantDrawerParentCategoryId]);
   const currencyCode = business?.currency?.trim() || "";
   const variantDrawerExistingOptions = useMemo(() => {
     return detail.variantRows.map((v) => {
       const rawLabel = v.variantName?.trim() || v.name?.trim() || "Option";
       const family = variantDrawerParentName.trim();
       const label =
-        family &&
-        rawLabel.toLowerCase().startsWith(family.toLowerCase())
-          ? rawLabel.slice(family.length).replace(/^[\s·•\-–,]+/, "") || rawLabel
+        family && rawLabel.toLowerCase().startsWith(family.toLowerCase())
+          ? rawLabel.slice(family.length).replace(/^[\s·•\-–,]+/, "") ||
+            rawLabel
           : rawLabel;
       return {
         id: v.id,
@@ -394,11 +386,7 @@ export function ProductsWorkspace() {
 
   const catalogMessageInDrawer =
     !!catalog.message.trim() &&
-    !!(
-      activeDrawer ||
-      quick.quickEditAllOpen ||
-      (mobileDetailOpen && !isLg)
-    );
+    !!(activeDrawer || quick.quickEditAllOpen || (mobileDetailOpen && !isLg));
   const catalogBanner = (text: string) => (
     <FormDrawerMessageBanner
       text={text}
@@ -487,9 +475,7 @@ export function ProductsWorkspace() {
     onOpenPackageSales: canCatalogWrite
       ? () => setPackageModalOpen(true)
       : undefined,
-    onOpenBaseStock: canInventoryWrite
-      ? () => void openBaseStock()
-      : undefined,
+    onOpenBaseStock: canInventoryWrite ? () => void openBaseStock() : undefined,
     onOpenChangeItemType: canCatalogWrite
       ? () => {
           setChangeItemTypeMode("single");
@@ -513,9 +499,7 @@ export function ProductsWorkspace() {
       catalog.aisles.find((a) => a.id === D?.aisleId)?.name?.trim() ||
       D?.aisleName?.trim() ||
       undefined,
-    isStorefrontFeatured: D?.id
-      ? featured.isFeatured(D.id)
-      : false,
+    isStorefrontFeatured: D?.id ? featured.isFeatured(D.id) : false,
     canManageFeatured: featured.canManageFeatured,
     featuredBusy: featured.featuredBusy,
     featuredAtCapacity: featured.featuredAtCapacity,
@@ -667,130 +651,136 @@ export function ProductsWorkspace() {
         }
       >
         <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0 overflow-x-hidden lg:min-h-[min(72dvh,40rem)]">
-        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0">
-          {catalogEmpty ? null : (
-          <ProductMobileChrome
-            catalog={catalog}
-            canCreate={catalog.itemTypes.length > 0}
-            onCreateNew={() => setActiveDrawer("create-parent")}
-            onAddFromCatalog={
-              canGlobalCatalog
-                ? () => router.push(APP_ROUTES.productsCatalog)
-                : undefined
-            }
-            canAddFromCatalog={canGlobalCatalog}
-          />
-          )}
-          <section
-            className={cn(
-              "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
-              catalogEmpty
-                ? "bg-transparent"
-                : [
-                    "lg:rounded-none lg:border lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] lg:bg-white",
-                    "lg:shadow-[0_1px_0_color-mix(in_srgb,var(--catalog-ink,#15231f)_6%,transparent),0_10px_28px_-18px_color-mix(in_srgb,var(--catalog-ink,#15231f)_22%,transparent)]",
-                    "border-0 bg-transparent",
-                  ],
-            )}
-          >
-            <div
-              className={cn(
-                "grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-0 overflow-x-hidden p-0",
-                !catalogEmpty &&
-                  "lg:grid-cols-[minmax(0,1fr)_minmax(18rem,min(24rem,30vw))] lg:items-stretch 2xl:grid-cols-[minmax(0,1fr)_minmax(19rem,min(28rem,32vw))]",
-              )}
-            >
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex-row lg:items-stretch">
-                {catalogEmpty ? null : <ProductFilterSidebar catalog={catalog} />}
-                <CatalogListColumn
+          <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0">
+            {catalogEmpty ? null : (
+              <ProductMobileChrome
                 catalog={catalog}
-                selectedId={detail.selectedId}
-                onRowClick={(id) => {
-                  detail.selectProduct(id);
-                  setMobileDetailOpen(true);
-                }}
-                isRowActive={isListRowActive}
-                canCatalogWrite={canCatalogWrite}
-                canInventoryWrite={canInventoryWrite}
-                bulkDeleteBusy={m.bulkDeleteBusy}
-                bulkChangeDepartmentBusy={m.changeItemTypeBusy}
-                bulkChangeAisleBusy={m.changeAisleBusy}
-                bulkActivateBusy={m.bulkActivateBusy}
-                onBulkDelete={m.onBulkDeleteSelected}
-                onBulkActivate={
-                  canCatalogWrite ? m.onBulkActivateSelected : undefined
-                }
-                onBulkAdjustStock={
-                  canInventoryWrite ? () => setBulkStockOpen(true) : undefined
-                }
-                onBulkRegroup={
-                  canCatalogWrite ? openRegroupFromSelection : undefined
-                }
-                bulkRegroupBusy={m.regroupBusy}
-                bulkRegroupLabel={
-                  regroupSelectionIsMostlyVariants
-                    ? "Change family"
-                    : "Group as family"
-                }
-                onBulkChangeDepartment={
-                  canCatalogWrite
-                    ? () => {
-                        setChangeItemTypeMode("bulk");
-                        setChangeItemTypeOpen(true);
-                      }
-                    : undefined
-                }
-                onBulkChangeAisle={
-                  canCatalogWrite
-                    ? () => {
-                        setChangeAisleMode("bulk");
-                        setChangeAisleOpen(true);
-                      }
-                    : undefined
-                }
+                canCreate={catalog.itemTypes.length > 0}
+                onCreateNew={() => setActiveDrawer("create-parent")}
                 onAddFromCatalog={
                   canGlobalCatalog
                     ? () => router.push(APP_ROUTES.productsCatalog)
                     : undefined
                 }
                 canAddFromCatalog={canGlobalCatalog}
-                onCreateNew={
-                  canCatalogWrite
-                    ? () => setActiveDrawer("create-parent")
-                    : undefined
-                }
-                canCreateNew={canCatalogWrite && catalog.itemTypes.length > 0}
-                />
-              </div>
-              {catalogEmpty ? null : (
+              />
+            )}
+            <section
+              className={cn(
+                "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+                catalogEmpty
+                  ? "bg-transparent"
+                  : [
+                      "lg:rounded-none lg:border lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] lg:bg-white",
+                      "lg:shadow-none",
+                      "border-0 bg-transparent",
+                    ],
+              )}
+            >
               <div
-                ref={setDockRoot}
-                className="relative hidden min-h-0 min-w-0 max-w-full overflow-hidden lg:flex lg:flex-col lg:border-l lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)]"
+                className={cn(
+                  "grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-0 overflow-x-hidden p-0",
+                  !catalogEmpty &&
+                    "lg:grid-cols-[minmax(0,1fr)_minmax(18rem,min(24rem,30vw))] lg:items-stretch 2xl:grid-cols-[minmax(0,1fr)_minmax(19rem,min(28rem,32vw))]",
+                )}
               >
-                {isLg && activeDrawer === "edit-product" && D ? null : D ? (
-                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-pb-24 p-0">
-                    <ProductDetailPanel {...p} />
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-2 px-3 py-8 text-center">
-                    <div className="flex size-10 items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_60%,transparent)]">
-                      <MousePointerClick className="size-4 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_35%,transparent)]" />
-                    </div>
-                    <p className="text-[12px] font-medium tracking-tight text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]">
-                      Select a product from the list
-                    </p>
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex-row lg:items-stretch">
+                  {catalogEmpty ? null : (
+                    <ProductFilterSidebar catalog={catalog} />
+                  )}
+                  <CatalogListColumn
+                    catalog={catalog}
+                    selectedId={detail.selectedId}
+                    onRowClick={(id) => {
+                      detail.selectProduct(id);
+                      setMobileDetailOpen(true);
+                    }}
+                    isRowActive={isListRowActive}
+                    canCatalogWrite={canCatalogWrite}
+                    canInventoryWrite={canInventoryWrite}
+                    bulkDeleteBusy={m.bulkDeleteBusy}
+                    bulkChangeDepartmentBusy={m.changeItemTypeBusy}
+                    bulkChangeAisleBusy={m.changeAisleBusy}
+                    bulkActivateBusy={m.bulkActivateBusy}
+                    onBulkDelete={m.onBulkDeleteSelected}
+                    onBulkActivate={
+                      canCatalogWrite ? m.onBulkActivateSelected : undefined
+                    }
+                    onBulkAdjustStock={
+                      canInventoryWrite
+                        ? () => setBulkStockOpen(true)
+                        : undefined
+                    }
+                    onBulkRegroup={
+                      canCatalogWrite ? openRegroupFromSelection : undefined
+                    }
+                    bulkRegroupBusy={m.regroupBusy}
+                    bulkRegroupLabel={
+                      regroupSelectionIsMostlyVariants
+                        ? "Change family"
+                        : "Group as family"
+                    }
+                    onBulkChangeDepartment={
+                      canCatalogWrite
+                        ? () => {
+                            setChangeItemTypeMode("bulk");
+                            setChangeItemTypeOpen(true);
+                          }
+                        : undefined
+                    }
+                    onBulkChangeAisle={
+                      canCatalogWrite
+                        ? () => {
+                            setChangeAisleMode("bulk");
+                            setChangeAisleOpen(true);
+                          }
+                        : undefined
+                    }
+                    onAddFromCatalog={
+                      canGlobalCatalog
+                        ? () => router.push(APP_ROUTES.productsCatalog)
+                        : undefined
+                    }
+                    canAddFromCatalog={canGlobalCatalog}
+                    onCreateNew={
+                      canCatalogWrite
+                        ? () => setActiveDrawer("create-parent")
+                        : undefined
+                    }
+                    canCreateNew={
+                      canCatalogWrite && catalog.itemTypes.length > 0
+                    }
+                  />
+                </div>
+                {catalogEmpty ? null : (
+                  <div
+                    ref={setDockRoot}
+                    className="relative hidden min-h-0 min-w-0 max-w-full overflow-hidden lg:flex lg:flex-col lg:border-l lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)]"
+                  >
+                    {isLg && activeDrawer === "edit-product" && D ? null : D ? (
+                      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-pb-24 p-0">
+                        <ProductDetailPanel {...p} />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-2 px-3 py-8 text-center">
+                        <div className="flex size-10 items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_60%,transparent)]">
+                          <MousePointerClick className="size-4 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_35%,transparent)]" />
+                        </div>
+                        <p className="text-[12px] font-medium tracking-tight text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]">
+                          Select a product from the list
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-              )}
-            </div>
-          </section>
-          {catalog.message && !catalogMessageInDrawer ? (
-            <div className="shrink-0 px-1">
-              <DashboardNotice text={catalog.message} />
-            </div>
-          ) : null}
-        </div>
+            </section>
+            {catalog.message && !catalogMessageInDrawer ? (
+              <div className="shrink-0 px-1">
+                <DashboardNotice text={catalog.message} />
+              </div>
+            ) : null}
+          </div>
         </div>
       </ProductsPageLayout>
 
@@ -807,9 +797,9 @@ export function ProductsWorkspace() {
         open={activeDrawer === "create-parent"}
         onClose={() => setActiveDrawer(null)}
         banner={
-          activeDrawer === "create-parent" && catalog.message.trim() ? (
-            catalogBanner(catalog.message)
-          ) : undefined
+          activeDrawer === "create-parent" && catalog.message.trim()
+            ? catalogBanner(catalog.message)
+            : undefined
         }
         catalog={catalog}
         m={m}
@@ -831,9 +821,9 @@ export function ProductsWorkspace() {
         dockRoot={dockRoot}
         onClose={() => setActiveDrawer(null)}
         banner={
-          activeDrawer === "edit-product" && catalog.message.trim() ? (
-            catalogBanner(catalog.message)
-          ) : undefined
+          activeDrawer === "edit-product" && catalog.message.trim()
+            ? catalogBanner(catalog.message)
+            : undefined
         }
         detail={detail}
         cats={catalog.sortedCategories}
@@ -853,9 +843,9 @@ export function ProductsWorkspace() {
         open={activeDrawer === "photos" && !!D}
         onClose={() => setActiveDrawer(null)}
         banner={
-          activeDrawer === "photos" && catalog.message.trim() ? (
-            catalogBanner(catalog.message)
-          ) : undefined
+          activeDrawer === "photos" && catalog.message.trim()
+            ? catalogBanner(catalog.message)
+            : undefined
         }
         detail={detail}
         m={m}
@@ -865,9 +855,9 @@ export function ProductsWorkspace() {
         open={activeDrawer === "add-variant" && !!D}
         onClose={() => setActiveDrawer(null)}
         banner={
-          activeDrawer === "add-variant" && catalog.message.trim() ? (
-            catalogBanner(catalog.message)
-          ) : undefined
+          activeDrawer === "add-variant" && catalog.message.trim()
+            ? catalogBanner(catalog.message)
+            : undefined
         }
         parentDisplayName={variantDrawerParentName}
         parentIsProductGroup={variantDrawerParentIsGroup}
@@ -901,7 +891,9 @@ export function ProductsWorkspace() {
           parentId={resolveCatalogParentId(D, detail.selectedId)}
           parentName={
             D.variantOfItemId
-              ? detail.variantParentDisplayName?.trim() || D.name?.trim() || "Product"
+              ? detail.variantParentDisplayName?.trim() ||
+                D.name?.trim() ||
+                "Product"
               : D.name?.trim() || "Product"
           }
           baseUnitHint={
@@ -915,8 +907,7 @@ export function ProductsWorkspace() {
         />
       ) : null}
 
-      {changeItemTypeOpen &&
-      (changeItemTypeMode === "bulk" || D) ? (
+      {changeItemTypeOpen && (changeItemTypeMode === "bulk" || D) ? (
         <ChangeItemTypeModal
           open={changeItemTypeOpen}
           onOpenChange={setChangeItemTypeOpen}
@@ -998,9 +989,9 @@ export function ProductsWorkspace() {
         open={mobileDetailOpen && !isLg}
         onClose={() => setMobileDetailOpen(false)}
         banner={
-          mobileDetailOpen && !isLg && catalog.message.trim() ? (
-            catalogBanner(catalog.message)
-          ) : undefined
+          mobileDetailOpen && !isLg && catalog.message.trim()
+            ? catalogBanner(catalog.message)
+            : undefined
         }
         detail={detail}
         detailPanelProps={p}

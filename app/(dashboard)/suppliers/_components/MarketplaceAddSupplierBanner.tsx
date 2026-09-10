@@ -36,8 +36,8 @@ export function MarketplaceAddSupplierBanner({
               Add from supplier marketplace
             </p>
             <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-              Search by product or vendor, preview catalogue, and import links in
-              one step.
+              Search by product or vendor, preview catalogue, and import links
+              in one step.
             </p>
           </div>
         </div>
@@ -53,7 +53,11 @@ export function MarketplaceAddSupplierBanner({
               <ArrowRight className="ml-1.5 size-3.5" aria-hidden />
             </Button>
           ) : (
-            <Button asChild size="sm" className="h-8 rounded-none px-3 font-semibold">
+            <Button
+              asChild
+              size="sm"
+              className="h-8 rounded-none px-3 font-semibold"
+            >
               <Link href={APP_ROUTES.marketplace}>
                 Browse marketplace
                 <ArrowRight className="ml-1.5 size-3.5" aria-hidden />

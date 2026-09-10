@@ -223,9 +223,7 @@ export function OrderPadDrawer({
       setExisting((prev) => prev.filter((r) => r.id !== id));
       onSaved?.();
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Could not remove that line.",
-      );
+      setError(e instanceof Error ? e.message : "Could not remove that line.");
     } finally {
       setRemovingId(null);
     }
@@ -312,7 +310,7 @@ export function OrderPadDrawer({
                 className={cn(
                   "grid grid-cols-[minmax(0,1fr)_4.5rem_2.25rem]",
                   "border-b border-border bg-muted/35",
-                  "text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground",
+                  "text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground",
                 )}
               >
                 <span className="px-3 py-2">What</span>
@@ -419,9 +417,7 @@ export function OrderPadDrawer({
             </h3>
             {!existingLoading ? (
               <span className="text-[10px] tabular-nums text-muted-foreground">
-                {existing.length === 0
-                  ? "Empty"
-                  : `${existing.length} pending`}
+                {existing.length === 0 ? "Empty" : `${existing.length} pending`}
               </span>
             ) : null}
           </div>

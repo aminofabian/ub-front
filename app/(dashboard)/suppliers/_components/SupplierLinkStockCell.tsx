@@ -100,7 +100,9 @@ export function SupplierLinkStockCell({
       });
       const current = resolved.displayCurrent;
       setBaseline(current);
-      setDraft(Number.isInteger(current) ? String(current) : current.toFixed(2));
+      setDraft(
+        Number.isInteger(current) ? String(current) : current.toFixed(2),
+      );
       setEditing(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load stock.");
@@ -179,7 +181,10 @@ export function SupplierLinkStockCell({
         <div className="flex items-center gap-0.5">
           <input
             ref={inputRef}
-            className={cn(nsdInput, "h-7 w-[4.5rem] px-1.5 text-right font-mono text-xs tabular-nums")}
+            className={cn(
+              nsdInput,
+              "h-7 w-[4.5rem] px-1.5 text-right font-mono text-xs tabular-nums",
+            )}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             disabled={busy}
@@ -256,7 +261,10 @@ export function SupplierLinkStockCell({
         title="Set on-hand stock (absolute total, not add)"
       >
         {busy ? (
-          <Loader2 className="size-3 animate-spin text-muted-foreground" aria-hidden />
+          <Loader2
+            className="size-3 animate-spin text-muted-foreground"
+            aria-hidden
+          />
         ) : (
           <Pencil className="size-2.5 text-muted-foreground" aria-hidden />
         )}

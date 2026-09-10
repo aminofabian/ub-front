@@ -23,7 +23,9 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
     <section className="space-y-1">
       <div className="flex items-baseline justify-between gap-2 px-0.5">
         <h2 className={HUB_SECTION}>Needs attention</h2>
-        <p className="text-[11px] tabular-nums text-[#AAAAAA]">{items.length}</p>
+        <p className="text-[11px] tabular-nums text-[#AAAAAA]">
+          {items.length}
+        </p>
       </div>
       <div
         className={cn(
@@ -39,12 +41,12 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
             <Link
               key={item.id}
               href={item.href}
-              className="group flex min-h-11 items-center gap-2 px-2.5 py-2.5 transition-colors hover:bg-[#FAF8F3] sm:min-h-0 sm:min-w-0 sm:flex-1 sm:snap-start sm:py-1.5"
+              className="group flex min-h-11 items-center gap-2 px-2.5 py-2.5 transition-colors hover:bg-white sm:min-h-0 sm:min-w-0 sm:flex-1 sm:snap-start sm:py-1.5"
             >
               <Icon
                 className={cn(
                   "size-3.5 shrink-0 sm:size-3",
-                  item.tone === "warning" ? "text-[#C47A5A]" : "text-[#B08D48]",
+                  item.tone === "warning" ? "text-[#C47A5A]" : "text-[#0f766e]",
                 )}
                 aria-hidden
               />
@@ -52,7 +54,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
                 {item.label}
               </span>
               <ArrowRight
-                className="size-3.5 shrink-0 text-[#D4CBB8] group-hover:text-[#B08D48] sm:size-3"
+                className="size-3.5 shrink-0 text-[#8A8A8A] group-hover:text-[#0f766e] sm:size-3"
                 aria-hidden
               />
             </Link>

@@ -31,7 +31,7 @@ export function AisleStatusDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-2xl">
+      <DialogContent className="max-w-md rounded-none">
         <DialogHeader>
           <DialogTitle>
             {activating ? "Activate shelf zone?" : "Deactivate shelf zone?"}
@@ -39,14 +39,14 @@ export function AisleStatusDialog({
           <DialogDescription className="text-sm leading-relaxed">
             {activating ? (
               <>
-                <strong className="text-foreground">{aisle.name}</strong> will appear
-                in pickers and header filters again.
+                <strong className="text-foreground">{aisle.name}</strong> will
+                appear in pickers and header filters again.
               </>
             ) : (
               <>
-                <strong className="text-foreground">{aisle.name}</strong> will hide
-                from pickers. {aisle.productCount.toLocaleString()} assigned products
-                keep their tag until you move them.
+                <strong className="text-foreground">{aisle.name}</strong> will
+                hide from pickers. {aisle.productCount.toLocaleString()}{" "}
+                assigned products keep their tag until you move them.
               </>
             )}
           </DialogDescription>
@@ -66,7 +66,9 @@ export function AisleStatusDialog({
             disabled={busy}
             onClick={onConfirm}
           >
-            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : null}
             {activating ? "Activate" : "Deactivate"}
           </Button>
         </DialogFooter>

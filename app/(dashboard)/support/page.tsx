@@ -3,6 +3,10 @@
 import * as React from "react";
 import { Headset, ShoppingBag, Ticket } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardPageHero,
+} from "@/components/dashboard-page-ui";
 import { StorefrontBuyerInbox } from "@/components/support/storefront-buyer-inbox";
 import { SupportChat } from "@/components/support/support-chat";
 import { TenantServingTickets } from "@/components/support/tenant-serving-tickets";
@@ -14,26 +18,28 @@ export default function SupportPage() {
   const [tab, setTab] = React.useState<Tab>("platform");
 
   return (
-    <div className="mx-auto flex h-full max-w-5xl flex-col">
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">Support</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {tab === "platform"
-              ? "A direct line to the Kiosk team — replies land here live."
-              : tab === "tickets"
-                ? "Palmart tickets for this shop. Each issue has a number and an owner."
-                : "Shoppers who started a chat on your storefront land here."}
-          </p>
-        </div>
-        <div className="flex items-center gap-1 rounded-lg bg-muted/60 p-0.5">
+    <div className={DASHBOARD_MAX}>
+      <DashboardPageHero
+        icon={Headset}
+        title="Support"
+        description={
+          tab === "platform"
+            ? "A direct line to the Kiosk team — replies land here live."
+            : tab === "tickets"
+              ? "Palmart tickets for this shop. Each issue has a number and an owner."
+              : "Shoppers who started a chat on your storefront land here."
+        }
+      >
+        <div className="flex items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
           <button
             type="button"
             onClick={() => setTab("platform")}
             aria-pressed={tab === "platform"}
             className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors",
-              tab === "platform" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              "inline-flex h-8 items-center gap-1.5 rounded-none px-3 text-xs font-medium transition-colors",
+              tab === "platform"
+                ? "border border-[#0f766e] text-[#0f766e]"
+                : "text-muted-foreground hover:text-[#0f766e]",
             )}
           >
             <Headset className="size-3.5" aria-hidden />
@@ -44,8 +50,10 @@ export default function SupportPage() {
             onClick={() => setTab("storefront")}
             aria-pressed={tab === "storefront"}
             className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors",
-              tab === "storefront" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              "inline-flex h-8 items-center gap-1.5 rounded-none px-3 text-xs font-medium transition-colors",
+              tab === "storefront"
+                ? "border border-[#0f766e] text-[#0f766e]"
+                : "text-muted-foreground hover:text-[#0f766e]",
             )}
           >
             <ShoppingBag className="size-3.5" aria-hidden />
@@ -56,15 +64,17 @@ export default function SupportPage() {
             onClick={() => setTab("tickets")}
             aria-pressed={tab === "tickets"}
             className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors",
-              tab === "tickets" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              "inline-flex h-8 items-center gap-1.5 rounded-none px-3 text-xs font-medium transition-colors",
+              tab === "tickets"
+                ? "border border-[#0f766e] text-[#0f766e]"
+                : "text-muted-foreground hover:text-[#0f766e]",
             )}
           >
             <Ticket className="size-3.5" aria-hidden />
             Tickets
           </button>
         </div>
-      </div>
+      </DashboardPageHero>
       <div className="min-h-0 flex-1">
         {tab === "platform" ? (
           <div className="h-[calc(100dvh-13.25rem)] min-h-[440px]">

@@ -27,7 +27,11 @@ import {
   type CategoryRecord,
   type CatalogListScope,
 } from "@/lib/api";
-import type { ItemSummaryRecord, SupplierItemLinkRecord, SupplierRecord } from "@/lib/api";
+import type {
+  ItemSummaryRecord,
+  SupplierItemLinkRecord,
+  SupplierRecord,
+} from "@/lib/api";
 import { Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
@@ -75,7 +79,9 @@ type CatalogSortPreset =
   | "category-asc"
   | "category-desc";
 
-function sortsForPreset(preset: CatalogSortPreset): Array<{ property: string; direction: "asc" | "desc" }> {
+function sortsForPreset(
+  preset: CatalogSortPreset,
+): Array<{ property: string; direction: "asc" | "desc" }> {
   switch (preset) {
     case "name-asc":
       return [
@@ -159,9 +165,7 @@ function formatLinkCost(n: number): string {
   });
 }
 
-function resolveLinkShelfPrice(
-  link: SupplierItemLinkRecord,
-): number | null {
+function resolveLinkShelfPrice(link: SupplierItemLinkRecord): number | null {
   const raw = link.catalogShelfPrice;
   if (raw == null || String(raw).trim() === "") return null;
   const n = Number(raw);
@@ -222,15 +226,25 @@ export function SupplierCatalogColumn({
   onSetPrimaryLink: (row: SupplierItemLinkRecord) => void;
   onLinkCatalogItems: (
     itemIds: string[],
-    opts: { supplierSku?: string; defaultCostPrice?: number; setPrimaryForFirst?: boolean },
+    opts: {
+      supplierSku?: string;
+      defaultCostPrice?: number;
+      setPrimaryForFirst?: boolean;
+    },
   ) => Promise<void>;
   /** Bulk-assign items out of the "Suppliers Not Linked" bucket to a real supplier. */
-  onMoveUnassignedItems: (itemIds: string[], targetSupplierId: string) => Promise<void>;
+  onMoveUnassignedItems: (
+    itemIds: string[],
+    targetSupplierId: string,
+  ) => Promise<void>;
   onRefreshLinks?: () => void;
 }) {
   // Scope the product picker to the department chosen in the app header.
-  const { branchId: headerBranchId, itemTypeId: headerItemTypeId, me } =
-    useDashboard();
+  const {
+    branchId: headerBranchId,
+    itemTypeId: headerItemTypeId,
+    me,
+  } = useDashboard();
   const scopedBranchId = headerBranchId?.trim() || undefined;
   const scopedItemTypeId = headerItemTypeId?.trim() || undefined;
   const canEditLinkStock = canAdminEditSupplierLinkStock(me);
@@ -238,7 +252,8 @@ export function SupplierCatalogColumn({
   const [catalogSearch, setCatalogSearch] = useState("");
   const [debouncedCatalogSearch, setDebouncedCatalogSearch] = useState("");
   const [categoryFilterId, setCategoryFilterId] = useState("");
-  const [categoryIncludeDescendants, setCategoryIncludeDescendants] = useState(true);
+  const [categoryIncludeDescendants, setCategoryIncludeDescendants] =
+    useState(true);
   const [sortPreset, setSortPreset] = useState<CatalogSortPreset>("name-asc");
   const [catalogScope, setCatalogScope] = useState<CatalogListScope>("ALL");
   const [catalogRows, setCatalogRows] = useState<ItemSummaryRecord[]>([]);
@@ -251,20 +266,29 @@ export function SupplierCatalogColumn({
   const [catalogLoadingMore, setCatalogLoadingMore] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   /** Variant item ids under each group label (parent id), from item detail — used for select-all / unselect-all. */
-  const [variantIdsByParentId, setVariantIdsByParentId] = useState<Record<string, string[]>>({});
-  const [groupLabelFetchParentId, setGroupLabelFetchParentId] = useState<string | null>(null);
+  const [variantIdsByParentId, setVariantIdsByParentId] = useState<
+    Record<string, string[]>
+  >({});
+  const [groupLabelFetchParentId, setGroupLabelFetchParentId] = useState<
+    string | null
+  >(null);
   const [linkSku, setLinkSku] = useState("");
   const [linkCostStr, setLinkCostStr] = useState("");
   const [linkPrimary, setLinkPrimary] = useState(false);
   const [catalogBrowserOpen, setCatalogBrowserOpen] = useState(false);
   const [linkFormError, setLinkFormError] = useState<string | null>(null);
-  const [quickLinkIds, setQuickLinkIds] = useState<Set<string>>(() => new Set());
+  const [quickLinkIds, setQuickLinkIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [editLinkDrawerOpen, setEditLinkDrawerOpen] = useState(false);
-  const [editLinkDrawerRow, setEditLinkDrawerRow] = useState<SupplierItemLinkRecord | null>(null);
+  const [editLinkDrawerRow, setEditLinkDrawerRow] =
+    useState<SupplierItemLinkRecord | null>(null);
   const [editLinkDrawerSku, setEditLinkDrawerSku] = useState("");
   const [editLinkDrawerCost, setEditLinkDrawerCost] = useState("");
   const [editLinkDrawerBusy, setEditLinkDrawerBusy] = useState(false);
-  const [editLinkDrawerError, setEditLinkDrawerError] = useState<string | null>(null);
+  const [editLinkDrawerError, setEditLinkDrawerError] = useState<string | null>(
+    null,
+  );
   /** Pack shapes being edited for the drawer's item (saved + unsaved rows). */
   const [editLinkPacks, setEditLinkPacks] = useState<PackOptionDraft[]>([]);
   /** Original saved drafts by option id — used to diff adds/edits/removals on save. */
@@ -274,7 +298,9 @@ export function SupplierCatalogColumn({
   /** "Suppliers Not Linked" bucket — items can be bulk-moved to a real supplier. */
   const [supplierChoices, setSupplierChoices] = useState<SupplierRecord[]>([]);
   const [moveTargetSupplierId, setMoveTargetSupplierId] = useState("");
-  const [moveSelectedIds, setMoveSelectedIds] = useState<Set<string>>(() => new Set());
+  const [moveSelectedIds, setMoveSelectedIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [moveFormError, setMoveFormError] = useState<string | null>(null);
 
   const loadGen = useRef(0);
@@ -284,12 +310,19 @@ export function SupplierCatalogColumn({
     name: detail?.name,
   });
 
-  const linkedIds = useMemo(() => new Set(itemLinks.map((l) => l.itemId)), [itemLinks]);
+  const linkedIds = useMemo(
+    () => new Set(itemLinks.map((l) => l.itemId)),
+    [itemLinks],
+  );
   const allMoveSelected =
-    itemLinks.length > 0 && itemLinks.every((l) => moveSelectedIds.has(l.itemId));
+    itemLinks.length > 0 &&
+    itemLinks.every((l) => moveSelectedIds.has(l.itemId));
 
   const sortedCategoryOptions = useMemo(
-    () => [...categories].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
+    () =>
+      [...categories].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+      ),
     [categories],
   );
 
@@ -302,16 +335,26 @@ export function SupplierCatalogColumn({
     (r) => !r.groupLabelOnly && !linkedIds.has(r.id),
   );
   const allLinkableSelected =
-    linkableOnPage.length > 0 && linkableOnPage.every((r) => selectedIds.has(r.id));
+    linkableOnPage.length > 0 &&
+    linkableOnPage.every((r) => selectedIds.has(r.id));
 
   useEffect(() => {
-    const id = window.setTimeout(() => setDebouncedCatalogSearch(catalogSearch.trim()), 320);
+    const id = window.setTimeout(
+      () => setDebouncedCatalogSearch(catalogSearch.trim()),
+      320,
+    );
     return () => window.clearTimeout(id);
   }, [catalogSearch]);
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [debouncedCatalogSearch, categoryFilterId, categoryIncludeDescendants, sortPreset, catalogScope]);
+  }, [
+    debouncedCatalogSearch,
+    categoryFilterId,
+    categoryIncludeDescendants,
+    sortPreset,
+    catalogScope,
+  ]);
 
   useEffect(() => {
     if (!canReadCatalog) {
@@ -362,7 +405,9 @@ export function SupplierCatalogColumn({
     fetchSuppliers()
       .then((list) => {
         if (!cancelled) {
-          setSupplierChoices(list.filter((s) => !isSystemUnassignedSupplier(s)));
+          setSupplierChoices(
+            list.filter((s) => !isSystemUnassignedSupplier(s)),
+          );
         }
       })
       .catch(() => {
@@ -383,12 +428,18 @@ export function SupplierCatalogColumn({
     }
     const gen = ++loadGen.current;
     setCatalogLoading(true);
-    const search = debouncedCatalogSearch.length > 0 ? debouncedCatalogSearch : undefined;
+    const search =
+      debouncedCatalogSearch.length > 0 ? debouncedCatalogSearch : undefined;
     const cat = categoryFilterId.trim();
     fetchItemsPage(search, {
       page: 0,
       size: CATALOG_PAGE_SIZE,
-      ...(cat ? { categoryId: cat, includeCategoryDescendants: categoryIncludeDescendants } : {}),
+      ...(cat
+        ? {
+            categoryId: cat,
+            includeCategoryDescendants: categoryIncludeDescendants,
+          }
+        : {}),
       catalogScope,
       excludeLinkedSupplierId: supplierId,
       sort: sortsForPreset(sortPreset),
@@ -432,19 +483,31 @@ export function SupplierCatalogColumn({
   ]);
 
   const loadMore = useCallback(async () => {
-    if (!supplierId || !canReadCatalog || !catalogMeta || catalogMeta.last || catalogLoadingMore) {
+    if (
+      !supplierId ||
+      !canReadCatalog ||
+      !catalogMeta ||
+      catalogMeta.last ||
+      catalogLoadingMore
+    ) {
       return;
     }
     const nextPage = catalogMeta.number + 1;
     const gen = loadGen.current;
     setCatalogLoadingMore(true);
     try {
-      const search = debouncedCatalogSearch.length > 0 ? debouncedCatalogSearch : undefined;
+      const search =
+        debouncedCatalogSearch.length > 0 ? debouncedCatalogSearch : undefined;
       const cat = categoryFilterId.trim();
       const page = await fetchItemsPage(search, {
         page: nextPage,
         size: CATALOG_PAGE_SIZE,
-        ...(cat ? { categoryId: cat, includeCategoryDescendants: categoryIncludeDescendants } : {}),
+        ...(cat
+          ? {
+              categoryId: cat,
+              includeCategoryDescendants: categoryIncludeDescendants,
+            }
+          : {}),
         catalogScope,
         excludeLinkedSupplierId: supplierId,
         sort: sortsForPreset(sortPreset),
@@ -515,7 +578,8 @@ export function SupplierCatalogColumn({
           const next = new Set(prev);
           const selectable = ids.filter((id) => !linkedIds.has(id));
           const allOn =
-            selectable.length > 0 && selectable.every((variantId) => next.has(variantId));
+            selectable.length > 0 &&
+            selectable.every((variantId) => next.has(variantId));
           if (allOn) {
             for (const vid of ids) {
               next.delete(vid);
@@ -623,7 +687,8 @@ export function SupplierCatalogColumn({
 
   const toggleMoveAll = () => {
     setMoveSelectedIds((prev) => {
-      const allOn = itemLinks.length > 0 && itemLinks.every((l) => prev.has(l.itemId));
+      const allOn =
+        itemLinks.length > 0 && itemLinks.every((l) => prev.has(l.itemId));
       return allOn ? new Set() : new Set(itemLinks.map((l) => l.itemId));
     });
   };
@@ -693,7 +758,9 @@ export function SupplierCatalogColumn({
 
   const removePackDraft = (index: number) => {
     setEditLinkPacks((prev) =>
-      prev.filter((_, i) => i !== index).map((d, i) => ({ ...d, sortOrder: i })),
+      prev
+        .filter((_, i) => i !== index)
+        .map((d, i) => ({ ...d, sortOrder: i })),
     );
   };
 
@@ -721,23 +788,34 @@ export function SupplierCatalogColumn({
       if (costRaw.length > 0) {
         const n = Number(costRaw);
         if (!Number.isFinite(n) || n < 0) {
-          setEditLinkDrawerError("Default cost must be a valid non-negative number.");
+          setEditLinkDrawerError(
+            "Default cost must be a valid non-negative number.",
+          );
           return;
         }
         defaultCostPrice = n;
       }
       for (const d of editLinkPacks) {
         const size = Number(d.unitsPerPack);
-        if (d.unitsPerPack.trim() === "" || !Number.isFinite(size) || size <= 1) {
+        if (
+          d.unitsPerPack.trim() === "" ||
+          !Number.isFinite(size) ||
+          size <= 1
+        ) {
           setEditLinkDrawerError("Each pack size must be more than 1 piece.");
           return;
         }
         if (d.packUnit.trim() === "") {
-          setEditLinkDrawerError("Each pack needs a unit label (e.g. pack, tray).");
+          setEditLinkDrawerError(
+            "Each pack needs a unit label (e.g. pack, tray).",
+          );
           return;
         }
         const priceRaw = d.defaultPackPrice.trim();
-        if (priceRaw !== "" && (!Number.isFinite(Number(priceRaw)) || Number(priceRaw) < 0)) {
+        if (
+          priceRaw !== "" &&
+          (!Number.isFinite(Number(priceRaw)) || Number(priceRaw) < 0)
+        ) {
           setEditLinkDrawerError("Pack price must be 0 or more.");
           return;
         }
@@ -809,7 +887,9 @@ export function SupplierCatalogColumn({
     if (!canLinkProducts) {
       return (
         <div className="flex w-full flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-muted-foreground">Browse only — linking requires permission.</p>
+          <p className="text-xs text-muted-foreground">
+            Browse only — linking requires permission.
+          </p>
           <Button
             type="button"
             variant="outline"
@@ -831,7 +911,9 @@ export function SupplierCatalogColumn({
         {selectedIds.size > 0 ? (
           <details className="group text-xs">
             <summary className="cursor-pointer list-none text-muted-foreground [&::-webkit-details-marker]:hidden">
-              <span className="underline-offset-2 group-open:underline">Optional: SKU &amp; cost</span>
+              <span className="underline-offset-2 group-open:underline">
+                Optional: SKU &amp; cost
+              </span>
             </summary>
             <div className="mt-1.5 grid gap-1.5 sm:grid-cols-2">
               <input
@@ -890,7 +972,11 @@ export function SupplierCatalogColumn({
             disabled={linksBusy || selectedIds.size === 0}
           >
             <Link2 className="size-3" aria-hidden />
-            {linksBusy ? "…" : selectedIds.size <= 1 ? "Link" : `Link ${selectedIds.size}`}
+            {linksBusy
+              ? "…"
+              : selectedIds.size <= 1
+                ? "Link"
+                : `Link ${selectedIds.size}`}
           </Button>
         </div>
       </form>
@@ -906,7 +992,10 @@ export function SupplierCatalogColumn({
               <button
                 type="button"
                 onClick={() => setCategoryFilterId("")}
-                className={cn(categoryFilterId === "" ? supChipActive : supChipIdle, "shrink-0 px-2 py-0.5 text-xs")}
+                className={cn(
+                  categoryFilterId === "" ? supChipActive : supChipIdle,
+                  "shrink-0 px-2 py-0.5 text-xs",
+                )}
               >
                 All
               </button>
@@ -917,7 +1006,10 @@ export function SupplierCatalogColumn({
                   onClick={() =>
                     setCategoryFilterId(categoryFilterId === c.id ? "" : c.id)
                   }
-                  className={cn(categoryFilterId === c.id ? supChipActive : supChipIdle, "shrink-0 px-2 py-0.5 text-xs")}
+                  className={cn(
+                    categoryFilterId === c.id ? supChipActive : supChipIdle,
+                    "shrink-0 px-2 py-0.5 text-xs",
+                  )}
                 >
                   {c.name}
                 </button>
@@ -942,7 +1034,9 @@ export function SupplierCatalogColumn({
             <select
               className={cn(nsdSelect, "h-8 w-[6.75rem] shrink-0 text-xs")}
               value={sortPreset}
-              onChange={(e) => setSortPreset(e.target.value as CatalogSortPreset)}
+              onChange={(e) =>
+                setSortPreset(e.target.value as CatalogSortPreset)
+              }
               aria-label="Sort catalog"
             >
               <option value="name-asc">A→Z</option>
@@ -955,7 +1049,9 @@ export function SupplierCatalogColumn({
             <select
               className={cn(nsdSelect, "h-8 w-[7rem] shrink-0 text-xs")}
               value={catalogScope}
-              onChange={(e) => setCatalogScope(e.target.value as CatalogListScope)}
+              onChange={(e) =>
+                setCatalogScope(e.target.value as CatalogListScope)
+              }
               aria-label="Catalog scope"
             >
               <option value="ALL">All</option>
@@ -969,7 +1065,9 @@ export function SupplierCatalogColumn({
                   type="checkbox"
                   className="size-3 rounded-sm border border-border"
                   checked={categoryIncludeDescendants}
-                  onChange={(e) => setCategoryIncludeDescendants(e.target.checked)}
+                  onChange={(e) =>
+                    setCategoryIncludeDescendants(e.target.checked)
+                  }
                 />
                 +sub
               </label>
@@ -983,189 +1081,214 @@ export function SupplierCatalogColumn({
         </div>
 
         {catalogLoading && catalogRows.length === 0 ? (
-                <>
-                  <SupplyLoadingInline label="Loading catalog…" />
-                  <SupplyTableSkeleton rows={6} />
-                </>
-              ) : catalogRows.length === 0 ? (
-                <SupplyEmptyState
-                  icon={Package}
-                  title="No products match"
-                  description="Widen search, reset category, or switch catalog scope."
-                  className="m-2 border-0 py-6"
-                />
-              ) : (
-            <div className="min-h-0 flex-1 overflow-auto">
-              <table className="w-full text-left text-xs">
-                <thead className={cn("sticky top-0 z-10", nsdTableHead)}>
-                  <tr>
-                    {canLinkProducts ? (
-                      <th className="w-8 px-1.5 py-1.5 font-semibold">
-                        <input
-                          type="checkbox"
-                          className="size-3 rounded border-input"
-                          checked={allLinkableSelected}
-                          onChange={() => toggleSelectAllOnPage()}
-                          disabled={linksBusy || linkableOnPage.length === 0}
-                          title="Select all on this page (not already linked)"
-                          aria-label="Select all linkable on page"
-                        />
-                      </th>
-                    ) : (
-                      <th className="w-6 px-1.5 py-1.5 font-semibold" />
-                    )}
-                    <th className="px-1.5 py-1.5 font-semibold">Product</th>
-                    <th className="hidden px-2 py-1.5 font-semibold md:table-cell">SKU</th>
-                    {canLinkProducts ? (
-                      <th className="w-10 px-1 py-1.5 font-semibold" />
-                    ) : null}
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayCatalogRows.map((row) => {
-                    const linked = linkedIds.has(row.id);
-                    const isGroupLabel = row.groupLabelOnly === true;
-                    const isVariant = Boolean(row.variantOfItemId);
-                    const ariaForSelect =
-                      isVariant ?
-                        `Select option ${row.sku}: ${itemCatalogDisplayTitle(row)}`
-                      : isGroupLabel ?
-                        `Select all option SKUs under group ${row.sku}: ${row.name}`
+          <>
+            <SupplyLoadingInline label="Loading catalog…" />
+            <SupplyTableSkeleton rows={6} />
+          </>
+        ) : catalogRows.length === 0 ? (
+          <SupplyEmptyState
+            icon={Package}
+            title="No products match"
+            description="Widen search, reset category, or switch catalog scope."
+            className="m-2 border-0 py-6"
+          />
+        ) : (
+          <div className="min-h-0 flex-1 overflow-auto">
+            <table className="w-full text-left text-xs">
+              <thead className={cn("sticky top-0 z-10", nsdTableHead)}>
+                <tr>
+                  {canLinkProducts ? (
+                    <th className="w-8 px-1.5 py-1.5 font-semibold">
+                      <input
+                        type="checkbox"
+                        className="size-3 rounded border-input"
+                        checked={allLinkableSelected}
+                        onChange={() => toggleSelectAllOnPage()}
+                        disabled={linksBusy || linkableOnPage.length === 0}
+                        title="Select all on this page (not already linked)"
+                        aria-label="Select all linkable on page"
+                      />
+                    </th>
+                  ) : (
+                    <th className="w-6 px-1.5 py-1.5 font-semibold" />
+                  )}
+                  <th className="px-1.5 py-1.5 font-semibold">Product</th>
+                  <th className="hidden px-2 py-1.5 font-semibold md:table-cell">
+                    SKU
+                  </th>
+                  {canLinkProducts ? (
+                    <th className="w-10 px-1 py-1.5 font-semibold" />
+                  ) : null}
+                </tr>
+              </thead>
+              <tbody>
+                {displayCatalogRows.map((row) => {
+                  const linked = linkedIds.has(row.id);
+                  const isGroupLabel = row.groupLabelOnly === true;
+                  const isVariant = Boolean(row.variantOfItemId);
+                  const ariaForSelect = isVariant
+                    ? `Select option ${row.sku}: ${itemCatalogDisplayTitle(row)}`
+                    : isGroupLabel
+                      ? `Select all option SKUs under group ${row.sku}: ${row.name}`
                       : `Select standalone ${row.sku}: ${row.name}`;
-                    const variantIdsUnderLabel = isGroupLabel
-                      ? collectVariantIdsUnderParent(row.id, catalogRows, variantIdsByParentId)
-                      : [];
-                    const selectableUnderLabel = isGroupLabel
-                      ? variantIdsUnderLabel.filter((id) => !linkedIds.has(id))
-                      : [];
-                    const groupLabelAllOn =
-                      isGroupLabel &&
-                      selectableUnderLabel.length > 0 &&
-                      selectableUnderLabel.every((vid) => selectedIds.has(vid));
-                    const groupLabelSomeOn =
-                      isGroupLabel &&
-                      selectableUnderLabel.some((vid) => selectedIds.has(vid)) &&
-                      !groupLabelAllOn;
-                    const rowSelectionHighlight =
-                      !linked &&
-                      (selectedIds.has(row.id) ||
-                        (isGroupLabel && selectableUnderLabel.some((vid) => selectedIds.has(vid))));
-                    return (
-                      <tr
-                        key={row.id}
-                        className={cn(
-                          supTableRow,
-                          isVariant ?
-                            cn(
+                  const variantIdsUnderLabel = isGroupLabel
+                    ? collectVariantIdsUnderParent(
+                        row.id,
+                        catalogRows,
+                        variantIdsByParentId,
+                      )
+                    : [];
+                  const selectableUnderLabel = isGroupLabel
+                    ? variantIdsUnderLabel.filter((id) => !linkedIds.has(id))
+                    : [];
+                  const groupLabelAllOn =
+                    isGroupLabel &&
+                    selectableUnderLabel.length > 0 &&
+                    selectableUnderLabel.every((vid) => selectedIds.has(vid));
+                  const groupLabelSomeOn =
+                    isGroupLabel &&
+                    selectableUnderLabel.some((vid) => selectedIds.has(vid)) &&
+                    !groupLabelAllOn;
+                  const rowSelectionHighlight =
+                    !linked &&
+                    (selectedIds.has(row.id) ||
+                      (isGroupLabel &&
+                        selectableUnderLabel.some((vid) =>
+                          selectedIds.has(vid),
+                        )));
+                  return (
+                    <tr
+                      key={row.id}
+                      className={cn(
+                        supTableRow,
+                        isVariant
+                          ? cn(
                               "border-l-[3px] border-l-primary/70 bg-gradient-to-r from-primary/[0.11] via-primary/[0.04] to-transparent",
                             )
-                          : isGroupLabel ?
-                            cn(
-                              "border-l-[3px] border-l-primary/50 bg-gradient-to-r from-primary/[0.10] via-primary/[0.04] to-transparent",
-                            )
-                          : cn(
-                              "border-l-[3px] border-l-primary/40 bg-primary/[0.05]",
-                            ),
-                          linked && "bg-muted/25 text-muted-foreground",
-                          rowSelectionHighlight && "bg-primary/[0.06] ring-1 ring-inset ring-primary/20",
-                        )}
-                      >
-                        {canLinkProducts ? (
-                          <td className="px-1.5 py-1 align-middle">
-                            <input
-                              type="checkbox"
-                              className="size-3 rounded border-input"
-                              ref={(el) => {
-                                if (!el) {
-                                  return;
-                                }
-                                if (isGroupLabel) {
-                                  el.indeterminate = groupLabelSomeOn;
-                                } else {
-                                  el.indeterminate = false;
-                                }
-                              }}
-                              checked={isGroupLabel ? groupLabelAllOn : selectedIds.has(row.id)}
-                              disabled={
-                                linksBusy ||
-                                linked ||
-                                (isGroupLabel &&
-                                  (groupLabelFetchParentId === row.id || selectableUnderLabel.length === 0))
+                          : isGroupLabel
+                            ? cn(
+                                "border-l-[3px] border-l-primary/50 bg-gradient-to-r from-primary/[0.10] via-primary/[0.04] to-transparent",
+                              )
+                            : cn(
+                                "border-l-[3px] border-l-primary/40 bg-primary/[0.05]",
+                              ),
+                        linked && "bg-muted/25 text-muted-foreground",
+                        rowSelectionHighlight &&
+                          "bg-primary/[0.06] ring-1 ring-inset ring-primary/20",
+                      )}
+                    >
+                      {canLinkProducts ? (
+                        <td className="px-1.5 py-1 align-middle">
+                          <input
+                            type="checkbox"
+                            className="size-3 rounded border-input"
+                            ref={(el) => {
+                              if (!el) {
+                                return;
                               }
-                              title={
-                                isGroupLabel ?
-                                  "Select or clear every option SKU in this group (loads the full variant list once)."
+                              if (isGroupLabel) {
+                                el.indeterminate = groupLabelSomeOn;
+                              } else {
+                                el.indeterminate = false;
+                              }
+                            }}
+                            checked={
+                              isGroupLabel
+                                ? groupLabelAllOn
+                                : selectedIds.has(row.id)
+                            }
+                            disabled={
+                              linksBusy ||
+                              linked ||
+                              (isGroupLabel &&
+                                (groupLabelFetchParentId === row.id ||
+                                  selectableUnderLabel.length === 0))
+                            }
+                            title={
+                              isGroupLabel
+                                ? "Select or clear every option SKU in this group (loads the full variant list once)."
                                 : undefined
-                              }
-                              onChange={() =>
-                                isGroupLabel ? void toggleGroupLabelRow(row.id) : toggleRow(row.id)
-                              }
-                              aria-label={ariaForSelect}
+                            }
+                            onChange={() =>
+                              isGroupLabel
+                                ? void toggleGroupLabelRow(row.id)
+                                : toggleRow(row.id)
+                            }
+                            aria-label={ariaForSelect}
+                          />
+                        </td>
+                      ) : (
+                        <td className="px-1.5 py-1" />
+                      )}
+                      <td className="px-1.5 py-1">
+                        <div className="flex min-w-0 items-center gap-1">
+                          {isVariant ? (
+                            <CornerDownRight
+                              className="size-3 shrink-0 text-primary/85"
+                              aria-hidden
                             />
-                          </td>
-                        ) : (
-                          <td className="px-1.5 py-1" />
-                        )}
-                        <td className="px-1.5 py-1">
-                          <div className="flex min-w-0 items-center gap-1">
-                            {isVariant ? (
-                              <CornerDownRight className="size-3 shrink-0 text-primary/85" aria-hidden />
-                            ) : isGroupLabel ? (
-                              <Tag className="size-3 shrink-0 text-primary/75" aria-hidden />
-                            ) : (
-                              <Package className="size-3 shrink-0 text-primary" aria-hidden />
-                            )}
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-xs font-medium leading-tight text-foreground">
-                                {itemCatalogDisplayTitle(row)}
-                              </span>
-                              {row.sku?.trim() ? (
-                                <span className="block truncate font-mono text-xs text-muted-foreground md:hidden">
-                                  {row.sku.trim()}
-                                </span>
-                              ) : null}
+                          ) : isGroupLabel ? (
+                            <Tag
+                              className="size-3 shrink-0 text-primary/75"
+                              aria-hidden
+                            />
+                          ) : (
+                            <Package
+                              className="size-3 shrink-0 text-primary"
+                              aria-hidden
+                            />
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-xs font-medium leading-tight text-foreground">
+                              {itemCatalogDisplayTitle(row)}
                             </span>
-                            {linked ? (
-                              <span className="shrink-0 text-xs font-semibold uppercase text-primary">
-                                ✓
+                            {row.sku?.trim() ? (
+                              <span className="block truncate font-mono text-xs text-muted-foreground md:hidden">
+                                {row.sku.trim()}
                               </span>
                             ) : null}
-                          </div>
+                          </span>
+                          {linked ? (
+                            <span className="shrink-0 text-xs font-semibold tracking-[-0.02em] text-primary">
+                              ✓
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="hidden max-w-[8rem] truncate px-2 py-1 font-mono text-xs text-muted-foreground md:table-cell">
+                        {row.sku || "—"}
+                      </td>
+                      {canLinkProducts ? (
+                        <td className="px-1 py-1 align-middle">
+                          {!linked && !isGroupLabel ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              disabled={quickLinkIds.has(row.id) || linksBusy}
+                              title="Quick link"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void doQuickLink(row.id);
+                              }}
+                            >
+                              {quickLinkIds.has(row.id) ? (
+                                <span className="h-2 w-2 animate-pulse rounded-full bg-primary/60" />
+                              ) : (
+                                <Zap className="size-3.5" />
+                              )}
+                            </Button>
+                          ) : null}
                         </td>
-                        <td className="hidden max-w-[8rem] truncate px-2 py-1 font-mono text-xs text-muted-foreground md:table-cell">
-                          {row.sku || "—"}
-                        </td>
-                        {canLinkProducts ? (
-                          <td className="px-1 py-1 align-middle">
-                            {!linked && !isGroupLabel ? (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0"
-                                disabled={quickLinkIds.has(row.id) || linksBusy}
-                                title="Quick link"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  void doQuickLink(row.id);
-                                }}
-                              >
-                                {quickLinkIds.has(row.id) ? (
-                                  <span className="h-2 w-2 animate-pulse rounded-full bg-primary/60" />
-                                ) : (
-                                  <Zap className="size-3.5" />
-                                )}
-                              </Button>
-                            ) : null}
-                          </td>
-                        ) : null}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                      ) : null}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
         {catalogMeta && !catalogMeta.last && catalogRows.length > 0 ? (
           <div className="shrink-0 border-t border-border px-2 py-1.5">
             <Button
@@ -1269,286 +1392,305 @@ export function SupplierCatalogColumn({
                     <th className="border border-border px-1.5 py-1 font-semibold">
                       Product
                     </th>
-                  <th className="w-[4.25rem] border border-border px-1.5 py-1 text-right font-semibold">
-                    Stock
-                  </th>
-                  <th
-                    className="w-[4.5rem] border border-border px-1.5 py-1 text-right font-semibold"
-                    title="Supplier default cost, else last purchase, else catalog buying price"
-                  >
-                    Cost
-                  </th>
-                  <th
-                    className="w-[4.5rem] border border-border px-1.5 py-1 text-right font-semibold"
-                    title="Catalog shelf / sell price"
-                  >
-                    Sell
-                  </th>
-                  {canLinkProducts ? (
-                    <th className="w-[4.5rem] border border-border px-1.5 py-1 text-right font-semibold">
-                      <span className="sr-only">Actions</span>
+                    <th className="w-[4.25rem] border border-border px-1.5 py-1 text-right font-semibold">
+                      Stock
                     </th>
-                  ) : null}
-                </tr>
-              </thead>
-              <tbody>
-                {[...itemLinks]
-                  .sort((a, b) => {
-                    const ap = (a.parentItemName || a.itemName || "").toLowerCase();
-                    const bp = (b.parentItemName || b.itemName || "").toLowerCase();
-                    if (ap !== bp) return ap.localeCompare(bp);
-                    return (a.itemName || "").localeCompare(b.itemName || "");
-                  })
-                  .map((row) => {
-                    const pack = resolveLinkPack(row);
-                    const packs = row.packs && row.packs.length > 0 ? row.packs : null;
-                    const sell = resolveLinkShelfPrice(row);
-                    return (
-                  <tr key={row.id} className={supTableRow}>
-                    {isUnassignedBucket && canLinkProducts ? (
-                      <td className="border border-border/70 px-1.5 py-0.5 align-middle">
-                        <input
-                          type="checkbox"
-                          className="size-3 rounded-sm border border-border"
-                          checked={moveSelectedIds.has(row.itemId)}
-                          onChange={() => toggleMoveRow(row.itemId)}
-                          disabled={linksBusy}
-                          aria-label={`Select ${row.itemName || row.itemId}`}
-                        />
-                      </td>
-                    ) : null}
-                    <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
-                      <div className="flex min-w-0 flex-col gap-0.5">
-                        <div className="flex min-w-0 items-center gap-1">
-                          {row.variantOfItemId ? (
-                            <CornerDownRight
-                              className="size-3 shrink-0 text-primary/70"
-                              aria-hidden
-                            />
-                          ) : null}
-                          {packs ? (
-                            <span
-                              className="inline-flex shrink-0 items-center gap-1 border border-amber-900/35 bg-amber-50 px-1 py-px font-mono text-[9px] font-black tabular-nums text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/50 dark:text-amber-100"
-                              title={`Pack options: ${packs.map((p) => `${fmtPackSize(p.unitsPerPack)} ${p.packUnit}`).join(", ")}`}
-                            >
-                              {packs.map((p) => `×${fmtPackSize(p.unitsPerPack)}`).join(" · ")}
-                            </span>
-                          ) : pack ? (
-                            <span
-                              className="inline-flex shrink-0 items-center border border-amber-900/35 bg-amber-50 px-1 py-px font-mono text-[9px] font-black tabular-nums text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/50 dark:text-amber-100"
-                              title={`Sold as a pack of ${pack.size} ${pack.unit}`}
-                            >
-                              ×{fmtPackSize(pack.size)}
-                            </span>
-                          ) : null}
-                          <span
-                            className="truncate font-medium text-foreground"
-                            title={row.itemName || row.itemId}
-                          >
-                            {row.itemName || row.itemId}
-                          </span>
-                          {row.packageVariant ? (
-                            <span
-                              className="shrink-0 border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-bold uppercase text-primary"
-                              title="Package / pack variant"
-                            >
-                              Pack
-                            </span>
-                          ) : null}
-                          {row.primary ? (
-                            <span
-                              className="shrink-0 border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-bold uppercase text-primary"
-                              title="Primary supplier for this product"
-                            >
-                              1°
-                            </span>
-                          ) : null}
-                        </div>
-                        {row.parentItemName?.trim() ? (
-                          <p
-                            className="truncate pl-4 text-[10px] text-muted-foreground"
-                            title={`Parent product: ${row.parentItemName.trim()}`}
-                          >
-                            Parent ·{" "}
-                            {joinProductNameParts(
-                              row.parentItemName,
-                              row.variantName,
-                            )}
-                          </p>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="border border-border/70 px-1.5 py-0.5 text-right align-middle">
-                      <SupplierLinkStockCell
-                        link={row}
-                        branchId={scopedBranchId}
-                        canEdit={canEditLinkStock}
-                        disabled={linksBusy}
-                        onUpdated={() => onRefreshLinks?.()}
-                      />
-                    </td>
-                    <td className="border border-border/70 px-1.5 py-0.5 text-right align-middle">
-                      {(() => {
-                        const cost = resolveLinkDisplayCost(row);
-                        if (!cost) {
-                          return (
-                            <span
-                              className="font-mono text-xs tabular-nums text-muted-foreground/60"
-                              title="No default cost, last purchase, or catalog buying price"
-                            >
-                              —
-                            </span>
-                          );
-                        }
-                        const sourceLabel =
-                          cost.source === "default"
-                            ? "Supplier default cost"
-                            : cost.source === "last"
-                              ? "Last purchase cost"
-                              : "Catalog buying price";
-                        return (
-                          <div
-                            className="flex flex-col items-end leading-tight"
-                            title={
-                              pack
-                                ? `${sourceLabel} · pack of ${pack.size}`
-                                : sourceLabel
-                            }
-                          >
-                            <span className="font-mono text-xs tabular-nums text-foreground">
-                              {formatLinkCost(cost.value)}
-                            </span>
-                            {pack ? (
-                              <span className="text-[9px] font-medium uppercase tracking-wide text-amber-900/70 dark:text-amber-100/70">
-                                / pack
-                              </span>
-                            ) : cost.source !== "default" ? (
-                              <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                                {cost.source === "last" ? "Last" : "Catalog"}
-                              </span>
-                            ) : null}
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td className="border border-border/70 px-1.5 py-0.5 text-right align-middle">
-                      {sell != null ? (
-                        <div
-                          className="flex flex-col items-end leading-tight"
-                          title="Catalog shelf / sell price"
-                        >
-                          <span className="font-mono text-xs tabular-nums text-foreground">
-                            {formatLinkCost(sell)}
-                          </span>
-                          <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                            Shelf
-                          </span>
-                        </div>
-                      ) : (
-                        <span
-                          className="font-mono text-xs tabular-nums text-muted-foreground/60"
-                          title="No catalog shelf price"
-                        >
-                          —
-                        </span>
-                      )}
-                    </td>
+                    <th
+                      className="w-[4.5rem] border border-border px-1.5 py-1 text-right font-semibold"
+                      title="Supplier default cost, else last purchase, else catalog buying price"
+                    >
+                      Cost
+                    </th>
+                    <th
+                      className="w-[4.5rem] border border-border px-1.5 py-1 text-right font-semibold"
+                      title="Catalog shelf / sell price"
+                    >
+                      Sell
+                    </th>
                     {canLinkProducts ? (
-                      <td className="border border-border/70 px-1.5 py-0.5">
-                        <div className="flex items-center justify-end gap-0.5">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="size-6 rounded-none p-0 text-muted-foreground"
-                            title="Edit link"
-                            onClick={() => openEditLinkDrawer(row)}
-                          >
-                            <Pencil className="size-3" aria-hidden />
-                            <span className="sr-only">Edit</span>
-                          </Button>
-                          {!row.primary ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="size-6 rounded-none p-0 text-muted-foreground"
-                              title="Set as primary supplier"
-                              disabled={linksBusy || !row.active}
-                              onClick={() => void onSetPrimaryLink(row)}
-                            >
-                              <Star className="size-3" aria-hidden />
-                              <span className="sr-only">Set primary</span>
-                            </Button>
-                          ) : null}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="size-6 rounded-none p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            title="Remove link"
-                            disabled={linksBusy}
-                            onClick={() => void onRemoveLink(row)}
-                          >
-                            <Trash2 className="size-3" aria-hidden />
-                            <span className="sr-only">Remove</span>
-                          </Button>
-                        </div>
-                      </td>
+                      <th className="w-[4.5rem] border border-border px-1.5 py-1 text-right font-semibold">
+                        <span className="sr-only">Actions</span>
+                      </th>
                     ) : null}
                   </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-          </div>
-          {isUnassignedBucket && canLinkProducts ? (
-            <div className="shrink-0 border-t border-border/70 bg-muted/20 px-2 py-1.5">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="min-w-0 flex-1 text-xs text-muted-foreground">
-                  <span className="font-mono font-bold tabular-nums text-foreground">
-                    {moveSelectedIds.size}
-                  </span>{" "}
-                  selected — assign to a supplier to remove them from this bucket
-                </span>
-                <select
-                  className={cn(nsdSelect, "h-7 min-w-[9rem] text-xs")}
-                  value={moveTargetSupplierId}
-                  onChange={(e) => setMoveTargetSupplierId(e.target.value)}
-                  disabled={linksBusy || supplierChoices.length === 0}
-                  aria-label="Move to supplier"
-                >
-                  <option value="">Move to supplier…</option>
-                  {supplierChoices.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-7 shrink-0 gap-1 rounded-none px-2.5 text-xs font-semibold"
-                  disabled={
-                    linksBusy ||
-                    moveSelectedIds.size === 0 ||
-                    !moveTargetSupplierId.trim()
-                  }
-                  onClick={() => void onSubmitMove()}
-                >
-                  <ArrowRight className="size-3" aria-hidden />
-                  {linksBusy
-                    ? "Moving…"
-                    : moveSelectedIds.size <= 1
-                      ? "Move"
-                      : `Move ${moveSelectedIds.size}`}
-                </Button>
-              </div>
-              {moveFormError ? (
-                <p className="mt-1 text-[11px] text-destructive">{moveFormError}</p>
-              ) : null}
+                </thead>
+                <tbody>
+                  {[...itemLinks]
+                    .sort((a, b) => {
+                      const ap = (
+                        a.parentItemName ||
+                        a.itemName ||
+                        ""
+                      ).toLowerCase();
+                      const bp = (
+                        b.parentItemName ||
+                        b.itemName ||
+                        ""
+                      ).toLowerCase();
+                      if (ap !== bp) return ap.localeCompare(bp);
+                      return (a.itemName || "").localeCompare(b.itemName || "");
+                    })
+                    .map((row) => {
+                      const pack = resolveLinkPack(row);
+                      const packs =
+                        row.packs && row.packs.length > 0 ? row.packs : null;
+                      const sell = resolveLinkShelfPrice(row);
+                      return (
+                        <tr key={row.id} className={supTableRow}>
+                          {isUnassignedBucket && canLinkProducts ? (
+                            <td className="border border-border/70 px-1.5 py-0.5 align-middle">
+                              <input
+                                type="checkbox"
+                                className="size-3 rounded-sm border border-border"
+                                checked={moveSelectedIds.has(row.itemId)}
+                                onChange={() => toggleMoveRow(row.itemId)}
+                                disabled={linksBusy}
+                                aria-label={`Select ${row.itemName || row.itemId}`}
+                              />
+                            </td>
+                          ) : null}
+                          <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
+                            <div className="flex min-w-0 flex-col gap-0.5">
+                              <div className="flex min-w-0 items-center gap-1">
+                                {row.variantOfItemId ? (
+                                  <CornerDownRight
+                                    className="size-3 shrink-0 text-primary/70"
+                                    aria-hidden
+                                  />
+                                ) : null}
+                                {packs ? (
+                                  <span
+                                    className="inline-flex shrink-0 items-center gap-1 border border-amber-900/35 bg-amber-50 px-1 py-px font-mono text-[9px] font-black tabular-nums text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/50 dark:text-amber-100"
+                                    title={`Pack options: ${packs.map((p) => `${fmtPackSize(p.unitsPerPack)} ${p.packUnit}`).join(", ")}`}
+                                  >
+                                    {packs
+                                      .map(
+                                        (p) =>
+                                          `×${fmtPackSize(p.unitsPerPack)}`,
+                                      )
+                                      .join(" · ")}
+                                  </span>
+                                ) : pack ? (
+                                  <span
+                                    className="inline-flex shrink-0 items-center border border-amber-900/35 bg-amber-50 px-1 py-px font-mono text-[9px] font-black tabular-nums text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/50 dark:text-amber-100"
+                                    title={`Sold as a pack of ${pack.size} ${pack.unit}`}
+                                  >
+                                    ×{fmtPackSize(pack.size)}
+                                  </span>
+                                ) : null}
+                                <span
+                                  className="truncate font-medium text-foreground"
+                                  title={row.itemName || row.itemId}
+                                >
+                                  {row.itemName || row.itemId}
+                                </span>
+                                {row.packageVariant ? (
+                                  <span
+                                    className="shrink-0 border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-semibold tracking-[-0.02em] text-primary"
+                                    title="Package / pack variant"
+                                  >
+                                    Pack
+                                  </span>
+                                ) : null}
+                                {row.primary ? (
+                                  <span
+                                    className="shrink-0 border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-semibold tracking-[-0.02em] text-primary"
+                                    title="Primary supplier for this product"
+                                  >
+                                    1°
+                                  </span>
+                                ) : null}
+                              </div>
+                              {row.parentItemName?.trim() ? (
+                                <p
+                                  className="truncate pl-4 text-[10px] text-muted-foreground"
+                                  title={`Parent product: ${row.parentItemName.trim()}`}
+                                >
+                                  Parent ·{" "}
+                                  {joinProductNameParts(
+                                    row.parentItemName,
+                                    row.variantName,
+                                  )}
+                                </p>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="border border-border/70 px-1.5 py-0.5 text-right align-middle">
+                            <SupplierLinkStockCell
+                              link={row}
+                              branchId={scopedBranchId}
+                              canEdit={canEditLinkStock}
+                              disabled={linksBusy}
+                              onUpdated={() => onRefreshLinks?.()}
+                            />
+                          </td>
+                          <td className="border border-border/70 px-1.5 py-0.5 text-right align-middle">
+                            {(() => {
+                              const cost = resolveLinkDisplayCost(row);
+                              if (!cost) {
+                                return (
+                                  <span
+                                    className="font-mono text-xs tabular-nums text-muted-foreground/60"
+                                    title="No default cost, last purchase, or catalog buying price"
+                                  >
+                                    —
+                                  </span>
+                                );
+                              }
+                              const sourceLabel =
+                                cost.source === "default"
+                                  ? "Supplier default cost"
+                                  : cost.source === "last"
+                                    ? "Last purchase cost"
+                                    : "Catalog buying price";
+                              return (
+                                <div
+                                  className="flex flex-col items-end leading-tight"
+                                  title={
+                                    pack
+                                      ? `${sourceLabel} · pack of ${pack.size}`
+                                      : sourceLabel
+                                  }
+                                >
+                                  <span className="font-mono text-xs tabular-nums text-foreground">
+                                    {formatLinkCost(cost.value)}
+                                  </span>
+                                  {pack ? (
+                                    <span className="text-[9px] font-medium tracking-[-0.02em] text-amber-900/70 dark:text-amber-100/70">
+                                      / pack
+                                    </span>
+                                  ) : cost.source !== "default" ? (
+                                    <span className="text-[9px] font-medium tracking-[-0.02em] text-muted-foreground">
+                                      {cost.source === "last"
+                                        ? "Last"
+                                        : "Catalog"}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              );
+                            })()}
+                          </td>
+                          <td className="border border-border/70 px-1.5 py-0.5 text-right align-middle">
+                            {sell != null ? (
+                              <div
+                                className="flex flex-col items-end leading-tight"
+                                title="Catalog shelf / sell price"
+                              >
+                                <span className="font-mono text-xs tabular-nums text-foreground">
+                                  {formatLinkCost(sell)}
+                                </span>
+                                <span className="text-[9px] font-medium tracking-[-0.02em] text-muted-foreground">
+                                  Shelf
+                                </span>
+                              </div>
+                            ) : (
+                              <span
+                                className="font-mono text-xs tabular-nums text-muted-foreground/60"
+                                title="No catalog shelf price"
+                              >
+                                —
+                              </span>
+                            )}
+                          </td>
+                          {canLinkProducts ? (
+                            <td className="border border-border/70 px-1.5 py-0.5">
+                              <div className="flex items-center justify-end gap-0.5">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="size-6 rounded-none p-0 text-muted-foreground"
+                                  title="Edit link"
+                                  onClick={() => openEditLinkDrawer(row)}
+                                >
+                                  <Pencil className="size-3" aria-hidden />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                                {!row.primary ? (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="size-6 rounded-none p-0 text-muted-foreground"
+                                    title="Set as primary supplier"
+                                    disabled={linksBusy || !row.active}
+                                    onClick={() => void onSetPrimaryLink(row)}
+                                  >
+                                    <Star className="size-3" aria-hidden />
+                                    <span className="sr-only">Set primary</span>
+                                  </Button>
+                                ) : null}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="size-6 rounded-none p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  title="Remove link"
+                                  disabled={linksBusy}
+                                  onClick={() => void onRemoveLink(row)}
+                                >
+                                  <Trash2 className="size-3" aria-hidden />
+                                  <span className="sr-only">Remove</span>
+                                </Button>
+                              </div>
+                            </td>
+                          ) : null}
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
             </div>
-          ) : null}
+            {isUnassignedBucket && canLinkProducts ? (
+              <div className="shrink-0 border-t border-border/70 bg-muted/20 px-2 py-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="min-w-0 flex-1 text-xs text-muted-foreground">
+                    <span className="font-mono font-bold tabular-nums text-foreground">
+                      {moveSelectedIds.size}
+                    </span>{" "}
+                    selected — assign to a supplier to remove them from this
+                    bucket
+                  </span>
+                  <select
+                    className={cn(nsdSelect, "h-7 min-w-[9rem] text-xs")}
+                    value={moveTargetSupplierId}
+                    onChange={(e) => setMoveTargetSupplierId(e.target.value)}
+                    disabled={linksBusy || supplierChoices.length === 0}
+                    aria-label="Move to supplier"
+                  >
+                    <option value="">Move to supplier…</option>
+                    {supplierChoices.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-7 shrink-0 gap-1 rounded-none px-2.5 text-xs font-semibold"
+                    disabled={
+                      linksBusy ||
+                      moveSelectedIds.size === 0 ||
+                      !moveTargetSupplierId.trim()
+                    }
+                    onClick={() => void onSubmitMove()}
+                  >
+                    <ArrowRight className="size-3" aria-hidden />
+                    {linksBusy
+                      ? "Moving…"
+                      : moveSelectedIds.size <= 1
+                        ? "Move"
+                        : `Move ${moveSelectedIds.size}`}
+                  </Button>
+                </div>
+                {moveFormError ? (
+                  <p className="mt-1 text-[11px] text-destructive">
+                    {moveFormError}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </>
         )}
       </SupSection>
@@ -1578,7 +1720,11 @@ export function SupplierCatalogColumn({
           }
           footer={
             <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setEditLinkDrawerOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditLinkDrawerOpen(false)}
+              >
                 Cancel
               </Button>
               <Button
@@ -1658,7 +1804,10 @@ export function SupplierCatalogColumn({
                       </button>
                     </div>
                     <input
-                      className={cn(supInput, "w-14 px-1 text-center tabular-nums")}
+                      className={cn(
+                        supInput,
+                        "w-14 px-1 text-center tabular-nums",
+                      )}
                       inputMode="decimal"
                       value={d.unitsPerPack}
                       onChange={(e) =>
@@ -1686,11 +1835,16 @@ export function SupplierCatalogColumn({
                       aria-label="Pack label"
                     />
                     <input
-                      className={cn(supInput, "w-16 px-1 text-right tabular-nums")}
+                      className={cn(
+                        supInput,
+                        "w-16 px-1 text-right tabular-nums",
+                      )}
                       inputMode="decimal"
                       value={d.defaultPackPrice}
                       onChange={(e) =>
-                        patchPackDraft(index, { defaultPackPrice: e.target.value })
+                        patchPackDraft(index, {
+                          defaultPackPrice: e.target.value,
+                        })
                       }
                       placeholder="Price"
                       aria-label="Pack price"
@@ -1709,9 +1863,9 @@ export function SupplierCatalogColumn({
             )}
           </div>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            Optional. Packs appear on the stall and in the receive till. Receiving
-            converts packs → shelf units (e.g. 2 packs × 12 = 24 stock) and stores
-            the pack price ÷ pieces as the unit cost.
+            Optional. Packs appear on the stall and in the receive till.
+            Receiving converts packs → shelf units (e.g. 2 packs × 12 = 24
+            stock) and stores the pack price ÷ pieces as the unit cost.
           </p>
         </FormDrawer>
       ) : null}
@@ -1740,9 +1894,9 @@ export function SupplierCatalogColumn({
         width="large"
         appearance="sharp"
         banner={
-          linkFormError && catalogBrowserOpen ?
+          linkFormError && catalogBrowserOpen ? (
             <FormDrawerMessageBanner text={linkFormError} sharp />
-          : undefined
+          ) : undefined
         }
         footer={renderCatalogLinkFooter()}
       >

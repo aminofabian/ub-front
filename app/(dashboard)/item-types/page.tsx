@@ -124,12 +124,7 @@ export default function ItemTypesPage() {
         existingKeys: existingSectionKeys,
         existingLabels: existingSectionLabels,
       }),
-    [
-      sectionPickLabels,
-      extraNames,
-      existingSectionKeys,
-      existingSectionLabels,
-    ],
+    [sectionPickLabels, extraNames, existingSectionKeys, existingSectionLabels],
   );
 
   const pendingSectionCount = pendingSectionCreates.length;
@@ -305,7 +300,9 @@ export default function ItemTypesPage() {
     return (
       <DashboardLoadError
         title="Failed to load"
-        message={feedback?.text ?? "Could not load departments. Please try again."}
+        message={
+          feedback?.text ?? "Could not load departments. Please try again."
+        }
         onRetry={() => void load()}
       />
     );
@@ -353,15 +350,24 @@ export default function ItemTypesPage() {
                 className="hidden h-3.5 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:block"
               />
               <p className="min-w-0 truncate text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-                Shop areas — Grocery, Fruits, Retail. Not products or categories.
+                Shop areas — Grocery, Fruits, Retail. Not products or
+                categories.
               </p>
               <nav
                 aria-label="Related pages"
                 className="flex min-w-0 flex-wrap items-center gap-1"
               >
                 {[
-                  { href: APP_ROUTES.business, label: "Business", icon: Building2 },
-                  { href: APP_ROUTES.products, label: "Products", icon: Package },
+                  {
+                    href: APP_ROUTES.business,
+                    label: "Business",
+                    icon: Building2,
+                  },
+                  {
+                    href: APP_ROUTES.products,
+                    label: "Products",
+                    icon: Package,
+                  },
                   {
                     href: APP_ROUTES.categories,
                     label: "Categories",
@@ -369,7 +375,10 @@ export default function ItemTypesPage() {
                   },
                 ].map(({ href, label, icon: Icon }) => (
                   <Link key={href} href={href} className={supChipIdle}>
-                    <Icon className="mr-1 size-3 shrink-0 opacity-70" aria-hidden />
+                    <Icon
+                      className="mr-1 size-3 shrink-0 opacity-70"
+                      aria-hidden
+                    />
                     {label}
                   </Link>
                 ))}
@@ -514,7 +523,9 @@ export default function ItemTypesPage() {
                               />
                             </span>
                           ) : row.icon ? (
-                            <span className="font-mono text-xs">{row.icon}</span>
+                            <span className="font-mono text-xs">
+                              {row.icon}
+                            </span>
                           ) : (
                             "\u2014"
                           )}
@@ -542,7 +553,10 @@ export default function ItemTypesPage() {
                         <td className="px-3 py-2">
                           {row.active ? (
                             <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
-                              <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+                              <CheckCircle2
+                                className="size-3.5 shrink-0"
+                                aria-hidden
+                              />
                               Active
                             </span>
                           ) : (
@@ -555,7 +569,10 @@ export default function ItemTypesPage() {
                         <td className="px-3 py-2">
                           {row.isDefault ? (
                             <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
-                              <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+                              <CheckCircle2
+                                className="size-3.5 shrink-0"
+                                aria-hidden
+                              />
                               Default
                             </span>
                           ) : (
@@ -783,9 +800,7 @@ function EditItemTypeDrawer({
       const url = await uploadItemTypeIcon(row.id, file, businessId);
       setDraft((p) => ({ ...p, icon: url }));
     } catch (err) {
-      setIconError(
-        err instanceof Error ? err.message : "Icon upload failed.",
-      );
+      setIconError(err instanceof Error ? err.message : "Icon upload failed.");
     } finally {
       setIconUploading(false);
     }
@@ -813,7 +828,12 @@ function EditItemTypeDrawer({
       }
       footer={
         <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" className="h-8 rounded-none" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 rounded-none"
+            onClick={onClose}
+          >
             Cancel
           </Button>
           <Button
@@ -923,7 +943,9 @@ function EditItemTypeDrawer({
             type="checkbox"
             className="size-4 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] accent-[var(--pos-primary,#0f766e)]"
             checked={draft.active}
-            onChange={(e) => setDraft((p) => ({ ...p, active: e.target.checked }))}
+            onChange={(e) =>
+              setDraft((p) => ({ ...p, active: e.target.checked }))
+            }
           />
           Active
         </label>

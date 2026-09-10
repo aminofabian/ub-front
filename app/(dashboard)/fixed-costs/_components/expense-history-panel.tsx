@@ -88,7 +88,7 @@ export function ExpenseHistoryPanel({ year, month, refreshKey }: Props) {
       <section className={cn(DASHBOARD_TABLE_SURFACE)}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="border-b border-border/60 bg-muted/30 text-xs tracking-[-0.02em] text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Date</th>
                 <th className="px-4 py-3 font-medium">Name</th>

@@ -72,9 +72,9 @@ export function CustomerCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md gap-0 p-0 sm:rounded-2xl">
+      <DialogContent className="max-w-md gap-0 p-0 sm:rounded-none">
         <DialogHeader className="border-b border-border/60 px-5 py-4 text-left">
-          <div className="mb-2 flex size-10 items-center justify-center rounded-xl bg-[#F9F6F0] text-[#8B6F3A]">
+          <div className="mb-2 flex size-10 items-center justify-center rounded-none bg-[#ffffff] text-[#0f766e]">
             <UserPlus className="size-5" />
           </div>
           <DialogTitle>New customer</DialogTitle>
@@ -82,7 +82,10 @@ export function CustomerCreateDialog({
             Add someone to your directory. They can be linked at checkout later.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={(e) => void onSubmit(e)} className="space-y-4 px-5 py-4">
+        <form
+          onSubmit={(e) => void onSubmit(e)}
+          className="space-y-4 px-5 py-4"
+        >
           <label className="block space-y-1.5">
             <span className="text-sm font-medium">Name</span>
             <input
@@ -106,7 +109,10 @@ export function CustomerCreateDialog({
           </label>
           <label className="block space-y-1.5">
             <span className="text-sm font-medium">
-              Email <span className="font-normal text-muted-foreground">(optional)</span>
+              Email{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
             </span>
             <input
               className={dashboardInputClass(busy)}
@@ -120,16 +126,14 @@ export function CustomerCreateDialog({
             <Button
               type="button"
               variant="ghost"
-              className="rounded-xl"
+              className="rounded-none"
               disabled={busy}
               onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
-            <Button type="submit" className="rounded-xl" disabled={busy}>
-              {busy ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              ) : null}
+            <Button type="submit" className="rounded-none" disabled={busy}>
+              {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
               {busy ? "Creating…" : "Create customer"}
             </Button>
           </DialogFooter>

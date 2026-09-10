@@ -1,10 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Banknote,
-  Loader2,
-} from "lucide-react";
+import { Banknote, Loader2 } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
@@ -40,7 +37,10 @@ import {
 import { AdvanceLedgerDrawer } from "./_components/advance-ledger-drawer";
 import { AdvanceLedgerPanel } from "./_components/advance-ledger-panel";
 import { LogAdvanceDrawer } from "./_components/log-advance-drawer";
-import { PayConfirmDrawer, type PayConfirmPayload } from "./_components/pay-confirm-drawer";
+import {
+  PayConfirmDrawer,
+  type PayConfirmPayload,
+} from "./_components/pay-confirm-drawer";
 import { PayrollCalendarPanel } from "./_components/payroll-calendar-panel";
 import { PayrollMonthNav } from "./_components/payroll-month-nav";
 import { PayrollRunHeader } from "./_components/payroll-run-header";
@@ -99,8 +99,8 @@ export default function PayrollPage() {
   const [salaryName, setSalaryName] = useState("");
   const [salaryCurrent, setSalaryCurrent] = useState(0);
   const [salaryAmount, setSalaryAmount] = useState("");
-  const [salaryFrom, setSalaryFrom] = useState(
-    () => new Date().toISOString().slice(0, 10),
+  const [salaryFrom, setSalaryFrom] = useState(() =>
+    new Date().toISOString().slice(0, 10),
   );
   const [salarySaving, setSalarySaving] = useState(false);
 
@@ -115,7 +115,9 @@ export default function PayrollPage() {
   const [payslipUserId, setPayslipUserId] = useState<string | null>(null);
   const [payslipName, setPayslipName] = useState("");
   const [payslipId, setPayslipId] = useState<string | null>(null);
-  const [payslipInitial, setPayslipInitial] = useState<PayslipRecord | null>(null);
+  const [payslipInitial, setPayslipInitial] = useState<PayslipRecord | null>(
+    null,
+  );
 
   const [smsOpen, setSmsOpen] = useState(false);
   const [smsUserId, setSmsUserId] = useState<string | null>(null);
@@ -133,12 +135,13 @@ export default function PayrollPage() {
       headcount: rows.length,
       pendingCount: pending.length,
       paidCount: paid.length,
-      totalBase: rows.reduce(
-        (s, r) => s + payrollCombinedBase(r),
+      totalBase: rows.reduce((s, r) => s + payrollCombinedBase(r), 0),
+      totalArrears: rows.reduce(
+        (s, r) => s + Number(r.arrearsBaseTotal ?? 0),
         0,
       ),
-      totalArrears: rows.reduce((s, r) => s + Number(r.arrearsBaseTotal ?? 0), 0),
-      staffWithArrears: rows.filter((r) => (r.arrearPeriods?.length ?? 0) > 0).length,
+      staffWithArrears: rows.filter((r) => (r.arrearPeriods?.length ?? 0) > 0)
+        .length,
       totalAdvances: rows.reduce(
         (s, r) => s + Number(r.advancesOutstanding),
         0,
@@ -149,7 +152,8 @@ export default function PayrollPage() {
         0,
       ),
       missingSalary: rows.filter((r) => Number(r.baseSalary) <= 0).length,
-      onLeaveCount: rows.filter((r) => r.employmentStatus === "on_leave").length,
+      onLeaveCount: rows.filter((r) => r.employmentStatus === "on_leave")
+        .length,
     };
   }, [rows, applyStatutory]);
 
@@ -164,7 +168,9 @@ export default function PayrollPage() {
       });
       setRows(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load payroll run");
+      setError(
+        err instanceof Error ? err.message : "Failed to load payroll run",
+      );
       setRows([]);
     } finally {
       setLoading(false);
@@ -284,10 +290,9 @@ export default function PayrollPage() {
         includeArrears: true,
       });
       setPayConfirmOpen(false);
-      const arrearNote =
-        payRow.arrearPeriods?.length
-          ? ` (incl. ${payrollArrearMonthsLabel(payRow.arrearPeriods)} arrears)`
-          : "";
+      const arrearNote = payRow.arrearPeriods?.length
+        ? ` (incl. ${payrollArrearMonthsLabel(payRow.arrearPeriods)} arrears)`
+        : "";
       setPayRow(null);
       setStaffDrawerOpen(false);
       setFeedback({
@@ -387,10 +392,9 @@ export default function PayrollPage() {
   const branchOptions = branches.map((b) => ({ id: b.id, name: b.name }));
 
   return (
-    <div className={cn("mx-auto space-y-6", DASHBOARD_MAX_WIDE)}>
+    <div className={DASHBOARD_MAX_WIDE}>
       <DashboardPageHero
         icon={Banknote}
-        eyebrow="Organization"
         title="Payroll"
         description="Run monthly salaries with clarity — review each person, apply statutory, recover advances, and close the period."
       />
@@ -461,15 +465,18 @@ export default function PayrollPage() {
               <div className="min-w-0 space-y-4">
                 {!loading && !error && summary.onLeaveCount > 0 ? (
                   <AlertBanner tone="sky">
-                    {summary.onLeaveCount} on leave — excluded from pay all until status
-                    updates.
+                    {summary.onLeaveCount} on leave — excluded from pay all
+                    until status updates.
                   </AlertBanner>
                 ) : null}
 
-                {!loading && !error && summary.missingSalary > 0 && canManagePayroll ? (
+                {!loading &&
+                !error &&
+                summary.missingSalary > 0 &&
+                canManagePayroll ? (
                   <AlertBanner tone="amber">
-                    {summary.missingSalary} without salary — open their row to set pay
-                    before marking paid.
+                    {summary.missingSalary} without salary — open their row to
+                    set pay before marking paid.
                   </AlertBanner>
                 ) : null}
 
@@ -483,22 +490,22 @@ export default function PayrollPage() {
           )}
         </>
       ) : tab === "calendar" ? (
-        <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
+        <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 sm:p-5">
           <PayrollCalendarPanel
-          year={year}
-          branchFilter={branchFilter}
-          branches={branchOptions}
-          onYearChange={setYear}
-          onBranchFilterChange={setBranchFilter}
-          onSelectMonth={(y, m) => {
-            setYear(y);
-            setMonth(m);
-            setTab("run");
-          }}
+            year={year}
+            branchFilter={branchFilter}
+            branches={branchOptions}
+            onYearChange={setYear}
+            onBranchFilterChange={setBranchFilter}
+            onSelectMonth={(y, m) => {
+              setYear(y);
+              setMonth(m);
+              setTab("run");
+            }}
           />
         </div>
       ) : tab === "advances" ? (
-        <div className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
+        <div className="space-y-4 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 sm:p-5">
           {feedback ? (
             <DashboardFeedback kind={feedback.kind} text={feedback.text} />
           ) : null}
@@ -508,7 +515,7 @@ export default function PayrollPage() {
           />
         </div>
       ) : (
-        <div className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
+        <div className="space-y-4 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 sm:p-5">
           {feedback ? (
             <DashboardFeedback kind={feedback.kind} text={feedback.text} />
           ) : null}
@@ -598,7 +605,10 @@ export default function PayrollPage() {
         saving={advanceSaving}
         onSavingChange={setAdvanceSaving}
         onSaved={() => {
-          setFeedback({ kind: "success", text: `Logged advance for ${advanceName}.` });
+          setFeedback({
+            kind: "success",
+            text: `Logged advance for ${advanceName}.`,
+          });
           if (tab === "run") void load();
         }}
         onError={(text) => setFeedback({ kind: "error", text })}
@@ -642,11 +652,16 @@ export default function PayrollPage() {
         icon={<Banknote className="size-5 text-primary" aria-hidden />}
         footer={
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setSalaryOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSalaryOpen(false)}
+            >
               Cancel
             </Button>
             <Button
               type="button"
+              className="rounded-none bg-[var(--pos-primary,#0f766e)] text-white"
               disabled={salarySaving}
               onClick={() => void onSaveSalary()}
             >
@@ -668,7 +683,7 @@ export default function PayrollPage() {
         >
           <div className="grid gap-3">
             {salaryCurrent > 0 ? (
-              <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <p className="rounded-none bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
                 Current base: {formatPayrollMoney(salaryCurrent)}
               </p>
             ) : null}
@@ -712,6 +727,6 @@ function AlertBanner({
       ? "border-sky-500/25 bg-sky-500/10 text-sky-950 dark:text-sky-100"
       : "border-amber-500/25 bg-amber-500/10 text-amber-950 dark:text-amber-100";
   return (
-    <p className={cn("rounded-lg border px-3 py-2 text-sm", cls)}>{children}</p>
+    <p className={cn("rounded-none border px-3 py-2 text-sm", cls)}>{children}</p>
   );
 }

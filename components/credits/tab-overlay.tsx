@@ -109,7 +109,10 @@ export function TabOverlay({
         }}
       >
         {!destination ? (
-          <div className="flex shrink-0 justify-center py-1.5 lg:hidden" aria-hidden>
+          <div
+            className="flex shrink-0 justify-center py-1.5 lg:hidden"
+            aria-hidden
+          >
             <div className="h-1 w-10 bg-[var(--tab-border)]" />
           </div>
         ) : null}

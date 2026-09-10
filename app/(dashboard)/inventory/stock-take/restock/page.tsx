@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Loader2, PackagePlus, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Loader2,
+  PackagePlus,
+  Trash2,
+} from "lucide-react";
 
 import {
   DASHBOARD_MAX,
@@ -53,13 +59,18 @@ const STATUS_OPTIONS = [
 
 export default function StockTakeRestockReviewPage() {
   const { me } = useDashboard();
-  const canApprove = hasPermission(me?.permissions, Permission.StocktakeApprove);
+  const canApprove = hasPermission(
+    me?.permissions,
+    Permission.StocktakeApprove,
+  );
 
   const [branchId, setBranchId] = useState("");
   const [date, setDate] = useState(todayStr);
   const [status, setStatus] = useState("pending");
   const [branches, setBranches] = useState<BranchRecord[]>([]);
-  const [review, setReview] = useState<StockTakeRestockReviewRecord | null>(null);
+  const [review, setReview] = useState<StockTakeRestockReviewRecord | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
@@ -135,16 +146,19 @@ export default function StockTakeRestockReviewPage() {
           buyingPrice:
             draftPrices[item.id] === ""
               ? null
-              : draftPrices[item.id] ?? item.buyingPrice,
+              : (draftPrices[item.id] ?? item.buyingPrice),
         });
       } else if (action === "approve") {
-        if (draftPrices[item.id] !== undefined || draftQty[item.id] !== undefined) {
+        if (
+          draftPrices[item.id] !== undefined ||
+          draftQty[item.id] !== undefined
+        ) {
           await patchStockTakeRestockItem(item.id, {
             suggestedQty: draftQty[item.id] || item.suggestedQty,
             buyingPrice:
               draftPrices[item.id] === ""
                 ? null
-                : draftPrices[item.id] ?? item.buyingPrice,
+                : (draftPrices[item.id] ?? item.buyingPrice),
           });
         }
         await postStockTakeRestockApprove(item.id);
@@ -188,7 +202,7 @@ export default function StockTakeRestockReviewPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX, "mx-auto space-y-4 px-4 pb-12 pt-4")}>
+    <div className={cn(DASHBOARD_MAX, "space-y-1 pb-8")}>
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <Link
           href={APP_ROUTES.inventoryStockTake}
@@ -308,16 +322,21 @@ export default function StockTakeRestockReviewPage() {
           Loading restock suggestions…
         </div>
       ) : totalItems === 0 ? (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-none border border-dashed p-8 text-center text-sm text-muted-foreground">
           No restock suggestions yet.
         </div>
       ) : (
         review?.groups.map((group) => (
-          <section key={group.supplierId} className="rounded-xl border bg-card shadow-sm">
+          <section
+            key={group.supplierId}
+            className="rounded-none border bg-white shadow-none"
+          >
             <header className="border-b px-4 py-3">
               <h2 className="font-semibold">{group.supplierName}</h2>
               <p className="text-xs text-muted-foreground">
-                {group.supplierPhone ? `Phone ${group.supplierPhone}` : "No phone"}
+                {group.supplierPhone
+                  ? `Phone ${group.supplierPhone}`
+                  : "No phone"}
                 {group.supplierEmail ? ` · ${group.supplierEmail}` : ""}
               </p>
               <p className="mt-1 text-sm">
@@ -331,11 +350,13 @@ export default function StockTakeRestockReviewPage() {
                     <div>
                       <p className="font-medium">{item.itemName}</p>
                       <p className="text-xs text-muted-foreground">
-                        SKU {item.itemSku ?? "—"} · Added by {item.addedByName} ·{" "}
-                        {new Date(item.addedAt).toLocaleString()}
+                        SKU {item.itemSku ?? "—"} · Added by {item.addedByName}{" "}
+                        · {new Date(item.addedAt).toLocaleString()}
                       </p>
                       {item.notes ? (
-                        <p className="mt-1 text-sm text-muted-foreground">{item.notes}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {item.notes}
+                        </p>
                       ) : null}
                     </div>
                     <span className="rounded-full bg-muted px-2 py-1 text-xs capitalize">
@@ -351,9 +372,15 @@ export default function StockTakeRestockReviewPage() {
                           className={dashboardInputClass()}
                           value={draftQty[item.id] ?? String(item.suggestedQty)}
                           onChange={(e) =>
-                            setDraftQty((prev) => ({ ...prev, [item.id]: e.target.value }))
+                            setDraftQty((prev) => ({
+                              ...prev,
+                              [item.id]: e.target.value,
+                            }))
                           }
-                          disabled={item.status !== "pending" && item.status !== "approved"}
+                          disabled={
+                            item.status !== "pending" &&
+                            item.status !== "approved"
+                          }
                         />
                       </label>
                       <label className="grid gap-1 text-sm">
@@ -363,7 +390,10 @@ export default function StockTakeRestockReviewPage() {
                           value={draftPrices[item.id] ?? ""}
                           placeholder="Required before approve"
                           onChange={(e) =>
-                            setDraftPrices((prev) => ({ ...prev, [item.id]: e.target.value }))
+                            setDraftPrices((prev) => ({
+                              ...prev,
+                              [item.id]: e.target.value,
+                            }))
                           }
                           disabled={item.status !== "pending"}
                         />
@@ -371,8 +401,8 @@ export default function StockTakeRestockReviewPage() {
                     </div>
                   ) : (
                     <p className="text-sm">
-                      Qty {num(item.suggestedQty)} · Price KES {num(item.buyingPrice)} · Total KES{" "}
-                      {num(item.lineTotal)}
+                      Qty {num(item.suggestedQty)} · Price KES{" "}
+                      {num(item.buyingPrice)} · Total KES {num(item.lineTotal)}
                     </p>
                   )}
 
@@ -405,7 +435,11 @@ export default function StockTakeRestockReviewPage() {
                         variant="outline"
                         disabled={actionId === item.id}
                         onClick={() =>
-                          void runItemAction(item, "reject", "Not needed this cycle")
+                          void runItemAction(
+                            item,
+                            "reject",
+                            "Not needed this cycle",
+                          )
                         }
                       >
                         Reject
@@ -423,7 +457,9 @@ export default function StockTakeRestockReviewPage() {
                   ) : null}
 
                   {item.orderNumber ? (
-                    <p className="text-xs text-muted-foreground">Order {item.orderNumber}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Order {item.orderNumber}
+                    </p>
                   ) : null}
                 </div>
               ))}

@@ -55,7 +55,7 @@ export function StockTakeSearchResults({
     <section className="space-y-2">
       {items.length > 0 ? (
         <div className="flex items-center justify-between gap-2 px-0.5">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <h3 className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
             Search results
           </h3>
           <span className="text-xs tabular-nums text-muted-foreground">
@@ -65,7 +65,7 @@ export function StockTakeSearchResults({
       ) : null}
 
       {searching ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/70 bg-muted/20 py-8 text-sm text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 py-8 text-sm text-muted-foreground">
           <span
             className="size-4 animate-pulse rounded-full bg-primary/40"
             aria-hidden
@@ -89,16 +89,16 @@ export function StockTakeSearchResults({
                   type="button"
                   disabled={isConfirmed}
                   className={cn(
-                    "group flex w-full items-start gap-3 rounded-lg border border-border/60 bg-card p-3 text-left shadow-sm transition-all",
+                    "group flex w-full items-start gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3 text-left shadow-none transition-all",
                     "hover:border-border hover:bg-accent/30 hover:shadow",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                     isConfirmed &&
-                      "cursor-not-allowed border-border/40 bg-muted/20 opacity-70 shadow-none hover:bg-muted/20",
+                      "cursor-not-allowed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 opacity-70 shadow-none hover:bg-muted/20",
                   )}
                   onClick={() => onSelect(item)}
                 >
                   {thumb ? (
-                    <span className="relative size-11 shrink-0 overflow-hidden rounded-md border bg-muted">
+                    <span className="relative size-11 shrink-0 overflow-hidden rounded-none border bg-muted">
                       <Image
                         src={thumb}
                         alt=""
@@ -108,7 +108,7 @@ export function StockTakeSearchResults({
                       />
                     </span>
                   ) : (
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-md border border-dashed border-muted-foreground/25 bg-muted/40 text-muted-foreground/50">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-none border border-dashed border-muted-foreground/25 bg-muted/40 text-muted-foreground/50">
                       <Package className="size-5" aria-hidden />
                     </span>
                   )}
@@ -119,8 +119,8 @@ export function StockTakeSearchResults({
                     </span>
                     <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       {sku ? (
-                        <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-border/50 bg-muted/40 px-2 py-0.5">
-                          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        <span className="inline-flex max-w-full items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 px-2 py-0.5">
+                          <span className="text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
                             SKU
                           </span>
                           <span className="truncate font-mono text-[11px] text-foreground/90">
@@ -129,12 +129,12 @@ export function StockTakeSearchResults({
                         </span>
                       ) : null}
                       {showBarcode ? (
-                        <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-border/50 bg-muted/40 px-2 py-0.5">
+                        <span className="inline-flex max-w-full items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 px-2 py-0.5">
                           <ScanLine
                             className="size-3 shrink-0 text-muted-foreground"
                             aria-hidden
                           />
-                          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          <span className="text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
                             Barcode
                           </span>
                           <span className="truncate font-mono text-[11px] text-foreground/90">
@@ -179,8 +179,10 @@ export function StockTakeSearchResults({
           })}
         </ul>
       ) : (
-        <div className="space-y-3 rounded-lg border border-dashed border-border/70 bg-muted/15 px-4 py-8 text-center">
-          <p className="text-sm font-medium text-foreground">No products found</p>
+        <div className="space-y-3 rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-4 py-8 text-center">
+          <p className="text-sm font-medium text-foreground">
+            No products found
+          </p>
           <p className="text-xs text-muted-foreground">
             Try another name, SKU, or barcode — or add a new product.
           </p>

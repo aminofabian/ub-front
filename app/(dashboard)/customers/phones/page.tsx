@@ -43,7 +43,9 @@ function flattenPhones(customers: CustomerRecord[]): PhoneRow[] {
       });
     }
   }
-  rows.sort((a, b) => a.phone.localeCompare(b.phone, undefined, { numeric: true }));
+  rows.sort((a, b) =>
+    a.phone.localeCompare(b.phone, undefined, { numeric: true }),
+  );
   return rows;
 }
 
@@ -119,14 +121,13 @@ export default function CustomerPhonesPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <header className="space-y-4">
-        <DashboardPageHero
-          icon={Phone}
-          eyebrow="Credit & tabs"
-          title="Customer phones"
-          description="Every number on file — including numbers captured from M-Pesa prompts at the till."
-        />
+      <DashboardPageHero
+        icon={Phone}
+        title="Customer phones"
+        description="Every number on file — including numbers captured from M-Pesa prompts at the till."
+      >
         <DashboardQuickLinks
+          compact
           links={[
             {
               href: APP_ROUTES.customers,
@@ -136,13 +137,13 @@ export default function CustomerPhonesPage() {
             },
           ]}
         />
-      </header>
+      </DashboardPageHero>
 
       {message ? (
         <DashboardFeedback kind={message.kind} text={message.text} />
       ) : null}
 
-      <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
+      <section className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3">
         <h2 className="text-lg font-semibold tracking-tight">Find a number</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {listLoading
@@ -172,7 +173,7 @@ export default function CustomerPhonesPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+      <section className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
         <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
           <h2 className="text-sm font-semibold">Numbers</h2>
           <p className="text-xs text-muted-foreground">

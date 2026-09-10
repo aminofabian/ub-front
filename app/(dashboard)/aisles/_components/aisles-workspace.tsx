@@ -1,11 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  MapPin,
-  Plus,
-  RefreshCw,
-} from "lucide-react";
+import { MapPin, Plus, RefreshCw } from "lucide-react";
 
 import {
   DashboardFeedback,
@@ -95,8 +91,7 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
       if (filterMode === "inactive" && a.active) return false;
       if (!q) return true;
       return (
-        a.name.toLowerCase().includes(q) ||
-        a.code.toLowerCase().includes(q)
+        a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q)
       );
     });
   }, [sortedAisles, search, filterMode]);
@@ -167,7 +162,11 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
     setCreateBusy(true);
     setFeedback(null);
     try {
-      const created = await createAisle({ name, code, sortOrder: aisles.length });
+      const created = await createAisle({
+        name,
+        code,
+        sortOrder: aisles.length,
+      });
       setAisles((prev) =>
         [...prev, created].sort(
           (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
@@ -181,7 +180,8 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
     } catch (err) {
       setFeedback({
         kind: "error",
-        text: err instanceof Error ? err.message : "Could not create shelf zone.",
+        text:
+          err instanceof Error ? err.message : "Could not create shelf zone.",
       });
     } finally {
       setCreateBusy(false);
@@ -265,7 +265,8 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
     } catch (err) {
       setFeedback({
         kind: "error",
-        text: err instanceof Error ? err.message : "Could not update shelf zone.",
+        text:
+          err instanceof Error ? err.message : "Could not update shelf zone.",
       });
     } finally {
       setStatusBusy(false);
@@ -389,16 +390,23 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
       {loading && aisles.length === 0 ? (
         <DashboardLoading label="Loading shelf zones…" />
       ) : aisles.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-dashed border-border/80 px-4 py-12 text-center">
-          <div className="flex size-10 items-center justify-center rounded-lg border border-border/60 bg-muted/40">
+        <div className="flex flex-col items-center rounded-none border border-dashed border-border/80 px-4 py-12 text-center">
+          <div className="flex size-10 items-center justify-center rounded-none border border-border/60 bg-muted/40">
             <MapPin className="size-4 text-muted-foreground" aria-hidden />
           </div>
-          <h2 className="mt-3 text-base font-semibold text-foreground">No zones yet</h2>
+          <h2 className="mt-3 text-base font-semibold text-foreground">
+            No zones yet
+          </h2>
           <p className="mt-1 max-w-xs text-xs text-muted-foreground">
             Create walk stops — e.g. front beverages, back wall dairy.
           </p>
           {canWrite ? (
-            <Button type="button" size="sm" className="mt-4 h-8 text-xs" onClick={() => setCreateOpen(true)}>
+            <Button
+              type="button"
+              size="sm"
+              className="mt-4 h-8 text-xs"
+              onClick={() => setCreateOpen(true)}
+            >
               <Plus className="size-3.5" />
               New zone
             </Button>

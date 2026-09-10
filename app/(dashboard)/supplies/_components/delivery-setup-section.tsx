@@ -14,9 +14,7 @@ import {
   nsdTextarea,
 } from "./new-supply-drawer-ui";
 
-const nsdSetupBlock = cn(
-  "overflow-hidden border border-border bg-card",
-);
+const nsdSetupBlock = cn("overflow-hidden border border-border bg-card");
 
 function SetupBlock({
   step,
@@ -38,7 +36,7 @@ function SetupBlock({
         >
           {step}
         </span>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+        <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {title}
         </span>
       </div>
@@ -161,7 +159,7 @@ export function DeliverySetupSection({
           >
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 sm:px-3 [&::-webkit-details-marker]:hidden">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Extra costs
                 </p>
                 <p className="text-[10px] text-muted-foreground">
@@ -209,7 +207,11 @@ export function DeliverySetupSection({
       ) : null}
 
       <div className="grid gap-2 lg:grid-cols-2 lg:gap-2.5">
-        <SetupBlock step="1" title="Supplier" className="relative z-20 overflow-visible">
+        <SetupBlock
+          step="1"
+          title="Supplier"
+          className="relative z-20 overflow-visible"
+        >
           {supplier ? (
             <div className="flex items-start gap-2 border border-primary/30 bg-primary/[0.05] px-2 py-1.5">
               <span className="flex size-7 shrink-0 items-center justify-center border border-primary/25 bg-background text-primary">
@@ -367,11 +369,13 @@ export function DeliverySetupSection({
           </div>
 
           <details className="mt-2 border-t border-border/50 pt-2">
-            <summary className="cursor-pointer list-none text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80 [&::-webkit-details-marker]:hidden">
+            <summary className="cursor-pointer list-none text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/80 [&::-webkit-details-marker]:hidden">
               References{" "}
               <span className="font-normal normal-case">(optional)</span>
               {(docRef.trim() || notes.trim()) && (
-                <span className="ml-1 font-mono normal-case text-primary">· set</span>
+                <span className="ml-1 font-mono normal-case text-primary">
+                  · set
+                </span>
               )}
             </summary>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -388,7 +392,10 @@ export function DeliverySetupSection({
               <label className="flex flex-col gap-1">
                 <span className={nsdFieldLabel}>Notes</span>
                 <textarea
-                  className={cn(nsdTextarea, "min-h-[2rem] bg-background text-xs")}
+                  className={cn(
+                    nsdTextarea,
+                    "min-h-[2rem] bg-background text-xs",
+                  )}
                   rows={1}
                   value={notes}
                   onChange={(e) => onNotesChange(e.target.value)}
@@ -416,7 +423,7 @@ export function DeliverySetupSection({
                 3
               </span>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Extra costs
                 </p>
                 <p className="text-[10px] text-muted-foreground">
@@ -438,7 +445,11 @@ export function DeliverySetupSection({
             </span>
           </summary>
           <div className="border-t border-border/50 px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
-            <ExtraCostsBody extras={extras} onChange={onExtrasChange} busy={busy} />
+            <ExtraCostsBody
+              extras={extras}
+              onChange={onExtrasChange}
+              busy={busy}
+            />
           </div>
         </details>
       ) : null}

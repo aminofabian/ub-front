@@ -83,11 +83,11 @@ export function PayrollRunPanel({
 
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 px-6 py-16 text-center">
+      <div className="flex flex-col items-center justify-center rounded-none border border-dashed border-border/60 px-6 py-16 text-center">
         <p className="text-sm font-medium">No staff in this pay run</p>
         <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-          Add staff profiles and set monthly salaries to build your roster for this
-          period.
+          Add staff profiles and set monthly salaries to build your roster for
+          this period.
         </p>
       </div>
     );
@@ -163,11 +163,16 @@ export function PayrollRunPanel({
         ) : null}
       </div>
 
-      <section className={cn(DASHBOARD_TABLE_SURFACE, "hidden overflow-hidden md:block")}>
+      <section
+        className={cn(
+          DASHBOARD_TABLE_SURFACE,
+          "hidden overflow-hidden md:block",
+        )}
+      >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[960px] text-left text-sm">
             <thead>
-              <tr className="border-b border-border/60 bg-muted/40 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <tr className="border-b border-border/60 bg-muted/40 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 <th className="px-4 py-2.5" colSpan={2}>
                   Employee
                 </th>
@@ -202,21 +207,27 @@ export function PayrollRunPanel({
                     onClick={() => onSelectRow(row)}
                   >
                     <td className="w-12 px-4 py-3">
-                      <StaffAvatar name={row.displayName} paid={row.alreadyPaid} />
+                      <StaffAvatar
+                        name={row.displayName}
+                        paid={row.alreadyPaid}
+                      />
                     </td>
                     <td className="px-2 py-3">
                       <div className="font-medium">{row.displayName}</div>
                       <div className="text-xs text-muted-foreground">
                         {[row.title, row.branchName]
                           .filter(Boolean)
-                          .join(" · ") || employmentStatusLabel(row.employmentStatus)}
+                          .join(" · ") ||
+                          employmentStatusLabel(row.employmentStatus)}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
                       {row.baseSalary > 0 ? (
                         formatPayrollMoney(row.baseSalary)
                       ) : (
-                        <span className="text-amber-700 dark:text-amber-300">—</span>
+                        <span className="text-amber-700 dark:text-amber-300">
+                          —
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
@@ -224,7 +235,11 @@ export function PayrollRunPanel({
                         <span className="font-medium text-violet-800 dark:text-violet-200">
                           +{formatPayrollMoney(row.arrearsBaseTotal)}
                           <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
-                            {row.arrearPeriods!.map((p) => payrollShortMonth(p.year, p.month)).join(" · ")}
+                            {row
+                              .arrearPeriods!.map((p) =>
+                                payrollShortMonth(p.year, p.month),
+                              )
+                              .join(" · ")}
                           </span>
                         </span>
                       ) : (
@@ -234,13 +249,15 @@ export function PayrollRunPanel({
                     <td className="px-4 py-3 text-right tabular-nums">
                       {row.advancesOutstanding > 0 ? (
                         <span className="font-medium text-amber-800 dark:text-amber-200">
-                          −{formatPayrollMoney(
+                          −
+                          {formatPayrollMoney(
                             row.advancesScheduledThisRun > 0
                               ? row.advancesScheduledThisRun
                               : row.advancesOutstanding,
                           )}
                           {row.advancesScheduledThisRun > 0 &&
-                          row.advancesScheduledThisRun < row.advancesOutstanding ? (
+                          row.advancesScheduledThisRun <
+                            row.advancesOutstanding ? (
                             <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
                               of {formatPayrollMoney(row.advancesOutstanding)}
                             </span>
@@ -340,7 +357,10 @@ function StaffRunCard({
           ) : null}
         </p>
       </div>
-      <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      <ChevronRight
+        className="size-4 shrink-0 text-muted-foreground"
+        aria-hidden
+      />
     </button>
   );
 }

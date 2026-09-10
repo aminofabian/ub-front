@@ -159,13 +159,7 @@ function avatarPalette(seed: string) {
   return AVATAR_PALETTES[hash % AVATAR_PALETTES.length];
 }
 
-function UserAvatar({
-  name,
-  className,
-}: {
-  name: string;
-  className?: string;
-}) {
+function UserAvatar({ name, className }: { name: string; className?: string }) {
   const palette = avatarPalette(name);
   return (
     <span
@@ -219,7 +213,7 @@ function ActionIconButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex size-7 shrink-0 items-center justify-center rounded-md transition-colors",
+        "inline-flex size-7 shrink-0 items-center justify-center rounded-none transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
         "disabled:pointer-events-none disabled:opacity-40",
         tone === "danger"
@@ -255,7 +249,7 @@ function InlineIconButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground/80 transition-colors",
+        "inline-flex size-6 shrink-0 items-center justify-center rounded-none text-muted-foreground/80 transition-colors",
         "hover:bg-muted hover:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
         "active:scale-[0.97]",
@@ -317,8 +311,8 @@ function UserDepartmentsControl({
 
   if (isEditing) {
     return (
-      <div className="flex flex-col gap-2 rounded-lg border border-border/40 bg-muted/20 p-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="flex flex-col gap-2 rounded-none border border-border/40 bg-muted/20 p-2">
+        <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
           Departments
         </span>
         <div className="flex flex-wrap gap-1.5">
@@ -340,10 +334,10 @@ function UserDepartmentsControl({
                     onChangeSelected(Array.from(next));
                   }}
                   className={cn(
-                    "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                    "rounded-none border px-2.5 py-1 text-[11px] font-semibold tracking-[-0.02em] transition-colors",
                     isOn
-                      ? "border-primary/45 bg-primary/10 text-primary"
-                      : "border-border/55 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                      ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                   )}
                 >
                   {t.label}
@@ -361,7 +355,7 @@ function UserDepartmentsControl({
             type="button"
             size="sm"
             variant="secondary"
-            className="h-7 gap-1.5 rounded-md px-2.5 text-[11px] font-medium"
+            className="h-7 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[11px] font-medium text-white"
             disabled={saving}
             onClick={onSave}
           >
@@ -376,7 +370,7 @@ function UserDepartmentsControl({
             type="button"
             size="sm"
             variant="ghost"
-            className="h-7 rounded-md px-2 text-[11px]"
+            className="h-7 rounded-none px-2 text-[11px]"
             disabled={saving}
             onClick={onCancel}
           >
@@ -531,9 +525,7 @@ export default function UsersPage() {
     if (!profileId) return;
     const match = users.find((u) => u.id === profileId);
     setProfileUserId(profileId);
-    setProfileUserLabel(
-      match ? `${match.name} · ${match.email}` : profileId,
-    );
+    setProfileUserLabel(match ? `${match.name} · ${match.email}` : profileId);
   }, [firstLoadDone, canReadStaffProfile, searchParams, users]);
 
   // For non-owner users, restrict branch filter to their assigned branch
@@ -980,10 +972,7 @@ export default function UsersPage() {
     return (
       <DashboardLoadError
         title="Could not load users"
-        message={
-          feedback?.text ??
-          "Failed to load users."
-        }
+        message={feedback?.text ?? "Failed to load users."}
         onRetry={() => {
           setFeedback(null);
           void loadData();
@@ -994,61 +983,58 @@ export default function UsersPage() {
 
   return (
     <>
-      <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")}>
-        <header className="space-y-4 border-b border-border/50 pb-5">
-          <DashboardPageHero
+      <div className={DASHBOARD_MAX_WIDE}>
+        <DashboardPageHero
+          compact
+          icon={UsersIcon}
+          title="Users"
+          description="Invite staff, assign roles, and manage sign-in credentials."
+        >
+          <DashboardQuickLinks
             compact
-            icon={UsersIcon}
-            eyebrow="Team"
-            title="Users"
-            description="Invite staff, assign roles, and manage sign-in credentials."
+            links={[
+              {
+                href: APP_ROUTES.business,
+                label: "Business",
+                desc: "Core settings",
+                icon: Building2,
+              },
+              {
+                href: APP_ROUTES.branches,
+                label: "Branches",
+                desc: "Locations",
+                icon: MapPin,
+              },
+              {
+                href: APP_ROUTES.businessBranding,
+                label: "Branding",
+                desc: "Logo & colors",
+                icon: Palette,
+              },
+              {
+                href: helpHostUrl(APP_ROUTES.helpUserRoles),
+                label: "Guide",
+                desc: "Roles & invites",
+                icon: BookOpen,
+              },
+            ]}
           />
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <DashboardQuickLinks
-              links={[
-                {
-                  href: APP_ROUTES.business,
-                  label: "Business",
-                  desc: "Core settings",
-                  icon: Building2,
-                },
-                {
-                  href: APP_ROUTES.branches,
-                  label: "Branches",
-                  desc: "Locations",
-                  icon: MapPin,
-                },
-                {
-                  href: APP_ROUTES.businessBranding,
-                  label: "Branding",
-                  desc: "Logo & colors",
-                  icon: Palette,
-                },
-                {
-                  href: helpHostUrl(APP_ROUTES.helpUserRoles),
-                  label: "Guide",
-                  desc: "Roles & invites",
-                  icon: BookOpen,
-                },
-              ]}
-            />
-            {canCreate ? (
-              <Button
-                type="button"
-                size="sm"
-                className="shrink-0 gap-1.5 shadow-sm"
-                disabled={roles.length === 0}
-                onClick={() => {
-                  skipInviteDrawerResetAfterCreate.current = false;
-                  setInviteDrawerOpen(true);
-                }}
-              >
-                <UserPlus className="size-3.5" aria-hidden />
-                Invite user
-              </Button>
-            ) : null}
-          </div>
-        </header>
+          {canCreate ? (
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 shrink-0 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] text-white"
+              disabled={roles.length === 0}
+              onClick={() => {
+                skipInviteDrawerResetAfterCreate.current = false;
+                setInviteDrawerOpen(true);
+              }}
+            >
+              <UserPlus className="size-3.5" aria-hidden />
+              Invite user
+            </Button>
+          ) : null}
+        </DashboardPageHero>
 
         {feedback ? (
           <DashboardFeedback kind={feedback.kind} text={feedback.text} />
@@ -1057,24 +1043,22 @@ export default function UsersPage() {
         {!canCreate ? (
           <p
             role="note"
-            className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2 text-xs leading-relaxed text-amber-950 dark:text-amber-50"
+            className="rounded-none border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2 text-xs leading-relaxed text-amber-950 dark:text-amber-50"
           >
-            You need{" "}
-            <span className="font-mono text-[11px]">users.create</span> to
-            invite users.
+            You need <span className="font-mono text-[11px]">users.create</span>{" "}
+            to invite users.
           </p>
         ) : null}
 
         <section className={DASHBOARD_TABLE_SURFACE}>
-          <div className="space-y-3 border-b border-border/50 bg-muted/30 px-4 py-3 sm:px-5">
+          <div className="space-y-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5 sm:px-3.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex min-w-0 items-baseline gap-2">
                 <h2 className="text-sm font-semibold tracking-tight text-foreground">
                   Directory
                 </h2>
                 <span className="text-xs tabular-nums text-muted-foreground">
-                  {users.length}{" "}
-                  {users.length === 1 ? "user" : "users"}
+                  {users.length} {users.length === 1 ? "user" : "users"}
                   {activeFilterCount > 0 ? " · filtered" : ""}
                 </span>
               </div>
@@ -1092,7 +1076,7 @@ export default function UsersPage() {
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Status
                 </span>
                 <select
@@ -1109,7 +1093,7 @@ export default function UsersPage() {
                 </select>
               </label>
               <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Role
                 </span>
                 <select
@@ -1127,7 +1111,7 @@ export default function UsersPage() {
                 </select>
               </label>
               <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Branch{!isOwner ? " · yours" : ""}
                 </span>
                 <select
@@ -1178,7 +1162,7 @@ export default function UsersPage() {
                         key={label}
                         scope="col"
                         className={cn(
-                          "px-3 py-2.5 font-sans text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4",
+                          "px-3 py-2.5 font-sans text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-4",
                           right && "text-right",
                         )}
                       >
@@ -1240,7 +1224,7 @@ export default function UsersPage() {
                                     size="sm"
                                     variant="default"
                                     type="button"
-                                    className="h-7 gap-1 rounded-md px-2.5 text-xs"
+                                    className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
                                     disabled={savingNameId === user.id}
                                     onClick={() => void onSaveName(user.id)}
                                   >
@@ -1258,7 +1242,7 @@ export default function UsersPage() {
                                     size="sm"
                                     variant="ghost"
                                     type="button"
-                                    className="h-7 rounded-md px-2 text-xs"
+                                    className="h-7 rounded-none px-2 text-xs"
                                     disabled={savingNameId === user.id}
                                     onClick={() => {
                                       setNameEditUserId(null);
@@ -1343,7 +1327,7 @@ export default function UsersPage() {
                                   size="sm"
                                   variant="secondary"
                                   type="button"
-                                  className="h-7 gap-1 rounded-md px-2.5 text-xs"
+                                  className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
                                   disabled={savingRoleId === user.id}
                                   onClick={() => void onAssignRole(user.id)}
                                 >
@@ -1361,7 +1345,7 @@ export default function UsersPage() {
                                   size="sm"
                                   variant="ghost"
                                   type="button"
-                                  className="h-7 rounded-md px-2 text-xs"
+                                  className="h-7 rounded-none px-2 text-xs"
                                   disabled={savingRoleId === user.id}
                                   onClick={() => {
                                     setRoleEditUserId(null);
@@ -1480,7 +1464,7 @@ export default function UsersPage() {
                                   size="sm"
                                   variant="secondary"
                                   type="button"
-                                  className="h-7 gap-1 rounded-md px-2.5 text-xs"
+                                  className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
                                   disabled={savingBranchId === user.id}
                                   onClick={() => void onSaveBranch(user.id)}
                                 >
@@ -1498,7 +1482,7 @@ export default function UsersPage() {
                                   size="sm"
                                   variant="ghost"
                                   type="button"
-                                  className="h-7 rounded-md px-2 text-xs"
+                                  className="h-7 rounded-none px-2 text-xs"
                                   disabled={savingBranchId === user.id}
                                   onClick={() => {
                                     setBranchEditUserId(null);
@@ -1562,7 +1546,7 @@ export default function UsersPage() {
                             </span>
                             {user.hasPin ? (
                               <span
-                                className="inline-flex size-5 items-center justify-center rounded-md bg-muted/60 text-muted-foreground"
+                                className="inline-flex size-5 items-center justify-center rounded-none bg-muted/60 text-muted-foreground"
                                 title="PIN set"
                               >
                                 <Hash className="size-3" aria-hidden />
@@ -1622,7 +1606,7 @@ export default function UsersPage() {
                                   size="sm"
                                   variant="default"
                                   type="button"
-                                  className="h-7 gap-1 rounded-md px-2.5 text-xs"
+                                  className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
                                   disabled={savingPasswordId === user.id}
                                   onClick={() => void onSavePassword(user.id)}
                                 >
@@ -1640,7 +1624,7 @@ export default function UsersPage() {
                                   size="sm"
                                   variant="ghost"
                                   type="button"
-                                  className="h-7 rounded-md px-2 text-xs"
+                                  className="h-7 rounded-none px-2 text-xs"
                                   disabled={savingPasswordId === user.id}
                                   onClick={() => clearPasswordEdit(user.id)}
                                 >
@@ -1706,7 +1690,7 @@ export default function UsersPage() {
                                   size="sm"
                                   variant="default"
                                   type="button"
-                                  className="h-7 gap-1 rounded-md px-2.5 text-xs"
+                                  className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
                                   disabled={savingPinId === user.id}
                                   onClick={() => void onSavePin(user.id)}
                                 >
@@ -1724,7 +1708,7 @@ export default function UsersPage() {
                                   size="sm"
                                   variant="ghost"
                                   type="button"
-                                  className="h-7 rounded-md px-2 text-xs"
+                                  className="h-7 rounded-none px-2 text-xs"
                                   disabled={savingPinId === user.id}
                                   onClick={() => clearPinEdit(user.id)}
                                 >
@@ -1756,9 +1740,7 @@ export default function UsersPage() {
                                         )}
                                   </p>
                                   <ActionIconButton
-                                    icon={
-                                      pinRevealed[user.id] ? EyeOff : Eye
-                                    }
+                                    icon={pinRevealed[user.id] ? EyeOff : Eye}
                                     label={
                                       pinRevealed[user.id]
                                         ? "Hide PIN"
@@ -1785,7 +1767,7 @@ export default function UsersPage() {
                                     size="sm"
                                     variant="default"
                                     type="button"
-                                    className="h-7 gap-1 rounded-md px-2.5 text-xs"
+                                    className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
                                     onClick={() => beginPinEdit(user.id)}
                                   >
                                     <Hash className="size-3" aria-hidden />
@@ -1796,15 +1778,17 @@ export default function UsersPage() {
                                   size="sm"
                                   variant="ghost"
                                   type="button"
-                                  className="h-7 rounded-md px-2 text-xs"
+                                  className="h-7 rounded-none px-2 text-xs"
                                   onClick={() => clearPinView(user.id)}
                                 >
                                   Close
                                 </Button>
                               </div>
                             </div>
-                          ) : canUpdate || canDeactivate || canReadStaffProfile ? (
-                            <div className="inline-flex items-center justify-end gap-0.5 rounded-lg border border-border/55 bg-muted/25 p-0.5">
+                          ) : canUpdate ||
+                            canDeactivate ||
+                            canReadStaffProfile ? (
+                            <div className="inline-flex items-center justify-end gap-0.5 rounded-none border border-border/55 bg-muted/25 p-0.5">
                               {canReadStaffProfile ? (
                                 <ActionIconButton
                                   icon={IdCard}
@@ -1863,9 +1847,7 @@ export default function UsersPage() {
                               {canDeactivate ? (
                                 <ActionIconButton
                                   icon={
-                                    deactivatingId === user.id
-                                      ? Loader2
-                                      : UserX
+                                    deactivatingId === user.id ? Loader2 : UserX
                                   }
                                   label={`Deactivate ${user.email}`}
                                   tone="danger"
@@ -1913,6 +1895,7 @@ export default function UsersPage() {
               <Button
                 type="submit"
                 form="invite-user-form"
+                className="rounded-none bg-[var(--pos-primary,#0f766e)] text-white"
                 disabled={creating || roles.length === 0}
               >
                 {creating ? (
@@ -2027,8 +2010,7 @@ export default function UsersPage() {
                         ...previous,
                         credentialMethod: event.target
                           .value as CredentialMethod,
-                        pin:
-                          event.target.value === "pin" ? previous.pin : "",
+                        pin: event.target.value === "pin" ? previous.pin : "",
                       }))
                     }
                     aria-label="Sign-in method for new user"
@@ -2061,7 +2043,7 @@ export default function UsersPage() {
                     />
                   </label>
                 ) : (
-                  <p className="sm:col-span-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                  <p className="sm:col-span-2 rounded-none bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
                     We&apos;ll email this person a secure link to set their own
                     password. They can sign in once they&apos;ve set it.
                   </p>

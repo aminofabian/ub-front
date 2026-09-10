@@ -447,7 +447,7 @@ export function BatchDashboardPage() {
 
   return (
     <div className={DASHBOARD_MAX_WIDE}>
-      <div className="space-y-8">
+      <div className="space-y-1">
         <section className={DASHBOARD_SECTION_SURFACE}>
           <DashboardPageHero
             showActiveScope
@@ -456,7 +456,7 @@ export function BatchDashboardPage() {
             title="Batch Dashboard"
             description="Monitor batch activity, track production trends, and identify stock anomalies at a glance."
           />
-          <div className="mt-8">
+          <div className="mt-1">
             <DashboardQuickLinks
               links={[
                 {
@@ -507,9 +507,9 @@ export function BatchDashboardPage() {
         ) : null}
 
         <section className={DASHBOARD_SECTION_SURFACE}>
-          <div className="flex flex-col gap-2 border-b border-border/50 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="flex flex-col gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/50 text-foreground shadow-sm">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/50 text-foreground shadow-none">
                 <SlidersHorizontal className="size-[18px]" aria-hidden />
               </span>
               <div>
@@ -673,7 +673,7 @@ export function BatchDashboardPage() {
                   variant="outline"
                   size="sm"
                   type="button"
-                  className="shadow-sm"
+                  className="shadow-none"
                   onClick={clearFilters}
                   disabled={!hasFilters}
                 >
@@ -684,7 +684,7 @@ export function BatchDashboardPage() {
                   variant="outline"
                   size="sm"
                   type="button"
-                  className="shadow-sm"
+                  className="shadow-none"
                   onClick={() => {
                     loadDashboard();
                     loadTable();
@@ -722,14 +722,14 @@ export function BatchDashboardPage() {
         )}
 
         <section className={cn(DASHBOARD_SECTION_SURFACE, "space-y-4")}>
-          <div className="inline-flex w-fit gap-1 rounded-xl border border-border/70 bg-muted/25 p-1 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+          <div className="inline-flex w-fit gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/25 p-1 shadow-none ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
             <button
               type="button"
               onClick={() => setActiveTab("supply")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                "inline-flex items-center gap-1.5 rounded-none px-3 py-1.5 text-sm font-medium transition-colors",
                 activeTab === "supply"
-                  ? "bg-card text-foreground shadow-sm ring-1 ring-border/60"
+                  ? "bg-white text-foreground shadow-none ring-1 ring-border/60"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -740,9 +740,9 @@ export function BatchDashboardPage() {
               type="button"
               onClick={() => setActiveTab("inventory")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                "inline-flex items-center gap-1.5 rounded-none px-3 py-1.5 text-sm font-medium transition-colors",
                 activeTab === "inventory"
-                  ? "bg-card text-foreground shadow-sm ring-1 ring-border/60"
+                  ? "bg-white text-foreground shadow-none ring-1 ring-border/60"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -798,7 +798,7 @@ export function BatchDashboardPage() {
       {/* Clear batch confirmation dialog */}
       {clearDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-border/70 bg-card p-6 shadow-lg ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+          <div className="w-full max-w-lg rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-6 shadow-lg ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
             <h2 className="text-lg font-semibold">
               {clearDialog.hasRemaining
                 ? "Clear Supply Batch?"

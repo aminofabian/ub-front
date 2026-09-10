@@ -227,7 +227,7 @@ function EditDrawer({
     readOnly?: boolean,
   ) => (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+      <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">
         {label}
       </span>
       <input
@@ -238,7 +238,7 @@ function EditDrawer({
         readOnly={readOnly}
         onChange={(e) => set(e.target.value)}
         placeholder={hint ?? "—"}
-        className="h-12 rounded-xl border border-border/50 bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 read-only:cursor-default read-only:opacity-70 md:h-10 md:text-[13px]"
+        className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 read-only:cursor-default read-only:opacity-70 md:h-10 md:text-[13px]"
       />
     </label>
   );
@@ -254,7 +254,7 @@ function EditDrawer({
         <div className="flex justify-center pt-2.5 md:hidden" aria-hidden>
           <span className="h-1 w-10 rounded-full bg-muted-foreground/25" />
         </div>
-        <div className="flex items-center justify-between border-b border-border/40 px-4 pb-3 pt-1 md:pt-3">
+        <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 pb-3 pt-1 md:pt-3">
           <div className="min-w-0">
             <DialogTitle className="truncate text-[15px] font-semibold tracking-tight">
               {s.itemName}
@@ -267,20 +267,20 @@ function EditDrawer({
           </div>
           <button
             onClick={onClose}
-            className="ml-2 flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+            className="ml-2 flex size-10 shrink-0 items-center justify-center rounded-none text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
             aria-label="Close"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         </div>
 
-        <div className="border-b border-border/40 px-4 py-3">
+        <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-3">
           <div className="flex items-center gap-3">
             <button
               type="button"
               disabled={uploading || !canUploadPhoto}
               onClick={() => fileRef.current?.click()}
-              className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border/50 bg-muted/20 transition-colors active:scale-[0.98] hover:border-primary/30 hover:bg-primary/[0.04] disabled:opacity-60"
+              className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-none border-2 border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 transition-colors active:scale-[0.98] hover:border-primary/30 hover:bg-primary/[0.04] disabled:opacity-60"
             >
               {photoSrc ? (
                 <img
@@ -305,7 +305,7 @@ function EditDrawer({
               ) : null}
             </button>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Photo</p>
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">Photo</p>
               <p className="mt-0.5 text-[12px] text-muted-foreground/55">
                 {!canUploadPhoto
                   ? "Photo upload not available for your role"
@@ -320,7 +320,7 @@ function EditDrawer({
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4">
           {error ? (
-            <div className="rounded-xl border border-destructive/20 bg-destructive/[0.06] px-3 py-2.5 text-[12px] font-medium text-destructive">
+            <div className="rounded-none border border-destructive/20 bg-destructive/[0.06] px-3 py-2.5 text-[12px] font-medium text-destructive">
               {error}
             </div>
           ) : null}
@@ -349,12 +349,12 @@ function EditDrawer({
           </div>
         </div>
 
-        <div className="border-t border-border/40 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:pb-3">
+        <div className="border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:pb-3">
           <button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-[14px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-none bg-primary text-[14px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
           >
             <Save className="size-4" />
             {saving ? "Saving…" : "Save changes"}
@@ -428,10 +428,10 @@ export function ActivityItemStory({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search a product — e.g. Eggs…"
-          className="h-12 w-full rounded-xl border border-border/50 bg-muted/30 pl-9 pr-3 text-[16px] outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 sm:h-10 sm:text-sm"
+          className="h-12 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 pl-9 pr-3 text-[16px] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 sm:h-10 sm:text-sm"
         />
         {query.trim().length >= 2 ? (
-          <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-20 overflow-hidden rounded-xl border border-border/50 bg-card shadow-lg">
+          <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-20 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-lg">
             {searching ? (
               <p className="px-3 py-2.5 text-xs text-muted-foreground">Searching…</p>
             ) : suggestions.length === 0 ? (
@@ -458,7 +458,7 @@ export function ActivityItemStory({
 
       {/* Empty state */}
       {!itemId ? (
-        <div className="rounded-2xl border border-dashed border-border/50 bg-muted/10 px-6 py-12 text-center">
+        <div className="rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/10 px-6 py-12 text-center">
           <Package className="mx-auto size-8 text-muted-foreground/40" aria-hidden />
           <p className="mt-3 text-sm font-medium text-foreground/80">Pick a product to see its story</p>
           <p className="mt-1 text-xs text-muted-foreground">Stocking history, sell-through, and how it has been moving day by day.</p>
@@ -482,7 +482,7 @@ export function ActivityItemStory({
                 <img
                   src={headerImageSrc}
                   alt=""
-                  className="size-10 shrink-0 rounded-xl border border-border/30 object-cover"
+                  className="size-10 shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] object-cover"
                 />
               ) : null}
               <div>
@@ -494,14 +494,14 @@ export function ActivityItemStory({
               <button
                 type="button"
                 onClick={() => setEditOpen(true)}
-                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50 active:scale-[0.98] sm:h-8 sm:rounded-lg sm:px-2.5 sm:text-[11px]"
+                className="inline-flex h-11 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-3.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50 active:scale-[0.98] sm:h-8 sm:rounded-none sm:px-2.5 sm:text-[11px]"
               >
                 <Pencil className="size-3.5 sm:size-3" />
                 Edit
               </button>
               <Link
                 href={`/products/${s?.itemId}`}
-                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50 sm:h-8 sm:rounded-lg sm:px-2.5 sm:text-[11px]"
+                className="inline-flex h-11 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-3.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50 sm:h-8 sm:rounded-none sm:px-2.5 sm:text-[11px]"
               >
                 <ExternalLink className="size-3.5 sm:size-3" aria-hidden />
                 Open
@@ -512,13 +512,13 @@ export function ActivityItemStory({
           {/* Quick info row: prices + stock */}
           <div className="flex flex-wrap items-center gap-1.5">
             {s?.buyingPrice != null && toNum(s.buyingPrice) > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-md border border-border/30 bg-muted/15 px-2 py-0.5 font-mono text-[10.5px] tabular-nums">
+              <span className="inline-flex items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-2 py-0.5 font-mono text-[10.5px] tabular-nums">
                 <span className="text-[9px] text-muted-foreground/60">Buy</span>
                 {formatMoneyCompact(s.buyingPrice)}
               </span>
             ) : null}
             {s?.sellingPrice != null && toNum(s.sellingPrice) > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-md border border-border/30 bg-muted/15 px-2 py-0.5 font-mono text-[10.5px] tabular-nums">
+              <span className="inline-flex items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-2 py-0.5 font-mono text-[10.5px] tabular-nums">
                 <span className="text-[9px] text-muted-foreground/60">Sell</span>
                 {formatMoneyCompact(s.sellingPrice)}
               </span>
@@ -541,8 +541,8 @@ export function ActivityItemStory({
           {/* Period chips */}
           <div className="flex flex-wrap gap-2">
             {PERIOD_CHIPS.map((chip) => (
-              <div key={chip.label} className="min-w-[5.5rem] flex-1 rounded-xl border border-border/40 bg-muted/15 px-3 py-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">{chip.label}</p>
+              <div key={chip.label} className="min-w-[5.5rem] flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-3 py-2">
+                <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">{chip.label}</p>
                 <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums">{formatQty(activity.periods[chip.key])}</p>
                 <p className="font-mono text-[10px] tabular-nums text-muted-foreground/60">{formatMoney(activity.periods[chip.revKey])}</p>
               </div>
@@ -562,7 +562,7 @@ export function ActivityItemStory({
 
           {/* Daily chart */}
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Daily units sold</p>
+            <p className="mb-2 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">Daily units sold</p>
             <div className="flex h-28 items-end gap-px sm:gap-0.5" role="img" aria-label="Daily quantity sold chart">
               {activity.daily.map((point) => {
                 const qty = toNum(point.qty);
@@ -587,11 +587,11 @@ export function ActivityItemStory({
           {/* Stock-ins + Recent sales */}
           <div className="grid gap-4 lg:grid-cols-2">
             <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Stock-in history</p>
+              <p className="mb-2 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">Stock-in history</p>
               {activity.stockIns.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No inbound movements recorded.</p>
               ) : (
-                <ul className="divide-y divide-border/30 rounded-xl border border-border/40">
+                <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
                   {activity.stockIns.map((m) => (
                     <li key={m.id} className="flex items-start justify-between gap-3 px-3 py-2.5">
                       <div className="min-w-0">
@@ -611,11 +611,11 @@ export function ActivityItemStory({
             </div>
 
             <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Recent sales</p>
+              <p className="mb-2 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">Recent sales</p>
               {activity.recentSales.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No sale lines in this window.</p>
               ) : (
-                <ul className="divide-y divide-border/30 rounded-xl border border-border/40">
+                <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
                   {activity.recentSales.slice(0, 12).map((s, idx) => (
                     <li key={`${s.saleId}-${idx}`} className="flex items-center justify-between gap-3 px-3 py-2.5">
                       <div className="min-w-0">
@@ -668,8 +668,8 @@ function Kpi({
   hint?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border/40 bg-card px-3 py-2.5">
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+    <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5">
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">
         <Icon className="size-3" aria-hidden />
         {label}
       </div>

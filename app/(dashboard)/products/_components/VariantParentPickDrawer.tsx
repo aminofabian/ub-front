@@ -51,12 +51,14 @@ export function VariantParentPickDrawer({
     let cancelled = false;
     const timer = window.setTimeout(() => {
       setSearching(true);
-      void fetchItemsPage(q, { catalogScope: "PARENTS_ONLY", page: 0, size: 20 })
+      void fetchItemsPage(q, {
+        catalogScope: "PARENTS_ONLY",
+        page: 0,
+        size: 20,
+      })
         .then((page) => {
           if (cancelled) return;
-          setHits(
-            page.content.filter((row) => !row.variantOfItemId?.trim()),
-          );
+          setHits(page.content.filter((row) => !row.variantOfItemId?.trim()));
         })
         .catch(() => {
           if (!cancelled) setHits([]);
@@ -95,7 +97,7 @@ export function VariantParentPickDrawer({
     >
       <div className="space-y-3">
         <label className="block space-y-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Main product
           </span>
           <div className="relative">
@@ -110,7 +112,10 @@ export function VariantParentPickDrawer({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name or code…"
-              className={cn(dashboardInputClass(busy), "h-10 rounded-none py-2 pl-9 pr-3 shadow-none")}
+              className={cn(
+                dashboardInputClass(busy),
+                "h-10 rounded-none py-2 pl-9 pr-3 shadow-none",
+              )}
             />
           </div>
         </label>
@@ -123,7 +128,9 @@ export function VariantParentPickDrawer({
         ) : null}
 
         {!searching && query.trim() && hits.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No parent products found.</p>
+          <p className="text-sm text-muted-foreground">
+            No parent products found.
+          </p>
         ) : null}
 
         {hits.length > 0 ? (
@@ -145,7 +152,7 @@ export function VariantParentPickDrawer({
                       {itemCatalogDisplayTitle(hit)}
                     </span>
                     {hit.groupLabelOnly ? (
-                      <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                         Group
                       </span>
                     ) : null}

@@ -20,7 +20,7 @@ export function QuickChip({
       className={cn(
         "inline-flex items-center gap-2 border border-[#EEEEEE] bg-white px-3 py-2 text-sm font-medium text-black",
         "transition-opacity hover:opacity-90",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/30",
       )}
     >
       <Icon className="size-3.5 text-[#888888]" aria-hidden />

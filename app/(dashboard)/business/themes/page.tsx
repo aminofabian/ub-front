@@ -2,12 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  Brush,
-  LayoutTemplate,
-  Palette,
-} from "lucide-react";
+import { ArrowLeft, Brush, LayoutTemplate, Palette } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -21,7 +16,8 @@ import { fetchBusiness, type BusinessRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 
 /** The try-it-on atelier needs more width than the standard dashboard column. */
-const STUDIO_WRAPPER = "mx-auto w-full max-w-[1400px] space-y-10 pb-20";
+const STUDIO_WRAPPER =
+  "relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col gap-1 bg-white px-0 pb-4";
 
 export default function BusinessThemesPage() {
   const { canManageBusinessSettings } = useDashboard();
@@ -76,7 +72,9 @@ export default function BusinessThemesPage() {
     return (
       <DashboardLoadError
         title="Could not load shop looks"
-        message={errorText ?? "Could not load the looks for your customer website."}
+        message={
+          errorText ?? "Could not load the looks for your customer website."
+        }
         onRetry={() => void load()}
       />
     );
@@ -134,11 +132,14 @@ function ThemesStudioSkeleton() {
       <div className="grid items-start gap-5 xl:grid-cols-[188px_minmax(0,1fr)_300px] xl:gap-6">
         <div className="hidden space-y-3 xl:block">
           <div className="h-3 w-16 animate-pulse rounded bg-muted" />
-          <div className="h-16 animate-pulse rounded-xl bg-muted" />
-          <div className="h-16 animate-pulse rounded-xl bg-muted/70" />
+          <div className="h-16 animate-pulse rounded-none bg-muted" />
+          <div className="h-16 animate-pulse rounded-none bg-muted/70" />
           <div className="mt-4 space-y-1.5">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-7 animate-pulse rounded-lg bg-muted/60" />
+              <div
+                key={i}
+                className="h-7 animate-pulse rounded-none bg-muted/60"
+              />
             ))}
           </div>
         </div>
@@ -151,9 +152,9 @@ function ThemesStudioSkeleton() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="flex gap-3 overflow-hidden rounded-xl border border-border/70 p-2.5"
+                className="flex gap-3 overflow-hidden rounded-none border border-border/70 p-2.5"
               >
-                <div className="h-24 w-[4.75rem] shrink-0 animate-pulse rounded-lg bg-muted" />
+                <div className="h-24 w-[4.75rem] shrink-0 animate-pulse rounded-none bg-muted" />
                 <div className="flex flex-1 flex-col gap-2 py-1">
                   <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
                   <div className="h-3 w-full animate-pulse rounded bg-muted/70" />
@@ -163,7 +164,7 @@ function ThemesStudioSkeleton() {
             ))}
           </div>
         </div>
-        <div className="overflow-hidden rounded-2xl border border-border/70">
+        <div className="overflow-hidden rounded-none border border-border/70">
           <div className="space-y-3 bg-muted/25 p-4">
             <div className="mx-auto h-48 w-28 animate-pulse rounded-[1.4rem] bg-muted" />
             <div className="mx-auto h-4 w-28 animate-pulse rounded bg-muted" />

@@ -118,7 +118,9 @@ export function VirtualizedSupplierList({
         </span>
         {totalElements > 0 ? (
           <span className="shrink-0 text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-            <span className="font-semibold text-[var(--order-ink,#15231f)]">{totalLoaded}</span>
+            <span className="font-semibold text-[var(--order-ink,#15231f)]">
+              {totalLoaded}
+            </span>
             {totalElements > totalLoaded ? (
               <>
                 {" "}
@@ -142,11 +144,17 @@ export function VirtualizedSupplierList({
       >
         <span className={cn(supTableCell, "flex items-center py-1")}>Name</span>
         {!compact ? (
-          <span className={cn(supTableCell, "flex items-center py-1")}>Code</span>
+          <span className={cn(supTableCell, "flex items-center py-1")}>
+            Code
+          </span>
         ) : null}
-        <span className={cn(supTableCell, "flex items-center py-1")}>Status</span>
+        <span className={cn(supTableCell, "flex items-center py-1")}>
+          Status
+        </span>
         {showActions ? (
-          <span className={cn(supTableCell, "flex items-center justify-end py-1")}>
+          <span
+            className={cn(supTableCell, "flex items-center justify-end py-1")}
+          >
             Actions
           </span>
         ) : null}

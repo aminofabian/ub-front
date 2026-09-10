@@ -157,7 +157,7 @@ export function SupplyBatchTable({
     <th
       scope="col"
       className={cn(
-        "cursor-pointer select-none px-5 py-3.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/40 sm:px-6",
+        "cursor-pointer select-none bg-white px-5 py-3.5 text-left font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground transition-colors hover:bg-muted/40 sm:px-6",
         align === "right" && "text-right",
       )}
       onClick={() => onSort(col)}
@@ -232,7 +232,7 @@ export function SupplyBatchTable({
             of <strong className="text-foreground">{total}</strong> supply batches
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="shadow-sm" onClick={exportCSV}>
+            <Button variant="outline" size="sm" className="shadow-none" onClick={exportCSV}>
               <Download className="mr-1 h-3.5 w-3.5" />
               Export CSV
             </Button>
@@ -252,7 +252,7 @@ export function SupplyBatchTable({
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-border/50 bg-muted/25">
+          <thead className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/25">
             <tr>
               <Th col="batchNumber">Batch #</Th>
               <Th col="batchName">Name</Th>
@@ -279,13 +279,13 @@ export function SupplyBatchTable({
               <Th col="receivedAt">Received</Th>
               <th
                 scope="col"
-                className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                className="bg-white px-5 py-3.5 text-right font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-6"
               >
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/40">
+          <tbody className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
             {loading ? (
               <tr>
                 <td
@@ -477,7 +477,7 @@ export function SupplyBatchTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between border-t border-border/50 px-5 py-4 sm:px-6">
+      <div className="flex items-center justify-between border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-5 py-4 sm:px-6">
         <Button
           variant="outline"
           size="sm"

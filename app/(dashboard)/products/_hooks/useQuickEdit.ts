@@ -21,7 +21,10 @@ import {
   type ItemSupplierLinkRecord,
   type PatchItemPayload,
 } from "@/lib/api";
-import { formatProductNameForCatalog, isGarbageProductName } from "@/lib/catalog-display";
+import {
+  formatProductNameForCatalog,
+  isGarbageProductName,
+} from "@/lib/catalog-display";
 import { type QuickEditKey } from "../_types";
 import {
   effectiveOnHand,
@@ -340,7 +343,9 @@ export function useQuickEdit({
     }
     const cost = primaryCost;
     if (cost == null || cost < 0) {
-      setMessage("Set a cost price first, then set margin to update shelf price.");
+      setMessage(
+        "Set a cost price first, then set margin to update shelf price.",
+      );
       return;
     }
     const shelf = Math.round((cost / (1 - pct / 100)) * 100) / 100;

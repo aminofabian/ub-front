@@ -216,7 +216,7 @@ export const SearchableSelect = forwardRef<
     ? selected.hint
       ? `${selected.label} · ${selected.hint}`
       : selected.label
-    : noneLabel ?? placeholder;
+    : (noneLabel ?? placeholder);
 
   const emptyCopy = canCreate
     ? awaitingName || !query.trim()
@@ -274,7 +274,7 @@ export const SearchableSelect = forwardRef<
               width: "var(--radix-popover-trigger-width)",
               maxHeight: "var(--radix-popover-content-available-height)",
             }}
-            className="flex flex-col overflow-hidden rounded-lg border border-border bg-background shadow-lg"
+            className="flex flex-col overflow-hidden rounded-none border border-border bg-background shadow-none"
           >
             <div className="shrink-0 border-b border-border px-2 py-1.5">
               <input

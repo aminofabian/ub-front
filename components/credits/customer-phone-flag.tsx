@@ -52,15 +52,17 @@ export function CustomerPhoneFlag({
 }
 
 export function customerPrimaryPhone(
-  phones: {
-    phone?: string | null;
-    maskedHint?: string | null;
-    assignedMsisdn?: string | null;
-    primary?: boolean | null;
-  }[] | null | undefined,
+  phones:
+    | {
+        phone?: string | null;
+        maskedHint?: string | null;
+        assignedMsisdn?: string | null;
+        primary?: boolean | null;
+      }[]
+    | null
+    | undefined,
 ): string {
   if (!phones?.length) return "";
-  const primary =
-    phones.find((p) => p.primary) || phones[0];
+  const primary = phones.find((p) => p.primary) || phones[0];
   return primary?.phone?.trim() || primary?.maskedHint?.trim() || "";
 }

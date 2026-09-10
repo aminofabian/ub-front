@@ -197,7 +197,7 @@ export default function BusinessConfigurationPage() {
   if (editor.loadFailed && !editor.effectiveSnapshot) {
     return (
       <div className="mx-auto max-w-lg py-16">
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-sm">
+        <div className="rounded-none border border-destructive/30 bg-destructive/5 p-8 text-center shadow-none">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
             <AlertCircle className="size-6" aria-hidden />
           </div>
@@ -231,7 +231,7 @@ export default function BusinessConfigurationPage() {
         "space-y-5 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] lg:pb-16",
       )}
     >
-      <header className="relative overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm">
+      <header className="relative overflow-hidden rounded-3xl border border-border/60 bg-card shadow-none">
         <div
           className="pointer-events-none absolute inset-0 opacity-90"
           aria-hidden
@@ -247,8 +247,7 @@ export default function BusinessConfigurationPage() {
             backgroundImage:
               "linear-gradient(to right, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px)",
             backgroundSize: "28px 28px",
-            maskImage:
-              "linear-gradient(180deg, black 0%, transparent 85%)",
+            maskImage: "linear-gradient(180deg, black 0%, transparent 85%)",
           }}
         />
 
@@ -257,7 +256,7 @@ export default function BusinessConfigurationPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 rounded-xl bg-background/70 px-2.5 text-xs backdrop-blur"
+              className="h-8 gap-1.5 rounded-none bg-background/70 px-2.5 text-xs backdrop-blur"
               asChild
             >
               <Link href={APP_ROUTES.businessSettings}>
@@ -269,7 +268,7 @@ export default function BusinessConfigurationPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 rounded-xl bg-background/70 px-2.5 text-xs backdrop-blur"
+                className="h-8 gap-1.5 rounded-none bg-background/70 px-2.5 text-xs backdrop-blur"
                 asChild
               >
                 <Link href={APP_ROUTES.businessBranding}>
@@ -280,7 +279,7 @@ export default function BusinessConfigurationPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 rounded-xl bg-background/70 px-2.5 text-xs backdrop-blur"
+                className="h-8 gap-1.5 rounded-none bg-background/70 px-2.5 text-xs backdrop-blur"
                 asChild
               >
                 <Link href={APP_ROUTES.business}>
@@ -293,7 +292,7 @@ export default function BusinessConfigurationPage() {
 
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-2xl space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold tracking-[-0.02em] text-primary">
                 <SlidersHorizontal className="size-3.5" aria-hidden />
                 Configuration
               </div>
@@ -307,16 +306,16 @@ export default function BusinessConfigurationPage() {
             </div>
 
             <div className="grid min-w-[12rem] grid-cols-2 gap-2 sm:min-w-[14rem]">
-              <div className="rounded-2xl border border-border/60 bg-background/75 px-3 py-2.5 backdrop-blur">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="rounded-none border border-border/60 bg-background/75 px-3 py-2.5 backdrop-blur">
+                <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Active policies
                 </p>
                 <p className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight">
                   {enabledCount}
                 </p>
               </div>
-              <div className="rounded-2xl border border-border/60 bg-background/75 px-3 py-2.5 backdrop-blur">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="rounded-none border border-border/60 bg-background/75 px-3 py-2.5 backdrop-blur">
+                <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Audit sample
                 </p>
                 <p className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight">
@@ -333,8 +332,7 @@ export default function BusinessConfigurationPage() {
           >
             {CONFIGURATION_WORKSPACES.map((item) => {
               const active = workspace === item.id;
-              const Icon =
-                item.id === "inventory" ? Warehouse : ShoppingCart;
+              const Icon = item.id === "inventory" ? Warehouse : ShoppingCart;
               return (
                 <button
                   key={item.id}
@@ -352,15 +350,15 @@ export default function BusinessConfigurationPage() {
                     }
                   }}
                   className={cn(
-                    "group flex items-start gap-3 rounded-2xl border px-3.5 py-3 text-left transition-all",
+                    "group flex items-start gap-3 rounded-none border px-3.5 py-3 text-left transition-all",
                     active
-                      ? "border-primary/40 bg-background shadow-md shadow-primary/10"
+                      ? "border-primary/40 bg-background shadow-none shadow-primary/10"
                       : "border-border/50 bg-background/50 hover:border-border hover:bg-background/80",
                   )}
                 >
                   <span
                     className={cn(
-                      "flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors",
+                      "flex size-10 shrink-0 items-center justify-center rounded-none transition-colors",
                       active
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground group-hover:text-foreground",
@@ -374,7 +372,7 @@ export default function BusinessConfigurationPage() {
                         {item.label}
                       </span>
                       {active ? (
-                        <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
+                        <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold tracking-[-0.02em] text-primary">
                           Open
                         </span>
                       ) : null}
@@ -467,8 +465,8 @@ export default function BusinessConfigurationPage() {
 
       <div className="grid gap-4 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start xl:grid-cols-[14rem_minmax(0,1fr)]">
         <aside className="hidden lg:block">
-          <div className="sticky top-4 space-y-3 rounded-2xl border border-border/60 bg-card/90 p-3 shadow-sm">
-            <p className="px-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="sticky top-4 space-y-3 rounded-none border border-border/60 bg-card/90 p-3 shadow-none">
+            <p className="px-1.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
               On this board
             </p>
             <ul className="space-y-0.5">
@@ -483,7 +481,7 @@ export default function BusinessConfigurationPage() {
                         scrollToSection(id);
                       }}
                       className={cn(
-                        "flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-xs transition-colors",
+                        "flex w-full items-center gap-2 rounded-none px-2 py-2 text-left text-xs transition-colors",
                         active
                           ? "bg-primary/10 font-semibold text-foreground"
                           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
@@ -502,8 +500,8 @@ export default function BusinessConfigurationPage() {
                 );
               })}
             </ul>
-            <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-2.5 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="rounded-none border border-dashed border-border/70 bg-muted/20 px-2.5 py-2">
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 Also under Configuration
               </p>
               <div className="mt-1.5 flex flex-col gap-1">

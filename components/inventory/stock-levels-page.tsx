@@ -353,7 +353,7 @@ function StockRowItem({
       <td className={cn(supTableCell, "w-[5rem]")}>
         <span
           className={cn(
-            "inline-flex items-center border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide",
+            "inline-flex items-center border px-1.5 py-px text-[10px] font-semibold tracking-[-0.02em]",
             statusClass,
           )}
         >
@@ -706,8 +706,8 @@ export function StockLevelsPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="flex min-h-0 flex-col overflow-hidden border border-border bg-card">
-        <header className="space-y-2 border-b border-border px-3 py-3">
+      <div className="flex min-h-0 flex-col overflow-hidden border border-border bg-white">
+        <header className="space-y-1">
           <DashboardPageHero
             compact
             showActiveScope

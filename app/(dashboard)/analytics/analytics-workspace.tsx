@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, Filter, RefreshCw, X } from "lucide-react";
 
@@ -136,7 +130,7 @@ function ChartCard({
 }) {
   return (
     <Panel className="flex min-h-0 flex-col px-3 pb-3 pt-4">
-      <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      <h2 className="mb-3 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
         {title}
       </h2>
       <div className="min-h-0 flex-1 text-foreground">{children}</div>
@@ -213,9 +207,7 @@ function CustomerTrend({
 }) {
   if (points.length === 0) {
     return (
-      <EmptyPlot>
-        Completed sales in this window will plot here.
-      </EmptyPlot>
+      <EmptyPlot>Completed sales in this window will plot here.</EmptyPlot>
     );
   }
   const max = Math.max(...points.map((p) => p.value), 1);
@@ -234,16 +226,15 @@ function CustomerTrend({
     return { ...p, x, y };
   });
   const splitAt = incompleteKey
-    ? Math.max(
-        0,
-        coords.findIndex((c) => c.key === incompleteKey) - 1,
-      )
+    ? Math.max(0, coords.findIndex((c) => c.key === incompleteKey) - 1)
     : coords.length - 1;
   const solid = coords.slice(0, Math.max(splitAt + 1, 1));
   const tail = coords.slice(Math.max(splitAt, 0));
   const toPath = (pts: typeof coords) =>
     pts
-      .map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
+      .map(
+        (c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`,
+      )
       .join(" ");
 
   return (
@@ -343,7 +334,7 @@ function SlicerPanel({
   return (
     <section className="border border-border">
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        <h2 className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {title}
         </h2>
         <div className="flex items-center gap-1 text-muted-foreground">
@@ -403,13 +394,19 @@ function BoardSkeleton() {
       <div className="h-8 w-2/3 animate-pulse bg-muted" />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-20 animate-pulse border border-border bg-muted/40" />
+          <div
+            key={i}
+            className="h-20 animate-pulse border border-border bg-muted/40"
+          />
         ))}
       </div>
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13.5rem]">
         <div className="grid gap-3 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-56 animate-pulse border border-border bg-muted/30" />
+            <div
+              key={i}
+              className="h-56 animate-pulse border border-border bg-muted/30"
+            />
           ))}
         </div>
         <div className="space-y-3">
@@ -470,9 +467,9 @@ export function AnalyticsWorkspace({
   );
 
   const [pl, setPl] = useState<ProfitAndLossResponse | null>(null);
-  const [categoryRevenue, setCategoryRevenue] = useState<RevenueByCategoryRow[]>(
-    [],
-  );
+  const [categoryRevenue, setCategoryRevenue] = useState<
+    RevenueByCategoryRow[]
+  >([]);
   const [staffPerf, setStaffPerf] = useState<StaffPerformanceRow[]>([]);
   const [itemsByProfit, setItemsByProfit] = useState<ItemRevenueRow[]>([]);
   const [branchCogs, setBranchCogs] = useState<BranchCogsRow[]>([]);
@@ -544,61 +541,61 @@ export function AnalyticsWorkspace({
         pulseRes,
         auditRes,
       ] = await Promise.all([
-          fetchFinancePL(
-            dateRange.from,
-            dateRange.to,
-            branchFilter,
-            typeFilter,
-          ).catch(() => null),
-          fetchSalesRevenueByCategory(
-            dateRange.from,
-            dateRange.to,
-            catFilter,
-            branchFilter,
-            typeFilter,
-          ).catch(() => []),
-          fetchStaffPerformance(
-            dateRange.from,
-            dateRange.to,
-            branchFilter,
-            typeFilter,
-          ).catch(() => []),
-          fetchItemsByProfit(dateRange.from, dateRange.to, {
-            categoryId: catFilter,
-            branchId: branchFilter,
-            itemTypeId: typeFilter,
-            limit: 10,
-          }).catch(() => []),
-          fetchCogsByBranch(
-            dateRange.from,
-            dateRange.to,
-            catFilter,
-            branchFilter,
-            typeFilter,
-          ).catch(() => []),
-          fetchCustomersByMonth(dateRange.from, dateRange.to, branchFilter).catch(
-            () => null,
-          ),
-          fetchPaymentLedger(dateRange.from, dateRange.to, branchFilter).catch(
-            () => [] as PaymentLedgerRow[],
-          ),
-          fetchOutstandingTabs().catch(() => [] as OutstandingTabRowRecord[]),
-          fetchCreditsActivitySummary(dateRange.from, dateRange.to).catch(
-            () => null,
-          ),
-          fetchFinancePulse(dateRange.to, branchFilter, typeFilter).catch(
-            () => null,
-          ),
-          canViewAuditLog
-            ? fetchAuditEvents({
-                branchId: branchFilter ?? null,
-                from: fromIso,
-                to: toIso,
-                page: 0,
-                size: 8,
-              }).catch(() => null)
-            : Promise.resolve(null),
-        ]);
+        fetchFinancePL(
+          dateRange.from,
+          dateRange.to,
+          branchFilter,
+          typeFilter,
+        ).catch(() => null),
+        fetchSalesRevenueByCategory(
+          dateRange.from,
+          dateRange.to,
+          catFilter,
+          branchFilter,
+          typeFilter,
+        ).catch(() => []),
+        fetchStaffPerformance(
+          dateRange.from,
+          dateRange.to,
+          branchFilter,
+          typeFilter,
+        ).catch(() => []),
+        fetchItemsByProfit(dateRange.from, dateRange.to, {
+          categoryId: catFilter,
+          branchId: branchFilter,
+          itemTypeId: typeFilter,
+          limit: 10,
+        }).catch(() => []),
+        fetchCogsByBranch(
+          dateRange.from,
+          dateRange.to,
+          catFilter,
+          branchFilter,
+          typeFilter,
+        ).catch(() => []),
+        fetchCustomersByMonth(dateRange.from, dateRange.to, branchFilter).catch(
+          () => null,
+        ),
+        fetchPaymentLedger(dateRange.from, dateRange.to, branchFilter).catch(
+          () => [] as PaymentLedgerRow[],
+        ),
+        fetchOutstandingTabs().catch(() => [] as OutstandingTabRowRecord[]),
+        fetchCreditsActivitySummary(dateRange.from, dateRange.to).catch(
+          () => null,
+        ),
+        fetchFinancePulse(dateRange.to, branchFilter, typeFilter).catch(
+          () => null,
+        ),
+        canViewAuditLog
+          ? fetchAuditEvents({
+              branchId: branchFilter ?? null,
+              from: fromIso,
+              to: toIso,
+              page: 0,
+              size: 8,
+            }).catch(() => null)
+          : Promise.resolve(null),
+      ]);
 
       setPl(plRes);
       setCategoryRevenue(Array.isArray(catRes) ? catRes : []);
@@ -673,11 +670,13 @@ export function AnalyticsWorkspace({
         m.customerCount,
       ]),
     );
-    return monthsCovered(dateRange.from, dateRange.to).map(({ year, month }) => ({
-      key: `${year}-${month}`,
-      label: monthLabel(year, month),
-      value: byKey.get(`${year}-${month}`) ?? 0,
-    }));
+    return monthsCovered(dateRange.from, dateRange.to).map(
+      ({ year, month }) => ({
+        key: `${year}-${month}`,
+        label: monthLabel(year, month),
+        value: byKey.get(`${year}-${month}`) ?? 0,
+      }),
+    );
   }, [customerTrend, dateRange]);
 
   const incompleteMonth =
@@ -712,7 +711,8 @@ export function AnalyticsWorkspace({
     })
     .reduce((sum, row) => sum + toNum(row.amount), 0);
   const allocated = Math.max(imported - unallocated, 0);
-  const balanced = unallocated === 0 && openShifts === 0 && unverifiedMpesa === 0;
+  const balanced =
+    unallocated === 0 && openShifts === 0 && unverifiedMpesa === 0;
 
   if (loading) return <BoardSkeleton />;
 
@@ -733,7 +733,7 @@ export function AnalyticsWorkspace({
             </h1>
             <span
               className={cn(
-                "inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.06em]",
+                "inline-flex items-center gap-1 text-[11px] font-semibold tracking-[-0.02em]",
                 balanced ? "text-emerald-700" : "text-[#9a2e16]",
               )}
             >
@@ -832,7 +832,7 @@ export function AnalyticsWorkspace({
                   i === 4 && "col-span-2 border-t xl:col-span-1 xl:border-t-0",
                 )}
               >
-                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                <p className="text-[11px] font-medium tracking-[-0.02em] text-muted-foreground">
                   {kpi.label}
                 </p>
                 <p
@@ -925,7 +925,7 @@ export function AnalyticsWorkspace({
 
       {showCategoryTable ? (
         <Panel className="overflow-hidden">
-          <h2 className="border-b border-border px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          <h2 className="border-b border-border px-3 py-3 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Net revenue by category
           </h2>
           <div className="overflow-x-auto">

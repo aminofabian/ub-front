@@ -42,7 +42,10 @@ import {
   type ItemSupplierLinkRecord,
   type ItemTypeRecord,
 } from "@/lib/api";
-import { CATALOG_FIX_NAME_LABEL, resolveCatalogItemName } from "@/lib/catalog-display";
+import {
+  CATALOG_FIX_NAME_LABEL,
+  resolveCatalogItemName,
+} from "@/lib/catalog-display";
 import { productDossierPath } from "@/lib/product-dossier-url";
 import { type ProductEditDraft, type QuickEditKey } from "../_types";
 import {
@@ -321,7 +324,7 @@ export function ProductDetailPanel(props: Props) {
       <Button
         type="button"
         size="sm"
-        className="h-7 gap-1 rounded-md px-2 text-[10px]"
+        className="h-7 gap-1 rounded-none bg-[var(--catalog-primary,#0f766e)] px-2 text-[10px] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]"
         disabled={quickSaving}
         onClick={onSave}
       >
@@ -332,7 +335,7 @@ export function ProductDetailPanel(props: Props) {
         type="button"
         size="sm"
         variant="ghost"
-        className="h-7 rounded-md px-2 text-[10px]"
+        className="h-7 rounded-none px-2 text-[10px]"
         disabled={quickSaving}
         onClick={cancelQuickEdit}
       >
@@ -341,14 +344,13 @@ export function ProductDetailPanel(props: Props) {
     </div>
   );
 
-  const onInlineEnter =
-    (onSave: () => void) => (e: React.KeyboardEvent) => {
-      if (e.key !== "Enter" || e.shiftKey) return;
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === "TEXTAREA") return;
-      e.preventDefault();
-      onSave();
-    };
+  const onInlineEnter = (onSave: () => void) => (e: React.KeyboardEvent) => {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    const tag = (e.target as HTMLElement).tagName;
+    if (tag === "TEXTAREA") return;
+    e.preventDefault();
+    onSave();
+  };
 
   const inlineEdit = (
     label: string,
@@ -356,10 +358,7 @@ export function ProductDetailPanel(props: Props) {
     input: React.ReactNode,
     trailing?: React.ReactNode,
   ) => (
-    <div
-      className={detailInlineEditClass}
-      onKeyDown={onInlineEnter(onSave)}
-    >
+    <div className={detailInlineEditClass} onKeyDown={onInlineEnter(onSave)}>
       <div className="flex flex-wrap items-end gap-2">
         <label className="min-w-0 flex-1">
           <span className={cn(productFormLabelClass, "mb-1 block")}>
@@ -480,7 +479,7 @@ export function ProductDetailPanel(props: Props) {
         className={cn(
           detailStatCellClass(highlight),
           detailMetricCellWrapClass,
-          isEditing && "bg-muted/40 ring-1 ring-inset ring-border",
+          isEditing && "bg-white ring-1 ring-inset ring-border",
         )}
       >
         <p className={detailFieldLabelClass}>{label}</p>
@@ -489,7 +488,12 @@ export function ProductDetailPanel(props: Props) {
             {opts.editContent}
           </div>
         ) : isEditing ? (
-          <p className={cn(detailStatValueClass, "text-[12px] font-medium text-foreground/50")}>
+          <p
+            className={cn(
+              detailStatValueClass,
+              "text-[12px] font-medium text-foreground/50",
+            )}
+          >
             Editing…
           </p>
         ) : (
@@ -554,9 +558,7 @@ export function ProductDetailPanel(props: Props) {
       ? { text: formatAmount(sellPrice), empty: false }
       : {
           text:
-            panelKind === "group"
-              ? "Price on variants"
-              : "No sell price set",
+            panelKind === "group" ? "Price on variants" : "No sell price set",
           empty: true,
         };
   const costDisplay =
@@ -599,8 +601,7 @@ export function ProductDetailPanel(props: Props) {
       <div
         className={cn(
           detailHeroClass,
-          mobileAppLayout &&
-            "border-0 bg-transparent p-0 shadow-none sm:p-0",
+          mobileAppLayout && "border-0 bg-transparent p-0 shadow-none sm:p-0",
         )}
       >
         <div
@@ -624,7 +625,7 @@ export function ProductDetailPanel(props: Props) {
           ) : (
             <div
               className={cn(
-                "relative shrink-0 overflow-hidden rounded-none border border-border bg-muted",
+                "relative shrink-0 overflow-hidden rounded-none border border-border bg-white",
                 mobileAppLayout ? "size-14" : "size-10 sm:size-11",
               )}
             >
@@ -638,10 +639,7 @@ export function ProductDetailPanel(props: Props) {
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
-                  <Package
-                    className="size-5 text-foreground/30"
-                    aria-hidden
-                  />
+                  <Package className="size-5 text-foreground/30" aria-hidden />
                 </div>
               )}
             </div>
@@ -653,7 +651,12 @@ export function ProductDetailPanel(props: Props) {
                 {kindLabel}
               </span>
               {detail.active === false && (
-                <span className={cn(detailBadgeClass, "border-destructive/30 text-destructive")}>
+                <span
+                  className={cn(
+                    detailBadgeClass,
+                    "border-destructive/30 text-destructive",
+                  )}
+                >
                   Inactive
                 </span>
               )}
@@ -681,25 +684,30 @@ export function ProductDetailPanel(props: Props) {
             </div>
             {!mobileAppLayout ? (
               <div className="flex items-start justify-between gap-2">
-              <h3
-                className={cn(
-                  "text-[15px] font-semibold leading-snug tracking-tight text-foreground",
-                  displayName.needsNameFix &&
-                    "text-amber-800 dark:text-amber-300",
-                )}
-              >
-                {heroTitle}
-              </h3>
-              <Link
-                href={productDossierPath(detail)}
-                className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-foreground/55 underline-offset-2 hover:text-foreground hover:underline"
-              >
-                <LineChart className="size-3" aria-hidden />
-                Ledger
-              </Link>
+                <h3
+                  className={cn(
+                    "text-[15px] font-semibold leading-snug tracking-tight text-foreground",
+                    displayName.needsNameFix &&
+                      "text-amber-800 dark:text-amber-300",
+                  )}
+                >
+                  {heroTitle}
+                </h3>
+                <Link
+                  href={productDossierPath(detail)}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-none px-1.5 py-0.5 text-[11px] font-medium text-foreground/55 underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  <LineChart className="size-3" aria-hidden />
+                  Ledger
+                </Link>
               </div>
             ) : null}
-            <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-0.5", detailMetaClass)}>
+            <div
+              className={cn(
+                "flex flex-wrap items-center gap-x-2 gap-y-0.5",
+                detailMetaClass,
+              )}
+            >
               {detail.sku && (
                 <span className="font-mono text-[11px] font-medium text-foreground/80">
                   {detail.sku}
@@ -744,122 +752,122 @@ export function ProductDetailPanel(props: Props) {
 
       {/* Quick actions */}
       {!mobileAppLayout ? (
-      <div className={cn(detailSellingStripClass, "gap-1.5")}>
-        <button
-          type="button"
-          className={detailActionBtnPrimaryClass}
-          onClick={() => setActiveDrawer("edit-product")}
-        >
-          <PencilLine className="size-3" aria-hidden />
-          Edit
-        </button>
-        <button
-          type="button"
-          className={detailActionBtnPrimaryClass}
-          onClick={() => setActiveDrawer("photos")}
-        >
-          <Camera className="size-3" aria-hidden />
-          Photos
-        </button>
-        {canCatalogWrite && polishCategories ? (
-          <button
-            type="button"
-            className={cn(detailActionBtnPrimaryClass, "text-primary")}
-            onClick={() => setPolishOpen(true)}
-            title="AI review of name, description, category, pricing and stock"
-          >
-            <Sparkles className="size-3" aria-hidden />
-            Polish
-          </button>
-        ) : null}
-        {canCatalogWrite && onOpenChangeItemType ? (
+        <div className={cn(detailSellingStripClass, "gap-1.5")}>
           <button
             type="button"
             className={detailActionBtnPrimaryClass}
-            onClick={onOpenChangeItemType}
-            title={
-              itemTypeLabel
-                ? `Current department: ${itemTypeLabel}`
-                : "Change department"
-            }
+            onClick={() => setActiveDrawer("edit-product")}
           >
-            <Layers className="size-3" aria-hidden />
-            <span className="max-w-[7rem] truncate">
-              {itemTypeLabel ? itemTypeLabel : "Department"}
-            </span>
+            <PencilLine className="size-3" aria-hidden />
+            Edit
           </button>
-        ) : null}
-        {canCatalogWrite && onOpenChangeAisle ? (
           <button
             type="button"
             className={detailActionBtnPrimaryClass}
-            onClick={onOpenChangeAisle}
-            title={
-              aisleLabel
-                ? `Current shelf zone: ${aisleLabel}`
-                : "Assign shelf zone"
-            }
+            onClick={() => setActiveDrawer("photos")}
           >
-            <MapPin className="size-3" aria-hidden />
-            <span className="max-w-[7rem] truncate">
-              {aisleLabel ? aisleLabel : "Shelf zone"}
-            </span>
+            <Camera className="size-3" aria-hidden />
+            Photos
           </button>
-        ) : null}
-        {canToggleFeatured ? (
-          <button
-            type="button"
-            className={cn(
-              detailActionBtnPrimaryClass,
-              isStorefrontFeatured &&
-                "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100",
-            )}
-            disabled={
-              featuredBusy || (!isStorefrontFeatured && featuredAtCapacity)
-            }
-            onClick={onToggleFeatured}
-            title={
-              isStorefrontFeatured
-                ? "Remove from storefront featured list"
-                : featuredAtCapacity
-                  ? "Featured list is full (max 12)"
-                  : "Pin on your public storefront home"
-            }
-          >
-            {featuredBusy ? (
-              <Loader2 className="size-3 animate-spin" aria-hidden />
-            ) : (
-              <Star
-                className={cn(
-                  "size-3",
-                  isStorefrontFeatured && "fill-current text-amber-600",
-                )}
-                aria-hidden
-              />
-            )}
-            {isStorefrontFeatured ? "Featured" : "Feature"}
-          </button>
-        ) : null}
-        {canCatalogWrite ? (
-          <button
-            type="button"
-            className={detailActionBtnPrimaryClass}
-            onClick={openAddVariant}
-            title={
-              isChildVariant && variantParentDisplayName
-                ? `Add another SKU under ${variantParentDisplayName}`
-                : "Add a variant SKU to this product"
-            }
-          >
-            {isChildVariant ? (
-              <GitBranchPlus className="size-3" aria-hidden />
-            ) : (
+          {canCatalogWrite && polishCategories ? (
+            <button
+              type="button"
+              className={cn(detailActionBtnPrimaryClass, "text-primary")}
+              onClick={() => setPolishOpen(true)}
+              title="AI review of name, description, category, pricing and stock"
+            >
+              <Sparkles className="size-3" aria-hidden />
+              Polish
+            </button>
+          ) : null}
+          {canCatalogWrite && onOpenChangeItemType ? (
+            <button
+              type="button"
+              className={detailActionBtnPrimaryClass}
+              onClick={onOpenChangeItemType}
+              title={
+                itemTypeLabel
+                  ? `Current department: ${itemTypeLabel}`
+                  : "Change department"
+              }
+            >
               <Layers className="size-3" aria-hidden />
-            )}
-            {isChildVariant ? "Sibling" : "Variant"}
-          </button>
-        ) : null}
-      </div>
+              <span className="max-w-[7rem] truncate">
+                {itemTypeLabel ? itemTypeLabel : "Department"}
+              </span>
+            </button>
+          ) : null}
+          {canCatalogWrite && onOpenChangeAisle ? (
+            <button
+              type="button"
+              className={detailActionBtnPrimaryClass}
+              onClick={onOpenChangeAisle}
+              title={
+                aisleLabel
+                  ? `Current shelf zone: ${aisleLabel}`
+                  : "Assign shelf zone"
+              }
+            >
+              <MapPin className="size-3" aria-hidden />
+              <span className="max-w-[7rem] truncate">
+                {aisleLabel ? aisleLabel : "Shelf zone"}
+              </span>
+            </button>
+          ) : null}
+          {canToggleFeatured ? (
+            <button
+              type="button"
+              className={cn(
+                detailActionBtnPrimaryClass,
+                isStorefrontFeatured &&
+                  "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100",
+              )}
+              disabled={
+                featuredBusy || (!isStorefrontFeatured && featuredAtCapacity)
+              }
+              onClick={onToggleFeatured}
+              title={
+                isStorefrontFeatured
+                  ? "Remove from storefront featured list"
+                  : featuredAtCapacity
+                    ? "Featured list is full (max 12)"
+                    : "Pin on your public storefront home"
+              }
+            >
+              {featuredBusy ? (
+                <Loader2 className="size-3 animate-spin" aria-hidden />
+              ) : (
+                <Star
+                  className={cn(
+                    "size-3",
+                    isStorefrontFeatured && "fill-current text-amber-600",
+                  )}
+                  aria-hidden
+                />
+              )}
+              {isStorefrontFeatured ? "Featured" : "Feature"}
+            </button>
+          ) : null}
+          {canCatalogWrite ? (
+            <button
+              type="button"
+              className={detailActionBtnPrimaryClass}
+              onClick={openAddVariant}
+              title={
+                isChildVariant && variantParentDisplayName
+                  ? `Add another SKU under ${variantParentDisplayName}`
+                  : "Add a variant SKU to this product"
+              }
+            >
+              {isChildVariant ? (
+                <GitBranchPlus className="size-3" aria-hidden />
+              ) : (
+                <Layers className="size-3" aria-hidden />
+              )}
+              {isChildVariant ? "Sibling" : "Variant"}
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       {/* Active package SKU — compact context (not a marketing card) */}
@@ -870,10 +878,7 @@ export function ProductDetailPanel(props: Props) {
             "flex flex-wrap items-center gap-2",
           )}
         >
-          <Boxes
-            className="size-3.5 shrink-0 text-foreground/40"
-            aria-hidden
-          />
+          <Boxes className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
           <p className={cn("min-w-0 flex-1 leading-snug", detailMetaClass)}>
             <span className="font-medium text-foreground/80">Package SKU</span>
             {unitsPerPackage != null ? (
@@ -921,7 +926,12 @@ export function ProductDetailPanel(props: Props) {
           />
           <span className={detailSectionLabelClass}>Commerce</span>
           {stockLow ? (
-            <span className={cn(detailBadgeClass, "ml-auto border-destructive/30 text-destructive")}>
+            <span
+              className={cn(
+                detailBadgeClass,
+                "ml-auto border-destructive/30 text-destructive",
+              )}
+            >
               Low stock
             </span>
           ) : null}
@@ -1026,9 +1036,7 @@ export function ProductDetailPanel(props: Props) {
                 ? "text-destructive font-semibold"
                 : "font-semibold",
               onActivate:
-                sharedStock && onOpenBaseStock
-                  ? onOpenBaseStock
-                  : undefined,
+                sharedStock && onOpenBaseStock ? onOpenBaseStock : undefined,
               hint:
                 overallStockLabel !== "—"
                   ? `Overall ${overallStockLabel}`
@@ -1038,7 +1046,7 @@ export function ProductDetailPanel(props: Props) {
         </div>
         {quickEdit === "stock" && !sharedStock && canInventoryWrite ? (
           <div
-            className="border-t border-border/40 bg-muted/15 px-2.5 py-2"
+            className="border-t border-border/40 bg-white px-2.5 py-2"
             onKeyDown={onInlineEnter(() => void saveQuickStock())}
           >
             <div className="flex flex-wrap items-end gap-2">
@@ -1076,8 +1084,7 @@ export function ProductDetailPanel(props: Props) {
               {(() => {
                 const next = Number(quickStock.trim());
                 const base = quickStockBaseline ?? 0;
-                const needsCost =
-                  Number.isFinite(next) && next > base + 0.0001;
+                const needsCost = Number.isFinite(next) && next > base + 0.0001;
                 if (!needsCost) return null;
                 return (
                   <label className="w-[5.5rem] shrink-0">
@@ -1160,7 +1167,11 @@ export function ProductDetailPanel(props: Props) {
         (canCatalogWrite && panelKind !== "group" && onToggleWeighed) ||
         packageVariants.length > 0) &&
       !sharedStock ? (
-        <div className={detailSellingStripClass} role="group" aria-label="Selling options">
+        <div
+          className={detailSellingStripClass}
+          role="group"
+          aria-label="Selling options"
+        >
           {canAddPackageSales || packageVariants.length > 0 ? (
             <div className="flex min-w-0 flex-1 items-center gap-1.5">
               <Boxes
@@ -1211,7 +1222,7 @@ export function ProductDetailPanel(props: Props) {
                 className={cn(
                   detailActionBtnPrimaryClass,
                   detail.isWeighed === true &&
-                    "border-foreground bg-foreground text-background hover:bg-foreground hover:text-background",
+                    "border-[var(--catalog-primary,#0f766e)] bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)] hover:text-white",
                   weighedBusy && "opacity-60",
                 )}
                 title={
@@ -1262,7 +1273,10 @@ export function ProductDetailPanel(props: Props) {
           onClick={() => setVariantsOpen((o) => !o)}
           aria-expanded={variantsOpen}
         >
-          <Layers className="size-3.5 shrink-0 text-foreground/35" aria-hidden />
+          <Layers
+            className="size-3.5 shrink-0 text-foreground/35"
+            aria-hidden
+          />
           <span className={detailSectionLabelClass}>
             {isChildVariant
               ? "Sibling SKUs"
@@ -1286,7 +1300,7 @@ export function ProductDetailPanel(props: Props) {
         {variantsOpen ? (
           <>
             {isChildVariant && variantParentDisplayName ? (
-              <div className="border-t border-border bg-muted/15 px-3 py-2">
+              <div className="border-t border-border bg-white px-3 py-2">
                 <p className={cn("leading-relaxed", detailMetaClass)}>
                   More sizes or options for{" "}
                   <span className="text-foreground/80">
@@ -1311,7 +1325,7 @@ export function ProductDetailPanel(props: Props) {
             {!isChildVariant &&
             (canCatalogWrite ||
               (canAddPackageSales && packageVariants.length > 0)) ? (
-              <div className="flex flex-wrap gap-1.5 border-t border-border bg-muted/10 px-3 py-1.5">
+              <div className="flex flex-wrap gap-1.5 border-t border-border bg-white px-3 py-1.5">
                 {canAddPackageSales && packageVariants.length > 0 ? (
                   <Button
                     type="button"
@@ -1351,8 +1365,11 @@ export function ProductDetailPanel(props: Props) {
             ) : null}
             {variantRows.length === 0 ? (
               <div className="flex flex-col items-center gap-2 border-t border-border/40 px-4 py-5 text-center">
-                <div className="flex size-9 items-center justify-center border border-dashed border-border/60 bg-muted/30">
-                  <Layers className="size-4 text-muted-foreground/50" aria-hidden />
+                <div className="flex size-9 items-center justify-center border border-dashed border-border/60 bg-white">
+                  <Layers
+                    className="size-4 text-muted-foreground/50"
+                    aria-hidden
+                  />
                 </div>
                 <div className="max-w-[14rem] space-y-0.5">
                   <p className="text-xs font-medium text-foreground">
@@ -1378,132 +1395,142 @@ export function ProductDetailPanel(props: Props) {
                           "flex cursor-pointer items-center gap-2 px-2.5 py-1.5 transition-colors",
                           !vSelected && panelTone.variantRowHover,
                           vSelected && panelTone.variantRowActive,
-                          editing && "bg-muted/20",
+                          editing && "bg-white",
                         )}
-                    onClick={() => {
-                      if (!editing) selectProduct(v.id);
-                    }}
-                    onKeyDown={(e) => {
-                      if (!editing && (e.key === "Enter" || e.key === " ")) {
-                        e.preventDefault();
-                        selectProduct(v.id);
-                      }
-                    }}
-                  >
-                    <div className="relative size-6 shrink-0 overflow-hidden rounded-none border border-border bg-muted">
-                      {vThumb ? (
-                        <Image
-                          src={vThumb}
-                          alt=""
-                          width={24}
-                          height={24}
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <Package
-                            className="size-3 text-muted-foreground/40"
-                            aria-hidden
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="truncate text-xs font-medium text-foreground">
-                          {v.variantName?.trim() || v.name}
-                        </p>
-                        {v.packageVariant ? (
-                          <span className={cn(detailBadgeClass, "uppercase tracking-[0.08em]")}>
-                            <Boxes className="size-2.5" aria-hidden />
-                            Pack
-                          </span>
-                        ) : null}
-                      </div>
-                      {v.packageVariant ? (
-                        <p className="text-[11px] tabular-nums text-muted-foreground">
-                          {toNumber(v.packageUnitsPerSale) ?? "?"} units ·{" "}
-                          {formatStockLabel(v)}
-                        </p>
-                      ) : v.variantName &&
-                        v.variantName.trim().toLowerCase() !==
-                          v.name.trim().toLowerCase() ? (
-                        <p className="truncate text-[11px] text-muted-foreground">
-                          {v.name}
-                        </p>
-                      ) : v.sku ? (
-                        <p className="truncate font-mono text-[10px] text-muted-foreground">
-                          {v.sku}
-                        </p>
-                      ) : null}
-                    </div>
-                    {canCatalogWrite && (
-                      <button
-                        type="button"
-                        className="flex size-6 shrink-0 items-center justify-center border border-border/60 bg-background text-muted-foreground transition-colors hover:text-foreground"
-                        onClick={(e) => startVariantRowEdit(v, e)}
-                        aria-label={`Edit ${v.variantName?.trim() || v.name}`}
+                        onClick={() => {
+                          if (!editing) selectProduct(v.id);
+                        }}
+                        onKeyDown={(e) => {
+                          if (
+                            !editing &&
+                            (e.key === "Enter" || e.key === " ")
+                          ) {
+                            e.preventDefault();
+                            selectProduct(v.id);
+                          }
+                        }}
                       >
-                        <Pencil className="size-3" aria-hidden />
-                      </button>
-                    )}
-                  </div>
-                  {editing && (
-                    <div className="border-t border-border/40 bg-muted/20 px-3 py-3">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                        <label className="flex flex-1 flex-col gap-1.5 text-[11px] font-medium text-muted-foreground">
-                          Display name
-                          <input
-                            className={quickInputClass}
-                            value={variantEditName}
-                            onChange={(e) => setVariantEditName(e.target.value)}
-                            aria-label="Variant display name"
-                          />
-                        </label>
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="h-8 gap-1 rounded-lg"
-                            disabled={quickSavingVariant}
-                            onClick={() => void saveVariantInline()}
-                          >
-                            {quickSavingVariant ? (
-                              <Loader2
-                                className="size-3.5 animate-spin"
+                        <div className="relative size-6 shrink-0 overflow-hidden rounded-none border border-border bg-white">
+                          {vThumb ? (
+                            <Image
+                              src={vThumb}
+                              alt=""
+                              width={24}
+                              height={24}
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <Package
+                                className="size-3 text-muted-foreground/40"
                                 aria-hidden
                               />
-                            ) : (
-                              "Save"
-                            )}
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 rounded-lg"
-                            disabled={quickSavingVariant}
-                            onClick={cancelVariantInlineEdit}
-                          >
-                            Cancel
-                          </Button>
+                            </div>
+                          )}
                         </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="truncate text-xs font-medium text-foreground">
+                              {v.variantName?.trim() || v.name}
+                            </p>
+                            {v.packageVariant ? (
+                              <span
+                                className={cn(
+                                  detailBadgeClass,
+                                  "tracking-[-0.02em]",
+                                )}
+                              >
+                                <Boxes className="size-2.5" aria-hidden />
+                                Pack
+                              </span>
+                            ) : null}
+                          </div>
+                          {v.packageVariant ? (
+                            <p className="text-[11px] tabular-nums text-muted-foreground">
+                              {toNumber(v.packageUnitsPerSale) ?? "?"} units ·{" "}
+                              {formatStockLabel(v)}
+                            </p>
+                          ) : v.variantName &&
+                            v.variantName.trim().toLowerCase() !==
+                              v.name.trim().toLowerCase() ? (
+                            <p className="truncate text-[11px] text-muted-foreground">
+                              {v.name}
+                            </p>
+                          ) : v.sku ? (
+                            <p className="truncate font-mono text-[10px] text-muted-foreground">
+                              {v.sku}
+                            </p>
+                          ) : null}
+                        </div>
+                        {canCatalogWrite && (
+                          <button
+                            type="button"
+                            className="flex size-6 shrink-0 items-center justify-center border border-border/60 bg-background text-muted-foreground transition-colors hover:text-foreground"
+                            onClick={(e) => startVariantRowEdit(v, e)}
+                            aria-label={`Edit ${v.variantName?.trim() || v.name}`}
+                          >
+                            <Pencil className="size-3" aria-hidden />
+                          </button>
+                        )}
                       </div>
-                      <p className="mt-2 text-[11px] text-muted-foreground">
-                        Display name defaults to the variant label so sizes stay
-                        identifiable in history. Variant label and SKU are set at
-                        creation — adjust from{" "}
-                        <button
-                          type="button"
-                          className="font-medium text-primary underline-offset-2 hover:underline"
-                          onClick={() => setActiveDrawer("edit-product")}
-                        >
-                          Details
-                        </button>
-                        .
-                      </p>
-                    </div>
-                  )}
+                      {editing && (
+                        <div className="border-t border-border/40 bg-white px-3 py-3">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                            <label className="flex flex-1 flex-col gap-1.5 text-[11px] font-medium text-muted-foreground">
+                              Display name
+                              <input
+                                className={quickInputClass}
+                                value={variantEditName}
+                                onChange={(e) =>
+                                  setVariantEditName(e.target.value)
+                                }
+                                aria-label="Variant display name"
+                              />
+                            </label>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-8 gap-1 rounded-none"
+                                disabled={quickSavingVariant}
+                                onClick={() => void saveVariantInline()}
+                              >
+                                {quickSavingVariant ? (
+                                  <Loader2
+                                    className="size-3.5 animate-spin"
+                                    aria-hidden
+                                  />
+                                ) : (
+                                  "Save"
+                                )}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 rounded-none"
+                                disabled={quickSavingVariant}
+                                onClick={cancelVariantInlineEdit}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-[11px] text-muted-foreground">
+                            Display name defaults to the variant label so sizes
+                            stay identifiable in history. Variant label and SKU
+                            are set at creation — adjust from{" "}
+                            <button
+                              type="button"
+                              className="font-medium text-primary underline-offset-2 hover:underline"
+                              onClick={() => setActiveDrawer("edit-product")}
+                            >
+                              Details
+                            </button>
+                            .
+                          </p>
+                        </div>
+                      )}
                     </Fragment>
                   );
                 })}
@@ -1512,7 +1539,7 @@ export function ProductDetailPanel(props: Props) {
             {variantRows.length > 0 && isChildVariant && canCatalogWrite ? (
               <button
                 type="button"
-                className="flex w-full items-center justify-center gap-2 border-t border-dashed border-border/60 bg-muted/10 px-3 py-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground"
+                className="flex w-full items-center justify-center gap-2 border-t border-dashed border-border/60 bg-white px-3 py-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-white hover:text-foreground"
                 onClick={openAddVariant}
               >
                 <GitBranchPlus className="size-3.5 shrink-0" aria-hidden />
@@ -1532,7 +1559,10 @@ export function ProductDetailPanel(props: Props) {
             onClick={() => setDetailsOpen((o) => !o)}
             aria-expanded={detailsOpen}
           >
-            <Pencil className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
+            <Pencil
+              className="size-3.5 shrink-0 text-muted-foreground/70"
+              aria-hidden
+            />
             <span className={detailSectionLabelClass}>Product details</span>
             {quickSaving ? (
               <Loader2
@@ -1547,94 +1577,88 @@ export function ProductDetailPanel(props: Props) {
                 </span>
               ) : null}
               {detailsOpen ? (
-                <ChevronUp className="size-4 text-muted-foreground" aria-hidden />
+                <ChevronUp
+                  className="size-4 text-muted-foreground"
+                  aria-hidden
+                />
               ) : (
-                <ChevronDown className="size-4 text-muted-foreground" aria-hidden />
+                <ChevronDown
+                  className="size-4 text-muted-foreground"
+                  aria-hidden
+                />
               )}
             </span>
           </button>
           {detailsOpen ? (
             <div className="divide-y divide-border/40 border-t border-border/40 bg-background/50">
-              {quickEdit === "productName" ? (
-                inlineEdit(
-                  "Display name",
-                  saveQuickProductName,
-                  <input
-                    autoFocus
-                    className={productFormInputClass}
-                    value={quickProductName}
-                    onChange={(e) => setQuickProductName(e.target.value)}
-                    placeholder="Customer-facing title"
-                  />,
-                )
-              ) : (
-                fieldBtn("Name", displayName.label, "productName")
-              )}
-              {quickEdit === "sku" ? (
-                inlineEdit(
-                  "SKU",
-                  saveQuickSku,
-                  <input
-                    autoFocus
-                    className={productFormInputMonoClass}
-                    value={quickSku}
-                    onChange={(e) => setQuickSku(e.target.value)}
-                    placeholder="SKU-001"
-                  />,
-                )
-              ) : (
-                fieldBtn("SKU", detail.sku, "sku", true)
-              )}
-              {quickEdit === "barcode" ? (
-                inlineEdit(
-                  "Barcode",
-                  () => void saveQuickBarcode(),
-                  <input
-                    autoFocus
-                    className={productFormInputMonoClass}
-                    value={quickBarcode}
-                    onChange={(e) => setQuickBarcode(e.target.value)}
-                    placeholder="Scan or type…"
-                  />,
-                  <button
-                    type="button"
-                    onClick={() => setScannerOpen(true)}
-                    className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input/80 bg-background text-muted-foreground shadow-sm hover:bg-muted"
-                    aria-label="Scan barcode with camera"
-                  >
-                    <Camera className="size-3.5" />
-                  </button>,
-                )
-              ) : (
-                fieldBtn(
-                  "Barcode",
-                  detail.barcode?.trim() || "—",
-                  "barcode",
-                  true,
-                )
-              )}
-              {!sharedStock && detail.bundleQty != null ? (
-                quickEdit === "bundleQty" ? (
-                  inlineEdit(
-                    "Pack qty",
-                    saveQuickBundleQty,
+              {quickEdit === "productName"
+                ? inlineEdit(
+                    "Display name",
+                    saveQuickProductName,
                     <input
                       autoFocus
                       className={productFormInputClass}
-                      inputMode="numeric"
-                      value={quickBundleQty}
-                      onChange={(e) => setQuickBundleQty(e.target.value)}
-                      placeholder="e.g. 6"
+                      value={quickProductName}
+                      onChange={(e) => setQuickProductName(e.target.value)}
+                      placeholder="Customer-facing title"
                     />,
                   )
-                ) : (
-                  fieldBtn(
-                    "Pack qty",
-                    String(detail.bundleQty),
-                    "bundleQty",
+                : fieldBtn("Name", displayName.label, "productName")}
+              {quickEdit === "sku"
+                ? inlineEdit(
+                    "SKU",
+                    saveQuickSku,
+                    <input
+                      autoFocus
+                      className={productFormInputMonoClass}
+                      value={quickSku}
+                      onChange={(e) => setQuickSku(e.target.value)}
+                      placeholder="SKU-001"
+                    />,
                   )
-                )
-              ) : null}
+                : fieldBtn("SKU", detail.sku, "sku", true)}
+              {quickEdit === "barcode"
+                ? inlineEdit(
+                    "Barcode",
+                    () => void saveQuickBarcode(),
+                    <input
+                      autoFocus
+                      className={productFormInputMonoClass}
+                      value={quickBarcode}
+                      onChange={(e) => setQuickBarcode(e.target.value)}
+                      placeholder="Scan or type…"
+                    />,
+                    <button
+                      type="button"
+                      onClick={() => setScannerOpen(true)}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-none border border-input/80 bg-white text-muted-foreground shadow-none hover:bg-white"
+                      aria-label="Scan barcode with camera"
+                    >
+                      <Camera className="size-3.5" />
+                    </button>,
+                  )
+                : fieldBtn(
+                    "Barcode",
+                    detail.barcode?.trim() || "—",
+                    "barcode",
+                    true,
+                  )}
+              {!sharedStock && detail.bundleQty != null
+                ? quickEdit === "bundleQty"
+                  ? inlineEdit(
+                      "Pack qty",
+                      saveQuickBundleQty,
+                      <input
+                        autoFocus
+                        className={productFormInputClass}
+                        inputMode="numeric"
+                        value={quickBundleQty}
+                        onChange={(e) => setQuickBundleQty(e.target.value)}
+                        placeholder="e.g. 6"
+                      />,
+                    )
+                  : fieldBtn("Pack qty", String(detail.bundleQty), "bundleQty")
+                : null}
               {sharedStock ? (
                 <div className={cn(detailFieldRowClass, "cursor-default")}>
                   <div className="min-w-0">
@@ -1659,26 +1683,24 @@ export function ProductDetailPanel(props: Props) {
                 </div>
               ) : (
                 <>
-                  {quickEdit === "minStock" ? (
-                    inlineEdit(
-                      "Min stock",
-                      saveQuickMinStock,
-                      <input
-                        autoFocus
-                        className={productFormInputClass}
-                        inputMode="decimal"
-                        value={quickMinStock}
-                        onChange={(e) => setQuickMinStock(e.target.value)}
-                        placeholder="e.g. 5"
-                      />,
-                    )
-                  ) : (
-                    fieldBtn(
-                      "Min stock",
-                      formatAmount(toNumber(detail.minStockLevel)),
-                      "minStock",
-                    )
-                  )}
+                  {quickEdit === "minStock"
+                    ? inlineEdit(
+                        "Min stock",
+                        saveQuickMinStock,
+                        <input
+                          autoFocus
+                          className={productFormInputClass}
+                          inputMode="decimal"
+                          value={quickMinStock}
+                          onChange={(e) => setQuickMinStock(e.target.value)}
+                          placeholder="e.g. 5"
+                        />,
+                      )
+                    : fieldBtn(
+                        "Min stock",
+                        formatAmount(toNumber(detail.minStockLevel)),
+                        "minStock",
+                      )}
                   {quickEdit === "reorder" ? (
                     <div
                       className={detailInlineEditClass}
@@ -1689,7 +1711,9 @@ export function ProductDetailPanel(props: Props) {
                       </span>
                       <div className={productFormGrid2Class}>
                         <label className={productFormFieldClass}>
-                          <span className={productFormLabelClass}>At level</span>
+                          <span className={productFormLabelClass}>
+                            At level
+                          </span>
                           <input
                             autoFocus
                             className={productFormInputClass}
@@ -1702,7 +1726,9 @@ export function ProductDetailPanel(props: Props) {
                           />
                         </label>
                         <label className={productFormFieldClass}>
-                          <span className={productFormLabelClass}>Order qty</span>
+                          <span className={productFormLabelClass}>
+                            Order qty
+                          </span>
                           <input
                             className={productFormInputClass}
                             inputMode="decimal"
@@ -1764,7 +1790,12 @@ export function ProductDetailPanel(props: Props) {
       {/* Suppliers */}
       {visibleSupplierLinks.length > 0 ? (
         <section className={detailSectionClass}>
-          <div className={cn(detailCollapsibleTriggerClass, "cursor-default hover:bg-transparent")}>
+          <div
+            className={cn(
+              detailCollapsibleTriggerClass,
+              "cursor-default hover:bg-transparent",
+            )}
+          >
             <button
               type="button"
               className="flex min-w-0 flex-1 items-center gap-2 text-left"
@@ -1779,9 +1810,15 @@ export function ProductDetailPanel(props: Props) {
                 Suppliers · {visibleSupplierLinks.length}
               </span>
               {suppliersOpen ? (
-                <ChevronUp className="ml-1 size-4 text-muted-foreground" aria-hidden />
+                <ChevronUp
+                  className="ml-1 size-4 text-muted-foreground"
+                  aria-hidden
+                />
               ) : (
-                <ChevronDown className="ml-1 size-4 text-muted-foreground" aria-hidden />
+                <ChevronDown
+                  className="ml-1 size-4 text-muted-foreground"
+                  aria-hidden
+                />
               )}
             </button>
             <button
@@ -1857,54 +1894,58 @@ export function ProductDetailPanel(props: Props) {
 
       {/* Mobile sticky actions */}
       {showMobileStickyActions ? (
-      <div className={detailStickyBarClass}>
-        <div className="mx-auto flex max-w-lg gap-2">
-          <Button asChild variant="outline" className="h-10 flex-1 gap-1.5 rounded-xl text-xs font-medium">
-            <Link href={productDossierPath(detail)}>
-              <LineChart className="size-3.5" aria-hidden />
-              Ledger
-            </Link>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-10 flex-1 gap-1.5 rounded-xl text-xs font-medium"
-            onClick={() => setActiveDrawer("edit-product")}
-          >
-            <PencilLine className="size-3.5" aria-hidden />
-            Edit
-          </Button>
-          {canAddPackageSales ? (
+        <div className={detailStickyBarClass}>
+          <div className="mx-auto flex max-w-lg gap-2">
+            <Button
+              asChild
+              variant="outline"
+              className="h-10 flex-1 gap-1.5 rounded-none text-xs font-medium"
+            >
+              <Link href={productDossierPath(detail)}>
+                <LineChart className="size-3.5" aria-hidden />
+                Ledger
+              </Link>
+            </Button>
             <Button
               type="button"
-              className="h-10 flex-1 gap-1.5 rounded-xl text-xs font-medium shadow-sm"
-              onClick={onOpenPackageSales}
+              variant="outline"
+              className="h-10 flex-1 gap-1.5 rounded-none text-xs font-medium"
+              onClick={() => setActiveDrawer("edit-product")}
             >
-              <Boxes className="size-3.5" aria-hidden />
-              Package
+              <PencilLine className="size-3.5" aria-hidden />
+              Edit
             </Button>
-          ) : sharedStock && onOpenBaseStock ? (
-            <Button
-              type="button"
-              className="h-10 flex-1 gap-1.5 rounded-xl text-xs font-medium"
-              onClick={onOpenBaseStock}
-            >
-              <PackagePlus className="size-3.5" aria-hidden />
-              Base stock
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="secondary"
-              className="h-10 flex-1 gap-1.5 rounded-xl text-xs font-medium"
-              onClick={() => setActiveDrawer("photos")}
-            >
-              <Camera className="size-3.5" aria-hidden />
-              Photos
-            </Button>
-          )}
+            {canAddPackageSales ? (
+              <Button
+                type="button"
+                className="h-10 flex-1 gap-1.5 rounded-none text-xs font-medium shadow-none"
+                onClick={onOpenPackageSales}
+              >
+                <Boxes className="size-3.5" aria-hidden />
+                Package
+              </Button>
+            ) : sharedStock && onOpenBaseStock ? (
+              <Button
+                type="button"
+                className="h-10 flex-1 gap-1.5 rounded-none text-xs font-medium"
+                onClick={onOpenBaseStock}
+              >
+                <PackagePlus className="size-3.5" aria-hidden />
+                Base stock
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-10 flex-1 gap-1.5 rounded-none text-xs font-medium"
+                onClick={() => setActiveDrawer("photos")}
+              >
+                <Camera className="size-3.5" aria-hidden />
+                Photos
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
       ) : null}
 
       {scannerOpen && (

@@ -80,7 +80,7 @@ export function SetupProgressBanner({
       <section
         className={cn(
           HUB_SURFACE,
-          "overflow-hidden bg-[#FCFAF6]",
+          "overflow-hidden bg-[#ffffff]",
           className,
         )}
         aria-label="Shop setup progress"
@@ -116,7 +116,7 @@ export function SetupProgressBanner({
             <div className="flex shrink-0 items-center gap-1">
               <button
                 type="button"
-                className="px-2 text-xs font-medium text-[#8A6B2E] hover:underline"
+                className="px-2 text-xs font-medium text-[#0f766e] hover:underline"
                 onClick={() => setGuideOpen(true)}
               >
                 How?
@@ -140,7 +140,7 @@ export function SetupProgressBanner({
           </div>
 
           {expanded ? (
-            <div className="border-t border-[#E6E1D8]/80 px-3.5 py-3 sm:px-4">
+            <div className="border-t border-[#e4e7e6]/80 px-3.5 py-3 sm:px-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-xs font-medium text-[#141414]">
                   Getting your shop ready
@@ -157,7 +157,7 @@ export function SetupProgressBanner({
               </ul>
 
               {current?.subMilestones.length ? (
-                <div className="mt-3 space-y-1.5 border-t border-[#E6E1D8]/70 pt-3">
+                <div className="mt-3 space-y-1.5 border-t border-[#e4e7e6]/70 pt-3">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-[#888888]">
                     Current · {current.label}
                   </p>
@@ -180,7 +180,7 @@ export function SetupProgressBanner({
                 </div>
               ) : null}
 
-              <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-[#E6E1D8]/70 pt-3">
+              <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-[#e4e7e6]/70 pt-3">
                 <button
                   type="button"
                   disabled={busy}
@@ -257,8 +257,8 @@ function StepDot({ step }: { step: SetupProgressStepRecord }) {
       className={cn(
         "size-2 rounded-none transition-colors",
         done && "bg-[#0D9488]",
-        current && "bg-[#B08D48] ring-2 ring-[#B08D48]/25",
-        !done && !current && "bg-[#E6E1D8]",
+        current && "bg-[#0f766e] ring-2 ring-[#0f766e]/25",
+        !done && !current && "bg-[#e4e7e6]",
       )}
       title={step.label}
       aria-hidden
@@ -282,9 +282,9 @@ function ExpandedStepRow({ step }: { step: SetupProgressStepRecord }) {
         {done ? (
           <Check className="size-3.5" aria-hidden />
         ) : current ? (
-          <Package className="size-3.5 text-[#B08D48]" aria-hidden />
+          <Package className="size-3.5 text-[#0f766e]" aria-hidden />
         ) : (
-          <span className="inline-block size-3.5 rounded-none border border-[#E6E1D8]" />
+          <span className="inline-block size-3.5 rounded-none border border-[#e4e7e6]" />
         )}
       </span>
       <div className="min-w-0 flex-1">

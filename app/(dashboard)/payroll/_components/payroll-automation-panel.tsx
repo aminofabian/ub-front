@@ -36,7 +36,9 @@ export function PayrollAutomationPanel({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<PayrollAutomationSettings | null>(null);
+  const [settings, setSettings] = useState<PayrollAutomationSettings | null>(
+    null,
+  );
   const [enabled, setEnabled] = useState(false);
   const [mode, setMode] = useState<"auto_pay" | "remind">("auto_pay");
   const [payDay, setPayDay] = useState("28");
@@ -75,7 +77,13 @@ export function PayrollAutomationPanel({
     setAutoStatutory(applyStatutory);
     setAutoPostExpense(postExpenseDefault);
     setAutomationBranch(branchFilter);
-  }, [open, settings?.enabled, applyStatutory, postExpenseDefault, branchFilter]);
+  }, [
+    open,
+    settings?.enabled,
+    applyStatutory,
+    postExpenseDefault,
+    branchFilter,
+  ]);
 
   async function save() {
     if (!canManage) return;
@@ -106,14 +114,14 @@ export function PayrollAutomationPanel({
       : `Auto pay · day ${settings.payDayOfMonth}`;
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+    <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/15 text-violet-700 dark:text-violet-300">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-none bg-violet-500/15 text-violet-700 dark:text-violet-300">
             <CalendarClock className="size-4" aria-hidden />
           </span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
               Automation
             </p>
             <p className="mt-0.5 text-sm font-medium">{statusLabel}</p>
@@ -126,13 +134,19 @@ export function PayrollAutomationPanel({
               </p>
             ) : (
               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Schedule monthly pay like supplier auto-pay — optional and overridable.
+                Schedule monthly pay like supplier auto-pay — optional and
+                overridable.
               </p>
             )}
           </div>
         </div>
         {canManage ? (
-          <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setOpen(true)}
+          >
             <Settings2 className="mr-1 size-3.5" aria-hidden />
             Configure
           </Button>
@@ -144,7 +158,7 @@ export function PayrollAutomationPanel({
           <button
             type="button"
             className={cn(
-              "flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left text-sm",
+              "flex w-full items-center justify-between rounded-none border px-3 py-2.5 text-left text-sm",
               enabled
                 ? "border-violet-500/35 bg-violet-500/10"
                 : "border-border/60 bg-muted/20",
@@ -157,7 +171,14 @@ export function PayrollAutomationPanel({
                 Runs on the day and time you choose each month
               </span>
             </span>
-            <span className={cn("text-xs font-medium", enabled ? "text-violet-700 dark:text-violet-300" : "text-muted-foreground")}>
+            <span
+              className={cn(
+                "text-xs font-medium",
+                enabled
+                  ? "text-violet-700 dark:text-violet-300"
+                  : "text-muted-foreground",
+              )}
+            >
               {enabled ? "On" : "Off"}
             </span>
           </button>
@@ -169,7 +190,7 @@ export function PayrollAutomationPanel({
                 type="number"
                 min="1"
                 max="28"
-                className="rounded-md border border-border/60 bg-background px-2.5 py-1.5 text-sm"
+                className="rounded-none border border-border/60 bg-background px-2.5 py-1.5 text-sm"
                 value={payDay}
                 onChange={(e) => setPayDay(e.target.value)}
               />
@@ -178,14 +199,14 @@ export function PayrollAutomationPanel({
               Run time (EAT)
               <input
                 type="time"
-                className="rounded-md border border-border/60 bg-background px-2.5 py-1.5 text-sm"
+                className="rounded-none border border-border/60 bg-background px-2.5 py-1.5 text-sm"
                 value={runTime}
                 onChange={(e) => setRunTime(e.target.value)}
               />
             </label>
           </div>
 
-          <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/20 p-1">
+          <div className="flex gap-1 rounded-none border border-border/60 bg-muted/20 p-1">
             {(
               [
                 ["auto_pay", "Auto pay", "Pay all eligible staff"],
@@ -196,9 +217,9 @@ export function PayrollAutomationPanel({
                 key={value}
                 type="button"
                 className={cn(
-                  "flex flex-1 flex-col rounded-md px-2 py-1.5 text-left text-xs",
+                  "flex flex-1 flex-col rounded-none px-2 py-1.5 text-left text-xs",
                   mode === value
-                    ? "bg-background shadow-sm"
+                    ? "bg-background shadow-none"
                     : "text-muted-foreground hover:text-foreground",
                 )}
                 onClick={() => setMode(value)}
@@ -210,7 +231,7 @@ export function PayrollAutomationPanel({
           </div>
 
           {mode === "auto_pay" ? (
-            <div className="space-y-2 rounded-lg bg-muted/25 p-3 text-xs">
+            <div className="space-y-2 rounded-none bg-muted/25 p-3 text-xs">
               <ToggleRow
                 label="Apply Kenya statutory"
                 active={autoStatutory}
@@ -255,11 +276,26 @@ export function PayrollAutomationPanel({
           ) : null}
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="button" size="sm" disabled={saving || loading} onClick={() => void save()}>
-              {saving ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : "Save"}
+            <Button
+              type="button"
+              size="sm"
+              className="rounded-none bg-[var(--pos-primary,#0f766e)] text-white"
+              disabled={saving || loading}
+              onClick={() => void save()}
+            >
+              {saving ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                "Save"
+              )}
             </Button>
           </div>
         </div>
@@ -278,9 +314,18 @@ function ToggleRow({
   onClick: () => void;
 }) {
   return (
-    <button type="button" className="flex w-full items-center justify-between" onClick={onClick}>
+    <button
+      type="button"
+      className="flex w-full items-center justify-between"
+      onClick={onClick}
+    >
       <span className="text-muted-foreground">{label}</span>
-      <span className={cn("font-medium", active ? "text-foreground" : "text-muted-foreground")}>
+      <span
+        className={cn(
+          "font-medium",
+          active ? "text-foreground" : "text-muted-foreground",
+        )}
+      >
         {active ? "Yes" : "No"}
       </span>
     </button>

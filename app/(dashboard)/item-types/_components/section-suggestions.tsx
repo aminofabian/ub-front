@@ -95,7 +95,9 @@ export function SectionSuggestions({
             >
               {name}
               {exists ? (
-                <span className="ml-1 text-[11px] font-medium opacity-80">· Added</span>
+                <span className="ml-1 text-[11px] font-medium opacity-80">
+                  · Added
+                </span>
               ) : null}
             </button>
           );

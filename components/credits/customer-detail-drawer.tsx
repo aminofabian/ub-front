@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  CreditCard,
-  History,
-  UserRound,
-} from "lucide-react";
+import { CreditCard, History, UserRound } from "lucide-react";
 
-import { DashboardFeedback, DashboardLoading } from "@/components/dashboard-page-ui";
+import {
+  DashboardFeedback,
+  DashboardLoading,
+} from "@/components/dashboard-page-ui";
 import { CustomerEditCard } from "@/components/credits/customer-edit-card";
 import { CustomerPurchasesSection } from "@/components/credits/customer-purchases-section";
 import { RemindPaymentButtons } from "@/components/credits/remind-payment-buttons";
@@ -100,7 +99,7 @@ export function CustomerDetailDrawer({
       }
       icon={
         customer ? (
-          <span className="flex size-9 items-center justify-center rounded-xl bg-[#F9F6F0] text-xs font-bold text-[#8B6F3A]">
+          <span className="flex size-9 items-center justify-center rounded-none bg-[#ffffff] text-xs font-bold text-[#0f766e]">
             {customerInitials(customer.name)}
           </span>
         ) : undefined
@@ -120,8 +119,8 @@ export function CustomerDetailDrawer({
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-4">
           <div className="grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-none border border-border/60 bg-muted/20 px-3 py-2.5">
+              <p className="text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
                 Tab balance
               </p>
               <p
@@ -133,16 +132,16 @@ export function CustomerDetailDrawer({
                 {formatKes(owed)}
               </p>
             </div>
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-none border border-border/60 bg-muted/20 px-3 py-2.5">
+              <p className="text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
                 Wallet
               </p>
               <p className="mt-0.5 text-lg font-semibold tabular-nums">
                 {formatKes(customer.credit.walletBalance)}
               </p>
             </div>
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-none border border-border/60 bg-muted/20 px-3 py-2.5">
+              <p className="text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
                 Loyalty
               </p>
               <p className="mt-0.5 text-lg font-semibold tabular-nums">
@@ -152,7 +151,7 @@ export function CustomerDetailDrawer({
           </div>
 
           {owed > 0 && canRemind ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200/60 bg-amber-50/50 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-none border border-amber-200/60 bg-amber-50/50 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/20">
               <div className="flex items-center gap-2 text-sm">
                 <CreditCard className="size-4 text-amber-700 dark:text-amber-400" />
                 <span className="font-medium">Outstanding tab</span>
@@ -167,7 +166,7 @@ export function CustomerDetailDrawer({
           ) : null}
 
           <div
-            className="flex gap-1 rounded-xl border border-border/60 bg-muted/25 p-1"
+            className="flex gap-1 rounded-none border border-border/60 bg-muted/25 p-1"
             role="tablist"
             aria-label="Customer sections"
           >
@@ -179,9 +178,9 @@ export function CustomerDetailDrawer({
                 aria-selected={tab === id}
                 onClick={() => setTab(id)}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-none px-3 py-2 text-sm font-medium transition-colors",
                   tab === id
-                    ? "bg-card text-foreground shadow-sm"
+                    ? "bg-card text-foreground shadow-none"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >

@@ -11,7 +11,10 @@ import { hasPermission, Permission } from "@/lib/permissions";
 
 export default function PromoCampaignsPage() {
   const { me } = useDashboard();
-  const allowed = hasPermission(me?.permissions, Permission.NotificationsPromotionsManage);
+  const allowed = hasPermission(
+    me?.permissions,
+    Permission.NotificationsPromotionsManage,
+  );
 
   if (!allowed) {
     return (

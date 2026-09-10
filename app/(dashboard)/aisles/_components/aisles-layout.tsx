@@ -5,11 +5,11 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export const AISLES_VARS = {
-  ["--aisle-primary" as string]: "#0d9488",
-  ["--aisle-ink" as string]: "#142824",
-  ["--aisle-paper" as string]: "#eef5f3",
-  ["--aisle-slip" as string]: "#fafcfb",
-  ["--aisle-grid" as string]: "#b8d4ce",
+  ["--aisle-primary" as string]: "#0f766e",
+  ["--aisle-ink" as string]: "#15231f",
+  ["--aisle-paper" as string]: "#ffffff",
+  ["--aisle-slip" as string]: "#ffffff",
+  ["--aisle-grid" as string]: "#d7e4e1",
 } as const;
 
 export function AislesLayout({
@@ -31,7 +31,7 @@ export function AislesLayout({
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(90%_80%_at_8%_-10%,color-mix(in_srgb,var(--aisle-primary)_16%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_srgb,var(--aisle-paper)_90%,#fff),transparent)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-white"
       />
       <div className="relative flex min-h-0 flex-1 flex-col gap-3">
         {header}

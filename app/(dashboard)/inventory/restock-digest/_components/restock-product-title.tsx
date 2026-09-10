@@ -65,7 +65,9 @@ export function RestockProductTitle({
         )}
         title={title.combined}
       >
-        <span className="font-normal text-muted-foreground">{title.family}</span>
+        <span className="font-normal text-muted-foreground">
+          {title.family}
+        </span>
         <span className="mx-1 text-foreground/30" aria-hidden>
           /
         </span>

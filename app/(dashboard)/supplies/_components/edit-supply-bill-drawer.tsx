@@ -33,10 +33,7 @@ import {
   supTableRow,
   supTextarea,
 } from "../../suppliers/_components/supplier-ui-tokens";
-import {
-  ExtraCostsBody,
-  type ExtraRow,
-} from "./extra-costs-section";
+import { ExtraCostsBody, type ExtraRow } from "./extra-costs-section";
 import { formatSupplyMoney, supplyN } from "./supplies-shared";
 
 type LineForm = {
@@ -70,7 +67,11 @@ function roundMoney2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-function lineTotalFrom(usable: number, wastage: number, buying: number): number {
+function lineTotalFrom(
+  usable: number,
+  wastage: number,
+  buying: number,
+): number {
   return roundMoney2((usable + wastage) * buying);
 }
 
@@ -90,9 +91,9 @@ export function EditSupplyBillDrawer({
     Permission.InventoryWrite,
   );
 
-  const [detail, setDetail] = useState<
-    Awaited<ReturnType<typeof fetchPathBSupplyInvoiceDetail>> | null
-  >(null);
+  const [detail, setDetail] = useState<Awaited<
+    ReturnType<typeof fetchPathBSupplyInvoiceDetail>
+  > | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -114,8 +115,7 @@ export function EditSupplyBillDrawer({
   );
 
   const supplyBatchId = detail?.supplyBatchId?.trim() || "";
-  const branchId =
-    detail?.branchId?.trim() || row?.branchId?.trim() || "";
+  const branchId = detail?.branchId?.trim() || row?.branchId?.trim() || "";
 
   useEffect(() => {
     if (!open || !row) {
@@ -155,9 +155,13 @@ export function EditSupplyBillDrawer({
         await Promise.all(
           itemIds.map(async (itemId) => {
             try {
-              const cur = await fetchCurrentSellingPrice(itemId, bid || undefined, {
-                toast: false,
-              });
+              const cur = await fetchCurrentSellingPrice(
+                itemId,
+                bid || undefined,
+                {
+                  toast: false,
+                },
+              );
               const price = cur.price == null ? null : supplyN(cur.price);
               sellByItem.set(
                 itemId,
@@ -176,7 +180,7 @@ export function EditSupplyBillDrawer({
             const itemId = ln.itemId?.trim() || null;
             const sell =
               itemId && sellByItem.has(itemId)
-                ? sellByItem.get(itemId) ?? null
+                ? (sellByItem.get(itemId) ?? null)
                 : null;
             return {
               supplierInvoiceLineId: ln.id,
@@ -213,10 +217,7 @@ export function EditSupplyBillDrawer({
       .finally(() => setLoading(false));
   }, [open, row]);
 
-  const patchLineForm = (
-    lineId: string,
-    patch: Partial<LineForm>,
-  ) => {
+  const patchLineForm = (lineId: string, patch: Partial<LineForm>) => {
     setLineForms((prev) =>
       prev.map((r) =>
         r.supplierInvoiceLineId === lineId ? { ...r, ...patch } : r,
@@ -342,9 +343,7 @@ export function EditSupplyBillDrawer({
 
       if (canEditExtras && supplyBatchId) {
         const keptIds = new Set(
-          extras
-            .map((e) => e.key)
-            .filter((k) => initialExpenseIds.includes(k)),
+          extras.map((e) => e.key).filter((k) => initialExpenseIds.includes(k)),
         );
         for (const id of initialExpenseIds) {
           if (!keptIds.has(id)) {
@@ -356,7 +355,9 @@ export function EditSupplyBillDrawer({
           if (amount == null || amount <= 0 || !e.category.trim()) continue;
           const isExisting = initialExpenseIds.includes(e.key);
           if (isExisting) {
-            const original = (detail.expenses ?? []).find((x) => x.id === e.key);
+            const original = (detail.expenses ?? []).find(
+              (x) => x.id === e.key,
+            );
             const same =
               original &&
               original.category === e.category.trim() &&
@@ -399,7 +400,11 @@ export function EditSupplyBillDrawer({
       contextLabel="Supply bill"
       width="extraWide"
       icon={<FileEdit className="size-5 text-primary" aria-hidden />}
-      banner={billErrorText ? <FormDrawerMessageBanner text={billErrorText} /> : undefined}
+      banner={
+        billErrorText ? (
+          <FormDrawerMessageBanner text={billErrorText} />
+        ) : undefined
+      }
       footer={
         <SupDrawerFooter
           onCancel={() => onOpenChange(false)}
@@ -423,15 +428,18 @@ export function EditSupplyBillDrawer({
           <>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               <div className={supStatTile}>
-                <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="block text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Supplier
                 </span>
                 <span className="mt-1 block text-sm font-semibold">
-                  <SupplierDisplayName name={detail.supplierName} fallback="—" />
+                  <SupplierDisplayName
+                    name={detail.supplierName}
+                    fallback="—"
+                  />
                 </span>
               </div>
               <div className={supStatTile}>
-                <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="block text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Invoice total
                 </span>
                 <span className="mt-1 block font-mono text-sm font-semibold tabular-nums">
@@ -439,7 +447,7 @@ export function EditSupplyBillDrawer({
                 </span>
               </div>
               <div className={supStatTile}>
-                <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="block text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Paid / open
                 </span>
                 <span className="mt-1 block font-mono text-xs tabular-nums text-muted-foreground">
@@ -452,7 +460,7 @@ export function EditSupplyBillDrawer({
             </div>
 
             {!canEditLines ? (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/8 px-3.5 py-2.5 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
+              <div className="rounded-none border border-amber-500/30 bg-amber-500/8 px-3.5 py-2.5 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
                 {detail.source === "path_a"
                   ? "This bill came from a confirmed order. Quantity and buying price stay with the order receive — you can still edit invoice details, selling prices, and extra costs."
                   : "This bill has supplier payments. Quantity and buying price are locked — you can still edit invoice details, selling prices, and extra costs."}
@@ -464,7 +472,9 @@ export function EditSupplyBillDrawer({
               hint="Reference fields sent to accounts payable."
               bodyClassName="p-4 sm:p-5"
             >
-              <div className={cn(supCardInset, "grid gap-3 p-4 sm:grid-cols-2")}>
+              <div
+                className={cn(supCardInset, "grid gap-3 p-4 sm:grid-cols-2")}
+              >
                 <label className="flex flex-col gap-1.5">
                   <span className={supFieldLabel}>Invoice number</span>
                   <input
@@ -521,7 +531,9 @@ export function EditSupplyBillDrawer({
                   <thead className={supTableHead}>
                     <tr>
                       <th className="px-3 py-2.5 font-semibold">Description</th>
-                      <th className="px-3 py-2.5 text-right font-semibold">Qty</th>
+                      <th className="px-3 py-2.5 text-right font-semibold">
+                        Qty
+                      </th>
                       <th className="px-3 py-2.5 text-right font-semibold">
                         Wastage
                       </th>
@@ -541,7 +553,9 @@ export function EditSupplyBillDrawer({
                       const f = lineForms.find(
                         (x) => x.supplierInvoiceLineId === ln.id,
                       );
-                      const u = f ? Number(f.usableQtyStr) : supplyN(ln.usableQty);
+                      const u = f
+                        ? Number(f.usableQtyStr)
+                        : supplyN(ln.usableQty);
                       const w = f
                         ? Number(f.wastageQtyStr)
                         : supplyN(ln.wastageQty);
@@ -555,16 +569,19 @@ export function EditSupplyBillDrawer({
                           ? lineTotalFrom(u, w, buying)
                           : supplyN(ln.lineTotal);
                       const sellDisabled =
-                        busy ||
-                        !canSetSellPrice ||
-                        !f?.itemId ||
-                        !branchId;
+                        busy || !canSetSellPrice || !f?.itemId || !branchId;
                       return (
-                        <tr key={ln.id} className={cn(supTableRow, "align-top")}>
+                        <tr
+                          key={ln.id}
+                          className={cn(supTableRow, "align-top")}
+                        >
                           <td className="px-3 py-2.5">
                             {canEditLines && f ? (
                               <textarea
-                                className={cn(supTextarea, "min-h-[2.5rem] text-xs")}
+                                className={cn(
+                                  supTextarea,
+                                  "min-h-[2.5rem] text-xs",
+                                )}
                                 rows={2}
                                 value={f.description}
                                 onChange={(e) =>
@@ -691,9 +708,7 @@ export function EditSupplyBillDrawer({
                             )}
                           </td>
                           <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
-                            {Number.isFinite(lt)
-                              ? formatSupplyMoney(lt)
-                              : "—"}
+                            {Number.isFinite(lt) ? formatSupplyMoney(lt) : "—"}
                           </td>
                         </tr>
                       );
@@ -739,7 +754,9 @@ export function EditSupplyBillDrawer({
                           {formatSupplyMoney(parseNonNeg(e.amount) ?? 0)}
                         </span>
                         {e.desc ? (
-                          <span className="text-muted-foreground">{e.desc}</span>
+                          <span className="text-muted-foreground">
+                            {e.desc}
+                          </span>
                         ) : null}
                       </div>
                     ))

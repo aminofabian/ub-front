@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 
-import { HUB_MUTED, HUB_SECTION, HUB_SURFACE } from "@/lib/business-hub/constants";
+import {
+  HUB_MUTED,
+  HUB_SECTION,
+  HUB_SURFACE,
+} from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export type PulseMetric = {
@@ -61,9 +65,11 @@ export function PulseHero({
         ) : null}
       </div>
 
-      <div className={cn(HUB_SURFACE, "relative", justUpdated && "hub-scan-sweep")}>
+      <div
+        className={cn(HUB_SURFACE, "relative", justUpdated && "hub-scan-sweep")}
+      >
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,#B08D48_0%,#B08D48_14%,transparent_14%)]"
+          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,#0f766e_0%,#0f766e_14%,transparent_14%)]"
           aria-hidden
         />
 
@@ -90,11 +96,9 @@ export function PulseHero({
                   "mb-0.5 inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
                   trendTone === "positive" &&
                     "bg-emerald-500/10 text-emerald-800",
-                  trendTone === "warning" &&
-                    "bg-[#C47A5A]/10 text-[#C47A5A]",
-                  trendTone === "negative" &&
-                    "bg-rose-500/10 text-rose-700",
-                  trendTone === "muted" && "bg-[#EFECE6] text-[#5C5C5C]",
+                  trendTone === "warning" && "bg-[#C47A5A]/10 text-[#C47A5A]",
+                  trendTone === "negative" && "bg-rose-500/10 text-rose-700",
+                  trendTone === "muted" && "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#5C5C5C]",
                 )}
               >
                 {trend}
@@ -125,7 +129,10 @@ export function PulseHero({
               ))}
             </div>
           ) : headline ? (
-            <p className="mt-2 truncate text-[11px] text-[#7A7A7A]" title={headline}>
+            <p
+              className="mt-2 truncate text-[11px] text-[#7A7A7A]"
+              title={headline}
+            >
               {headline}
             </p>
           ) : null}
@@ -144,8 +151,13 @@ export function PulseHero({
           >
             {metrics.map((metric) => {
               const body = (
-                <div className="flex h-full min-h-[4.25rem] flex-col justify-center gap-1 px-3 py-2.5 transition-colors hover:bg-[#FAF8F3] sm:min-h-[3.75rem]">
-                  <p className={cn("truncate text-[10px] font-medium", HUB_MUTED)}>
+                <div className="flex h-full min-h-[4.25rem] flex-col justify-center gap-1 px-3 py-2.5 transition-colors hover:bg-white sm:min-h-[3.75rem]">
+                  <p
+                    className={cn(
+                      "truncate text-[10px] font-medium",
+                      HUB_MUTED,
+                    )}
+                  >
                     {metric.label}
                   </p>
                   <p

@@ -60,7 +60,7 @@ const HUB_TABS: HubTab[] = [
 export const PROCUREMENT_VARS = {
   ["--pos-primary" as string]: "#0f766e",
   ["--order-ink" as string]: "#15231f",
-  ["--order-shelf" as string]: "#f3f6f5",
+  ["--order-shelf" as string]: "#ffffff",
   ["--order-slip" as string]: "#ffffff",
 } as const;
 

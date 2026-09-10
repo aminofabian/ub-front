@@ -4,10 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import {
-  patchItem,
-  uploadItemImageToCloudinary,
-} from "@/lib/api";
+import { patchItem, uploadItemImageToCloudinary } from "@/lib/api";
 import { applyItemOnHandQty } from "@/lib/apply-item-on-hand";
 import { toNumber } from "../_utils";
 import {
@@ -268,26 +265,33 @@ export function FamilyRosterPad({
 
       <div className={cn(padStyles.pad, "overflow-x-auto")}>
         <div
-          className="grid min-w-[44rem] items-stretch border-b border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_88%,white)] text-[11px] font-semibold text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)]"
+          className="grid min-w-[44rem] items-stretch border-b border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_88%,white)] text-[11px] font-semibold text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)]"
           style={{ gridTemplateColumns: gridCols }}
         >
-          {["#", "Photo", "Option", "Sell", "Margin", "Cost", "Stock", "Barcode"].map(
-            (h) => (
-              <span
-                key={h}
-                className={cn(
-                  "flex items-center px-1.5 py-2",
-                  (h === "Sell" ||
-                    h === "Margin" ||
-                    h === "Cost" ||
-                    h === "Stock") &&
-                    "justify-end",
-                )}
-              >
-                {h}
-              </span>
-            ),
-          )}
+          {[
+            "#",
+            "Photo",
+            "Option",
+            "Sell",
+            "Margin",
+            "Cost",
+            "Stock",
+            "Barcode",
+          ].map((h) => (
+            <span
+              key={h}
+              className={cn(
+                "flex items-center px-1.5 py-2",
+                (h === "Sell" ||
+                  h === "Margin" ||
+                  h === "Cost" ||
+                  h === "Stock") &&
+                  "justify-end",
+              )}
+            >
+              {h}
+            </span>
+          ))}
         </div>
 
         <input
@@ -321,7 +325,7 @@ export function FamilyRosterPad({
             return (
               <div
                 key={row.id}
-                className="grid min-w-[44rem] items-center border-b border-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_92%,transparent)] bg-white py-1.5"
+                className="grid min-w-[44rem] items-center border-b border-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,transparent)] bg-white py-1.5"
                 style={{ gridTemplateColumns: gridCols }}
               >
                 <div className="flex items-center justify-center text-[11px] tabular-nums text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)]">
@@ -365,7 +369,7 @@ export function FamilyRosterPad({
                   {familyPrefix ? (
                     <div className="flex min-h-9 w-full items-stretch overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white focus-within:border-[var(--catalog-primary,#0f766e)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_22%,transparent)]">
                       <span
-                        className="flex max-w-[40%] shrink-0 items-center whitespace-normal break-words border-r border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_70%,white)] px-2 py-1.5 text-[11px] font-medium leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)]"
+                        className="flex max-w-[40%] shrink-0 items-center whitespace-normal break-words border-r border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_70%,white)] px-2 py-1.5 text-[11px] font-medium leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)]"
                         title={familyPrefix}
                       >
                         {familyPrefix}

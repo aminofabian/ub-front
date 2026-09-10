@@ -34,12 +34,23 @@ import {
   type SupplyPayOptionsRecord,
   type SupplyPaymentHistoryRecord,
 } from "@/lib/api";
-import { extractFirstKenyanMobile, toKenyanLocal07, toKenyanMsisdn254 } from "@/lib/kenyan-phone";
+import {
+  extractFirstKenyanMobile,
+  toKenyanLocal07,
+  toKenyanMsisdn254,
+} from "@/lib/kenyan-phone";
 import { displaySupplierName } from "@/lib/supplier-display";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
-import { supCardInset, supFieldLabel, supInput, supSelect, supStatTile, supTextarea } from "../../suppliers/_components/supplier-ui-tokens";
+import {
+  supCardInset,
+  supFieldLabel,
+  supInput,
+  supSelect,
+  supStatTile,
+  supTextarea,
+} from "../../suppliers/_components/supplier-ui-tokens";
 import { formatSupplyMoney, supplyN } from "./supplies-shared";
 
 function defaultLocalDateTime(): string {
@@ -111,10 +122,22 @@ export function PaySupplyDrawer({
   settleAllOnOpen = false,
 }: PaySupplyDrawerProps) {
   const { me } = useDashboard();
-  const canPay = hasPermission(me?.permissions, Permission.PurchasingPaymentWrite);
-  const canHistory = hasPermission(me?.permissions, Permission.PurchasingPaymentRead);
-  const canReadSupplier = hasPermission(me?.permissions, Permission.SuppliersRead);
-  const canWriteSupplier = hasPermission(me?.permissions, Permission.SuppliersWrite);
+  const canPay = hasPermission(
+    me?.permissions,
+    Permission.PurchasingPaymentWrite,
+  );
+  const canHistory = hasPermission(
+    me?.permissions,
+    Permission.PurchasingPaymentRead,
+  );
+  const canReadSupplier = hasPermission(
+    me?.permissions,
+    Permission.SuppliersRead,
+  );
+  const canWriteSupplier = hasPermission(
+    me?.permissions,
+    Permission.SuppliersWrite,
+  );
 
   const [supplier, setSupplier] = useState<SupplierRecord | null>(null);
   const [supplierLoading, setSupplierLoading] = useState(false);
@@ -134,7 +157,9 @@ export function PaySupplyDrawer({
   const [error, setError] = useState<string | null>(null);
   /** Advanced / manual record: notify supplier by SMS (default on). */
   const [notifySupplier, setNotifySupplier] = useState(true);
-  const [payOptions, setPayOptions] = useState<SupplyPayOptionsRecord | null>(null);
+  const [payOptions, setPayOptions] = useState<SupplyPayOptionsRecord | null>(
+    null,
+  );
   const [payOptionsLoading, setPayOptionsLoading] = useState(false);
   const [kopokopoPhase, setKopokopoPhase] = useState<KopokopoPayPhase>("idle");
   const [kopokopoMessage, setKopokopoMessage] = useState<string | null>(null);
@@ -144,10 +169,13 @@ export function PaySupplyDrawer({
   >("mobile_wallet");
   const [kopokopoSetupTill, setKopokopoSetupTill] = useState("");
   const [kopokopoSetupPaybill, setKopokopoSetupPaybill] = useState("");
-  const [kopokopoSetupPaybillAccount, setKopokopoSetupPaybillAccount] = useState("");
+  const [kopokopoSetupPaybillAccount, setKopokopoSetupPaybillAccount] =
+    useState("");
   const [enablingKopokopo, setEnablingKopokopo] = useState(false);
   const [cancellingDisbursement, setCancellingDisbursement] = useState(false);
-  const [openInvoices, setOpenInvoices] = useState<OpenSupplierInvoiceRow[]>([]);
+  const [openInvoices, setOpenInvoices] = useState<OpenSupplierInvoiceRow[]>(
+    [],
+  );
   const [openInvoicesLoading, setOpenInvoicesLoading] = useState(false);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
 
@@ -170,8 +198,7 @@ export function PaySupplyDrawer({
   }, [openInvoices, selectedInvoiceIds, row, rowBalanceOpen]);
 
   const payTotal = useMemo(
-    () =>
-      selectedOpen.reduce((sum, inv) => sum + supplyN(inv.openBalance), 0),
+    () => selectedOpen.reduce((sum, inv) => sum + supplyN(inv.openBalance), 0),
     [selectedOpen],
   );
   const multiSelect = selectedOpen.length > 1;
@@ -186,9 +213,12 @@ export function PaySupplyDrawer({
     singleSelectedId === row?.supplierInvoiceId;
   const payoutType =
     payOptions?.payoutType?.trim() || supplier?.payoutType?.trim() || "";
-  const payoutPhone = payOptions?.payoutPhone?.trim() ?? supplier?.payoutPhone?.trim() ?? "";
+  const payoutPhone =
+    payOptions?.payoutPhone?.trim() ?? supplier?.payoutPhone?.trim() ?? "";
   const payoutTillNumber =
-    payOptions?.payoutTillNumber?.trim() ?? supplier?.payoutTillNumber?.trim() ?? "";
+    payOptions?.payoutTillNumber?.trim() ??
+    supplier?.payoutTillNumber?.trim() ??
+    "";
   const payoutPaybillNumber =
     payOptions?.payoutPaybillNumber?.trim() ??
     supplier?.payoutPaybillNumber?.trim() ??
@@ -231,7 +261,9 @@ export function PaySupplyDrawer({
   const blockPrimaryUntilKopokopoReady =
     kopokopoPayoutsReady && !multiSelect && !kopokopoEligible;
   const paymentDetails = supplier?.paymentDetails?.trim() ?? "";
-  const preferredMethod = resolvePaymentMethod(supplier?.paymentMethodPreferred);
+  const preferredMethod = resolvePaymentMethod(
+    supplier?.paymentMethodPreferred,
+  );
   const supplierDeleted = Boolean(supplier?.deletedAt);
   const canClearUnpaid =
     Boolean(row) &&
@@ -303,7 +335,9 @@ export function PaySupplyDrawer({
       .catch((e) => {
         setSupplier(null);
         setSupplierError(
-          e instanceof Error ? e.message : "Could not load supplier payment details.",
+          e instanceof Error
+            ? e.message
+            : "Could not load supplier payment details.",
         );
       })
       .finally(() => setSupplierLoading(false));
@@ -409,15 +443,22 @@ export function PaySupplyDrawer({
     void fetchSupplyPayOptions(row.supplierInvoiceId)
       .then((o) => {
         setPayOptions(o);
-        if ((o.latestDisbursementStatus ?? "").toLowerCase() === "pending" || o.pendingDisbursement) {
+        if (
+          (o.latestDisbursementStatus ?? "").toLowerCase() === "pending" ||
+          o.pendingDisbursement
+        ) {
           setKopokopoPhase("pending");
           setKopokopoMessage(
-            o.latestDisbursementMessage
-              ?? "Pending — waiting for KopoKopo / M-Pesa confirmation.",
+            o.latestDisbursementMessage ??
+              "Pending — waiting for KopoKopo / M-Pesa confirmation.",
           );
-        } else if ((o.latestDisbursementStatus ?? "").toLowerCase() === "failed") {
+        } else if (
+          (o.latestDisbursementStatus ?? "").toLowerCase() === "failed"
+        ) {
           setKopokopoPhase("failed");
-          setKopokopoMessage(o.latestDisbursementMessage ?? "KopoKopo payment failed.");
+          setKopokopoMessage(
+            o.latestDisbursementMessage ?? "KopoKopo payment failed.",
+          );
         }
       })
       .catch(() => setPayOptions(null))
@@ -484,7 +525,9 @@ export function PaySupplyDrawer({
           "PalMart stopped waiting. Retry Send M-Pesa only if the supplier was not paid.",
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not cancel this payment.");
+      setError(
+        e instanceof Error ? e.message : "Could not cancel this payment.",
+      );
     } finally {
       setCancellingDisbursement(false);
     }
@@ -497,7 +540,9 @@ export function PaySupplyDrawer({
     let cancelled = false;
     const poll = async () => {
       try {
-        const status = await fetchSupplyDisbursementStatus(row.supplierInvoiceId);
+        const status = await fetchSupplyDisbursementStatus(
+          row.supplierInvoiceId,
+        );
         if (cancelled) {
           return;
         }
@@ -507,7 +552,10 @@ export function PaySupplyDrawer({
       }
     };
     void poll();
-    const timer = window.setInterval(() => void poll(), DISBURSEMENT_POLL_INTERVAL_MS);
+    const timer = window.setInterval(
+      () => void poll(),
+      DISBURSEMENT_POLL_INTERVAL_MS,
+    );
     return () => {
       cancelled = true;
       window.clearInterval(timer);
@@ -533,7 +581,10 @@ export function PaySupplyDrawer({
     notify: boolean;
   }) => {
     if (!row) return;
-    const totalAlloc = opts.allocations.reduce((sum, line) => sum + line.amount, 0);
+    const totalAlloc = opts.allocations.reduce(
+      (sum, line) => sum + line.amount,
+      0,
+    );
     setBusy(true);
     try {
       await postSupplierPayment({
@@ -609,8 +660,15 @@ export function PaySupplyDrawer({
     const totalAlloc = allocations.reduce((sum, line) => sum + line.amount, 0);
     const cash = Number(paymentAmount);
     const credit = Number(creditApplied);
-    if (!Number.isFinite(cash) || cash < 0 || !Number.isFinite(credit) || credit < 0) {
-      setError("Payment and supplier credit must be valid non-negative numbers.");
+    if (
+      !Number.isFinite(cash) ||
+      cash < 0 ||
+      !Number.isFinite(credit) ||
+      credit < 0
+    ) {
+      setError(
+        "Payment and supplier credit must be valid non-negative numbers.",
+      );
       return;
     }
     let paidAt: string;
@@ -621,7 +679,9 @@ export function PaySupplyDrawer({
       return;
     }
     if (cash + credit < totalAlloc - 0.001) {
-      setError("Cash payment plus supplier credit must cover the amount applied.");
+      setError(
+        "Cash payment plus supplier credit must cover the amount applied.",
+      );
       return;
     }
     await recordPayment({
@@ -678,13 +738,16 @@ export function PaySupplyDrawer({
       applyDisbursementStatus(result);
       if ((result.status ?? "").toLowerCase() !== "success") {
         toast.info("Pending", {
-          description: result.message ?? "Waiting for KopoKopo / M-Pesa confirmation.",
+          description:
+            result.message ?? "Waiting for KopoKopo / M-Pesa confirmation.",
           duration: 6000,
         });
       }
     } catch (e) {
       setKopokopoPhase("failed");
-      setError(e instanceof Error ? e.message : "Could not start KopoKopo payment.");
+      setError(
+        e instanceof Error ? e.message : "Could not start KopoKopo payment.",
+      );
     } finally {
       setBusy(false);
     }
@@ -770,7 +833,9 @@ export function PaySupplyDrawer({
       });
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Could not enable KopoKopo payout for this supplier.",
+        e instanceof Error
+          ? e.message
+          : "Could not enable KopoKopo payout for this supplier.",
       );
     } finally {
       setEnablingKopokopo(false);
@@ -782,7 +847,10 @@ export function PaySupplyDrawer({
       return;
     }
     // KopoKopo path: only initiate Send Money — never ledger-record as a fallback.
-    if (primaryIsKopokopoSend && (kopokopoPhase === "idle" || kopokopoPhase === "failed")) {
+    if (
+      primaryIsKopokopoSend &&
+      (kopokopoPhase === "idle" || kopokopoPhase === "failed")
+    ) {
       void initiateKopokopoPay();
       return;
     }
@@ -822,7 +890,10 @@ export function PaySupplyDrawer({
         supplierInvoiceId: inv.id,
         amount: Number(supplyN(inv.openBalance).toFixed(2)),
       }));
-      const totalAlloc = allocations.reduce((sum, line) => sum + line.amount, 0);
+      const totalAlloc = allocations.reduce(
+        (sum, line) => sum + line.amount,
+        0,
+      );
       let paidAt: string;
       try {
         paidAt = toIsoInstant(defaultLocalDateTime());
@@ -868,7 +939,9 @@ export function PaySupplyDrawer({
       ? Boolean(kopokopoSetupPhone.trim())
       : kopokopoSetupType === "till"
         ? Boolean(kopokopoSetupTill.trim())
-        : Boolean(kopokopoSetupPaybill.trim() && kopokopoSetupPaybillAccount.trim());
+        : Boolean(
+            kopokopoSetupPaybill.trim() && kopokopoSetupPaybillAccount.trim(),
+          );
 
   const viewingPaymentDetailsOnly = !(
     (payTotal > 0.009 || rowBalanceOpen > 0.009) &&
@@ -903,7 +976,13 @@ export function PaySupplyDrawer({
       banner={error ? <FormDrawerMessageBanner text={error} /> : undefined}
       footer={
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-          <Button type="button" variant="outline" className="rounded-none" onClick={() => onOpenChange(false)} disabled={busy || deletingSupply}>
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-none"
+            onClick={() => onOpenChange(false)}
+            disabled={busy || deletingSupply}
+          >
             Cancel
           </Button>
           {canClearUnpaid && row ? (
@@ -943,7 +1022,9 @@ export function PaySupplyDrawer({
               Cancel payment
             </Button>
           ) : null}
-          {!paidFull && (payTotal > 0.009 || rowBalanceOpen > 0.009) && canPay ? (
+          {!paidFull &&
+          (payTotal > 0.009 || rowBalanceOpen > 0.009) &&
+          canPay ? (
             <>
               <Button
                 type="button"
@@ -986,7 +1067,9 @@ export function PaySupplyDrawer({
                     : undefined
                 }
               >
-                {busy || kopokopoPhase === "pending" || kopokopoPhase === "sending" ? (
+                {busy ||
+                kopokopoPhase === "pending" ||
+                kopokopoPhase === "sending" ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden />
                 ) : (
                   <Check className="size-4" strokeWidth={3} aria-hidden />
@@ -1002,17 +1085,13 @@ export function PaySupplyDrawer({
         <div className="space-y-5 px-1 pb-4">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <div className={supStatTile}>
-              <span className={cn(supFieldLabel, "block")}>
-                Invoice
-              </span>
+              <span className={cn(supFieldLabel, "block")}>Invoice</span>
               <span className="mt-1 block font-mono text-sm font-semibold">
                 {row.invoiceNumber}
               </span>
             </div>
             <div className={supStatTile}>
-              <span className={cn(supFieldLabel, "block")}>
-                Invoice total
-              </span>
+              <span className={cn(supFieldLabel, "block")}>Invoice total</span>
               <span className="mt-1 block font-mono text-sm font-semibold tabular-nums">
                 {formatSupplyMoney(supplyN(row.grandTotal))}
               </span>
@@ -1022,12 +1101,16 @@ export function PaySupplyDrawer({
                 {multiSelect ? "Paying now" : "Balance due"}
               </span>
               <span className="mt-1 block font-mono text-lg font-bold tabular-nums text-foreground">
-                {formatSupplyMoney(payTotal > 0.009 ? payTotal : rowBalanceOpen)}
+                {formatSupplyMoney(
+                  payTotal > 0.009 ? payTotal : rowBalanceOpen,
+                )}
               </span>
             </div>
           </div>
 
-          {!paidFull && canPay && (openInvoices.length > 1 || openInvoicesLoading) ? (
+          {!paidFull &&
+          canPay &&
+          (openInvoices.length > 1 || openInvoicesLoading) ? (
             <section
               className="rounded-none border border-amber-700/40 bg-white p-3"
               aria-labelledby="open-balances-heading"
@@ -1089,7 +1172,10 @@ export function PaySupplyDrawer({
                             type="checkbox"
                             className="size-3.5 accent-[var(--pos-primary,#0f766e)]"
                             checked={checked}
-                            disabled={busy || (checked && selectedInvoiceIds.length <= 1)}
+                            disabled={
+                              busy ||
+                              (checked && selectedInvoiceIds.length <= 1)
+                            }
                             onChange={() => toggleInvoice(inv.id)}
                           />
                           <span className="min-w-0 flex-1">
@@ -1108,11 +1194,14 @@ export function PaySupplyDrawer({
                               )}
                             </span>
                             <span className="block text-[11px] text-muted-foreground">
-                              {new Date(inv.invoiceDate).toLocaleDateString(undefined, {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
+                              {new Date(inv.invoiceDate).toLocaleDateString(
+                                undefined,
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                },
+                              )}
                             </span>
                           </span>
                           <span className="shrink-0 font-mono text-sm font-semibold tabular-nums">
@@ -1126,8 +1215,8 @@ export function PaySupplyDrawer({
               ) : null}
               {multiSelect ? (
                 <p className="mt-2 text-[11px] text-muted-foreground">
-                  M-Pesa Send Money pays one invoice at a time. Clearing several uses a
-                  recorded payment against all selected balances.
+                  M-Pesa Send Money pays one invoice at a time. Clearing several
+                  uses a recorded payment against all selected balances.
                 </p>
               ) : null}
             </section>
@@ -1139,8 +1228,11 @@ export function PaySupplyDrawer({
             </p>
           ) : !canPay ? (
             <p className="text-sm text-muted-foreground">
-              You need <code className="text-xs">{Permission.PurchasingPaymentWrite}</code> to post
-              payments.
+              You need{" "}
+              <code className="text-xs">
+                {Permission.PurchasingPaymentWrite}
+              </code>{" "}
+              to post payments.
             </p>
           ) : null}
 
@@ -1163,7 +1255,9 @@ export function PaySupplyDrawer({
                     id="supplier-payment-heading"
                     className="text-sm font-bold text-foreground"
                   >
-                    {paidFull ? "Supplier remittance details" : "How to pay this supplier"}
+                    {paidFull
+                      ? "Supplier remittance details"
+                      : "How to pay this supplier"}
                   </h3>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     Preferred:{" "}
@@ -1182,8 +1276,16 @@ export function PaySupplyDrawer({
                 </div>
               </div>
               {row.supplierId && !supplierDeleted ? (
-                <Button type="button" variant="ghost" size="sm" className="h-8 shrink-0 gap-1" asChild>
-                  <Link href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(row.supplierId)}`}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 shrink-0 gap-1"
+                  asChild
+                >
+                  <Link
+                    href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(row.supplierId)}`}
+                  >
                     Edit
                     <ExternalLink className="size-3" aria-hidden />
                   </Link>
@@ -1219,7 +1321,9 @@ export function PaySupplyDrawer({
                   ? " Use Delete supply below to clear this unpaid receipt."
                   : ""}
               </p>
-            ) : paymentDetails || hasPayoutDestination || needsKopokopoSupplierSetup ? (
+            ) : paymentDetails ||
+              hasPayoutDestination ||
+              needsKopokopoSupplierSetup ? (
               <div className="mt-3 space-y-3">
                 {hasPayoutDestination ? (
                   <div className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-3.5 py-3">
@@ -1235,9 +1339,13 @@ export function PaySupplyDrawer({
                     </p>
                     {!paidFull && kopokopoEligible ? (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Confirm below to send {formatSupplyMoney(rowBalanceOpen)} via KopoKopo Send Money.
+                        Confirm below to send{" "}
+                        {formatSupplyMoney(rowBalanceOpen)} via KopoKopo Send
+                        Money.
                       </p>
-                    ) : !paidFull && payOptions && !payOptions.supplierPayoutEnabled ? (
+                    ) : !paidFull &&
+                      payOptions &&
+                      !payOptions.supplierPayoutEnabled ? (
                       <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
                         Supplier payouts are off.{" "}
                         <Link
@@ -1248,7 +1356,9 @@ export function PaySupplyDrawer({
                         </Link>
                         .
                       </p>
-                    ) : !paidFull && payOptions && !payOptions.supplierPayoutGatewayReady ? (
+                    ) : !paidFull &&
+                      payOptions &&
+                      !payOptions.supplierPayoutGatewayReady ? (
                       <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
                         Choose an active payout gateway in{" "}
                         <Link
@@ -1267,9 +1377,9 @@ export function PaySupplyDrawer({
                       Pay with KopoKopo
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Supplier payouts are on, but this supplier still needs a Send Money
-                      destination (M-Pesa phone, till, or paybill). Remittance notes alone are
-                      not enough.
+                      Supplier payouts are on, but this supplier still needs a
+                      Send Money destination (M-Pesa phone, till, or paybill).
+                      Remittance notes alone are not enough.
                     </p>
                     {canWriteSupplier && !supplierDeleted ? (
                       <div className="mt-3 space-y-2">
@@ -1280,7 +1390,10 @@ export function PaySupplyDrawer({
                             value={kopokopoSetupType}
                             onChange={(e) =>
                               setKopokopoSetupType(
-                                e.target.value as "mobile_wallet" | "till" | "paybill",
+                                e.target.value as
+                                  | "mobile_wallet"
+                                  | "till"
+                                  | "paybill",
                               )
                             }
                             disabled={busy || enablingKopokopo}
@@ -1292,11 +1405,15 @@ export function PaySupplyDrawer({
                         </label>
                         {kopokopoSetupType === "mobile_wallet" ? (
                           <label className="flex flex-col gap-1">
-                            <span className={supFieldLabel}>M-Pesa payout phone</span>
+                            <span className={supFieldLabel}>
+                              M-Pesa payout phone
+                            </span>
                             <input
                               className={cn(supInput, "font-mono")}
                               value={kopokopoSetupPhone}
-                              onChange={(e) => setKopokopoSetupPhone(e.target.value)}
+                              onChange={(e) =>
+                                setKopokopoSetupPhone(e.target.value)
+                              }
                               placeholder="0710514157"
                               inputMode="tel"
                               disabled={busy || enablingKopokopo}
@@ -1309,7 +1426,9 @@ export function PaySupplyDrawer({
                             <input
                               className={cn(supInput, "font-mono")}
                               value={kopokopoSetupTill}
-                              onChange={(e) => setKopokopoSetupTill(e.target.value)}
+                              onChange={(e) =>
+                                setKopokopoSetupTill(e.target.value)
+                              }
                               placeholder="e.g. 567890"
                               inputMode="numeric"
                               disabled={busy || enablingKopokopo}
@@ -1319,18 +1438,24 @@ export function PaySupplyDrawer({
                         {kopokopoSetupType === "paybill" ? (
                           <div className="grid gap-2 sm:grid-cols-2">
                             <label className="flex flex-col gap-1">
-                              <span className={supFieldLabel}>Paybill number</span>
+                              <span className={supFieldLabel}>
+                                Paybill number
+                              </span>
                               <input
                                 className={cn(supInput, "font-mono")}
                                 value={kopokopoSetupPaybill}
-                                onChange={(e) => setKopokopoSetupPaybill(e.target.value)}
+                                onChange={(e) =>
+                                  setKopokopoSetupPaybill(e.target.value)
+                                }
                                 placeholder="e.g. 247247"
                                 inputMode="numeric"
                                 disabled={busy || enablingKopokopo}
                               />
                             </label>
                             <label className="flex flex-col gap-1">
-                              <span className={supFieldLabel}>Account number</span>
+                              <span className={supFieldLabel}>
+                                Account number
+                              </span>
                               <input
                                 className={cn(supInput, "font-mono")}
                                 value={kopokopoSetupPaybillAccount}
@@ -1350,7 +1475,10 @@ export function PaySupplyDrawer({
                           onClick={() => void enableKopokopoPayout(true)}
                         >
                           {enablingKopokopo || kopokopoPhase === "sending" ? (
-                            <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                            <Loader2
+                              className="mr-2 size-4 animate-spin"
+                              aria-hidden
+                            />
                           ) : (
                             <Smartphone className="mr-2 size-4" aria-hidden />
                           )}
@@ -1360,8 +1488,8 @@ export function PaySupplyDrawer({
                     ) : (
                       <p className="mt-2 text-xs text-amber-800 dark:text-amber-200">
                         Ask someone with supplier edit access to set{" "}
-                        <span className="font-semibold">KopoKopo payout</span> (phone, till, or
-                        paybill) on this supplier, or open{" "}
+                        <span className="font-semibold">KopoKopo payout</span>{" "}
+                        (phone, till, or paybill) on this supplier, or open{" "}
                         <Link
                           href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(row.supplierId)}`}
                           className="font-semibold underline"
@@ -1375,7 +1503,10 @@ export function PaySupplyDrawer({
                 ) : payOptions && !payOptions.supplierPayoutEnabled ? (
                   <div className="rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3.5 py-3 text-xs text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                     To pay suppliers via KopoKopo, enable{" "}
-                    <Link href={APP_ROUTES.paymentsSettings} className="font-semibold underline">
+                    <Link
+                      href={APP_ROUTES.paymentsSettings}
+                      className="font-semibold underline"
+                    >
                       Supplier payouts
                     </Link>{" "}
                     and set this supplier&apos;s payout destination.
@@ -1395,8 +1526,12 @@ export function PaySupplyDrawer({
             ) : (
               <p className="mt-3 flex items-start gap-2 rounded-none border border-dashed border-amber-700/40 bg-white px-3 py-2.5 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                No payment details on file for this supplier. Add paybill, till, or bank info under{" "}
-                <Link href={APP_ROUTES.suppliers} className="font-semibold underline">
+                No payment details on file for this supplier. Add paybill, till,
+                or bank info under{" "}
+                <Link
+                  href={APP_ROUTES.suppliers}
+                  className="font-semibold underline"
+                >
                   Suppliers
                 </Link>
                 .
@@ -1413,10 +1548,12 @@ export function PaySupplyDrawer({
                     Pending
                   </span>
                   <span className="mt-1 block text-sm">
-                    {kopokopoMessage ?? "Waiting for KopoKopo / M-Pesa confirmation."}
+                    {kopokopoMessage ??
+                      "Waiting for KopoKopo / M-Pesa confirmation."}
                   </span>
                   <span className="mt-1 block text-xs text-muted-foreground">
-                    Stays pending until KopoKopo confirms, declines, or you cancel this payment.
+                    Stays pending until KopoKopo confirms, declines, or you
+                    cancel this payment.
                   </span>
                 </p>
               ) : kopokopoPhase === "failed" && kopokopoMessage ? (
@@ -1426,7 +1563,8 @@ export function PaySupplyDrawer({
                   </span>
                   <span className="mt-1 block">{kopokopoMessage}</span>
                   <span className="mt-1 block text-xs text-muted-foreground">
-                    Cancel this attempt to send again, or record the payment manually.
+                    Cancel this attempt to send again, or record the payment
+                    manually.
                   </span>
                 </p>
               ) : kopokopoPhase === "success" ? (
@@ -1438,34 +1576,49 @@ export function PaySupplyDrawer({
                   {primaryIsKopokopoSend ? (
                     <>
                       Tap{" "}
-                      <span className="font-semibold text-foreground">Send via KopoKopo</span> to pay{" "}
-                      <span className="font-semibold text-foreground">{formatSupplyMoney(rowBalanceOpen)}</span>{" "}
-                      via KopoKopo. Money leaves your till when KopoKopo accepts the transfer; the
-                      ledger updates after confirmation. Use{" "}
-                      <span className="font-semibold text-foreground">Mark paid · no SMS</span>{" "}
+                      <span className="font-semibold text-foreground">
+                        Send via KopoKopo
+                      </span>{" "}
+                      to pay{" "}
+                      <span className="font-semibold text-foreground">
+                        {formatSupplyMoney(rowBalanceOpen)}
+                      </span>{" "}
+                      via KopoKopo. Money leaves your till when KopoKopo accepts
+                      the transfer; the ledger updates after confirmation. Use{" "}
+                      <span className="font-semibold text-foreground">
+                        Mark paid · no SMS
+                      </span>{" "}
                       only if you already paid outside PalMart.
                     </>
                   ) : needsKopokopoSupplierSetup ? (
                     <>
                       Supplier payouts are on. Use{" "}
-                      <span className="font-semibold text-foreground">Enable &amp; send</span>{" "}
-                      above to pay this supplier for real — the confirm button below will not record
-                      a fake payment. Or use{" "}
-                      <span className="font-semibold text-foreground">Mark paid · no SMS</span> if
-                      you already transferred funds yourself.
+                      <span className="font-semibold text-foreground">
+                        Enable &amp; send
+                      </span>{" "}
+                      above to pay this supplier for real — the confirm button
+                      below will not record a fake payment. Or use{" "}
+                      <span className="font-semibold text-foreground">
+                        Mark paid · no SMS
+                      </span>{" "}
+                      if you already transferred funds yourself.
                     </>
                   ) : (
                     <>
                       Send{" "}
                       <span className="font-semibold text-foreground">
-                        {formatSupplyMoney(payTotal > 0.009 ? payTotal : rowBalanceOpen)}
+                        {formatSupplyMoney(
+                          payTotal > 0.009 ? payTotal : rowBalanceOpen,
+                        )}
                       </span>{" "}
                       using the details above, then tap{" "}
                       <span className="font-semibold text-foreground">
                         {multiSelect ? "Clear unpaid" : "Confirm payment"}
                       </span>{" "}
                       to record it (notifies the supplier), or{" "}
-                      <span className="font-semibold text-foreground">Mark paid · no SMS</span>{" "}
+                      <span className="font-semibold text-foreground">
+                        Mark paid · no SMS
+                      </span>{" "}
                       to update the ledger silently.
                     </>
                   )}
@@ -1496,7 +1649,9 @@ export function PaySupplyDrawer({
                 {showAdvanced && !multiSelect ? (
                   <div className="grid gap-4 border-t border-border/60 p-3 sm:grid-cols-2">
                     <label className="flex flex-col gap-1.5 sm:col-span-2">
-                      <span className={supFieldLabel}>Apply to this supply</span>
+                      <span className={supFieldLabel}>
+                        Apply to this supply
+                      </span>
                       <input
                         className={supInput}
                         value={allocation}
@@ -1529,7 +1684,9 @@ export function PaySupplyDrawer({
                       </select>
                     </label>
                     <label className="flex flex-col gap-1.5">
-                      <span className={supFieldLabel}>Cash / transfer amount</span>
+                      <span className={supFieldLabel}>
+                        Cash / transfer amount
+                      </span>
                       <input
                         className={supInput}
                         value={paymentAmount}
@@ -1554,7 +1711,9 @@ export function PaySupplyDrawer({
                       />
                     </label>
                     <label className="flex flex-col gap-1.5 sm:col-span-2">
-                      <span className={supFieldLabel}>Reference # (optional)</span>
+                      <span className={supFieldLabel}>
+                        Reference # (optional)
+                      </span>
                       <input
                         className={supInput}
                         value={reference}
@@ -1583,7 +1742,8 @@ export function PaySupplyDrawer({
                       <span className="text-sm leading-snug text-foreground">
                         Notify supplier by SMS
                         <span className="mt-0.5 block text-xs text-muted-foreground">
-                          Uncheck to record the payment silently (no SMS or portal alert).
+                          Uncheck to record the payment silently (no SMS or
+                          portal alert).
                         </span>
                       </span>
                     </label>
@@ -1595,7 +1755,9 @@ export function PaySupplyDrawer({
                         disabled={busy}
                         onClick={() => void submitPayment()}
                       >
-                        {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+                        {busy ? (
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                        ) : null}
                         Record with options above
                       </Button>
                     </div>
@@ -1606,7 +1768,9 @@ export function PaySupplyDrawer({
           ) : null}
 
           <div>
-            <h4 className="text-sm font-semibold text-foreground">Payment history</h4>
+            <h4 className="text-sm font-semibold text-foreground">
+              Payment history
+            </h4>
             {!canHistory ? (
               <p className={cn("text-xs text-muted-foreground", "mt-1")}>
                 Requires {Permission.PurchasingPaymentRead}.
@@ -1617,7 +1781,9 @@ export function PaySupplyDrawer({
                 Loading…
               </div>
             ) : history.length === 0 ? (
-              <p className={cn("text-xs text-muted-foreground", "mt-1")}>No payments recorded yet.</p>
+              <p className={cn("text-xs text-muted-foreground", "mt-1")}>
+                No payments recorded yet.
+              </p>
             ) : (
               <div className="mt-2 overflow-x-auto rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
                 <table className="w-full border-collapse text-left text-xs">
@@ -1636,7 +1802,9 @@ export function PaySupplyDrawer({
                         <td className="whitespace-nowrap px-2 py-1.5 text-muted-foreground">
                           {new Date(h.paidAt).toLocaleString()}
                         </td>
-                        <td className="px-2 py-1.5 font-mono capitalize">{h.paymentMethod}</td>
+                        <td className="px-2 py-1.5 font-mono capitalize">
+                          {h.paymentMethod}
+                        </td>
                         <td className="px-2 py-1.5 text-right font-mono tabular-nums">
                           {formatSupplyMoney(supplyN(h.paymentCashAmount))}
                         </td>
@@ -1644,7 +1812,9 @@ export function PaySupplyDrawer({
                           {formatSupplyMoney(supplyN(h.amountAppliedToInvoice))}
                         </td>
                         <td className="max-w-[14rem] px-2 py-1.5">
-                          <span className="block truncate">{h.reference?.trim() || "—"}</span>
+                          <span className="block truncate">
+                            {h.reference?.trim() || "—"}
+                          </span>
                           {h.notes?.trim() ? (
                             <span className="mt-0.5 block whitespace-pre-wrap text-[11px] text-muted-foreground">
                               {h.notes.trim()}

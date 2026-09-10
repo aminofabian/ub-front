@@ -20,7 +20,7 @@ export function KioskPayWithdrawFeeNotice({
   return (
     <p
       className={cn(
-        "rounded-md border border-border/60 bg-muted/30 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground",
+        "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground",
         className,
       )}
     >

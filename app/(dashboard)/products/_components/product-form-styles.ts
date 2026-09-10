@@ -3,20 +3,20 @@ import { cn } from "@/lib/utils";
 /**
  * Catalog form type scale — one ink family, one capitalization rule.
  *
- * Chrome (sections / kickers): quiet uppercase, even foreground/40
- * Labels: sentence case, even foreground/55
+ * Chrome (sections): 11px semibold, no uppercase kickers
+ * Labels: sentence case
  * Body: foreground
  * Hints: foreground/45
  */
 
 /** Field labels — sentence case, never shout */
 export const productFormLabelClass = cn(
-  "text-[11px] font-medium leading-none tracking-normal text-foreground/55",
+  "text-[11px] font-medium leading-none tracking-[-0.02em] text-foreground/55",
 );
 
-/** Section kickers inside drawers / sheets */
+/** Section titles inside drawers / sheets */
 export const productFormSectionTitleClass = cn(
-  "text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40",
+  "text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
 );
 
 /** Helper / preview copy under fields */
@@ -31,9 +31,9 @@ export const productFormRequiredClass = "text-destructive/80";
 
 /** Compact single-line inputs — square, thin border, no shadow */
 export const productFormInputClass = cn(
-  "h-8 w-full rounded-none border border-border bg-background px-2.5 text-[13px] leading-none text-foreground shadow-none",
+  "h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-[13px] leading-none text-foreground shadow-none",
   "placeholder:text-foreground/35",
-  "focus-visible:border-foreground/35 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/30",
+  "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none",
   "disabled:cursor-not-allowed disabled:bg-muted/40 disabled:text-foreground/40",
 );
 

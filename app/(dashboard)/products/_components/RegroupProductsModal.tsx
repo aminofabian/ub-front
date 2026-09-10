@@ -18,7 +18,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { dashboardInputClass, dashboardSelectClass } from "@/components/dashboard-page-ui";
+import {
+  dashboardInputClass,
+  dashboardSelectClass,
+} from "@/components/dashboard-page-ui";
 import { cn } from "@/lib/utils";
 import {
   fetchItemsPage,
@@ -91,13 +94,13 @@ export function suggestFamilyName(names: string[]): string {
     const next = cleaned[i];
     let j = 0;
     const max = Math.min(prefix.length, next.length);
-    while (
-      j < max &&
-      prefix[j].toLowerCase() === next[j].toLowerCase()
-    ) {
+    while (j < max && prefix[j].toLowerCase() === next[j].toLowerCase()) {
       j++;
     }
-    prefix = prefix.slice(0, j).replace(/[\s\-_/|:]+$/g, "").trim();
+    prefix = prefix
+      .slice(0, j)
+      .replace(/[\s\-_/|:]+$/g, "")
+      .trim();
     if (!prefix) break;
   }
   return prefix || cleaned[0];
@@ -206,14 +209,17 @@ export function RegroupProductsModal({
     let cancelled = false;
     const timer = window.setTimeout(() => {
       setParentSearching(true);
-      void fetchItemsPage(q, { catalogScope: "PARENTS_ONLY", page: 0, size: 12 })
+      void fetchItemsPage(q, {
+        catalogScope: "PARENTS_ONLY",
+        page: 0,
+        size: 12,
+      })
         .then((page) => {
           if (cancelled) return;
           const selectedIds = new Set(lines.map((l) => l.itemId));
           setParentHits(
             page.content.filter(
-              (row) =>
-                !row.variantOfItemId?.trim() && !selectedIds.has(row.id),
+              (row) => !row.variantOfItemId?.trim() && !selectedIds.has(row.id),
             ),
           );
         })
@@ -318,7 +324,9 @@ export function RegroupProductsModal({
             mode: "create",
             name: familyName.trim(),
             itemTypeId: itemTypeId.trim(),
-            categoryId: rows.find((r) => r.categoryId?.trim())?.categoryId?.trim(),
+            categoryId: rows
+              .find((r) => r.categoryId?.trim())
+              ?.categoryId?.trim(),
             aisleId: rows.find((r) => r.aisleId?.trim())?.aisleId?.trim(),
             items,
           })
@@ -381,7 +389,7 @@ export function RegroupProductsModal({
                     className={cn(
                       "rounded-sm px-3 py-2 text-xs font-semibold transition-colors",
                       mode === id
-                        ? "bg-background text-foreground shadow-sm"
+                        ? "bg-background text-foreground shadow-none"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
@@ -394,7 +402,7 @@ export function RegroupProductsModal({
             {mode === "create" ? (
               <div className="space-y-3">
                 <label className="block space-y-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                  <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                     Family name
                   </span>
                   <input
@@ -403,18 +411,24 @@ export function RegroupProductsModal({
                     value={familyName}
                     onChange={(e) => setFamilyName(e.target.value)}
                     placeholder="e.g. Dry Hook"
-                    className={cn(dashboardInputClass(busy), "h-10 shadow-none")}
+                    className={cn(
+                      dashboardInputClass(busy),
+                      "h-10 shadow-none",
+                    )}
                   />
                 </label>
                 <label className="block space-y-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                  <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                     Department
                   </span>
                   <select
                     disabled={busy || activeTypes.length === 0}
                     value={itemTypeId}
                     onChange={(e) => setItemTypeId(e.target.value)}
-                    className={cn(dashboardSelectClass(busy), "h-10 shadow-none")}
+                    className={cn(
+                      dashboardSelectClass(busy),
+                      "h-10 shadow-none",
+                    )}
                   >
                     {activeTypes.length === 0 ? (
                       <option value="">No departments</option>
@@ -433,7 +447,7 @@ export function RegroupProductsModal({
                 {selectedParent ? (
                   <div className="flex items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/[0.06] px-3 py-2.5">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                      <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                         Family
                       </p>
                       <p className="truncate text-sm font-semibold text-foreground">
@@ -455,7 +469,7 @@ export function RegroupProductsModal({
                   </div>
                 ) : (
                   <label className="block space-y-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                    <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                       Find existing family
                     </span>
                     <div className="relative">
@@ -501,7 +515,10 @@ export function RegroupProductsModal({
                           <span className="min-w-0 flex-1 truncate font-medium">
                             {itemCatalogDisplayTitle(hit) || hit.name}
                           </span>
-                          <Check className="size-3.5 text-primary opacity-0" aria-hidden />
+                          <Check
+                            className="size-3.5 text-primary opacity-0"
+                            aria-hidden
+                          />
                         </button>
                       </li>
                     ))}
@@ -512,7 +529,7 @@ export function RegroupProductsModal({
 
             {lockedParent ? (
               <label className="block space-y-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Add more products
                 </span>
                 <div className="relative">
@@ -564,7 +581,7 @@ export function RegroupProductsModal({
 
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Options ({lines.length})
                 </p>
                 <p className="text-[11px] text-muted-foreground">

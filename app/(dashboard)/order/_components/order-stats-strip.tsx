@@ -1,20 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ClipboardCheck,
-  Package,
-  ShoppingCart,
-  Truck,
-} from "lucide-react";
+import { ClipboardCheck, Package, ShoppingCart, Truck } from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
 import { useOrderPipelineStats } from "@/app/(dashboard)/order/_hooks/use-order-pipeline-stats";
 import { OrderLifetimeOverview } from "./order-lifetime-overview";
-import {
-  PipelineStat,
-  PipelineStatsGrid,
-} from "./order-pipeline-stat";
+import { PipelineStat, PipelineStatsGrid } from "./order-pipeline-stat";
 
 export function OrderStatsStrip() {
   const { loading, localStats, sentStats, savedStats, lifetime } =

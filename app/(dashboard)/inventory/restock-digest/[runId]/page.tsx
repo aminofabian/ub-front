@@ -63,7 +63,10 @@ export default function RestockDigestReviewPage() {
   const canRead =
     hasPermission(me?.permissions, Permission.PurchasingPathARead) ||
     hasPermission(me?.permissions, Permission.OrderPadRead);
-  const canWritePo = hasPermission(me?.permissions, Permission.PurchasingPathAWrite);
+  const canWritePo = hasPermission(
+    me?.permissions,
+    Permission.PurchasingPathAWrite,
+  );
   const canWritePad = hasPermission(me?.permissions, Permission.OrderPadWrite);
 
   const [run, setRun] = useState<RestockRunRecord | null>(null);
@@ -125,7 +128,9 @@ export default function RestockDigestReviewPage() {
   );
   const aisleFilteredSuggestions = useMemo(
     () =>
-      (run?.suggestions ?? []).filter((s) => matchesAisleFilter(aisleFilter, s)),
+      (run?.suggestions ?? []).filter((s) =>
+        matchesAisleFilter(aisleFilter, s),
+      ),
     [run, aisleFilter],
   );
   const departments = useMemo(
@@ -133,7 +138,8 @@ export default function RestockDigestReviewPage() {
     [aisleFilteredSuggestions],
   );
   const visibleDepartments = useMemo(
-    () => (deptFilter ? departments.filter((d) => d.id === deptFilter) : departments),
+    () =>
+      deptFilter ? departments.filter((d) => d.id === deptFilter) : departments,
     [departments, deptFilter],
   );
   const rail = useMemo(
@@ -201,7 +207,9 @@ export default function RestockDigestReviewPage() {
       setCreatedPos(resp.purchaseOrders);
       const parts: string[] = [];
       for (const po of resp.purchaseOrders) {
-        parts.push(`PO ${po.poNumber} drafted for ${po.supplierName || "supplier"}`);
+        parts.push(
+          `PO ${po.poNumber} drafted for ${po.supplierName || "supplier"}`,
+        );
       }
       if (resp.padLinesCreated > 0) {
         parts.push(
@@ -211,7 +219,9 @@ export default function RestockDigestReviewPage() {
       if (resp.skippedLines.length > 0) {
         const first = resp.skippedLines[0];
         const more =
-          resp.skippedLines.length > 1 ? ` (+${resp.skippedLines.length - 1} more)` : "";
+          resp.skippedLines.length > 1
+            ? ` (+${resp.skippedLines.length - 1} more)`
+            : "";
         parts.push(`${first.itemName} skipped: ${first.reason}${more}`);
       }
       if (parts.length === 0) parts.push("Nothing left to accept");
@@ -242,7 +252,10 @@ export default function RestockDigestReviewPage() {
         }),
       );
     } catch (e) {
-      setFeedback({ kind: "error", text: e instanceof Error ? e.message : "Accept failed" });
+      setFeedback({
+        kind: "error",
+        text: e instanceof Error ? e.message : "Accept failed",
+      });
     } finally {
       setBusyAction(null);
     }
@@ -254,7 +267,10 @@ export default function RestockDigestReviewPage() {
     try {
       setRun(await postRestockSuggestionDismiss(id));
     } catch (e) {
-      setFeedback({ kind: "error", text: e instanceof Error ? e.message : "Could not dismiss" });
+      setFeedback({
+        kind: "error",
+        text: e instanceof Error ? e.message : "Could not dismiss",
+      });
     } finally {
       setBusyAction(null);
     }
@@ -266,7 +282,10 @@ export default function RestockDigestReviewPage() {
     try {
       setRun(await postRestockSuggestionSnooze(id, 1));
     } catch (e) {
-      setFeedback({ kind: "error", text: e instanceof Error ? e.message : "Could not snooze" });
+      setFeedback({
+        kind: "error",
+        text: e instanceof Error ? e.message : "Could not snooze",
+      });
     } finally {
       setBusyAction(null);
     }
@@ -342,7 +361,9 @@ export default function RestockDigestReviewPage() {
             <p className="truncate text-[12px] tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_58%,transparent)]">
               {run
                 ? `${run.branchName} · ${dateLabel} · ${
-                    aisleFilter ? aisleFilteredSuggestions.length : run.lineCount
+                    aisleFilter
+                      ? aisleFilteredSuggestions.length
+                      : run.lineCount
                   } items · ${formatMoney(run.estTotal, currency)}`
                 : "Loading…"}
             </p>
@@ -373,13 +394,21 @@ export default function RestockDigestReviewPage() {
                 {activeDept ? "PDF" : "All PDF"}
               </Button>
             ) : null}
-            {run && pending.length > 0 && runActive && (canWritePo || canWritePad) ? (
+            {run &&
+            pending.length > 0 &&
+            runActive &&
+            (canWritePo || canWritePad) ? (
               <Button
                 type="button"
                 size="sm"
                 className="hidden h-8 rounded-none px-2.5 text-[11px] sm:inline-flex"
                 disabled={busyAction !== null}
-                onClick={() => void acceptLines(pending.map((l) => l.id), "all")}
+                onClick={() =>
+                  void acceptLines(
+                    pending.map((l) => l.id),
+                    "all",
+                  )
+                }
               >
                 {busyAction?.startsWith("accept:all") ? (
                   <Loader2 className="mr-1 size-3 animate-spin" aria-hidden />
@@ -398,7 +427,10 @@ export default function RestockDigestReviewPage() {
               onClick={() => void load()}
               aria-label="Refresh"
             >
-              <RefreshCw className={cn("size-3.5", loading && "animate-spin")} aria-hidden />
+              <RefreshCw
+                className={cn("size-3.5", loading && "animate-spin")}
+                aria-hidden
+              />
             </Button>
           </div>
         </div>
@@ -423,7 +455,9 @@ export default function RestockDigestReviewPage() {
               }}
             >
               All
-              <span className="ml-1.5 tabular-nums opacity-70">{run?.lineCount ?? 0}</span>
+              <span className="ml-1.5 tabular-nums opacity-70">
+                {run?.lineCount ?? 0}
+              </span>
             </button>
             {departments.map((d) => (
               <button
@@ -442,7 +476,9 @@ export default function RestockDigestReviewPage() {
                 }}
               >
                 {d.name}
-                <span className="ml-1.5 tabular-nums opacity-70">{d.lines.length}</span>
+                <span className="ml-1.5 tabular-nums opacity-70">
+                  {d.lines.length}
+                </span>
               </button>
             ))}
           </nav>
@@ -467,7 +503,9 @@ export default function RestockDigestReviewPage() {
               }}
             >
               All zones
-              <span className="ml-1.5 tabular-nums opacity-70">{run?.lineCount ?? 0}</span>
+              <span className="ml-1.5 tabular-nums opacity-70">
+                {run?.lineCount ?? 0}
+              </span>
             </button>
             {shelfZones.map((z) => (
               <button
@@ -486,7 +524,9 @@ export default function RestockDigestReviewPage() {
                 }}
               >
                 {z.name}
-                <span className="ml-1.5 tabular-nums opacity-70">{z.count}</span>
+                <span className="ml-1.5 tabular-nums opacity-70">
+                  {z.count}
+                </span>
               </button>
             ))}
           </nav>
@@ -522,14 +562,14 @@ export default function RestockDigestReviewPage() {
 
       {run?.status === "accepted" ? (
         <p className="border-b border-border bg-emerald-500/[0.07] px-3 py-2 text-xs text-emerald-950 dark:text-emerald-100 sm:px-4">
-          This list is fully handled. Draft POs and order pad lines were created from the
-          accepted suggestions.
+          This list is fully handled. Draft POs and order pad lines were created
+          from the accepted suggestions.
         </p>
       ) : null}
       {run?.status === "expired" ? (
         <p className="border-b border-border bg-amber-500/[0.07] px-3 py-2 text-xs text-amber-950 dark:text-amber-100 sm:px-4">
-          This list expired because a newer one was generated. Pending lines can no longer be
-          accepted.
+          This list expired because a newer one was generated. Pending lines can
+          no longer be accepted.
         </p>
       ) : null}
 
@@ -538,10 +578,13 @@ export default function RestockDigestReviewPage() {
           <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] md:border-b-0 md:border-r dark:bg-muted/40">
             <div className="h-11" />
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-14 animate-pulse border-b border-border/60 bg-muted/30" />
+              <div
+                key={i}
+                className="h-14 animate-pulse border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30"
+              />
             ))}
           </div>
-          <div className="bg-card">
+          <div className="bg-white">
             <div className="h-16 animate-pulse bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] dark:bg-muted/40" />
             <div className="space-y-px">
               {Array.from({ length: 8 }).map((_, j) => (
@@ -553,7 +596,9 @@ export default function RestockDigestReviewPage() {
       ) : run?.lineCount === 0 ? (
         <div className="m-6 flex flex-col items-center justify-center gap-2 border border-dashed border-border bg-background px-4 py-16 text-center">
           <CheckCircle2 className="size-5 text-emerald-600" aria-hidden />
-          <p className="text-sm font-medium text-foreground">Nothing to order</p>
+          <p className="text-sm font-medium text-foreground">
+            Nothing to order
+          </p>
           <p className="text-xs text-muted-foreground">
             Everything is above its threshold for now.
           </p>
@@ -593,7 +638,12 @@ export default function RestockDigestReviewPage() {
             size="sm"
             className="h-8 rounded-none"
             disabled={busyAction !== null}
-            onClick={() => void acceptLines(pending.map((l) => l.id), "all")}
+            onClick={() =>
+              void acceptLines(
+                pending.map((l) => l.id),
+                "all",
+              )
+            }
           >
             {activeDept ? "Accept aisle" : "Accept all"}
           </Button>

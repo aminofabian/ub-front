@@ -29,7 +29,9 @@ export function WhatsAppTestPanel({ canSend }: Props) {
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<CreditSaleReminderTestResult | null>(null);
+  const [result, setResult] = useState<CreditSaleReminderTestResult | null>(
+    null,
+  );
   const [diagnosing, setDiagnosing] = useState(false);
   const [diagnostics, setDiagnostics] =
     useState<WhatsAppDiagnosticsResult | null>(null);
@@ -83,7 +85,7 @@ export function WhatsAppTestPanel({ canSend }: Props) {
   };
 
   return (
-    <section className="rounded-2xl border border-border/80 bg-gradient-to-b from-emerald-500/[0.04] to-card p-5 shadow-sm sm:p-6">
+    <section className="rounded-none border border-border/80 bg-gradient-to-b from-emerald-500/[0.04] to-card p-5 shadow-none sm:p-6">
       <div className="flex items-start gap-3">
         <Send className="mt-0.5 size-5 shrink-0 text-emerald-600" aria-hidden />
         <div className="min-w-0 flex-1">
@@ -91,9 +93,9 @@ export function WhatsAppTestPanel({ canSend }: Props) {
             Test Meta WhatsApp
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Tries the approved Meta payment_reminder template first (required for cold
-            numbers). If WhatsApp fails, falls back to free-form (24h window) then SMS.
-            Optional message is only a short name hint.
+            Tries the approved Meta payment_reminder template first (required
+            for cold numbers). If WhatsApp fails, falls back to free-form (24h
+            window) then SMS. Optional message is only a short name hint.
           </p>
         </div>
       </div>
@@ -162,8 +164,8 @@ export function WhatsAppTestPanel({ canSend }: Props) {
 
 function DiagnosticsCard({ data }: { data: WhatsAppDiagnosticsResult }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/20 text-sm">
-      <div className="border-b border-border/60 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="overflow-hidden rounded-none border border-border/70 bg-muted/20 text-sm">
+      <div className="border-b border-border/60 px-3 py-2 text-xs font-medium tracking-[-0.02em] text-muted-foreground">
         Cold (business-initiated) sends:{" "}
         {data.coldSendReady ? "ready" : "blocked"}
       </div>

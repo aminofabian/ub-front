@@ -16,7 +16,12 @@ import {
 import { cn } from "@/lib/utils";
 
 import { SupFormSection } from "./supplier-layout-primitives";
-import { supFormCellInput, supTableCell, supTableHead, supTableRow } from "./supplier-ui-tokens";
+import {
+  supFormCellInput,
+  supTableCell,
+  supTableHead,
+  supTableRow,
+} from "./supplier-ui-tokens";
 
 const DEBOUNCE_MS = 400;
 
@@ -55,7 +60,10 @@ function isIdentityConflict(match: SupplierDuplicateMatch): boolean {
 function identityConflictMessage(match: SupplierDuplicateMatch): string {
   const reasons = match.matchReasons ?? [];
   const name = match.name ?? "that supplier";
-  if (reasons.includes("email") && (reasons.includes("phone_last9") || reasons.includes("phone"))) {
+  if (
+    reasons.includes("email") &&
+    (reasons.includes("phone_last9") || reasons.includes("phone"))
+  ) {
     return `Phone and email already belong to “${name}”. Open them instead of creating a duplicate.`;
   }
   if (reasons.includes("email")) {
@@ -149,7 +157,9 @@ export function SupplierDuplicateCheckPanel({
   }, [name, taxId, phone, email, supplierNumber, lookupReady]);
 
   const marketplaceMatches = matches.filter((m) => m.marketplaceSupplierId);
-  const strongMarketplace = marketplaceMatches.some((m) => m.confidence === "strong");
+  const strongMarketplace = marketplaceMatches.some(
+    (m) => m.confidence === "strong",
+  );
 
   async function handleAttach(match: SupplierDuplicateMatch) {
     if (!canConnectMarketplace || !onAttached) return;
@@ -163,7 +173,9 @@ export function SupplierDuplicateCheckPanel({
         : await attachMarketplaceSupplierFromSeed(match.localSupplierId!);
       onAttached(result);
     } catch (e) {
-      setAttachError(e instanceof Error ? e.message : "Could not attach supplier.");
+      setAttachError(
+        e instanceof Error ? e.message : "Could not attach supplier.",
+      );
     } finally {
       setAttachingId(null);
     }
@@ -201,8 +213,8 @@ export function SupplierDuplicateCheckPanel({
 
           {!loading && checked && matches.length === 0 ? (
             <p className="border-b border-border px-2.5 py-2 text-xs text-muted-foreground">
-              No close matches found. Creating will also register this supplier globally with a new
-              S-number.
+              No close matches found. Creating will also register this supplier
+              globally with a new S-number.
             </p>
           ) : null}
 
@@ -223,14 +235,18 @@ export function SupplierDuplicateCheckPanel({
             </div>
           ) : null}
 
-          {!loading && !blocked && strongMarketplace && canConnectMarketplace ? (
+          {!loading &&
+          !blocked &&
+          strongMarketplace &&
+          canConnectMarketplace ? (
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-primary/25 bg-primary/5 px-2.5 py-2">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">
                   This vendor may already exist globally.
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Attach imports their catalogue (creates missing items) and links your shop.
+                  Attach imports their catalogue (creates missing items) and
+                  links your shop.
                 </p>
               </div>
             </div>
@@ -246,7 +262,8 @@ export function SupplierDuplicateCheckPanel({
             <>
               <div className="flex items-center gap-2 border-b border-border bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-900 dark:text-amber-100">
                 <AlertTriangle className="size-3.5 shrink-0" />
-                {matches.length} possible match{matches.length === 1 ? "" : "es"}
+                {matches.length} possible match
+                {matches.length === 1 ? "" : "es"}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[32rem] border-collapse text-left text-xs">
@@ -284,20 +301,35 @@ export function SupplierDuplicateCheckPanel({
                                 : "Similar name"}
                           </span>
                         </td>
-                        <td className={cn(supTableCell, "font-mono text-[11px] text-muted-foreground")}>
+                        <td
+                          className={cn(
+                            supTableCell,
+                            "font-mono text-[11px] text-muted-foreground",
+                          )}
+                        >
                           {match.supplierNumber ?? "—"}
                         </td>
-                        <td className={cn(supTableCell, "text-muted-foreground")}>
+                        <td
+                          className={cn(supTableCell, "text-muted-foreground")}
+                        >
                           {matchLabel(match)}
                         </td>
-                        <td className={cn(supTableCell, "text-[11px] text-muted-foreground")}>
+                        <td
+                          className={cn(
+                            supTableCell,
+                            "text-[11px] text-muted-foreground",
+                          )}
+                        >
                           {match.phone ? <p>{match.phone}</p> : null}
                           {match.email ? <p>{match.email}</p> : null}
                           {match.taxId ? <p>Tax: {match.taxId}</p> : null}
-                          {!match.phone && !match.email && !match.taxId ? "—" : null}
+                          {!match.phone && !match.email && !match.taxId
+                            ? "—"
+                            : null}
                         </td>
                         <td className={supTableCell}>
-                          {match.source === "own_business" && match.localSupplierId ? (
+                          {match.source === "own_business" &&
+                          match.localSupplierId ? (
                             <Link
                               href={`${APP_ROUTES.suppliers}?selected=${encodeURIComponent(match.localSupplierId)}`}
                               className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
@@ -306,7 +338,8 @@ export function SupplierDuplicateCheckPanel({
                               Open
                             </Link>
                           ) : (match.marketplaceSupplierId ||
-                              (match.source === "platform" && match.localSupplierId)) &&
+                              (match.source === "platform" &&
+                                match.localSupplierId)) &&
                             canConnectMarketplace ? (
                             <Button
                               type="button"
@@ -315,19 +348,22 @@ export function SupplierDuplicateCheckPanel({
                               className="h-7 rounded-none px-2 text-xs"
                               disabled={
                                 attachingId ===
-                                (match.marketplaceSupplierId ?? match.localSupplierId)
+                                (match.marketplaceSupplierId ??
+                                  match.localSupplierId)
                               }
                               onClick={() => void handleAttach(match)}
                             >
                               {attachingId ===
-                              (match.marketplaceSupplierId ?? match.localSupplierId) ? (
+                              (match.marketplaceSupplierId ??
+                                match.localSupplierId) ? (
                                 <Loader2 className="mr-1 size-3 animate-spin" />
                               ) : (
                                 <Store className="mr-1 size-3" />
                               )}
                               Use supplier
                             </Button>
-                          ) : match.marketplaceSupplierId && canViewMarketplace ? (
+                          ) : match.marketplaceSupplierId &&
+                            canViewMarketplace ? (
                             <Link
                               href={`${APP_ROUTES.marketplace}?supplier=${encodeURIComponent(match.marketplaceSupplierId)}`}
                               className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"

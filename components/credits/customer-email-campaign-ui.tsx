@@ -7,17 +7,17 @@ export const MAIL_SHELL = cn(
 );
 
 export const MAIL_PANEL = cn(
-  "overflow-hidden rounded-2xl border border-border/70 bg-card",
-  "shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]",
+  "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+  "shadow-none",
 );
 
 export const MAIL_INSET = cn(
-  "rounded-xl border border-border/50 bg-muted/20",
+  "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
 );
 
 export const MAIL_PILL_ACTIVE = cn(
-  "bg-[var(--mail-soft,#F9F6F0)] text-[var(--mail-brand,#8B6F3A)]",
-  "ring-1 ring-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_18%,transparent)] shadow-sm",
+  "bg-[var(--mail-soft,#ffffff)] text-[var(--mail-brand,#0f766e)]",
+  "ring-1 ring-[color-mix(in_srgb,var(--mail-brand,#0f766e)_18%,transparent)] shadow-none",
 );
 
 export const MAIL_PILL_IDLE = cn(
@@ -25,26 +25,26 @@ export const MAIL_PILL_IDLE = cn(
 );
 
 export const MAIL_FIELD = cn(
-  "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm",
+  "w-full rounded-none border border-input bg-background px-3 py-2 text-sm shadow-none",
   "transition-[border-color,box-shadow] duration-150",
   "placeholder:text-muted-foreground/65",
   "hover:border-foreground/15",
-  "focus-visible:border-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_55%,transparent)]",
+  "focus-visible:border-[color-mix(in_srgb,var(--mail-brand,#0f766e)_55%,transparent)]",
   "focus-visible:outline-none",
-  "focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_22%,transparent)]",
+  "focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--mail-brand,#0f766e)_22%,transparent)]",
 );
 
 export const MAIL_PRIMARY_BTN = cn(
-  "rounded-xl bg-[var(--mail-brand,#8B6F3A)] text-[var(--mail-on-brand,#FFFDF8)]",
-  "hover:brightness-[0.94] focus-visible:ring-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_35%,transparent)]",
+  "rounded-none bg-[var(--mail-brand,#0f766e)] text-[var(--mail-on-brand,#ffffff)]",
+  "hover:brightness-[0.94] focus-visible:ring-[color-mix(in_srgb,var(--mail-brand,#0f766e)_35%,transparent)]",
 );
 
 export const MAIL_CHIP = cn(
-  "rounded-md border border-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_22%,transparent)]",
-  "bg-[color-mix(in_srgb,var(--mail-soft,#F9F6F0)_80%,transparent)]",
-  "px-2 py-1 font-mono text-[10px] text-[var(--mail-brand,#8B6F3A)]",
-  "transition-colors hover:border-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_40%,transparent)]",
-  "hover:bg-[var(--mail-soft,#F9F6F0)]",
+  "rounded-none border border-[color-mix(in_srgb,var(--mail-brand,#0f766e)_22%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--mail-soft,#ffffff)_80%,transparent)]",
+  "px-2 py-1 font-mono text-[10px] text-[var(--mail-brand,#0f766e)]",
+  "transition-colors hover:border-[color-mix(in_srgb,var(--mail-brand,#0f766e)_40%,transparent)]",
+  "hover:bg-[var(--mail-soft,#ffffff)]",
 );
 
 export function mailStatusTone(status: string): string {
@@ -58,7 +58,7 @@ export function mailStatusTone(status: string): string {
     case "FAILED":
       return "bg-red-500/10 text-red-900 ring-red-500/20";
     case "PENDING":
-      return "bg-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_12%,transparent)] text-[var(--mail-brand,#8B6F3A)] ring-[color-mix(in_srgb,var(--mail-brand,#8B6F3A)_22%,transparent)]";
+      return "bg-[color-mix(in_srgb,var(--mail-brand,#0f766e)_12%,transparent)] text-[var(--mail-brand,#0f766e)] ring-[color-mix(in_srgb,var(--mail-brand,#0f766e)_22%,transparent)]";
     case "SENT":
       return "bg-emerald-500/10 text-emerald-900 ring-emerald-500/20";
     case "SKIPPED":
@@ -94,8 +94,9 @@ export function formatMailHtml(raw: string): string {
       .split("\n")
       .map((line) => {
         if (line.match(/^<\//)) indent = Math.max(indent - 1, 0);
-        const out = `${"  ".repeat(indent)}${line}`;
-        if (line.match(/^<[^!/][^>]*[^/]>$/) && !line.includes("</")) indent += 1;
+        const out = `${" ".repeat(indent)}${line}`;
+        if (line.match(/^<[^!/][^>]*[^/]>$/) && !line.includes("</"))
+          indent += 1;
         return out;
       })
       .join("\n");

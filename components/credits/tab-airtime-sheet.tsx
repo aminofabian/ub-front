@@ -47,7 +47,10 @@ function money(n: number, currency: string) {
 
 function formatPhoneDisplay(raw: string): string {
   const digits = (toKenyanLocal07(raw) || raw).replace(/\D/g, "");
-  if (digits.length === 10 && (digits.startsWith("07") || digits.startsWith("01"))) {
+  if (
+    digits.length === 10 &&
+    (digits.startsWith("07") || digits.startsWith("01"))
+  ) {
     return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
   }
   return raw;
@@ -169,7 +172,9 @@ export function TabAirtimeSheet({
 
   const quickAmounts = useMemo(() => {
     const list = config.quickAmounts?.length
-      ? config.quickAmounts.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+      ? config.quickAmounts
+          .map(Number)
+          .filter((n) => Number.isFinite(n) && n > 0)
       : [20, 50, 100, 250, 500, 1000];
     return list.filter((n) => n >= min && n <= max).slice(0, 6);
   }, [config.quickAmounts, min, max]);
@@ -242,10 +247,14 @@ export function TabAirtimeSheet({
       });
       setOrder(created);
       if (created.failed) {
-        setError(created.message || "The airtime purchase could not be started.");
+        setError(
+          created.message || "The airtime purchase could not be started.",
+        );
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not send the PIN prompt.");
+      setError(
+        e instanceof Error ? e.message : "Could not send the PIN prompt.",
+      );
     } finally {
       setBusy(false);
     }
@@ -255,18 +264,17 @@ export function TabAirtimeSheet({
 
   const canClose = !busy && !inFlight;
   const waitingPin = Boolean(inFlight && order?.awaitingPayment);
-  const title =
-    order?.delivered
-      ? "Airtime sent"
-      : inFlight
-        ? waitingPin
-          ? "Check your phone"
-          : "Sending"
-        : beat === "amount"
-          ? "How much"
-          : beat === "line"
-            ? "Whose line"
-            : "Confirm";
+  const title = order?.delivered
+    ? "Airtime sent"
+    : inFlight
+      ? waitingPin
+        ? "Check your phone"
+        : "Sending"
+      : beat === "amount"
+        ? "How much"
+        : beat === "line"
+          ? "Whose line"
+          : "Confirm";
 
   function handleBack() {
     if (!canClose) return;
@@ -299,12 +307,16 @@ export function TabAirtimeSheet({
         titleId={`${fieldIdPrefix}-airtime-title`}
         onClose={handleBack}
         closeDisabled={!canClose}
-        closeLabel={beat === "amount" || Boolean(order) ? "Back to tab" : "Back"}
+        closeLabel={
+          beat === "amount" || Boolean(order) ? "Back to tab" : "Back"
+        }
       />
 
       {order?.delivered ? (
         <div className="flex min-h-0 flex-1 flex-col px-5 pb-6">
-          <p className={styles.amount}>{money(Number(order.amount), order.currency || currency)}</p>
+          <p className={styles.amount}>
+            {money(Number(order.amount), order.currency || currency)}
+          </p>
           <p className={styles.caption}>
             Landed on {formatPhoneDisplay(order.phoneNumber)}
           </p>
@@ -351,7 +363,10 @@ export function TabAirtimeSheet({
                   Amount
                 </label>
                 <div className="flex items-end gap-2 border-b border-[var(--tab-fg)]">
-                  <span className="pb-2 text-[15px] text-[var(--tab-muted)]" aria-hidden>
+                  <span
+                    className="pb-2 text-[15px] text-[var(--tab-muted)]"
+                    aria-hidden
+                  >
                     KSh
                   </span>
                   <input
@@ -378,7 +393,8 @@ export function TabAirtimeSheet({
                 </div>
                 <div className="mt-5 grid grid-cols-3 gap-2">
                   {quickAmounts.map((n) => {
-                    const selected = amountValid && Math.abs(amountNum - n) < 0.001;
+                    const selected =
+                      amountValid && Math.abs(amountNum - n) < 0.001;
                     return (
                       <button
                         key={n}
@@ -410,7 +426,9 @@ export function TabAirtimeSheet({
                   setError(null);
                 }}
               >
-                {amountValid ? `Continue · ${money(amountNum, currency)}` : "Enter an amount"}
+                {amountValid
+                  ? `Continue · ${money(amountNum, currency)}`
+                  : "Enter an amount"}
               </TabDestinationCta>
             </>
           ) : null}
@@ -418,7 +436,9 @@ export function TabAirtimeSheet({
           {beat === "line" ? (
             <>
               <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-                <p className="text-[13px] text-[var(--tab-muted)]">Airtime goes to</p>
+                <p className="text-[13px] text-[var(--tab-muted)]">
+                  Airtime goes to
+                </p>
                 <button
                   type="button"
                   aria-pressed={!otherLine}
@@ -451,7 +471,9 @@ export function TabAirtimeSheet({
                       This tab
                     </span>
                   </span>
-                  {!otherLine ? <Check className="size-4 shrink-0" aria-hidden /> : null}
+                  {!otherLine ? (
+                    <Check className="size-4 shrink-0" aria-hidden />
+                  ) : null}
                 </button>
 
                 <button
@@ -494,7 +516,9 @@ export function TabAirtimeSheet({
                       value={recipient}
                       disabled={locked}
                       onChange={(e) => {
-                        const next = limitKenyanAirtimePhoneInput(e.target.value);
+                        const next = limitKenyanAirtimePhoneInput(
+                          e.target.value,
+                        );
                         setRecipient(next);
                         if (payerFollows) setPayer(next);
                         setNetworkTouched(false);
@@ -516,8 +540,9 @@ export function TabAirtimeSheet({
                         {recipientCheck}
                       </p>
                     ) : null}
-                    {recipientOptions.filter((opt) => !sameNumber(opt.phone, defaultPhone)).length >
-                    0 ? (
+                    {recipientOptions.filter(
+                      (opt) => !sameNumber(opt.phone, defaultPhone),
+                    ).length > 0 ? (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {recipientOptions
                           .filter((opt) => !sameNumber(opt.phone, defaultPhone))
@@ -610,7 +635,10 @@ export function TabAirtimeSheet({
                             )}
                             style={
                               selected
-                                ? { backgroundColor: swatch.fill, color: swatch.ink }
+                                ? {
+                                    backgroundColor: swatch.fill,
+                                    color: swatch.ink,
+                                  }
                                 : undefined
                             }
                           >
@@ -626,11 +654,17 @@ export function TabAirtimeSheet({
                     </div>
                   ) : null}
                   {networkMismatch && detectedFromPhone ? (
-                    <p role="status" className="mt-2 text-[13px] leading-snug text-[var(--tab-muted)]">
+                    <p
+                      role="status"
+                      className="mt-2 text-[13px] leading-snug text-[var(--tab-muted)]"
+                    >
                       That number looks like {networkLabel(detectedFromPhone)}.{" "}
                       <button
                         type="button"
-                        className={cn("font-semibold underline underline-offset-2", focusRing)}
+                        className={cn(
+                          "font-semibold underline underline-offset-2",
+                          focusRing,
+                        )}
                         onClick={() => {
                           setNetwork(detectedFromPhone);
                           setNetworkTouched(false);
@@ -709,7 +743,9 @@ export function TabAirtimeSheet({
                       value={payer}
                       disabled={locked}
                       onChange={(e) => {
-                        const next = limitKenyanAirtimePhoneInput(e.target.value);
+                        const next = limitKenyanAirtimePhoneInput(
+                          e.target.value,
+                        );
                         setPayer(next);
                         setPayerFollows(sameNumber(next, recipient));
                         setError(null);

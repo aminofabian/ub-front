@@ -486,7 +486,7 @@ export function StaffProfileDrawer({
                   salaries.map((row) => (
                     <li
                       key={row.id}
-                      className="flex justify-between gap-3 rounded-md border border-border/50 px-3 py-2"
+                      className="flex justify-between gap-3 rounded-none border border-border/50 px-3 py-2"
                     >
                       <span>
                         {Number(row.amount).toLocaleString(undefined, {
@@ -543,7 +543,7 @@ export function StaffProfileDrawer({
                   advances.slice(0, 8).map((row) => (
                     <li
                       key={row.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/50 px-3 py-2"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-border/50 px-3 py-2"
                     >
                       <span className="tabular-nums">
                         {formatPayrollMoney(Number(row.balanceOutstanding ?? row.amount))}
@@ -586,7 +586,7 @@ export function StaffProfileDrawer({
                   payslips.slice(0, 12).map((row) => (
                     <li
                       key={row.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/50 px-3 py-2"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-border/50 px-3 py-2"
                     >
                       <span className="font-medium">
                         {payrollMonthLabel(row.periodYear, row.periodMonth)}

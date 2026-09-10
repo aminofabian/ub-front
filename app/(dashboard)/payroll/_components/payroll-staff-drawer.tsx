@@ -125,29 +125,31 @@ export function PayrollStaffDrawer({
   const advanceDeductionPreview = row.alreadyPaid
     ? 0
     : (advancePreview?.totalAllocatedThisRun ??
-        Number(row.advancesScheduledThisRun)) || 0;
+        Number(row.advancesScheduledThisRun)) ||
+      0;
   const netPreview = row.alreadyPaid
     ? Number(row.suggestedNet)
     : applyStatutoryPreview
       ? Number(row.suggestedNet)
-      : advancePreview?.netAfterAdvances ??
-        Math.max(0, Number(row.baseSalary) - advanceDeductionPreview);
+      : (advancePreview?.netAfterAdvances ??
+        Math.max(0, Number(row.baseSalary) - advanceDeductionPreview));
 
-  const statusTone =
-    row.alreadyPaid
-      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
-      : row.employmentStatus === "on_leave"
-        ? "border-sky-500/30 bg-sky-500/10 text-sky-900 dark:text-sky-100"
-        : Number(row.baseSalary) <= 0
-          ? "border-red-500/30 bg-red-500/10 text-red-900 dark:text-red-100"
-          : "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100";
+  const statusTone = row.alreadyPaid
+    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
+    : row.employmentStatus === "on_leave"
+      ? "border-sky-500/30 bg-sky-500/10 text-sky-900 dark:text-sky-100"
+      : Number(row.baseSalary) <= 0
+        ? "border-red-500/30 bg-red-500/10 text-red-900 dark:text-red-100"
+        : "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100";
 
   return (
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
       title={row.displayName}
-      description={[row.title, row.branchName].filter(Boolean).join(" · ") || undefined}
+      description={
+        [row.title, row.branchName].filter(Boolean).join(" · ") || undefined
+      }
       contextLabel={`Payroll · ${payrollMonthLabel(year, month)}`}
       icon={<Banknote className="size-5 text-primary" aria-hidden />}
       width="wide"
@@ -155,19 +157,34 @@ export function PayrollStaffDrawer({
         <div className="flex flex-wrap justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             {canReadStaffProfile ? (
-              <Button type="button" variant="outline" size="sm" onClick={onOpenProfile}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onOpenProfile}
+              >
                 <IdCard className="mr-1.5 size-3.5" aria-hidden />
                 Full profile
               </Button>
             ) : null}
             {canManagePayroll && onSendSms ? (
-              <Button type="button" variant="outline" size="sm" onClick={onSendSms}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onSendSms}
+              >
                 <MessageSquare className="mr-1.5 size-3.5" aria-hidden />
                 SMS
               </Button>
             ) : null}
             {row.alreadyPaid ? (
-              <Button type="button" variant="outline" size="sm" onClick={onOpenPayslip}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onOpenPayslip}
+              >
                 <Receipt className="mr-1.5 size-3.5" aria-hidden />
                 View payslip
               </Button>
@@ -190,10 +207,7 @@ export function PayrollStaffDrawer({
       }
     >
       <div
-        className={cn(
-          "mb-5 overflow-hidden rounded-xl border",
-          statusTone,
-        )}
+        className={cn("mb-5 overflow-hidden rounded-none border", statusTone)}
       >
         <div className="flex items-center gap-3 px-4 py-3">
           <StaffAvatar name={row.displayName} paid={row.alreadyPaid} />
@@ -210,14 +224,20 @@ export function PayrollStaffDrawer({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="space-y-3 rounded-xl border border-border/60 bg-muted/15 p-4">
+        <section className="space-y-3 rounded-none border border-border/60 bg-muted/15 p-4">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <h3 className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
               <Banknote className="size-3.5" aria-hidden />
               Compensation
             </h3>
             {canManagePayroll ? (
-              <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={onEditSalary}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={onEditSalary}
+              >
                 <Pencil className="mr-1 size-3" aria-hidden />
                 {Number(row.baseSalary) > 0 ? "Edit" : "Set salary"}
               </Button>
@@ -233,16 +253,25 @@ export function PayrollStaffDrawer({
               </dd>
             </div>
             {(row.arrearPeriods?.length ?? 0) > 0 ? (
-              <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs">
+              <div className="rounded-none border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs">
                 <div className="flex justify-between gap-3 font-medium text-violet-950 dark:text-violet-100">
                   <span>Arrears</span>
-                  <span className="tabular-nums">+ {formatPayrollMoney(row.arrearsBaseTotal)}</span>
+                  <span className="tabular-nums">
+                    + {formatPayrollMoney(row.arrearsBaseTotal)}
+                  </span>
                 </div>
                 <ul className="mt-1.5 space-y-1 text-muted-foreground">
                   {row.arrearPeriods!.map((period) => (
-                    <li key={`${period.year}-${period.month}`} className="flex justify-between gap-3">
-                      <span>{payrollShortMonth(period.year, period.month)}</span>
-                      <span className="tabular-nums">{formatPayrollMoney(period.baseSalary)}</span>
+                    <li
+                      key={`${period.year}-${period.month}`}
+                      className="flex justify-between gap-3"
+                    >
+                      <span>
+                        {payrollShortMonth(period.year, period.month)}
+                      </span>
+                      <span className="tabular-nums">
+                        {formatPayrollMoney(period.baseSalary)}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -257,7 +286,9 @@ export function PayrollStaffDrawer({
               <>
                 <div className="flex justify-between gap-3 text-xs">
                   <dt className="text-muted-foreground">PAYE</dt>
-                  <dd className="tabular-nums">− {formatPayrollMoney(row.payeSuggested)}</dd>
+                  <dd className="tabular-nums">
+                    − {formatPayrollMoney(row.payeSuggested)}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-3 text-xs">
                   <dt className="text-muted-foreground">NSSF + SHIF + Levy</dt>
@@ -273,7 +304,8 @@ export function PayrollStaffDrawer({
               </>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Statutory off in preview — enable in pay run settings or when marking paid.
+                Statutory off in preview — enable in pay run settings or when
+                marking paid.
               </p>
             )}
             {!row.alreadyPaid && advanceDeductionPreview > 0 ? (
@@ -293,14 +325,20 @@ export function PayrollStaffDrawer({
           </dl>
         </section>
 
-        <section className="space-y-3 rounded-xl border border-border/60 bg-muted/15 p-4">
+        <section className="space-y-3 rounded-none border border-border/60 bg-muted/15 p-4">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <h3 className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
               <Wallet className="size-3.5" aria-hidden />
               Advances
             </h3>
             {canManagePayroll ? (
-              <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={onLogAdvance}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={onLogAdvance}
+              >
                 Log advance
               </Button>
             ) : null}
@@ -312,11 +350,15 @@ export function PayrollStaffDrawer({
               className="text-lg font-semibold tabular-nums text-amber-800 underline-offset-2 hover:underline dark:text-amber-200"
               onClick={onOpenLedger}
             >
-              {formatPayrollMoney(advancePreview?.totalOutstanding ?? row.advancesOutstanding)}
+              {formatPayrollMoney(
+                advancePreview?.totalOutstanding ?? row.advancesOutstanding,
+              )}
             </button>
           </div>
 
-          {!row.alreadyPaid && advancePreview && advancePreview.totalAllocatedThisRun > 0 ? (
+          {!row.alreadyPaid &&
+          advancePreview &&
+          advancePreview.totalAllocatedThisRun > 0 ? (
             <p className="text-xs text-muted-foreground">
               Deducting{" "}
               <span className="font-medium tabular-nums text-foreground">
@@ -326,7 +368,8 @@ export function PayrollStaffDrawer({
               {advancePreview.poolLimited ? (
                 <>
                   {" "}
-                  (salary pool {formatPayrollMoney(advancePreview.payPool)} — oldest first)
+                  (salary pool {formatPayrollMoney(advancePreview.payPool)} —
+                  oldest first)
                 </>
               ) : null}
             </p>
@@ -342,43 +385,43 @@ export function PayrollStaffDrawer({
           ) : (
             <ul className="max-h-48 space-y-1.5 overflow-y-auto text-xs">
               {(advancePreview?.lines ?? []).map((line) => (
-                  <li
-                    key={line.id}
-                    className="rounded-md border border-border/40 bg-background/60 px-2.5 py-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <span className="block font-medium">
-                          {formatPayrollDate(line.advancedOn)}
-                        </span>
-                        <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
-                          {advanceBalanceLabel(
-                            line.originalAmount,
-                            line.amountRepaid,
-                            line.balanceOutstanding,
-                          )}
-                        </span>
-                        <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
-                          {advanceRepaymentModeSummary(
-                            line.repaymentMode,
-                            line.repaymentValue,
-                            line.originalAmount,
-                          )}
-                        </span>
-                      </div>
-                      <div className="shrink-0 text-right tabular-nums">
-                        {!row.alreadyPaid && line.allocatedThisRun > 0 ? (
-                          <span className="block text-sm font-semibold text-amber-800 dark:text-amber-200">
-                            −{formatPayrollMoney(line.allocatedThisRun)}
-                          </span>
-                        ) : !row.alreadyPaid && line.balanceOutstanding > 0 ? (
-                          <span className="block text-[10px] text-muted-foreground">
-                            {advancePreview?.poolLimited ? "Later pays" : "—"}
-                          </span>
-                        ) : null}
-                      </div>
+                <li
+                  key={line.id}
+                  className="rounded-none border border-border/40 bg-background/60 px-2.5 py-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="block font-medium">
+                        {formatPayrollDate(line.advancedOn)}
+                      </span>
+                      <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+                        {advanceBalanceLabel(
+                          line.originalAmount,
+                          line.amountRepaid,
+                          line.balanceOutstanding,
+                        )}
+                      </span>
+                      <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+                        {advanceRepaymentModeSummary(
+                          line.repaymentMode,
+                          line.repaymentValue,
+                          line.originalAmount,
+                        )}
+                      </span>
                     </div>
-                  </li>
+                    <div className="shrink-0 text-right tabular-nums">
+                      {!row.alreadyPaid && line.allocatedThisRun > 0 ? (
+                        <span className="block text-sm font-semibold text-amber-800 dark:text-amber-200">
+                          −{formatPayrollMoney(line.allocatedThisRun)}
+                        </span>
+                      ) : !row.alreadyPaid && line.balanceOutstanding > 0 ? (
+                        <span className="block text-[10px] text-muted-foreground">
+                          {advancePreview?.poolLimited ? "Later pays" : "—"}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </li>
               ))}
             </ul>
           )}
@@ -427,11 +470,14 @@ export function PayrollStaffDrawer({
         </div>
         {!row.alreadyPaid &&
         advancePreview &&
-        advancePreview.totalOutstanding > advancePreview.totalAllocatedThisRun ? (
+        advancePreview.totalOutstanding >
+          advancePreview.totalAllocatedThisRun ? (
           <p className="text-xs text-muted-foreground">
-            {formatPayrollMoney(advancePreview.totalOutstanding)} still owed overall ·{" "}
+            {formatPayrollMoney(advancePreview.totalOutstanding)} still owed
+            overall ·{" "}
             {formatPayrollMoney(
-              advancePreview.totalOutstanding - advancePreview.totalAllocatedThisRun,
+              advancePreview.totalOutstanding -
+                advancePreview.totalAllocatedThisRun,
             )}{" "}
             carries to future pays
           </p>
@@ -472,8 +518,8 @@ function MiniStat({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-      <p className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="rounded-none border border-border/50 bg-muted/20 px-3 py-2">
+      <p className="inline-flex items-center gap-1 text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
         {icon}
         {label}
       </p>

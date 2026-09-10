@@ -4,7 +4,11 @@ import { CustomerEmailCampaignComposer } from "@/components/credits/customer-ema
 
 export default function NewCustomerEmailCampaignPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
+    <Suspense
+      fallback={
+        <div className="p-6 text-sm text-muted-foreground">Loading…</div>
+      }
+    >
       <CustomerEmailCampaignComposer />
     </Suspense>
   );

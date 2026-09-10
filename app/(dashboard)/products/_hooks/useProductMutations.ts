@@ -365,7 +365,12 @@ export function useProductMutations(d: Dependencies) {
         r.categoryId === "" ? { ...r, categoryId: parentCategoryId } : r,
       ),
     );
-  }, [activeDrawer, detail?.brand, detail?.categoryId, detail?.variantOfItemId]);
+  }, [
+    activeDrawer,
+    detail?.brand,
+    detail?.categoryId,
+    detail?.variantOfItemId,
+  ]);
 
   // ══════════════════════════════════════════════════════════════════════════
   // CREATE PARENT
@@ -416,7 +421,9 @@ export function useProductMutations(d: Dependencies) {
           return;
         }
         if (isCreatingGroup && !parentDraft.categoryId.trim()) {
-          setMessage("Choose a category for this group — variants will inherit it.");
+          setMessage(
+            "Choose a category for this group — variants will inherit it.",
+          );
           return;
         }
         const groupOptions = opts?.groupOptions ?? [];
@@ -479,8 +486,7 @@ export function useProductMutations(d: Dependencies) {
               isWeighed: parentDraft.isWeighed,
               isSellable: parentDraft.isSellable,
               isStocked:
-                parentDraft.isStocked ||
-                Boolean(parentDraft.openingQty.trim()),
+                parentDraft.isStocked || Boolean(parentDraft.openingQty.trim()),
               buyingPrice: parseNum(parentDraft.buyingPrice, "Buy price"),
               bundleQty: parseNum(parentDraft.bundleQty, "Pack qty", true),
               bundlePrice: parseNum(parentDraft.bundlePrice, "Sell price"),
@@ -575,8 +581,9 @@ export function useProductMutations(d: Dependencies) {
           ]);
 
           const line =
-            adoptResult.lines.find((l) => l.globalProductId === linkedGlobalId) ??
-            adoptResult.lines[0];
+            adoptResult.lines.find(
+              (l) => l.globalProductId === linkedGlobalId,
+            ) ?? adoptResult.lines[0];
           const okStatuses = new Set(["imported", "merged"]);
           if (!line?.itemId || !okStatuses.has(line.status)) {
             setMessage(
@@ -825,13 +832,11 @@ export function useProductMutations(d: Dependencies) {
               parseNum(parentDraft.bundleQty, "Pack qty", true) ?? 1,
             );
             const unitCost =
-              ucRaw === ""
-                ? buy != null
-                  ? buy / packQty
-                  : 0
-                : Number(ucRaw);
+              ucRaw === "" ? (buy != null ? buy / packQty : 0) : Number(ucRaw);
             if (!Number.isFinite(unitCost) || unitCost < 0) {
-              setMessage("Opening unit cost must be a valid non-negative number.");
+              setMessage(
+                "Opening unit cost must be a valid non-negative number.",
+              );
             } else {
               try {
                 await postStockIncrease({
@@ -852,11 +857,7 @@ export function useProductMutations(d: Dependencies) {
             }
           }
         }
-        if (
-          !isCreatingGroup &&
-          parentDraft.sellAsPackages &&
-          canCatalogWrite
-        ) {
+        if (!isCreatingGroup && parentDraft.sellAsPackages && canCatalogWrite) {
           const pkgRows = parentDraft.packageRows.filter(
             (r) => r.name.trim() && r.unitsPerPackage.trim(),
           );
@@ -954,14 +955,17 @@ export function useProductMutations(d: Dependencies) {
             return;
           }
           const units = Number(unitsRaw);
-          if (!Number.isFinite(units) || units <= 0 || !Number.isInteger(units)) {
+          if (
+            !Number.isFinite(units) ||
+            units <= 0 ||
+            !Number.isInteger(units)
+          ) {
             setMessage("Units per sale must be a positive whole number.");
             return;
           }
           body.packageVariant = true;
           body.packagingUnitQty = units;
-          body.packagingUnitName =
-            patchDraft.packagingUnitName.trim() || vn;
+          body.packagingUnitName = patchDraft.packagingUnitName.trim() || vn;
           body.isStocked = false;
         }
       }
@@ -1277,8 +1281,8 @@ export function useProductMutations(d: Dependencies) {
           setMessage("Select a product first.");
           return;
         }
-        const effectiveDrafts: VariantDraft[] = variantDraftRows.filter(
-          (row) => row.variantName.trim(),
+        const effectiveDrafts: VariantDraft[] = variantDraftRows.filter((row) =>
+          row.variantName.trim(),
         );
         if (effectiveDrafts.length === 0) {
           setMessage("Add at least one variant name.");
@@ -1295,144 +1299,148 @@ export function useProductMutations(d: Dependencies) {
         setMessage("");
         const warnings: string[] = [];
         try {
-        let lastVid: string | null = null;
-        for (let i = 0; i < effectiveDrafts.length; i++) {
-          const variantDraft = effectiveDrafts[i];
-          let body;
-          try {
-            body = buildCreateVariantBody(variantDraft);
-          } catch (err) {
-            setMessage(err instanceof Error ? err.message : "Invalid variant.");
-            return;
-          }
-          let bp = null;
-          if (!variantDraft.isPackageVariant) {
+          let lastVid: string | null = null;
+          for (let i = 0; i < effectiveDrafts.length; i++) {
+            const variantDraft = effectiveDrafts[i];
+            let body;
             try {
-              bp = bundlePatchFromVariantDraft(variantDraft);
+              body = buildCreateVariantBody(variantDraft);
             } catch (err) {
-              setMessage(err instanceof Error ? err.message : "Invalid bundle.");
+              setMessage(
+                err instanceof Error ? err.message : "Invalid variant.",
+              );
               return;
             }
-          }
-          let created;
-          try {
-            created = await createItemVariant(pid, body);
-          } catch (err) {
-            if (!(err instanceof ApiRequestError))
-              setMessage(
-                err instanceof Error
-                  ? `${variantDraft.variantName.trim()}: ${err.message}`
-                  : "Create variant failed.",
-              );
-            await refreshFullCatalog();
-            if (lastVid) selectProduct(lastVid);
-            return;
-          }
-          const vid = created.id;
-          lastVid = vid;
-          if (bp) {
-            try {
-              await patchItem(vid, bp);
-            } catch {
-              warnings.push(
-                `Bundle patch failed (${variantDraft.variantName.trim()}).`,
-              );
+            let bp = null;
+            if (!variantDraft.isPackageVariant) {
+              try {
+                bp = bundlePatchFromVariantDraft(variantDraft);
+              } catch (err) {
+                setMessage(
+                  err instanceof Error ? err.message : "Invalid bundle.",
+                );
+                return;
+              }
             }
-          }
-          const sp = variantDraft.sellingPrice.trim();
-          if (canSetSellPrice && sp && variantDraft.sellBranchId.trim()) {
-            const ef = variantDraft.sellEffectiveFrom.trim();
+            let created;
             try {
-              await postSellingPrice({
-                itemId: vid,
-                branchId: variantDraft.sellBranchId.trim(),
-                price: Number(sp),
-                effectiveFrom: ef,
-              });
-            } catch {
-              warnings.push(
-                `Pricing failed (${variantDraft.variantName.trim()}).`,
-              );
+              created = await createItemVariant(pid, body);
+            } catch (err) {
+              if (!(err instanceof ApiRequestError))
+                setMessage(
+                  err instanceof Error
+                    ? `${variantDraft.variantName.trim()}: ${err.message}`
+                    : "Create variant failed.",
+                );
+              await refreshFullCatalog();
+              if (lastVid) selectProduct(lastVid);
+              return;
             }
-          }
-          if (canLinkSupplier && variantDraft.supplierId.trim()) {
-            const costRaw = variantDraft.defaultCostPrice.trim();
-            try {
-              await addItemSupplierLink(vid, {
-                supplierId: variantDraft.supplierId.trim(),
-                setPrimary: variantDraft.setPrimarySupplier,
-                supplierSku: variantDraft.supplierSku.trim() || undefined,
-                defaultCostPrice: costRaw ? Number(costRaw) : undefined,
-              });
-            } catch {
-              warnings.push(
-                `Supplier link failed (${variantDraft.variantName.trim()}).`,
-              );
+            const vid = created.id;
+            lastVid = vid;
+            if (bp) {
+              try {
+                await patchItem(vid, bp);
+              } catch {
+                warnings.push(
+                  `Bundle patch failed (${variantDraft.variantName.trim()}).`,
+                );
+              }
             }
-          }
-          if (
-            !variantDraft.isPackageVariant &&
-            canInventoryWrite &&
-            variantDraft.openingQty.trim() &&
-            variantDraft.openingBranchId.trim()
-          ) {
-            const qty = Number(variantDraft.openingQty.trim());
-            const uc =
-              variantDraft.openingUnitCost.trim() ||
-              variantDraft.defaultCostPrice.trim();
-            const ucVal = Number(uc);
-            try {
-              const payload: {
-                branchId: string;
-                itemId: string;
-                quantity: number | string;
-                unitCost?: number;
-                notes?: string;
-              } = {
-                branchId: variantDraft.openingBranchId.trim(),
-                itemId: vid,
-                quantity: qty,
-                notes: "Opening stock from product creation",
-              };
-              if (uc && Number.isFinite(ucVal)) payload.unitCost = ucVal;
-              await postStockIncrease(
-                payload as {
+            const sp = variantDraft.sellingPrice.trim();
+            if (canSetSellPrice && sp && variantDraft.sellBranchId.trim()) {
+              const ef = variantDraft.sellEffectiveFrom.trim();
+              try {
+                await postSellingPrice({
+                  itemId: vid,
+                  branchId: variantDraft.sellBranchId.trim(),
+                  price: Number(sp),
+                  effectiveFrom: ef,
+                });
+              } catch {
+                warnings.push(
+                  `Pricing failed (${variantDraft.variantName.trim()}).`,
+                );
+              }
+            }
+            if (canLinkSupplier && variantDraft.supplierId.trim()) {
+              const costRaw = variantDraft.defaultCostPrice.trim();
+              try {
+                await addItemSupplierLink(vid, {
+                  supplierId: variantDraft.supplierId.trim(),
+                  setPrimary: variantDraft.setPrimarySupplier,
+                  supplierSku: variantDraft.supplierSku.trim() || undefined,
+                  defaultCostPrice: costRaw ? Number(costRaw) : undefined,
+                });
+              } catch {
+                warnings.push(
+                  `Supplier link failed (${variantDraft.variantName.trim()}).`,
+                );
+              }
+            }
+            if (
+              !variantDraft.isPackageVariant &&
+              canInventoryWrite &&
+              variantDraft.openingQty.trim() &&
+              variantDraft.openingBranchId.trim()
+            ) {
+              const qty = Number(variantDraft.openingQty.trim());
+              const uc =
+                variantDraft.openingUnitCost.trim() ||
+                variantDraft.defaultCostPrice.trim();
+              const ucVal = Number(uc);
+              try {
+                const payload: {
                   branchId: string;
                   itemId: string;
-                  quantity: string | number;
-                  unitCost: string | number;
-                  notes?: string | null | undefined;
-                },
-              );
-            } catch {
-              warnings.push(
-                `Opening stock failed (${variantDraft.variantName.trim()}).`,
-              );
+                  quantity: number | string;
+                  unitCost?: number;
+                  notes?: string;
+                } = {
+                  branchId: variantDraft.openingBranchId.trim(),
+                  itemId: vid,
+                  quantity: qty,
+                  notes: "Opening stock from product creation",
+                };
+                if (uc && Number.isFinite(ucVal)) payload.unitCost = ucVal;
+                await postStockIncrease(
+                  payload as {
+                    branchId: string;
+                    itemId: string;
+                    quantity: string | number;
+                    unitCost: string | number;
+                    notes?: string | null | undefined;
+                  },
+                );
+              } catch {
+                warnings.push(
+                  `Opening stock failed (${variantDraft.variantName.trim()}).`,
+                );
+              }
+            }
+            if (i === 0 && pendingVariantImage) {
+              try {
+                await uploadItemImageToCloudinary(vid, pendingVariantImage, {
+                  primary: true,
+                });
+              } catch {
+                warnings.push("Image upload failed for first variant.");
+              }
             }
           }
-          if (i === 0 && pendingVariantImage) {
-            try {
-              await uploadItemImageToCloudinary(vid, pendingVariantImage, {
-                primary: true,
-              });
-            } catch {
-              warnings.push("Image upload failed for first variant.");
-            }
-          }
-        }
-        await refreshFullCatalog();
-        if (lastVid) selectProduct(lastVid);
-        setActiveDrawer(null);
-        setVariantDraftRows([emptyVariantDraft()]);
-        setPendingVariantImage(null);
-        const n = effectiveDrafts.length;
-        setMessage(
-          warnings.length
-            ? `Created ${n} variant${n === 1 ? "" : "s"}. Warnings: ${warnings.join(" ")}`
-            : n === 1
-              ? "Variant created."
-              : `Created ${n} variants.`,
-        );
+          await refreshFullCatalog();
+          if (lastVid) selectProduct(lastVid);
+          setActiveDrawer(null);
+          setVariantDraftRows([emptyVariantDraft()]);
+          setPendingVariantImage(null);
+          const n = effectiveDrafts.length;
+          setMessage(
+            warnings.length
+              ? `Created ${n} variant${n === 1 ? "" : "s"}. Warnings: ${warnings.join(" ")}`
+              : n === 1
+                ? "Variant created."
+                : `Created ${n} variants.`,
+          );
         } catch (err) {
           if (!(err instanceof ApiRequestError))
             setMessage(
@@ -1572,7 +1580,9 @@ export function useProductMutations(d: Dependencies) {
           setSupplierLinks([]);
         }
       } else {
-        const variantRow = p.variants?.find((v) => v.id === variantInlineEditId);
+        const variantRow = p.variants?.find(
+          (v) => v.id === variantInlineEditId,
+        );
         if (variantRow) syncListRowFromDetail(variantRow);
       }
       setVariantInlineEditId(null);
@@ -1641,9 +1651,7 @@ export function useProductMutations(d: Dependencies) {
           );
           return errors.length < pkgRows.length;
         }
-        setMessage(
-          pkgRows.length > 1 ? "Packages added." : "Package added.",
-        );
+        setMessage(pkgRows.length > 1 ? "Packages added." : "Package added.");
         if (lastId) selectProduct(lastId);
         return true;
       } catch (err) {
@@ -1805,9 +1813,7 @@ export function useProductMutations(d: Dependencies) {
           );
           return true;
         }
-        setMessage(
-          `Partial success. Failed: ${failed.join(", ")}`,
-        );
+        setMessage(`Partial success. Failed: ${failed.join(", ")}`);
         return failed.length < ids.length;
       } finally {
         setChangeItemTypeBusy(false);

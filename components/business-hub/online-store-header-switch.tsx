@@ -18,7 +18,7 @@ export function OnlineStoreHeaderSwitch() {
         saving && "opacity-70",
       )}
     >
-      <Store className="size-3.5 shrink-0 text-[#B08D48]" aria-hidden />
+      <Store className="size-3.5 shrink-0 text-[#0f766e]" aria-hidden />
       <span className="hidden min-w-0 sm:block">
         <span className="block text-[11px] font-medium leading-none tracking-[-0.01em] text-[#141414]">
           Online
@@ -26,7 +26,7 @@ export function OnlineStoreHeaderSwitch() {
         <span
           className={cn(
             "mt-0.5 block text-[10px] font-medium leading-none",
-            enabled ? "text-[#8A6B2E]" : "text-[#8A8A8A]",
+            enabled ? "text-[#0f766e]" : "text-[#8A8A8A]",
           )}
         >
           {saving ? "Saving" : enabled ? "On" : "Off"}
@@ -43,9 +43,9 @@ export function OnlineStoreHeaderSwitch() {
           enabled ? "Turn off the online store" : "Turn on the online store"
         }
         className={cn(
-          "rounded-none data-checked:bg-[#141414] data-unchecked:bg-[#E6E1D8]",
-          "[&_[data-slot=switch-thumb]]:rounded-none",
-          "focus-visible:border-[#B08D48] focus-visible:ring-[#B08D48]/35",
+          "rounded-none data-checked:bg-[#0f766e] data-unchecked:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]",
+          "[&_[data-slot=switch-thumb]]:rounded-full",
+          "focus-visible:border-[#0f766e] focus-visible:ring-[#0f766e]/35",
         )}
       />
     </div>

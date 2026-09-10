@@ -46,13 +46,15 @@ export function buildDepartments(
         id,
         name: names.get(id) ?? "Uncategorised",
         lines,
-        supplierGroups: [...supplierMap.entries()].map(([supplierId, groupLines]) => ({
-          supplierId,
-          supplierName: displaySupplierName({
-            name: groupLines[0]?.supplierName,
+        supplierGroups: [...supplierMap.entries()].map(
+          ([supplierId, groupLines]) => ({
+            supplierId,
+            supplierName: displaySupplierName({
+              name: groupLines[0]?.supplierName,
+            }),
+            lines: groupLines,
           }),
-          lines: groupLines,
-        })),
+        ),
         padLines,
         handled: lines.filter((s) => s.status !== "pending"),
       };

@@ -60,7 +60,7 @@ export function CustomerListColumn({
 }: Props) {
   return (
     <div className="flex min-h-0 flex-col gap-1.5">
-      <div className="shrink-0 space-y-1.5 rounded-md border border-border/60 bg-muted/15 p-1.5">
+      <div className="shrink-0 space-y-1.5 rounded-none border border-border/60 bg-muted/15 p-1.5">
         <label className="relative block">
           <Search
             className="pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 text-muted-foreground"
@@ -77,7 +77,11 @@ export function CustomerListColumn({
         </label>
 
         <div className="flex flex-wrap items-center gap-1">
-          <div className="flex flex-wrap gap-0.5" role="group" aria-label="Origin filter">
+          <div
+            className="flex flex-wrap gap-0.5"
+            role="group"
+            aria-label="Origin filter"
+          >
             {(
               [
                 ["all", "All"],
@@ -107,7 +111,7 @@ export function CustomerListColumn({
         </div>
 
         <div>
-          <p className="mb-0.5 px-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="mb-0.5 px-0.5 text-[9px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Joined
             <span className="font-normal normal-case tracking-normal text-muted-foreground/80">
               {" "}
@@ -135,9 +139,13 @@ export function CustomerListColumn({
 
       <WhiteCard className="min-h-0 flex-1">
         {loading ? (
-          <p className="px-2.5 py-5 text-[11px] text-muted-foreground">Loading…</p>
+          <p className="px-2.5 py-5 text-[11px] text-muted-foreground">
+            Loading…
+          </p>
         ) : rows.length === 0 ? (
-          <p className="px-2.5 py-5 text-[11px] text-muted-foreground">No matches.</p>
+          <p className="px-2.5 py-5 text-[11px] text-muted-foreground">
+            No matches.
+          </p>
         ) : (
           <ul>
             {rows.map((row, index) => {
@@ -159,7 +167,10 @@ export function CustomerListColumn({
                         type="checkbox"
                         checked={selected}
                         onChange={() => onToggleSelect(row.id)}
-                        className={cn(customerTableCheckboxClass(), "mt-0.5 size-2.5")}
+                        className={cn(
+                          customerTableCheckboxClass(),
+                          "mt-0.5 size-2.5",
+                        )}
                         aria-label={`Select ${row.name}`}
                       />
                     ) : null}

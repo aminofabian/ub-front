@@ -45,7 +45,7 @@ function BalanceCell({
 }) {
   return (
     <div className="min-w-0 flex-1 px-1 py-1.5 text-center">
-      <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-[9px] font-medium tracking-[-0.02em] text-muted-foreground">
         {label}
       </p>
       <p
@@ -69,7 +69,8 @@ export function CustomerContactColumn({
   onLoyaltyCard,
   onFeedback,
 }: Props) {
-  const money = (n: number | string | null | undefined) => contactMoney(n, currency);
+  const money = (n: number | string | null | undefined) =>
+    contactMoney(n, currency);
 
   if (!customer) {
     return (
@@ -86,8 +87,10 @@ export function CustomerContactColumn({
       <WhiteCard className="overflow-hidden">
         <div className="flex items-start justify-between gap-2 border-b border-border/50 px-2.5 py-2">
           <div className="min-w-0">
-            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {customer.customerNo != null ? `C-${customer.customerNo}` : "Profile"}
+            <p className="text-[9px] font-semibold tracking-[-0.02em] text-muted-foreground">
+              {customer.customerNo != null
+                ? `C-${customer.customerNo}`
+                : "Profile"}
             </p>
             <p className="mt-0.5 text-sm font-semibold leading-snug break-words text-foreground">
               {customer.name}
@@ -113,7 +116,10 @@ export function CustomerContactColumn({
 
         <div className="space-y-1.5 px-2.5 py-2">
           <div className="flex gap-1.5">
-            <Phone className="mt-0.5 size-3 shrink-0 text-muted-foreground" aria-hidden />
+            <Phone
+              className="mt-0.5 size-3 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
             <div className="min-w-0 flex-1 space-y-1">
               {customer.phones.length === 0 ? (
                 <p className="text-[11px] text-muted-foreground">No phone</p>
@@ -134,7 +140,9 @@ export function CustomerContactColumn({
                       {p.phone}
                     </span>
                     {p.primary ? (
-                      <span className="text-[9px] text-muted-foreground">primary</span>
+                      <span className="text-[9px] text-muted-foreground">
+                        primary
+                      </span>
                     ) : null}
                     <CustomerPhoneFlag phone={p.phone} compact />
                   </div>
@@ -144,7 +152,10 @@ export function CustomerContactColumn({
           </div>
 
           <div className="flex gap-1.5 border-t border-border/40 pt-1.5">
-            <Mail className="mt-0.5 size-3 shrink-0 text-muted-foreground" aria-hidden />
+            <Mail
+              className="mt-0.5 size-3 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
             <p className="min-w-0 flex-1 text-[11px] leading-snug break-words text-foreground">
               {customer.email?.trim() || (
                 <span className="text-muted-foreground">No email</span>
@@ -163,7 +174,9 @@ export function CustomerContactColumn({
           <div className="border-t border-border/50 px-2 py-1.5">
             <RemindPaymentButtons
               customerId={customer.id}
-              onResult={({ ok, text }) => onFeedback(ok ? "success" : "error", text)}
+              onResult={({ ok, text }) =>
+                onFeedback(ok ? "success" : "error", text)
+              }
             />
           </div>
         ) : null}

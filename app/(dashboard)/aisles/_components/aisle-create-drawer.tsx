@@ -47,7 +47,9 @@ export function AisleCreateDrawer({
             Cancel
           </Button>
           <Button type="button" disabled={busy} onClick={onSubmit}>
-            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : null}
             Create zone
           </Button>
         </div>
@@ -61,7 +63,7 @@ export function AisleCreateDrawer({
         }}
       >
         <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Display name
           </span>
           <input
@@ -76,7 +78,7 @@ export function AisleCreateDrawer({
           />
         </label>
         <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Short code
           </span>
           <input

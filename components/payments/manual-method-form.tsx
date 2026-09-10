@@ -100,7 +100,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {formError ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-none border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {formError}
         </p>
       ) : null}
@@ -110,7 +110,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
           {(["till", "paybill", "bank_account"] as ManualType[]).map((t) => (
             <label
               key={t}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent/50"
+              className="flex cursor-pointer items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background px-3 py-2 text-sm font-medium shadow-none transition-colors hover:bg-accent/50"
             >
               <input
                 type="radio"
@@ -128,7 +128,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
       <FormDrawerFields legend="Display label">
         <input
           type="text"
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+          className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
           placeholder="e.g. M-Pesa Till"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
@@ -144,7 +144,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
             type="text"
             inputMode="numeric"
             pattern="[0-9]+"
-            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+            className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
             placeholder="e.g. 3502582"
             value={tillNumber}
             onChange={(e) => setTillNumber(e.target.value.replace(/[^\d]/g, ""))}
@@ -158,7 +158,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
           <FormDrawerFields legend="Business number *" hint="The M-Pesa Paybill business number.">
             <input
               type="text"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
               placeholder="247247"
               value={businessNumber}
               onChange={(e) => setBusinessNumber(e.target.value)}
@@ -168,7 +168,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
           <FormDrawerFields legend="Account number (optional)">
             <input
               type="text"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
               placeholder="Leave blank for customer to enter"
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value)}
@@ -182,7 +182,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
           <FormDrawerFields legend="Bank name *">
             <input
               type="text"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
               placeholder="KCB"
               value={bankName}
               onChange={(e) => setBankName(e.target.value)}
@@ -192,7 +192,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
           <FormDrawerFields legend="Branch">
             <input
               type="text"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
               placeholder="Moi Avenue"
               value={branchName}
               onChange={(e) => setBranchName(e.target.value)}
@@ -201,7 +201,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
           <FormDrawerFields legend="Account number *">
             <input
               type="text"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
               placeholder="1234567890"
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value)}
@@ -211,7 +211,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
           <FormDrawerFields legend="Account name *">
             <input
               type="text"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
               placeholder="Acme Stores Ltd"
               value={accountName}
               onChange={(e) => setAccountName(e.target.value)}
@@ -221,7 +221,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
           <FormDrawerFields legend="SWIFT code">
             <input
               type="text"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
               placeholder="KCBLKENX"
               value={swiftCode}
               onChange={(e) => setSwiftCode(e.target.value)}
@@ -232,7 +232,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
 
       <FormDrawerFields legend="Customer instructions" hint="Shown to customers at checkout.">
         <textarea
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+          className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
           rows={3}
           placeholder="e.g. Go to M-Pesa → Lipa na M-Pesa → Paybill…"
           value={instructions}

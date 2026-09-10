@@ -146,9 +146,7 @@ export function HubHistoryDrawer({
           charged: toNum(stmt.totalCharged),
           paid: toNum(stmt.totalPaid),
           owed: toNum(stmt.balanceOwed ?? target.balanceOwed),
-          lines: (stmt.lines ?? []).filter((l) =>
-            l.kind.startsWith("credit_"),
-          ),
+          lines: (stmt.lines ?? []).filter((l) => l.kind.startsWith("credit_")),
           purchases: page.rows,
         });
         return;
@@ -272,9 +270,7 @@ function SupplierBody({
           <p className={styles.figure}>{fmtMoney(s.totalSpent, currency)}</p>
           <p className={styles.meta}>
             {s.invoiceCount} bill{s.invoiceCount === 1 ? "" : "s"}
-            {s.lastInvoiceDate
-              ? ` · last ${fmtWhen(s.lastInvoiceDate)}`
-              : ""}
+            {s.lastInvoiceDate ? ` · last ${fmtWhen(s.lastInvoiceDate)}` : ""}
           </p>
         </div>
       </div>
@@ -387,9 +383,7 @@ function CreditBody({
                     </span>
                     <span className={styles.sub}>{fmtWhen(line.at)}</span>
                   </span>
-                  <span
-                    className={cn(styles.amt, paidLine && styles.paid)}
-                  >
+                  <span className={cn(styles.amt, paidLine && styles.paid)}>
                     {paidLine ? "−" : "+"}
                     {fmtMoney(amount, currency)}
                   </span>
@@ -458,7 +452,9 @@ function ShopperBody({
           <span>Total</span>
         </div>
         {orders.length === 0 ? (
-          <p className={styles.empty}>No matching web orders in the recent list.</p>
+          <p className={styles.empty}>
+            No matching web orders in the recent list.
+          </p>
         ) : (
           <ul className={styles.rows}>
             {orders.map((order) => (

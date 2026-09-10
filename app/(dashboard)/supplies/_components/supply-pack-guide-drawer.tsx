@@ -66,7 +66,7 @@ export function SupplyPackGuideDrawer({
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <div className="border-b border-amber-900/15 bg-[color-mix(in_srgb,oklch(0.86_0.08_85)_55%,var(--card))] px-5 pb-4 pt-5 dark:border-amber-200/15 dark:bg-amber-950/35">
             <DialogHeader className="pr-10 text-left">
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-amber-950/65 dark:text-amber-100/70">
+              <p className="font-mono text-[10px] font-bold tracking-[-0.02em] text-amber-950/65 dark:text-amber-100/70">
                 Receiving tip
               </p>
               <DialogTitle className="flex items-center gap-2 pt-1 text-lg">
@@ -89,11 +89,14 @@ export function SupplyPackGuideDrawer({
                 <span className="font-mono text-[10px] font-black text-amber-950 dark:text-amber-100">
                   ×40
                 </span>
-                <Package className="ml-auto size-3.5 text-amber-950 dark:text-amber-100" aria-hidden />
+                <Package
+                  className="ml-auto size-3.5 text-amber-950 dark:text-amber-100"
+                  aria-hidden
+                />
               </div>
               <div className="flex min-w-[4.5rem] items-center justify-end border border-amber-800/25 bg-amber-50/90 px-2 font-mono text-sm font-semibold tabular-nums dark:bg-amber-950/40">
                 400
-                <span className="ml-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-950/60 dark:text-amber-100/60">
+                <span className="ml-0.5 text-[8px] font-bold tracking-[-0.02em] text-amber-950/60 dark:text-amber-100/60">
                   ea
                 </span>
               </div>
@@ -125,7 +128,7 @@ export function SupplyPackGuideDrawer({
           </div>
 
           <div className="space-y-2 border-t border-border/60 px-5 py-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
               Also useful
             </p>
             <div className="grid gap-2">
@@ -163,10 +166,7 @@ function TipRow({
 }) {
   return (
     <div className="flex items-start gap-2.5 text-[12px] leading-snug">
-      <Icon
-        className="mt-0.5 size-3.5 shrink-0 text-primary/80"
-        aria-hidden
-      />
+      <Icon className="mt-0.5 size-3.5 shrink-0 text-primary/80" aria-hidden />
       <p className="text-muted-foreground">
         <span className="font-semibold text-foreground">{title}. </span>
         {body}

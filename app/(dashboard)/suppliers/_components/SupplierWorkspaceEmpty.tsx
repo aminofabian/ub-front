@@ -179,10 +179,7 @@ export function SupplierWorkspaceEmpty({
                       aria-hidden
                     />
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--order-ink,#15231f)]">
-                      <SupplierDisplayName
-                        name={row.name}
-                        code={row.code}
-                      />
+                      <SupplierDisplayName name={row.name} code={row.code} />
                     </span>
                     {row.code ? (
                       <span className="hidden shrink-0 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] sm:inline">

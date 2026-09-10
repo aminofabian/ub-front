@@ -67,40 +67,45 @@ export function ShopOpenBoard({
             "block transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
             "group-hover:-translate-y-0.5",
             "group-active:translate-y-0 group-active:scale-[0.99]",
-            "group-focus-visible:ring-2 group-focus-visible:ring-[#B08D48]/40",
+            "group-focus-visible:ring-2 group-focus-visible:ring-[#0f766e]/40",
           )}
         >
           <span className="block p-4 sm:p-5">
             <span className="block text-[15px] font-semibold tracking-[-0.02em] text-[#141414]">
               Put something on the shelf
             </span>
-            <span className={cn("mt-0.5 block text-[13px] leading-relaxed", HUB_MUTED)}>
+            <span
+              className={cn(
+                "mt-0.5 block text-[13px] leading-relaxed",
+                HUB_MUTED,
+              )}
+            >
               One product is enough to open the till. Name it, set a buying and
               selling price, say how many you have.
             </span>
 
             <span className="mt-4 flex items-start gap-3">
-              <span className="flex size-[4.5rem] shrink-0 flex-col items-center justify-center rounded-none bg-[#F0EEE9] text-[#8A8A8A] sm:size-[5.25rem]">
+              <span className="flex size-[4.5rem] shrink-0 flex-col items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#8A8A8A] sm:size-[5.25rem]">
                 <ImagePlus className="size-5" aria-hidden />
                 <span className="mt-1 text-[10px] font-medium">Photo</span>
               </span>
               <span className="min-w-0 flex-1 space-y-2">
-                <span className="block h-9 rounded-none bg-[#F0EEE9] px-3 text-[13px] leading-9 text-[#B0AAA0]">
+                <span className="block h-9 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[13px] leading-9 text-[#8A8A8A]">
                   e.g. Brookside 500ml
                 </span>
                 <span className="grid grid-cols-2 gap-2">
-                  <span className="block h-8 rounded-none bg-[#F0EEE9] px-2.5 text-[11px] leading-8 text-[#B0AAA0]">
+                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-[11px] leading-8 text-[#8A8A8A]">
                     Buying
                   </span>
-                  <span className="block h-8 rounded-none bg-[#F0EEE9] px-2.5 text-[11px] leading-8 text-[#B0AAA0]">
+                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-[11px] leading-8 text-[#8A8A8A]">
                     Selling
                   </span>
                 </span>
                 <span className="grid grid-cols-2 gap-2">
-                  <span className="block h-8 rounded-none bg-[#F0EEE9] px-2.5 font-mono text-[11px] leading-8 text-[#B0AAA0]">
+                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 font-mono text-[11px] leading-8 text-[#8A8A8A]">
                     Barcode
                   </span>
-                  <span className="block h-8 rounded-none bg-[#F0EEE9] px-2.5 text-[11px] leading-8 text-[#B0AAA0]">
+                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-[11px] leading-8 text-[#8A8A8A]">
                     How many
                   </span>
                 </span>
@@ -108,7 +113,7 @@ export function ShopOpenBoard({
             </span>
           </span>
           <span className="flex items-center justify-center gap-1.5 border-t border-[color-mix(in_srgb,#141414_6%,transparent)] bg-[#FAF9F6] px-4 py-3 text-[14px] font-medium text-[#141414] transition-colors group-hover:bg-[#F5F2EB]">
-            <Plus className="size-4 text-[#B08D48]" aria-hidden />
+            <Plus className="size-4 text-[#0f766e]" aria-hidden />
             Add your first product
           </span>
         </span>
@@ -124,8 +129,8 @@ export function ShopOpenBoard({
             href={APP_ROUTES.businessSettings}
             className={cn(
               HUB_SURFACE,
-              "group flex flex-col overflow-hidden transition-colors hover:border-[#B08D48]/40",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/40",
+              "group flex flex-col overflow-hidden transition-colors hover:border-[#0f766e]/40",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40",
             )}
           >
             <span className="flex items-center justify-between gap-3 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] bg-[#FAF9F6] px-4 py-3">
@@ -142,7 +147,7 @@ export function ShopOpenBoard({
                   "shrink-0 px-2 py-0.5 text-[10px] font-medium",
                   storefrontEnabled
                     ? "bg-emerald-500/10 text-emerald-800"
-                    : "bg-[#F0EEE9] text-[#8A8A8A]",
+                    : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#8A8A8A]",
                 )}
               >
                 {storefrontEnabled ? "Live" : "Off"}
@@ -154,11 +159,13 @@ export function ShopOpenBoard({
                   ? "Customers can browse on a phone"
                   : "Put the shop on the phone"}
               </span>
-              <span className={cn("mt-0.5 text-[12px] leading-relaxed", HUB_MUTED)}>
+              <span
+                className={cn("mt-0.5 text-[12px] leading-relaxed", HUB_MUTED)}
+              >
                 Hours, WhatsApp, and delivery. This is the window people see
                 before they walk in.
               </span>
-              <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-medium text-[#8A6B2E]">
+              <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-medium text-[#0f766e]">
                 {storefrontEnabled ? "Edit storefront" : "Set up storefront"}
                 <ArrowRight
                   className="size-3.5 transition-transform group-hover:translate-x-0.5"
@@ -172,8 +179,8 @@ export function ShopOpenBoard({
             href={APP_ROUTES.businessThemes}
             className={cn(
               HUB_SURFACE,
-              "group flex flex-col overflow-hidden transition-colors hover:border-[#B08D48]/40",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/40",
+              "group flex flex-col overflow-hidden transition-colors hover:border-[#0f766e]/40",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40",
             )}
           >
             <span
@@ -199,10 +206,12 @@ export function ShopOpenBoard({
               <span className="text-[13px] font-semibold text-[#141414]">
                 {look.name}
               </span>
-              <span className={cn("mt-0.5 text-[12px] leading-relaxed", HUB_MUTED)}>
+              <span
+                className={cn("mt-0.5 text-[12px] leading-relaxed", HUB_MUTED)}
+              >
                 This is the look on a customer&apos;s phone.
               </span>
-              <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-medium text-[#8A6B2E]">
+              <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-medium text-[#0f766e]">
                 Change look
                 <ArrowRight
                   className="size-3.5 transition-transform group-hover:translate-x-0.5"
@@ -219,15 +228,15 @@ export function ShopOpenBoard({
           href={APP_ROUTES.users}
           className={cn(
             HUB_SURFACE,
-            "group flex items-center gap-3 px-4 py-3.5 transition-colors hover:border-[#B08D48]/40",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/40",
+            "group flex items-center gap-3 px-4 py-3.5 transition-colors hover:border-[#0f766e]/40",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40",
           )}
         >
           <span className="flex -space-x-1.5" aria-hidden>
-            <span className="flex size-9 items-center justify-center rounded-none bg-[#F0EEE9] text-[#8A6B2E]">
+            <span className="flex size-9 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#0f766e]">
               <User className="size-3.5" />
             </span>
-            <span className="flex size-9 items-center justify-center rounded-none bg-white text-[#C8C2B6] ring-1 ring-[color-mix(in_srgb,#141414_9%,transparent)]">
+            <span className="flex size-9 items-center justify-center rounded-none bg-white text-[#8A8A8A] ring-1 ring-[color-mix(in_srgb,#141414_12%,transparent)]">
               <User className="size-3.5" />
             </span>
           </span>
@@ -239,7 +248,7 @@ export function ShopOpenBoard({
               Add a cashier or a stock person. You stay the owner.
             </span>
           </span>
-          <span className="ml-auto inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[#8A6B2E]">
+          <span className="ml-auto inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[#0f766e]">
             <span className="hidden sm:inline">Add staff</span>
             <ArrowRight
               className="size-4 transition-transform group-hover:translate-x-0.5"

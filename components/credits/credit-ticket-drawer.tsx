@@ -89,7 +89,9 @@ export function CreditTicketDrawer({
             ) : null}
             <ul className={styles.items}>
               {slip.lines.length === 0 ? (
-                <li className={styles.emptyLine}>No line items on this sale.</li>
+                <li className={styles.emptyLine}>
+                  No line items on this sale.
+                </li>
               ) : (
                 slip.lines.map((line, i) => (
                   <li key={`${line.name}-${i}`} className={styles.item}>

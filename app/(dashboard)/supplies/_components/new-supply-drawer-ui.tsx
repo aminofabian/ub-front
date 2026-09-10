@@ -54,7 +54,7 @@ export const nsdSectionHeader = cn(
 export const nsdCardInset = cn("rounded-none bg-muted/15", nsdBorder);
 
 export const nsdTableHead = cn(
-  "sticky top-0 z-20 border-b border-border bg-[#e8eef5] text-[10px] uppercase tracking-wide text-muted-foreground dark:bg-muted",
+  "sticky top-0 z-20 border-b border-border bg-[#e8eef5] text-[10px] tracking-[-0.02em] text-muted-foreground dark:bg-muted",
   "shadow-[inset_0_-1px_0_0_hsl(var(--border))]",
 );
 
@@ -62,10 +62,7 @@ export const nsdTableTh = cn(supTableCell, "whitespace-nowrap font-semibold");
 
 export const nsdTableCell = supTableCell;
 
-export const nsdTableInput = cn(
-  supFormCellInput,
-  "h-7 text-sm tabular-nums",
-);
+export const nsdTableInput = cn(supFormCellInput, "h-7 text-sm tabular-nums");
 
 export const nsdTableRow = cn(
   "border-b border-border/60 transition-colors",
@@ -78,19 +75,16 @@ export const nsdTableRow = cn(
 export const nsdTableRowNeed = "shadow-[inset_3px_0_0_0_#d97706]";
 
 /** Left rail: qty × cost ready (replaces full-row blue wash). */
-export const nsdTableRowReady =
-  "shadow-[inset_3px_0_0_0_hsl(var(--primary))]";
+export const nsdTableRowReady = "shadow-[inset_3px_0_0_0_hsl(var(--primary))]";
 
 /** Qty + Cost = the type-in lane. */
 export const nsdEntryLaneHead =
   "bg-amber-500/[0.12] text-amber-950 dark:bg-amber-500/15 dark:text-amber-50";
 
-export const nsdEntryLaneCell =
-  "bg-amber-500/[0.06] dark:bg-amber-500/[0.08]";
+export const nsdEntryLaneCell = "bg-amber-500/[0.06] dark:bg-amber-500/[0.08]";
 
 /** Computed / readout columns (Total, Margin). */
-export const nsdReadoutCell =
-  "bg-muted/30 dark:bg-muted/20";
+export const nsdReadoutCell = "bg-muted/30 dark:bg-muted/20";
 
 export const nsdStickyProductHead = cn(
   "sticky left-0 z-30 min-w-[11rem] bg-[#e8eef5] dark:bg-muted",
@@ -112,17 +106,14 @@ export const nsdAlert = cn(
 );
 
 export const nsdDropdown = cn(
-  "absolute left-0 right-0 top-full z-50 mt-0 max-h-52 overflow-auto border border-border bg-popover py-1 shadow-md",
+  "absolute left-0 right-0 top-full z-50 mt-0 max-h-52 overflow-auto border border-border bg-popover py-1 shadow-none",
 );
 
 export const nsdDropdownPanel = cn(
-  "max-h-52 overflow-auto border border-border bg-popover py-1 shadow-md",
+  "max-h-52 overflow-auto border border-border bg-popover py-1 shadow-none",
 );
 
-export const nsdTotalsPanel = cn(
-  "rounded-none bg-card p-2.5",
-  nsdBorder,
-);
+export const nsdTotalsPanel = cn("rounded-none bg-card p-2.5", nsdBorder);
 
 export const nsdVendorChip = cn(
   "mt-1.5 flex items-center justify-between gap-2 border border-primary/25 bg-primary/[0.05] px-2 py-1",
@@ -234,7 +225,11 @@ export function SupplyWorkflowRail({
                 )}
                 title={step.label}
               >
-                {isPast ? <Check className="size-2.5" strokeWidth={3} /> : i + 1}
+                {isPast ? (
+                  <Check className="size-2.5" strokeWidth={3} />
+                ) : (
+                  i + 1
+                )}
               </span>
             </li>
           );
@@ -288,7 +283,7 @@ export function SupplyContextStrip({
           {payable.toFixed(2)}
         </span>
         {canPost ? (
-          <span className="border border-primary/35 bg-primary/10 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-primary">
+          <span className="border border-primary/35 bg-primary/10 px-1 py-px text-[9px] font-bold tracking-[-0.02em] text-primary">
             Ready
           </span>
         ) : null}
@@ -331,7 +326,10 @@ export function SupplyLinesToolbar({
         />
         <input
           type="search"
-          className={cn(nsdInput, "h-7 bg-background pl-7 text-xs max-sm:h-9 max-sm:text-sm")}
+          className={cn(
+            nsdInput,
+            "h-7 bg-background pl-7 text-xs max-sm:h-9 max-sm:text-sm",
+          )}
           placeholder="Find a product…"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -365,7 +363,9 @@ export function SupplyLinesToolbar({
             )}
           >
             {opt.label}
-            <span className="font-mono tabular-nums opacity-80">{opt.count}</span>
+            <span className="font-mono tabular-nums opacity-80">
+              {opt.count}
+            </span>
           </button>
         ))}
       </div>
@@ -387,7 +387,9 @@ export function SupplyLinesToolbar({
           {showExpiry ? "Hide expiry" : "Expiry"}
         </button>
       ) : null}
-      {visibleCount !== totalCount && lineFocus === "all" && searchQuery.trim() ? (
+      {visibleCount !== totalCount &&
+      lineFocus === "all" &&
+      searchQuery.trim() ? (
         <span className="text-[10px] tabular-nums text-muted-foreground">
           {visibleCount} match
         </span>
@@ -420,8 +422,12 @@ export function SupplyEmptyState({
         <Icon className="size-5 opacity-60" aria-hidden />
       </span>
       <div className="max-w-sm space-y-0.5">
-        <p className="text-xs font-semibold tracking-tight text-foreground">{title}</p>
-        <p className="text-[11px] leading-snug text-muted-foreground">{description}</p>
+        <p className="text-xs font-semibold tracking-tight text-foreground">
+          {title}
+        </p>
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          {description}
+        </p>
       </div>
       {action ? <div className="mt-0.5">{action}</div> : null}
     </div>

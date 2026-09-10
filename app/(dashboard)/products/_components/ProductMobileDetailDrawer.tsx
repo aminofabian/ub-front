@@ -105,7 +105,7 @@ export function ProductMobileDetailDrawer({
     onClose();
     setExiting(false);
     /* Keep the lock through the commit that sets open=false so Radix's
-       onOpenChange(false) cannot call beginExit again and re-mount the sheet. */
+ onOpenChange(false) cannot call beginExit again and re-mount the sheet. */
     window.setTimeout(() => {
       exitLockRef.current = false;
     }, 0);
@@ -134,7 +134,7 @@ export function ProductMobileDetailDrawer({
 
   const dockBtn = cn(
     "flex min-h-[3.25rem] flex-1 flex-col items-center justify-center gap-1",
-    "bg-background text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/65",
+    "bg-background text-[10px] font-semibold tracking-[-0.02em] text-foreground/65",
     "transition-colors active:bg-muted/60",
     "disabled:pointer-events-none disabled:opacity-35",
     "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring/40",
@@ -215,7 +215,7 @@ export function ProductMobileDetailDrawer({
               </button>
 
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40">
+                <p className="text-[10px] font-semibold tracking-[-0.02em] text-foreground/40">
                   Catalog
                 </p>
                 <Dialog.Title className="truncate text-[15px] font-semibold tracking-tight text-foreground">

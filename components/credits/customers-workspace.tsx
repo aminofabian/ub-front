@@ -3,18 +3,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Filter,
   Mail,
   MessageCircle,
   MessageSquare,
+  Phone,
   Plus,
   RefreshCw,
   Users,
 } from "lucide-react";
 
 import {
+  DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
+  DashboardPageHero,
+  DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
 import { CustomerBulkSmsDrawer } from "@/components/credits/customer-bulk-sms-drawer";
 import { CustomerContactColumn } from "@/components/credits/customer-contact-column";
@@ -28,7 +33,6 @@ import {
   DirectoryBackButton,
   DirectoryColumn,
   DirectoryMobileTabs,
-  DirectoryToolbar,
   directoryFrameClass,
 } from "@/components/credits/directory-workspace-ui";
 import { LoyaltyCardPreview } from "@/components/credits/loyalty-card-preview";
@@ -44,10 +48,12 @@ import {
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
-type CustomerDatePreset = Extract<
-  DatePreset,
-  "today" | "yesterday" | "last3" | "last7" | "last30" | "thisMonth"
-> | "all";
+type CustomerDatePreset =
+  | Extract<
+      DatePreset,
+      "today" | "yesterday" | "last3" | "last7" | "last30" | "thisMonth"
+    >
+  | "all";
 
 type MobilePane = "list" | "insights" | "contact";
 
@@ -81,10 +87,14 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   const [rows, setRows] = useState<CustomerRecord[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [phoneFilter, setPhoneFilter] = useState("");
-  const [activePhoneQuery, setActivePhoneQuery] = useState<string | undefined>();
+  const [activePhoneQuery, setActivePhoneQuery] = useState<
+    string | undefined
+  >();
   const [datePreset, setDatePreset] = useState<CustomerDatePreset>("all");
   const [outstandingOnly, setOutstandingOnly] = useState(false);
-  const [originFilter, setOriginFilter] = useState<"all" | "inferred" | "verified">("all");
+  const [originFilter, setOriginFilter] = useState<
+    "all" | "inferred" | "verified"
+  >("all");
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<{
@@ -98,7 +108,8 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
   const [messagingOpen, setMessagingOpen] = useState(false);
   const [smsOpen, setSmsOpen] = useState(false);
-  const [cardCustomer, setCardCustomer] = useState<LoyaltyCardCustomerInput | null>(null);
+  const [cardCustomer, setCardCustomer] =
+    useState<LoyaltyCardCustomerInput | null>(null);
   const [isLg, setIsLg] = useState(false);
   const [mobilePane, setMobilePane] = useState<MobilePane>("list");
 
@@ -142,7 +153,8 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
       setSelectedIds(new Set());
     } catch (error) {
       setMessage({
-        text: error instanceof Error ? error.message : "Failed to load customers.",
+        text:
+          error instanceof Error ? error.message : "Failed to load customers.",
         kind: "error",
       });
     } finally {
@@ -159,15 +171,19 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   const visibleRows = useMemo(() => {
     return rows.filter((row) => {
       if (outstandingOnly && Number(row.credit.balanceOwed) <= 0) return false;
-      const verified = row.phones.some((p) => Boolean(p.verifiedAt) && Boolean(p.phone));
-      if (originFilter === "inferred" && row.origin !== "mpesa_inferred") return false;
+      const verified = row.phones.some(
+        (p) => Boolean(p.verifiedAt) && Boolean(p.phone),
+      );
+      if (originFilter === "inferred" && row.origin !== "mpesa_inferred")
+        return false;
       if (originFilter === "verified" && !verified) return false;
       return true;
     });
   }, [rows, outstandingOnly, originFilter]);
 
   const maxOwed = useMemo(
-    () => Math.max(...visibleRows.map((r) => Number(r.credit.balanceOwed ?? 0)), 1),
+    () =>
+      Math.max(...visibleRows.map((r) => Number(r.credit.balanceOwed ?? 0)), 1),
     [visibleRows],
   );
 
@@ -265,7 +281,8 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
         loyaltyPoints: focusedCustomer.credit.loyaltyPoints,
       });
     },
-    onFeedback: (kind: "error" | "success", text: string) => setMessage({ kind, text }),
+    onFeedback: (kind: "error" | "success", text: string) =>
+      setMessage({ kind, text }),
   };
 
   if (loading) {
@@ -284,103 +301,124 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1320px] px-2 pb-14 pt-1 sm:px-3 sm:pt-2">
+    <div className={DASHBOARD_MAX_WIDE}>
       {message ? (
-        <div className="mb-2">
-          <DashboardFeedback kind={message.kind} text={message.text} />
-        </div>
+        <DashboardFeedback kind={message.kind} text={message.text} />
       ) : null}
 
-      <DirectoryToolbar
+      <DashboardPageHero
         icon={Users}
-        eyebrow="Credits"
         title="Customers"
-        meta={
+        description={
           <>
             {visibleRows.length.toLocaleString("en-KE")} in view
             {periodLabel ? ` · ${periodLabel}` : ""}
             {focusedCustomer ? ` · ${focusedCustomer.name}` : ""}
           </>
         }
-        links={[
-          ...(canViewAnalytics
-            ? [{ href: APP_ROUTES.analyticsCustomers, label: "Shoppers" }]
-            : []),
-          { href: APP_ROUTES.customerSegments, label: "Segments" },
-          { href: APP_ROUTES.customerPhones, label: "Phones" },
-          ...(canReviewPaymentClaims
-            ? [{ href: APP_ROUTES.creditsPaymentClaims, label: "Claims" }]
-            : []),
-        ]}
-        actions={
-          <>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="size-8"
-              onClick={() => setRefreshKey((k) => k + 1)}
-              disabled={refreshing}
-              aria-label="Refresh"
-            >
-              <RefreshCw
-                className={cn("size-3.5", refreshing && "animate-spin")}
-                aria-hidden
-              />
-            </Button>
-            {canManageCustomers ? (
-              <Button
-                type="button"
-                size="sm"
-                className="h-8 gap-1 text-xs"
-                onClick={() => setCreateOpen(true)}
-              >
-                <Plus className="size-3.5" />
-                New
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="size-8 px-0"
-              onClick={() => setMessagingOpen(true)}
-              aria-label="Messaging"
-            >
-              <MessageCircle className="size-3.5" />
-            </Button>
-            {canManageCustomers && selectedIds.size > 0 ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 gap-1 text-xs"
-                onClick={() => setSmsOpen(true)}
-              >
-                <MessageSquare className="size-3.5" />
-                {selectedIds.size}
-              </Button>
-            ) : null}
-            {canManageCustomers && selectedIds.size > 0 ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 gap-1 text-xs"
-                onClick={() => {
-                  const ids = Array.from(selectedIds).slice(0, 500);
-                  router.push(
-                    `${APP_ROUTES.customerEmailCampaignNew}?customerIds=${ids.map(encodeURIComponent).join(",")}`,
-                  );
-                }}
-              >
-                <Mail className="size-3.5" />
-                Email
-              </Button>
-            ) : null}
-          </>
-        }
-      />
+      >
+        <DashboardQuickLinks
+          compact
+          links={[
+            ...(canViewAnalytics
+              ? [
+                  {
+                    href: APP_ROUTES.analyticsCustomers,
+                    label: "Shoppers",
+                    desc: "Shoppers",
+                    icon: Users,
+                  },
+                ]
+              : []),
+            {
+              href: APP_ROUTES.customerSegments,
+              label: "Segments",
+              desc: "Segments",
+              icon: Filter,
+            },
+            {
+              href: APP_ROUTES.customerPhones,
+              label: "Phones",
+              desc: "Phones",
+              icon: Phone,
+            },
+            ...(canReviewPaymentClaims
+              ? [
+                  {
+                    href: APP_ROUTES.creditsPaymentClaims,
+                    label: "Claims",
+                    desc: "Claims",
+                    icon: Mail,
+                  },
+                ]
+              : []),
+          ]}
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="size-8 rounded-none"
+          onClick={() => setRefreshKey((k) => k + 1)}
+          disabled={refreshing}
+          aria-label="Refresh"
+        >
+          <RefreshCw
+            className={cn("size-3.5", refreshing && "animate-spin")}
+            aria-hidden
+          />
+        </Button>
+        {canManageCustomers ? (
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] text-xs text-white"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus className="size-3.5" />
+            New
+          </Button>
+        ) : null}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="size-8 rounded-none px-0"
+          onClick={() => setMessagingOpen(true)}
+          aria-label="Messaging"
+        >
+          <MessageCircle className="size-3.5" />
+        </Button>
+        {canManageCustomers && selectedIds.size > 0 ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 rounded-none text-xs"
+            onClick={() => setSmsOpen(true)}
+          >
+            <MessageSquare className="size-3.5" />
+            {selectedIds.size}
+          </Button>
+        ) : null}
+        {canManageCustomers && selectedIds.size > 0 ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 rounded-none text-xs"
+            onClick={() => {
+              const ids = Array.from(selectedIds).slice(0, 500);
+              router.push(
+                `${APP_ROUTES.customerEmailCampaignNew}?customerIds=${ids.map(encodeURIComponent).join(",")}`,
+              );
+            }}
+          >
+            <Mail className="size-3.5" />
+            Email
+          </Button>
+        ) : null}
+      </DashboardPageHero>
 
       <div className={cn(directoryFrameClass, refreshing && "opacity-90")}>
         <div className="grid min-h-0 flex-1 divide-y lg:grid-cols-[13.5rem_minmax(0,1fr)_12.5rem] lg:divide-x lg:divide-y-0 divide-border/60">
@@ -494,7 +532,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
         recipientLabel={
           selectedIds.size > 0
             ? `${selectedIds.size} selected`
-            : focusedCustomer?.name ?? "customer"
+            : (focusedCustomer?.name ?? "customer")
         }
         onSent={(text, kind = "success") => setMessage({ kind, text })}
       />

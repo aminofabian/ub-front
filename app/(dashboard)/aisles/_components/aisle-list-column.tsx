@@ -61,7 +61,11 @@ export function AisleListColumn({
         />
       </label>
 
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Filter aisles">
+      <div
+        className="flex flex-wrap gap-1"
+        role="group"
+        aria-label="Filter aisles"
+      >
         {FILTERS.map(({ id, label }) => (
           <BoardFilterButton
             key={id}
@@ -77,7 +81,7 @@ export function AisleListColumn({
       {unassignedCount > 0 ? (
         <Link
           href={`${APP_ROUTES.products}?aisleUnset=1`}
-          className="block rounded-lg border border-amber-200/80 bg-amber-50/80 px-2.5 py-2 text-[11px] leading-snug text-amber-950 hover:bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100"
+          className="block rounded-none border border-amber-200/80 bg-amber-50/80 px-2.5 py-2 text-[11px] leading-snug text-amber-950 hover:bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100"
         >
           <span className="font-semibold">
             {unassignedCount.toLocaleString()} unassigned
@@ -100,13 +104,17 @@ export function AisleListColumn({
             {rows.map((row, index) => {
               const focused = focusedId === row.id;
               const count = row.productCount;
-              const pct = Math.max((count / maxProducts) * 100, count > 0 ? 4 : 0);
+              const pct = Math.max(
+                (count / maxProducts) * 100,
+                count > 0 ? 4 : 0,
+              );
               return (
                 <li
                   key={row.id}
                   className={cn(
                     "border-b border-border/50 last:border-0",
-                    focused && "bg-muted/40",
+                    focused &&
+                      "border border-[var(--aisle-primary,#0f766e)] bg-white text-[var(--aisle-primary,#0f766e)]",
                     !row.active && "opacity-70",
                   )}
                 >
@@ -117,10 +125,10 @@ export function AisleListColumn({
                   >
                     <span
                       className={cn(
-                        "flex size-7 shrink-0 items-center justify-center rounded-md font-mono text-[10px] font-bold tabular-nums",
+                        "flex size-7 shrink-0 items-center justify-center rounded-none border font-mono text-[10px] font-bold tabular-nums",
                         focused
-                          ? "bg-foreground text-background"
-                          : "bg-muted text-muted-foreground",
+                          ? "border-[var(--aisle-primary,#0f766e)] bg-white text-[var(--aisle-primary,#0f766e)]"
+                          : "border-border bg-white text-muted-foreground",
                       )}
                     >
                       {index + 1}
@@ -130,7 +138,7 @@ export function AisleListColumn({
                         <p className="truncate text-sm font-semibold tracking-tight text-foreground">
                           {row.name}
                         </p>
-                        <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                        <span className="font-mono text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
                           {row.code}
                         </span>
                       </div>

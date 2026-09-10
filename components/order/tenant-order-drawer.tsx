@@ -31,7 +31,7 @@ export function TenantOrderDrawer({
       headerDensity="compact"
       bodyLayout="fill"
     >
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--order-shelf,#f3f6f5)]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--order-shelf,#ffffff)]">
         {open ? (
           <TenantOrderWorkspace
             embedded

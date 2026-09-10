@@ -36,6 +36,8 @@ export function categorySelectOptions(
     };
   });
 
-  rows.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+  rows.sort((a, b) =>
+    a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+  );
   return rows;
 }

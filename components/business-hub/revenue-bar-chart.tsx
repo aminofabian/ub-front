@@ -70,7 +70,7 @@ export function RevenueBarChart({
     <section className={cn(HUB_SURFACE, "overflow-hidden")}>
       <div className="flex flex-col gap-1 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <div className="flex min-w-0 items-baseline gap-2">
-          <h2 className="inline-flex items-center gap-1.5 text-[12px] font-medium tracking-[-0.015em] text-[#141414] before:block before:h-px before:w-2.5 before:bg-[#B08D48] before:content-['']">
+          <h2 className="inline-flex items-center gap-1.5 text-[12px] font-medium tracking-[-0.015em] text-[#141414] before:block before:h-px before:w-2.5 before:bg-[#0f766e] before:content-['']">
             {title}
           </h2>
           <p className={cn("text-[11px] tabular-nums", HUB_MUTED)}>
@@ -114,11 +114,11 @@ export function RevenueBarChart({
                 className="group relative flex min-w-0 flex-col items-stretch gap-0.5 px-px"
                 title={`${point.label} · ${formatMoneyCompact(point.value)}`}
               >
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 bg-[#141414] px-1.5 py-0.5 text-[10px] text-[#F5E6C8] group-hover:block">
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 border border-[#0f766e] bg-white px-1.5 py-0.5 text-[10px] text-[#0f766e] group-hover:block">
                   <span className="whitespace-nowrap font-medium">
                     {point.label}
                   </span>
-                  <span className="mx-1 text-[#C9BFA8]" aria-hidden>
+                  <span className="mx-1 text-[#8A8A8A]" aria-hidden>
                     ·
                   </span>
                   <span className="whitespace-nowrap font-semibold tabular-nums">
@@ -138,12 +138,15 @@ export function RevenueBarChart({
                         backgroundColor: isToday
                           ? HUB_ACCENT
                           : isPeak
-                            ? "#C9A86A"
-                            : "#D9C7A0",
+                            ? "#0d9488"
+                            : "#99f6e4",
                       }}
                     />
                   ) : (
-                    <div className="w-full bg-[#E8E2D6]" style={{ height: 2 }} />
+                    <div
+                      className="w-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
+                      style={{ height: 2 }}
+                    />
                   )}
                 </div>
 
@@ -151,7 +154,7 @@ export function RevenueBarChart({
                   <span
                     className={cn(
                       "text-[8px] font-medium tabular-nums leading-none sm:text-[9px]",
-                      isToday ? "text-[#8A6B2E]" : "text-[#666666]",
+                      isToday ? "text-[#0f766e]" : "text-[#666666]",
                     )}
                   >
                     {dayOfMonth(point.day)}
@@ -159,7 +162,7 @@ export function RevenueBarChart({
                   <span
                     className={cn(
                       "hidden text-[8px] uppercase leading-none sm:inline",
-                      isToday ? "text-[#B08D48]" : "text-[#B0A898]",
+                      isToday ? "text-[#0f766e]" : "text-[#B0A898]",
                     )}
                   >
                     {weekdayInitial(point.day)}

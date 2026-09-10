@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Check, Loader2, RotateCcw, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Loader2,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -81,7 +87,11 @@ export function ProductPolishDialog({
     setBusy(true);
     polishProduct(itemId)
       .then((res) => setResult(res))
-      .catch((e) => setError(formatMutationError(e, "Could not review the product. Try again.")))
+      .catch((e) =>
+        setError(
+          formatMutationError(e, "Could not review the product. Try again."),
+        ),
+      )
       .finally(() => setBusy(false));
   }, [open, itemId]);
 
@@ -106,7 +116,10 @@ export function ProductPolishDialog({
       payload: PatchItemPayload;
     }[] = [];
 
-    if (result.suggestedName && result.suggestedName.trim() !== detail?.name?.trim()) {
+    if (
+      result.suggestedName &&
+      result.suggestedName.trim() !== detail?.name?.trim()
+    ) {
       out.push({
         key: "name",
         label: "Name",
@@ -115,7 +128,10 @@ export function ProductPolishDialog({
         payload: { name: result.suggestedName.trim() },
       });
     }
-    if (result.suggestedBrand && result.suggestedBrand.trim() !== detail?.brand?.trim()) {
+    if (
+      result.suggestedBrand &&
+      result.suggestedBrand.trim() !== detail?.brand?.trim()
+    ) {
       out.push({
         key: "brand",
         label: "Brand",
@@ -124,7 +140,10 @@ export function ProductPolishDialog({
         payload: { brand: result.suggestedBrand.trim() },
       });
     }
-    if (result.suggestedSize && result.suggestedSize.trim() !== detail?.size?.trim()) {
+    if (
+      result.suggestedSize &&
+      result.suggestedSize.trim() !== detail?.size?.trim()
+    ) {
       out.push({
         key: "size",
         label: "Size",
@@ -133,7 +152,10 @@ export function ProductPolishDialog({
         payload: { size: result.suggestedSize.trim() },
       });
     }
-    if (result.suggestedDescription && result.suggestedDescription.trim() !== detail?.description?.trim()) {
+    if (
+      result.suggestedDescription &&
+      result.suggestedDescription.trim() !== detail?.description?.trim()
+    ) {
       out.push({
         key: "description",
         label: "Description",
@@ -166,19 +188,29 @@ export function ProductPolishDialog({
     const cost = num(result.suggestedCostPrice);
     if (sell != null || cost != null) {
       const payload: PatchItemPayload = {};
-      if (sell != null && sell !== num(detail?.bundlePrice)) payload.bundlePrice = sell;
-      if (cost != null && cost !== num(detail?.buyingPrice)) payload.buyingPrice = cost;
+      if (sell != null && sell !== num(detail?.bundlePrice))
+        payload.bundlePrice = sell;
+      if (cost != null && cost !== num(detail?.buyingPrice))
+        payload.buyingPrice = cost;
       if (Object.keys(payload).length > 0) {
         out.push({
           key: "pricing",
           label: "Pricing",
-          current: [
-            detail?.bundlePrice != null ? `Sell ${formatMoney(detail.bundlePrice, currencyCode)}` : null,
-            detail?.buyingPrice != null ? `Cost ${formatMoney(detail.buyingPrice, currencyCode)}` : null,
+          current:
+            [
+              detail?.bundlePrice != null
+                ? `Sell ${formatMoney(detail.bundlePrice, currencyCode)}`
+                : null,
+              detail?.buyingPrice != null
+                ? `Cost ${formatMoney(detail.buyingPrice, currencyCode)}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || null,
+          suggested: [
+            sell != null ? `Sell ${formatMoney(sell, currencyCode)}` : null,
+            cost != null ? `Cost ${formatMoney(cost, currencyCode)}` : null,
           ]
-            .filter(Boolean)
-            .join(" · ") || null,
-          suggested: [sell != null ? `Sell ${formatMoney(sell, currencyCode)}` : null, cost != null ? `Cost ${formatMoney(cost, currencyCode)}` : null]
             .filter(Boolean)
             .join(" · "),
           reason: result.pricingReason,
@@ -191,20 +223,28 @@ export function ProductPolishDialog({
     const reorderQty = num(result.suggestedReorderQty);
     if (min != null || reorder != null || reorderQty != null) {
       const payload: PatchItemPayload = {};
-      if (min != null && min !== num(detail?.minStockLevel)) payload.minStockLevel = min;
-      if (reorder != null && reorder !== num(detail?.reorderLevel)) payload.reorderLevel = reorder;
-      if (reorderQty != null && reorderQty !== num(detail?.reorderQty)) payload.reorderQty = reorderQty;
+      if (min != null && min !== num(detail?.minStockLevel))
+        payload.minStockLevel = min;
+      if (reorder != null && reorder !== num(detail?.reorderLevel))
+        payload.reorderLevel = reorder;
+      if (reorderQty != null && reorderQty !== num(detail?.reorderQty))
+        payload.reorderQty = reorderQty;
       if (Object.keys(payload).length > 0) {
         out.push({
           key: "stock",
           label: "Stock levels",
-          current: [
-            detail?.minStockLevel != null ? `Min ${detail.minStockLevel}` : null,
-            detail?.reorderLevel != null ? `Reorder ${detail.reorderLevel}` : null,
-            detail?.reorderQty != null ? `Qty ${detail.reorderQty}` : null,
-          ]
-            .filter(Boolean)
-            .join(" · ") || null,
+          current:
+            [
+              detail?.minStockLevel != null
+                ? `Min ${detail.minStockLevel}`
+                : null,
+              detail?.reorderLevel != null
+                ? `Reorder ${detail.reorderLevel}`
+                : null,
+              detail?.reorderQty != null ? `Qty ${detail.reorderQty}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || null,
           suggested: [
             min != null ? `Min ${min}` : null,
             reorder != null ? `Reorder ${reorder}` : null,
@@ -218,12 +258,23 @@ export function ProductPolishDialog({
       }
     }
     return out;
-  }, [result, detail, currentCategoryName, currentDepartmentName, currencyCode]);
+  }, [
+    result,
+    detail,
+    currentCategoryName,
+    currentDepartmentName,
+    currencyCode,
+  ]);
 
   const apply = async (key: SuggestionKey | "all") => {
     if (!itemId) return;
     const payload: PatchItemPayload =
-      key === "all" ? rows.reduce<PatchItemPayload>((acc, r) => ({ ...acc, ...r.payload }), {}) : (rows.find((r) => r.key === key)?.payload ?? {});
+      key === "all"
+        ? rows.reduce<PatchItemPayload>(
+            (acc, r) => ({ ...acc, ...r.payload }),
+            {},
+          )
+        : (rows.find((r) => r.key === key)?.payload ?? {});
     if (Object.keys(payload).length === 0) return;
     setApplying(key);
     try {
@@ -233,7 +284,9 @@ export function ProductPolishDialog({
       } else {
         setApplied((prev) => new Set(prev).add(key));
       }
-      toast.success(key === "all" ? "All suggestions applied." : "Suggestion applied.");
+      toast.success(
+        key === "all" ? "All suggestions applied." : "Suggestion applied.",
+      );
       onApplied?.();
     } catch (e) {
       const msg = formatMutationError(e, "Could not apply the suggestion.");
@@ -256,8 +309,12 @@ export function ProductPolishDialog({
           <DialogDescription>
             {detail ? (
               <>
-                Reviewing <span className="font-medium text-foreground">{detail.name}</span> — name,
-                description, category, pricing and stock. Apply only what makes sense.
+                Reviewing{" "}
+                <span className="font-medium text-foreground">
+                  {detail.name}
+                </span>{" "}
+                — name, description, category, pricing and stock. Apply only
+                what makes sense.
               </>
             ) : (
               "Reviewing the product…"
@@ -268,9 +325,13 @@ export function ProductPolishDialog({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {busy ? (
             <div className="flex flex-col items-center gap-3 py-12 text-center">
-              <Loader2 className="size-5 animate-spin text-primary" aria-hidden />
+              <Loader2
+                className="size-5 animate-spin text-primary"
+                aria-hidden
+              />
               <p className="text-sm text-muted-foreground">
-                Going through everything — name, description, category, pricing, stock…
+                Going through everything — name, description, category, pricing,
+                stock…
               </p>
             </div>
           ) : error ? (
@@ -288,7 +349,14 @@ export function ProductPolishDialog({
                   setBusy(true);
                   polishProduct(itemId)
                     .then((res) => setResult(res))
-                    .catch((e) => setError(formatMutationError(e, "Could not review the product. Try again.")))
+                    .catch((e) =>
+                      setError(
+                        formatMutationError(
+                          e,
+                          "Could not review the product. Try again.",
+                        ),
+                      ),
+                    )
                     .finally(() => setBusy(false));
                 }}
               >
@@ -299,13 +367,21 @@ export function ProductPolishDialog({
           ) : result ? (
             <div className="space-y-4">
               {result.summary ? (
-                <p className="text-sm leading-relaxed text-foreground/80">{result.summary}</p>
+                <p className="text-sm leading-relaxed text-foreground/80">
+                  {result.summary}
+                </p>
               ) : null}
               {result.issues.length > 0 ? (
                 <ul className="space-y-1">
                   {result.issues.map((issue, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[13px] text-foreground/70">
-                      <span className="mt-1.5 size-1 shrink-0 rounded-full bg-amber-500" aria-hidden />
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-[13px] text-foreground/70"
+                    >
+                      <span
+                        className="mt-1.5 size-1 shrink-0 rounded-full bg-amber-500"
+                        aria-hidden
+                      />
                       {issue}
                     </li>
                   ))}
@@ -323,11 +399,15 @@ export function ProductPolishDialog({
                     return (
                       <div
                         key={row.key}
-                        className={done ? "border border-border bg-muted/20 px-3 py-2.5" : "border border-border px-3 py-2.5"}
+                        className={
+                          done
+                            ? "border border-border bg-muted/20 px-3 py-2.5"
+                            : "border border-border px-3 py-2.5"
+                        }
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                               {row.label}
                             </p>
                             {row.current ? (
@@ -337,9 +417,13 @@ export function ProductPolishDialog({
                                 </span>
                               </p>
                             ) : null}
-                            <p className="text-[13px] font-medium text-foreground">{row.suggested}</p>
+                            <p className="text-[13px] font-medium text-foreground">
+                              {row.suggested}
+                            </p>
                             {row.reason ? (
-                              <p className="mt-0.5 text-[12px] text-muted-foreground">{row.reason}</p>
+                              <p className="mt-0.5 text-[12px] text-muted-foreground">
+                                {row.reason}
+                              </p>
                             ) : null}
                           </div>
                           <Button
@@ -352,11 +436,17 @@ export function ProductPolishDialog({
                           >
                             {done ? (
                               <>
-                                <Check className="size-3 text-emerald-600" aria-hidden />
+                                <Check
+                                  className="size-3 text-emerald-600"
+                                  aria-hidden
+                                />
                                 Applied
                               </>
                             ) : applying === row.key ? (
-                              <Loader2 className="size-3 animate-spin" aria-hidden />
+                              <Loader2
+                                className="size-3 animate-spin"
+                                aria-hidden
+                              />
                             ) : (
                               "Apply"
                             )}
@@ -372,7 +462,12 @@ export function ProductPolishDialog({
         </div>
 
         <DialogFooter className="border-t border-border/50 bg-muted/20 px-5 py-4">
-          <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+          >
             Close
           </Button>
           {canEdit && pendingRows.length > 0 ? (

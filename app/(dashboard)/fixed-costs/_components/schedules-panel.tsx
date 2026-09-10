@@ -59,14 +59,13 @@ export function SchedulesPanel({
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<ExpenseScheduleRecord[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [historySchedule, setHistorySchedule] = useState<ExpenseScheduleRecord | null>(
-    null,
-  );
+  const [historySchedule, setHistorySchedule] =
+    useState<ExpenseScheduleRecord | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const branchName = useCallback(
     (id: string | null) =>
-      id ? branches.find((b) => b.id === id)?.name ?? "—" : "All branches",
+      id ? (branches.find((b) => b.id === id)?.name ?? "—") : "All branches",
     [branches],
   );
 
@@ -181,7 +180,8 @@ export function SchedulesPanel({
           <span className="font-medium text-foreground">
             {formatFixedCostMoney(summary.commitment)}
           </span>{" "}
-          committed this month · {summary.dueThisMonth} with a due date this month
+          committed this month · {summary.dueThisMonth} with a due date this
+          month
         </p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm" onClick={exportCsv}>
@@ -199,7 +199,7 @@ export function SchedulesPanel({
       <section className={cn(DASHBOARD_TABLE_SURFACE)}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
-            <thead className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="border-b border-border/60 bg-muted/30 text-xs tracking-[-0.02em] text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Branch</th>
@@ -219,7 +219,8 @@ export function SchedulesPanel({
                     colSpan={9}
                     className="px-4 py-10 text-center text-muted-foreground"
                   >
-                    No fixed costs yet. Add shop rent, KPLC, or other repeating bills.
+                    No fixed costs yet. Add shop rent, KPLC, or other repeating
+                    bills.
                   </td>
                 </tr>
               ) : (
@@ -232,11 +233,15 @@ export function SchedulesPanel({
                         {row.includeInCashDrawer ? " · Till cash" : ""}
                       </p>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{row.branchName}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {row.branchName}
+                    </td>
                     <td className="px-4 py-3 tabular-nums">
                       {formatFixedCostMoney(Number(row.amount))}
                     </td>
-                    <td className="px-4 py-3">{frequencyLabel(row.frequency)}</td>
+                    <td className="px-4 py-3">
+                      {frequencyLabel(row.frequency)}
+                    </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {automationModeLabel(row.automationMode)}
                     </td>

@@ -33,7 +33,10 @@ function num(v: number | string | null | undefined): string {
 
 export default function DailyAuditInvestigationsPage() {
   const { me } = useDashboard();
-  const canApprove = hasPermission(me?.permissions, Permission.StocktakeApprove);
+  const canApprove = hasPermission(
+    me?.permissions,
+    Permission.StocktakeApprove,
+  );
 
   const [branchId, setBranchId] = useState("");
   const [from, setFrom] = useState("");
@@ -64,7 +67,9 @@ export default function DailyAuditInvestigationsPage() {
       );
     } catch (e) {
       setRows([]);
-      setError(e instanceof Error ? e.message : "Could not load investigations");
+      setError(
+        e instanceof Error ? e.message : "Could not load investigations",
+      );
     } finally {
       setLoading(false);
     }
@@ -90,7 +95,7 @@ export default function DailyAuditInvestigationsPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX, "mx-auto space-y-4 px-4 pb-8 pt-4")}>
+    <div className={cn(DASHBOARD_MAX, "space-y-1 pb-8")}>
       <Link
         href={APP_ROUTES.inventoryStockTakeDailyAuditReview}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -119,10 +124,10 @@ export default function DailyAuditInvestigationsPage() {
             {branches
               .filter((b) => !branchLocked || b.id === branchId)
               .map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
           </select>
         </label>
         <label className="grid gap-1 text-sm">
@@ -144,7 +149,11 @@ export default function DailyAuditInvestigationsPage() {
           />
         </label>
         <div className="flex items-end">
-          <Button variant="outline" onClick={() => void load()} disabled={loading}>
+          <Button
+            variant="outline"
+            onClick={() => void load()}
+            disabled={loading}
+          >
             Apply
           </Button>
         </div>
@@ -157,13 +166,13 @@ export default function DailyAuditInvestigationsPage() {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-none border border-dashed p-8 text-center text-sm text-muted-foreground">
           No escalated items found for these filters.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border">
+        <div className="overflow-x-auto rounded-none border">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
+            <thead className="border-b bg-muted/40 text-xs tracking-[-0.02em] text-muted-foreground">
               <tr>
                 <th className="px-3 py-2">Date</th>
                 <th className="px-3 py-2">Product</th>
@@ -176,17 +185,28 @@ export default function DailyAuditInvestigationsPage() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={`${row.auditId}-${row.itemId}`} className="border-b last:border-0">
-                  <td className="px-3 py-3 whitespace-nowrap">{row.auditDate}</td>
+                <tr
+                  key={`${row.auditId}-${row.itemId}`}
+                  className="border-b last:border-0"
+                >
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    {row.auditDate}
+                  </td>
                   <td className="px-3 py-3">
                     <div className="font-medium">{row.itemName}</div>
-                    <div className="text-xs text-muted-foreground">{row.itemSku}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {row.itemSku}
+                    </div>
                   </td>
                   <td className="px-3 py-3">{num(row.morningCount)}</td>
                   <td className="px-3 py-3">{num(row.eveningCount)}</td>
                   <td className="px-3 py-3">{num(row.systemStock)}</td>
-                  <td className="px-3 py-3 text-red-600">{num(row.variance)}</td>
-                  <td className="px-3 py-3 max-w-xs truncate">{row.reviewNotes ?? "—"}</td>
+                  <td className="px-3 py-3 text-red-600">
+                    {num(row.variance)}
+                  </td>
+                  <td className="px-3 py-3 max-w-xs truncate">
+                    {row.reviewNotes ?? "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>

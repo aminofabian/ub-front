@@ -14,10 +14,7 @@ import {
 } from "@/components/credits/messaging-test-result-card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  testSmsMessage,
-  type CreditSaleReminderTestResult,
-} from "@/lib/api";
+import { testSmsMessage, type CreditSaleReminderTestResult } from "@/lib/api";
 
 type Props = {
   canSend: boolean;
@@ -27,7 +24,9 @@ export function SmsTestPanel({ canSend }: Props) {
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<CreditSaleReminderTestResult | null>(null);
+  const [result, setResult] = useState<CreditSaleReminderTestResult | null>(
+    null,
+  );
   const [feedback, setFeedback] = useState<{
     text: string;
     kind: "error" | "success";
@@ -62,14 +61,17 @@ export function SmsTestPanel({ canSend }: Props) {
   };
 
   return (
-    <section className="rounded-2xl border border-border/80 bg-gradient-to-b from-sky-500/[0.04] to-card p-5 shadow-sm sm:p-6">
+    <section className="rounded-none border border-border/80 bg-gradient-to-b from-sky-500/[0.04] to-card p-5 shadow-none sm:p-6">
       <div className="flex items-start gap-3">
-        <MessageSquare className="mt-0.5 size-5 shrink-0 text-sky-600" aria-hidden />
+        <MessageSquare
+          className="mt-0.5 size-5 shrink-0 text-sky-600"
+          aria-hidden
+        />
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold tracking-tight">Test SMS</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Send a one-off SMS via Sozuri or Africa&apos;s Talking only. Does not call
-            RapidAPI or Meta WhatsApp.
+            Send a one-off SMS via Sozuri or Africa&apos;s Talking only. Does
+            not call RapidAPI or Meta WhatsApp.
           </p>
         </div>
       </div>

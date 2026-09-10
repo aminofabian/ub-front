@@ -79,7 +79,7 @@ function ProductTile({
       onClick={onToggle}
       style={{ animationDelay: `${Math.min(index, 24) * 18}ms` }}
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden border bg-[#FCFAF6] text-left",
+        "group relative flex h-full flex-col overflow-hidden border bg-[#ffffff] text-left",
         "transition-[border-color,background-color,box-shadow,transform] duration-150",
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1",
         "hover:z-[1] hover:border-[#CBD5E1] hover:bg-white hover:shadow-[2px_2px_0_0_rgba(15,23,42,0.08)]",
@@ -269,7 +269,7 @@ export function OnboardingCatalogShelf({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         {selectedCount === 0 ? (
-          <div className="flex h-full min-h-[10rem] items-center justify-center rounded-none border border-dashed border-[#D6D3CB] bg-[#FCFAF6] px-4 py-6 text-center text-xs leading-relaxed text-[#6B7280]">
+          <div className="flex h-full min-h-[10rem] items-center justify-center rounded-none border border-dashed border-[#D6D3CB] bg-[#ffffff] px-4 py-6 text-center text-xs leading-relaxed text-[#6B7280]">
             Tap shelf products to build your starter catalogue. Drafts stay until
             you import.
           </div>
@@ -495,7 +495,7 @@ export function OnboardingCatalogShelf({
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Find a product or scan barcode…"
-                className="h-11 w-full rounded-none border border-[#E5E7EB] bg-[#FCFAF6] pl-10 pr-3 text-base outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/15 sm:h-10 sm:text-sm"
+                className="h-11 w-full rounded-none border border-[#E5E7EB] bg-[#ffffff] pl-10 pr-3 text-base outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/15 sm:h-10 sm:text-sm"
                 enterKeyHint="search"
                 autoCapitalize="off"
                 autoCorrect="off"

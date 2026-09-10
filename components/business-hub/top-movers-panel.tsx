@@ -30,19 +30,19 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
               <Link
                 key={sku.itemId}
                 href={`/products?search=${encodeURIComponent(sku.itemName)}`}
-                className="group flex items-center gap-2 px-2.5 py-1.5 transition-colors hover:bg-[#FAF8F3] sm:px-3"
+                className="group flex items-center gap-2 px-2.5 py-1.5 transition-colors hover:bg-white sm:px-3"
               >
                 <span
                   className={cn(
                     "flex size-4 shrink-0 items-center justify-center font-mono text-[9px] font-medium tabular-nums",
                     i === 0
-                      ? "bg-[#F7F2E8] text-[#8A6B2E]"
-                      : "bg-[#F0EEE9] text-[#666666]",
+                      ? "bg-[#ffffff] text-[#0f766e]"
+                      : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666]",
                   )}
                 >
                   {i + 1}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-[#141414] group-hover:text-[#8A6B2E]">
+                <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-[#141414] group-hover:text-[#0f766e]">
                   {sku.itemName}
                 </span>
                 <span

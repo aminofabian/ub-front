@@ -2,8 +2,8 @@ import type { CSSProperties } from "react";
 
 import type { BrandingRecord } from "@/lib/api";
 
-const FALLBACK_PRIMARY = "#8B6F3A";
-const FALLBACK_ACCENT = "#C4A574";
+const FALLBACK_PRIMARY = "#0f766e";
+const FALLBACK_ACCENT = "#0f766e";
 
 export type ShopMailBrand = {
   displayName: string;
@@ -84,11 +84,11 @@ export function resolveShopMailBrand(
     branding?.accentColor,
     mixHex(primary, FALLBACK_ACCENT, 0.45),
   );
-  const onPrimary = relativeLuminance(primary) >= 0.55 ? "#1c1917" : "#FFFDF8";
-  const softSurface = mixHex(primary, "#ffffff", 0.9);
-  const softRing = mixHex(primary, "#ffffff", 0.72);
-  const paperFrom = mixHex(primary, "#f7f3eb", 0.88);
-  const paperTo = mixHex(primary, "#e8dfd0", 0.82);
+  const onPrimary = relativeLuminance(primary) >= 0.55 ? "#15231f" : "#ffffff";
+  const softSurface = mixHex(primary, "#ffffff", 0.94);
+  const softRing = mixHex(primary, "#ffffff", 0.82);
+  const paperFrom = "#ffffff";
+  const paperTo = "#ffffff";
   const displayName =
     branding?.displayName?.trim() ||
     tenantName?.trim() ||

@@ -31,7 +31,11 @@ import {
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
-import { APP_ROUTES, categorySlugPath, categoryAnalyticsPath } from "@/lib/config";
+import {
+  APP_ROUTES,
+  categorySlugPath,
+  categoryAnalyticsPath,
+} from "@/lib/config";
 import {
   createCategory,
   deleteCategoryImage,
@@ -69,11 +73,11 @@ import { cn, categoryIconImageUrl } from "@/lib/utils";
 const ROOT_PARENT_VALUE = "";
 
 const categoryDrawerLabel =
-  "text-[11px] font-medium text-muted-foreground";
+  "text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]";
 const categoryDrawerInput =
-  "h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm";
+  "h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none";
 const categoryDrawerTextarea =
-  "min-h-[4.5rem] w-full resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm";
+  "min-h-[4.5rem] w-full resize-y rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-2 text-sm shadow-none focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none";
 
 type CreateQueueRow = {
   id: string;
@@ -130,7 +134,9 @@ function categoryCoverUrl(row: CategoryRecord): string | null {
 }
 
 function sortCategories(list: CategoryRecord[]): CategoryRecord[] {
-  return [...list].sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
+  return [...list].sort(
+    (a, b) => a.position - b.position || a.name.localeCompare(b.name),
+  );
 }
 
 /** Parent rows first, then descendants; siblings ordered by position then name. Orphans/cycles append last. */
@@ -156,7 +162,10 @@ function sortCategoriesDepthFirst(rows: CategoryRecord[]): CategoryRecord[] {
   return ordered;
 }
 
-function parseWholeNumber(raw: string, emptyOk: boolean): { error?: string; value?: number } {
+function parseWholeNumber(
+  raw: string,
+  emptyOk: boolean,
+): { error?: string; value?: number } {
   const trimmed = raw.trim();
   if (!trimmed) {
     return emptyOk ? {} : { error: "Position is required." };
@@ -187,7 +196,10 @@ type PendingCategoryCreate = {
   suggestionParentName?: string;
 };
 
-function findTopLevelCategoryIdByName(rows: CategoryRecord[], displayName: string): string | null {
+function findTopLevelCategoryIdByName(
+  rows: CategoryRecord[],
+  displayName: string,
+): string | null {
   const t = displayName.trim().toLowerCase();
   for (const r of rows) {
     if (!r.parentId?.trim() && r.name.trim().toLowerCase() === t) {
@@ -198,7 +210,10 @@ function findTopLevelCategoryIdByName(rows: CategoryRecord[], displayName: strin
 }
 
 function newQueueItemId(): string {
-  if (typeof globalThis.crypto !== "undefined" && "randomUUID" in globalThis.crypto) {
+  if (
+    typeof globalThis.crypto !== "undefined" &&
+    "randomUUID" in globalThis.crypto
+  ) {
     return globalThis.crypto.randomUUID();
   }
   return `q-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -215,11 +230,21 @@ function buildPendingCreatesList(input: {
   primaryName: string;
   primaryParentFromDropdown: string;
   sameParentMultiline: string;
-  structuredQueue: Array<Pick<CreateQueueRow, "name" | "parentId" | "queueKey" | "suggestionParentName">>;
+  structuredQueue: Array<
+    Pick<
+      CreateQueueRow,
+      "name" | "parentId" | "queueKey" | "suggestionParentName"
+    >
+  >;
 }): PendingCategoryCreate[] {
   const dedupe = new Set<string>();
   const out: PendingCategoryCreate[] = [];
-  const push = (name: string, parentId: string, queueKey?: string, suggestionParentName?: string) => {
+  const push = (
+    name: string,
+    parentId: string,
+    queueKey?: string,
+    suggestionParentName?: string,
+  ) => {
     const n = name.trim();
     if (!n) {
       return;
@@ -302,7 +327,9 @@ function mergeQueueWithSuggestionPicks(
   return next;
 }
 
-function childrenByParentMap(rows: CategoryRecord[]): Map<string, CategoryRecord[]> {
+function childrenByParentMap(
+  rows: CategoryRecord[],
+): Map<string, CategoryRecord[]> {
   const m = new Map<string, CategoryRecord[]>();
   for (const r of rows) {
     const key = r.parentId ?? ROOT_PARENT_VALUE;
@@ -314,7 +341,10 @@ function childrenByParentMap(rows: CategoryRecord[]): Map<string, CategoryRecord
 }
 
 /** Includes `rootId` and all descendants (invalid choices when moving parent). */
-function subtreeIncludingSelf(rootId: string, childrenMap: Map<string, CategoryRecord[]>): Set<string> {
+function subtreeIncludingSelf(
+  rootId: string,
+  childrenMap: Map<string, CategoryRecord[]>,
+): Set<string> {
   const out = new Set<string>();
   const stack = [rootId];
   while (stack.length > 0) {
@@ -401,20 +431,28 @@ function isCategoryRowExpandedVisible(
 
 export default function CategoriesPage() {
   const searchParams = useSearchParams();
-  const { loading, canViewCategories, canManageCategories, canViewSuppliers } = useDashboard();
+  const { loading, canViewCategories, canManageCategories, canViewSuppliers } =
+    useDashboard();
   const [rows, setRows] = useState<CategoryRecord[]>([]);
   const [createDraft, setCreateDraft] = useState<CreateDraft>(EMPTY_CREATE);
   const [edits, setEdits] = useState<Record<string, EditDraft>>({});
   const [listBusy, setListBusy] = useState(false);
-  const [feedback, setFeedback] = useState<{ text: string; kind: "error" | "success" } | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    text: string;
+    kind: "error" | "success";
+  } | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
   const [categoryImages, setCategoryImages] = useState<ItemImageRecord[]>([]);
   const [detailBusy, setDetailBusy] = useState(false);
   const [supplierRows, setSupplierRows] = useState<SupplierRecord[]>([]);
   const [supplierPickId, setSupplierPickId] = useState("");
   const [taxRates, setTaxRates] = useState<TaxRateRecord[]>([]);
   const [priceRules, setPriceRules] = useState<PriceRuleRecord[]>([]);
-  const [linkedRules, setLinkedRules] = useState<CategoryLinkedPriceRuleRecord[]>([]);
+  const [linkedRules, setLinkedRules] = useState<
+    CategoryLinkedPriceRuleRecord[]
+  >([]);
   const [commercialDraft, setCommercialDraft] = useState<{
     description: string;
     markupStr: string;
@@ -423,9 +461,14 @@ export default function CategoriesPage() {
   const [rulePickId, setRulePickId] = useState("");
   const [rulePrecStr, setRulePrecStr] = useState("");
   const [uploadAsCover, setUploadAsCover] = useState(true);
-  const [activeDrawer, setActiveDrawer] = useState<CategoryDrawerId | null>(null);
-  const [pendingCategoryImage, setPendingCategoryImage] = useState<File | null>(null);
-  const [pendingCreateIconFile, setPendingCreateIconFile] = useState<File | null>(null);
+  const [activeDrawer, setActiveDrawer] = useState<CategoryDrawerId | null>(
+    null,
+  );
+  const [pendingCategoryImage, setPendingCategoryImage] = useState<File | null>(
+    null,
+  );
+  const [pendingCreateIconFile, setPendingCreateIconFile] =
+    useState<File | null>(null);
   /** Extra names for the same create action (one per line); each uses the Parent dropdown. */
   const [batchNamesText, setBatchNamesText] = useState("");
   /** Picks from suggestions (or “queue all”); each row has its own parent (top level or resolved group). */
@@ -435,12 +478,20 @@ export default function CategoriesPage() {
   /** When false, taxonomy checkboxes stay hidden; manual Name / More names / Parent is the default path. */
   const [showBulkSuggestions, setShowBulkSuggestions] = useState(true);
   const [createBusy, setCreateBusy] = useState(false);
-  const [iconUploadCategoryId, setIconUploadCategoryId] = useState<string | null>(null);
+  const [iconUploadCategoryId, setIconUploadCategoryId] = useState<
+    string | null
+  >(null);
   /** Parents whose child rows are revealed in the table. Loaded and refreshed as fully expanded by default. */
-  const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(() => new Set());
+  const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   /** Inline table edit: null = browse / select rows; set to a category id to show inputs for that row only. */
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
-  const [copiedIconCategoryId, setCopiedIconCategoryId] = useState<string | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
+    null,
+  );
+  const [copiedIconCategoryId, setCopiedIconCategoryId] = useState<
+    string | null
+  >(null);
 
   const sorted = useMemo(() => sortCategoriesDepthFirst(rows), [rows]);
 
@@ -457,26 +508,33 @@ export default function CategoriesPage() {
   );
 
   useEffect(() => {
-    setSuggestionPickKeys((prev) => filterSuggestionPickKeys(prev, catalogNameLowerSet));
+    setSuggestionPickKeys((prev) =>
+      filterSuggestionPickKeys(prev, catalogNameLowerSet),
+    );
   }, [catalogNameLowerSet]);
 
-  const resolveParentIdForSuggestion = useCallback((parentDisplayName: string) => {
-    const target = parentDisplayName.trim().toLowerCase();
-    if (!target) {
-      return ROOT_PARENT_VALUE;
-    }
-    const roots = rows.filter(
-      (r) => !r.parentId?.trim() && r.name.trim().toLowerCase() === target,
-    );
-    if (roots.length > 0) {
-      return roots[0].id;
-    }
-    const match = rows.find((r) => r.name.trim().toLowerCase() === target);
-    return match?.id ?? ROOT_PARENT_VALUE;
-  }, [rows]);
+  const resolveParentIdForSuggestion = useCallback(
+    (parentDisplayName: string) => {
+      const target = parentDisplayName.trim().toLowerCase();
+      if (!target) {
+        return ROOT_PARENT_VALUE;
+      }
+      const roots = rows.filter(
+        (r) => !r.parentId?.trim() && r.name.trim().toLowerCase() === target,
+      );
+      if (roots.length > 0) {
+        return roots[0].id;
+      }
+      const match = rows.find((r) => r.name.trim().toLowerCase() === target);
+      return match?.id ?? ROOT_PARENT_VALUE;
+    },
+    [rows],
+  );
 
   const toggleSuggestionPickKey = useCallback((key: string) => {
-    setSuggestionPickKeys((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+    setSuggestionPickKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
   }, []);
 
   const clearSuggestionPickKeys = useCallback(() => {
@@ -490,7 +548,9 @@ export default function CategoriesPage() {
     }
     setCreateQueue((prev) => {
       const seen = new Set(
-        prev.map((q) => q.queueKey ?? `${q.parentId}\t${q.name.trim().toLowerCase()}`),
+        prev.map(
+          (q) => q.queueKey ?? `${q.parentId}\t${q.name.trim().toLowerCase()}`,
+        ),
       );
       const next = [...prev];
       for (const key of picks) {
@@ -503,7 +563,12 @@ export default function CategoriesPage() {
             continue;
           }
           seen.add(key);
-          next.push({ id: newQueueItemId(), name: parent.trim(), parentId: ROOT_PARENT_VALUE, queueKey: key });
+          next.push({
+            id: newQueueItemId(),
+            name: parent.trim(),
+            parentId: ROOT_PARENT_VALUE,
+            queueKey: key,
+          });
         } else if (key.startsWith("sub:")) {
           const rest = key.slice(4);
           const { parentName, childName } = parseSuggestionSubKey(rest);
@@ -531,14 +596,21 @@ export default function CategoriesPage() {
   }, []);
 
   const effectiveStructuredQueue = useMemo(
-    () => mergeQueueWithSuggestionPicks(createQueue, suggestionPickKeys, resolveParentIdForSuggestion),
+    () =>
+      mergeQueueWithSuggestionPicks(
+        createQueue,
+        suggestionPickKeys,
+        resolveParentIdForSuggestion,
+      ),
     [createQueue, suggestionPickKeys, resolveParentIdForSuggestion],
   );
 
   const discardEffectiveQueueRow = useCallback(
     (row: CreateQueueRow) => {
       if (row.fromPickKey) {
-        setSuggestionPickKeys((prev) => prev.filter((k) => k !== row.fromPickKey));
+        setSuggestionPickKeys((prev) =>
+          prev.filter((k) => k !== row.fromPickKey),
+        );
       } else {
         removeCreateQueueRow(row.id);
       }
@@ -554,7 +626,12 @@ export default function CategoriesPage() {
         sameParentMultiline: batchNamesText,
         structuredQueue: effectiveStructuredQueue,
       }).length,
-    [createDraft.name, createDraft.parentId, batchNamesText, effectiveStructuredQueue],
+    [
+      createDraft.name,
+      createDraft.parentId,
+      batchNamesText,
+      effectiveStructuredQueue,
+    ],
   );
 
   const queueParentLabel = useCallback(
@@ -598,29 +675,37 @@ export default function CategoriesPage() {
   }, [rows]);
 
   const visibleSorted = useMemo(
-    () => sorted.filter((row) => isCategoryRowExpandedVisible(row, byId, expandedParentIds)),
+    () =>
+      sorted.filter((row) =>
+        isCategoryRowExpandedVisible(row, byId, expandedParentIds),
+      ),
     [sorted, byId, expandedParentIds],
   );
 
-  const selectedCategory = selectedCategoryId ? byId.get(selectedCategoryId) : undefined;
+  const selectedCategory = selectedCategoryId
+    ? byId.get(selectedCategoryId)
+    : undefined;
 
-  const restoreDraftFromRow = useCallback((id: string) => {
-    const c = rows.find((r) => r.id === id);
-    if (!c) {
-      return;
-    }
-    setEdits((prev) => ({
-      ...prev,
-      [id]: {
-        name: c.name,
-        slug: c.slug,
-        positionStr: String(c.position),
-        active: c.active,
-        icon: c.icon ?? "",
-        parentId: c.parentId ?? ROOT_PARENT_VALUE,
-      },
-    }));
-  }, [rows]);
+  const restoreDraftFromRow = useCallback(
+    (id: string) => {
+      const c = rows.find((r) => r.id === id);
+      if (!c) {
+        return;
+      }
+      setEdits((prev) => ({
+        ...prev,
+        [id]: {
+          name: c.name,
+          slug: c.slug,
+          positionStr: String(c.position),
+          active: c.active,
+          icon: c.icon ?? "",
+          parentId: c.parentId ?? ROOT_PARENT_VALUE,
+        },
+      }));
+    },
+    [rows],
+  );
 
   const load = useCallback(async () => {
     const list = await fetchCategories();
@@ -655,7 +740,8 @@ export default function CategoriesPage() {
       await load();
     } catch (error) {
       setFeedback({
-        text: error instanceof Error ? error.message : "Failed to load categories.",
+        text:
+          error instanceof Error ? error.message : "Failed to load categories.",
         kind: "error",
       });
     } finally {
@@ -693,7 +779,10 @@ export default function CategoriesPage() {
     let cancelled = false;
     void (async () => {
       try {
-        const [rates, rules] = await Promise.all([fetchTaxRates(), fetchPriceRules()]);
+        const [rates, rules] = await Promise.all([
+          fetchTaxRates(),
+          fetchPriceRules(),
+        ]);
         if (!cancelled) {
           setTaxRates(rates);
           setPriceRules(rules);
@@ -743,7 +832,8 @@ export default function CategoriesPage() {
     setCommercialDraft({
       description: selectedCategory.description ?? "",
       markupStr:
-        selectedCategory.defaultMarkupPct != null && selectedCategory.defaultMarkupPct !== ""
+        selectedCategory.defaultMarkupPct != null &&
+        selectedCategory.defaultMarkupPct !== ""
           ? String(selectedCategory.defaultMarkupPct)
           : "",
       taxRateId: selectedCategory.defaultTaxRateId ?? "",
@@ -819,9 +909,15 @@ export default function CategoriesPage() {
     }
     const bMarkupRaw = baseline.defaultMarkupPct;
     const bMarkup =
-      bMarkupRaw != null && String(bMarkupRaw).trim() !== "" ? Number(bMarkupRaw) : null;
+      bMarkupRaw != null && String(bMarkupRaw).trim() !== ""
+        ? Number(bMarkupRaw)
+        : null;
     if (mk.value !== undefined) {
-      if (bMarkup === null || !Number.isFinite(bMarkup) || bMarkup !== mk.value) {
+      if (
+        bMarkup === null ||
+        !Number.isFinite(bMarkup) ||
+        bMarkup !== mk.value
+      ) {
         body.defaultMarkupPct = mk.value;
       }
     } else if (bMarkup !== null && Number.isFinite(bMarkup)) {
@@ -847,7 +943,8 @@ export default function CategoriesPage() {
       setFeedback({ text: "Commercial defaults saved.", kind: "success" });
     } catch (error) {
       setFeedback({
-        text: error instanceof Error ? error.message : "Could not save defaults.",
+        text:
+          error instanceof Error ? error.message : "Could not save defaults.",
         kind: "error",
       });
     } finally {
@@ -865,7 +962,10 @@ export default function CategoriesPage() {
     if (precRaw) {
       precedence = Number(precRaw);
       if (!Number.isFinite(precedence) || !Number.isInteger(precedence)) {
-        setFeedback({ text: "Precedence must be a whole number.", kind: "error" });
+        setFeedback({
+          text: "Precedence must be a whole number.",
+          kind: "error",
+        });
         return;
       }
     }
@@ -916,12 +1016,17 @@ export default function CategoriesPage() {
     setFeedback(null);
     setDetailBusy(true);
     try {
-      await patchCategorySupplierLink(selectedCategoryId, supplierId, { primary: true });
+      await patchCategorySupplierLink(selectedCategoryId, supplierId, {
+        primary: true,
+      });
       await refresh();
       setFeedback({ text: "Primary supplier updated.", kind: "success" });
     } catch (error) {
       setFeedback({
-        text: error instanceof Error ? error.message : "Could not update primary supplier.",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Could not update primary supplier.",
         kind: "error",
       });
     } finally {
@@ -967,10 +1072,16 @@ export default function CategoriesPage() {
 
     const sharedBody = {
       ...(pos.value !== undefined ? { position: pos.value } : {}),
-      ...(!pendingCreateIconFile && createDraft.icon.trim() ? { icon: createDraft.icon.trim() } : {}),
-      ...(createDraft.description.trim() ? { description: createDraft.description.trim() } : {}),
+      ...(!pendingCreateIconFile && createDraft.icon.trim()
+        ? { icon: createDraft.icon.trim() }
+        : {}),
+      ...(createDraft.description.trim()
+        ? { description: createDraft.description.trim() }
+        : {}),
       ...(mk.value !== undefined ? { defaultMarkupPct: mk.value } : {}),
-      ...(createDraft.taxRateId.trim() ? { defaultTaxRateId: createDraft.taxRateId.trim() } : {}),
+      ...(createDraft.taxRateId.trim()
+        ? { defaultTaxRateId: createDraft.taxRateId.trim() }
+        : {}),
     };
 
     const iconFile = pendingCreateIconFile;
@@ -1010,7 +1121,9 @@ export default function CategoriesPage() {
               }
             }
             if (!existingId) {
-              throw new Error(`Could not create or find top-level parent “${sp}”.`);
+              throw new Error(
+                `Could not create or find top-level parent “${sp}”.`,
+              );
             }
             pidFinal = existingId;
           }
@@ -1065,14 +1178,20 @@ export default function CategoriesPage() {
         setSuggestionPickKeys([]);
         setCreateDraft({
           ...EMPTY_CREATE,
-          parentId: savedParentForRetry.trim() ? savedParentForRetry.trim() : ROOT_PARENT_VALUE,
+          parentId: savedParentForRetry.trim()
+            ? savedParentForRetry.trim()
+            : ROOT_PARENT_VALUE,
         });
         setBatchNamesText("");
       }
 
       if (iconFile && firstSuccessId) {
         try {
-          const uploaded = await uploadCategoryImageToCloudinary(firstSuccessId, iconFile, { primary: false });
+          const uploaded = await uploadCategoryImageToCloudinary(
+            firstSuccessId,
+            iconFile,
+            { primary: false },
+          );
           const url = uploaded.secureUrl?.trim();
           if (url) {
             await patchCategory(firstSuccessId, { icon: url });
@@ -1104,7 +1223,8 @@ export default function CategoriesPage() {
             fails
               .slice(0, 5)
               .map((f) => `${f.name}: ${f.message}`)
-              .join(" ") + (fails.length > 5 ? ` …and ${fails.length - 5} more.` : ""),
+              .join(" ") +
+            (fails.length > 5 ? ` …and ${fails.length - 5} more.` : ""),
           kind: "error",
         });
         return;
@@ -1157,7 +1277,10 @@ export default function CategoriesPage() {
     }
     const pos = parseWholeNumber(draft.positionStr, false);
     if (pos.error || pos.value === undefined) {
-      setFeedback({ text: pos.error ?? "Position is required.", kind: "error" });
+      setFeedback({
+        text: pos.error ?? "Position is required.",
+        kind: "error",
+      });
       return;
     }
     if (!baseline) {
@@ -1204,7 +1327,9 @@ export default function CategoriesPage() {
     }
   };
 
-  const onUploadCategoryImage = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onUploadCategoryImage = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
     if (!canManageCategories || !selectedCategoryId) {
       return;
@@ -1217,7 +1342,9 @@ export default function CategoriesPage() {
     setFeedback(null);
     setDetailBusy(true);
     try {
-      await uploadCategoryImageToCloudinary(selectedCategoryId, file, { primary: uploadAsCover });
+      await uploadCategoryImageToCloudinary(selectedCategoryId, file, {
+        primary: uploadAsCover,
+      });
       setPendingCategoryImage(null);
       await refresh();
       await reloadImagesOnly();
@@ -1232,14 +1359,19 @@ export default function CategoriesPage() {
     }
   };
 
-  const onReplaceCategoryIconImage = async (categoryId: string, file: File | null | undefined) => {
+  const onReplaceCategoryIconImage = async (
+    categoryId: string,
+    file: File | null | undefined,
+  ) => {
     if (!canManageCategories || !file || !categoryId.trim()) {
       return;
     }
     setFeedback(null);
     setIconUploadCategoryId(categoryId);
     try {
-      const uploaded = await uploadCategoryImageToCloudinary(categoryId, file, { primary: false });
+      const uploaded = await uploadCategoryImageToCloudinary(categoryId, file, {
+        primary: false,
+      });
       const url = uploaded.secureUrl?.trim();
       if (!url) {
         throw new Error("Upload returned no image URL.");
@@ -1260,17 +1392,22 @@ export default function CategoriesPage() {
     }
   };
 
-  const onCopyCategoryIconUrl = useCallback(async (categoryId: string, url: string) => {
-    const ok = await copyTextToClipboard(url);
-    if (ok) {
-      setCopiedIconCategoryId(categoryId);
-      window.setTimeout(() => {
-        setCopiedIconCategoryId((current) => (current === categoryId ? null : current));
-      }, 2000);
-    } else {
-      setFeedback({ text: "Could not copy to clipboard.", kind: "error" });
-    }
-  }, []);
+  const onCopyCategoryIconUrl = useCallback(
+    async (categoryId: string, url: string) => {
+      const ok = await copyTextToClipboard(url);
+      if (ok) {
+        setCopiedIconCategoryId(categoryId);
+        window.setTimeout(() => {
+          setCopiedIconCategoryId((current) =>
+            current === categoryId ? null : current,
+          );
+        }, 2000);
+      } else {
+        setFeedback({ text: "Could not copy to clipboard.", kind: "error" });
+      }
+    },
+    [],
+  );
 
   const onDeleteCategoryImage = async (imageId: string) => {
     if (!canManageCategories || !selectedCategoryId) {
@@ -1301,7 +1438,9 @@ export default function CategoriesPage() {
     setFeedback(null);
     setDetailBusy(true);
     try {
-      await postCategorySupplierLink(selectedCategoryId, { supplierId: supplierPickId.trim() });
+      await postCategorySupplierLink(selectedCategoryId, {
+        supplierId: supplierPickId.trim(),
+      });
       setSupplierPickId("");
       await refresh();
       setFeedback({ text: "Supplier linked to category.", kind: "success" });
@@ -1345,7 +1484,8 @@ export default function CategoriesPage() {
         title="Categories"
         description={
           <>
-            You need <code className="text-xs">catalog.items.read</code> to view this page.
+            You need <code className="text-xs">catalog.items.read</code> to view
+            this page.
           </>
         }
         backHref={APP_ROUTES.business}
@@ -1354,568 +1494,753 @@ export default function CategoriesPage() {
     );
   }
 
-  const linkedSupplierIds = new Set(selectedCategory?.linkedSuppliers?.map((l) => l.supplierId) ?? []);
-  const supplierChoices = supplierRows.filter((s) => !linkedSupplierIds.has(s.id));
+  const linkedSupplierIds = new Set(
+    selectedCategory?.linkedSuppliers?.map((l) => l.supplierId) ?? [],
+  );
+  const supplierChoices = supplierRows.filter(
+    (s) => !linkedSupplierIds.has(s.id),
+  );
 
   return (
     <>
       <div className="h-full overflow-y-auto overscroll-contain">
         <div className={DASHBOARD_MAX_WIDE}>
-        {/* Header */}
-        <div className="space-y-4">
-          <DashboardPageHero
-            compact
-            icon={LayoutGrid}
-            eyebrow="Catalog"
-            title="Categories"
-            description="Manage your category tree, covers, icons, and commercial defaults."
-          />
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <DashboardQuickLinks
+          {/* Header */}
+          <div className="space-y-2">
+            <DashboardPageHero
               compact
-              links={[
-                { href: APP_ROUTES.products, label: "Products", desc: "Items & variants", icon: Package },
-                { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Vendors", icon: Building2 },
-                { href: APP_ROUTES.pricing, label: "Pricing", desc: "Rules & margins", icon: Tags },
-              ]}
+              icon={LayoutGrid}
+              eyebrow="Catalog"
+              title="Categories"
+              description="Manage your category tree, covers, icons, and commercial defaults."
             />
-            {canManageCategories ? (
-              <Button
-                type="button"
-                className="h-9 gap-2 self-start px-4 text-sm"
-                onClick={() => setActiveDrawer("create")}
-              >
-                <FolderPlus className="size-4" aria-hidden />
-                New category
-              </Button>
-            ) : null}
-          </div>
-        </div>
 
-        {/* Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" size="sm" disabled={listBusy} onClick={() => void refresh()}>
-              {listBusy ? "Refreshing…" : "Refresh"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={listBusy || rows.length === 0 || parentIdsWithChildren.size === 0}
-              onClick={() => setExpandedParentIds(new Set(parentIdsWithChildren))}
-            >
-              Expand all
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={listBusy || expandedParentIds.size === 0}
-              onClick={() => setExpandedParentIds(new Set())}
-            >
-              Collapse
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {visibleSorted.length} visible / {rows.length} total
-            {editingCategoryId ? " · inline editing" : " · select a row to edit"}
-          </p>
-        </div>
-
-        {/* Feedback — hidden while a drawer is open; each drawer shows the same message in its banner */}
-        {feedback && !activeDrawer ? (
-          <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
-        ) : null}
-
-        {!canManageCategories ? (
-          <p className="text-sm text-muted-foreground">
-            View-only mode. Ask an admin for <code className="text-xs">catalog.categories.write</code>.
-          </p>
-        ) : null}
-
-        {/* Selected row actions */}
-        {selectedCategory && canManageCategories ? (
-          <div className="flex flex-col gap-3 rounded-lg border border-primary/15 bg-primary/[0.03] p-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted">
-                {categoryCoverUrl(selectedCategory) ? (
-                  <Image
-                    src={categoryCoverUrl(selectedCategory)!}
-                    alt=""
-                    fill
-                    className="object-cover"
-                    sizes="40px"
-                    unoptimized
-                  />
-                ) : (
-                  <span className="flex h-full items-center justify-center text-[10px] text-muted-foreground">—</span>
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">{selectedCategory.name}</p>
-                <p className="font-mono text-[11px] text-muted-foreground">{selectedCategory.slug}</p>
-              </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <DashboardQuickLinks
+                compact
+                links={[
+                  {
+                    href: APP_ROUTES.products,
+                    label: "Products",
+                    desc: "Items & variants",
+                    icon: Package,
+                  },
+                  {
+                    href: APP_ROUTES.suppliers,
+                    label: "Suppliers",
+                    desc: "Vendors",
+                    icon: Building2,
+                  },
+                  {
+                    href: APP_ROUTES.pricing,
+                    label: "Pricing",
+                    desc: "Rules & margins",
+                    icon: Tags,
+                  },
+                ]}
+              />
+              {canManageCategories ? (
+                <Button
+                  type="button"
+                  className="h-9 gap-2 self-start px-4 text-sm"
+                  onClick={() => setActiveDrawer("create")}
+                >
+                  <FolderPlus className="size-4" aria-hidden />
+                  New category
+                </Button>
+              ) : null}
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" onClick={() => setActiveDrawer("defaults")}>
-                <Tags className="size-3.5" aria-hidden />
-                Defaults
-              </Button>
-              <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" onClick={() => setActiveDrawer("gallery")}>
-                <Camera className="size-3.5" aria-hidden />
-                Gallery
-              </Button>
-              <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" onClick={() => setActiveDrawer("suppliers")}>
-                <Building2 className="size-3.5" aria-hidden />
-                Suppliers
-              </Button>
-              <Button asChild type="button" variant="secondary" size="sm" className="h-8 gap-1.5 px-2.5 text-xs">
-                <Link href={categoryAnalyticsPath(selectedCategory.slug)}>
-                  <BarChart3 className="size-3.5" aria-hidden />
-                  Analytics
-                </Link>
-              </Button>
+          </div>
+
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-8 px-2.5 text-xs"
-                onClick={() => {
-                  setPendingCategoryImage(null);
-                  setPendingCreateIconFile(null);
-                  setSelectedCategoryId(null);
-                }}
+                disabled={listBusy}
+                onClick={() => void refresh()}
               >
-                <X className="size-3.5" aria-hidden />
-                Clear
+                {listBusy ? "Refreshing…" : "Refresh"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={
+                  listBusy ||
+                  rows.length === 0 ||
+                  parentIdsWithChildren.size === 0
+                }
+                onClick={() =>
+                  setExpandedParentIds(new Set(parentIdsWithChildren))
+                }
+              >
+                Expand all
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={listBusy || expandedParentIds.size === 0}
+                onClick={() => setExpandedParentIds(new Set())}
+              >
+                Collapse
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              {visibleSorted.length} visible / {rows.length} total
+              {editingCategoryId
+                ? " · inline editing"
+                : " · select a row to edit"}
+            </p>
           </div>
-        ) : null}
 
-        {/* Table */}
-        <section className="overflow-hidden rounded-lg border border-border/60 bg-card shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[52rem] border-collapse text-left text-sm">
-              <thead className="sticky top-0 z-10 border-b border-border/60 bg-muted/40 backdrop-blur">
-                <tr>
-                  <th className="w-12 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cover</th>
-                  <th className="min-w-[11rem] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Name</th>
-                  <th className="w-[8rem] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Slug</th>
-                  <th className="min-w-[7rem] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Icon</th>
-                  <th className="w-20 px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground tabular-nums">Pos</th>
-                  <th className="min-w-[8rem] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Parent</th>
-                  <th className="min-w-[7rem] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Suppliers</th>
-                  <th className="w-16 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Active</th>
-                  {canManageCategories ? (
-                    <th className="w-28 whitespace-nowrap px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
-                  ) : null}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {visibleSorted.map((row) => {
-                  const draft = edits[row.id];
-                  const rowIsEditing = Boolean(canManageCategories && draft && editingCategoryId === row.id);
-                  const parentName = row.parentId ? byId.get(row.parentId)?.name ?? "—" : "Top level";
-                  const blockedParents = subtreeIncludingSelf(row.id, childrenMap);
-                  const indentPx = (depths.get(row.id) ?? 0) * 14;
-                  const cover = categoryCoverUrl(row);
-                  const hasKids = (childrenMap.get(row.id)?.length ?? 0) > 0;
-                  const branchExpanded = expandedParentIds.has(row.id);
-                  const supplierHint =
-                    row.linkedSuppliers?.length > 0
-                      ? row.linkedSuppliers
-                          .map((l) => `${l.supplierName}${l.primary ? " ★" : ""}`)
-                          .join(", ")
-                      : "—";
+          {/* Feedback — hidden while a drawer is open; each drawer shows the same message in its banner */}
+          {feedback && !activeDrawer ? (
+            <DashboardFeedback
+              kind={feedback.kind === "error" ? "error" : "success"}
+              text={feedback.text}
+            />
+          ) : null}
 
-                  return (
-                    <tr
-                      key={row.id}
-                      role="button"
-                      tabIndex={0}
-                      className={cn(
-                        "cursor-pointer align-middle transition-colors hover:bg-accent/25",
-                        selectedCategoryId === row.id && "bg-accent/15",
-                      )}
-                      onClick={() => {
-                        setPendingCategoryImage(null);
-                        setSelectedCategoryId(row.id);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
+          {!canManageCategories ? (
+            <p className="text-sm text-muted-foreground">
+              View-only mode. Ask an admin for{" "}
+              <code className="text-xs">catalog.categories.write</code>.
+            </p>
+          ) : null}
+
+          {/* Selected row actions */}
+          {selectedCategory && canManageCategories ? (
+            <div className="flex flex-col gap-2 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-none border bg-white">
+                  {categoryCoverUrl(selectedCategory) ? (
+                    <Image
+                      src={categoryCoverUrl(selectedCategory)!}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="40px"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
+                      —
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {selectedCategory.name}
+                  </p>
+                  <p className="font-mono text-[11px] text-muted-foreground">
+                    {selectedCategory.slug}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2.5 text-xs"
+                  onClick={() => setActiveDrawer("defaults")}
+                >
+                  <Tags className="size-3.5" aria-hidden />
+                  Defaults
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2.5 text-xs"
+                  onClick={() => setActiveDrawer("gallery")}
+                >
+                  <Camera className="size-3.5" aria-hidden />
+                  Gallery
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2.5 text-xs"
+                  onClick={() => setActiveDrawer("suppliers")}
+                >
+                  <Building2 className="size-3.5" aria-hidden />
+                  Suppliers
+                </Button>
+                <Button
+                  asChild
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2.5 text-xs"
+                >
+                  <Link href={categoryAnalyticsPath(selectedCategory.slug)}>
+                    <BarChart3 className="size-3.5" aria-hidden />
+                    Analytics
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2.5 text-xs"
+                  onClick={() => {
+                    setPendingCategoryImage(null);
+                    setPendingCreateIconFile(null);
+                    setSelectedCategoryId(null);
+                  }}
+                >
+                  <X className="size-3.5" aria-hidden />
+                  Clear
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Table */}
+          <section className="overflow-hidden rounded-none border border-border/60 bg-card shadow-none">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[52rem] border-collapse text-left text-sm">
+                <thead className="sticky top-0 z-10 border-b border-border/60 bg-white">
+                  <tr>
+                    <th className="w-12 px-3 py-2 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                      Cover
+                    </th>
+                    <th className="min-w-[11rem] px-3 py-2 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                      Name
+                    </th>
+                    <th className="w-[8rem] px-3 py-2 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                      Slug
+                    </th>
+                    <th className="min-w-[7rem] px-3 py-2 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                      Icon
+                    </th>
+                    <th className="w-20 px-3 py-2 text-right text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground tabular-nums">
+                      Pos
+                    </th>
+                    <th className="min-w-[8rem] px-3 py-2 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                      Parent
+                    </th>
+                    <th className="min-w-[7rem] px-3 py-2 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                      Suppliers
+                    </th>
+                    <th className="w-16 px-3 py-2 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                      Active
+                    </th>
+                    {canManageCategories ? (
+                      <th className="w-28 whitespace-nowrap px-3 py-2 text-right text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                        Actions
+                      </th>
+                    ) : null}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {visibleSorted.map((row) => {
+                    const draft = edits[row.id];
+                    const rowIsEditing = Boolean(
+                      canManageCategories &&
+                        draft &&
+                        editingCategoryId === row.id,
+                    );
+                    const parentName = row.parentId
+                      ? (byId.get(row.parentId)?.name ?? "—")
+                      : "Top level";
+                    const blockedParents = subtreeIncludingSelf(
+                      row.id,
+                      childrenMap,
+                    );
+                    const indentPx = (depths.get(row.id) ?? 0) * 14;
+                    const cover = categoryCoverUrl(row);
+                    const hasKids = (childrenMap.get(row.id)?.length ?? 0) > 0;
+                    const branchExpanded = expandedParentIds.has(row.id);
+                    const supplierHint =
+                      row.linkedSuppliers?.length > 0
+                        ? row.linkedSuppliers
+                            .map(
+                              (l) =>
+                                `${l.supplierName}${l.primary ? " ★" : ""}`,
+                            )
+                            .join(", ")
+                        : "—";
+
+                    return (
+                      <tr
+                        key={row.id}
+                        role="button"
+                        tabIndex={0}
+                        className={cn(
+                          "cursor-pointer align-middle transition-colors hover:bg-white",
+                          selectedCategoryId === row.id &&
+                            "border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]",
+                        )}
+                        onClick={() => {
                           setPendingCategoryImage(null);
                           setSelectedCategoryId(row.id);
-                        }
-                      }}
-                    >
-                      <td className="px-3 py-2">
-                        <div className="relative mx-auto h-8 w-8 shrink-0 overflow-hidden rounded border bg-muted">
-                          {cover ? (
-                            <Image src={cover} alt="" fill className="object-cover" sizes="32px" unoptimized />
-                          ) : (
-                            <span className="flex h-full items-center justify-center text-[10px] text-muted-foreground">—</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2" onMouseDown={stopActivateRow}>
-                        <div className="flex min-w-0 items-center gap-1.5" style={{ paddingLeft: indentPx }}>
-                          {hasKids ? (
-                            <button
-                              type="button"
-                              className="inline-flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                              aria-expanded={branchExpanded}
-                              aria-label={
-                                branchExpanded
-                                  ? `Hide subcategories under ${row.name}`
-                                  : `Show subcategories under ${row.name}`
-                              }
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setExpandedParentIds((prev) => {
-                                  const next = new Set(prev);
-                                  if (next.has(row.id)) {
-                                    next.delete(row.id);
-                                  } else {
-                                    next.add(row.id);
-                                  }
-                                  return next;
-                                });
-                              }}
-                            >
-                              {branchExpanded ? (
-                                <ChevronDown className="size-3.5" aria-hidden />
-                              ) : (
-                                <ChevronRight className="size-3.5" aria-hidden />
-                              )}
-                            </button>
-                          ) : (
-                            <span className="inline-flex size-6 shrink-0" aria-hidden />
-                          )}
-                          {rowIsEditing && draft ? (
-                            <input
-                              className="min-w-0 flex-1 rounded border border-input bg-background px-2 py-1 text-sm shadow-sm"
-                              value={draft.name}
-                              onChange={(e) =>
-                                setEdits((prev) => ({
-                                  ...prev,
-                                  [row.id]: { ...draft, name: e.target.value },
-                                }))
-                              }
-                              aria-label={`Name ${row.name}`}
-                            />
-                          ) : (
-                            <Link
-                              href={categorySlugPath(row.slug)}
-                              className="block min-w-0 flex-1 truncate text-sm font-medium text-foreground transition-colors hover:text-primary"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {row.name}
-                            </Link>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs text-muted-foreground" onMouseDown={stopActivateRow}>
-                        {rowIsEditing && draft ? (
-                          <input
-                            className="w-full min-w-0 rounded border border-input bg-background px-2 py-1 text-xs shadow-sm"
-                            value={draft.slug}
-                            onChange={(e) =>
-                              setEdits((prev) => ({
-                                ...prev,
-                                [row.id]: { ...draft, slug: e.target.value },
-                              }))
-                            }
-                            aria-label={`Slug ${row.slug}`}
-                          />
-                        ) : (
-                          <span className="block truncate">{row.slug}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2" onMouseDown={stopActivateRow}>
-                        {rowIsEditing && draft ? (
-                          <div className="flex max-w-[14rem] flex-col gap-2">
-                            {categoryIconImageUrl(draft.icon) ? (
-                              <>
-                                <span className="relative h-8 w-8 overflow-hidden rounded border bg-muted">
-                                  <Image
-                                    src={categoryIconImageUrl(draft.icon)!}
-                                    alt=""
-                                    fill
-                                    className="object-cover"
-                                    sizes="32px"
-                                    unoptimized
-                                  />
-                                </span>
-                                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
-                                  Replace image
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    disabled={iconUploadCategoryId === row.id || listBusy}
-                                    className="max-w-full text-[10px] file:mr-1 file:rounded file:border file:bg-background file:px-1.5 file:py-0.5"
-                                    onChange={(e) => {
-                                      const f = e.target.files?.[0];
-                                      void onReplaceCategoryIconImage(row.id, f);
-                                      e.target.value = "";
-                                    }}
-                                  />
-                                </label>
-                                {iconUploadCategoryId === row.id ? (
-                                  <span className="text-[10px] text-muted-foreground">Uploading…</span>
-                                ) : null}
-                                <div className="flex flex-wrap gap-1">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 gap-1 text-[11px]"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      void onCopyCategoryIconUrl(row.id, categoryIconImageUrl(draft.icon)!);
-                                    }}
-                                  >
-                                    <Copy className="size-3" aria-hidden />
-                                    {copiedIconCategoryId === row.id ? "Copied" : "Copy URL"}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 text-[11px] text-muted-foreground"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEdits((prev) => ({
-                                        ...prev,
-                                        [row.id]: { ...draft, icon: "" },
-                                      }));
-                                    }}
-                                  >
-                                    Clear
-                                  </Button>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
-                                  Image
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    disabled={iconUploadCategoryId === row.id || listBusy}
-                                    className="max-w-full text-[10px] file:mr-1 file:rounded file:border file:bg-background file:px-1.5 file:py-0.5"
-                                    onChange={(e) => {
-                                      const f = e.target.files?.[0];
-                                      void onReplaceCategoryIconImage(row.id, f);
-                                      e.target.value = "";
-                                    }}
-                                  />
-                                </label>
-                                {iconUploadCategoryId === row.id ? (
-                                  <span className="text-[10px] text-muted-foreground">Uploading…</span>
-                                ) : null}
-                                <input
-                                  className="w-full rounded border border-input bg-background px-2 py-1 text-xs shadow-sm"
-                                  placeholder="Emoji, key, or URL"
-                                  value={draft.icon}
-                                  onChange={(e) =>
-                                    setEdits((prev) => ({
-                                      ...prev,
-                                      [row.id]: { ...draft, icon: e.target.value },
-                                    }))
-                                  }
-                                  aria-label={`Icon ${row.name}`}
-                                />
-                              </>
-                            )}
-                          </div>
-                        ) : categoryIconImageUrl(row.icon) ? (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded border bg-muted">
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setPendingCategoryImage(null);
+                            setSelectedCategoryId(row.id);
+                          }
+                        }}
+                      >
+                        <td className="px-3 py-2">
+                          <div className="relative mx-auto h-8 w-8 shrink-0 overflow-hidden rounded-none border bg-white">
+                            {cover ? (
                               <Image
-                                src={categoryIconImageUrl(row.icon)!}
+                                src={cover}
                                 alt=""
                                 fill
                                 className="object-cover"
-                                sizes="24px"
+                                sizes="32px"
                                 unoptimized
                               />
-                            </span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-7 gap-1 text-[11px]"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void onCopyCategoryIconUrl(row.id, categoryIconImageUrl(row.icon)!);
-                              }}
-                            >
-                              <Copy className="size-3" aria-hidden />
-                              {copiedIconCategoryId === row.id ? "Copied" : "Copy"}
-                            </Button>
+                            ) : (
+                              <span className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
+                                —
+                              </span>
+                            )}
                           </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">{row.icon?.trim() ? row.icon : "—"}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums" onMouseDown={stopActivateRow}>
-                        {rowIsEditing && draft ? (
-                          <input
-                            className="inline-block w-14 rounded border border-input bg-background px-2 py-1 text-right text-sm tabular-nums shadow-sm"
-                            inputMode="numeric"
-                            value={draft.positionStr}
-                            onChange={(e) =>
-                              setEdits((prev) => ({
-                                ...prev,
-                                [row.id]: { ...draft, positionStr: e.target.value },
-                              }))
-                            }
-                            aria-label={`Position ${row.name}`}
-                          />
-                        ) : (
-                          <span className="text-sm text-muted-foreground">{row.position}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2" onMouseDown={stopActivateRow}>
-                        {rowIsEditing && draft ? (
-                          <select
-                            className="max-w-full rounded border border-input bg-background px-2 py-1 text-xs shadow-sm"
-                            value={draft.parentId}
-                            onChange={(e) =>
-                              setEdits((prev) => ({
-                                ...prev,
-                                [row.id]: { ...draft, parentId: e.target.value },
-                              }))
-                            }
-                            aria-label={`Parent ${row.name}`}
+                        </td>
+                        <td className="px-3 py-2" onMouseDown={stopActivateRow}>
+                          <div
+                            className="flex min-w-0 items-center gap-1.5"
+                            style={{ paddingLeft: indentPx }}
                           >
-                            <option value={ROOT_PARENT_VALUE}>Top level</option>
-                            {sorted
-                              .filter((c) => !blockedParents.has(c.id))
-                              .map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {"—".repeat(depths.get(c.id) ?? 0)} {c.name}
-                                  {!c.active ? " (inactive)" : ""}
-                                </option>
-                              ))}
-                          </select>
-                        ) : (
-                          <span className="block truncate text-xs text-muted-foreground">{parentName}</span>
-                        )}
-                      </td>
-                      <td className="max-w-[9rem] px-3 py-2 text-xs text-muted-foreground">
-                        <span className="line-clamp-2" title={supplierHint}>
-                          {supplierHint}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2" onMouseDown={stopActivateRow}>
-                        {rowIsEditing && draft ? (
-                          <label className="inline-flex cursor-pointer items-center gap-2 text-xs">
+                            {hasKids ? (
+                              <button
+                                type="button"
+                                className="inline-flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                aria-expanded={branchExpanded}
+                                aria-label={
+                                  branchExpanded
+                                    ? `Hide subcategories under ${row.name}`
+                                    : `Show subcategories under ${row.name}`
+                                }
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedParentIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(row.id)) {
+                                      next.delete(row.id);
+                                    } else {
+                                      next.add(row.id);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                              >
+                                {branchExpanded ? (
+                                  <ChevronDown
+                                    className="size-3.5"
+                                    aria-hidden
+                                  />
+                                ) : (
+                                  <ChevronRight
+                                    className="size-3.5"
+                                    aria-hidden
+                                  />
+                                )}
+                              </button>
+                            ) : (
+                              <span
+                                className="inline-flex size-6 shrink-0"
+                                aria-hidden
+                              />
+                            )}
+                            {rowIsEditing && draft ? (
+                              <input
+                                className="min-w-0 flex-1 rounded border border-input bg-background px-2 py-1 text-sm shadow-none"
+                                value={draft.name}
+                                onChange={(e) =>
+                                  setEdits((prev) => ({
+                                    ...prev,
+                                    [row.id]: {
+                                      ...draft,
+                                      name: e.target.value,
+                                    },
+                                  }))
+                                }
+                                aria-label={`Name ${row.name}`}
+                              />
+                            ) : (
+                              <Link
+                                href={categorySlugPath(row.slug)}
+                                className="block min-w-0 flex-1 truncate text-sm font-medium text-foreground transition-colors hover:text-primary"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {row.name}
+                              </Link>
+                            )}
+                          </div>
+                        </td>
+                        <td
+                          className="px-3 py-2 font-mono text-xs text-muted-foreground"
+                          onMouseDown={stopActivateRow}
+                        >
+                          {rowIsEditing && draft ? (
                             <input
-                              type="checkbox"
-                              checked={draft.active}
+                              className="w-full min-w-0 rounded border border-input bg-background px-2 py-1 text-xs shadow-none"
+                              value={draft.slug}
                               onChange={(e) =>
                                 setEdits((prev) => ({
                                   ...prev,
-                                  [row.id]: { ...draft, active: e.target.checked },
+                                  [row.id]: { ...draft, slug: e.target.value },
                                 }))
                               }
-                              aria-label={`Active ${row.name}`}
+                              aria-label={`Slug ${row.slug}`}
                             />
-                            Active
-                          </label>
-                        ) : row.active ? (
-                          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                            Yes
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                            No
-                          </span>
-                        )}
-                      </td>
-                      {canManageCategories ? (
-                        <td className="whitespace-nowrap px-3 py-2 text-right" onMouseDown={stopActivateRow}>
+                          ) : (
+                            <span className="block truncate">{row.slug}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2" onMouseDown={stopActivateRow}>
                           {rowIsEditing && draft ? (
-                            <div className="flex justify-end gap-1.5">
+                            <div className="flex max-w-[14rem] flex-col gap-2">
+                              {categoryIconImageUrl(draft.icon) ? (
+                                <>
+                                  <span className="relative h-8 w-8 overflow-hidden rounded-none border bg-white">
+                                    <Image
+                                      src={categoryIconImageUrl(draft.icon)!}
+                                      alt=""
+                                      fill
+                                      className="object-cover"
+                                      sizes="32px"
+                                      unoptimized
+                                    />
+                                  </span>
+                                  <label className="flex flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
+                                    Replace image
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      disabled={
+                                        iconUploadCategoryId === row.id ||
+                                        listBusy
+                                      }
+                                      className="max-w-full text-[10px] file:mr-1 file:rounded file:border file:bg-background file:px-1.5 file:py-0.5"
+                                      onChange={(e) => {
+                                        const f = e.target.files?.[0];
+                                        void onReplaceCategoryIconImage(
+                                          row.id,
+                                          f,
+                                        );
+                                        e.target.value = "";
+                                      }}
+                                    />
+                                  </label>
+                                  {iconUploadCategoryId === row.id ? (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Uploading…
+                                    </span>
+                                  ) : null}
+                                  <div className="flex flex-wrap gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 gap-1 text-[11px]"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        void onCopyCategoryIconUrl(
+                                          row.id,
+                                          categoryIconImageUrl(draft.icon)!,
+                                        );
+                                      }}
+                                    >
+                                      <Copy className="size-3" aria-hidden />
+                                      {copiedIconCategoryId === row.id
+                                        ? "Copied"
+                                        : "Copy URL"}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 text-[11px] text-muted-foreground"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEdits((prev) => ({
+                                          ...prev,
+                                          [row.id]: { ...draft, icon: "" },
+                                        }));
+                                      }}
+                                    >
+                                      Clear
+                                    </Button>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <label className="flex flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
+                                    Image
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      disabled={
+                                        iconUploadCategoryId === row.id ||
+                                        listBusy
+                                      }
+                                      className="max-w-full text-[10px] file:mr-1 file:rounded file:border file:bg-background file:px-1.5 file:py-0.5"
+                                      onChange={(e) => {
+                                        const f = e.target.files?.[0];
+                                        void onReplaceCategoryIconImage(
+                                          row.id,
+                                          f,
+                                        );
+                                        e.target.value = "";
+                                      }}
+                                    />
+                                  </label>
+                                  {iconUploadCategoryId === row.id ? (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Uploading…
+                                    </span>
+                                  ) : null}
+                                  <input
+                                    className="w-full rounded border border-input bg-background px-2 py-1 text-xs shadow-none"
+                                    placeholder="Emoji, key, or URL"
+                                    value={draft.icon}
+                                    onChange={(e) =>
+                                      setEdits((prev) => ({
+                                        ...prev,
+                                        [row.id]: {
+                                          ...draft,
+                                          icon: e.target.value,
+                                        },
+                                      }))
+                                    }
+                                    aria-label={`Icon ${row.name}`}
+                                  />
+                                </>
+                              )}
+                            </div>
+                          ) : categoryIconImageUrl(row.icon) ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded-none border bg-white">
+                                <Image
+                                  src={categoryIconImageUrl(row.icon)!}
+                                  alt=""
+                                  fill
+                                  className="object-cover"
+                                  sizes="24px"
+                                  unoptimized
+                                />
+                              </span>
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="h-7 px-2 text-xs"
-                                disabled={listBusy}
+                                className="h-7 gap-1 text-[11px]"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  restoreDraftFromRow(row.id);
-                                  setEditingCategoryId(null);
+                                  void onCopyCategoryIconUrl(
+                                    row.id,
+                                    categoryIconImageUrl(row.icon)!,
+                                  );
                                 }}
                               >
-                                Cancel
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                className="h-7 px-2 text-xs"
-                                disabled={listBusy}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  void onSaveRow(row.id);
-                                }}
-                              >
-                                Save
+                                <Copy className="size-3" aria-hidden />
+                                {copiedIconCategoryId === row.id
+                                  ? "Copied"
+                                  : "Copy"}
                               </Button>
                             </div>
                           ) : (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-7 gap-1 px-2 text-xs"
-                              disabled={listBusy || !draft}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (editingCategoryId && editingCategoryId !== row.id) {
-                                  restoreDraftFromRow(editingCategoryId);
-                                }
-                                restoreDraftFromRow(row.id);
-                                setEditingCategoryId(row.id);
-                              }}
-                            >
-                              <Pencil className="size-3" aria-hidden />
-                              Edit
-                            </Button>
+                            <span className="text-xs text-muted-foreground">
+                              {row.icon?.trim() ? row.icon : "—"}
+                            </span>
                           )}
                         </td>
-                      ) : null}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                        <td
+                          className="px-3 py-2 text-right tabular-nums"
+                          onMouseDown={stopActivateRow}
+                        >
+                          {rowIsEditing && draft ? (
+                            <input
+                              className="inline-block w-14 rounded border border-input bg-background px-2 py-1 text-right text-sm tabular-nums shadow-none"
+                              inputMode="numeric"
+                              value={draft.positionStr}
+                              onChange={(e) =>
+                                setEdits((prev) => ({
+                                  ...prev,
+                                  [row.id]: {
+                                    ...draft,
+                                    positionStr: e.target.value,
+                                  },
+                                }))
+                              }
+                              aria-label={`Position ${row.name}`}
+                            />
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              {row.position}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2" onMouseDown={stopActivateRow}>
+                          {rowIsEditing && draft ? (
+                            <select
+                              className="max-w-full rounded border border-input bg-background px-2 py-1 text-xs shadow-none"
+                              value={draft.parentId}
+                              onChange={(e) =>
+                                setEdits((prev) => ({
+                                  ...prev,
+                                  [row.id]: {
+                                    ...draft,
+                                    parentId: e.target.value,
+                                  },
+                                }))
+                              }
+                              aria-label={`Parent ${row.name}`}
+                            >
+                              <option value={ROOT_PARENT_VALUE}>
+                                Top level
+                              </option>
+                              {sorted
+                                .filter((c) => !blockedParents.has(c.id))
+                                .map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {"—".repeat(depths.get(c.id) ?? 0)} {c.name}
+                                    {!c.active ? " (inactive)" : ""}
+                                  </option>
+                                ))}
+                            </select>
+                          ) : (
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {parentName}
+                            </span>
+                          )}
+                        </td>
+                        <td className="max-w-[9rem] px-3 py-2 text-xs text-muted-foreground">
+                          <span className="line-clamp-2" title={supplierHint}>
+                            {supplierHint}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2" onMouseDown={stopActivateRow}>
+                          {rowIsEditing && draft ? (
+                            <label className="inline-flex cursor-pointer items-center gap-2 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={draft.active}
+                                onChange={(e) =>
+                                  setEdits((prev) => ({
+                                    ...prev,
+                                    [row.id]: {
+                                      ...draft,
+                                      active: e.target.checked,
+                                    },
+                                  }))
+                                }
+                                aria-label={`Active ${row.name}`}
+                              />
+                              Active
+                            </label>
+                          ) : row.active ? (
+                            <span className="inline-flex items-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-2 py-0.5 text-[11px] font-medium text-[var(--pos-primary,#0f766e)]">
+                              Yes
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-none border bg-white px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                              No
+                            </span>
+                          )}
+                        </td>
+                        {canManageCategories ? (
+                          <td
+                            className="whitespace-nowrap px-3 py-2 text-right"
+                            onMouseDown={stopActivateRow}
+                          >
+                            {rowIsEditing && draft ? (
+                              <div className="flex justify-end gap-1.5">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  disabled={listBusy}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    restoreDraftFromRow(row.id);
+                                    setEditingCategoryId(null);
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  disabled={listBusy}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void onSaveRow(row.id);
+                                  }}
+                                >
+                                  Save
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1 px-2 text-xs"
+                                disabled={listBusy || !draft}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (
+                                    editingCategoryId &&
+                                    editingCategoryId !== row.id
+                                  ) {
+                                    restoreDraftFromRow(editingCategoryId);
+                                  }
+                                  restoreDraftFromRow(row.id);
+                                  setEditingCategoryId(row.id);
+                                }}
+                              >
+                                <Pencil className="size-3" aria-hidden />
+                                Edit
+                              </Button>
+                            )}
+                          </td>
+                        ) : null}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-        {/* Footer notes */}
-        <div className="space-y-1.5">
-          {sorted.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No categories yet{canManageCategories ? " — click New category to get started." : "."}
-            </p>
-          ) : !selectedCategory ? (
+          {/* Footer notes */}
+          <div className="space-y-1.5">
+            {sorted.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No categories yet
+                {canManageCategories
+                  ? " — click New category to get started."
+                  : "."}
+              </p>
+            ) : !selectedCategory ? (
+              <p className="text-xs text-muted-foreground">
+                Tip: select a row to unlock drawers for defaults, gallery
+                uploads, and supplier links.
+              </p>
+            ) : null}
             <p className="text-xs text-muted-foreground">
-              Tip: select a row to unlock drawers for defaults, gallery uploads, and supplier links.
+              Inactive categories remain in the tree for editing but may be
+              hidden in product filters.
             </p>
-          ) : null}
-          <p className="text-xs text-muted-foreground">
-            Inactive categories remain in the tree for editing but may be hidden in product filters.
-          </p>
+          </div>
         </div>
-      </div>
       </div>
 
       {/* Drawers */}
@@ -1939,15 +2264,28 @@ export default function CategoriesPage() {
         icon={<FolderPlus className="size-5 text-primary" aria-hidden />}
         banner={
           activeDrawer === "create" && feedback ? (
-            <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
+            <DashboardFeedback
+              kind={feedback.kind === "error" ? "error" : "success"}
+              text={feedback.text}
+            />
           ) : undefined
         }
         footer={
           <div className="flex w-full justify-end gap-2">
-            <Button type="button" variant="outline" className="h-9" onClick={() => setActiveDrawer(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9"
+              onClick={() => setActiveDrawer(null)}
+            >
               Cancel
             </Button>
-            <Button type="submit" form="create-category-form" className="h-9" disabled={createBusy}>
+            <Button
+              type="submit"
+              form="create-category-form"
+              className="h-9"
+              disabled={createBusy}
+            >
               {createBusy
                 ? "Creating…"
                 : pendingCreateNameCount > 1
@@ -1957,7 +2295,11 @@ export default function CategoriesPage() {
           </div>
         }
       >
-        <form id="create-category-form" className="space-y-4" onSubmit={(e) => void onCreate(e)}>
+        <form
+          id="create-category-form"
+          className="space-y-4"
+          onSubmit={(e) => void onCreate(e)}
+        >
           <CategoryBulkSuggestions
             compact
             open={showBulkSuggestions}
@@ -1968,7 +2310,9 @@ export default function CategoriesPage() {
             onClearPicks={clearSuggestionPickKeys}
             onAddPicksToQueue={addSuggestionPicksToQueue}
             catalogNameLowerSet={catalogNameLowerSet}
-            onboardingHighlight={searchParams.get("onboarding") === "create-category"}
+            onboardingHighlight={
+              searchParams.get("onboarding") === "create-category"
+            }
           />
 
           <FormDrawerFields legend="Names" compact>
@@ -1977,7 +2321,9 @@ export default function CategoriesPage() {
               <input
                 className={categoryDrawerInput}
                 value={createDraft.name}
-                onChange={(e) => setCreateDraft((p) => ({ ...p, name: e.target.value }))}
+                onChange={(e) =>
+                  setCreateDraft((p) => ({ ...p, name: e.target.value }))
+                }
                 placeholder="Category name"
                 aria-label="New category name"
               />
@@ -1998,7 +2344,9 @@ export default function CategoriesPage() {
                 <select
                   className={categoryDrawerInput}
                   value={createDraft.parentId}
-                  onChange={(e) => setCreateDraft((p) => ({ ...p, parentId: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateDraft((p) => ({ ...p, parentId: e.target.value }))
+                  }
                   aria-label="Parent category"
                 >
                   <option value={ROOT_PARENT_VALUE}>Top level</option>
@@ -2017,14 +2365,19 @@ export default function CategoriesPage() {
                   placeholder="Auto"
                   inputMode="numeric"
                   value={createDraft.positionStr}
-                  onChange={(e) => setCreateDraft((p) => ({ ...p, positionStr: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateDraft((p) => ({
+                      ...p,
+                      positionStr: e.target.value,
+                    }))
+                  }
                   aria-label="Sort position optional"
                 />
               </label>
             </div>
 
             {effectiveStructuredQueue.length > 0 ? (
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5">
+              <div className="rounded-none border border-border/60 bg-white p-2.5">
                 <p className="text-xs font-medium text-foreground">
                   To create · {effectiveStructuredQueue.length}
                 </p>
@@ -2032,11 +2385,16 @@ export default function CategoriesPage() {
                   {effectiveStructuredQueue.map((q) => (
                     <li
                       key={q.id}
-                      className="flex items-center justify-between gap-2 rounded-md bg-background/80 px-2 py-1"
+                      className="flex items-center justify-between gap-2 rounded-none bg-white px-2 py-1"
                     >
                       <span className="min-w-0 truncate">
-                        <span className="font-medium text-foreground">{q.name}</span>
-                        <span className="text-muted-foreground"> · {formatCreateListParentCaption(q)}</span>
+                        <span className="font-medium text-foreground">
+                          {q.name}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {formatCreateListParentCaption(q)}
+                        </span>
                       </span>
                       <Button
                         type="button"
@@ -2061,7 +2419,7 @@ export default function CategoriesPage() {
               <input
                 type="file"
                 accept="image/*"
-                className="max-w-full text-xs file:mr-2 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1"
+                className="max-w-full text-xs file:mr-2 file:rounded-none file:border-0 file:bg-white file:px-2 file:py-1"
                 onChange={(e) => {
                   const f = e.target.files?.[0] ?? null;
                   setPendingCreateIconFile(f);
@@ -2081,7 +2439,9 @@ export default function CategoriesPage() {
                   className={categoryDrawerInput}
                   placeholder="Emoji"
                   value={createDraft.icon}
-                  onChange={(e) => setCreateDraft((p) => ({ ...p, icon: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateDraft((p) => ({ ...p, icon: e.target.value }))
+                  }
                   aria-label="Icon optional text"
                   disabled={Boolean(pendingCreateIconFile)}
                 />
@@ -2093,7 +2453,9 @@ export default function CategoriesPage() {
                   placeholder="—"
                   inputMode="decimal"
                   value={createDraft.markupStr}
-                  onChange={(e) => setCreateDraft((p) => ({ ...p, markupStr: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateDraft((p) => ({ ...p, markupStr: e.target.value }))
+                  }
                   aria-label="Default markup optional"
                 />
               </label>
@@ -2103,13 +2465,16 @@ export default function CategoriesPage() {
               <select
                 className={categoryDrawerInput}
                 value={createDraft.taxRateId}
-                onChange={(e) => setCreateDraft((p) => ({ ...p, taxRateId: e.target.value }))}
+                onChange={(e) =>
+                  setCreateDraft((p) => ({ ...p, taxRateId: e.target.value }))
+                }
                 aria-label="Default tax optional"
               >
                 <option value="">None</option>
                 {taxRates.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} ({String(t.ratePercent)}%){t.inclusive ? " incl." : ""}
+                    {t.name} ({String(t.ratePercent)}%)
+                    {t.inclusive ? " incl." : ""}
                   </option>
                 ))}
               </select>
@@ -2120,7 +2485,9 @@ export default function CategoriesPage() {
                 className={cn(categoryDrawerTextarea, "min-h-[3rem]")}
                 placeholder="Shelf copy"
                 value={createDraft.description}
-                onChange={(e) => setCreateDraft((p) => ({ ...p, description: e.target.value }))}
+                onChange={(e) =>
+                  setCreateDraft((p) => ({ ...p, description: e.target.value }))
+                }
                 aria-label="Description optional"
               />
             </label>
@@ -2144,15 +2511,26 @@ export default function CategoriesPage() {
         width="wide"
         banner={
           activeDrawer === "defaults" && feedback ? (
-            <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
+            <DashboardFeedback
+              kind={feedback.kind === "error" ? "error" : "success"}
+              text={feedback.text}
+            />
           ) : undefined
         }
         footer={
           <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setActiveDrawer(null)}
+            >
               Close
             </Button>
-            <Button type="button" disabled={detailBusy || !commercialDraft} onClick={() => void onSaveCommercialDefaults()}>
+            <Button
+              type="button"
+              disabled={detailBusy || !commercialDraft}
+              onClick={() => void onSaveCommercialDefaults()}
+            >
               Save defaults
             </Button>
           </div>
@@ -2168,10 +2546,12 @@ export default function CategoriesPage() {
                   <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                     Description
                     <textarea
-                      className="min-h-[5rem] resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                      className="min-h-[5rem] resize-y rounded-none border border-input bg-background px-3 py-2 text-sm shadow-none"
                       value={commercialDraft.description}
                       onChange={(e) =>
-                        setCommercialDraft((d) => (d ? { ...d, description: e.target.value } : d))
+                        setCommercialDraft((d) =>
+                          d ? { ...d, description: e.target.value } : d,
+                        )
                       }
                       disabled={detailBusy}
                     />
@@ -2180,12 +2560,14 @@ export default function CategoriesPage() {
                     <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                       Default markup %
                       <input
-                        className="rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums shadow-sm"
+                        className="rounded-none border border-input bg-background px-3 py-2 text-sm tabular-nums shadow-none"
                         inputMode="decimal"
                         placeholder="empty = none"
                         value={commercialDraft.markupStr}
                         onChange={(e) =>
-                          setCommercialDraft((d) => (d ? { ...d, markupStr: e.target.value } : d))
+                          setCommercialDraft((d) =>
+                            d ? { ...d, markupStr: e.target.value } : d,
+                          )
                         }
                         disabled={detailBusy}
                       />
@@ -2193,17 +2575,20 @@ export default function CategoriesPage() {
                     <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                       Default tax rate
                       <select
-                        className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                        className="rounded-none border border-input bg-background px-3 py-2 text-sm shadow-none"
                         value={commercialDraft.taxRateId}
                         onChange={(e) =>
-                          setCommercialDraft((d) => (d ? { ...d, taxRateId: e.target.value } : d))
+                          setCommercialDraft((d) =>
+                            d ? { ...d, taxRateId: e.target.value } : d,
+                          )
                         }
                         disabled={detailBusy || taxRates.length === 0}
                       >
                         <option value="">None</option>
                         {taxRates.map((t) => (
                           <option key={t.id} value={t.id}>
-                            {t.name} ({String(t.ratePercent)}%){t.inclusive ? " incl." : ""}
+                            {t.name} ({String(t.ratePercent)}%)
+                            {t.inclusive ? " incl." : ""}
                           </option>
                         ))}
                       </select>
@@ -2212,9 +2597,14 @@ export default function CategoriesPage() {
                   {selectedCategory.defaultTaxRate ? (
                     <p className="text-[11px] text-muted-foreground">
                       Resolved:{" "}
-                      <span className="font-medium text-foreground">{selectedCategory.defaultTaxRate.name}</span> (
-                      {String(selectedCategory.defaultTaxRate.ratePercent)}%
-                      {selectedCategory.defaultTaxRate.inclusive ? ", inclusive" : ""})
+                      <span className="font-medium text-foreground">
+                        {selectedCategory.defaultTaxRate.name}
+                      </span>{" "}
+                      ({String(selectedCategory.defaultTaxRate.ratePercent)}%
+                      {selectedCategory.defaultTaxRate.inclusive
+                        ? ", inclusive"
+                        : ""}
+                      )
                     </p>
                   ) : null}
                 </>
@@ -2226,7 +2616,7 @@ export default function CategoriesPage() {
                 <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
                   Rule
                   <select
-                    className="min-w-[12rem] rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                    className="min-w-[12rem] rounded-none border border-input bg-background px-3 py-2 text-sm shadow-none"
                     value={rulePickId}
                     onChange={(e) => setRulePickId(e.target.value)}
                     disabled={detailBusy || priceRules.length === 0}
@@ -2244,7 +2634,7 @@ export default function CategoriesPage() {
                 <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
                   Precedence (optional)
                   <input
-                    className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums shadow-sm"
+                    className="w-28 rounded-none border border-input bg-background px-3 py-2 text-sm tabular-nums shadow-none"
                     inputMode="numeric"
                     value={rulePrecStr}
                     onChange={(e) => setRulePrecStr(e.target.value)}
@@ -2262,7 +2652,9 @@ export default function CategoriesPage() {
               </div>
               <ul className="divide-y divide-border/40 text-sm">
                 {linkedRules.length === 0 ? (
-                  <li className="py-2 text-xs text-muted-foreground">No rules linked on this category.</li>
+                  <li className="py-2 text-xs text-muted-foreground">
+                    No rules linked on this category.
+                  </li>
                 ) : (
                   linkedRules.map((lr) => (
                     <li
@@ -2271,7 +2663,9 @@ export default function CategoriesPage() {
                     >
                       <span>
                         {lr.ruleName}{" "}
-                        <span className="tabular-nums text-muted-foreground">· precedence {lr.precedence}</span>
+                        <span className="tabular-nums text-muted-foreground">
+                          · precedence {lr.precedence}
+                        </span>
                       </span>
                       <Button
                         type="button"
@@ -2306,7 +2700,10 @@ export default function CategoriesPage() {
         icon={<Camera className="size-5 text-primary" aria-hidden />}
         banner={
           activeDrawer === "gallery" && feedback ? (
-            <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
+            <DashboardFeedback
+              kind={feedback.kind === "error" ? "error" : "success"}
+              text={feedback.text}
+            />
           ) : undefined
         }
         footer={
@@ -2319,7 +2716,7 @@ export default function CategoriesPage() {
           <div className="space-y-5">
             <form
               id="category-gallery-upload-form"
-              className="space-y-3 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/10 p-4"
+              className="space-y-3 rounded-none border border-dashed border-muted-foreground/25 bg-white p-2.5"
               onSubmit={(e) => void onUploadCategoryImage(e)}
             >
               <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
@@ -2327,13 +2724,17 @@ export default function CategoriesPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  className="max-w-full text-sm file:mr-3 file:rounded file:border file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium"
+                  className="max-w-full text-sm file:mr-3 file:rounded-none file:border file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-medium"
                   disabled={detailBusy}
-                  onChange={(e) => setPendingCategoryImage(e.target.files?.[0] ?? null)}
+                  onChange={(e) =>
+                    setPendingCategoryImage(e.target.files?.[0] ?? null)
+                  }
                 />
               </label>
               {pendingCategoryImage ? (
-                <p className="text-[11px] text-muted-foreground">Selected: {pendingCategoryImage.name}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Selected: {pendingCategoryImage.name}
+                </p>
               ) : null}
               <label className="inline-flex cursor-pointer items-center gap-2 text-xs">
                 <input
@@ -2344,12 +2745,18 @@ export default function CategoriesPage() {
                 />
                 Set as cover
               </label>
-              <Button type="submit" size="sm" disabled={detailBusy || !pendingCategoryImage}>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={detailBusy || !pendingCategoryImage}
+              >
                 {detailBusy ? "Uploading…" : "Upload"}
               </Button>
             </form>
             {categoryImages.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No gallery images yet.</p>
+              <p className="text-xs text-muted-foreground">
+                No gallery images yet.
+              </p>
             ) : (
               <ul className="flex flex-wrap gap-3">
                 {categoryImages.map((img) => {
@@ -2357,13 +2764,22 @@ export default function CategoriesPage() {
                   return (
                     <li
                       key={img.id}
-                      className="relative w-28 shrink-0 overflow-hidden rounded-lg border bg-background text-xs shadow-sm"
+                      className="relative w-28 shrink-0 overflow-hidden rounded-none border bg-background text-xs shadow-none"
                     >
-                      <div className="relative aspect-square w-full bg-muted">
+                      <div className="relative aspect-square w-full bg-white">
                         {src ? (
-                          <Image src={src} alt="" fill className="object-cover" sizes="112px" unoptimized />
+                          <Image
+                            src={src}
+                            alt=""
+                            fill
+                            className="object-cover"
+                            sizes="112px"
+                            unoptimized
+                          />
                         ) : (
-                          <span className="flex h-full items-center justify-center text-muted-foreground">—</span>
+                          <span className="flex h-full items-center justify-center text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </div>
                       <Button
@@ -2396,12 +2812,19 @@ export default function CategoriesPage() {
         icon={<Building2 className="size-5 text-primary" aria-hidden />}
         banner={
           activeDrawer === "suppliers" && feedback ? (
-            <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
+            <DashboardFeedback
+              kind={feedback.kind === "error" ? "error" : "success"}
+              text={feedback.text}
+            />
           ) : undefined
         }
         footer={
           <div className="flex justify-end">
-            <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setActiveDrawer(null)}
+            >
               Close
             </Button>
           </div>
@@ -2411,16 +2834,22 @@ export default function CategoriesPage() {
           <div className="space-y-5">
             {!canViewSuppliers ? (
               <p className="text-sm text-muted-foreground">
-                You need <code className="rounded bg-muted px-1 font-mono text-xs">suppliers.read</code> to attach
-                vendors.
+                You need{" "}
+                <code className="rounded bg-muted px-1 font-mono text-xs">
+                  suppliers.read
+                </code>{" "}
+                to attach vendors.
               </p>
             ) : (
               <>
-                <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => void onLinkSupplier(e)}>
+                <form
+                  className="flex flex-wrap items-end gap-2"
+                  onSubmit={(e) => void onLinkSupplier(e)}
+                >
                   <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                     Add supplier
                     <select
-                      className="min-w-[12rem] rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                      className="min-w-[12rem] rounded-none border border-input bg-background px-3 py-2 text-sm shadow-none"
                       value={supplierPickId}
                       onChange={(e) => setSupplierPickId(e.target.value)}
                       disabled={detailBusy || supplierChoices.length === 0}
@@ -2433,13 +2862,18 @@ export default function CategoriesPage() {
                       ))}
                     </select>
                   </label>
-                  <Button type="submit" disabled={detailBusy || !supplierPickId.trim()}>
+                  <Button
+                    type="submit"
+                    disabled={detailBusy || !supplierPickId.trim()}
+                  >
                     Link
                   </Button>
                 </form>
-                <ul className="divide-y divide-border/40 rounded-lg border bg-muted/10 p-2 text-sm">
+                <ul className="divide-y divide-border/40 rounded-none border bg-white p-2 text-sm">
                   {(selectedCategory.linkedSuppliers ?? []).length === 0 ? (
-                    <li className="px-2 py-2 text-xs text-muted-foreground">No suppliers linked yet.</li>
+                    <li className="px-2 py-2 text-xs text-muted-foreground">
+                      No suppliers linked yet.
+                    </li>
                   ) : (
                     (selectedCategory.linkedSuppliers ?? []).map((l) => (
                       <li
@@ -2449,7 +2883,7 @@ export default function CategoriesPage() {
                         <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
                           {l.supplierName}
                           {l.primary ? (
-                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                            <span className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
                               Primary
                             </span>
                           ) : null}
@@ -2462,7 +2896,9 @@ export default function CategoriesPage() {
                               size="sm"
                               className="h-7 text-[11px]"
                               disabled={detailBusy}
-                              onClick={() => void onSetSupplierPrimary(l.supplierId)}
+                              onClick={() =>
+                                void onSetSupplierPrimary(l.supplierId)
+                              }
                             >
                               Set primary
                             </Button>

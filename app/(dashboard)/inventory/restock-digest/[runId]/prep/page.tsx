@@ -66,7 +66,9 @@ export default function RestockPrepPage() {
     try {
       setPrep(await fetchRestockPrep(runId.trim()));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load tonight's list.");
+      setError(
+        e instanceof Error ? e.message : "Could not load tonight's list.",
+      );
       setPrep(null);
     } finally {
       setLoading(false);
@@ -93,7 +95,7 @@ export default function RestockPrepPage() {
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-3 p-3 sm:p-4">
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/90 shadow-sm">
+      <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none">
         <div className="h-1 w-full bg-gradient-to-r from-teal-500/70 to-emerald-500/70" />
         <div className="space-y-3 p-4">
           <div className="flex items-start gap-2">
@@ -101,7 +103,7 @@ export default function RestockPrepPage() {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 shrink-0 rounded-xl px-2"
+              className="h-8 shrink-0 rounded-none px-2"
               onClick={() => router.back()}
               aria-label="Back"
             >
@@ -109,7 +111,10 @@ export default function RestockPrepPage() {
             </Button>
             <div className="min-w-0 flex-1">
               <h1 className="flex items-center gap-1.5 font-[family-name:var(--font-heading)] text-lg font-semibold tracking-tight text-foreground">
-                <ClipboardList className="size-4 shrink-0 text-primary" aria-hidden />
+                <ClipboardList
+                  className="size-4 shrink-0 text-primary"
+                  aria-hidden
+                />
                 Tonight&apos;s list
               </h1>
               <p className="text-xs text-muted-foreground">
@@ -122,12 +127,15 @@ export default function RestockPrepPage() {
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 shrink-0 rounded-xl px-2.5 text-xs"
+              className="h-8 shrink-0 rounded-none px-2.5 text-xs"
               disabled={loading}
               onClick={() => void load()}
               aria-label="Refresh"
             >
-              <RefreshCw className={cn("size-3.5", loading && "animate-spin")} aria-hidden />
+              <RefreshCw
+                className={cn("size-3.5", loading && "animate-spin")}
+                aria-hidden
+              />
             </Button>
           </div>
 
@@ -152,9 +160,14 @@ export default function RestockPrepPage() {
               </div>
 
               {prep.items.length === 0 ? (
-                <div className="rounded-xl border border-border/70 bg-muted/20 px-3.5 py-6 text-center">
-                  <CheckCircle2 className="mx-auto size-5 text-emerald-600" aria-hidden />
-                  <p className="mt-2 text-sm font-medium text-foreground">Nothing to prep</p>
+                <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3.5 py-6 text-center">
+                  <CheckCircle2
+                    className="mx-auto size-5 text-emerald-600"
+                    aria-hidden
+                  />
+                  <p className="mt-2 text-sm font-medium text-foreground">
+                    Nothing to prep
+                  </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     Everything is above its threshold for now.
                   </p>
@@ -180,19 +193,23 @@ export default function RestockPrepPage() {
       <li
         key={item.itemId}
         className={cn(
-          "flex items-start gap-2 rounded-xl border px-3 py-2.5",
+          "flex items-start gap-2 rounded-none border px-3 py-2.5",
           isNoted
             ? "border-emerald-500/30 bg-emerald-500/[0.06]"
-            : "border-border/70 bg-background/80",
+            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background/80",
         )}
       >
         <button
           type="button"
           onClick={() => toggleNoted(item.itemId)}
           aria-pressed={isNoted}
-          aria-label={isNoted ? `Mark ${label} as to pack again` : `Mark ${label} as packed`}
+          aria-label={
+            isNoted
+              ? `Mark ${label} as to pack again`
+              : `Mark ${label} as packed`
+          }
           className={cn(
-            "mt-1 flex size-5 shrink-0 items-center justify-center rounded-md border",
+            "mt-1 flex size-5 shrink-0 items-center justify-center rounded-none border",
             isNoted
               ? "border-emerald-600 bg-emerald-600 text-white"
               : "border-border bg-muted/40 text-transparent hover:border-foreground/30",
@@ -204,7 +221,10 @@ export default function RestockPrepPage() {
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-1.5">
             <RestockProductTitle
-              className={cn("min-w-0 flex-1 break-words", lowConfidence && !isNoted && "opacity-80")}
+              className={cn(
+                "min-w-0 flex-1 break-words",
+                lowConfidence && !isNoted && "opacity-80",
+              )}
               itemName={item.itemName}
               variantName={item.variantName}
               itemSku={item.itemSku}
@@ -220,15 +240,18 @@ export default function RestockPrepPage() {
             {item.evidence}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1">
-            <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-              {item.reasonCode.split("+").map((r) => REASON_LABELS[r] ?? r).join(" · ")}
+            <span className="rounded-none bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+              {item.reasonCode
+                .split("+")
+                .map((r) => REASON_LABELS[r] ?? r)
+                .join(" · ")}
             </span>
             {item.aisleCode ? (
-              <span className="rounded-md bg-muted/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <span className="rounded-none bg-muted/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                 {item.aisleCode}
               </span>
             ) : null}
-            <span className="rounded-md bg-muted/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <span className="rounded-none bg-muted/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               on hand {formatQty(item.onHand)} · par {formatQty(item.par)}
             </span>
           </div>

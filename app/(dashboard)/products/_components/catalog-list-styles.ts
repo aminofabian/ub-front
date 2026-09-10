@@ -38,7 +38,7 @@ export const catalogListShellClass = cn(
 
 export const catalogListToolbarClass = cn(
   "flex flex-wrap items-center justify-between gap-1",
-  "bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_55%,transparent)] px-2 py-1 lg:border-b lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] lg:px-2.5 lg:py-1",
+  "bg-white px-2 py-1 lg:border-b lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] lg:px-2.5 lg:py-1",
 );
 
 export const catalogListToolbarMetaClass =
@@ -46,16 +46,16 @@ export const catalogListToolbarMetaClass =
 
 /** Left filter rail — same sheet language as the list + detail panel. */
 export const catalogFilterColumnClass =
-  "hidden min-h-0 w-[14.25rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_40%,transparent)] lg:flex";
+  "hidden min-h-0 w-[14.25rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white lg:flex";
 
 export const catalogFilterToolbarClass = cn(
   "flex shrink-0 items-center justify-between gap-1",
-  "border-b border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_65%,transparent)]",
+  "border-b border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white",
   "px-2 py-1.5",
 );
 
 export const catalogFilterToolbarTitleClass =
-  "text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]";
+  "text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)]";
 
 export const catalogFilterBodyClass = cn(
   "flex min-h-0 flex-1 flex-col gap-0 overflow-y-auto overflow-x-hidden",
@@ -66,13 +66,13 @@ export const catalogFilterSectionClass =
   "flex min-w-0 flex-col gap-1.5 px-2 py-2";
 
 export const catalogFilterLabelClass =
-  "text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]";
+  "text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)]";
 
 export const catalogFilterInputClass = cn(
   "h-7 w-full min-w-0 rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] text-[var(--catalog-ink,#15231f)] shadow-none",
   "placeholder:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)]",
   "focus-visible:border-[var(--catalog-primary,#0f766e)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_20%,transparent)]",
-  "disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_80%,transparent)] disabled:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_40%,transparent)]",
+  "disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_80%,transparent)] disabled:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_40%,transparent)]",
 );
 
 export const catalogFilterSelectClass = cn(
@@ -100,9 +100,7 @@ export const catalogFilterToggleClass = cn(
   "hover:bg-muted/30 hover:text-foreground",
 );
 
-export const catalogFilterToggleActiveClass = cn(
-  "bg-muted/40 text-foreground",
-);
+export const catalogFilterToggleActiveClass = cn("bg-muted/40 text-foreground");
 
 /** Needs list — bordered sheet block matching detail metric/field rows. */
 export const catalogFilterNeedsSheetClass = cn(
@@ -138,14 +136,14 @@ export const catalogFilterScopeCellActiveClass = cn(
 
 export const catalogListHeaderRowClass = cn(
   "sticky top-0 z-10 shrink-0",
-  "bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_4%,transparent)] text-[9px] font-semibold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]",
+  "bg-white text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_52%,transparent)]",
   "border-b border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)]",
 );
 
 /**
  * Spreadsheet grid — last column has no right border (flush to edge).
  * mobile — # · Product · Qty · Price
- * xl+    — + Category
+ * xl+ — + Category
  */
 export const catalogListGridClass =
   "grid w-full min-w-0 max-w-full items-stretch gap-0 " +
@@ -212,7 +210,7 @@ export const catalogListMetricCellClass = cn(
 
 export const catalogListMetricHeaderClass = cn(
   catalogListMetricCellClass,
-  "justify-end text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/40",
+  "justify-end text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_52%,transparent)]",
 );
 
 /** Row-header / select gutter */
@@ -316,7 +314,9 @@ export const catalogListProductCellClass =
   "relative z-[1] flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2";
 
 /** Hide cell contents below a breakpoint without removing the grid track. */
-export function catalogListMetricHiddenClass(breakpoint: "sm" | "xl" | "lg"): string {
+export function catalogListMetricHiddenClass(
+  breakpoint: "sm" | "xl" | "lg",
+): string {
   if (breakpoint === "sm") {
     return "max-sm:invisible max-sm:pointer-events-none";
   }
@@ -351,14 +351,14 @@ export const catalogListThumbImageClass = cn(
 
 export const catalogListThumbPlaceholderClass = cn(
   "flex h-full w-full items-center justify-center",
-  "bg-muted/50 text-[10px] font-semibold uppercase tracking-tight text-foreground/40",
+  "bg-white text-[10px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]",
 );
 
 /** Quiet sheet category tag — square, even ink (no candy pills). */
 export function catalogListCategoryTagClass(): string {
   return cn(
     "inline-block max-w-full truncate rounded-none border border-border bg-muted/30",
-    "px-0.5 py-px text-[8px] font-medium uppercase tracking-[0.06em] text-foreground/55",
+    "px-0.5 py-px text-[8px] font-medium tracking-[-0.02em] text-foreground/55",
   );
 }
 
@@ -423,9 +423,12 @@ export function catalogRowInteractionClasses(
       !showBulk &&
       !showChecked &&
       "hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_6%,transparent)]",
-    showChecked && "bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_10%,transparent)]",
-    showBulk && "bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_14%,transparent)]",
-    isDetailActive && "z-[2] bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_16%,transparent)]",
+    showChecked &&
+      "bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_10%,transparent)]",
+    showBulk &&
+      "bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_14%,transparent)]",
+    isDetailActive &&
+      "z-[2] bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_16%,transparent)]",
   );
 }
 
@@ -455,9 +458,13 @@ export function sortCatalogRowsParentFirst(
       parentId,
       [...list].sort(
         (a, b) =>
-          (a.variantName ?? a.name).localeCompare(b.variantName ?? b.name, undefined, {
-            sensitivity: "base",
-          }) || a.sku.localeCompare(b.sku, undefined, { sensitivity: "base" }),
+          (a.variantName ?? a.name).localeCompare(
+            b.variantName ?? b.name,
+            undefined,
+            {
+              sensitivity: "base",
+            },
+          ) || a.sku.localeCompare(b.sku, undefined, { sensitivity: "base" }),
       ),
     );
   }
@@ -562,10 +569,14 @@ export function isCatalogParentSelectorRow(
   row: ItemSummaryRecord,
   variantCount: number,
 ): boolean {
-  return row.groupLabelOnly === true || (variantCount > 0 && !row.variantOfItemId);
+  return (
+    row.groupLabelOnly === true || (variantCount > 0 && !row.variantOfItemId)
+  );
 }
 
-export function buildCatalogRowMeta(rows: ItemSummaryRecord[]): Map<string, CatalogRowMeta> {
+export function buildCatalogRowMeta(
+  rows: ItemSummaryRecord[],
+): Map<string, CatalogRowMeta> {
   const variantIdsByParent = buildVariantIdsByParentId(rows);
   const variantCountByParent = new Map<string, number>();
   for (const [parentId, ids] of variantIdsByParent) {
@@ -605,7 +616,10 @@ export function buildCatalogRowMeta(rows: ItemSummaryRecord[]): Map<string, Cata
   return meta;
 }
 
-export function catalogRowTone(kind: CatalogRowKind, variantCount: number): CatalogRowTone {
+export function catalogRowTone(
+  kind: CatalogRowKind,
+  variantCount: number,
+): CatalogRowTone {
   if (kind === "group") {
     return {
       label: "Parent group",
@@ -676,7 +690,9 @@ export function catalogRowHeightPx(
   density: "comfortable" | "dense",
   meta?: Pick<CatalogRowMeta, "startsParentBlock" | "endsVariantGroup">,
 ): number {
-  const gap = meta?.startsParentBlock ? CATALOG_PARENT_BLOCK_GAP_PX[density] : 0;
+  const gap = meta?.startsParentBlock
+    ? CATALOG_PARENT_BLOCK_GAP_PX[density]
+    : 0;
   const groupEndGap = meta?.endsVariantGroup
     ? CATALOG_VARIANT_GROUP_END_GAP_PX[density]
     : 0;

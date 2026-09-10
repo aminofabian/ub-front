@@ -67,8 +67,8 @@ export function CustomerBulkSmsDrawer({
         <SmsCreditsDepletedBanner />
         <p className="text-sm text-muted-foreground">
           Use <code className="rounded bg-muted px-1">{"{name}"}</code> and{" "}
-          <code className="rounded bg-muted px-1">{"{shop}"}</code> to personalize.
-          Only customers with a usable phone number are included.
+          <code className="rounded bg-muted px-1">{"{shop}"}</code> to
+          personalize. Only customers with a usable phone number are included.
         </p>
         <label className="block space-y-1.5">
           <span className="text-sm font-medium">Message</span>
@@ -81,11 +81,12 @@ export function CustomerBulkSmsDrawer({
         </label>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <MessageSquare className="size-4" />
-          {customerIds.length} recipient{customerIds.length === 1 ? "" : "s"} selected
+          {customerIds.length} recipient{customerIds.length === 1 ? "" : "s"}{" "}
+          selected
         </div>
         <Button
           type="button"
-          className="w-full rounded-xl"
+          className="w-full rounded-none"
           disabled={sending || customerIds.length === 0 || !body.trim()}
           onClick={() => void onSend()}
         >

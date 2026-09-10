@@ -19,7 +19,9 @@ function dismissKey(businessId: string | undefined) {
   return businessId ? `${DISMISS_KEY}:${businessId}` : DISMISS_KEY;
 }
 
-export function readShelfZoneBannerDismissed(businessId: string | undefined): boolean {
+export function readShelfZoneBannerDismissed(
+  businessId: string | undefined,
+): boolean {
   if (typeof window === "undefined") return false;
   try {
     return window.localStorage.getItem(dismissKey(businessId)) === "1";

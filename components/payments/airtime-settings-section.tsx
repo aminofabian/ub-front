@@ -116,7 +116,7 @@ export function AirtimeSettingsSection() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 font-heading text-lg font-semibold tracking-tight text-[#141414]">
-            <Signal className="size-4 text-[#B08D48]" aria-hidden />
+            <Signal className="size-4 text-[#0f766e]" aria-hidden />
             Sell airtime
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-[#666666]">
@@ -152,14 +152,14 @@ export function AirtimeSettingsSection() {
       ) : (
         <div className={cn(HUB_SURFACE, "space-y-4 p-4")}>
           {!platformReady ? (
-            <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            <p className="rounded-none border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
               Airtime is not switched on for this platform yet. Ask your platform admin
               to configure the airtime provider.
             </p>
           ) : null}
 
           {platformReady && !walletReady ? (
-            <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            <p className="rounded-none border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
               Activate Kiosk Pay first — airtime is funded from that wallet.{" "}
               <Link
                 href="#kiosk-pay"
@@ -172,14 +172,14 @@ export function AirtimeSettingsSection() {
           ) : null}
 
           {platformReady && walletReady && settings?.blockedReason ? (
-            <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            <p className="rounded-none border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
               {settings.blockedReason}
             </p>
           ) : null}
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="border border-border/60 bg-muted/20 px-3 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <div className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3 py-3">
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 Wallet available
               </p>
               <p className="mt-1 font-heading text-xl font-semibold tabular-nums">
@@ -192,8 +192,8 @@ export function AirtimeSettingsSection() {
                 Top up wallet
               </Link>
             </div>
-            <div className="border border-border/60 bg-muted/20 px-3 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <div className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3 py-3">
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 You earn
               </p>
               <p className="mt-1 flex items-baseline gap-1 font-heading text-xl font-semibold tabular-nums">
@@ -205,8 +205,8 @@ export function AirtimeSettingsSection() {
                 {money(100, currency)} sale
               </p>
             </div>
-            <div className="border border-border/60 bg-muted/20 px-3 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <div className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3 py-3">
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 Per-sale range
               </p>
               <p className="mt-1 font-heading text-xl font-semibold tabular-nums">
@@ -218,7 +218,7 @@ export function AirtimeSettingsSection() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2.5">
             <div>
               <p className="text-sm font-medium">Sell airtime</p>
               <p className="text-xs text-muted-foreground">
@@ -233,7 +233,7 @@ export function AirtimeSettingsSection() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2.5">
               <div>
                 <p className="text-sm font-medium">At the till</p>
                 <p className="text-xs text-muted-foreground">
@@ -251,7 +251,7 @@ export function AirtimeSettingsSection() {
                 onCheckedChange={(next) => void save({ posEnabled: next })}
               />
             </div>
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2.5">
               <div>
                 <p className="text-sm font-medium">On the storefront</p>
                 <p className="text-xs text-muted-foreground">
@@ -283,7 +283,7 @@ export function AirtimeSettingsSection() {
                 type="number"
                 min={0}
                 step="1"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
                 placeholder={`Platform max ${settings?.maxAmount ?? 0}`}
                 value={maxSingle}
                 disabled={!canWrite || saving}

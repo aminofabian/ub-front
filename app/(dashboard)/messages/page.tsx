@@ -23,10 +23,7 @@ export default function MessagesPage() {
     (opts?: { status?: "UNREAD" | "READ" }) => fetchContactMessages(opts),
     [],
   );
-  const getMessage = useCallback(
-    (id: string) => fetchContactMessage(id),
-    [],
-  );
+  const getMessage = useCallback((id: string) => fetchContactMessage(id), []);
   const replyMessage = useCallback(
     (
       id: string,

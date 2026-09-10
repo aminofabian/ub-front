@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Image from "next/image";
 import {
   ChevronDown,
@@ -31,7 +38,11 @@ import {
 } from "@/lib/butcher-product-templates";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
-import type { BranchRecord, GlobalProductRecord, ItemTypeRecord } from "@/lib/api";
+import type {
+  BranchRecord,
+  GlobalProductRecord,
+  ItemTypeRecord,
+} from "@/lib/api";
 import type { GenerateProductDescriptionResponse } from "@/lib/catalog-description-api";
 import { resolveGeneratedCatalogIds } from "@/lib/resolve-generated-catalog";
 
@@ -128,7 +139,7 @@ const fieldClass = cn(
   "h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-3 text-[14px] text-[var(--catalog-ink,#15231f)] shadow-none",
   "placeholder:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)]",
   "focus-visible:border-[var(--catalog-ink,#15231f)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_28%,transparent)]",
-  "disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_80%,transparent)]",
+  "disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_80%,transparent)]",
 );
 
 const labelClass =
@@ -238,7 +249,9 @@ export function ProductCreateModal({
   const [stamp, setStamp] = useState(0);
   const prevArmed = useRef(false);
   const [descGenError, setDescGenError] = useState("");
-  const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(null);
+  const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(
+    null,
+  );
   const [groupOptions, setGroupOptions] = useState<GroupOptionRow[]>(() => [
     newGroupOptionRow(),
     newGroupOptionRow(),
@@ -267,7 +280,12 @@ export function ProductCreateModal({
     categoryCreate.clearError();
     departmentCreate.clearError();
     aisleCreate.clearError();
-  }, [open, aisleCreate.clearError, categoryCreate.clearError, departmentCreate.clearError]);
+  }, [
+    open,
+    aisleCreate.clearError,
+    categoryCreate.clearError,
+    departmentCreate.clearError,
+  ]);
 
   const setFamilyMode = useCallback(
     (next: boolean) => {
@@ -364,7 +382,8 @@ export function ProductCreateModal({
   const marginInfo = useMemo(() => {
     const buy = Number(m.parentDraft.buyingPrice);
     const sell = Number(m.parentDraft.bundlePrice);
-    if (!Number.isFinite(buy) || !Number.isFinite(sell) || sell <= 0) return null;
+    if (!Number.isFinite(buy) || !Number.isFinite(sell) || sell <= 0)
+      return null;
     const profit = sell - buy;
     const margin = (profit / sell) * 100;
     return { profit, margin };
@@ -469,12 +488,7 @@ export function ProductCreateModal({
         ...(ids.itemTypeId ? { itemTypeId: ids.itemTypeId } : {}),
       }));
     },
-    [
-      canCreateCategory,
-      categoryCreate.create,
-      departmentCreate.create,
-      m,
-    ],
+    [canCreateCategory, categoryCreate.create, departmentCreate.create, m],
   );
 
   const currency = currencyCode.trim() || "KES";
@@ -656,7 +670,7 @@ export function ProductCreateModal({
             ) : null}
 
             {m.parentDraft.globalProductSourceId ? (
-              <div className="flex items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_65%,white)] px-3 py-2 text-[12px] text-[var(--catalog-ink,#15231f)]">
+              <div className="flex items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_65%,white)] px-3 py-2 text-[12px] text-[var(--catalog-ink,#15231f)]">
                 <span className="min-w-0 flex-1">
                   Filled from shared catalog
                   {linkedGlobalLabel ? ` (${linkedGlobalLabel})` : ""}
@@ -771,7 +785,9 @@ export function ProductCreateModal({
                     <button
                       type="button"
                       disabled={m.parentCreateBusy || departmentCreate.busy}
-                      onClick={() => departmentSelectRef.current?.openForCreate()}
+                      onClick={() =>
+                        departmentSelectRef.current?.openForCreate()
+                      }
                       aria-label="New department"
                       className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)] transition-colors hover:text-[var(--catalog-ink,#15231f)] disabled:opacity-50"
                     >
@@ -816,7 +832,9 @@ export function ProductCreateModal({
                       <button
                         type="button"
                         disabled={m.parentCreateBusy || categoryCreate.busy}
-                        onClick={() => categorySelectRef.current?.openForCreate()}
+                        onClick={() =>
+                          categorySelectRef.current?.openForCreate()
+                        }
                         aria-label="New category"
                         className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)] transition-colors hover:text-[var(--catalog-ink,#15231f)] disabled:opacity-50"
                       >
@@ -939,7 +957,10 @@ export function ProductCreateModal({
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <FieldLabel htmlFor="create-opening-qty" hint="On the shelf">
+                      <FieldLabel
+                        htmlFor="create-opening-qty"
+                        hint="On the shelf"
+                      >
                         Number of items
                       </FieldLabel>
                       <QtyStepper
@@ -1006,7 +1027,12 @@ export function ProductCreateModal({
               </button>
 
               {moreOpen ? (
-                <div className={cn(styles.morePanel, "space-y-3 rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_45%,white)] p-3")}>
+                <div
+                  className={cn(
+                    styles.morePanel,
+                    "space-y-3 rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_45%,white)] p-3",
+                  )}
+                >
                   <div className="grid gap-3 sm:grid-cols-2">
                     {!isGroup ? (
                       <div className="space-y-1.5">
@@ -1015,7 +1041,9 @@ export function ProductCreateModal({
                           {canCreateCategory ? (
                             <button
                               type="button"
-                              disabled={m.parentCreateBusy || categoryCreate.busy}
+                              disabled={
+                                m.parentCreateBusy || categoryCreate.busy
+                              }
                               onClick={() => {
                                 setMoreOpen(true);
                                 categorySelectRef.current?.openForCreate();
@@ -1030,7 +1058,10 @@ export function ProductCreateModal({
                         </div>
                         <SearchableSelect
                           ref={categorySelectRef}
-                          className={cn(productFormInputClass, "h-10 rounded-none")}
+                          className={cn(
+                            productFormInputClass,
+                            "h-10 rounded-none",
+                          )}
                           value={m.parentDraft.categoryId}
                           onChange={(categoryId) =>
                             m.setParentDraft((p) => ({ ...p, categoryId }))
@@ -1038,7 +1069,9 @@ export function ProductCreateModal({
                           options={categoryOptions}
                           noneLabel="None"
                           placeholder={
-                            canCreateCategory ? "Find or create…" : "Type to find…"
+                            canCreateCategory
+                              ? "Find or create…"
+                              : "Type to find…"
                           }
                           disabled={m.parentCreateBusy}
                           aria-label="Category"
@@ -1050,7 +1083,13 @@ export function ProductCreateModal({
                         />
                       </div>
                     ) : null}
-                    <div className={cn("space-y-1.5", !isGroup && "sm:col-span-1", isGroup && "sm:col-span-2")}>
+                    <div
+                      className={cn(
+                        "space-y-1.5",
+                        !isGroup && "sm:col-span-1",
+                        isGroup && "sm:col-span-2",
+                      )}
+                    >
                       <div className="flex items-baseline justify-between gap-2">
                         <span className={labelClass}>Shelf zone</span>
                         {canCreateCategory ? (
@@ -1071,7 +1110,10 @@ export function ProductCreateModal({
                       </div>
                       <SearchableSelect
                         ref={aisleSelectRef}
-                        className={cn(productFormInputClass, "h-10 rounded-none")}
+                        className={cn(
+                          productFormInputClass,
+                          "h-10 rounded-none",
+                        )}
                         value={m.parentDraft.aisleId}
                         onChange={(aisleId) =>
                           m.setParentDraft((p) => ({ ...p, aisleId }))
@@ -1079,7 +1121,9 @@ export function ProductCreateModal({
                         options={aisleOptions}
                         noneLabel="None"
                         placeholder={
-                          canCreateCategory ? "Find or create…" : "Type to find…"
+                          canCreateCategory
+                            ? "Find or create…"
+                            : "Type to find…"
                         }
                         disabled={m.parentCreateBusy}
                         aria-label="Shelf zone"
@@ -1126,7 +1170,9 @@ export function ProductCreateModal({
                       <div className="space-y-1.5">
                         <div className="flex items-baseline justify-between gap-2">
                           <span className={labelClass}>SKU</span>
-                          <span className={productFormHintClass}>Auto if empty</span>
+                          <span className={productFormHintClass}>
+                            Auto if empty
+                          </span>
                         </div>
                         <div className="flex gap-1.5">
                           <input
@@ -1166,7 +1212,10 @@ export function ProductCreateModal({
                         <div className="space-y-1.5">
                           <span className={labelClass}>Stock at branch</span>
                           <select
-                            className={cn(productFormInputClass, "h-10 rounded-none")}
+                            className={cn(
+                              productFormInputClass,
+                              "h-10 rounded-none",
+                            )}
                             value={m.parentDraft.openingBranchId}
                             onChange={(e) =>
                               m.setParentDraft((p) => ({
@@ -1204,7 +1253,10 @@ export function ProductCreateModal({
                         <label className="space-y-1">
                           <span className={productFormLabelClass}>Brand</span>
                           <input
-                            className={cn(productFormInputClass, "h-10 rounded-none")}
+                            className={cn(
+                              productFormInputClass,
+                              "h-10 rounded-none",
+                            )}
                             value={m.parentDraft.brand}
                             onChange={(e) =>
                               m.setParentDraft((p) => ({
@@ -1217,7 +1269,10 @@ export function ProductCreateModal({
                         <label className="space-y-1">
                           <span className={productFormLabelClass}>Size</span>
                           <input
-                            className={cn(productFormInputClass, "h-10 rounded-none")}
+                            className={cn(
+                              productFormInputClass,
+                              "h-10 rounded-none",
+                            )}
                             value={m.parentDraft.size}
                             onChange={(e) =>
                               m.setParentDraft((p) => ({
@@ -1231,7 +1286,8 @@ export function ProductCreateModal({
 
                       {canLinkSupplier ? (
                         <div className="space-y-2">
-                          {canListSuppliers && m.suppliersForLink.length === 0 ? (
+                          {canListSuppliers &&
+                          m.suppliersForLink.length === 0 ? (
                             <Button
                               type="button"
                               variant="outline"
@@ -1240,13 +1296,20 @@ export function ProductCreateModal({
                               disabled={m.suppliersLoading}
                               onClick={() => void m.loadSuppliersForLink()}
                             >
-                              {m.suppliersLoading ? "Loading…" : "Load suppliers"}
+                              {m.suppliersLoading
+                                ? "Loading…"
+                                : "Load suppliers"}
                             </Button>
                           ) : null}
                           <label className="space-y-1">
-                            <span className={productFormLabelClass}>Supplier</span>
+                            <span className={productFormLabelClass}>
+                              Supplier
+                            </span>
                             <select
-                              className={cn(productFormInputClass, "h-10 rounded-none")}
+                              className={cn(
+                                productFormInputClass,
+                                "h-10 rounded-none",
+                              )}
                               value={
                                 m.suppliersForLink.some(
                                   (s) => s.id === m.parentDraft.supplierId,

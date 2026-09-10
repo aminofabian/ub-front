@@ -6,7 +6,9 @@ import { createAisle, type AisleRecord } from "@/lib/api";
 import { labelToAisleCode } from "@/lib/aisle-suggestions";
 import { formatMutationError } from "../_utils";
 
-export function useInlineAisleCreate(upsertAisle: (aisle: AisleRecord) => void) {
+export function useInlineAisleCreate(
+  upsertAisle: (aisle: AisleRecord) => void,
+) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 

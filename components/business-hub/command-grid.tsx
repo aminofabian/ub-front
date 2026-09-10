@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { ArrowUpRight, ChevronRight } from "lucide-react";
 
-import { HUB_BTN, HUB_SECTION, HUB_SURFACE } from "@/lib/business-hub/constants";
+import {
+  HUB_BTN,
+  HUB_SECTION,
+  HUB_SURFACE,
+} from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export type CommandLink = {
@@ -32,9 +36,9 @@ export function CommandGrid({ links }: { links: CommandLink[] }) {
             key={link.href + link.label}
             href={link.href}
             title={link.hint}
-            className="flex min-h-12 items-center gap-3 px-3 py-2.5 active:bg-[#FAF8F3]"
+            className="flex min-h-12 items-center gap-3 px-3 py-2.5 active:bg-white"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center bg-[#F0EEE9] text-[#B08D48]">
+            <span className="flex size-8 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#0f766e]">
               <link.icon className="size-4" aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
@@ -63,18 +67,18 @@ export function CommandGrid({ links }: { links: CommandLink[] }) {
               HUB_BTN,
               "group inline-flex items-center gap-1.5 bg-white px-2.5 py-1.5",
               "ring-1 ring-[color-mix(in_srgb,#141414_8%,transparent)]",
-              "hover:bg-[#FAF8F3] hover:ring-[#B08D48]/45",
+              "hover:bg-white hover:ring-[#0f766e]/45",
             )}
           >
             <link.icon
-              className="size-3.5 shrink-0 text-[#B08D48]"
+              className="size-3.5 shrink-0 text-[#0f766e]"
               aria-hidden
             />
             <span className="text-[12px] font-medium text-[#141414]">
               {link.label}
             </span>
             <ArrowUpRight
-              className="size-3 shrink-0 text-[#C8C2B6] transition-colors group-hover:text-[#B08D48]"
+              className="size-3 shrink-0 text-[#C8C2B6] transition-colors group-hover:text-[#0f766e]"
               aria-hidden
             />
           </Link>

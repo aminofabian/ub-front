@@ -104,8 +104,10 @@ export function LoyaltyCardPreview({
     "palmart";
   const branch = branches.find((b) => b.id === branchId) ?? branches[0];
   const landing = business?.storefront?.landingContent;
-  const shopAddress = branch?.address?.trim() || landing?.address?.trim() || null;
-  const shopPhone = branch?.receipt?.phone?.trim() || landing?.phone?.trim() || null;
+  const shopAddress =
+    branch?.address?.trim() || landing?.address?.trim() || null;
+  const shopPhone =
+    branch?.receipt?.phone?.trim() || landing?.phone?.trim() || null;
   const shopWebsite = resolveReceiptWebsite(
     branch?.receipt?.website,
     business?.primaryDomain,
@@ -201,9 +203,7 @@ export function LoyaltyCardPreview({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="flex max-h-[min(92dvh,52rem)] w-[min(96vw,40rem)] max-w-[40rem] gap-0 overflow-hidden p-0"
-      >
+      <DialogContent className="flex max-h-[min(92dvh,52rem)] w-[min(96vw,40rem)] max-w-[40rem] gap-0 overflow-hidden p-0">
         <DialogHeader className="shrink-0 border-b border-border/60 bg-[#faf8f3] px-5 py-4 text-left">
           <DialogTitle className="flex items-center gap-2 text-base">
             <IdCard className="size-4 text-[#0b4a36]" aria-hidden />
@@ -224,7 +224,9 @@ export function LoyaltyCardPreview({
               Preparing card…
             </div>
           ) : error ? (
-            <p className="py-12 text-center text-sm text-destructive">{error}</p>
+            <p className="py-12 text-center text-sm text-destructive">
+              {error}
+            </p>
           ) : model ? (
             <div ref={hostRef} className="mx-auto w-full max-w-[540px]">
               <div style={{ height: sheetHeight * scale }}>

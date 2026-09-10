@@ -2,10 +2,7 @@
 
 import { Loader2, Pencil } from "lucide-react";
 
-import {
-  FormDrawer,
-  FormDrawerMessageBanner,
-} from "@/components/form-drawer";
+import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { dashboardInputClass } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import type { AisleRecord } from "@/lib/api";
@@ -55,7 +52,9 @@ export function AisleEditDrawer({
             Cancel
           </Button>
           <Button type="button" disabled={busy} onClick={onSubmit}>
-            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : null}
             Save changes
           </Button>
         </div>
@@ -69,7 +68,7 @@ export function AisleEditDrawer({
         }}
       >
         <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Display name
           </span>
           <input
@@ -80,7 +79,7 @@ export function AisleEditDrawer({
           />
         </label>
         <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Short code
           </span>
           <input

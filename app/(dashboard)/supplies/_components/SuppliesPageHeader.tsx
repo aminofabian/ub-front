@@ -18,7 +18,10 @@ import { cn } from "@/lib/utils";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 
 import { SupplierGuideDrawer } from "../../suppliers/_components/SupplierGuideDrawer";
-import { supBtnPrimary, supKicker } from "../../suppliers/_components/supplier-ui-tokens";
+import {
+  supBtnPrimary,
+  supKicker,
+} from "../../suppliers/_components/supplier-ui-tokens";
 
 export function SuppliesPageHeader({
   canViewApAging,
@@ -46,7 +49,13 @@ export function SuppliesPageHeader({
 
   const quickLinks = [
     ...(canViewApAging
-      ? [{ href: APP_ROUTES.purchasingApAging, label: "AP aging", icon: BarChart3 }]
+      ? [
+          {
+            href: APP_ROUTES.purchasingApAging,
+            label: "AP aging",
+            icon: BarChart3,
+          },
+        ]
       : []),
     {
       href: `${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`,
@@ -151,7 +160,10 @@ export function SuppliesPageHeader({
             <Button
               type="button"
               size="sm"
-              className={cn(supBtnPrimary, "h-7 rounded-none px-2.5 text-[11px]")}
+              className={cn(
+                supBtnPrimary,
+                "h-7 rounded-none px-2.5 text-[11px]",
+              )}
               onClick={onNewSupply}
             >
               <PackagePlus className="size-3" aria-hidden />

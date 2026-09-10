@@ -42,7 +42,9 @@ export function ProductFormSectionToggle({
           <span className={productFormSectionToggleLabelClass}>{label}</span>
           {badge}
         </div>
-        {hint ? <p className={cn(productFormHintClass, "mt-0.5")}>{hint}</p> : null}
+        {hint ? (
+          <p className={cn(productFormHintClass, "mt-0.5")}>{hint}</p>
+        ) : null}
       </div>
       <div className="shrink-0 text-foreground/40">
         {expanded ? (

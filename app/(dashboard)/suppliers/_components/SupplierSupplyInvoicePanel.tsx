@@ -35,7 +35,9 @@ function formatShortDate(iso: string | null | undefined): string {
   }
 }
 
-function toListRow(d: PathBSupplyInvoiceDetailRecord): PathBSupplyListRowRecord {
+function toListRow(
+  d: PathBSupplyInvoiceDetailRecord,
+): PathBSupplyListRowRecord {
   return {
     supplierInvoiceId: d.supplierInvoiceId,
     supplierId: d.supplierId,
@@ -60,11 +62,19 @@ export function SupplierSupplyInvoicePanel({
   onUpdated?: () => void;
 }) {
   const { me, canPathBWrite } = useDashboard();
-  const canPay = hasPermission(me?.permissions, Permission.PurchasingPaymentWrite);
-  const canPaymentRead = hasPermission(me?.permissions, Permission.PurchasingPaymentRead);
+  const canPay = hasPermission(
+    me?.permissions,
+    Permission.PurchasingPaymentWrite,
+  );
+  const canPaymentRead = hasPermission(
+    me?.permissions,
+    Permission.PurchasingPaymentRead,
+  );
   const canOpenReceipt = canPay || canPaymentRead;
 
-  const [detail, setDetail] = useState<PathBSupplyInvoiceDetailRecord | null>(null);
+  const [detail, setDetail] = useState<PathBSupplyInvoiceDetailRecord | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payOpen, setPayOpen] = useState(false);
@@ -96,7 +106,9 @@ export function SupplierSupplyInvoicePanel({
 
   const listRow = useMemo(() => (detail ? toListRow(detail) : null), [detail]);
   const balance = detail ? supplyN(detail.balanceOpen) : 0;
-  const statusBadge = detail ? supplyPaymentStatusBadge(detail.paymentStatus) : null;
+  const statusBadge = detail
+    ? supplyPaymentStatusBadge(detail.paymentStatus)
+    : null;
 
   const onDelete = useCallback(() => {
     if (!detail) return;
@@ -121,7 +133,9 @@ export function SupplierSupplyInvoicePanel({
           setDetail(null);
           onUpdated?.();
         } catch (e) {
-          toast.error(e instanceof Error ? e.message : "Could not delete supply.");
+          toast.error(
+            e instanceof Error ? e.message : "Could not delete supply.",
+          );
         } finally {
           setDeleting(false);
         }
@@ -156,7 +170,7 @@ export function SupplierSupplyInvoicePanel({
           {statusBadge ? (
             <span
               className={cn(
-                "inline-flex rounded-none border px-1.5 py-px text-xs font-semibold uppercase tracking-wide",
+                "inline-flex rounded-none border px-1.5 py-px text-xs font-semibold tracking-[-0.02em]",
                 statusBadge.className,
               )}
             >
@@ -165,7 +179,9 @@ export function SupplierSupplyInvoicePanel({
           ) : null}
           <span className="text-xs text-muted-foreground">
             {formatShortDate(detail.invoiceDate)}
-            {detail.dueDate ? ` · Due ${formatShortDate(detail.dueDate)}` : null}
+            {detail.dueDate
+              ? ` · Due ${formatShortDate(detail.dueDate)}`
+              : null}
           </span>
         </div>
         <dl className="divide-y divide-border/40 rounded-none border border-border/50 text-sm">
@@ -212,7 +228,9 @@ export function SupplierSupplyInvoicePanel({
               {detail.lines.map((ln) => (
                 <tr key={ln.id} className={supTableRow}>
                   <td className="px-2 py-1">
-                    <p className="font-medium leading-snug text-foreground">{ln.description}</p>
+                    <p className="font-medium leading-snug text-foreground">
+                      {ln.description}
+                    </p>
                     {supplyN(ln.wastageQty) > 0 ? (
                       <p className="text-xs text-muted-foreground">
                         Wastage {formatSupplyMoney(supplyN(ln.wastageQty))}

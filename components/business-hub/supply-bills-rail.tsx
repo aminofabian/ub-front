@@ -61,7 +61,7 @@ export function SupplyBillsRail({
     <section
       className={cn(
         HUB_RAIL,
-        justUpdated && "hub-scan-sweep ring-1 ring-[#B08D48]/35",
+        justUpdated && "hub-scan-sweep ring-1 ring-[#0f766e]/35",
         className,
       )}
       aria-label="Today's supply bills"
@@ -79,7 +79,7 @@ export function SupplyBillsRail({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {live ? (
-            <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-800">
+            <span className="inline-flex items-center gap-1 text-[9px] font-semibold tracking-[-0.02em] text-emerald-800">
               <span
                 className="size-1.5 bg-emerald-500 hub-live-beacon"
                 aria-hidden
@@ -89,7 +89,7 @@ export function SupplyBillsRail({
           ) : null}
           <Link
             href={`${APP_ROUTES.purchasingAddSupplies}?filter=today`}
-            className="text-[10px] font-medium text-[#8A6B2E] transition-colors hover:text-[#141414]"
+            className="text-[10px] font-medium text-[#0f766e] transition-colors hover:text-[#141414]"
           >
             All
           </Link>
@@ -102,9 +102,12 @@ export function SupplyBillsRail({
         </div>
       ) : (
         <div
-          className={cn("min-h-0 overflow-y-auto overscroll-contain", SUPPLY_VIEWPORT_CLASS)}
+          className={cn(
+            "min-h-0 overflow-y-auto overscroll-contain",
+            SUPPLY_VIEWPORT_CLASS,
+          )}
         >
-          <ol className="divide-y divide-[#EDE8DF]">
+          <ol className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
             {bills.map((bill, i) => {
               const newest = i === 0 && justUpdated;
               const unpaid = isSupplyRowUnpaid(bill);
@@ -120,7 +123,7 @@ export function SupplyBillsRail({
                   key={bill.supplierInvoiceId}
                   className={cn(
                     "flex items-center gap-2 px-3 py-1.5 transition-colors",
-                    newest && "bg-[#FCFAF6] hub-figure-pop",
+                    newest && "bg-[#ffffff] hub-figure-pop",
                   )}
                 >
                   <time
@@ -138,7 +141,7 @@ export function SupplyBillsRail({
                       className={cn(
                         "block max-w-full truncate text-left text-[12px] font-medium text-[#141414]",
                         onInspect &&
-                          "underline decoration-[#B08D48]/40 underline-offset-2 hover:decoration-[#B08D48]",
+                          "underline decoration-[#0f766e]/40 underline-offset-2 hover:decoration-[#0f766e]",
                       )}
                     >
                       <SupplierDisplayName
@@ -152,10 +155,10 @@ export function SupplyBillsRail({
                       type="button"
                       onClick={() => onPayBill?.(bill)}
                       className={cn(
-                        "shrink-0 rounded-none px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-colors",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/45",
+                        "shrink-0 rounded-none px-1.5 py-0.5 text-[9px] font-semibold tracking-[-0.02em] transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
                         unpaid
-                          ? "bg-[#F3EBD9] text-[#8A6B2E] hover:bg-[#E8D9B8] hover:text-[#141414]"
+                          ? "border border-[#0f766e] bg-white text-[#0f766e] hover:bg-white"
                           : "text-emerald-800 hover:bg-emerald-50",
                       )}
                       title={
@@ -169,13 +172,17 @@ export function SupplyBillsRail({
                           : `View payment details for ${supplierLabel}`
                       }
                     >
-                      {unpaid ? (label === "Partial" ? "Pay · Partial" : "Pay") : label}
+                      {unpaid
+                        ? label === "Partial"
+                          ? "Pay · Partial"
+                          : "Pay"
+                        : label}
                     </button>
                   ) : (
                     <span
                       className={cn(
-                        "shrink-0 text-[9px] font-semibold uppercase tracking-[0.06em]",
-                        unpaid ? "text-[#8A6B2E]" : "text-emerald-800",
+                        "shrink-0 text-[9px] font-semibold tracking-[-0.02em]",
+                        unpaid ? "text-[#0f766e]" : "text-emerald-800",
                       )}
                     >
                       {label}

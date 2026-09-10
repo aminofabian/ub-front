@@ -411,9 +411,9 @@ export function WebOrdersPage() {
               type="button"
               onClick={() => setTab(t.id)}
               className={cn(
-                "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                "rounded-none border px-3 py-1 text-xs font-semibold transition-colors",
                 tab === t.id
-                  ? "border-[#B08D48] bg-[#B08D48]/10 text-[#8A6B2E]"
+                  ? "border-[#0f766e] bg-[#0f766e]/10 text-[#0f766e]"
                   : "border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground",
               )}
             >
@@ -426,7 +426,7 @@ export function WebOrdersPage() {
               type="button"
               onClick={() => setChannelTab(channelTab === "whatsapp" ? "all" : "whatsapp")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                "inline-flex items-center gap-1.5 rounded-none border px-3 py-1 text-xs font-semibold transition-colors",
                 channelTab === "whatsapp"
                   ? "border-[#128C4A] bg-[#25D366]/15 text-[#128C4A]"
                   : "border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground",
@@ -490,7 +490,7 @@ export function WebOrdersPage() {
                       className={cn(
                         "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors sm:px-5",
                         selected
-                          ? "bg-[#B08D48]/8"
+                          ? "bg-[#0f766e]/8"
                           : "hover:bg-muted/40",
                       )}
                     >
@@ -600,7 +600,7 @@ export function WebOrdersPage() {
                     href={waReplyHref(detail.customerPhone, detail.customerName, detail.id, detail.grandTotal, detail.currency)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#25D366]/15 px-3 text-xs font-semibold text-[#128C4A] transition-colors hover:bg-[#25D366]/25"
+                    className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-none bg-[#25D366]/15 px-3 text-xs font-semibold text-[#128C4A] transition-colors hover:bg-[#25D366]/25"
                   >
                     <MessageCircle className="size-3.5" aria-hidden />
                     Reply on WhatsApp
@@ -612,7 +612,7 @@ export function WebOrdersPage() {
                   return (
                     <p
                       className={cn(
-                        "mt-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-xs leading-relaxed",
+                        "mt-3 flex items-start gap-2 rounded-none border px-3 py-2 text-xs leading-relaxed",
                         hint.tone === "expired"
                           ? "border-amber-300 bg-amber-50 text-amber-900"
                           : "border-sky-200 bg-sky-50 text-sky-900",
@@ -645,7 +645,7 @@ export function WebOrdersPage() {
                 onUpdated={onDetailUpdated}
               />
 
-              <ul className="divide-y divide-border/50 rounded-xl border border-border/60">
+              <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
                 {detail.lines.map((line) => (
                   <li
                     key={`${line.itemId}-${line.lineIndex}`}
@@ -674,7 +674,7 @@ export function WebOrdersPage() {
               </ul>
 
               <div className="flex items-center justify-between border-t border-border/50 pt-3">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
                   Total
                 </span>
                 <p className="text-lg font-semibold tabular-nums text-foreground">
@@ -683,8 +683,8 @@ export function WebOrdersPage() {
               </div>
 
               {detail.notes?.trim() ? (
-                <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
+                  <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                     Notes
                   </p>
                   <p className="mt-1 text-sm text-foreground">{detail.notes}</p>

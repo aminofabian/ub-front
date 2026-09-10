@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GitBranchPlus, Layers, Loader2, MapPin, Power, Trash2, Warehouse, X } from "lucide-react";
+import {
+  GitBranchPlus,
+  Layers,
+  Loader2,
+  MapPin,
+  Power,
+  Trash2,
+  Warehouse,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

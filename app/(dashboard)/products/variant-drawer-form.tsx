@@ -2,7 +2,15 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ChevronDown, ChevronRight, Plus, Trash2, Upload, X } from "lucide-react";
+import {
+  Camera,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { BarcodeScanner } from "@/components/barcode-scanner";
@@ -120,9 +128,15 @@ function CompactSectionToggle({
       className="flex w-full items-center gap-2 border-y border-border bg-muted/15 px-3 py-2 text-left transition-colors hover:bg-muted/25"
     >
       {expanded ? (
-        <ChevronDown className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
+        <ChevronDown
+          className="size-3.5 shrink-0 text-foreground/40"
+          aria-hidden
+        />
       ) : (
-        <ChevronRight className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
+        <ChevronRight
+          className="size-3.5 shrink-0 text-foreground/40"
+          aria-hidden
+        />
       )}
       <span className="min-w-0 flex-1 text-[11px] font-semibold tracking-tight text-foreground/70">
         {label}
@@ -239,7 +253,12 @@ function VariantPricingRow({
         aria-live="polite"
       >
         <span className={productFormSectionTitleClass}>Margin</span>
-        <span className={cn("text-base font-semibold tabular-nums leading-none", tone)}>
+        <span
+          className={cn(
+            "text-base font-semibold tabular-nums leading-none",
+            tone,
+          )}
+        >
           {marginInfo ? `${marginInfo.margin.toFixed(0)}%` : "—"}
         </span>
         {marginInfo ? (
@@ -349,174 +368,180 @@ function VariantRowFields({
       ) : null}
 
       <FormDrawerSheet>
-      <FormDrawerFields appearance="sharp" embedded>
-        {!parentIsProductGroup ? (
-          <ToggleChip
-            checked={row.isPackageVariant}
-            onChange={(v) =>
-              onPatch({
-                isPackageVariant: v,
-                openingQty: v ? "" : row.openingQty,
-              })
-            }
-            label="Package SKU (deducts parent stock)"
-          />
-        ) : null}
+        <FormDrawerFields appearance="sharp" embedded>
+          {!parentIsProductGroup ? (
+            <ToggleChip
+              checked={row.isPackageVariant}
+              onChange={(v) =>
+                onPatch({
+                  isPackageVariant: v,
+                  openingQty: v ? "" : row.openingQty,
+                })
+              }
+              label="Package SKU (deducts parent stock)"
+            />
+          ) : null}
 
-        <Label
-          required
-          label={row.isPackageVariant ? "Package name" : "Size or flavour"}
-        >
-          {familyPrefix && !row.isPackageVariant ? (
-            <div
-              className={cn(
-                "flex h-9 w-full min-w-0 items-stretch overflow-hidden border border-border bg-background",
-                "focus-within:border-[var(--catalog-primary,#0f766e)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_22%,transparent)]",
-              )}
-            >
-              <span
-                className="flex max-w-[46%] shrink-0 items-center truncate border-r border-border bg-muted/40 px-2.5 text-[12px] font-medium text-muted-foreground"
-                title={familyPrefix}
-              >
-                {familyPrefix}
-              </span>
-              <input
+          <Label
+            required
+            label={row.isPackageVariant ? "Package name" : "Size or flavour"}
+          >
+            {familyPrefix && !row.isPackageVariant ? (
+              <div
                 className={cn(
-                  icClass(),
-                  "min-w-0 flex-1 border-0 shadow-none focus-visible:ring-0",
+                  "flex h-9 w-full min-w-0 items-stretch overflow-hidden border border-border bg-background",
+                  "focus-within:border-[var(--catalog-primary,#0f766e)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_22%,transparent)]",
                 )}
+              >
+                <span
+                  className="flex max-w-[46%] shrink-0 items-center truncate border-r border-border bg-muted/40 px-2.5 text-[12px] font-medium text-muted-foreground"
+                  title={familyPrefix}
+                >
+                  {familyPrefix}
+                </span>
+                <input
+                  className={cn(
+                    icClass(),
+                    "min-w-0 flex-1 border-0 shadow-none focus-visible:ring-0",
+                  )}
+                  placeholder={namePlaceholder}
+                  value={row.variantName}
+                  onChange={(e) =>
+                    onPatch({
+                      variantName: stripFamilyPrefixFromInput(
+                        e.target.value,
+                        familyPrefix,
+                      ),
+                    })
+                  }
+                  required={index === 0}
+                  autoComplete="off"
+                  aria-label={`Size or flavour after ${familyPrefix}`}
+                />
+              </div>
+            ) : (
+              <input
+                className={icClass()}
                 placeholder={namePlaceholder}
                 value={row.variantName}
-                onChange={(e) =>
-                  onPatch({
-                    variantName: stripFamilyPrefixFromInput(
-                      e.target.value,
-                      familyPrefix,
-                    ),
-                  })
-                }
+                onChange={(e) => onPatch({ variantName: e.target.value })}
                 required={index === 0}
                 autoComplete="off"
-                aria-label={`Size or flavour after ${familyPrefix}`}
               />
-            </div>
+            )}
+            {familyPrefix && !row.isPackageVariant ? (
+              <span className={productFormHintClass}>
+                Only type what’s different — the family name is already set.
+              </span>
+            ) : null}
+          </Label>
+
+          {row.isPackageVariant ? (
+            <>
+              <Label required label="Units per package">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  className={icClass()}
+                  placeholder="30"
+                  min={1}
+                  value={row.unitsPerPackage}
+                  onChange={(e) => onPatch({ unitsPerPackage: e.target.value })}
+                />
+              </Label>
+              <Label
+                label={`Price per package${currencyCode ? ` (${currencyCode})` : ""}`}
+              >
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  className={icClass()}
+                  placeholder="0.00"
+                  value={row.bundlePrice}
+                  onChange={(e) => onPatch({ bundlePrice: e.target.value })}
+                />
+              </Label>
+            </>
           ) : (
-            <input
-              className={icClass()}
-              placeholder={namePlaceholder}
-              value={row.variantName}
-              onChange={(e) => onPatch({ variantName: e.target.value })}
-              required={index === 0}
-              autoComplete="off"
+            <VariantPricingRow
+              draft={row}
+              onPatch={onPatch}
+              currencyCode={currencyCode}
             />
           )}
-          {familyPrefix && !row.isPackageVariant ? (
-            <span className={productFormHintClass}>
-              Only type what’s different — the family name is already set.
-            </span>
-          ) : null}
-        </Label>
+        </FormDrawerFields>
 
-        {row.isPackageVariant ? (
-          <>
-            <Label required label="Units per package">
-              <input
-                type="number"
-                inputMode="numeric"
-                className={icClass()}
-                placeholder="30"
-                min={1}
-                value={row.unitsPerPackage}
-                onChange={(e) => onPatch({ unitsPerPackage: e.target.value })}
-              />
-            </Label>
-            <Label label={`Price per package${currencyCode ? ` (${currencyCode})` : ""}`}>
-              <input
-                type="number"
-                inputMode="decimal"
-                className={icClass()}
-                placeholder="0.00"
-                value={row.bundlePrice}
-                onChange={(e) => onPatch({ bundlePrice: e.target.value })}
-              />
-            </Label>
-          </>
-        ) : (
-          <VariantPricingRow draft={row} onPatch={onPatch} currencyCode={currencyCode} />
-        )}
-      </FormDrawerFields>
-
-      <FormDrawerFields legend="Codes" appearance="sharp" embedded>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Label label="Barcode">
-            <div className="flex gap-px overflow-hidden rounded-none border border-border bg-border">
-              <input
-                className={cn(
-                  icClass(),
-                  "min-w-0 flex-1 border-0 font-mono text-xs focus-visible:ring-inset",
-                )}
-                placeholder="Scan or type"
-                value={row.barcode}
-                onChange={(e) => onPatch({ barcode: e.target.value })}
-              />
-              <button
-                type="button"
-                onClick={onScanBarcode}
-                className="flex size-8 shrink-0 items-center justify-center bg-background text-foreground/50 hover:bg-muted/50 hover:text-foreground"
-                aria-label="Scan barcode"
-              >
-                <Camera className="size-3.5" aria-hidden />
-              </button>
-            </div>
-          </Label>
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <span className={productFormLabelClass}>SKU</span>
-            <div className="flex gap-1.5">
-              <input
-                className={cn(icClass(), "min-w-0 flex-1 font-mono text-xs")}
-                placeholder="Auto"
-                value={row.sku}
-                onChange={(e) => onPatch({ sku: e.target.value })}
-              />
-              {index === 0 && suggestedNextSku ? (
-                <Button
+        <FormDrawerFields legend="Codes" appearance="sharp" embedded>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Label label="Barcode">
+              <div className="flex gap-px overflow-hidden rounded-none border border-border bg-border">
+                <input
+                  className={cn(
+                    icClass(),
+                    "min-w-0 flex-1 border-0 font-mono text-xs focus-visible:ring-inset",
+                  )}
+                  placeholder="Scan or type"
+                  value={row.barcode}
+                  onChange={(e) => onPatch({ barcode: e.target.value })}
+                />
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 shrink-0 rounded-none px-2 font-mono text-[10px] tracking-tight shadow-none"
-                  onClick={() => onPatch({ sku: suggestedNextSku })}
+                  onClick={onScanBarcode}
+                  className="flex size-8 shrink-0 items-center justify-center bg-background text-foreground/50 hover:bg-muted/50 hover:text-foreground"
+                  aria-label="Scan barcode"
                 >
-                  {suggestedNextSku}
-                </Button>
-              ) : null}
+                  <Camera className="size-3.5" aria-hidden />
+                </button>
+              </div>
+            </Label>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <span className={productFormLabelClass}>SKU</span>
+              <div className="flex gap-1.5">
+                <input
+                  className={cn(icClass(), "min-w-0 flex-1 font-mono text-xs")}
+                  placeholder="Auto"
+                  value={row.sku}
+                  onChange={(e) => onPatch({ sku: e.target.value })}
+                />
+                {index === 0 && suggestedNextSku ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0 rounded-none px-2 font-mono text-[10px] tracking-tight shadow-none"
+                    onClick={() => onPatch({ sku: suggestedNextSku })}
+                  >
+                    {suggestedNextSku}
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </div>
-        </div>
-      </FormDrawerFields>
+        </FormDrawerFields>
 
-      {canInventoryWrite && !row.isPackageVariant ? (
-        <FormDrawerFields legend="Stock" appearance="sharp" embedded>
-          <StockIncreaseFields
-            mode="opening"
-            minimal
-            hideUnitCostInput
-            branches={branches}
-            branchId={row.openingBranchId}
-            onBranchIdChange={(id) => onPatch({ openingBranchId: id })}
-            quantity={row.openingQty}
-            onQuantityChange={(v) => onPatch({ openingQty: v })}
-            unitCost={row.openingUnitCost}
-            onUnitCostChange={(v) => onPatch({ openingUnitCost: v })}
-            currentUnitCost={costPerUnit}
-            quantityAside={categoryField}
-            className="space-y-2 border-0 bg-transparent p-0 shadow-none ring-0"
-          />
-        </FormDrawerFields>
-      ) : (
-        <FormDrawerFields legend="Category" appearance="sharp" embedded>
-          {categoryField}
-        </FormDrawerFields>
-      )}
+        {canInventoryWrite && !row.isPackageVariant ? (
+          <FormDrawerFields legend="Stock" appearance="sharp" embedded>
+            <StockIncreaseFields
+              mode="opening"
+              minimal
+              hideUnitCostInput
+              branches={branches}
+              branchId={row.openingBranchId}
+              onBranchIdChange={(id) => onPatch({ openingBranchId: id })}
+              quantity={row.openingQty}
+              onQuantityChange={(v) => onPatch({ openingQty: v })}
+              unitCost={row.openingUnitCost}
+              onUnitCostChange={(v) => onPatch({ openingUnitCost: v })}
+              currentUnitCost={costPerUnit}
+              quantityAside={categoryField}
+              className="space-y-2 border-0 bg-transparent p-0 shadow-none ring-0"
+            />
+          </FormDrawerFields>
+        ) : (
+          <FormDrawerFields legend="Category" appearance="sharp" embedded>
+            {categoryField}
+          </FormDrawerFields>
+        )}
       </FormDrawerSheet>
     </div>
   );
@@ -605,7 +630,8 @@ export function VariantDrawerForm({
         <p className={productFormSectionTitleClass}>New size</p>
         {familyPrefix ? (
           <p className={productFormHintClass}>
-            Type only the size or flavour — “{familyPrefix}” stays as the family.
+            Type only the size or flavour — “{familyPrefix}” stays as the
+            family.
           </p>
         ) : null}
       </div>
@@ -644,7 +670,12 @@ export function VariantDrawerForm({
       </div>
 
       {variantDraftRows.length > 1 ? (
-        <div className={cn("flex flex-wrap items-center gap-2", productFormMetaClass)}>
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-2",
+            productFormMetaClass,
+          )}
+        >
           <span>More options for</span>
           <select
             className={cn(productFormSelectClass, "h-8 max-w-[12rem] text-xs")}
@@ -691,11 +722,15 @@ export function VariantDrawerForm({
                 <select
                   className={productFormSelectClass}
                   value={
-                    suppliersForLink.some((s) => s.id === extrasDraft.supplierId)
+                    suppliersForLink.some(
+                      (s) => s.id === extrasDraft.supplierId,
+                    )
                       ? extrasDraft.supplierId
                       : ""
                   }
-                  onChange={(e) => patchRow(extrasRow, { supplierId: e.target.value })}
+                  onChange={(e) =>
+                    patchRow(extrasRow, { supplierId: e.target.value })
+                  }
                 >
                   <option value="">— None —</option>
                   {suppliersForLink.map((s) => (
@@ -710,7 +745,9 @@ export function VariantDrawerForm({
                   <input
                     className={icClass()}
                     value={extrasDraft.supplierSku}
-                    onChange={(e) => patchRow(extrasRow, { supplierSku: e.target.value })}
+                    onChange={(e) =>
+                      patchRow(extrasRow, { supplierSku: e.target.value })
+                    }
                   />
                 </Label>
                 <label className="flex items-center gap-2 pt-5 text-xs">
@@ -718,7 +755,9 @@ export function VariantDrawerForm({
                     type="checkbox"
                     checked={extrasDraft.setPrimarySupplier}
                     onChange={(e) =>
-                      patchRow(extrasRow, { setPrimarySupplier: e.target.checked })
+                      patchRow(extrasRow, {
+                        setPrimarySupplier: e.target.checked,
+                      })
                     }
                     className="size-3.5 rounded-none border-border"
                   />
@@ -730,14 +769,18 @@ export function VariantDrawerForm({
 
           {canSetSellPrice ? (
             <div className="grid gap-2 sm:grid-cols-2">
-              <Label label={`Branch sell price${currencyCode ? ` (${currencyCode})` : ""}`}>
+              <Label
+                label={`Branch sell price${currencyCode ? ` (${currencyCode})` : ""}`}
+              >
                 <input
                   type="number"
                   inputMode="decimal"
                   className={icClass()}
                   placeholder="0.00"
                   value={extrasDraft.sellingPrice}
-                  onChange={(e) => patchRow(extrasRow, { sellingPrice: e.target.value })}
+                  onChange={(e) =>
+                    patchRow(extrasRow, { sellingPrice: e.target.value })
+                  }
                 />
               </Label>
               <Label label="Effective from">
@@ -754,7 +797,9 @@ export function VariantDrawerForm({
                 <select
                   className={productFormSelectClass}
                   value={extrasDraft.sellBranchId}
-                  onChange={(e) => patchRow(extrasRow, { sellBranchId: e.target.value })}
+                  onChange={(e) =>
+                    patchRow(extrasRow, { sellBranchId: e.target.value })
+                  }
                 >
                   <option value="">All locations</option>
                   {branches.map((b) => (
@@ -773,7 +818,9 @@ export function VariantDrawerForm({
               placeholder="Optional"
               rows={2}
               value={extrasDraft.description}
-              onChange={(e) => patchRow(extrasRow, { description: e.target.value })}
+              onChange={(e) =>
+                patchRow(extrasRow, { description: e.target.value })
+              }
             />
           </Label>
 
@@ -782,7 +829,9 @@ export function VariantDrawerForm({
               className={icClass()}
               placeholder="each, kg…"
               value={extrasDraft.unitType}
-              onChange={(e) => patchRow(extrasRow, { unitType: e.target.value })}
+              onChange={(e) =>
+                patchRow(extrasRow, { unitType: e.target.value })
+              }
             />
           </Label>
 
@@ -834,7 +883,9 @@ export function VariantDrawerForm({
                 ) : null}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">Applies to variant 1 only.</p>
+              <p className="text-xs text-muted-foreground">
+                Applies to variant 1 only.
+              </p>
             )}
           </div>
 
@@ -846,7 +897,9 @@ export function VariantDrawerForm({
                 className={icClass()}
                 placeholder="—"
                 value={extrasDraft.minStockLevel}
-                onChange={(e) => patchRow(extrasRow, { minStockLevel: e.target.value })}
+                onChange={(e) =>
+                  patchRow(extrasRow, { minStockLevel: e.target.value })
+                }
               />
             </Label>
             <Label label="Reorder at">
@@ -856,7 +909,9 @@ export function VariantDrawerForm({
                 className={icClass()}
                 placeholder="—"
                 value={extrasDraft.reorderLevel}
-                onChange={(e) => patchRow(extrasRow, { reorderLevel: e.target.value })}
+                onChange={(e) =>
+                  patchRow(extrasRow, { reorderLevel: e.target.value })
+                }
               />
             </Label>
             <Label label="Reorder qty">
@@ -866,7 +921,9 @@ export function VariantDrawerForm({
                 className={icClass()}
                 placeholder="—"
                 value={extrasDraft.reorderQty}
-                onChange={(e) => patchRow(extrasRow, { reorderQty: e.target.value })}
+                onChange={(e) =>
+                  patchRow(extrasRow, { reorderQty: e.target.value })
+                }
               />
             </Label>
           </div>

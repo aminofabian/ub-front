@@ -60,7 +60,7 @@ export function CreditTabsRail({
     <section
       className={cn(
         HUB_RAIL,
-        justUpdated && "hub-scan-sweep ring-1 ring-[#B08D48]/35",
+        justUpdated && "hub-scan-sweep ring-1 ring-[#0f766e]/35",
         className,
       )}
       aria-label="Open credit tabs"
@@ -88,7 +88,7 @@ export function CreditTabsRail({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {live ? (
-            <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-800">
+            <span className="inline-flex items-center gap-1 text-[9px] font-semibold tracking-[-0.02em] text-emerald-800">
               <span
                 className="size-1.5 bg-emerald-500 hub-live-beacon"
                 aria-hidden
@@ -98,7 +98,7 @@ export function CreditTabsRail({
           ) : null}
           <Link
             href={APP_ROUTES.creditsOnTab}
-            className="text-[10px] font-medium text-[#8A6B2E] transition-colors hover:text-[#141414]"
+            className="text-[10px] font-medium text-[#0f766e] transition-colors hover:text-[#141414]"
           >
             All
           </Link>
@@ -120,7 +120,7 @@ export function CreditTabsRail({
             CREDIT_VIEWPORT_CLASS,
           )}
         >
-          <ol className="divide-y divide-[#EDE8DF]">
+          <ol className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
             {tabs.map((tab, i) => {
               const newest = i === 0 && justUpdated;
               const owed = toNum(tab.balanceOwed);
@@ -131,7 +131,7 @@ export function CreditTabsRail({
                   key={tab.customerId}
                   className={cn(
                     "flex items-center gap-2 px-2.5 py-1.5 transition-colors",
-                    newest && "bg-[#FCFAF6] hub-figure-pop",
+                    newest && "bg-[#ffffff] hub-figure-pop",
                   )}
                 >
                   <div className="min-w-0 flex-1">
@@ -172,9 +172,9 @@ export function CreditTabsRail({
                       type="button"
                       onClick={() => onPayTab?.(tab)}
                       className={cn(
-                        "shrink-0 rounded-none bg-[#F3EBD9] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-[#8A6B2E]",
-                        "transition-colors hover:bg-[#E8D9B8] hover:text-[#141414]",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/45",
+                        "shrink-0 rounded-none border border-[#0f766e] bg-white px-1.5 py-0.5 text-[9px] font-semibold tracking-[-0.02em] text-[#0f766e]",
+                        "transition-colors hover:bg-white",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
                       )}
                       title={`Record credit payment for ${name}`}
                       aria-label={`Pay credit tab for ${name}`}
@@ -182,7 +182,7 @@ export function CreditTabsRail({
                       Pay
                     </button>
                   ) : (
-                    <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.06em] text-[#8A6B2E]">
+                    <span className="shrink-0 text-[9px] font-semibold tracking-[-0.02em] text-[#0f766e]">
                       Owed
                     </span>
                   )}

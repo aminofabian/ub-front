@@ -128,8 +128,10 @@ export function VoidSaleDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md gap-0 p-0 sm:max-w-lg">
-        <DialogHeader className="space-y-1.5 border-b border-border/50 px-6 py-5">
-          <DialogTitle className="text-lg tracking-tight">Void sale</DialogTitle>
+        <DialogHeader className="space-y-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-6 py-5">
+          <DialogTitle className="text-lg tracking-tight">
+            Void sale
+          </DialogTitle>
           <DialogDescription className="text-sm leading-relaxed">
             Reverse sale {titleId}. Restores stock and reverses payments,
             credit, wallet, and loyalty. Only while the sale&apos;s shift is
@@ -141,13 +143,13 @@ export function VoidSaleDialog({
           {loading ? (
             <p className="py-4 text-sm text-muted-foreground">Loading sale…</p>
           ) : error && !sale ? (
-            <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-none border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
               {error}
             </p>
           ) : sale ? (
             <div className="space-y-4">
-              <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
-                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-4 py-3">
+                <p className="text-[11px] font-medium tracking-[-0.02em] text-muted-foreground">
                   Sale total
                 </p>
                 <p className="mt-1 text-xl font-semibold tabular-nums tracking-tight text-foreground">
@@ -167,22 +169,22 @@ export function VoidSaleDialog({
               </div>
 
               {alreadyVoided ? (
-                <p className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                <p className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
                   This sale is already voided.
                 </p>
               ) : hasRefunds ? (
-                <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                <p className="rounded-none border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   Cannot void a sale that has refunds.
                 </p>
               ) : sale.status !== "completed" ? (
-                <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                <p className="rounded-none border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   Only completed sales can be voided.
                 </p>
               ) : (
                 <div className="space-y-2">
                   <label
                     htmlFor="void-sale-notes"
-                    className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground"
+                    className="text-[11px] font-medium tracking-[-0.02em] text-muted-foreground"
                   >
                     Notes (optional)
                   </label>
@@ -199,7 +201,7 @@ export function VoidSaleDialog({
               )}
 
               {error ? (
-                <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                <p className="rounded-none border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   {error}
                 </p>
               ) : null}
@@ -207,7 +209,7 @@ export function VoidSaleDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border/50 px-6 py-4 sm:gap-2">
+        <DialogFooter className="gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-6 py-4 sm:gap-2">
           <Button
             type="button"
             variant="outline"

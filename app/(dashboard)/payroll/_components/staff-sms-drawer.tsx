@@ -149,11 +149,16 @@ export function StaffSmsDrawer({
       width="wide"
       footer={
         <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button
             type="button"
+            className="rounded-none bg-[var(--pos-primary,#0f766e)] text-white"
             disabled={sending || recipients.length === 0 || !body.trim()}
             onClick={() => void handleSend()}
           >
@@ -170,7 +175,7 @@ export function StaffSmsDrawer({
       }
     >
       {!targetUserId ? (
-        <div className="mb-4 flex gap-1 rounded-lg border border-border/60 bg-muted/20 p-1">
+        <div className="mb-4 flex gap-1 rounded-none border border-border/60 bg-muted/20 p-1">
           {(
             [
               ["pending", "Pending pay", Users],
@@ -181,10 +186,10 @@ export function StaffSmsDrawer({
               key={key}
               type="button"
               className={cn(
-                "inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium",
+                "inline-flex flex-1 items-center justify-center gap-1.5 rounded-none px-2 py-1.5 text-xs font-medium",
                 scope === key
-                  ? "bg-background shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
               )}
               onClick={() => setScope(key)}
             >
@@ -211,7 +216,7 @@ export function StaffSmsDrawer({
                 key={template.key}
                 type="button"
                 className={cn(
-                  "rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                  "rounded-none border px-3 py-2 text-left text-xs transition-colors",
                   templateKey === template.key
                     ? "border-primary/40 bg-primary/5"
                     : "border-border/60 bg-muted/20 hover:bg-muted/35",
@@ -233,7 +238,7 @@ export function StaffSmsDrawer({
         <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
           Message <span className="font-normal">(editable)</span>
           <textarea
-            className="min-h-[120px] rounded-lg border border-border/60 bg-background px-3 py-2 text-sm leading-relaxed"
+            className="min-h-[120px] rounded-none border border-border/60 bg-background px-3 py-2 text-sm leading-relaxed"
             value={body}
             onChange={(e) => setBody(e.target.value)}
           />
@@ -248,7 +253,7 @@ export function StaffSmsDrawer({
         </div>
 
         {selectedTemplate ? (
-          <p className="rounded-lg bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+          <p className="rounded-none bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
             Placeholders: {selectedTemplate.placeholders.join(", ")}
           </p>
         ) : null}

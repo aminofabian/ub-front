@@ -1,14 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Check,
-  ChevronDown,
-  Minus,
-  Search,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { Check, ChevronDown, Minus, Search, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -99,7 +92,11 @@ export function CategoryBulkSuggestions({
   };
 
   const toggleDepartment = (parent: string, children: readonly string[]) => {
-    const keys = suggestionKeysForDepartment(parent, children, catalogNameLowerSet);
+    const keys = suggestionKeysForDepartment(
+      parent,
+      children,
+      catalogNameLowerSet,
+    );
     const { all } = selectionSummary(keys, pickKeys);
     if (all) {
       onSetPickKeys(pickKeys.filter((k) => !keys.includes(k)));
@@ -125,7 +122,7 @@ export function CategoryBulkSuggestions({
         type="button"
         variant="secondary"
         size="sm"
-        className="w-fit gap-2 shadow-sm"
+        className="w-fit gap-2 shadow-none"
         onClick={() => onOpenChange(true)}
       >
         <Sparkles className="size-4 text-primary" aria-hidden />
@@ -137,7 +134,7 @@ export function CategoryBulkSuggestions({
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/15 shadow-sm",
+        "flex flex-col overflow-hidden rounded-none border border-border/60 bg-muted/15 shadow-none",
         compact && "border-primary/15 bg-primary/[0.03]",
         onboardingHighlight &&
           "ring-2 ring-primary/60 ring-offset-2 ring-offset-background",
@@ -166,7 +163,11 @@ export function CategoryBulkSuggestions({
         </Button>
       </div>
 
-      <div className={cn(compact ? "space-y-2 px-2.5 pt-2" : "space-y-3 px-3 pt-3")}>
+      <div
+        className={cn(
+          compact ? "space-y-2 px-2.5 pt-2" : "space-y-3 px-3 pt-3",
+        )}
+      >
         <div className="flex flex-wrap gap-1.5">
           {CATEGORY_STARTER_KITS.map((kit) => (
             <button
@@ -177,17 +178,25 @@ export function CategoryBulkSuggestions({
                 "inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-background px-2.5 py-1.5 text-left transition-colors",
                 "hover:border-primary/40 hover:bg-primary/5",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                !compact && "min-w-[7rem] flex-1 flex-col items-start px-3 py-2",
+                !compact &&
+                  "min-w-[7rem] flex-1 flex-col items-start px-3 py-2",
               )}
             >
               <span className="text-base leading-none" aria-hidden>
                 {kit.emoji}
               </span>
-              <span className={cn("font-semibold text-foreground", compact ? "text-xs" : "text-xs")}>
+              <span
+                className={cn(
+                  "font-semibold text-foreground",
+                  compact ? "text-xs" : "text-xs",
+                )}
+              >
                 {kit.label}
               </span>
               {!compact ? (
-                <span className="text-[10px] text-muted-foreground">{kit.hint}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {kit.hint}
+                </span>
               ) : null}
             </button>
           ))}
@@ -203,7 +212,7 @@ export function CategoryBulkSuggestions({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search departments or items…"
-            className="h-9 w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm shadow-sm"
+            className="h-9 w-full rounded-none border border-input bg-background py-2 pl-9 pr-3 text-sm shadow-none"
             aria-label="Search suggested categories"
           />
         </label>
@@ -227,7 +236,11 @@ export function CategoryBulkSuggestions({
           </p>
         ) : (
           filteredDepartments.map(([parent, children]) => {
-            const keys = suggestionKeysForDepartment(parent, children, catalogNameLowerSet);
+            const keys = suggestionKeysForDepartment(
+              parent,
+              children,
+              catalogNameLowerSet,
+            );
             const { selected, total, all, some } = selectionSummary(
               keys,
               pickKeys,
@@ -239,7 +252,7 @@ export function CategoryBulkSuggestions({
               <div
                 key={parent}
                 className={cn(
-                  "overflow-hidden rounded-lg border bg-background shadow-sm transition-colors",
+                  "overflow-hidden rounded-none border bg-background shadow-none transition-colors",
                   all
                     ? "border-primary/50 ring-1 ring-primary/20"
                     : some
@@ -327,7 +340,7 @@ export function CategoryBulkSuggestions({
                             className={cn(
                               "inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-left text-xs transition-colors",
                               checked
-                                ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                ? "border-primary bg-primary text-primary-foreground shadow-none"
                                 : "border-border/80 bg-background text-foreground hover:border-primary/40 hover:bg-primary/5",
                             )}
                           >
@@ -357,7 +370,8 @@ export function CategoryBulkSuggestions({
             <span className="text-muted-foreground">None selected</span>
           ) : (
             <>
-              <span className="tabular-nums text-primary">{pickCount}</span> selected
+              <span className="tabular-nums text-primary">{pickCount}</span>{" "}
+              selected
             </>
           )}
         </p>

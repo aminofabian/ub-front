@@ -10,10 +10,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  fetchPayrollAdvances,
-  type PayrollAdvanceLedgerRow,
-} from "@/lib/api";
+import { fetchPayrollAdvances, type PayrollAdvanceLedgerRow } from "@/lib/api";
 import {
   exportAdvanceLedgerCsv,
   formatPayrollDate,
@@ -42,7 +39,9 @@ export function AdvanceLedgerPanel({
     try {
       setRows(await fetchPayrollAdvances());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load advance ledger");
+      setError(
+        err instanceof Error ? err.message : "Failed to load advance ledger",
+      );
       setRows([]);
     } finally {
       setLoading(false);
@@ -94,15 +93,15 @@ export function AdvanceLedgerPanel({
           </span>
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/20 p-1">
+          <div className="flex gap-1 rounded-none border border-border/60 bg-muted/20 p-1">
             {(["outstanding", "all", "repaid"] as const).map((key) => (
               <button
                 key={key}
                 type="button"
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-colors",
+                  "rounded-none px-2.5 py-1 text-xs font-medium capitalize transition-colors",
                   filter === key
-                    ? "bg-background text-foreground shadow-sm"
+                    ? "bg-background text-foreground shadow-none"
                     : "text-muted-foreground hover:text-foreground",
                 )}
                 onClick={() => setFilter(key)}
@@ -126,7 +125,7 @@ export function AdvanceLedgerPanel({
       <section className={DASHBOARD_TABLE_SURFACE}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[880px] text-left text-sm">
-            <thead className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="border-b border-border/60 bg-muted/30 text-xs tracking-[-0.02em] text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Date</th>
                 <th className="px-4 py-3 font-medium">Staff</th>
@@ -162,7 +161,9 @@ export function AdvanceLedgerPanel({
                         <button
                           type="button"
                           className="font-medium underline-offset-2 hover:underline"
-                          onClick={() => onOpenStaff(row.userId, row.displayName)}
+                          onClick={() =>
+                            onOpenStaff(row.userId, row.displayName)
+                          }
                         >
                           {row.displayName}
                         </button>
@@ -180,19 +181,21 @@ export function AdvanceLedgerPanel({
                       {formatPayrollMoney(Number(row.amountRepaid ?? 0))}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums font-medium">
-                      {formatPayrollMoney(Number(row.balanceOutstanding ?? row.amount))}
+                      {formatPayrollMoney(
+                        Number(row.balanceOutstanding ?? row.amount),
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {row.status === "repaid" ? (
-                        <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
+                        <span className="rounded-none bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
                           Repaid
                         </span>
                       ) : Number(row.amountRepaid) > 0 ? (
-                        <span className="rounded-md bg-sky-500/15 px-2 py-0.5 text-xs text-sky-900 dark:text-sky-200">
+                        <span className="rounded-none bg-sky-500/15 px-2 py-0.5 text-xs text-sky-900 dark:text-sky-200">
                           Partial
                         </span>
                       ) : (
-                        <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs text-amber-900 dark:text-amber-200">
+                        <span className="rounded-none bg-amber-500/15 px-2 py-0.5 text-xs text-amber-900 dark:text-amber-200">
                           Outstanding
                         </span>
                       )}

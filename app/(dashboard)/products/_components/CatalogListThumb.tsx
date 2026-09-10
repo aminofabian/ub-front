@@ -51,9 +51,7 @@ export function CatalogListThumb({
           className={catalogListThumbImageClass}
         />
       ) : (
-        <span className={catalogListThumbPlaceholderClass}>
-          {titleInitial}
-        </span>
+        <span className={catalogListThumbPlaceholderClass}>{titleInitial}</span>
       )}
     </span>
   );

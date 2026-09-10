@@ -18,7 +18,7 @@ export function BatchAlerts({ alerts }: { alerts: BatchAlert[] }) {
           <div
             key={i}
             className={cn(
-              "flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-sm",
+              "flex items-start gap-3 rounded-none border px-4 py-3 text-sm shadow-none",
               isDanger && "border-rose-200 bg-rose-50 text-rose-900",
               isWarning && "border-amber-200 bg-amber-50 text-amber-900",
               isInfo && "border-sky-200 bg-sky-50 text-sky-900",

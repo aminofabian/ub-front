@@ -3,10 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { History, Loader2, Package, ScanBarcode } from "lucide-react";
 
-import {
-  fetchItemTimeline,
-  type ItemTimelineEntryRecord,
-} from "@/lib/api";
+import { fetchItemTimeline, type ItemTimelineEntryRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import {
@@ -94,9 +91,7 @@ export function ProductItemTimeline({ itemId }: { itemId: string }) {
       .catch((e) => {
         if (!cancelled) {
           setEntries(null);
-          setError(
-            e instanceof Error ? e.message : "Could not load timeline.",
-          );
+          setError(e instanceof Error ? e.message : "Could not load timeline.");
         }
       })
       .finally(() => {

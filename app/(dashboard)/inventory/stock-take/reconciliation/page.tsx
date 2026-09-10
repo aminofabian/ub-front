@@ -53,7 +53,7 @@ function varianceBg(v: number): string {
 // ── Page ──────────────────────────────────────────────────────────────
 
 /** Return a human-readable label for a reconciliation line.
- *  Falls back to SKU or a generic label when the backend sends a raw UUID. */
+ * Falls back to SKU or a generic label when the backend sends a raw UUID. */
 function getReconLineName(line: ReconciliationLineRecord): string {
   const name = line.itemName?.trim();
   if (name && !/^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/i.test(name)) {
@@ -172,8 +172,8 @@ export default function ReconciliationPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="space-y-6">
-        <header className="space-y-4">
+      <div className="space-y-1">
+        <header className="space-y-1">
           <DashboardPageHero
             showActiveScope
             icon={BarChart3}
@@ -187,7 +187,7 @@ export default function ReconciliationPage() {
         </header>
 
         {/* Auto-detect form */}
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
+        <div className="rounded-none border bg-white p-6 shadow-none">
           <h3 className="mb-4 text-sm font-semibold">Generate Report</h3>
           <p className="mb-4 text-xs text-muted-foreground">
             Select a branch and date. The system will automatically find the
@@ -199,7 +199,7 @@ export default function ReconciliationPage() {
                 Branch
               </span>
               <select
-                className="rounded-md border bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                 value={branchId}
                 onChange={(e) => setBranchId(e.target.value)}
                 disabled={branchLocked}
@@ -220,7 +220,7 @@ export default function ReconciliationPage() {
               </span>
               <input
                 type="date"
-                className="rounded-md border bg-background px-3 py-2 text-sm"
+                className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
@@ -238,7 +238,7 @@ export default function ReconciliationPage() {
           <div className="space-y-4">
             {/* Summary cards */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-              <div className="rounded-lg border bg-card p-3 text-center shadow-sm">
+              <div className="rounded-none border bg-white p-3 text-center shadow-none">
                 <div className="text-2xl font-bold">
                   {report.totalReconciled}
                 </div>
@@ -246,7 +246,7 @@ export default function ReconciliationPage() {
                   Items reconciled
                 </div>
               </div>
-              <div className="rounded-lg border bg-card p-3 text-center shadow-sm">
+              <div className="rounded-none border bg-white p-3 text-center shadow-none">
                 <div className="text-2xl font-bold text-emerald-600">
                   {report.zeroVariance}
                 </div>
@@ -254,7 +254,7 @@ export default function ReconciliationPage() {
                   Zero variance
                 </div>
               </div>
-              <div className="rounded-lg border bg-card p-3 text-center shadow-sm">
+              <div className="rounded-none border bg-white p-3 text-center shadow-none">
                 <div className="text-2xl font-bold text-red-600">
                   {report.withVariance}
                 </div>
@@ -262,7 +262,7 @@ export default function ReconciliationPage() {
                   With variance
                 </div>
               </div>
-              <div className="rounded-lg border bg-card p-3 text-center shadow-sm col-span-2">
+              <div className="rounded-none border bg-white p-3 text-center shadow-none col-span-2">
                 <div className="text-xs text-muted-foreground">
                   {report.morningSessionName} → {report.eveningSessionName}
                 </div>
@@ -295,7 +295,7 @@ export default function ReconciliationPage() {
             ) : null}
 
             {/* Report table */}
-            <div className="overflow-x-auto rounded-md border">
+            <div className="overflow-x-auto rounded-none border">
               <table className="w-full min-w-[40rem] text-left text-sm">
                 <thead className="sticky top-0 border-b bg-muted/40">
                   <tr>

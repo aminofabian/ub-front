@@ -1,6 +1,13 @@
 "use client";
 
-import { Download, Loader2, MessageSquare, Scale, Sparkles, Wallet } from "lucide-react";
+import {
+  Download,
+  Loader2,
+  MessageSquare,
+  Scale,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
 
 import { dashboardSelectClass } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
@@ -49,9 +56,9 @@ export function PayrollRunSidebar({
   return (
     <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
       {canRunPayroll && pendingCount > 0 ? (
-        <div className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4">
+        <div className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-white p-4">
           <div className="flex items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-none bg-primary/15 text-primary">
               <Sparkles className="size-5" aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
@@ -63,7 +70,7 @@ export function PayrollRunSidebar({
           </div>
           <Button
             type="button"
-            className="mt-4 w-full"
+            className="mt-4 w-full rounded-none bg-[var(--pos-primary,#0f766e)] text-white"
             disabled={payingAll || payingId != null}
             onClick={onPayAll}
           >
@@ -79,8 +86,8 @@ export function PayrollRunSidebar({
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4">
+        <p className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
           Run settings
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -157,7 +164,7 @@ export function PayrollRunSidebar({
         branchFilter={branchFilter}
       />
 
-      <div className="rounded-2xl border border-dashed border-border/60 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+      <div className="rounded-none border border-dashed border-border/60 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
         <p className="font-medium text-foreground">How this works</p>
         <ol className="mt-2 list-decimal space-y-1 pl-4">
           <li>Select a staff member from the roster.</li>
@@ -186,24 +193,28 @@ function SettingToggle({
     <button
       type="button"
       className={cn(
-        "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors",
+        "flex w-full items-center gap-3 rounded-none border px-3 py-2.5 text-left transition-colors",
         active
-          ? "border-primary/35 bg-primary/5"
-          : "border-border/50 bg-muted/15 hover:bg-muted/25",
+          ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white hover:text-[var(--order-ink,#15231f)]",
       )}
       onClick={onClick}
     >
       <span
         className={cn(
-          "flex size-8 shrink-0 items-center justify-center rounded-lg",
-          active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+          "flex size-8 shrink-0 items-center justify-center rounded-none",
+          active
+            ? "bg-primary/15 text-primary"
+            : "bg-muted text-muted-foreground",
         )}
       >
         {icon}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium">{title}</span>
-        <span className="block text-[11px] text-muted-foreground">{description}</span>
+        <span className="block text-[11px] text-muted-foreground">
+          {description}
+        </span>
       </span>
       <span
         className={cn(

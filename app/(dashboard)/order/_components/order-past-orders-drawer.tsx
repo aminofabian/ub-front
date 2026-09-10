@@ -174,8 +174,8 @@ export function OrderPastOrdersDrawer({
                 Past orders
               </DialogTitle>
               <DialogDescription className="mt-1 text-[12px]">
-                Pull a previous purchase order back into your basket — prices and
-                quantities refill automatically.
+                Pull a previous purchase order back into your basket — prices
+                and quantities refill automatically.
               </DialogDescription>
             </div>
           </div>

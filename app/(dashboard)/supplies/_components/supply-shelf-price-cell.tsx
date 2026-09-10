@@ -126,7 +126,10 @@ function resolveShelfTone(
   return retail != null ? "edited" : "empty";
 }
 
-export function formatSupplyMargin(retail: number, cost: number): string | null {
+export function formatSupplyMargin(
+  retail: number,
+  cost: number,
+): string | null {
   if (cost <= 0) {
     return null;
   }
@@ -218,16 +221,20 @@ export function SupplyShelfPriceCell({
     retail != null && unit != null && unit > 0
       ? formatMargin(retail, unit)
       : null;
-  const belowCost =
-    retail != null && unit != null && unit > 0 && retail < unit;
+  const belowCost = retail != null && unit != null && unit > 0 && retail < unit;
 
   const h = touch ? "h-11" : compact ? "h-7" : "h-8";
   const text = touch ? "text-base" : compact ? "text-xs" : "text-sm";
 
   return (
-    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
+    <div
+      className={cn(
+        "flex min-w-0 flex-col",
+        touch || !compact ? "gap-1" : "gap-0.5",
+      )}
+    >
       {label ? (
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {label}
         </span>
       ) : null}
@@ -276,7 +283,12 @@ export function SupplyShelfPriceCell({
             className="pointer-events-none absolute right-1 inline-flex items-center text-muted-foreground"
             aria-hidden
           >
-            <Loader2 className={cn("animate-spin", compact && !touch ? "size-3" : "size-3.5")} />
+            <Loader2
+              className={cn(
+                "animate-spin",
+                compact && !touch ? "size-3" : "size-3.5",
+              )}
+            />
           </span>
         ) : null}
       </div>
@@ -292,10 +304,14 @@ export function SupplyShelfPriceCell({
           ) : !compact || touch ? (
             <>
               {margin && retail != null && unit != null && retail >= unit ? (
-                <span className="text-[10px] font-medium text-primary">{margin}</span>
+                <span className="text-[10px] font-medium text-primary">
+                  {margin}
+                </span>
               ) : null}
               {!canSetSellPrice ? (
-                <span className="text-[10px] text-muted-foreground">View only</span>
+                <span className="text-[10px] text-muted-foreground">
+                  View only
+                </span>
               ) : null}
             </>
           ) : null}

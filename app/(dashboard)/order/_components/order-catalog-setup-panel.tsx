@@ -92,8 +92,8 @@ export function OrderCatalogSetupPanel({
 
       {!canLink && !canCreate ? (
         <p className="max-w-sm text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-          You don’t have permission to link products here. Ask an admin to attach
-          catalog items on the{" "}
+          You don’t have permission to link products here. Ask an admin to
+          attach catalog items on the{" "}
           <Link
             href={APP_ROUTES.suppliers}
             className="font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
@@ -105,15 +105,21 @@ export function OrderCatalogSetupPanel({
       ) : (
         <ol className="grid w-full max-w-lg gap-2 text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] sm:grid-cols-3">
           <li className={stepClass}>
-            <span className="font-bold text-[var(--order-ink,#15231f)]">1.</span>{" "}
+            <span className="font-bold text-[var(--order-ink,#15231f)]">
+              1.
+            </span>{" "}
             Link products to {supplierName}
           </li>
           <li className={stepClass}>
-            <span className="font-bold text-[var(--order-ink,#15231f)]">2.</span>{" "}
+            <span className="font-bold text-[var(--order-ink,#15231f)]">
+              2.
+            </span>{" "}
             Tap items to add them to your order
           </li>
           <li className={stepClass}>
-            <span className="font-bold text-[var(--order-ink,#15231f)]">3.</span>{" "}
+            <span className="font-bold text-[var(--order-ink,#15231f)]">
+              3.
+            </span>{" "}
             Save and send the purchase order
           </li>
         </ol>

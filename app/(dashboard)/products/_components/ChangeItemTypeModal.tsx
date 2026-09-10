@@ -95,7 +95,9 @@ export function ChangeItemTypeModal({
             </DialogTitle>
             <DialogDescription>
               Move{" "}
-              <span className="font-medium text-foreground">{subjectLabel}</span>{" "}
+              <span className="font-medium text-foreground">
+                {subjectLabel}
+              </span>{" "}
               to a different department
               {currentLabel ? (
                 <>
@@ -111,7 +113,7 @@ export function ChangeItemTypeModal({
 
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             {sorted.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/50 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+              <div className="rounded-none border border-dashed border-border/50 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
                 No departments exist yet. Create one from the catalog settings
                 before moving products.
               </div>
@@ -127,7 +129,7 @@ export function ChangeItemTypeModal({
                         onClick={() => setSelected(t.id)}
                         disabled={busy}
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors",
+                          "flex w-full items-center gap-3 rounded-none border p-3 text-left transition-colors",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
                           isSelected
                             ? "border-primary/60 bg-primary/[0.06] ring-1 ring-inset ring-primary/30"
@@ -137,7 +139,7 @@ export function ChangeItemTypeModal({
                       >
                         <span
                           className={cn(
-                            "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                            "flex size-9 shrink-0 items-center justify-center rounded-none",
                             isSelected
                               ? "bg-primary/15 text-primary"
                               : "bg-muted text-muted-foreground",
@@ -150,12 +152,12 @@ export function ChangeItemTypeModal({
                           <span className="block truncate text-sm font-semibold text-foreground">
                             {t.label}
                             {isCurrent ? (
-                              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                                 Current
                               </span>
                             ) : null}
                             {t.isDefault ? (
-                              <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                              <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-primary">
                                 Default
                               </span>
                             ) : null}

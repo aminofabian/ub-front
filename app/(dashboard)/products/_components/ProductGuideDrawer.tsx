@@ -39,10 +39,12 @@ export function ProductGuideDrawer({ trigger }: { trigger?: ReactNode }) {
       <DialogContent side="right" className="gap-0 p-0">
         <div className="flex flex-col overflow-y-auto p-5 pb-6">
           <DialogHeader className="pr-10">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/70">
+            <p className="font-mono text-[10px] font-semibold tracking-[-0.02em] text-primary/70">
               Two-minute summary
             </p>
-            <DialogTitle className="pt-1 text-lg">How to add products</DialogTitle>
+            <DialogTitle className="pt-1 text-lg">
+              How to add products
+            </DialogTitle>
             <DialogDescription>
               Pick the right product type, fill the essentials, and you are
               selling. The full guide with screenshots is one tap away.
@@ -70,7 +72,7 @@ export function ProductGuideDrawer({ trigger }: { trigger?: ReactNode }) {
             />
           </div>
 
-          <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="mt-5 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             The essentials
           </p>
           <ul className="mt-2.5 space-y-2">
@@ -78,7 +80,9 @@ export function ProductGuideDrawer({ trigger }: { trigger?: ReactNode }) {
               icon={Tag}
               text={
                 <>
-                  <span className="font-medium text-foreground">Buying &amp; sell price</span>
+                  <span className="font-medium text-foreground">
+                    Buying &amp; sell price
+                  </span>
                   {" — the till shows your margin as you type."}
                 </>
               }
@@ -96,14 +100,16 @@ export function ProductGuideDrawer({ trigger }: { trigger?: ReactNode }) {
               icon={Warehouse}
               text={
                 <>
-                  <span className="font-medium text-foreground">Opening qty</span>
+                  <span className="font-medium text-foreground">
+                    Opening qty
+                  </span>
                   {" — per branch, so stock is honest from day one."}
                 </>
               }
             />
           </ul>
 
-          <div className="mt-5 rounded-lg border border-border bg-muted/40 px-3.5 py-3 text-[12px] leading-relaxed text-muted-foreground">
+          <div className="mt-5 rounded-none border border-border bg-muted/40 px-3.5 py-3 text-[12px] leading-relaxed text-muted-foreground">
             <span className="font-medium text-foreground">Quick rule: </span>
             one-off item → Single. Same brand in sizes → Group with variants.
             Loose + trays → Single with packages. Don’t create three separate
@@ -114,11 +120,14 @@ export function ProductGuideDrawer({ trigger }: { trigger?: ReactNode }) {
             href={guideUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="group mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="group mt-6 inline-flex items-center justify-center gap-2 rounded-none bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <BookOpen className="size-4" aria-hidden />
             Read the full step-by-step guide
-            <ArrowRight className="size-4 transition group-hover:translate-x-0.5" aria-hidden />
+            <ArrowRight
+              className="size-4 transition group-hover:translate-x-0.5"
+              aria-hidden
+            />
           </Link>
           <p className="mt-2 text-center text-[11px] text-muted-foreground/70">
             Opens the guide on kiosk.ke — no tenant redirect.
@@ -141,7 +150,7 @@ function TypeCard({
   accent?: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-border bg-card px-3.5 py-3">
+    <div className="flex items-start gap-3 rounded-none border border-border bg-card px-3.5 py-3">
       <span
         className={cn(
           "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40",

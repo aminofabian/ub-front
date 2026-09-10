@@ -112,14 +112,21 @@ export function OccurrencesPanel({
       onChanged();
       await load();
     } catch (err) {
-      onFeedback("error", err instanceof Error ? err.message : "Failed to post");
+      onFeedback(
+        "error",
+        err instanceof Error ? err.message : "Failed to post",
+      );
     } finally {
       setBusyKey(null);
     }
   };
 
   const skipRow = async (row: ExpenseScheduleOccurrenceRecord) => {
-    if (!confirm(`Skip "${row.scheduleName}" on ${formatFixedCostDate(row.occurrenceDate)}?`)) {
+    if (
+      !confirm(
+        `Skip "${row.scheduleName}" on ${formatFixedCostDate(row.occurrenceDate)}?`,
+      )
+    ) {
       return;
     }
     const key = rowKey(row);
@@ -137,7 +144,10 @@ export function OccurrencesPanel({
       onChanged();
       await load();
     } catch (err) {
-      onFeedback("error", err instanceof Error ? err.message : "Failed to skip");
+      onFeedback(
+        "error",
+        err instanceof Error ? err.message : "Failed to skip",
+      );
     } finally {
       setBusyKey(null);
     }
@@ -170,14 +180,18 @@ export function OccurrencesPanel({
             "flex flex-wrap items-start gap-3 border-amber-500/30 bg-amber-500/5",
           )}
         >
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />
+          <AlertTriangle
+            className="mt-0.5 size-4 shrink-0 text-amber-600"
+            aria-hidden
+          />
           <div className="min-w-0 flex-1 space-y-1">
             <p className="text-sm font-medium">
-              {actionable.length} bill{actionable.length === 1 ? "" : "s"} need attention in{" "}
-              {fixedCostMonthLabel(year, month)}
+              {actionable.length} bill{actionable.length === 1 ? "" : "s"} need
+              attention in {fixedCostMonthLabel(year, month)}
             </p>
             <p className="text-xs text-muted-foreground">
-              Post now to record the expense, or skip if you paid outside Palmart.
+              Post now to record the expense, or skip if you paid outside
+              Palmart.
             </p>
           </div>
         </div>
@@ -185,7 +199,9 @@ export function OccurrencesPanel({
 
       <section className={cn(DASHBOARD_TABLE_SURFACE)}>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
-          <p className="text-sm font-medium">Due dates — {fixedCostMonthLabel(year, month)}</p>
+          <p className="text-sm font-medium">
+            Due dates — {fixedCostMonthLabel(year, month)}
+          </p>
           <Button type="button" variant="outline" size="sm" onClick={exportCsv}>
             <Download className="mr-1.5 size-3.5" aria-hidden />
             Export CSV
@@ -193,7 +209,7 @@ export function OccurrencesPanel({
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="border-b border-border/60 bg-muted/30 text-xs tracking-[-0.02em] text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Bill</th>
                 <th className="px-4 py-3 font-medium">Due date</th>
@@ -208,19 +224,28 @@ export function OccurrencesPanel({
                 const key = rowKey(row);
                 const busy = busyKey === key;
                 const canAct =
-                  canManage && (row.status === "due" || row.status === "failed");
+                  canManage &&
+                  (row.status === "due" || row.status === "failed");
                 return (
                   <tr key={key} className="border-b border-border/40">
-                    <td className="px-4 py-3 font-medium">{row.scheduleName}</td>
-                    <td className="px-4 py-3">{formatFixedCostDate(row.occurrenceDate)}</td>
+                    <td className="px-4 py-3 font-medium">
+                      {row.scheduleName}
+                    </td>
+                    <td className="px-4 py-3">
+                      {formatFixedCostDate(row.occurrenceDate)}
+                    </td>
                     <td className="px-4 py-3 tabular-nums">
                       {formatFixedCostMoney(Number(row.amount))}
                     </td>
-                    <td className="px-4 py-3">{paymentMethodLabel(row.paymentMethod)}</td>
+                    <td className="px-4 py-3">
+                      {paymentMethodLabel(row.paymentMethod)}
+                    </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={row.status} />
                       {row.failureReason ? (
-                        <p className="mt-1 max-w-xs text-xs text-red-600">{row.failureReason}</p>
+                        <p className="mt-1 max-w-xs text-xs text-red-600">
+                          {row.failureReason}
+                        </p>
                       ) : null}
                     </td>
                     {canManage ? (
@@ -234,7 +259,10 @@ export function OccurrencesPanel({
                               onClick={() => void postRow(row)}
                             >
                               {busy ? (
-                                <Loader2 className="mr-1.5 size-3.5 animate-spin" aria-hidden />
+                                <Loader2
+                                  className="mr-1.5 size-3.5 animate-spin"
+                                  aria-hidden
+                                />
                               ) : null}
                               Post now
                             </Button>
@@ -274,7 +302,12 @@ function StatusBadge({ status }: { status: string }) {
             ? "bg-muted text-muted-foreground"
             : "bg-muted/60 text-muted-foreground";
   return (
-    <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", tone)}>
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+        tone,
+      )}
+    >
       {occurrenceStatusLabel(status)}
     </span>
   );

@@ -51,7 +51,7 @@ export function PayrollRunHeader({
   const complete = progress === 100 && summary.headcount > 0;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-background via-background to-muted/30 shadow-sm">
+    <section className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 px-4 py-3 sm:px-5">
         <div className="flex items-center gap-2">
           <Button
@@ -68,7 +68,7 @@ export function PayrollRunHeader({
             <ChevronLeft className="size-4" aria-hidden />
           </Button>
           <div className="text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
               Pay period
             </p>
             <p className="text-base font-semibold tabular-nums sm:text-lg">
@@ -105,7 +105,12 @@ export function PayrollRunHeader({
             </Button>
           ) : null}
           {onRefresh ? (
-            <Button type="button" variant="outline" size="sm" onClick={onRefresh}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onRefresh}
+            >
               <RefreshCw className="mr-1.5 size-3.5" aria-hidden />
               Refresh
             </Button>
@@ -116,7 +121,7 @@ export function PayrollRunHeader({
       <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-medium tracking-[-0.02em] text-muted-foreground">
               Net to disburse
             </p>
             <p className="mt-1 text-3xl font-semibold tabular-nums tracking-tight sm:text-4xl">
@@ -124,26 +129,33 @@ export function PayrollRunHeader({
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
               {summary.pendingCount} staff awaiting payment
-              {summary.paidCount > 0 ? ` · ${summary.paidCount} already paid` : ""}
+              {summary.paidCount > 0
+                ? ` · ${summary.paidCount} already paid`
+                : ""}
               {summary.staffWithArrears > 0
                 ? ` · ${summary.staffWithArrears} with arrears`
                 : ""}
             </p>
             {summary.totalArrears > 0 ? (
-              <p className="mt-2 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-950 dark:text-violet-100">
-                {formatPayrollMoney(summary.totalArrears)} in unpaid prior months is rolled into
-                this run — paying now clears those periods too.
+              <p className="mt-2 rounded-none border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-950 dark:text-violet-100">
+                {formatPayrollMoney(summary.totalArrears)} in unpaid prior
+                months is rolled into this run — paying now clears those periods
+                too.
               </p>
             ) : null}
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-medium text-muted-foreground">Run completion</span>
+              <span className="font-medium text-muted-foreground">
+                Run completion
+              </span>
               <span
                 className={cn(
                   "font-semibold tabular-nums",
-                  complete ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
+                  complete
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-foreground",
                 )}
               >
                 {summary.paidCount}/{summary.headcount} paid · {progress}%
@@ -212,8 +224,8 @@ function MetricTile({
   muted?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border/50 bg-background/70 px-3 py-2.5">
-      <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="rounded-none border border-border/50 bg-background/70 px-3 py-2.5">
+      <dt className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
         {label}
       </dt>
       <dd

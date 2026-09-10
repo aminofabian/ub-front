@@ -200,12 +200,16 @@ function RemainingFace({ live }: { live: KplcLiveEstimate | null }) {
             {empty ? (
               <>
                 Was due{" "}
-                <time dateTime={empty.toISOString()}>{formatDepletionDate(empty)}</time>
+                <time dateTime={empty.toISOString()}>
+                  {formatDepletionDate(empty)}
+                </time>
               </>
             ) : (
               "Likely already empty"
             )}
-            {remaining > 0 ? ` · ${kwhLabel(remaining)} on the last estimate` : ""}
+            {remaining > 0
+              ? ` · ${kwhLabel(remaining)} on the last estimate`
+              : ""}
           </p>
         </>
       ) : (
@@ -215,7 +219,9 @@ function RemainingFace({ live }: { live: KplcLiveEstimate | null }) {
             {empty ? (
               <>
                 Empty{" "}
-                <time dateTime={empty.toISOString()}>{formatDepletionDate(empty)}</time>
+                <time dateTime={empty.toISOString()}>
+                  {formatDepletionDate(empty)}
+                </time>
                 <span> · {compactTimeLeft(empty)}</span>
               </>
             ) : (
@@ -315,7 +321,9 @@ export function TabKplcSheet({
   const [meter, setMeter] = useState("");
   const [tokens, setTokens] = useState<PublicTabKplcToken[] | null>(null);
   const [stats, setStats] = useState<PublicTabKplcStats | null>(null);
-  const [depletion, setDepletion] = useState<PublicTabKplcDepletion | null>(null);
+  const [depletion, setDepletion] = useState<PublicTabKplcDepletion | null>(
+    null,
+  );
   const [loadedMeter, setLoadedMeter] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -359,7 +367,9 @@ export function TabKplcSheet({
       })
       .catch((e) => {
         if (!stopped) {
-          setError(e instanceof Error ? e.message : "Could not load saved meters.");
+          setError(
+            e instanceof Error ? e.message : "Could not load saved meters.",
+          );
           setBusy(false);
         }
       });
@@ -399,7 +409,11 @@ export function TabKplcSheet({
         onConfig?.(fresh);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load tokens for this meter.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Could not load tokens for this meter.",
+      );
       setTokens(null);
       setStats(null);
       setDepletion(null);
@@ -450,7 +464,11 @@ export function TabKplcSheet({
     setBusy(true);
     setError(null);
     try {
-      const next = await setPublicTabKplcDepletionAlerts(tabPhone, loadedMeter, enabled);
+      const next = await setPublicTabKplcDepletionAlerts(
+        tabPhone,
+        loadedMeter,
+        enabled,
+      );
       setDepletion(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not update reminders.");
@@ -481,8 +499,11 @@ export function TabKplcSheet({
     loadedMeter != null && digitsOnly(meter) === loadedMeter;
   const latest = sortedTokens[0] ?? null;
   const live = resolveKplcEstimate(sortedTokens, depletion, latest);
-  const meterKnown = meters.some((saved) => saved.meterNumber === digitsOnly(meter));
-  const showMeterInput = meters.length === 0 || addingMeter || (Boolean(meter) && !meterKnown);
+  const meterKnown = meters.some(
+    (saved) => saved.meterNumber === digitsOnly(meter),
+  );
+  const showMeterInput =
+    meters.length === 0 || addingMeter || (Boolean(meter) && !meterKnown);
   const daily = live && live.dailyUseUnits > 0 ? live.dailyUseUnits : null;
   const canRemind = Boolean(live && depletion);
   const lookingUp = busy && tokens == null;
@@ -503,7 +524,11 @@ export function TabKplcSheet({
         onClose={onClose}
         closeLabel="Back to tab"
         kicker={
-          loadedMeter ? formatMeterDisplay(loadedMeter) : meters.length ? "Pick a meter" : "Add a meter"
+          loadedMeter
+            ? formatMeterDisplay(loadedMeter)
+            : meters.length
+              ? "Pick a meter"
+              : "Add a meter"
         }
         trailing={
           resolvedStats && resolvedStats.months.length > 0 ? (
@@ -610,7 +635,11 @@ export function TabKplcSheet({
                     focusRing,
                   )}
                 >
-                  {busy ? "Looking up…" : sameLoadedMeter ? "Look up again" : "Look up"}
+                  {busy
+                    ? "Looking up…"
+                    : sameLoadedMeter
+                      ? "Look up again"
+                      : "Look up"}
                 </button>
               ) : null}
             </div>
@@ -700,7 +729,10 @@ export function TabKplcSheet({
               </button>
               {showMeterInput ? (
                 <div className="mt-2">
-                  <label htmlFor={`${fieldIdPrefix}-kplc-meter`} className="sr-only">
+                  <label
+                    htmlFor={`${fieldIdPrefix}-kplc-meter`}
+                    className="sr-only"
+                  >
                     Meter number
                   </label>
                   <input
@@ -764,13 +796,17 @@ export function TabKplcSheet({
                   ))}
                 </ul>
               ) : !lookingUp ? (
-                <p className={styles.empty}>Look up a meter to load purchases.</p>
+                <p className={styles.empty}>
+                  Look up a meter to load purchases.
+                </p>
               ) : null}
             </section>
 
             {showSpend && resolvedStats && resolvedStats.months.length > 0 ? (
               <section className="px-4 pb-6 pt-4">
-                <p className="text-[13px] text-[var(--tab-muted)]">Monthly spend</p>
+                <p className="text-[13px] text-[var(--tab-muted)]">
+                  Monthly spend
+                </p>
                 <ol className="mt-1 list-none p-0">
                   {resolvedStats.months.map((month) => {
                     const amount = toAmount(month.amount);

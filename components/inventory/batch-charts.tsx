@@ -60,7 +60,7 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm">
+    <div className="rounded-none border bg-white p-4 shadow-none">
       <div className="mb-4 flex items-center gap-2">
         <Icon className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
@@ -208,7 +208,7 @@ export function BatchCharts({
               {expiringData.map((e, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
+                  className="flex items-center justify-between rounded-none border px-3 py-2 text-sm"
                 >
                   <div className="flex items-center gap-2">
                     <span

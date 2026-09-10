@@ -91,7 +91,7 @@ export default function SyncConflictsPage() {
         <button
           onClick={load}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-muted disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-none border bg-background px-3 py-1.5 text-xs font-medium shadow-none hover:bg-muted disabled:opacity-50"
         >
           <RefreshCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
           Refresh
@@ -99,7 +99,7 @@ export default function SyncConflictsPage() {
       </div>
 
       {pendingCount > 0 && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+        <div className="flex items-center gap-2 rounded-none border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
           <AlertTriangle className="size-4 shrink-0" />
           {pendingCount} pending conflict{pendingCount !== 1 ? "s" : ""}{" "}
           requiring resolution.
@@ -107,7 +107,7 @@ export default function SyncConflictsPage() {
       )}
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+        <div className="rounded-none border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
           {error}
         </div>
       )}
@@ -126,7 +126,7 @@ export default function SyncConflictsPage() {
           {conflicts.map((c) => (
             <div
               key={c.id}
-              className="rounded-lg border bg-background p-4 shadow-sm"
+              className="rounded-none border bg-background p-4 shadow-none"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 space-y-1.5">
@@ -159,7 +159,7 @@ export default function SyncConflictsPage() {
                     <button
                       onClick={() => resolve(c.id, "server")}
                       disabled={resolving === c.id}
-                      className="inline-flex items-center gap-1 rounded-md border bg-background px-2.5 py-1 text-[11px] font-medium shadow-sm hover:bg-muted disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-md border bg-background px-2.5 py-1 text-[11px] font-medium shadow-none hover:bg-muted disabled:opacity-50"
                     >
                       <XCircle className="size-3" />
                       Server wins
@@ -167,7 +167,7 @@ export default function SyncConflictsPage() {
                     <button
                       onClick={() => resolve(c.id, "local")}
                       disabled={resolving === c.id}
-                      className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground shadow-none hover:bg-primary/90 disabled:opacity-50"
                     >
                       <CheckCircle className="size-3" />
                       Local wins

@@ -7,7 +7,9 @@ import {
   type GroupOptionRow,
 } from "./CreateGroupOptionsPad";
 
-function row(partial: Partial<GroupOptionRow> & { label: string }): GroupOptionRow {
+function row(
+  partial: Partial<GroupOptionRow> & { label: string },
+): GroupOptionRow {
   return {
     key: "k1",
     barcode: "",
@@ -32,7 +34,7 @@ describe("composeOptionLabel", () => {
   });
 
   it("returns empty when the option suffix is blank", () => {
-    expect(composeOptionLabel("Kabras Sugar", "  ")).toBe("");
+    expect(composeOptionLabel("Kabras Sugar", " ")).toBe("");
   });
 });
 

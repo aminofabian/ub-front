@@ -47,7 +47,7 @@ export function CatalogLetterJumpRail({
         className={cn(
           "pointer-events-auto flex max-h-full flex-col items-center gap-px overflow-y-auto overscroll-contain py-1",
           // Solid fill — stays readable on legacy Chromium without color-mix/blur.
-          "rounded-l-md border border-r-0 border-border bg-background shadow-sm",
+          "rounded-l-md border border-r-0 border-border bg-background shadow-none",
           busy && "opacity-80",
         )}
       >
@@ -83,7 +83,8 @@ export function CatalogLetterJumpRail({
                 !exhaustedMiss &&
                   !hasMatch &&
                   "text-muted-foreground/55 hover:bg-muted/70 hover:text-foreground",
-                isActive && "bg-primary text-primary-foreground hover:bg-primary",
+                isActive &&
+                  "bg-primary text-primary-foreground hover:bg-primary",
               )}
               onClick={() => {
                 if (!busy && !exhaustedMiss) onJump(letter);

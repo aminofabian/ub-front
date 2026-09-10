@@ -170,7 +170,10 @@ export function FixedCostsCalendarPanel({
         {LEGEND.map((status) => (
           <span key={status} className="inline-flex items-center gap-1.5">
             <span
-              className={cn("size-2 rounded-full", fixedCostCalendarDotClass(status))}
+              className={cn(
+                "size-2 rounded-full",
+                fixedCostCalendarDotClass(status),
+              )}
               aria-hidden
             />
             {fixedCostCalendarStatusLabel(status)}
@@ -185,13 +188,15 @@ export function FixedCostsCalendarPanel({
             type="button"
             onClick={() => onSelectMonth(year, month.month)}
             className={cn(
-              "rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "rounded-none border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               fixedCostCalendarCellClass(month.status),
               currentMonth === month.month && "ring-2 ring-primary/30",
             )}
           >
             <div className="flex items-start justify-between gap-2">
-              <p className="font-medium">{fixedCostCalendarMonthName(month.month)}</p>
+              <p className="font-medium">
+                {fixedCostCalendarMonthName(month.month)}
+              </p>
               <span
                 className={cn(
                   "mt-1 size-2 shrink-0 rounded-full",
@@ -229,7 +234,7 @@ function SummaryCard({
 }) {
   return (
     <div className={cn(DASHBOARD_SECTION_SURFACE, "space-y-1")}>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-xs font-medium tracking-[-0.02em] text-muted-foreground">
         {label}
       </p>
       <p className="text-xl font-semibold tabular-nums">{value}</p>

@@ -89,10 +89,16 @@ export default function DailyAuditPage() {
   const { me, business } = useDashboard();
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
   const canRead = hasPermission(me?.permissions, Permission.StocktakeRead);
-  const canWriteOrderPad = hasPermission(me?.permissions, Permission.OrderPadWrite);
+  const canWriteOrderPad = hasPermission(
+    me?.permissions,
+    Permission.OrderPadWrite,
+  );
   const canUploadImage =
     canRun || hasPermission(me?.permissions, Permission.CatalogItemsWrite);
-  const canSeeSystemStock = canStockManagerSeeSystemStockDuringCount(me, business);
+  const canSeeSystemStock = canStockManagerSeeSystemStockDuringCount(
+    me,
+    business,
+  );
   const configuredSampleSize =
     typeof business?.inventory?.stocktake?.dailyAuditSampleSize === "number"
       ? business.inventory.stocktake.dailyAuditSampleSize
@@ -131,10 +137,7 @@ export default function DailyAuditPage() {
     availableIds: branches.length > 0 ? branchIds : undefined,
   });
 
-  const lines = useMemo(
-    () => (session ? sortedLines(session) : []),
-    [session],
-  );
+  const lines = useMemo(() => (session ? sortedLines(session) : []), [session]);
   const currentLine = lines[currentIndex] ?? null;
   const progressPct = lines.length
     ? ((currentIndex + 1) / lines.length) * 100
@@ -184,9 +187,7 @@ export default function DailyAuditPage() {
     if (!today) return null;
     const tz = today.timezone ? ` · ${today.timezone}` : "";
     const urgentTone = (remainingMs: number) =>
-      remainingMs > 0 && remainingMs < ONE_HOUR_MS
-        ? ("urgent" as const)
-        : null;
+      remainingMs > 0 && remainingMs < ONE_HOUR_MS ? ("urgent" as const) : null;
 
     if (activeSessionType === "morning" && phaseRemainingMs != null) {
       return {
@@ -305,7 +306,9 @@ export default function DailyAuditPage() {
     if (targets.length === 0) return;
     const crossed = targets.find((iso) => {
       const t = Date.parse(iso);
-      return Number.isFinite(t) && t <= nowMs && t > lastScheduleRefreshAt.current;
+      return (
+        Number.isFinite(t) && t <= nowMs && t > lastScheduleRefreshAt.current
+      );
     });
     if (!crossed) return;
     lastScheduleRefreshAt.current = Date.parse(crossed);
@@ -381,8 +384,7 @@ export default function DailyAuditPage() {
         );
         setSession(updated);
 
-        const finishing =
-          advance && currentIndex >= lines.length - 1;
+        const finishing = advance && currentIndex >= lines.length - 1;
         if (finishing) {
           updated = await postDailyAuditComplete(session.sessionId);
           const finishedType =
@@ -571,7 +573,7 @@ export default function DailyAuditPage() {
                   className={cn(
                     "inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full px-3 text-xs font-semibold transition-all",
                     active
-                      ? "bg-background text-foreground shadow-sm ring-1 ring-border/70"
+                      ? "bg-background text-foreground shadow-none ring-1 ring-border/70"
                       : "text-muted-foreground active:scale-[0.98]",
                     locked ? "opacity-40" : "",
                   )}
@@ -609,7 +611,7 @@ export default function DailyAuditPage() {
             className={cn(
               "inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5",
               "text-[11px] font-semibold text-muted-foreground",
-              "border border-border/70 bg-background/80 transition active:scale-[0.98]",
+              "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background/80 transition active:scale-[0.98]",
             )}
           >
             <Award className="size-3.5" aria-hidden />
@@ -622,7 +624,7 @@ export default function DailyAuditPage() {
               className={cn(
                 "inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5",
                 "text-[11px] font-semibold text-muted-foreground",
-                "border border-border/70 bg-background/80 transition active:scale-[0.98]",
+                "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background/80 transition active:scale-[0.98]",
               )}
             >
               <ClipboardList className="size-3.5" aria-hidden />
@@ -668,11 +670,11 @@ export default function DailyAuditPage() {
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : !today ? (
-          <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed px-4 text-center text-sm text-muted-foreground">
+          <div className="flex flex-1 items-center justify-center rounded-none border border-dashed px-4 text-center text-sm text-muted-foreground">
             No audit today
           </div>
         ) : sessionDone || todaySessionDone ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-5 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-none border border-emerald-200/80 bg-emerald-50/80 px-5 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
             <CheckCircle2 className="h-12 w-12 text-emerald-600" />
             <div>
               <p className="text-lg font-semibold">{doneLabel}</p>
@@ -680,7 +682,8 @@ export default function DailyAuditPage() {
                 {(session ?? todaySessionSummary)?.submittedCount ??
                   today.itemCount}
                 /
-                {(session ?? todaySessionSummary)?.totalCount ?? today.itemCount}{" "}
+                {(session ?? todaySessionSummary)?.totalCount ??
+                  today.itemCount}{" "}
                 counts saved
               </p>
               {doneType === "morning" && !eveningSessionDone ? (
@@ -710,7 +713,7 @@ export default function DailyAuditPage() {
             {doneType === "morning" && !eveningSessionDone && canRun ? (
               <Button
                 size="lg"
-                className="mt-1 h-12 w-full max-w-xs rounded-full text-base font-semibold shadow-md active:scale-[0.98]"
+                className="mt-1 h-12 w-full max-w-xs rounded-full text-base font-semibold shadow-none active:scale-[0.98]"
                 disabled={saving || !canStartEvening}
                 onClick={() => void startSession("evening")}
               >
@@ -718,7 +721,9 @@ export default function DailyAuditPage() {
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : canStartEvening ? (
                   "Start evening count"
-                ) : nextOpenMs != null && nextOpenMs > 0 && nextOpenIsEvening ? (
+                ) : nextOpenMs != null &&
+                  nextOpenMs > 0 &&
+                  nextOpenIsEvening ? (
                   `Evening opens in ${formatCountdown(nextOpenMs)}`
                 ) : (
                   "Evening count locked"
@@ -727,7 +732,7 @@ export default function DailyAuditPage() {
             ) : null}
           </div>
         ) : !session && canRun && !countingOpen ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed px-5 py-8 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-none border border-dashed px-5 py-8 text-center">
             <p className="text-base font-semibold text-foreground">
               {scheduleBanner?.tone === "closed"
                 ? "Counting ended for today"
@@ -749,7 +754,7 @@ export default function DailyAuditPage() {
             {canStartEvening ? (
               <Button
                 size="lg"
-                className="mt-1 h-12 w-full max-w-xs rounded-full text-base font-semibold shadow-md active:scale-[0.98]"
+                className="mt-1 h-12 w-full max-w-xs rounded-full text-base font-semibold shadow-none active:scale-[0.98]"
                 disabled={saving}
                 onClick={() => void startSession("evening")}
               >
@@ -762,7 +767,7 @@ export default function DailyAuditPage() {
             ) : null}
           </div>
         ) : !session && canRun ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-5 rounded-2xl border border-border/70 bg-card/70 px-5 py-8 text-center shadow-sm backdrop-blur-sm">
+          <div className="flex flex-1 flex-col items-center justify-center gap-5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-5 py-8 text-center shadow-none backdrop-blur-sm">
             <div className="space-y-1.5">
               <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">
                 {today.itemCount}
@@ -776,7 +781,7 @@ export default function DailyAuditPage() {
             </div>
             <Button
               size="lg"
-              className="h-12 w-full max-w-xs rounded-full text-base font-semibold shadow-md active:scale-[0.98]"
+              className="h-12 w-full max-w-xs rounded-full text-base font-semibold shadow-none active:scale-[0.98]"
               onClick={() => void startSession()}
               disabled={saving || !countingOpen}
             >
@@ -798,7 +803,7 @@ export default function DailyAuditPage() {
                 : "motion-safe:slide-in-from-left-3",
             )}
           >
-            <div className="shrink-0 rounded-2xl border border-border/60 bg-card/80 px-3 py-3 shadow-sm backdrop-blur-sm">
+            <div className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3 shadow-none backdrop-blur-sm">
               <DailyAuditProductCard
                 itemId={currentLine.itemId}
                 itemName={currentLine.itemName}
@@ -828,11 +833,11 @@ export default function DailyAuditPage() {
             <div
               className={cn(
                 "relative flex min-h-0 flex-1 flex-col items-center justify-center",
-                "rounded-[1.35rem] border border-border/50 bg-gradient-to-b from-card/90 via-card/60 to-muted/30",
-                "px-3 py-4 shadow-sm",
+                "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+                "px-3 py-4 shadow-none",
               )}
             >
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <p className="mb-2 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 Physical count
               </p>
 
@@ -849,8 +854,8 @@ export default function DailyAuditPage() {
                   aria-label="Decrease count"
                   onClick={() => setCountInput((v) => nudgeQty(v, -1))}
                   className={cn(
-                    "flex size-14 shrink-0 items-center justify-center rounded-2xl",
-                    "border border-border/70 bg-background/90 text-foreground shadow-sm",
+                    "flex size-14 shrink-0 items-center justify-center rounded-none",
+                    "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background/90 text-foreground shadow-none",
                     "transition active:scale-95 disabled:opacity-40",
                   )}
                 >
@@ -865,7 +870,7 @@ export default function DailyAuditPage() {
                   inputMode="decimal"
                   className={cn(
                     dashboardInputClass(),
-                    "h-16 flex-1 rounded-2xl border-primary/25 bg-background/95 text-center",
+                    "h-16 flex-1 rounded-none border-primary/25 bg-background/95 text-center",
                     "text-4xl font-semibold tabular-nums tracking-tight shadow-inner",
                     "focus-visible:ring-primary/30",
                   )}
@@ -887,8 +892,8 @@ export default function DailyAuditPage() {
                   aria-label="Increase count"
                   onClick={() => setCountInput((v) => nudgeQty(v, 1))}
                   className={cn(
-                    "flex size-14 shrink-0 items-center justify-center rounded-2xl",
-                    "bg-primary text-primary-foreground shadow-md shadow-primary/25",
+                    "flex size-14 shrink-0 items-center justify-center rounded-none",
+                    "bg-primary text-primary-foreground shadow-none shadow-primary/25",
                     "transition active:scale-95 disabled:opacity-40",
                   )}
                 >
@@ -905,7 +910,7 @@ export default function DailyAuditPage() {
                   }}
                   className={cn(
                     "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium",
-                    "border border-border/70 bg-background/70 transition active:scale-[0.98]",
+                    "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background/70 transition active:scale-[0.98]",
                     noteOpen || noteInput
                       ? "border-primary/35 text-primary"
                       : "text-muted-foreground",
@@ -924,7 +929,7 @@ export default function DailyAuditPage() {
                       "border transition active:scale-[0.98]",
                       pendingRestock
                         ? "border-primary/35 bg-primary/10 text-primary"
-                        : "border-border/70 bg-background/70 text-muted-foreground",
+                        : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background/70 text-muted-foreground",
                     )}
                   >
                     <PackagePlus className="size-3.5" aria-hidden />
@@ -947,7 +952,7 @@ export default function DailyAuditPage() {
                     type="text"
                     className={cn(
                       dashboardInputClass(),
-                      "h-10 rounded-xl text-sm",
+                      "h-10 rounded-none text-sm",
                     )}
                     value={noteInput}
                     onChange={(e) => setNoteInput(e.target.value)}
@@ -965,11 +970,11 @@ export default function DailyAuditPage() {
       {/* Thumb dock */}
       {session && currentLine && canCount && !sessionDone ? (
         <div className="shrink-0 pt-3">
-          <div className="flex gap-2 rounded-2xl border border-border/60 bg-background/95 p-1.5 shadow-lg shadow-black/5 backdrop-blur-md">
+          <div className="flex gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background/95 p-1.5 shadow-none shadow-black/5 backdrop-blur-md">
             <Button
               type="button"
               variant="outline"
-              className="h-12 w-14 shrink-0 rounded-xl px-0 active:scale-[0.98]"
+              className="h-12 w-14 shrink-0 rounded-none px-0 active:scale-[0.98]"
               disabled={currentIndex === 0 || saving}
               onClick={() => void goPrevious()}
               aria-label="Previous item"
@@ -978,7 +983,7 @@ export default function DailyAuditPage() {
             </Button>
             <Button
               type="button"
-              className="h-12 flex-[2.4] rounded-xl text-base font-semibold shadow-md shadow-primary/20 active:scale-[0.98]"
+              className="h-12 flex-[2.4] rounded-none text-base font-semibold shadow-none shadow-primary/20 active:scale-[0.98]"
               disabled={saving}
               onClick={() => void goNext()}
             >

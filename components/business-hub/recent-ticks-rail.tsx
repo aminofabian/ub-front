@@ -63,7 +63,7 @@ export function RecentTicksRail({
   title = "Till tape",
   subtitle,
   showCashier = true,
-  accent = "brass",
+  accent = "teal",
   laneIndex,
   fillViewport = true,
   className,
@@ -77,7 +77,7 @@ export function RecentTicksRail({
   subtitle?: string;
   /** When false, hide per-sale “By cashier” (solo/dual lane already names the till). */
   showCashier?: boolean;
-  accent?: "brass" | "ink";
+  accent?: "teal" | "ink";
   laneIndex?: number;
   /** Stick to full viewport height on wide layouts (side lanes). */
   fillViewport?: boolean;
@@ -99,7 +99,7 @@ export function RecentTicksRail({
         HUB_RAIL,
         "flex h-full min-h-[16rem] flex-col",
         fillViewport && "xl:min-h-[100dvh] xl:h-[100dvh]",
-        justUpdated && "hub-scan-sweep ring-1 ring-[#B08D48]/35",
+        justUpdated && "hub-scan-sweep ring-1 ring-[#0f766e]/35",
         className,
       )}
       aria-label={title}
@@ -112,7 +112,7 @@ export function RecentTicksRail({
                 <span
                   className={cn(
                     "font-mono text-[10px] tabular-nums",
-                    accent === "ink" ? "text-[#8A8A8A]" : "text-[#B08D48]",
+                    accent === "ink" ? "text-[#8A8A8A]" : "text-[#0f766e]",
                   )}
                 >
                   {String(laneIndex + 1).padStart(2, "0")}
@@ -133,7 +133,7 @@ export function RecentTicksRail({
             </p>
           </div>
           {live ? (
-            <span className="inline-flex shrink-0 items-center gap-1.5 border border-emerald-200 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-800">
+            <span className="inline-flex shrink-0 items-center gap-1.5 border border-emerald-200 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-[-0.02em] text-emerald-800">
               <span
                 className="size-1.5 bg-emerald-500 hub-live-beacon"
                 aria-hidden
@@ -141,7 +141,7 @@ export function RecentTicksRail({
               Live
             </span>
           ) : (
-            <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#AAAAAA]">
+            <span className="shrink-0 text-[9px] font-semibold tracking-[-0.02em] text-[#AAAAAA]">
               Feed
             </span>
           )}
@@ -173,13 +173,13 @@ export function RecentTicksRail({
                       key={tick.saleId}
                       className={cn(
                         "px-3.5 py-4 transition-colors sm:px-4 sm:py-5",
-                        newest && "bg-[#FCFAF6] hub-figure-pop",
+                        newest && "bg-[#ffffff] hub-figure-pop",
                       )}
                     >
                       <div className="flex items-baseline justify-between gap-2">
                         <div className="flex min-w-0 items-baseline gap-2">
                           <span
-                            className="font-mono text-[9px] tabular-nums text-[#C4BBA8]"
+                            className="font-mono text-[9px] tabular-nums text-[#8A8A8A]"
                             aria-hidden
                           >
                             {String(i + 1).padStart(2, "0")}
@@ -191,21 +191,20 @@ export function RecentTicksRail({
                           >
                             {formatClock(tick.soldAt)}
                           </time>
-                          <span className="text-[9px] uppercase tracking-[0.08em] text-[#AAAAAA]">
+                          <span className="text-[9px] tracking-[-0.02em] text-[#AAAAAA]">
                             {formatRelative(tick.soldAt, now)}
                           </span>
                         </div>
                         <span
                           className={cn(
-                            "shrink-0 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
-                            payTone === "cash" &&
-                              "bg-[#F3F1EC] text-[#5A5A5A]",
+                            "shrink-0 px-1.5 py-0.5 text-[9px] font-semibold tracking-[-0.02em]",
+                            payTone === "cash" && "bg-[#F3F1EC] text-[#5A5A5A]",
                             payTone === "mpesa" &&
                               "bg-emerald-500/10 text-emerald-800",
                             payTone === "split" &&
-                              "bg-[#F9F6F0] text-[#8A6B2E]",
+                              "bg-[#ffffff] text-[#0f766e]",
                             payTone === "other" &&
-                              "bg-[#F7F5F1] text-[#666666]",
+                              "bg-[#ffffff] text-[#666666]",
                           )}
                           title={tick.paymentLabel}
                         >
@@ -218,7 +217,7 @@ export function RecentTicksRail({
                           className="mt-2 truncate text-[10px] text-[#8A8A8A]"
                           title={tick.cashierName}
                         >
-                          <span className="uppercase tracking-[0.08em]">By</span>{" "}
+                          <span className="tracking-[-0.02em]">By</span>{" "}
                           <span className="font-medium text-[#3A3A3A]">
                             {tick.cashierName}
                           </span>
@@ -254,7 +253,7 @@ export function RecentTicksRail({
                       </ul>
 
                       <div className="mt-3.5 flex items-center justify-between gap-2 border-t border-dashed border-[color-mix(in_srgb,#141414_8%,transparent)] pt-3">
-                        <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8A8A8A]">
+                        <span className="text-[9px] font-semibold tracking-[-0.02em] text-[#8A8A8A]">
                           Total · {tick.items.length}
                         </span>
                         <p
@@ -283,17 +282,17 @@ export function RecentTicksRail({
                   type="button"
                   aria-expanded={drawoutsOpen}
                   onClick={() => setDrawoutsOpen((open) => !open)}
-                  className="flex w-full items-center gap-2 bg-[#FCFAF6] px-3.5 py-2.5 text-left transition-colors hover:bg-[#F7F5F1]"
+                  className="flex w-full items-center gap-2 bg-[#ffffff] px-3.5 py-2.5 text-left transition-colors hover:bg-[#ffffff]"
                 >
                   <ChevronDown
                     className={cn(
-                      "size-3.5 shrink-0 text-[#B08D48] transition-transform",
+                      "size-3.5 shrink-0 text-[#0f766e] transition-transform",
                       !drawoutsOpen && "-rotate-90",
                     )}
                     aria-hidden
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
+                    <p className="text-[10px] font-semibold tracking-[-0.02em] text-[#0f766e]">
                       Open-shift drawouts
                     </p>
                     <p className="mt-0.5 text-[10px] text-[#8A8A8A]">
@@ -306,7 +305,7 @@ export function RecentTicksRail({
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8A8A8A]">
+                    <p className="text-[9px] font-semibold tracking-[-0.02em] text-[#8A8A8A]">
                       Total
                     </p>
                     <p
@@ -329,7 +328,7 @@ export function RecentTicksRail({
                           <div className="flex items-baseline justify-between gap-2">
                             <div className="flex min-w-0 items-baseline gap-1.5">
                               <span
-                                className="font-mono text-[9px] tabular-nums text-[#C4BBA8]"
+                                className="font-mono text-[9px] tabular-nums text-[#8A8A8A]"
                                 aria-hidden
                               >
                                 {String(i + 1).padStart(2, "0")}
@@ -341,14 +340,14 @@ export function RecentTicksRail({
                               >
                                 {formatClock(row.createdAt)}
                               </time>
-                              <span className="text-[9px] uppercase tracking-[0.08em] text-[#AAAAAA]">
+                              <span className="text-[9px] tracking-[-0.02em] text-[#AAAAAA]">
                                 {formatRelative(row.createdAt, now)}
                               </span>
                             </div>
                             <div className="flex shrink-0 items-center gap-1.5">
                               <span
                                 className={cn(
-                                  "px-1 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                                  "px-1 py-0.5 text-[9px] font-semibold tracking-[-0.02em]",
                                   tone === "pending" &&
                                     "bg-amber-500/10 text-amber-800",
                                   tone === "approved" &&
@@ -377,9 +376,7 @@ export function RecentTicksRail({
                               className="mt-1 truncate text-[10px] text-[#8A8A8A]"
                               title={row.cashierName}
                             >
-                              <span className="uppercase tracking-[0.08em]">
-                                By
-                              </span>{" "}
+                              <span className="tracking-[-0.02em]">By</span>{" "}
                               <span className="font-medium text-[#3A3A3A]">
                                 {row.cashierName}
                               </span>
@@ -414,9 +411,9 @@ export function RecentTicksRail({
       <Link
         href={APP_ROUTES.shifts}
         className={cn(
-          "mt-auto shrink-0 border-t border-[color-mix(in_srgb,#141414_8%,transparent)] bg-[#FCFAF6] px-2.5 py-1.5",
-          "text-[9px] font-semibold uppercase tracking-[0.12em] text-[#8A8A8A]",
-          "transition-colors hover:bg-[#F7F5F1] hover:text-[#B08D48]",
+          "mt-auto shrink-0 border-t border-[color-mix(in_srgb,#141414_8%,transparent)] bg-[#ffffff] px-2.5 py-1.5",
+          "text-[9px] font-semibold tracking-[-0.02em] text-[#8A8A8A]",
+          "transition-colors hover:bg-[#ffffff] hover:text-[#0f766e]",
         )}
       >
         Shifts & drawouts →

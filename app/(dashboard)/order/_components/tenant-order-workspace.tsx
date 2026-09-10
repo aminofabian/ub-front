@@ -305,7 +305,7 @@ export function TenantOrderWorkspace({
   supplierIdRef.current = supplierId;
 
   const packSheetLink = packSheetItemId
-    ? links.find((l) => l.itemId === packSheetItemId) ?? null
+    ? (links.find((l) => l.itemId === packSheetItemId) ?? null)
     : null;
 
   const persistDraft = (
@@ -330,7 +330,8 @@ export function TenantOrderWorkspace({
         for (const [itemId, pack] of Object.entries(nextPacks)) {
           if (clean[itemId] != null) pruned[itemId] = pack;
         }
-        if (Object.keys(pruned).length === 0) delete packMaps[selectedSupplierId];
+        if (Object.keys(pruned).length === 0)
+          delete packMaps[selectedSupplierId];
         else packMaps[selectedSupplierId] = pruned;
         const prunedPrices: OrderCartPriceMeta = {};
         for (const [itemId, price] of Object.entries(nextPrices)) {
@@ -367,9 +368,7 @@ export function TenantOrderWorkspace({
       packsBySupplierRef.current = draft.packsBySupplier ?? {};
       pricesBySupplierRef.current = draft.pricesBySupplier ?? {};
       const preferred =
-        initialSupplierId?.trim() ||
-        draft.selectedSupplierId ||
-        null;
+        initialSupplierId?.trim() || draft.selectedSupplierId || null;
       if (preferred) {
         setSupplierId(preferred);
         // Shared tickets replace the draft cart for that supplier.
@@ -502,7 +501,9 @@ export function TenantOrderWorkspace({
     ticketAppliedRef.current = true;
     pendingTicketRef.current = [];
     if (result.matched === 0) {
-      toast.error("Could not match that shared order to this supplier’s catalogue");
+      toast.error(
+        "Could not match that shared order to this supplier’s catalogue",
+      );
       return;
     }
     setCart(result.cart);
@@ -559,7 +560,15 @@ export function TenantOrderWorkspace({
     if (!hydrated || !businessId) return;
     persistDraft(supplierId, cart, packByItemId, priceByItemId);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- persist cart/supplier/packs/prices only
-  }, [hydrated, businessId, branchId, supplierId, cart, packByItemId, priceByItemId]);
+  }, [
+    hydrated,
+    businessId,
+    branchId,
+    supplierId,
+    cart,
+    packByItemId,
+    priceByItemId,
+  ]);
 
   const selectSupplier = (nextId: string) => {
     const prev = supplierIdRef.current;
@@ -568,7 +577,10 @@ export function TenantOrderWorkspace({
       cartsBySupplierRef.current = maps;
       const packMaps = { ...packsBySupplierRef.current, [prev]: packByItemId };
       packsBySupplierRef.current = packMaps;
-      const priceMaps = { ...pricesBySupplierRef.current, [prev]: priceByItemId };
+      const priceMaps = {
+        ...pricesBySupplierRef.current,
+        [prev]: priceByItemId,
+      };
       pricesBySupplierRef.current = priceMaps;
     }
     setSupplierId(nextId);
@@ -588,7 +600,9 @@ export function TenantOrderWorkspace({
       }
       const result = applyPoDetailToCart(po, links);
       if (result.matched === 0) {
-        throw new Error("Could not match that order to this supplier’s catalog");
+        throw new Error(
+          "Could not match that order to this supplier’s catalog",
+        );
       }
       setCart(result.cart);
       setPackByItemId(result.packs);
@@ -751,7 +765,12 @@ export function TenantOrderWorkspace({
       marketplaceSupplierId: activeSupplier?.marketplaceSupplierId,
       roundTo10: roundingActive,
     });
-  }, [activeSupplier?.marketplaceSupplierId, cartLines, roundingActive, supplierId]);
+  }, [
+    activeSupplier?.marketplaceSupplierId,
+    cartLines,
+    roundingActive,
+    supplierId,
+  ]);
 
   const orderTicketUrl = () => {
     const path = orderTicketPath;
@@ -785,7 +804,9 @@ export function TenantOrderWorkspace({
     if (links.length === 0) {
       pendingTicketRef.current = lines;
       ticketAppliedRef.current = false;
-      toast.message("Pick a supplier — we’ll load the ticket onto their catalogue");
+      toast.message(
+        "Pick a supplier — we’ll load the ticket onto their catalogue",
+      );
       setImportOpen(false);
       setImportText("");
       return;
@@ -889,7 +910,9 @@ export function TenantOrderWorkspace({
     return po.poNumber;
   };
 
-  const openWhatsAppOrder = async (opts?: { savedPoNumber?: string | null }) => {
+  const openWhatsAppOrder = async (opts?: {
+    savedPoNumber?: string | null;
+  }) => {
     if (whatsappLines.length === 0) {
       toast.error("Add products to the order");
       return false;
@@ -954,7 +977,9 @@ export function TenantOrderWorkspace({
       }
       setMobileOrderOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not place order");
+      toast.error(
+        error instanceof Error ? error.message : "Could not place order",
+      );
     } finally {
       setPlacing(false);
       setWhatsapping(false);
@@ -1091,7 +1116,9 @@ export function TenantOrderWorkspace({
         return;
       }
       const link = links.find((l) => l.itemId === itemId);
-      const option = link ? linkPacks(link).find((p) => p.id === packOptionId) : null;
+      const option = link
+        ? linkPacks(link).find((p) => p.id === packOptionId)
+        : null;
       const seeded =
         option?.unitPrice ?? (link ? unitCost(link) || null : null);
       if (seeded != null && seeded > 0) {
@@ -1120,8 +1147,8 @@ export function TenantOrderWorkspace({
               Empty slip
             </p>
             <p className="max-w-[16rem] text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
-              Tap a product on the shelf to start this order. Pack sizes
-              appear on each line when the supplier offers them.
+              Tap a product on the shelf to start this order. Pack sizes appear
+              on each line when the supplier offers them.
             </p>
           </div>
         </div>
@@ -1213,7 +1240,7 @@ export function TenantOrderWorkspace({
                     "inline-flex items-center border",
                     packed
                       ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]"
-                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[var(--order-shelf,#f3f6f5)]",
+                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[var(--order-shelf,#ffffff)]",
                   )}
                 >
                   <button
@@ -1246,11 +1273,7 @@ export function TenantOrderWorkspace({
                         ? "bg-[var(--pos-primary,#0f766e)] text-white"
                         : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] hover:bg-white hover:text-[var(--order-ink,#15231f)]",
                     )}
-                    title={
-                      packed
-                        ? "Edit pack size"
-                        : "Custom pack size…"
-                    }
+                    title={packed ? "Edit pack size" : "Custom pack size…"}
                     aria-pressed={packed}
                     onClick={() => setPackSheetItemId(link.itemId)}
                   >
@@ -1334,7 +1357,9 @@ export function TenantOrderWorkspace({
                       aria-label="Line total"
                       value={
                         totalDraftByItemId[link.itemId] ??
-                        (amount > 0 ? String(Math.round(amount * 10000) / 10000) : "")
+                        (amount > 0
+                          ? String(Math.round(amount * 10000) / 10000)
+                          : "")
                       }
                       placeholder="0"
                       onFocus={() => {
@@ -1430,7 +1455,9 @@ export function TenantOrderWorkspace({
                 )}
                 aria-hidden
               >
-                {roundTo10 ? <Check className="size-3" strokeWidth={2.5} /> : null}
+                {roundTo10 ? (
+                  <Check className="size-3" strokeWidth={2.5} />
+                ) : null}
               </span>
               Round to 10
             </button>
@@ -1477,7 +1504,10 @@ export function TenantOrderWorkspace({
         >
           Save & WhatsApp
         </button>
-        <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]" aria-hidden>
+        <span
+          className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]"
+          aria-hidden
+        >
           ·
         </span>
         <button
@@ -1488,7 +1518,10 @@ export function TenantOrderWorkspace({
         >
           WhatsApp
         </button>
-        <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]" aria-hidden>
+        <span
+          className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]"
+          aria-hidden
+        >
           ·
         </span>
         <button
@@ -1554,7 +1587,7 @@ export function TenantOrderWorkspace({
       style={{
         ["--pos-primary" as string]: "#0f766e",
         ["--order-ink" as string]: "#15231f",
-        ["--order-shelf" as string]: "#f3f6f5",
+        ["--order-shelf" as string]: "#ffffff",
         ["--order-slip" as string]: "#ffffff",
       }}
     >
@@ -1589,69 +1622,73 @@ export function TenantOrderWorkspace({
             embedded && "max-w-[55%]",
           )}
         >
-        {onOpenConfirm ? (
+          {onOpenConfirm ? (
+            <button
+              type="button"
+              onClick={onOpenConfirm}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
+            >
+              <ClipboardList className="size-3.5" aria-hidden />
+              Confirm
+            </button>
+          ) : (
+            <Link
+              href={APP_ROUTES.orderReceive}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
+            >
+              <ClipboardList className="size-3.5" aria-hidden />
+              Confirm
+            </Link>
+          )}
+          {activeSupplier && canCreateProduct ? (
+            <button
+              type="button"
+              onClick={() => setCreateProductOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
+              title="Create a new catalog product and link it to this supplier"
+            >
+              <PackagePlus className="size-3.5" aria-hidden />
+              <span className={embedded ? "sr-only" : "hidden sm:inline"}>
+                Create
+              </span>
+            </button>
+          ) : null}
+          {activeSupplier && canLinkProducts ? (
+            <button
+              type="button"
+              onClick={() => openLinkCatalog(filter)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
+              title="Link catalog products to this supplier"
+            >
+              <Link2 className="size-3.5" aria-hidden />
+              <span className={embedded ? "sr-only" : undefined}>Link</span>
+            </button>
+          ) : null}
           <button
             type="button"
-            onClick={onOpenConfirm}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
-          >
-            <ClipboardList className="size-3.5" aria-hidden />
-            Confirm
-          </button>
-        ) : (
-          <Link
-            href={APP_ROUTES.orderReceive}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
-          >
-            <ClipboardList className="size-3.5" aria-hidden />
-            Confirm
-          </Link>
-        )}
-        {activeSupplier && canCreateProduct ? (
-          <button
-            type="button"
-            onClick={() => setCreateProductOpen(true)}
+            onClick={() => setPastOrdersOpen(true)}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
-            title="Create a new catalog product and link it to this supplier"
+            title="Reorder from a previous purchase order"
           >
-            <PackagePlus className="size-3.5" aria-hidden />
-            <span className={embedded ? "sr-only" : "hidden sm:inline"}>Create</span>
+            <History className="size-3.5" aria-hidden />
+            <span className={embedded ? "sr-only" : "hidden xl:inline"}>
+              Past
+            </span>
           </button>
-        ) : null}
-        {activeSupplier && canLinkProducts ? (
-          <button
-            type="button"
-            onClick={() => openLinkCatalog(filter)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
-            title="Link catalog products to this supplier"
-          >
-            <Link2 className="size-3.5" aria-hidden />
-            <span className={embedded ? "sr-only" : undefined}>Link</span>
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => setPastOrdersOpen(true)}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
-          title="Reorder from a previous purchase order"
-        >
-          <History className="size-3.5" aria-hidden />
-          <span className={embedded ? "sr-only" : "hidden xl:inline"}>Past</span>
-        </button>
-        {!embedded ? (
-          <SupplierGuideDrawer
-            trigger={
-              <button
-                type="button"
-                className="mr-1 inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
-                title="The complete supplier flow — summary + full guide"
-              >
-                <BookOpen className="size-3.5" aria-hidden />
-                Guide
-              </button>
-            }
-          />
-        ) : null}
+          {!embedded ? (
+            <SupplierGuideDrawer
+              trigger={
+                <button
+                  type="button"
+                  className="mr-1 inline-flex shrink-0 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-2.5 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] active:scale-[0.98] sm:px-3 sm:text-[12px]"
+                  title="The complete supplier flow — summary + full guide"
+                >
+                  <BookOpen className="size-3.5" aria-hidden />
+                  Guide
+                </button>
+              }
+            />
+          ) : null}
         </div>
       </div>
 
@@ -1895,7 +1932,10 @@ export function TenantOrderWorkspace({
           <span className="font-heading text-[15px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
             {formatMoney(effectiveTotal, ORDER_CURRENCY)}
           </span>
-          <ChevronUp className="size-4 text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]" aria-hidden />
+          <ChevronUp
+            className="size-4 text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]"
+            aria-hidden
+          />
         </span>
       </button>
 
@@ -1912,7 +1952,7 @@ export function TenantOrderWorkspace({
             aria-label="Close suppliers"
             onClick={() => setSupplierPickerOpen(false)}
           />
-        <div className="flex max-h-[80%] min-h-[50%] flex-col rounded-t-none border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white shadow-2xl">
+          <div className="flex max-h-[80%] min-h-[50%] flex-col rounded-t-none border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3.5 py-3">
               <p className="font-heading text-[17px] font-semibold tracking-[-0.02em]">
                 Suppliers
@@ -2018,7 +2058,7 @@ export function TenantOrderWorkspace({
         }
         initialUnitsPerPack={
           packSheetLink
-            ? packByItemId[packSheetLink.itemId]?.size ?? null
+            ? (packByItemId[packSheetLink.itemId]?.size ?? null)
             : null
         }
         savedOptions={packSheetLink ? linkPacks(packSheetLink) : null}

@@ -85,15 +85,18 @@ const ISSUE_META: Record<
 > = {
   zero_cost: {
     label: "No cost",
-    className: "border-rose-600/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+    className:
+      "border-rose-600/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
   },
   sells_at_loss: {
     label: "Sells at loss",
-    className: "border-rose-600/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+    className:
+      "border-rose-600/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
   },
   thin_margin: {
     label: "Thin margin",
-    className: "border-amber-600/30 bg-amber-500/10 text-amber-800 dark:text-amber-200",
+    className:
+      "border-amber-600/30 bg-amber-500/10 text-amber-800 dark:text-amber-200",
   },
   high_margin: {
     label: "High margin",
@@ -104,7 +107,10 @@ const ISSUE_META: Record<
 export default function InventoryCostIssuesPage() {
   const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
   const allowed = hasPermission(me?.permissions, Permission.PricingRead);
-  const canAdjust = hasPermission(me?.permissions, Permission.PricingCostPriceSet);
+  const canAdjust = hasPermission(
+    me?.permissions,
+    Permission.PricingCostPriceSet,
+  );
   const currency = business?.currency?.trim() || "KES";
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
@@ -238,10 +244,13 @@ export default function InventoryCostIssuesPage() {
     [me],
   );
 
-  const openAdjust = useCallback((row: CostIssueRowRecord) => {
-    setActiveRow(row);
-    setDialogOpen(true);
-  }, [setActiveRow, setDialogOpen]);
+  const openAdjust = useCallback(
+    (row: CostIssueRowRecord) => {
+      setActiveRow(row);
+      setDialogOpen(true);
+    },
+    [setActiveRow, setDialogOpen],
+  );
 
   const onSaved = useCallback((updated: CostIssueRowRecord) => {
     setData((prev) => {
@@ -281,7 +290,11 @@ export default function InventoryCostIssuesPage() {
   const counts = data
     ? [
         { key: "all" as const, label: "All", value: data.total },
-        { key: "zero_cost" as const, label: "No cost", value: data.zeroCostCount },
+        {
+          key: "zero_cost" as const,
+          label: "No cost",
+          value: data.zeroCostCount,
+        },
         {
           key: "sells_at_loss" as const,
           label: "Sells at loss",
@@ -302,8 +315,8 @@ export default function InventoryCostIssuesPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="flex min-h-0 flex-col gap-0 overflow-hidden border border-border bg-card">
-        <header className="space-y-2 border-b border-border px-3 py-3">
+      <div className="flex min-h-0 flex-col gap-0 overflow-hidden border border-border bg-white">
+        <header className="space-y-1">
           <DashboardPageHero
             compact
             showActiveScope
@@ -317,7 +330,12 @@ export default function InventoryCostIssuesPage() {
           ) : null}
         </header>
 
-        <div className={cn(supFilterRail, "flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-end")}>
+        <div
+          className={cn(
+            supFilterRail,
+            "flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-end",
+          )}
+        >
           {counts.length > 0 ? (
             <div
               className="inline-flex flex-wrap border border-border bg-background p-0.5"
@@ -390,10 +408,14 @@ export default function InventoryCostIssuesPage() {
               variant="outline"
               size="sm"
               className="h-8 shrink-0 gap-1.5 rounded-none px-3"
-              disabled={loading || (isBranchLockedRole && !me?.branchId?.trim())}
+              disabled={
+                loading || (isBranchLockedRole && !me?.branchId?.trim())
+              }
               onClick={() => void runLoad(branchFilter)}
             >
-              <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
+              <RefreshCw
+                className={cn("size-3.5", loading && "animate-spin")}
+              />
               {loading ? "…" : "Refresh"}
             </Button>
           </div>
@@ -435,7 +457,10 @@ export default function InventoryCostIssuesPage() {
                   <tr className={supTableRow}>
                     <td
                       colSpan={7}
-                      className={cn(supTableCell, "py-8 text-center text-sm text-muted-foreground")}
+                      className={cn(
+                        supTableCell,
+                        "py-8 text-center text-sm text-muted-foreground",
+                      )}
                     >
                       Loading…
                     </td>
@@ -444,7 +469,10 @@ export default function InventoryCostIssuesPage() {
                   <tr className={supTableRow}>
                     <td
                       colSpan={7}
-                      className={cn(supTableCell, "py-8 text-center text-sm text-muted-foreground")}
+                      className={cn(
+                        supTableCell,
+                        "py-8 text-center text-sm text-muted-foreground",
+                      )}
                     >
                       Refresh to load cost issues.
                     </td>
@@ -453,7 +481,10 @@ export default function InventoryCostIssuesPage() {
                   <tr className={supTableRow}>
                     <td
                       colSpan={7}
-                      className={cn(supTableCell, "py-8 text-center text-sm text-muted-foreground")}
+                      className={cn(
+                        supTableCell,
+                        "py-8 text-center text-sm text-muted-foreground",
+                      )}
                     >
                       {data.total === 0
                         ? "No cost issues. Every stocked item has a sensible cost."
@@ -481,17 +512,32 @@ export default function InventoryCostIssuesPage() {
                                 : ""}
                           </div>
                         </td>
-                        <td className={cn(supTableCell, "text-right font-mono tabular-nums")}>
+                        <td
+                          className={cn(
+                            supTableCell,
+                            "text-right font-mono tabular-nums",
+                          )}
+                        >
                           {fmtQty(toNum(row.activeQty))}
                         </td>
-                        <td className={cn(supTableCell, "text-right font-mono tabular-nums")}>
+                        <td
+                          className={cn(
+                            supTableCell,
+                            "text-right font-mono tabular-nums",
+                          )}
+                        >
                           {cost == null || cost <= 0 ? (
                             <span className="text-rose-600">—</span>
                           ) : (
                             fmtMoney(cost, currency)
                           )}
                         </td>
-                        <td className={cn(supTableCell, "text-right font-mono tabular-nums")}>
+                        <td
+                          className={cn(
+                            supTableCell,
+                            "text-right font-mono tabular-nums",
+                          )}
+                        >
                           {fmtMoney(sell, currency)}
                         </td>
                         <td
@@ -512,7 +558,7 @@ export default function InventoryCostIssuesPage() {
                         <td className={supTableCell}>
                           <span
                             className={cn(
-                              "inline-flex items-center border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide",
+                              "inline-flex items-center border px-1.5 py-px text-[10px] font-semibold tracking-[-0.02em]",
                               meta.className,
                             )}
                           >

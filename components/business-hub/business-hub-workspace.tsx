@@ -26,7 +26,10 @@ import { BusinessPageLayout } from "@/components/business-hub/business-page-layo
 import { ShopOpenBoard } from "@/components/business-hub/shop-open-board";
 import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
-import { CommandGrid, type CommandLink } from "@/components/business-hub/command-grid";
+import {
+  CommandGrid,
+  type CommandLink,
+} from "@/components/business-hub/command-grid";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
 import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
@@ -187,8 +190,7 @@ export function BusinessHubWorkspace() {
       }),
     [featureFlags, business?.hubAlerts?.volume],
   );
-  const showButcherCounter =
-    isButcherPosEnabled(featureFlags) && canQuickSale;
+  const showButcherCounter = isButcherPosEnabled(featureFlags) && canQuickSale;
   const shopEnabled = featureFlags?.shop !== false;
 
   const roleKey = me?.role?.key?.trim().toLowerCase();
@@ -200,12 +202,10 @@ export function BusinessHubWorkspace() {
     roleKey !== "stock_manager" && roleKey !== "cashier";
   const canViewSupplyBills = canPathBRead || canViewApAging;
   const canOpenSupplyPay =
-    canViewSupplyBills &&
-    (canRecordSupplierPayment || canViewApAging);
+    canViewSupplyBills && (canRecordSupplierPayment || canViewApAging);
   const canViewCreditTabs = canViewCustomers;
   const canOpenCreditPay = canViewCreditTabs && canReviewPaymentClaims;
-  const canShowWebOrders =
-    canViewStorefrontOrders && shopEnabled;
+  const canShowWebOrders = canViewStorefrontOrders && shopEnabled;
 
   const [period, setPeriod] = useState<Period>("today");
   const [pulse, setPulse] = useState<FinancePulseResponse | null>(null);
@@ -242,9 +242,9 @@ export function BusinessHubWorkspace() {
   const [supplyJustUpdated, setSupplyJustUpdated] = useState(false);
   const [creditJustUpdated, setCreditJustUpdated] = useState(false);
   const [recentTicks, setRecentTicks] = useState<RecentTick[]>([]);
-  const [todaySupplies, setTodaySupplies] = useState<PathBSupplyListRowRecord[]>(
-    [],
-  );
+  const [todaySupplies, setTodaySupplies] = useState<
+    PathBSupplyListRowRecord[]
+  >([]);
   const [openCreditTabs, setOpenCreditTabs] = useState<
     OutstandingTabRowRecord[]
   >([]);
@@ -253,8 +253,9 @@ export function BusinessHubWorkspace() {
   const [fixedCostCommitment, setFixedCostCommitment] = useState<number | null>(
     null,
   );
-  const [payBillRow, setPayBillRow] =
-    useState<PathBSupplyListRowRecord | null>(null);
+  const [payBillRow, setPayBillRow] = useState<PathBSupplyListRowRecord | null>(
+    null,
+  );
   const [payBillOpen, setPayBillOpen] = useState(false);
   const [payCreditTab, setPayCreditTab] =
     useState<OutstandingTabRowRecord | null>(null);
@@ -273,9 +274,9 @@ export function BusinessHubWorkspace() {
   const creditJustUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const webOrdersJustUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const webOrdersJustUpdatedTimer = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const [webOrdersJustUpdated, setWebOrdersJustUpdated] = useState(false);
 
   const load = useCallback(async () => {
@@ -397,10 +398,9 @@ export function BusinessHubWorkspace() {
           ? fetchOutstandingTabs().catch(() => [] as OutstandingTabRowRecord[])
           : Promise.resolve([] as OutstandingTabRowRecord[]),
         canViewCreditTabs
-          ? fetchCreditsActivitySummary(
-              activeRange.from,
-              activeRange.to,
-            ).catch(() => null)
+          ? fetchCreditsActivitySummary(activeRange.from, activeRange.to).catch(
+              () => null,
+            )
           : Promise.resolve(null),
         canShowWebOrders
           ? fetchWebOrders(0, 50).catch(() => [] as WebOrderSummary[])
@@ -691,11 +691,7 @@ export function BusinessHubWorkspace() {
   const salesCountForTicket = isToday ? (pulse?.salesCount ?? null) : null;
   const ticket = averageTicket(revenue, salesCountForTicket);
   const margin = canViewAnalytics
-    ? marginPct(
-        revenue,
-        grossProfit,
-        isToday ? pulse?.grossMarginPct : null,
-      )
+    ? marginPct(revenue, grossProfit, isToday ? pulse?.grossMarginPct : null)
     : null;
 
   const revenueTrend = fmtTrendPct(revenue, prevRevenue);
@@ -824,7 +820,9 @@ export function BusinessHubWorkspace() {
         tone: (openShifts > 0 ? "warning" : "muted") as "warning" | "muted",
         href: APP_ROUTES.shifts,
       },
-      ...(canReadFinanceExpenses && fixedCostCommitment != null && fixedCostCommitment > 0
+      ...(canReadFinanceExpenses &&
+      fixedCostCommitment != null &&
+      fixedCostCommitment > 0
         ? [
             {
               label: "Fixed costs",
@@ -1077,7 +1075,7 @@ export function BusinessHubWorkspace() {
           ticks: filterTicksByCashiers(recentTicks, []),
           drawouts,
           showCashier: true,
-          accent: "brass" as const,
+          accent: "teal" as const,
         },
       ];
     }
@@ -1088,13 +1086,11 @@ export function BusinessHubWorkspace() {
         key: name,
         title: name,
         subtitle:
-          drawouts.length > 0
-            ? `Open shift · ${short}`
-            : `Last 3 · ${short}`,
+          drawouts.length > 0 ? `Open shift · ${short}` : `Last 3 · ${short}`,
         ticks: filterTicksByCashiers(recentTicks, [name]),
         drawouts,
         showCashier: false,
-        accent: (index === 0 ? "brass" : "ink") as "brass" | "ink",
+        accent: (index === 0 ? "teal" : "ink") as "teal" | "ink",
       };
     });
   }, [recentTicks, recentDrawouts, selectedCashiers]);
@@ -1182,9 +1178,7 @@ export function BusinessHubWorkspace() {
         )}
       >
         <div className="flex flex-col gap-2">
-          {canManageBusinessSettings ? (
-            <SetupProgressBanner />
-          ) : null}
+          {canManageBusinessSettings ? <SetupProgressBanner /> : null}
 
           {showTillStage ? (
             <CashierStageTabs
@@ -1388,7 +1382,7 @@ export function BusinessHubWorkspace() {
                   )}
 
                   {/* 6 — Stock */}
-                  {(stockItems.length > 0 || showMovers) ? (
+                  {stockItems.length > 0 || showMovers ? (
                     <section className="space-y-1.5">
                       <HubSectionLabel title="Stock" />
                       <div
@@ -1438,7 +1432,7 @@ export function BusinessHubWorkspace() {
                       accent={lane.accent}
                       laneIndex={dualLanes ? index : undefined}
                       fillViewport={false}
-                      className="h-full max-h-[min(40rem,72dvh)] border-0 shadow-none xl:border xl:border-[color-mix(in_srgb,#141414_8%,transparent)] xl:shadow-[0_1px_0_rgba(20,20,20,0.035),0_8px_22px_-14px_rgba(20,20,20,0.12)]"
+                      className="h-full max-h-[min(40rem,72dvh)] border-0 shadow-none xl:border xl:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] xl:shadow-none"
                     />
                   </div>
                 ))

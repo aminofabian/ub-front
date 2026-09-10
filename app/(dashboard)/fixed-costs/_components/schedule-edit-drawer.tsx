@@ -9,10 +9,7 @@ import {
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
-import {
-  patchExpenseSchedule,
-  type ExpenseScheduleRecord,
-} from "@/lib/api";
+import { patchExpenseSchedule, type ExpenseScheduleRecord } from "@/lib/api";
 import {
   EXPENSE_FREQUENCY_OPTIONS,
   EXPENSE_PAYMENT_METHOD_OPTIONS,
@@ -219,8 +216,8 @@ export function ScheduleEditDrawer({
           Include in till cash balance
         </label>
 
-        <div className="space-y-2 rounded-lg border border-border/50 p-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="space-y-2 rounded-none border border-border/50 p-3">
+          <p className="text-xs font-medium tracking-[-0.02em] text-muted-foreground">
             Landlord / vendor (optional)
           </p>
           <label className="space-y-1 text-sm">
@@ -260,11 +257,21 @@ export function ScheduleEditDrawer({
       </FormDrawerFields>
 
       <div className="flex justify-end gap-2 border-t border-border/60 pt-4">
-        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+        >
           Cancel
         </Button>
-        <Button type="button" disabled={saving || !schedule} onClick={() => void save()}>
-          {saving ? <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden /> : null}
+        <Button
+          type="button"
+          disabled={saving || !schedule}
+          onClick={() => void save()}
+        >
+          {saving ? (
+            <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden />
+          ) : null}
           Save changes
         </Button>
       </div>

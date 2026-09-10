@@ -13,6 +13,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import {
   DASHBOARD_MAX_WIDE,
   DashboardFeedback,
+  DashboardPageHero,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,41 +57,22 @@ export function CustomerEmailCampaignsHistory() {
   }, []);
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-6 pb-16")} style={brand.cssVars}>
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-3">
-          {brand.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={brand.logoUrl}
-              alt=""
-              className="h-10 w-auto max-w-[7rem] shrink-0 object-contain"
-            />
-          ) : (
-            <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--mail-brand)_20%,transparent)] bg-[var(--mail-soft)] text-[var(--mail-brand)] shadow-sm"
-              aria-hidden
-            >
-              <Mail className="size-[18px]" />
-            </span>
-          )}
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              Email campaigns
-            </h1>
-            <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
-              Compose HTML email as {brand.displayName} — specific people,
-              filtered lists, or everyone eligible.
-            </p>
-          </div>
-        </div>
+    <div
+      className={DASHBOARD_MAX_WIDE}
+      style={brand.cssVars}
+    >
+      <DashboardPageHero
+        icon={Mail}
+        title="Email campaigns"
+        description={`Compose HTML email as ${brand.displayName} — specific people, filtered lists, or everyone eligible.`}
+      >
         <Button asChild size="sm" className={MAIL_PRIMARY_BTN}>
           <Link href={APP_ROUTES.customerEmailCampaignNew}>
             <Plus className="mr-1 size-3.5" />
             New campaign
           </Link>
         </Button>
-      </header>
+      </DashboardPageHero>
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
@@ -106,7 +88,7 @@ export function CustomerEmailCampaignsHistory() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[40rem] text-left text-sm">
               <thead>
-                <tr className="border-b border-border/60 bg-muted/30 text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+                <tr className="border-b border-border/60 bg-muted/30 text-[11px] tracking-[-0.02em] text-muted-foreground">
                   <th className="px-4 py-3 font-medium sm:px-5">Campaign</th>
                   <th className="px-4 py-3 font-medium">Audience</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -203,7 +185,7 @@ function EmptyCampaigns({
             className="h-12 w-auto max-w-[10rem] object-contain"
           />
         ) : (
-          <span className="flex size-14 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--mail-brand)_20%,transparent)] bg-[var(--mail-soft)] text-[var(--mail-brand)] shadow-sm">
+          <span className="flex size-14 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--mail-brand)_20%,transparent)] bg-[var(--mail-soft)] text-[var(--mail-brand)] shadow-none">
             <Send className="size-6" />
           </span>
         )}

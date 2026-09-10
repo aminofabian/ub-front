@@ -340,7 +340,7 @@ function EditDrawer({
     readOnly?: boolean,
   ) => (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+      <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">
         {label}
       </span>
       <input
@@ -351,7 +351,7 @@ function EditDrawer({
         readOnly={readOnly}
         onChange={(e) => set(e.target.value)}
         placeholder={hint ?? "—"}
-        className="h-12 rounded-xl border border-border/50 bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 read-only:cursor-default read-only:opacity-70 md:h-10 md:text-[13px]"
+        className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 read-only:cursor-default read-only:opacity-70 md:h-10 md:text-[13px]"
       />
     </label>
   );
@@ -373,7 +373,7 @@ function EditDrawer({
           <span className="h-1 w-10 rounded-full bg-muted-foreground/25" />
         </div>
 
-        <div className="flex items-center justify-between border-b border-border/40 px-4 pb-3 pt-1 md:pt-3">
+        <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 pb-3 pt-1 md:pt-3">
           <div className="min-w-0">
             <DialogTitle className="truncate text-[15px] font-semibold tracking-tight">
               {titleName}
@@ -386,7 +386,7 @@ function EditDrawer({
           </div>
           <button
             onClick={onClose}
-            className="ml-2 flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+            className="ml-2 flex size-10 shrink-0 items-center justify-center rounded-none text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
             aria-label="Close"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -394,13 +394,13 @@ function EditDrawer({
         </div>
 
         {!labelOnlyGroup ? (
-          <div className="border-b border-border/40 px-4 py-3">
+          <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-3">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 disabled={uploading || !canUploadPhoto}
                 onClick={() => fileRef.current?.click()}
-                className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border/50 bg-muted/20 transition-colors active:scale-[0.98] hover:border-primary/30 hover:bg-primary/[0.04] disabled:opacity-60"
+                className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-none border-2 border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 transition-colors active:scale-[0.98] hover:border-primary/30 hover:bg-primary/[0.04] disabled:opacity-60"
               >
                 {photoSrc ? (
                   <img
@@ -425,7 +425,7 @@ function EditDrawer({
                 ) : null}
               </button>
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">
                   Photo
                 </p>
                 <p className="mt-0.5 text-[12px] text-muted-foreground/55">
@@ -443,7 +443,7 @@ function EditDrawer({
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4">
           {error ? (
-            <div className="rounded-xl border border-destructive/20 bg-destructive/[0.06] px-3 py-2.5 text-[12px] font-medium leading-snug text-destructive">
+            <div className="rounded-none border border-destructive/20 bg-destructive/[0.06] px-3 py-2.5 text-[12px] font-medium leading-snug text-destructive">
               {error}
             </div>
           ) : null}
@@ -453,14 +453,14 @@ function EditDrawer({
           ) : null}
 
           {stockedBase && !detailLoading ? (
-            <div className="space-y-2 rounded-2xl border border-border/50 bg-muted/15 px-3.5 py-3">
+            <div className="space-y-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-3.5 py-3">
               <p className="text-[13px] leading-relaxed text-muted-foreground">
                 <span className="font-semibold text-foreground">Base stock</span>
                 {" — "}
                 trays and packs sell from this pool. Edit the base here.
               </p>
               {(detail?.variants?.length ?? 0) > 0 ? (
-                <ul className="space-y-1.5 border-t border-border/40 pt-2.5">
+                <ul className="space-y-1.5 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-2.5">
                   {(detail?.variants ?? []).map((v) => (
                     <li
                       key={v.id}
@@ -497,7 +497,7 @@ function EditDrawer({
                     <button
                       type="button"
                       onClick={() => selectVariant(v)}
-                      className="flex min-h-12 w-full items-center justify-between gap-2 rounded-2xl border border-border/60 bg-muted/20 px-3.5 py-3 text-left transition-colors active:scale-[0.99] hover:border-primary/40 hover:bg-primary/[0.04]"
+                      className="flex min-h-12 w-full items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3.5 py-3 text-left transition-colors active:scale-[0.99] hover:border-primary/40 hover:bg-primary/[0.04]"
                     >
                       <span className="min-w-0">
                         <span className="block truncate text-[14px] font-medium text-foreground">
@@ -568,12 +568,12 @@ function EditDrawer({
         </div>
 
         {(!labelOnlyGroup && !detailLoading) || selectedVariant ? (
-          <div className="border-t border-border/40 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:pb-3">
+          <div className="border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:pb-3">
             <button
               type="button"
               onClick={handleSave}
               disabled={saving || detailLoading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-[14px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-none bg-primary text-[14px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
             >
               <Save className="size-4" />
               {saving ? "Saving…" : "Save changes"}
@@ -653,7 +653,7 @@ export function ActivityVelocityBoard({
     <div className="space-y-4">
       {movers.length > 0 ? (
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex-wrap md:overflow-visible">
-          <span className="flex shrink-0 items-center gap-1.5 self-center text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+          <span className="flex shrink-0 items-center gap-1.5 self-center text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">
             <Gauge className="size-3" aria-hidden />
             Pulse
           </span>
@@ -665,7 +665,7 @@ export function ActivityVelocityBoard({
                 type="button"
                 onClick={() => onSelectItem(row.itemId)}
                 className={cn(
-                  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-medium transition-colors active:scale-[0.98]",
+                  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-none border px-3 text-[12px] font-medium transition-colors active:scale-[0.98]",
                   up
                     ? "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-700 hover:bg-emerald-500/10"
                     : "border-amber-500/25 bg-amber-500/[0.06] text-amber-800 hover:bg-amber-500/10",
@@ -705,7 +705,7 @@ export function ActivityVelocityBoard({
                   "h-8 shrink-0 rounded-full border px-3 text-[11px] font-semibold transition-colors",
                   sortKey === "itemName"
                     ? "border-primary/25 bg-primary/10 text-primary"
-                    : "border-border/50 bg-muted/30 text-muted-foreground",
+                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground",
                 )}
               >
                 A–Z
@@ -721,7 +721,7 @@ export function ActivityVelocityBoard({
                     "h-8 shrink-0 rounded-full border px-3 text-[11px] font-semibold transition-colors",
                     sortKey === col.key
                       ? "border-primary/25 bg-primary/10 text-primary"
-                      : "border-border/50 bg-muted/30 text-muted-foreground",
+                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground",
                   )}
                 >
                   {col.label}
@@ -730,7 +730,7 @@ export function ActivityVelocityBoard({
               ))}
             </div>
 
-            <ul className="divide-y divide-border/40 overflow-hidden rounded-2xl border border-border/50 bg-card/40">
+            <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
               {sorted.map((row, idx) => {
                 const focusKey =
                   sortKey === "itemName" ? "todayQty" : sortKey;
@@ -824,7 +824,7 @@ export function ActivityVelocityBoard({
                                 />
                                 <span
                                   className={cn(
-                                    "text-[8px] font-semibold uppercase tracking-wide",
+                                    "text-[8px] font-semibold tracking-[-0.02em]",
                                     active
                                       ? "text-primary"
                                       : "text-muted-foreground/45",
@@ -874,7 +874,7 @@ export function ActivityVelocityBoard({
                       <button
                         type="button"
                         onClick={() => setEditingRow(row)}
-                        className="flex size-11 shrink-0 items-center justify-center self-center rounded-xl border border-border/50 bg-muted/25 text-foreground/70 transition-colors active:scale-95 active:bg-muted/50"
+                        className="flex size-11 shrink-0 items-center justify-center self-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/25 text-foreground/70 transition-colors active:scale-95 active:bg-muted/50"
                         aria-label={`Edit ${row.itemName}`}
                       >
                         <Pencil className="size-4" />
@@ -890,12 +890,12 @@ export function ActivityVelocityBoard({
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[640px] text-xs">
               <thead>
-                <tr className="border-b-2 border-border/50 text-left">
-                  <th className="sticky left-0 z-10 bg-card pb-2.5 pt-1 pl-1">
+                <tr className="border-b-2 border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-left">
+                  <th className="sticky left-0 z-10 bg-white pb-2.5 pt-1 pl-1">
                     <button
                       type="button"
                       onClick={() => onSort("itemName")}
-                      className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 hover:text-foreground"
+                      className="text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 hover:text-foreground"
                     >
                       Product
                       {sortKey === "itemName"
@@ -914,7 +914,7 @@ export function ActivityVelocityBoard({
                       <button
                         type="button"
                         onClick={() => onSort(col.key)}
-                        className="w-full text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 hover:text-foreground"
+                        className="w-full text-right text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 hover:text-foreground"
                       >
                         {col.label}
                         {sortKey === col.key
@@ -926,7 +926,7 @@ export function ActivityVelocityBoard({
                     </th>
                   ))}
                   <th
-                    className="px-1.5 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70"
+                    className="px-1.5 pb-2.5 pt-1 text-right text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70"
                     title="Branch on-hand (same as Products)"
                   >
                     In store
@@ -1002,7 +1002,7 @@ export function ActivityVelocityBoard({
                           e.stopPropagation();
                           setEditingRow(row);
                         }}
-                        className="flex size-7 items-center justify-center rounded-md text-muted-foreground/40 transition-all hover:bg-muted/60 hover:text-foreground group-hover:text-muted-foreground"
+                        className="flex size-7 items-center justify-center rounded-none text-muted-foreground/40 transition-all hover:bg-muted/60 hover:text-foreground group-hover:text-muted-foreground"
                         title="Edit stock, prices, photo"
                       >
                         <Pencil className="size-3.5" />

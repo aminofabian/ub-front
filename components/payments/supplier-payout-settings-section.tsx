@@ -214,7 +214,7 @@ export function SupplierPayoutSettingsSection({
           className={cn(
             HUB_SURFACE,
             "group w-full text-left transition-colors",
-            canWrite && "hover:border-[#B08D48]/55 hover:bg-[#FCFAF6]",
+            canWrite && "hover:border-[#0f766e]/55 hover:bg-[#ffffff]",
             !canWrite && "cursor-default",
           )}
         >
@@ -252,9 +252,9 @@ export function SupplierPayoutSettingsSection({
               </div>
             </div>
 
-            <div className="grid flex-1 gap-3 border-t border-border/60 pt-4 sm:grid-cols-2 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+            <div className="grid flex-1 gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-4 sm:grid-cols-2 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Auto-pay
                 </p>
                 <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-foreground">
@@ -269,7 +269,7 @@ export function SupplierPayoutSettingsSection({
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Times (EAT)
                 </p>
                 <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
@@ -282,7 +282,7 @@ export function SupplierPayoutSettingsSection({
             </div>
           </div>
           {canWrite ? (
-            <div className="border-t border-border/60 bg-muted/20 px-4 py-2 text-[11px] text-muted-foreground transition-colors group-hover:text-foreground">
+            <div className="border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-4 py-2 text-[11px] text-muted-foreground transition-colors group-hover:text-foreground">
               Open configure drawer to change gateway, auto-pay, and schedule →
             </div>
           ) : null}
@@ -330,7 +330,7 @@ export function SupplierPayoutSettingsSection({
         }
       >
         <div className="space-y-6">
-          <div className="flex items-start justify-between gap-4 border border-border/70 bg-muted/15 px-3.5 py-3">
+          <div className="flex items-start justify-between gap-4 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-3.5 py-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground">
                 Enable paying suppliers
@@ -354,7 +354,7 @@ export function SupplierPayoutSettingsSection({
           {enabled ? (
             <>
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
                   Payout gateway
                 </span>
                 <select
@@ -386,7 +386,7 @@ export function SupplierPayoutSettingsSection({
                 )}
               </label>
 
-              <div className="space-y-4 border border-border/70 bg-card p-3.5">
+              <div className="space-y-4 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-foreground">
@@ -407,7 +407,7 @@ export function SupplierPayoutSettingsSection({
 
                 <div
                   id="supplier-auto-pay-times"
-                  className="space-y-2.5 border-t border-border/60 pt-3"
+                  className="space-y-2.5 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-3"
                 >
                   <div>
                     <p className="text-sm font-semibold text-foreground">

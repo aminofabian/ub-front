@@ -27,7 +27,10 @@ function sourceLabel(source: string | null | undefined): string {
 
 export default function PaymentClaimsReviewPage() {
   const { me, business } = useDashboard();
-  const allowed = hasPermission(me?.permissions, Permission.CreditsClaimsReview);
+  const allowed = hasPermission(
+    me?.permissions,
+    Permission.CreditsClaimsReview,
+  );
   const currency = useMemo(
     () => business?.currency?.trim() || "KES",
     [business?.currency],
@@ -181,7 +184,7 @@ export default function PaymentClaimsReviewPage() {
                         ? `${currency} ${Number(r.submittedAmount).toFixed(2)}`
                         : "—"}
                     </td>
-                    <td className="px-3 py-2 text-xs uppercase text-muted-foreground">
+                    <td className="px-3 py-2 text-xs tracking-[-0.02em] text-muted-foreground">
                       {proposed ?? "—"}
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">

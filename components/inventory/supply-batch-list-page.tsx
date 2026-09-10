@@ -518,8 +518,8 @@ export function SupplyBatchListPage() {
 
   return (
     <div className={DASHBOARD_MAX_WIDE}>
-      <div className="flex min-h-0 flex-col overflow-hidden border border-border bg-card">
-        <header className="space-y-2 border-b border-border px-3 py-3">
+      <div className="flex min-h-0 flex-col overflow-hidden border border-border bg-white">
+        <header className="space-y-1">
           <DashboardPageHero
             compact
             showActiveScope
@@ -931,7 +931,7 @@ export function SupplyBatchListPage() {
                     <td className={supTableCell}>
                       <span
                         className={cn(
-                          "inline-flex items-center border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide",
+                          "inline-flex items-center border px-1.5 py-px text-[10px] font-semibold tracking-[-0.02em]",
                           st.className,
                         )}
                       >
@@ -1033,7 +1033,7 @@ export function SupplyBatchListPage() {
               return (
                 <div
                   key={b.id}
-                  className="bg-card p-3"
+                  className="bg-white p-3"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <Link
@@ -1044,7 +1044,7 @@ export function SupplyBatchListPage() {
                     </Link>
                     <span
                       className={cn(
-                        "inline-flex border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide",
+                        "inline-flex border px-1.5 py-px text-[10px] font-semibold tracking-[-0.02em]",
                         st.className,
                       )}
                     >
@@ -1135,7 +1135,7 @@ export function SupplyBatchListPage() {
 
       {clearDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg overflow-hidden border border-border bg-card shadow-lg">
+          <div className="w-full max-w-lg overflow-hidden border border-border bg-white shadow-lg">
             <div className="border-b border-border bg-[#e8eef5] px-4 py-3 dark:bg-muted/40">
               <h2 className="text-base font-semibold tracking-tight">
                 {clearDialog.hasRemaining

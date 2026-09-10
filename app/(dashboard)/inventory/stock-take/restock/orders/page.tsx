@@ -41,7 +41,10 @@ function downloadBlob(blob: Blob, filename: string) {
 
 export default function StockTakeRestockOrdersPage() {
   const { me } = useDashboard();
-  const canApprove = hasPermission(me?.permissions, Permission.StocktakeApprove);
+  const canApprove = hasPermission(
+    me?.permissions,
+    Permission.StocktakeApprove,
+  );
 
   const [orders, setOrders] = useState<RestockOrderSummaryRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -76,7 +79,9 @@ export default function StockTakeRestockOrdersPage() {
         const blob = await fetchStockTakeRestockOrderPdf(orderNumber);
         downloadBlob(blob, `restock-order-${orderNumber}.pdf`);
       } else if (action === "convert") {
-        await postStockTakeRestockConvertToPo(orderNumber, { sendPurchaseOrder: true });
+        await postStockTakeRestockConvertToPo(orderNumber, {
+          sendPurchaseOrder: true,
+        });
         await loadOrders();
       } else if (action === "ordered") {
         await postStockTakeRestockMarkOrdered(orderNumber);
@@ -102,7 +107,7 @@ export default function StockTakeRestockOrdersPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX, "mx-auto space-y-4 px-4 pb-12 pt-4")}>
+    <div className={cn(DASHBOARD_MAX, "space-y-1 pb-8")}>
       <Link
         href={APP_ROUTES.inventoryStockTakeRestock}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -126,20 +131,28 @@ export default function StockTakeRestockOrdersPage() {
           Loading orders…
         </div>
       ) : orders.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-none border border-dashed p-8 text-center text-sm text-muted-foreground">
           No restock orders yet.
         </div>
       ) : (
         <div className="space-y-3">
           {orders.map((order) => (
-            <article key={order.orderNumber} className="rounded-xl border bg-card p-4 shadow-sm">
+            <article
+              key={order.orderNumber}
+              className="rounded-none border bg-white p-4 shadow-none"
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-semibold">{order.supplierName}</h2>
-                  <p className="text-sm text-muted-foreground">{order.orderNumber}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {order.orderNumber}
+                  </p>
                   <p className="mt-1 text-sm">
-                    {order.itemCount} items · KES {num(order.supplierSubtotal)} ·{" "}
-                    <span className="capitalize">{order.status.replace("_", " ")}</span>
+                    {order.itemCount} items · KES {num(order.supplierSubtotal)}{" "}
+                    ·{" "}
+                    <span className="capitalize">
+                      {order.status.replace("_", " ")}
+                    </span>
                   </p>
                   {order.orderDraftedAt ? (
                     <p className="text-xs text-muted-foreground">
@@ -166,12 +179,15 @@ export default function StockTakeRestockOrdersPage() {
                     )}
                     PDF
                   </Button>
-                  {order.status === "order_drafted" && !order.purchaseOrderId ? (
+                  {order.status === "order_drafted" &&
+                  !order.purchaseOrderId ? (
                     <Button
                       size="sm"
                       variant="outline"
                       disabled={actionId === order.orderNumber}
-                      onClick={() => void runAction(order.orderNumber, "convert")}
+                      onClick={() =>
+                        void runAction(order.orderNumber, "convert")
+                      }
                     >
                       <FileText className="mr-1 h-4 w-4" />
                       Convert to PO
@@ -181,7 +197,9 @@ export default function StockTakeRestockOrdersPage() {
                     <Button
                       size="sm"
                       disabled={actionId === order.orderNumber}
-                      onClick={() => void runAction(order.orderNumber, "ordered")}
+                      onClick={() =>
+                        void runAction(order.orderNumber, "ordered")
+                      }
                     >
                       Mark ordered
                     </Button>
@@ -191,7 +209,9 @@ export default function StockTakeRestockOrdersPage() {
                       size="sm"
                       variant="outline"
                       disabled={actionId === order.orderNumber}
-                      onClick={() => void runAction(order.orderNumber, "received")}
+                      onClick={() =>
+                        void runAction(order.orderNumber, "received")
+                      }
                     >
                       Mark received
                     </Button>

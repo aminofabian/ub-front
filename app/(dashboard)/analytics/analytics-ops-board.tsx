@@ -62,7 +62,7 @@ function Panel({
   return (
     <section className="flex min-h-0 flex-col border border-border">
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        <h2 className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {title}
         </h2>
         {href ? (
@@ -89,7 +89,7 @@ function StatusMark({
   return (
     <span
       className={cn(
-        "text-[10px] font-semibold uppercase tracking-[0.04em]",
+        "text-[10px] font-semibold tracking-[-0.02em]",
         tone === "ok" && "text-emerald-700",
         tone === "warn" && "text-amber-700",
         tone === "bad" && "text-[#9a2e16]",
@@ -101,7 +101,13 @@ function StatusMark({
   );
 }
 
-function EmptyRow({ cols, children }: { cols: number; children: React.ReactNode }) {
+function EmptyRow({
+  cols,
+  children,
+}: {
+  cols: number;
+  children: React.ReactNode;
+}) {
   return (
     <tr>
       <td
@@ -123,7 +129,10 @@ function paymentStatus(row: PaymentLedgerRow): {
   if (status && status !== "completed" && status !== "paid") {
     return { tone: "warn", label: status };
   }
-  if ((method === "mpesa" || method === "mpesa_manual") && row.mpesaVerified === false) {
+  if (
+    (method === "mpesa" || method === "mpesa_manual") &&
+    row.mpesaVerified === false
+  ) {
     return { tone: "warn", label: "Unverified" };
   }
   return { tone: "ok", label: "Posted" };
@@ -163,7 +172,10 @@ export function AnalyticsOpsBoard({
     return st.tone !== "ok";
   });
   const shownPayments = payments.slice(0, 7);
-  const shownReview = (reviewRows.length > 0 ? reviewRows : payments).slice(0, 7);
+  const shownReview = (reviewRows.length > 0 ? reviewRows : payments).slice(
+    0,
+    7,
+  );
   const shownTabs = [...tabs]
     .sort((a, b) => toNum(b.balanceOwed) - toNum(a.balanceOwed))
     .slice(0, 7);
@@ -174,8 +186,7 @@ export function AnalyticsOpsBoard({
       .slice(0, 5)
       .map((row) => ({
         key: row.paymentId,
-        type:
-          row.mpesaVerified === false ? "Unverified M-Pesa" : "Open tender",
+        type: row.mpesaVerified === false ? "Unverified M-Pesa" : "Open tender",
         detail: `${formatPaymentMethodLabel(row.method)} · ${row.customerName || row.cashierName || "Sale"}`,
         amount: toNum(row.amount),
         when: row.soldAt,
@@ -300,7 +311,9 @@ export function AnalyticsOpsBoard({
                       className="border-b border-border last:border-0"
                     >
                       <td className="px-3 py-2 tabular-nums">
-                        {row.receiptNo != null ? `#${row.receiptNo}` : "No receipt"}
+                        {row.receiptNo != null
+                          ? `#${row.receiptNo}`
+                          : "No receipt"}
                       </td>
                       <td className="max-w-[10rem] truncate px-3 py-2">
                         {row.customerName || row.cashierName || "Walk-in"}
@@ -359,7 +372,9 @@ export function AnalyticsOpsBoard({
                           {money(row.balanceOwed)}
                         </td>
                         <td className="px-3 py-2">
-                          <StatusMark tone={row.creditSuspended ? "bad" : "warn"}>
+                          <StatusMark
+                            tone={row.creditSuspended ? "bad" : "warn"}
+                          >
                             {row.creditSuspended ? "Suspended" : "Open"}
                           </StatusMark>
                         </td>
@@ -434,11 +449,15 @@ export function AnalyticsOpsBoard({
           <div className="space-y-2 px-3 py-3 text-[13px]">
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">Imported</span>
-              <span className="tabular-nums font-semibold">{money(imported)}</span>
+              <span className="tabular-nums font-semibold">
+                {money(imported)}
+              </span>
             </div>
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">Allocated</span>
-              <span className="tabular-nums font-semibold">{money(allocated)}</span>
+              <span className="tabular-nums font-semibold">
+                {money(allocated)}
+              </span>
             </div>
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">Unallocated</span>
@@ -452,7 +471,7 @@ export function AnalyticsOpsBoard({
             <div className="mt-2 border-t border-border pt-3">
               <p
                 className={cn(
-                  "flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-[0.04em]",
+                  "flex items-center gap-1.5 text-[13px] font-bold tracking-[-0.02em]",
                   balanced ? "text-emerald-700" : "text-[#9a2e16]",
                 )}
               >
@@ -471,7 +490,10 @@ export function AnalyticsOpsBoard({
         <Panel title="Period close">
           <ul className="grid gap-0 px-2 py-1">
             {checks.map((item) => (
-              <li key={item.label} className="border-b border-border last:border-0">
+              <li
+                key={item.label}
+                className="border-b border-border last:border-0"
+              >
                 <Link
                   href={item.href}
                   className="flex min-h-10 items-center gap-2 px-1 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -485,7 +507,13 @@ export function AnalyticsOpsBoard({
                   >
                     {item.done ? <Check className="size-3" /> : null}
                   </span>
-                  <span className={item.done ? "text-muted-foreground line-through" : undefined}>
+                  <span
+                    className={
+                      item.done
+                        ? "text-muted-foreground line-through"
+                        : undefined
+                    }
+                  >
                     {item.label}
                   </span>
                 </Link>
@@ -510,7 +538,9 @@ export function AnalyticsOpsBoard({
               </thead>
               <tbody>
                 {!canViewAudit ? (
-                  <EmptyRow cols={3}>You do not have the activity log.</EmptyRow>
+                  <EmptyRow cols={3}>
+                    You do not have the activity log.
+                  </EmptyRow>
                 ) : audit.length === 0 ? (
                   <EmptyRow cols={3}>No entries in this window.</EmptyRow>
                 ) : (

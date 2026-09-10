@@ -20,9 +20,7 @@ import {
   parseRepaymentMoneyInput,
   parseRepaymentPercentInput,
 } from "@/lib/payroll-utils";
-import {
-  AdvanceRepaymentArrangement,
-} from "./advance-repayment-arrangement";
+import { AdvanceRepaymentArrangement } from "./advance-repayment-arrangement";
 
 type Props = {
   open: boolean;
@@ -49,7 +47,8 @@ export function AdvanceLedgerDrawer({
   const [rows, setRows] = useState<SalaryAdvanceRecord[]>([]);
   const [filter, setFilter] = useState<"all" | "outstanding" | "repaid">("all");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editMode, setEditMode] = useState<AdvanceRepaymentMode>("full_balance");
+  const [editMode, setEditMode] =
+    useState<AdvanceRepaymentMode>("full_balance");
   const [editValue, setEditValue] = useState("");
   const [editNote, setEditNote] = useState("");
 
@@ -111,7 +110,10 @@ export function AdvanceLedgerDrawer({
         : editMode === "fixed_per_pay"
           ? Number(parseRepaymentMoneyInput(editValue)) || 0
           : 0;
-    if (editMode === "percent_of_original" && (parsedValue <= 0 || parsedValue > 100)) {
+    if (
+      editMode === "percent_of_original" &&
+      (parsedValue <= 0 || parsedValue > 100)
+    ) {
       setError("Enter a repayment percentage between 1 and 100.");
       return;
     }
@@ -134,7 +136,9 @@ export function AdvanceLedgerDrawer({
       await load();
       onUpdated?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update arrangement");
+      setError(
+        err instanceof Error ? err.message : "Failed to update arrangement",
+      );
     } finally {
       setSavingId(null);
     }
@@ -151,7 +155,11 @@ export function AdvanceLedgerDrawer({
       width="wide"
       footer={
         <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Close
           </Button>
           {canManage && onLogAdvance ? (
@@ -179,15 +187,15 @@ export function AdvanceLedgerDrawer({
             </p>
           ) : null}
         </div>
-        <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/20 p-1">
+        <div className="flex gap-1 rounded-none border border-border/60 bg-muted/20 p-1">
           {(["all", "outstanding", "repaid"] as const).map((key) => (
             <button
               key={key}
               type="button"
               className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-colors",
+                "rounded-none px-2.5 py-1 text-xs font-medium capitalize transition-colors",
                 filter === key
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-none"
                   : "text-muted-foreground hover:text-foreground",
               )}
               onClick={() => setFilter(key)}
@@ -204,7 +212,7 @@ export function AdvanceLedgerDrawer({
           Loading advances…
         </div>
       ) : error ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-none border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       ) : (
@@ -221,12 +229,14 @@ export function AdvanceLedgerDrawer({
               {filtered.map((row) => (
                 <article
                   key={row.id}
-                  className="rounded-xl border border-border/50 bg-muted/15 p-3"
+                  className="rounded-none border border-border/50 bg-muted/15 p-3"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium tabular-nums">
-                        {formatPayrollMoney(Number(row.balanceOutstanding ?? row.amount))}
+                        {formatPayrollMoney(
+                          Number(row.balanceOutstanding ?? row.amount),
+                        )}
                         <span className="ml-2 text-xs font-normal text-muted-foreground">
                           of {formatPayrollMoney(Number(row.amount))}
                         </span>
@@ -238,16 +248,16 @@ export function AdvanceLedgerDrawer({
                     </div>
                     <div className="flex items-center gap-2">
                       {row.status === "repaid" ? (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
+                        <span className="inline-flex items-center gap-1 rounded-none bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
                           <Receipt className="size-3" aria-hidden />
                           Repaid
                         </span>
                       ) : Number(row.amountRepaid) > 0 ? (
-                        <span className="rounded-md bg-sky-500/15 px-2 py-0.5 text-xs text-sky-900 dark:text-sky-200">
+                        <span className="rounded-none bg-sky-500/15 px-2 py-0.5 text-xs text-sky-900 dark:text-sky-200">
                           Partial
                         </span>
                       ) : (
-                        <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs text-amber-900 dark:text-amber-200">
+                        <span className="rounded-none bg-amber-500/15 px-2 py-0.5 text-xs text-amber-900 dark:text-amber-200">
                           Outstanding
                         </span>
                       )}
@@ -258,7 +268,9 @@ export function AdvanceLedgerDrawer({
                           variant="outline"
                           className="h-7 px-2"
                           onClick={() =>
-                            editingId === row.id ? setEditingId(null) : startEdit(row)
+                            editingId === row.id
+                              ? setEditingId(null)
+                              : startEdit(row)
                           }
                         >
                           {editingId === row.id ? (
@@ -283,7 +295,9 @@ export function AdvanceLedgerDrawer({
                           {" "}
                           · next pay{" "}
                           <span className="font-medium tabular-nums text-foreground">
-                            {formatPayrollMoney(Number(row.scheduledDeductionThisRun))}
+                            {formatPayrollMoney(
+                              Number(row.scheduledDeductionThisRun),
+                            )}
                           </span>
                         </>
                       ) : row.repaymentMode === "manual" ? (
@@ -300,10 +314,15 @@ export function AdvanceLedgerDrawer({
                         onModeChange={setEditMode}
                         onValueChange={setEditValue}
                         originalAmount={Number(row.amount)}
-                        balanceOutstanding={Number(row.balanceOutstanding ?? row.amount)}
+                        balanceOutstanding={Number(
+                          row.balanceOutstanding ?? row.amount,
+                        )}
                       />
                       <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                        Note <span className="font-normal">(optional — not the repayment %)</span>
+                        Note{" "}
+                        <span className="font-normal">
+                          (optional — not the repayment %)
+                        </span>
                         <input
                           className={dashboardInputClass()}
                           value={editNote}
@@ -323,11 +342,15 @@ export function AdvanceLedgerDrawer({
                         <Button
                           type="button"
                           size="sm"
+                          className="rounded-none bg-[var(--pos-primary,#0f766e)] text-white"
                           disabled={savingId === row.id}
                           onClick={() => void saveEdit(row)}
                         >
                           {savingId === row.id ? (
-                            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                            <Loader2
+                              className="size-3.5 animate-spin"
+                              aria-hidden
+                            />
                           ) : (
                             "Save arrangement"
                           )}

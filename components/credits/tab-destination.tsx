@@ -43,7 +43,11 @@ export function TabDestinationHeader({
         )}
         aria-label={closeLabel}
       >
-        <ChevronLeft className="size-6 lg:hidden" strokeWidth={1.75} aria-hidden />
+        <ChevronLeft
+          className="size-6 lg:hidden"
+          strokeWidth={1.75}
+          aria-hidden
+        />
         <X className="hidden size-4 lg:block" strokeWidth={1.75} aria-hidden />
       </button>
       <div className="min-w-0 flex-1">
@@ -86,7 +90,9 @@ export function TabDestinationCta({
           focusRing,
         )}
       >
-        {Icon ? <Icon className="size-4" strokeWidth={1.75} aria-hidden /> : null}
+        {Icon ? (
+          <Icon className="size-4" strokeWidth={1.75} aria-hidden />
+        ) : null}
         {children}
       </button>
     </div>

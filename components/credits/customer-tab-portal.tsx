@@ -47,10 +47,7 @@ import type { PageSealStatus } from "@/lib/page-seal";
 import styles from "@/components/credits/customer-tab-mobile.module.css";
 import { buildStorefrontThemeVars } from "@/lib/storefront-theme";
 import { cn } from "@/lib/utils";
-import {
-  formatMoneyCompact,
-  resolveCurrencyCode,
-} from "@/lib/money";
+import { formatMoneyCompact, resolveCurrencyCode } from "@/lib/money";
 
 type Branding = {
   shopName: string;
@@ -130,11 +127,7 @@ function fmtRelativeVisit(iso: string): string {
       now.getMonth(),
       now.getDate(),
     );
-    const startOfVisit = new Date(
-      d.getFullYear(),
-      d.getMonth(),
-      d.getDate(),
-    );
+    const startOfVisit = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     const diffDays = Math.round(
       (startOfToday.getTime() - startOfVisit.getTime()) / 86_400_000,
     );
@@ -185,7 +178,7 @@ function TabServicePad({ items }: { items: ServicePadItem[] }) {
           )}
         >
           <span
-            className="flex size-10 items-center justify-center rounded-xl bg-[color-mix(in_oklab,var(--tab-focus)_12%,var(--tab-chip))] text-[var(--tab-focus)]"
+            className="flex size-10 items-center justify-center rounded-none bg-[color-mix(in_oklab,var(--tab-focus)_12%,var(--tab-chip))] text-[var(--tab-focus)]"
             aria-hidden
           >
             {item.mark}
@@ -363,7 +356,9 @@ const PURCHASE_PAGE_SIZE = 8;
 function TabStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[10px] font-medium text-[var(--tab-muted)]">{label}</dt>
+      <dt className="text-[10px] font-medium text-[var(--tab-muted)]">
+        {label}
+      </dt>
       <dd className="mt-0.5 truncate text-[13px] font-semibold tabular-nums tracking-[-0.02em]">
         {value}
       </dd>
@@ -444,10 +439,7 @@ function PurchaseRow({
             {fmtDate(row.soldAt)}
             {row.receiptNo != null ? <span> · #{row.receiptNo}</span> : null}
             {walletCredited > 0 ? (
-              <span>
-                {" "}
-                · +{fmtMoney(walletCredited, currency)} wallet
-              </span>
+              <span> · +{fmtMoney(walletCredited, currency)} wallet</span>
             ) : null}
             {tabCharged > 0 && walletCredited <= 0 ? (
               <span> · on tab</span>
@@ -620,244 +612,246 @@ function PaySheet({
       panelRef={sheetRef}
       size="destination"
     >
-        <TabDestinationHeader
-          title={`Pay ${shopLabel}`}
-          titleId={`${fieldIdPrefix}-pay-title`}
-          onClose={onClose}
-          closeDisabled={busy || promptSent}
-          closeLabel="Back to tab"
-          kicker={
-            <>
-              Outstanding{" "}
-              <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
-                {fmtMoney(owed, currency)}
-              </span>
-            </>
-          }
+      <TabDestinationHeader
+        title={`Pay ${shopLabel}`}
+        titleId={`${fieldIdPrefix}-pay-title`}
+        onClose={onClose}
+        closeDisabled={busy || promptSent}
+        closeLabel="Back to tab"
+        kicker={
+          <>
+            Outstanding{" "}
+            <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
+              {fmtMoney(owed, currency)}
+            </span>
+          </>
+        }
+      />
+
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+        <QuickAmountChips
+          owed={owed}
+          currency={currency}
+          amountNum={amountNum}
+          disabled={payMode === "stk" ? payDisabled : manualPayDisabled}
+          onPick={onPickAmount}
         />
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-          <QuickAmountChips
-            owed={owed}
-            currency={currency}
-            amountNum={amountNum}
-            disabled={payMode === "stk" ? payDisabled : manualPayDisabled}
-            onPick={onPickAmount}
-          />
-
-          <div className="mt-4">
-            <label
-              htmlFor={amountId}
-              className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
-            >
-              {payMode === "manual" ? "Amount you paid" : "Amount to pay"}
-            </label>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-medium text-[var(--tab-muted)]">
-                {resolveCurrencyCode(currency) === "KES"
-                  ? "Ksh"
-                  : resolveCurrencyCode(currency)}
-              </span>
-              <input
-                id={amountId}
-                type="number"
-                inputMode="decimal"
-                min={1}
-                step="1"
-                max={owed}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                disabled={payMode === "stk" ? payDisabled : manualPayDisabled}
-                onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                className={cn(fieldClass, "pl-12 pr-3 text-[22px] font-bold")}
-              />
-            </div>
-          </div>
-
-          <div className="mt-5">
-            <label
-              htmlFor={phoneId}
-              className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
-            >
-              M-Pesa number
-            </label>
-            <p className="mb-2 text-[13px] leading-snug text-[var(--tab-muted)]">
-              The payment prompt will be sent to this phone. Confirm or change it before you pay.
-            </p>
+        <div className="mt-4">
+          <label
+            htmlFor={amountId}
+            className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
+          >
+            {payMode === "manual" ? "Amount you paid" : "Amount to pay"}
+          </label>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-medium text-[var(--tab-muted)]">
+              {resolveCurrencyCode(currency) === "KES"
+                ? "Ksh"
+                : resolveCurrencyCode(currency)}
+            </span>
             <input
-              ref={phoneInputRef}
-              id={phoneId}
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="0712 345 678"
-              value={payPhone}
-              onChange={(e) => setPayPhone(e.target.value)}
+              id={amountId}
+              type="number"
+              inputMode="decimal"
+              min={1}
+              step="1"
+              max={owed}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
               disabled={payMode === "stk" ? payDisabled : manualPayDisabled}
               onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-              className={cn(
-                fieldClass,
-                "text-[19px] font-bold tracking-wide",
-                !phoneOk && payPhone.trim()
-                  ? "border-[var(--tab-error-fg)] focus-visible:border-[var(--tab-error-fg)] focus-visible:ring-[color-mix(in_oklab,var(--tab-error-fg)_25%,transparent)]"
-                  : "",
-              )}
+              className={cn(fieldClass, "pl-12 pr-3 text-[22px] font-bold")}
             />
-            {!phoneOk && payPhone.trim() ? (
-              <p className="mt-2 text-[13px] font-medium text-[var(--tab-error-fg)]">
-                Enter a valid Kenyan mobile number (07… or 01…).
-              </p>
-            ) : (
-              <p className="mt-2 text-[13px] text-[var(--tab-muted)]">
-                {formatPhoneDisplay(payPhone) || "No number entered"}
-              </p>
-            )}
           </div>
-
-          {payMode === "manual" ? (
-            <div className="mt-4">
-              <label
-                htmlFor={refId}
-                className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
-              >
-                M-Pesa confirmation code{" "}
-                <span className="font-normal text-[var(--tab-muted)]">(optional)</span>
-              </label>
-              <input
-                id={refId}
-                type="text"
-                inputMode="text"
-                autoComplete="off"
-                placeholder="e.g. QGH1ABC234"
-                value={reference}
-                onChange={(e) => setReference(e.target.value)}
-                disabled={manualPayDisabled}
-                onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                className={cn(fieldClass, "text-[15px] uppercase tracking-wide")}
-              />
-            </div>
-          ) : null}
-
-          {error ? (
-            <p
-              className="mt-4 border border-[var(--tab-error-fg)] bg-[var(--tab-error-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-error-fg)]"
-              role="alert"
-            >
-              {error}
-            </p>
-          ) : null}
-
-          {promptSent && payMode === "stk" && statusMsg ? (
-            <p className="mt-4 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-fg)]">
-              {statusMsg}
-            </p>
-          ) : null}
-
-          {paid ? (
-            <p className="mt-4 flex items-center gap-2 border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-success-fg)]">
-              <CheckCircle2 className="size-4 shrink-0" />
-              {statusMsg}
-            </p>
-          ) : null}
-
-          {manualSubmitted ? (
-            <p className="mt-4 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2.5 text-[13px] text-[var(--tab-muted)]">
-              The shop will review your payment and update your balance.
-            </p>
-          ) : null}
-
-          {manualCleared ? (
-            <p className="mt-4 border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-success-fg)]">
-              Payment cleared — balance updated.
-            </p>
-          ) : null}
         </div>
 
-        <div className="shrink-0 space-y-2 border-t border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3">
-          {payMode === "stk" ? (
-            <>
-              <button
-                type="button"
-                disabled={payDisabled || !amountValid || !phoneOk}
-                onClick={onPay}
-                className={btnPrimaryClass}
-                style={{
-                  backgroundColor: "var(--tab-cta-bg)",
-                  color: "var(--tab-cta-fg)",
-                }}
-              >
-                {busy ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Sending prompt…
-                  </>
-                ) : promptSent ? (
-                  <>
-                    <Smartphone className="size-4" />
-                    Enter PIN on your phone
-                  </>
-                ) : (
-                  <>
-                    <Smartphone className="size-4" />
-                    {amountValid
-                      ? `Pay ${fmtMoney(amountNum, currency)} with M-Pesa`
-                      : "Pay with M-Pesa"}
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                disabled={busy || promptSent || manualSubmitted}
-                onClick={() => setPayMode("manual")}
-                className={btnSecondaryClass}
-              >
-                <FileCheck2 className="size-4" />
-                I already paid — report it
-              </button>
-            </>
+        <div className="mt-5">
+          <label
+            htmlFor={phoneId}
+            className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
+          >
+            M-Pesa number
+          </label>
+          <p className="mb-2 text-[13px] leading-snug text-[var(--tab-muted)]">
+            The payment prompt will be sent to this phone. Confirm or change it
+            before you pay.
+          </p>
+          <input
+            ref={phoneInputRef}
+            id={phoneId}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="0712 345 678"
+            value={payPhone}
+            onChange={(e) => setPayPhone(e.target.value)}
+            disabled={payMode === "stk" ? payDisabled : manualPayDisabled}
+            onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
+            className={cn(
+              fieldClass,
+              "text-[19px] font-bold tracking-wide",
+              !phoneOk && payPhone.trim()
+                ? "border-[var(--tab-error-fg)] focus-visible:border-[var(--tab-error-fg)] focus-visible:ring-[color-mix(in_oklab,var(--tab-error-fg)_25%,transparent)]"
+                : "",
+            )}
+          />
+          {!phoneOk && payPhone.trim() ? (
+            <p className="mt-2 text-[13px] font-medium text-[var(--tab-error-fg)]">
+              Enter a valid Kenyan mobile number (07… or 01…).
+            </p>
           ) : (
-            <>
-              <button
-                type="button"
-                disabled={manualPayDisabled || !amountValid || manualSubmitted}
-                onClick={onSubmitManual}
-                className={btnPrimaryClass}
-                style={{
-                  backgroundColor: "var(--tab-cta-bg)",
-                  color: "var(--tab-cta-fg)",
-                }}
-              >
-                {busy ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Submitting…
-                  </>
-                ) : manualSubmitted ? (
-                  <>
-                    <CheckCircle2 className="size-4" />
-                    Submitted for review
-                  </>
-                ) : (
-                  <>
-                    <FileCheck2 className="size-4" />
-                    {amountValid
-                      ? `Submit ${fmtMoney(amountNum, currency)}`
-                      : "Submit payment"}
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                disabled={busy || manualSubmitted}
-                onClick={() => setPayMode("stk")}
-                className={btnSecondaryClass}
-              >
-                <Smartphone className="size-4" />
-                Pay with M-Pesa instead
-              </button>
-            </>
+            <p className="mt-2 text-[13px] text-[var(--tab-muted)]">
+              {formatPhoneDisplay(payPhone) || "No number entered"}
+            </p>
           )}
         </div>
+
+        {payMode === "manual" ? (
+          <div className="mt-4">
+            <label
+              htmlFor={refId}
+              className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
+            >
+              M-Pesa confirmation code{" "}
+              <span className="font-normal text-[var(--tab-muted)]">
+                (optional)
+              </span>
+            </label>
+            <input
+              id={refId}
+              type="text"
+              inputMode="text"
+              autoComplete="off"
+              placeholder="e.g. QGH1ABC234"
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              disabled={manualPayDisabled}
+              onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
+              className={cn(fieldClass, "text-[15px] tracking-[-0.02em]")}
+            />
+          </div>
+        ) : null}
+
+        {error ? (
+          <p
+            className="mt-4 border border-[var(--tab-error-fg)] bg-[var(--tab-error-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-error-fg)]"
+            role="alert"
+          >
+            {error}
+          </p>
+        ) : null}
+
+        {promptSent && payMode === "stk" && statusMsg ? (
+          <p className="mt-4 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-fg)]">
+            {statusMsg}
+          </p>
+        ) : null}
+
+        {paid ? (
+          <p className="mt-4 flex items-center gap-2 border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-success-fg)]">
+            <CheckCircle2 className="size-4 shrink-0" />
+            {statusMsg}
+          </p>
+        ) : null}
+
+        {manualSubmitted ? (
+          <p className="mt-4 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2.5 text-[13px] text-[var(--tab-muted)]">
+            The shop will review your payment and update your balance.
+          </p>
+        ) : null}
+
+        {manualCleared ? (
+          <p className="mt-4 border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-success-fg)]">
+            Payment cleared — balance updated.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="shrink-0 space-y-2 border-t border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3">
+        {payMode === "stk" ? (
+          <>
+            <button
+              type="button"
+              disabled={payDisabled || !amountValid || !phoneOk}
+              onClick={onPay}
+              className={btnPrimaryClass}
+              style={{
+                backgroundColor: "var(--tab-cta-bg)",
+                color: "var(--tab-cta-fg)",
+              }}
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Sending prompt…
+                </>
+              ) : promptSent ? (
+                <>
+                  <Smartphone className="size-4" />
+                  Enter PIN on your phone
+                </>
+              ) : (
+                <>
+                  <Smartphone className="size-4" />
+                  {amountValid
+                    ? `Pay ${fmtMoney(amountNum, currency)} with M-Pesa`
+                    : "Pay with M-Pesa"}
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              disabled={busy || promptSent || manualSubmitted}
+              onClick={() => setPayMode("manual")}
+              className={btnSecondaryClass}
+            >
+              <FileCheck2 className="size-4" />I already paid — report it
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={manualPayDisabled || !amountValid || manualSubmitted}
+              onClick={onSubmitManual}
+              className={btnPrimaryClass}
+              style={{
+                backgroundColor: "var(--tab-cta-bg)",
+                color: "var(--tab-cta-fg)",
+              }}
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Submitting…
+                </>
+              ) : manualSubmitted ? (
+                <>
+                  <CheckCircle2 className="size-4" />
+                  Submitted for review
+                </>
+              ) : (
+                <>
+                  <FileCheck2 className="size-4" />
+                  {amountValid
+                    ? `Submit ${fmtMoney(amountNum, currency)}`
+                    : "Submit payment"}
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              disabled={busy || manualSubmitted}
+              onClick={() => setPayMode("stk")}
+              className={btnSecondaryClass}
+            >
+              <Smartphone className="size-4" />
+              Pay with M-Pesa instead
+            </button>
+          </>
+        )}
+      </div>
     </TabOverlay>
   );
 }
@@ -902,7 +896,8 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
   const [airtimeSheetOpen, setAirtimeSheetOpen] = useState(false);
   const [kplcSheetOpen, setKplcSheetOpen] = useState(false);
-  const [airtimeConfig, setAirtimeConfig] = useState<PublicTabAirtimeConfig | null>(null);
+  const [airtimeConfig, setAirtimeConfig] =
+    useState<PublicTabAirtimeConfig | null>(null);
 
   const payKeyboardInset = useKeyboardInset(paySheetOpen);
   const walletKeyboardInset = useKeyboardInset(walletSheetOpen);
@@ -1050,7 +1045,14 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [intentId, promptSent, paid, phone, applyTabSnapshot, refreshAfterPayment]);
+  }, [
+    intentId,
+    promptSent,
+    paid,
+    phone,
+    applyTabSnapshot,
+    refreshAfterPayment,
+  ]);
 
   useEffect(() => {
     if (!walletIntentId || !walletPromptSent || walletPaid) return;
@@ -1083,7 +1085,14 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [walletIntentId, walletPromptSent, walletPaid, phone, applyTabSnapshot, refreshAfterPayment]);
+  }, [
+    walletIntentId,
+    walletPromptSent,
+    walletPaid,
+    phone,
+    applyTabSnapshot,
+    refreshAfterPayment,
+  ]);
 
   useEffect(() => {
     if (!manualSubmitted || manualCleared) return;
@@ -1150,7 +1159,10 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       hint: formatPhoneDisplay(phone),
       onClick: () => setAirtimeSheetOpen(true),
       mark: (
-        <Smartphone className={serviceIconClass} strokeWidth={serviceIconStroke} />
+        <Smartphone
+          className={serviceIconClass}
+          strokeWidth={serviceIconStroke}
+        />
       ),
     });
   }
@@ -1160,7 +1172,9 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       label: "Tokens",
       hint: "Look up",
       onClick: () => setKplcSheetOpen(true),
-      mark: <Zap className={serviceIconClass} strokeWidth={serviceIconStroke} />,
+      mark: (
+        <Zap className={serviceIconClass} strokeWidth={serviceIconStroke} />
+      ),
     });
   }
   if (showWalletTopUp) {
@@ -1175,13 +1189,17 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     });
   }
   const purchaseCount = tab?.purchases?.length ?? 0;
-  const historyPageCount = Math.max(1, Math.ceil(purchaseCount / PURCHASE_PAGE_SIZE));
+  const historyPageCount = Math.max(
+    1,
+    Math.ceil(purchaseCount / PURCHASE_PAGE_SIZE),
+  );
   const historyPageSafe = Math.min(historyPage, historyPageCount - 1);
   const historyRows = (tab?.purchases ?? []).slice(
     historyPageSafe * PURCHASE_PAGE_SIZE,
     historyPageSafe * PURCHASE_PAGE_SIZE + PURCHASE_PAGE_SIZE,
   );
-  const historyFrom = purchaseCount === 0 ? 0 : historyPageSafe * PURCHASE_PAGE_SIZE + 1;
+  const historyFrom =
+    purchaseCount === 0 ? 0 : historyPageSafe * PURCHASE_PAGE_SIZE + 1;
   const historyTo = Math.min(
     purchaseCount,
     historyPageSafe * PURCHASE_PAGE_SIZE + historyRows.length,
@@ -1222,7 +1240,9 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       setPaid(false);
       setStatusMsg(`Check ${normalizedPay} and enter your M-Pesa PIN.`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not send M-Pesa prompt.");
+      setError(
+        e instanceof Error ? e.message : "Could not send M-Pesa prompt.",
+      );
     } finally {
       setBusy(false);
     }
@@ -1339,13 +1359,13 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       style={surfaceStyle}
     >
       {/*
-        THESIS: The tab is a shop standing, not a wallet app — one number, one pay, services as destinations.
-        OWN-WORLD: Shop-tinted paper and ink numerals; telco colour only on a confirmed network chip.
-        STORY: Open the phone, see what you owe, pay the shop, or step into Airtime / Tokens and come back.
-        FIRST VIEWPORT: Paper identity, display-size standing, Pay under it, Airtime·Tokens as a verb row, ledger below.
-        FORM: Standing + destinations. Seed: user-pinned (standing, destinations, not M-Pesa).
-        FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
-      */}
+ THESIS: The tab is a shop standing, not a wallet app — one number, one pay, services as destinations.
+ OWN-WORLD: Shop-tinted paper and ink numerals; telco colour only on a confirmed network chip.
+ STORY: Open the phone, see what you owe, pay the shop, or step into Airtime / Tokens and come back.
+ FIRST VIEWPORT: Paper identity, display-size standing, Pay under it, Airtime·Tokens as a verb row, ledger below.
+ FORM: Standing + destinations. Seed: user-pinned (standing, destinations, not M-Pesa).
+ FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+ */}
       <div
         className={cn(
           "mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col",
@@ -1357,7 +1377,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           style={{ backgroundColor: primary }}
         >
           {branding.logoUrl ? (
-            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/15 ring-1 ring-white/20">
+            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-none bg-white/15 ring-1 ring-white/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={branding.logoUrl}
@@ -1367,7 +1387,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             </div>
           ) : (
             <div
-              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-sm font-bold ring-1 ring-white/20"
+              className="flex size-10 shrink-0 items-center justify-center rounded-none bg-white/15 text-sm font-bold ring-1 ring-white/20"
               aria-hidden
             >
               {displayShop.slice(0, 1).toUpperCase()}
@@ -1386,7 +1406,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/12 text-white ring-1 ring-white/25 transition-colors duration-150 hover:bg-white/20 active:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            className="flex size-10 shrink-0 items-center justify-center rounded-none bg-white/12 text-white ring-1 ring-white/25 transition-colors duration-150 hover:bg-white/20 active:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
             aria-label={
               portalTheme === "dark"
                 ? "Switch to light theme"
@@ -1485,182 +1505,195 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             onSealedChange={() => void reload()}
           >
             <main className="flex flex-1 flex-col">
-            <div className="flex min-h-[68dvh] flex-col md:hidden">
-              <section className={styles.standing} aria-labelledby={`${fieldIdPrefix}-standing`}>
-                <h2
-                  id={`${fieldIdPrefix}-standing`}
-                  className={cn(styles.amount, owed <= 0 && styles.amountSettled)}
+              <div className="flex min-h-[68dvh] flex-col md:hidden">
+                <section
+                  className={styles.standing}
+                  aria-labelledby={`${fieldIdPrefix}-standing`}
                 >
-                  {fmtMoney(owed, currency)}
-                </h2>
-                <p className={styles.caption}>
-                  {owed > 0 ? `Owed to ${displayShop}` : "Nothing owed"}
-                </p>
-                {wallet > 0 ? (
-                  <p className={styles.wallet}>
-                    {fmtMoney(wallet, currency)} in wallet
-                  </p>
-                ) : null}
-                {showPay ? (
-                  <button
-                    type="button"
-                    onClick={openPaySheet}
-                    className={styles.pay}
-                  >
-                    {amountValid
-                      ? `Pay ${fmtMoney(amountNum, currency)}`
-                      : `Pay ${payToName}`}
-                  </button>
-                ) : null}
-              </section>
-
-              {servicePadItems.length > 0 ? (
-                <nav className={styles.verbs} aria-label="More on this tab">
-                  {servicePadItems.map((item) => (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={item.onClick}
-                      className={styles.verb}
-                    >
-                      <span className={styles.verbLabel}>{item.label}</span>
-                      <span className={styles.verbHint}>{item.hint}</span>
-                    </button>
-                  ))}
-                </nav>
-              ) : null}
-            </div>
-
-            <section
-              ref={walletSectionRef}
-              id="wallet"
-              className="hidden border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5 md:block"
-            >
-              <div className="flex items-end justify-between gap-3">
-                <div className="min-w-0">
                   <h2
+                    id={`${fieldIdPrefix}-standing`}
                     className={cn(
-                      "text-[1.85rem] font-bold leading-none tabular-nums tracking-[-0.035em]",
-                      owed <= 0 && "text-[var(--tab-success-fg)]",
+                      styles.amount,
+                      owed <= 0 && styles.amountSettled,
                     )}
                   >
                     {fmtMoney(owed, currency)}
                   </h2>
-                  <p className="mt-1 text-[13px] text-[var(--tab-muted)]">
-                    {owed > 0
-                      ? `Balance owed to ${displayShop}`
-                      : wallet > 0
-                        ? "Nothing owed — wallet credit available"
-                        : "Nothing owed"}
+                  <p className={styles.caption}>
+                    {owed > 0 ? `Owed to ${displayShop}` : "Nothing owed"}
                   </p>
-                </div>
-                {wallet > 0 ? (
-                  <div className="shrink-0 rounded-lg bg-[color-mix(in_oklab,var(--tab-focus)_10%,var(--tab-chip))] px-2.5 py-1.5 text-right">
-                    <p className="text-[10px] font-medium text-[var(--tab-muted)]">
-                      Wallet
+                  {wallet > 0 ? (
+                    <p className={styles.wallet}>
+                      {fmtMoney(wallet, currency)} in wallet
                     </p>
-                    <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[var(--tab-success-fg)]">
-                      {fmtMoney(wallet, currency)}
-                    </p>
-                  </div>
+                  ) : null}
+                  {showPay ? (
+                    <button
+                      type="button"
+                      onClick={openPaySheet}
+                      className={styles.pay}
+                    >
+                      {amountValid
+                        ? `Pay ${fmtMoney(amountNum, currency)}`
+                        : `Pay ${payToName}`}
+                    </button>
+                  ) : null}
+                </section>
+
+                {servicePadItems.length > 0 ? (
+                  <nav className={styles.verbs} aria-label="More on this tab">
+                    {servicePadItems.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={item.onClick}
+                        className={styles.verb}
+                      >
+                        <span className={styles.verbLabel}>{item.label}</span>
+                        <span className={styles.verbHint}>{item.hint}</span>
+                      </button>
+                    ))}
+                  </nav>
                 ) : null}
               </div>
-              {tabStats.purchaseCount > 0 ? (
-                <dl className="mt-3 grid grid-cols-4 gap-x-2 gap-y-2">
-                  <TabStat
-                    label="Visits"
-                    value={String(tabStats.purchaseCount)}
-                  />
-                  <TabStat
-                    label="Lifetime"
-                    value={fmtMoney(tabStats.totalCredit, currency)}
-                  />
-                  <TabStat
-                    label="Last visit"
-                    value={
-                      tabStats.lastPurchaseAt
-                        ? fmtRelativeVisit(tabStats.lastPurchaseAt)
-                        : "—"
-                    }
-                  />
-                  <TabStat
-                    label="This month"
-                    value={fmtMoney(tabStats.monthAmount, currency)}
-                  />
-                </dl>
-              ) : (
-                <p className="mt-3 text-[13px] text-[var(--tab-muted)]">
-                  {wallet > 0
-                    ? "Wallet ready for your next visit."
-                    : "No purchases on this tab yet."}
-                </p>
-              )}
-            </section>
 
-            <div className="hidden md:block">
-              <TabServicePad items={servicePadItems} />
-            </div>
-
-            {owed <= 0 ? (
-              <div className="mx-4 mt-4 hidden items-center gap-2.5 rounded-xl bg-[var(--tab-success-bg)] px-3.5 py-3.5 text-[13px] font-medium text-[var(--tab-success-fg)] md:flex">
-                <CheckCircle2 className="size-4 shrink-0" strokeWidth={1.75} />
-                {wallet > 0
-                  ? `All clear — ${fmtMoney(wallet, currency)} wallet credit available.`
-                  : "All settled — nothing owed."}
-              </div>
-            ) : null}
-
-            {purchaseCount > 0 ? (
-              <section className="mt-2 flex flex-1 flex-col md:mt-6">
-                <div className="flex items-baseline justify-between gap-3 border-y border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3 md:py-3.5">
-                  <h3 className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--tab-muted)] md:text-[17px] md:text-[var(--tab-fg)]">
-                    {tabStats.lastPurchaseAt
-                      ? `${tabStats.purchaseCount} visit${tabStats.purchaseCount === 1 ? "" : "s"} · ${fmtRelativeVisit(tabStats.lastPurchaseAt).toLowerCase()}`
-                      : "Purchases"}
-                  </h3>
-                  <p className="text-[12px] tabular-nums text-[var(--tab-muted)]">
-                    {historyFrom}–{historyTo} of {purchaseCount}
-                  </p>
+              <section
+                ref={walletSectionRef}
+                id="wallet"
+                className="hidden border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5 md:block"
+              >
+                <div className="flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2
+                      className={cn(
+                        "text-[1.85rem] font-bold leading-none tabular-nums tracking-[-0.035em]",
+                        owed <= 0 && "text-[var(--tab-success-fg)]",
+                      )}
+                    >
+                      {fmtMoney(owed, currency)}
+                    </h2>
+                    <p className="mt-1 text-[13px] text-[var(--tab-muted)]">
+                      {owed > 0
+                        ? `Balance owed to ${displayShop}`
+                        : wallet > 0
+                          ? "Nothing owed — wallet credit available"
+                          : "Nothing owed"}
+                    </p>
+                  </div>
+                  {wallet > 0 ? (
+                    <div className="shrink-0 rounded-none bg-[color-mix(in_oklab,var(--tab-focus)_10%,var(--tab-chip))] px-2.5 py-1.5 text-right">
+                      <p className="text-[10px] font-medium text-[var(--tab-muted)]">
+                        Wallet
+                      </p>
+                      <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[var(--tab-success-fg)]">
+                        {fmtMoney(wallet, currency)}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
-                <ul className="divide-y divide-[var(--tab-border)] border-b border-[var(--tab-border)] bg-[var(--tab-card)]">
-                  {historyRows.map((row) => (
-                    <PurchaseRow
-                      key={row.saleId}
-                      row={row}
-                      currency={currency}
+                {tabStats.purchaseCount > 0 ? (
+                  <dl className="mt-3 grid grid-cols-4 gap-x-2 gap-y-2">
+                    <TabStat
+                      label="Visits"
+                      value={String(tabStats.purchaseCount)}
                     />
-                  ))}
-                </ul>
-                {historyPageCount > 1 ? (
-                  <div className="flex items-center justify-between gap-3 border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-2 py-2">
-                    <button
-                      type="button"
-                      disabled={historyPageSafe <= 0}
-                      onClick={() => setHistoryPage((page) => Math.max(0, page - 1))}
-                      className="inline-flex min-h-10 items-center gap-1 px-2 text-[13px] font-medium text-[var(--tab-fg)] disabled:text-[var(--tab-muted)] disabled:opacity-40"
-                    >
-                      <ChevronLeft className="size-4" aria-hidden />
-                      Newer
-                    </button>
-                    <p className="text-[13px] tabular-nums text-[var(--tab-muted)]">
-                      {historyPageSafe + 1} / {historyPageCount}
-                    </p>
-                    <button
-                      type="button"
-                      disabled={historyPageSafe >= historyPageCount - 1}
-                      onClick={() =>
-                        setHistoryPage((page) => Math.min(historyPageCount - 1, page + 1))
+                    <TabStat
+                      label="Lifetime"
+                      value={fmtMoney(tabStats.totalCredit, currency)}
+                    />
+                    <TabStat
+                      label="Last visit"
+                      value={
+                        tabStats.lastPurchaseAt
+                          ? fmtRelativeVisit(tabStats.lastPurchaseAt)
+                          : "—"
                       }
-                      className="inline-flex min-h-10 items-center gap-1 px-2 text-[13px] font-medium text-[var(--tab-fg)] disabled:text-[var(--tab-muted)] disabled:opacity-40"
-                    >
-                      Older
-                      <ChevronRight className="size-4" aria-hidden />
-                    </button>
-                  </div>
-                ) : null}
+                    />
+                    <TabStat
+                      label="This month"
+                      value={fmtMoney(tabStats.monthAmount, currency)}
+                    />
+                  </dl>
+                ) : (
+                  <p className="mt-3 text-[13px] text-[var(--tab-muted)]">
+                    {wallet > 0
+                      ? "Wallet ready for your next visit."
+                      : "No purchases on this tab yet."}
+                  </p>
+                )}
               </section>
-            ) : null}
-          </main>
+
+              <div className="hidden md:block">
+                <TabServicePad items={servicePadItems} />
+              </div>
+
+              {owed <= 0 ? (
+                <div className="mx-4 mt-4 hidden items-center gap-2.5 rounded-none bg-[var(--tab-success-bg)] px-3.5 py-3.5 text-[13px] font-medium text-[var(--tab-success-fg)] md:flex">
+                  <CheckCircle2
+                    className="size-4 shrink-0"
+                    strokeWidth={1.75}
+                  />
+                  {wallet > 0
+                    ? `All clear — ${fmtMoney(wallet, currency)} wallet credit available.`
+                    : "All settled — nothing owed."}
+                </div>
+              ) : null}
+
+              {purchaseCount > 0 ? (
+                <section className="mt-2 flex flex-1 flex-col md:mt-6">
+                  <div className="flex items-baseline justify-between gap-3 border-y border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3 md:py-3.5">
+                    <h3 className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--tab-muted)] md:text-[17px] md:text-[var(--tab-fg)]">
+                      {tabStats.lastPurchaseAt
+                        ? `${tabStats.purchaseCount} visit${tabStats.purchaseCount === 1 ? "" : "s"} · ${fmtRelativeVisit(tabStats.lastPurchaseAt).toLowerCase()}`
+                        : "Purchases"}
+                    </h3>
+                    <p className="text-[12px] tabular-nums text-[var(--tab-muted)]">
+                      {historyFrom}–{historyTo} of {purchaseCount}
+                    </p>
+                  </div>
+                  <ul className="divide-y divide-[var(--tab-border)] border-b border-[var(--tab-border)] bg-[var(--tab-card)]">
+                    {historyRows.map((row) => (
+                      <PurchaseRow
+                        key={row.saleId}
+                        row={row}
+                        currency={currency}
+                      />
+                    ))}
+                  </ul>
+                  {historyPageCount > 1 ? (
+                    <div className="flex items-center justify-between gap-3 border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-2 py-2">
+                      <button
+                        type="button"
+                        disabled={historyPageSafe <= 0}
+                        onClick={() =>
+                          setHistoryPage((page) => Math.max(0, page - 1))
+                        }
+                        className="inline-flex min-h-10 items-center gap-1 px-2 text-[13px] font-medium text-[var(--tab-fg)] disabled:text-[var(--tab-muted)] disabled:opacity-40"
+                      >
+                        <ChevronLeft className="size-4" aria-hidden />
+                        Newer
+                      </button>
+                      <p className="text-[13px] tabular-nums text-[var(--tab-muted)]">
+                        {historyPageSafe + 1} / {historyPageCount}
+                      </p>
+                      <button
+                        type="button"
+                        disabled={historyPageSafe >= historyPageCount - 1}
+                        onClick={() =>
+                          setHistoryPage((page) =>
+                            Math.min(historyPageCount - 1, page + 1),
+                          )
+                        }
+                        className="inline-flex min-h-10 items-center gap-1 px-2 text-[13px] font-medium text-[var(--tab-fg)] disabled:text-[var(--tab-muted)] disabled:opacity-40"
+                      >
+                        Older
+                        <ChevronRight className="size-4" aria-hidden />
+                      </button>
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
+            </main>
           </PageSealGate>
         )}
 
@@ -1748,122 +1781,125 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           closeDisabled={walletBusy || walletPromptSent}
           size="destination"
         >
-            <TabDestinationHeader
-              title="Top up wallet"
-              onClose={() => {
-                if (!walletBusy && !walletPromptSent) setWalletSheetOpen(false);
-              }}
-              closeDisabled={walletBusy || walletPromptSent}
-              closeLabel="Back to tab"
-              kicker={
-                <>
-                  Current balance{" "}
-                  <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
-                    {fmtMoney(wallet, currency)}
-                  </span>
-                </>
-              }
-            />
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-              <div className="grid grid-cols-4 gap-2">
-                {[100, 200, 500, 1000].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    disabled={walletTopUpDisabled}
-                    onClick={() => pickWalletAmount(n)}
-                    className={cn(
-                      "border py-2.5 text-[12px] font-bold tabular-nums disabled:opacity-40",
-                      Math.abs(walletAmountNum - n) < 0.001
-                        ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
-                        : "border-[var(--tab-border)] bg-[var(--tab-input)]",
-                    )}
-                  >
-                    {fmtMoney(n, currency)}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-4">
-                <label
-                  htmlFor={`${fieldIdPrefix}-wallet-amount`}
-                  className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
-                >
-                  Amount to add
-                </label>
-                <input
-                  id={`${fieldIdPrefix}-wallet-amount`}
-                  type="number"
-                  inputMode="decimal"
-                  min={1}
-                  value={walletAmount}
-                  onChange={(e) => {
-                    setWalletAmount(e.target.value);
-                    setWalletError(null);
-                  }}
+          <TabDestinationHeader
+            title="Top up wallet"
+            onClose={() => {
+              if (!walletBusy && !walletPromptSent) setWalletSheetOpen(false);
+            }}
+            closeDisabled={walletBusy || walletPromptSent}
+            closeLabel="Back to tab"
+            kicker={
+              <>
+                Current balance{" "}
+                <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
+                  {fmtMoney(wallet, currency)}
+                </span>
+              </>
+            }
+          />
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+            <div className="grid grid-cols-4 gap-2">
+              {[100, 200, 500, 1000].map((n) => (
+                <button
+                  key={n}
+                  type="button"
                   disabled={walletTopUpDisabled}
-                  onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                  className={cn(fieldClass, "text-[22px] font-bold")}
-                />
-              </div>
-              <div className="mt-5">
-                <label
-                  htmlFor={`${fieldIdPrefix}-wallet-phone`}
-                  className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
+                  onClick={() => pickWalletAmount(n)}
+                  className={cn(
+                    "border py-2.5 text-[12px] font-bold tabular-nums disabled:opacity-40",
+                    Math.abs(walletAmountNum - n) < 0.001
+                      ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
+                      : "border-[var(--tab-border)] bg-[var(--tab-input)]",
+                  )}
                 >
-                  M-Pesa number
-                </label>
-                <input
-                  id={`${fieldIdPrefix}-wallet-phone`}
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  value={payPhone}
-                  onChange={(e) => {
-                    setPayPhone(e.target.value);
-                    setWalletError(null);
-                  }}
-                  disabled={walletTopUpDisabled}
-                  onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                  className={cn(fieldClass, "text-[18px] font-bold tracking-wide")}
-                />
-              </div>
-              {walletStatusMsg ? (
-                <p className="mt-4 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2 text-[13px]">
-                  {walletStatusMsg}
-                </p>
-              ) : null}
-              {walletError ? (
-                <p className="mt-4 border border-[var(--tab-error-fg)] bg-[var(--tab-error-bg)] px-3 py-2 text-[13px] text-[var(--tab-error-fg)]">
-                  {walletError}
-                </p>
-              ) : null}
+                  {fmtMoney(n, currency)}
+                </button>
+              ))}
             </div>
-            <div className="shrink-0 border-t border-[var(--tab-border)] px-4 py-3">
-              <button
-                type="button"
-                disabled={walletTopUpDisabled || !walletAmountValid || !phoneOk}
-                onClick={() => void onWalletTopUp()}
-                className={btnPrimaryClass}
-                style={{
-                  backgroundColor: "var(--tab-cta-bg)",
-                  color: "var(--tab-cta-fg)",
-                }}
+            <div className="mt-4">
+              <label
+                htmlFor={`${fieldIdPrefix}-wallet-amount`}
+                className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
               >
-                {walletBusy ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Sending…
-                  </>
-                ) : walletPromptSent ? (
-                  "Waiting for M-Pesa…"
-                ) : (
-                  <>
-                    <Smartphone className="size-4" />
-                    Top up {fmtMoney(walletAmountNum, currency)}
-                  </>
-                )}
-              </button>
+                Amount to add
+              </label>
+              <input
+                id={`${fieldIdPrefix}-wallet-amount`}
+                type="number"
+                inputMode="decimal"
+                min={1}
+                value={walletAmount}
+                onChange={(e) => {
+                  setWalletAmount(e.target.value);
+                  setWalletError(null);
+                }}
+                disabled={walletTopUpDisabled}
+                onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
+                className={cn(fieldClass, "text-[22px] font-bold")}
+              />
             </div>
+            <div className="mt-5">
+              <label
+                htmlFor={`${fieldIdPrefix}-wallet-phone`}
+                className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
+              >
+                M-Pesa number
+              </label>
+              <input
+                id={`${fieldIdPrefix}-wallet-phone`}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={payPhone}
+                onChange={(e) => {
+                  setPayPhone(e.target.value);
+                  setWalletError(null);
+                }}
+                disabled={walletTopUpDisabled}
+                onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
+                className={cn(
+                  fieldClass,
+                  "text-[18px] font-bold tracking-wide",
+                )}
+              />
+            </div>
+            {walletStatusMsg ? (
+              <p className="mt-4 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2 text-[13px]">
+                {walletStatusMsg}
+              </p>
+            ) : null}
+            {walletError ? (
+              <p className="mt-4 border border-[var(--tab-error-fg)] bg-[var(--tab-error-bg)] px-3 py-2 text-[13px] text-[var(--tab-error-fg)]">
+                {walletError}
+              </p>
+            ) : null}
+          </div>
+          <div className="shrink-0 border-t border-[var(--tab-border)] px-4 py-3">
+            <button
+              type="button"
+              disabled={walletTopUpDisabled || !walletAmountValid || !phoneOk}
+              onClick={() => void onWalletTopUp()}
+              className={btnPrimaryClass}
+              style={{
+                backgroundColor: "var(--tab-cta-bg)",
+                color: "var(--tab-cta-fg)",
+              }}
+            >
+              {walletBusy ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Sending…
+                </>
+              ) : walletPromptSent ? (
+                "Waiting for M-Pesa…"
+              ) : (
+                <>
+                  <Smartphone className="size-4" />
+                  Top up {fmtMoney(walletAmountNum, currency)}
+                </>
+              )}
+            </button>
+          </div>
         </TabOverlay>
       ) : null}
 

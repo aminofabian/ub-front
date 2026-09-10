@@ -119,7 +119,7 @@ export function SetupProgressPhoneModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md gap-0 overflow-hidden p-0 sm:max-w-md">
-        <div className="border-b border-[#E6E1D8] bg-[#FCFAF6] px-5 pb-4 pt-5 sm:px-6">
+        <div className="border-b border-[#e4e7e6] bg-[#ffffff] px-5 pb-4 pt-5 sm:px-6">
           <DialogHeader className="space-y-1.5 text-left">
             <div className="mb-1 flex size-9 items-center justify-center bg-[#141414] text-[#F5E6C8]">
               <Phone className="size-4" aria-hidden />
@@ -161,9 +161,9 @@ export function SetupProgressPhoneModal({
                   onChange={(e) => setPhoneInput(e.target.value)}
                   disabled={sendingCode || verifying}
                   className={cn(
-                    "h-10 w-full border border-[#E6E1D8] bg-white px-3 text-sm text-[#141414]",
+                    "h-10 w-full border border-[#e4e7e6] bg-white px-3 text-sm text-[#141414]",
                     "placeholder:text-[#AAAAAA]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/35",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/35",
                     "disabled:opacity-60",
                   )}
                 />
@@ -190,9 +190,9 @@ export function SetupProgressPhoneModal({
                     }
                     disabled={verifying}
                     className={cn(
-                      "h-10 w-full border border-[#E6E1D8] bg-white px-3 text-sm tracking-[0.3em] text-[#141414]",
+                      "h-10 w-full border border-[#e4e7e6] bg-white px-3 text-sm tracking-[0.3em] text-[#141414]",
                       "placeholder:tracking-normal placeholder:text-[#AAAAAA]",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/35",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/35",
                       "disabled:opacity-60",
                     )}
                   />
@@ -242,7 +242,7 @@ export function SetupProgressPhoneModal({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-9 text-[#8A6B2E]"
+                      className="h-9 text-[#0f766e]"
                       disabled={sendingCode || verifying}
                       onClick={() => void handleSendCode()}
                     >

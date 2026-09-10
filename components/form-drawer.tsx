@@ -100,14 +100,10 @@ export function FormDrawerMessageBanner({
 }
 
 /** Pick banner tone from a catalog status string. */
-export function catalogMessageBannerTone(
-  text: string,
-): "danger" | "notice" {
+export function catalogMessageBannerTone(text: string): "danger" | "notice" {
   const t = text.trim().toLowerCase();
   if (!t) return "danger";
-  if (
-    /error|fail|invalid|required|unable|denied|forbidden|conflict/.test(t)
-  ) {
+  if (/error|fail|invalid|required|unable|denied|forbidden|conflict/.test(t)) {
     return "danger";
   }
   if (/created|saved|updated|added|success|linked|uploaded/.test(t)) {
@@ -131,7 +127,7 @@ export function FormDrawer({
   children,
   footer,
   width = "default",
-  appearance = "default",
+  appearance = "sharp",
   headerDensity = "default",
   bodyLayout = "scroll",
   onboardingTarget,
@@ -153,7 +149,9 @@ export function FormDrawer({
     ? { background: `color-mix(in srgb, ${brandStops.from} 12%, transparent)` }
     : undefined;
   const headerOrbSecondary = brandStops
-    ? { background: `color-mix(in srgb, ${brandStops.secondary} 10%, transparent)` }
+    ? {
+        background: `color-mix(in srgb, ${brandStops.secondary} 10%, transparent)`,
+      }
     : undefined;
   const iconChromeStyle = brandStops
     ? {
@@ -200,37 +198,38 @@ export function FormDrawer({
                   "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                 )
               : isFull
-              ? cn(
-                  "inset-0 h-[100dvh] max-h-[100dvh] w-full max-w-none rounded-none border-0 bg-background shadow-none",
-                  "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-                  "data-[state=closed]:zoom-out-[0.99] data-[state=open]:zoom-in-[0.99]",
-                )
-              : cn(
-                  sharp
-                    ? "border-l border-border bg-background shadow-none dark:bg-background"
-                    : cn(
-                        // The panel itself must be fully opaque so page text
-                        // behind it can never bleed through on browsers
-                        // without `backdrop-filter` support.
-                        "border-l border-border/80 bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.03),-16px_0_48px_-24px_rgba(0,0,0,0.1)]",
-                        "dark:border-border/80 dark:bg-background dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),-16px_0_48px_-24px_rgba(0,0,0,0.4)]",
-                      ),
-                  "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
-                  "inset-y-0 right-0 h-[100dvh] max-h-[100dvh] w-full",
-                  sharp ? "rounded-none" : "sm:rounded-l-2xl",
-                  width === "half"
-                    ? "w-full min-w-0 sm:w-[50vw] sm:max-w-[50vw]"
-                    : width === "extraWide"
-                      ? "sm:max-w-[min(92rem,calc(100vw-1.25rem))]"
-                      : width === "large"
-                        ? "sm:max-w-5xl"
-                        : width === "wide"
-                          ? "sm:max-w-3xl"
-                          : "sm:max-w-xl",
-                ),
+                ? cn(
+                    "inset-0 h-[100dvh] max-h-[100dvh] w-full max-w-none rounded-none border-0 bg-background shadow-none",
+                    "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+                    "data-[state=closed]:zoom-out-[0.99] data-[state=open]:zoom-in-[0.99]",
+                  )
+                : cn(
+                    sharp
+                      ? "border-l border-border bg-background shadow-none dark:bg-background"
+                      : cn(
+                          // The panel itself must be fully opaque so page text
+                          // behind it can never bleed through on browsers
+                          // without `backdrop-filter` support.
+                          "border-l border-border/80 bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.03),-16px_0_48px_-24px_rgba(0,0,0,0.1)]",
+                          "dark:border-border/80 dark:bg-background dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),-16px_0_48px_-24px_rgba(0,0,0,0.4)]",
+                        ),
+                    "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
+                    "inset-y-0 right-0 h-[100dvh] max-h-[100dvh] w-full",
+                    sharp ? "rounded-none" : "sm:rounded-l-2xl",
+                    width === "half"
+                      ? "w-full min-w-0 sm:w-[50vw] sm:max-w-[50vw]"
+                      : width === "extraWide"
+                        ? "sm:max-w-[min(92rem,calc(100vw-1.25rem))]"
+                        : width === "large"
+                          ? "sm:max-w-5xl"
+                          : width === "wide"
+                            ? "sm:max-w-3xl"
+                            : "sm:max-w-xl",
+                  ),
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-            !inColumn && "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
+            !inColumn &&
+              "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
             !inColumn &&
               (isFull
                 ? "pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
@@ -337,7 +336,7 @@ export function FormDrawer({
                           <>
                             <span
                               className={cn(
-                                "shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em]",
+                                "shrink-0 text-[11px] font-semibold tracking-[-0.02em]",
                                 sharp ? "text-foreground/40" : "text-primary",
                               )}
                             >
@@ -354,7 +353,9 @@ export function FormDrawer({
                       </div>
                       {description ? (
                         <Dialog.Description className="sr-only">
-                          {typeof description === "string" ? description : title}
+                          {typeof description === "string"
+                            ? description
+                            : title}
                         </Dialog.Description>
                       ) : (
                         <Dialog.Description className="sr-only">
@@ -367,7 +368,7 @@ export function FormDrawer({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="size-7 shrink-0 rounded-md border border-border bg-background text-foreground/50 shadow-none hover:bg-muted/70 hover:text-foreground"
+                        className="size-7 shrink-0 rounded-none border border-border bg-background text-foreground/50 shadow-none hover:bg-muted/70 hover:text-foreground"
                         aria-label="Close panel"
                       >
                         <X className="size-3.5" strokeWidth={2} />
@@ -375,91 +376,93 @@ export function FormDrawer({
                     </Dialog.Close>
                   </>
                 ) : (
-                <>
-                <div className="flex min-w-0 gap-2 sm:gap-4">
-                  {icon ? (
-                    <span
-                      className={cn(
-                        "flex size-9 shrink-0 items-center justify-center ring-offset-1 ring-offset-background max-sm:hidden sm:size-12",
-                        sharp ? "rounded-none" : "rounded-2xl",
-                        brandStops
-                          ? cn(
-                              "border border-border bg-muted/40",
-                              !sharp &&
-                                "bg-gradient-to-br from-muted/40 to-background/95 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_4px_14px_-4px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.06] dark:from-muted/25 dark:to-background dark:ring-white/[0.08]",
-                            )
-                          : cn(
-                              "text-primary border border-border",
-                              sharp
-                                ? "bg-muted/30"
-                                : cn(
-                                    "border-primary/15 bg-gradient-to-br from-primary/[0.06] to-muted/50",
-                                    "ring-1 ring-primary/10",
-                                    "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.55),0_4px_14px_-4px_rgba(0,0,0,0.1)]",
-                                    "dark:from-primary/[0.12] dark:to-background dark:ring-primary/20 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_4px_20px_-6px_rgba(0,0,0,0.45)]",
-                                  ),
-                            ),
-                      )}
-                      style={iconChromeStyle}
-                    >
-                      {icon}
-                    </span>
-                  ) : null}
-                  <div className="min-w-0 space-y-1 pt-0.5 sm:space-y-2">
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      {contextLabel ? (
+                  <>
+                    <div className="flex min-w-0 gap-2 sm:gap-4">
+                      {icon ? (
                         <span
                           className={cn(
-                            "inline-flex max-w-full items-center",
-                            sharp ? "rounded-none" : "rounded-full",
-                            "border border-border bg-muted/50 px-2 py-px sm:px-2.5 sm:py-0.5",
-                            !sharp && "border-primary/20 bg-primary/[0.07]",
-                            "text-[10px] font-semibold uppercase tracking-[0.12em] text-primary",
-                            "shadow-[0_1px_0_0_rgba(255,255,255,0.4)_inset] dark:shadow-none dark:border-primary/25 dark:bg-primary/15",
+                            "flex size-9 shrink-0 items-center justify-center ring-offset-1 ring-offset-background max-sm:hidden sm:size-12",
+                            sharp ? "rounded-none" : "rounded-2xl",
+                            brandStops
+                              ? cn(
+                                  "border border-border bg-muted/40",
+                                  !sharp &&
+                                    "bg-gradient-to-br from-muted/40 to-background/95 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_4px_14px_-4px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.06] dark:from-muted/25 dark:to-background dark:ring-white/[0.08]",
+                                )
+                              : cn(
+                                  "text-primary border border-border",
+                                  sharp
+                                    ? "bg-muted/30"
+                                    : cn(
+                                        "border-primary/15 bg-gradient-to-br from-primary/[0.06] to-muted/50",
+                                        "ring-1 ring-primary/10",
+                                        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.55),0_4px_14px_-4px_rgba(0,0,0,0.1)]",
+                                        "dark:from-primary/[0.12] dark:to-background dark:ring-primary/20 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_4px_20px_-6px_rgba(0,0,0,0.45)]",
+                                      ),
+                                ),
                           )}
+                          style={iconChromeStyle}
                         >
-                          {contextLabel}
+                          {icon}
                         </span>
                       ) : null}
-                      {description ? (
-                        <span className="hidden text-[10px] font-medium tabular-nums text-muted-foreground/75 sm:inline">
-                          Esc to close
-                        </span>
-                      ) : null}
+                      <div className="min-w-0 space-y-1 pt-0.5 sm:space-y-2">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          {contextLabel ? (
+                            <span
+                              className={cn(
+                                "inline-flex max-w-full items-center",
+                                sharp ? "rounded-none" : "rounded-full",
+                                "border border-border bg-muted/50 px-2 py-px sm:px-2.5 sm:py-0.5",
+                                !sharp && "border-primary/20 bg-primary/[0.07]",
+                                "text-[11px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]",
+                                "shadow-[0_1px_0_0_rgba(255,255,255,0.4)_inset] dark:shadow-none dark:border-primary/25 dark:bg-primary/15",
+                              )}
+                            >
+                              {contextLabel}
+                            </span>
+                          ) : null}
+                          {description ? (
+                            <span className="hidden text-[10px] font-medium tabular-nums text-muted-foreground/75 sm:inline">
+                              Esc to close
+                            </span>
+                          ) : null}
+                        </div>
+                        <Dialog.Title className="font-heading text-sm font-semibold tracking-tight text-foreground sm:text-xl">
+                          {title}
+                        </Dialog.Title>
+                        {description ? (
+                          <Dialog.Description className="max-w-[50ch] text-[13px] leading-relaxed text-muted-foreground">
+                            {description}
+                          </Dialog.Description>
+                        ) : (
+                          <Dialog.Description className="sr-only">
+                            Form panel. Press Escape to close.
+                          </Dialog.Description>
+                        )}
+                        {!description ? (
+                          <p className="text-[11px] text-muted-foreground/80">
+                            Press Esc to close
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                    <Dialog.Title className="font-heading text-sm font-semibold tracking-tight text-foreground sm:text-xl">
-                      {title}
-                    </Dialog.Title>
-                    {description ? (
-                      <Dialog.Description className="max-w-[50ch] text-[13px] leading-relaxed text-muted-foreground">
-                        {description}
-                      </Dialog.Description>
-                    ) : (
-                      <Dialog.Description className="sr-only">
-                        Form panel. Press Escape to close.
-                      </Dialog.Description>
-                    )}
-                    {!description ? (
-                      <p className="text-[11px] text-muted-foreground/80">Press Esc to close</p>
-                    ) : null}
-                  </div>
-                </div>
-                <Dialog.Close asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className={cn(
-                      "relative z-50 shrink-0 rounded-lg border border-border bg-background text-muted-foreground",
-                      "hover:bg-muted/70 hover:text-foreground",
-                      "shadow-none transition-[border-color,background-color,color] duration-150",
-                    )}
-                    aria-label="Close panel"
-                  >
-                    <X className="size-4" strokeWidth={2} />
-                  </Button>
-                </Dialog.Close>
-                </>
+                    <Dialog.Close asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className={cn(
+                          "relative z-50 shrink-0 rounded-lg border border-border bg-background text-muted-foreground",
+                          "hover:bg-muted/70 hover:text-foreground",
+                          "shadow-none transition-[border-color,background-color,color] duration-150",
+                        )}
+                        aria-label="Close panel"
+                      >
+                        <X className="size-4" strokeWidth={2} />
+                      </Button>
+                    </Dialog.Close>
+                  </>
                 )}
               </div>
             </header>
@@ -546,7 +549,7 @@ export function FormDrawerFields({
   legend,
   hint,
   compact = false,
-  appearance = "default",
+  appearance = "sharp",
   embedded = false,
   index,
   children,
@@ -582,10 +585,7 @@ export function FormDrawerFields({
               "bg-background shadow-none",
               compact ? "space-y-2" : "space-y-2.5",
               embedded
-                ? cn(
-                    "rounded-none border-0",
-                    compact ? "p-2.5" : "p-3",
-                  )
+                ? cn("rounded-none border-0", compact ? "p-2.5" : "p-3")
                 : "rounded-none border border-border p-2.5",
             )
           : cn(
@@ -612,7 +612,7 @@ export function FormDrawerFields({
             "block w-full border-b px-0.5",
             sharp || compact
               ? cn("border-border", compact ? "pb-1.5" : "pb-2")
-              : "border-border/35 pb-3 font-heading text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+              : "border-border/35 pb-3 font-heading text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground",
           )}
         >
           {sharp || compact ? (

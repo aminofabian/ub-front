@@ -81,7 +81,8 @@ function hasActiveFilters(catalog: Props["catalog"]): boolean {
 
 export function ProductFilterSidebar({ catalog }: Props) {
   const filtersActive = useMemo(() => hasActiveFilters(catalog), [catalog]);
-  const searchPending = catalog.search.trim() !== catalog.debouncedSearch.trim();
+  const searchPending =
+    catalog.search.trim() !== catalog.debouncedSearch.trim();
   const categorySelected = !!catalog.filterCategoryId.trim();
   const categoryOptions = useMemo(
     () => categorySelectOptions(catalog.sortedCategories),
@@ -90,11 +91,36 @@ export function ProductFilterSidebar({ catalog }: Props) {
 
   const needs = (
     [
-      ["No barcode", catalog.filterNoBarcode, () => catalog.setFilterNoBarcode((v) => !v), catalog.catalogStats.missingBarcode],
-      ["No price", catalog.filterNoPrice, () => catalog.setFilterNoPrice((v) => !v), catalog.catalogStats.missingPrice],
-      ["Out of stock", catalog.filterZeroStock, () => catalog.setFilterZeroStock((v) => !v), catalog.catalogStats.zeroStock],
-      ["Low stock", catalog.filterLowStock, () => catalog.setFilterLowStock((v) => !v), catalog.catalogStats.lowStock],
-      ["Inactive", catalog.filterInactiveOnly, () => catalog.setFilterInactiveOnly((v) => !v), catalog.catalogStats.inactive],
+      [
+        "No barcode",
+        catalog.filterNoBarcode,
+        () => catalog.setFilterNoBarcode((v) => !v),
+        catalog.catalogStats.missingBarcode,
+      ],
+      [
+        "No price",
+        catalog.filterNoPrice,
+        () => catalog.setFilterNoPrice((v) => !v),
+        catalog.catalogStats.missingPrice,
+      ],
+      [
+        "Out of stock",
+        catalog.filterZeroStock,
+        () => catalog.setFilterZeroStock((v) => !v),
+        catalog.catalogStats.zeroStock,
+      ],
+      [
+        "Low stock",
+        catalog.filterLowStock,
+        () => catalog.setFilterLowStock((v) => !v),
+        catalog.catalogStats.lowStock,
+      ],
+      [
+        "Inactive",
+        catalog.filterInactiveOnly,
+        () => catalog.setFilterInactiveOnly((v) => !v),
+        catalog.catalogStats.inactive,
+      ],
     ] as const
   ).filter(([, , , count]) => count > 0);
 

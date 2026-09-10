@@ -11,7 +11,11 @@ import {
   type ItemSupplierLinkRecord,
 } from "@/lib/api";
 import { type ProductEditDraft, EMPTY_EDIT_DRAFT } from "../_types";
-import { effectiveSupplierUnitCost, normalizeItemDetail, toNumber } from "../_utils";
+import {
+  effectiveSupplierUnitCost,
+  normalizeItemDetail,
+  toNumber,
+} from "../_utils";
 
 /** Safe number-to-string helper for draft fields. */
 function numStr(v: number | string | null | undefined): string {
@@ -72,7 +76,9 @@ export function useProductDetail(branchIdForPricing?: string | null) {
 
   /** Pass `itemIdOverride` after `selectProduct(id)` so detail loads before the next paint (same-tick stale `selectedId`). */
   const refreshSelectedDetail = useCallback(
-    async (itemIdOverride?: string | null): Promise<ItemDetailRecord | null> => {
+    async (
+      itemIdOverride?: string | null,
+    ): Promise<ItemDetailRecord | null> => {
       const id = (itemIdOverride?.trim() || selectedId?.trim()) ?? "";
       if (!id) return null;
       try {
@@ -146,7 +152,9 @@ export function useProductDetail(branchIdForPricing?: string | null) {
     let cancelled = false;
     void (async () => {
       try {
-        const row = await fetchItemById(selectedId, { branchId: pricingBranchId });
+        const row = await fetchItemById(selectedId, {
+          branchId: pricingBranchId,
+        });
         if (cancelled) return;
         setDetail(row);
         setPatchDraft(buildDraft(row));

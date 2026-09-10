@@ -3,13 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import {
-  Filter,
-  Phone,
-  Receipt,
-  TrendingUp,
-  Users,
-} from "lucide-react";
+import { Filter, Phone, Receipt, TrendingUp, Users } from "lucide-react";
 
 import { dashboardHintClass } from "@/components/dashboard-page-ui";
 import { APP_ROUTES } from "@/lib/config";
@@ -72,8 +66,18 @@ export function CustomerCrmNavRail({
       icon: TrendingUp,
       show: canViewAnalytics,
     },
-    { href: APP_ROUTES.customerPhones, label: "Phones", icon: Phone, show: true },
-    { href: APP_ROUTES.creditsOnTab, label: "On tab", icon: Receipt, show: true },
+    {
+      href: APP_ROUTES.customerPhones,
+      label: "Phones",
+      icon: Phone,
+      show: true,
+    },
+    {
+      href: APP_ROUTES.creditsOnTab,
+      label: "On tab",
+      icon: Receipt,
+      show: true,
+    },
     {
       href: APP_ROUTES.creditsPaymentClaims,
       label: "Claims",
@@ -85,7 +89,7 @@ export function CustomerCrmNavRail({
   return (
     <aside className={CRM_RAIL}>
       <div className="shrink-0 space-y-1 border-b border-border/50 p-3">
-        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <p className="px-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
           Workspace
         </p>
         <nav className="space-y-0.5" aria-label="Customer areas">
@@ -101,7 +105,7 @@ export function CustomerCrmNavRail({
                   key={href}
                   href={href}
                   className={cn(
-                    "flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors",
+                    "flex items-center gap-2 rounded-none px-2.5 py-2 text-sm font-medium transition-colors",
                     active ? CRM_PILL_ACTIVE : CRM_PILL_IDLE,
                   )}
                 >
@@ -114,20 +118,20 @@ export function CustomerCrmNavRail({
       </div>
 
       <div className="shrink-0 space-y-2 border-b border-border/50 p-3">
-        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <p className="px-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
           Snapshot
         </p>
         <dl className="grid grid-cols-2 gap-2">
-          <div className="rounded-xl border border-border/50 bg-card/80 px-2.5 py-2">
-            <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="rounded-none border border-border/50 bg-card/80 px-2.5 py-2">
+            <dt className="text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
               Shown
             </dt>
             <dd className="mt-0.5 text-lg font-semibold tabular-nums">
               {stats.shown}
             </dd>
           </div>
-          <div className="rounded-xl border border-border/50 bg-card/80 px-2.5 py-2">
-            <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="rounded-none border border-border/50 bg-card/80 px-2.5 py-2">
+            <dt className="text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
               Owed
             </dt>
             <dd className="mt-0.5 text-sm font-semibold tabular-nums leading-tight">
@@ -139,17 +143,21 @@ export function CustomerCrmNavRail({
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
         <div>
-          <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="mb-1.5 px-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Added
           </p>
-          <div className="flex flex-wrap gap-1" role="group" aria-label="Date filter">
+          <div
+            className="flex flex-wrap gap-1"
+            role="group"
+            aria-label="Date filter"
+          >
             {dateOptions.map(({ id, label }) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => onDatePreset(id)}
                 className={cn(
-                  "rounded-lg px-2 py-1 text-[11px] font-medium transition-colors",
+                  "rounded-none px-2 py-1 text-[11px] font-medium transition-colors",
                   datePreset === id ? CRM_PILL_ACTIVE : CRM_PILL_IDLE,
                 )}
               >
@@ -157,14 +165,16 @@ export function CustomerCrmNavRail({
               </button>
             ))}
           </div>
-          <p className={cn(dashboardHintClass(), "mt-1.5 px-1")}>{periodLabel}</p>
+          <p className={cn(dashboardHintClass(), "mt-1.5 px-1")}>
+            {periodLabel}
+          </p>
         </div>
 
         <div>
-          <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="mb-1.5 px-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Origin
           </p>
-          <div className="inline-flex w-full rounded-xl border border-border/60 bg-muted/30 p-0.5 text-[11px] font-medium">
+          <div className="inline-flex w-full rounded-none border border-border/60 bg-muted/30 p-0.5 text-[11px] font-medium">
             {(
               [
                 ["all", "All"],
@@ -177,7 +187,7 @@ export function CustomerCrmNavRail({
                 type="button"
                 onClick={() => onOriginFilter(id)}
                 className={cn(
-                  "flex-1 rounded-lg px-2 py-1 transition-colors",
+                  "flex-1 rounded-none px-2 py-1 transition-colors",
                   originFilter === id ? CRM_PILL_ACTIVE : CRM_PILL_IDLE,
                 )}
               >
@@ -187,12 +197,12 @@ export function CustomerCrmNavRail({
           </div>
         </div>
 
-        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border/50 bg-card/60 px-3 py-2.5 text-sm text-muted-foreground">
+        <label className="flex cursor-pointer items-center gap-2 rounded-none border border-border/50 bg-card/60 px-3 py-2.5 text-sm text-muted-foreground">
           <input
             type="checkbox"
             checked={outstandingOnly}
             onChange={(e) => onOutstandingOnly(e.target.checked)}
-            className="size-4 rounded border-input accent-[#8B6F3A]"
+            className="size-4 rounded border-input accent-[#0f766e]"
           />
           Outstanding tab only
         </label>

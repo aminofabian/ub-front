@@ -511,7 +511,7 @@ export function DayLedgerPage() {
               }}
               className="absolute inset-0 cursor-pointer opacity-0"
             />
-            <span className="inline-flex min-w-[7.5rem] items-center justify-center rounded-md border border-border/70 bg-card px-2.5 py-1.5 text-sm font-semibold tabular-nums">
+            <span className="inline-flex min-w-[7.5rem] items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1.5 text-sm font-semibold tabular-nums">
               {formatDayShort(day)}
             </span>
           </label>
@@ -561,7 +561,7 @@ export function DayLedgerPage() {
       ) : null}
 
       {canReadFinanceExpenses && expensesTotal != null && expensesTotal > 0 ? (
-        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm">
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 shadow-none">
           <div>
             <p className="text-sm font-medium">Expenses recorded today</p>
             <p className="text-xs text-muted-foreground">
@@ -595,9 +595,9 @@ export function DayLedgerPage() {
 
       {/* Ledger mix — share of day by tender */}
       {rows.length > 0 ? (
-        <section className="rounded-xl border border-border/60 bg-card p-3 shadow-sm">
+        <section className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3 shadow-none">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
               Tender mix
             </p>
             <p className="text-[11px] tabular-nums text-muted-foreground">
@@ -647,12 +647,12 @@ export function DayLedgerPage() {
                   disabled={stats.count === 0}
                   onClick={() => toggleMethod(id)}
                   className={cn(
-                    "rounded-lg border px-3 py-2.5 text-left transition-colors",
+                    "rounded-none border px-3 py-2.5 text-left transition-colors",
                     stats.count === 0
-                      ? "cursor-not-allowed border-border/40 bg-muted/30 opacity-50"
+                      ? "cursor-not-allowed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 opacity-50"
                       : selected
                         ? "border-foreground bg-foreground text-background"
-                        : "border-border/70 bg-background hover:border-foreground/30",
+                        : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background hover:border-foreground/30",
                     inactive && "opacity-60",
                   )}
                 >
@@ -726,10 +726,10 @@ export function DayLedgerPage() {
                     type="button"
                     onClick={() => toggleMethod(chip.id)}
                     className={cn(
-                      "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors",
+                      "inline-flex items-center gap-1.5 rounded-none border px-2 py-1 text-xs transition-colors",
                       selected
                         ? "border-foreground bg-foreground text-background"
-                        : "border-border/70 bg-background text-foreground hover:border-foreground/25",
+                        : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background text-foreground hover:border-foreground/25",
                     )}
                   >
                     <span
@@ -775,7 +775,7 @@ export function DayLedgerPage() {
 
           {/* Unverified M-Pesa reveal */}
           {mpesaRows.length > 0 ? (
-            <div className="mt-3 border-t border-border/50 pt-3">
+            <div className="mt-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-3">
               <button
                 type="button"
                 onClick={() => {
@@ -787,7 +787,7 @@ export function DayLedgerPage() {
                 }}
                 disabled={unverifiedMpesa.length === 0}
                 className={cn(
-                  "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition-colors",
+                  "flex w-full items-center justify-between gap-2 rounded-none border px-3 py-2 text-left transition-colors",
                   unverifiedMpesa.length === 0
                     ? "cursor-default border-emerald-200/80 bg-emerald-50/60"
                     : "border-amber-200 bg-amber-50/70 hover:bg-amber-50",
@@ -823,11 +823,11 @@ export function DayLedgerPage() {
               </button>
 
               {showUnverifiedList && unverifiedMpesa.length > 0 ? (
-                <ul className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-amber-200/80 bg-background">
+                <ul className="mt-2 max-h-64 overflow-y-auto rounded-none border border-amber-200/80 bg-background">
                   {unverifiedMpesa.map((row) => (
                     <li
                       key={row.paymentId}
-                      className="flex items-center gap-2 border-b border-border/30 px-3 py-2 text-xs last:border-0"
+                      className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2 text-xs last:border-0"
                     >
                       <span className="w-[4.25rem] shrink-0 font-mono tabular-nums text-muted-foreground">
                         {formatTime(row.soldAt)}
@@ -868,7 +868,7 @@ export function DayLedgerPage() {
       ) : null}
 
       {/* Toolbar: progress + search + status filters */}
-      <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-card px-2.5 py-2 sm:flex-row sm:items-center sm:gap-3">
+      <div className="flex flex-col gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-2 sm:flex-row sm:items-center sm:gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div className="min-w-[4.5rem] shrink-0">
             <p className="text-[10px] font-medium tabular-nums text-muted-foreground">
@@ -893,7 +893,7 @@ export function DayLedgerPage() {
               placeholder="Receipt, cashier, ref…"
               className={cn(
                 dashboardInputClass(),
-                "h-8 border-border/50 py-1 pl-7 text-xs",
+                "h-8 border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] py-1 pl-7 text-xs",
               )}
             />
           </div>
@@ -935,7 +935,7 @@ export function DayLedgerPage() {
 
       {/* Dense tender list */}
       <section className={DASHBOARD_TABLE_SURFACE}>
-        <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-1.5">
+        <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-1.5">
           <p className="text-[11px] text-muted-foreground">
             <span className="font-medium text-foreground">
               {filtered.length}
@@ -986,7 +986,7 @@ export function DayLedgerPage() {
               return (
                 <div key={group.key}>
                   <div className="sticky top-0 z-[1] flex items-center justify-between gap-2 bg-muted/80 px-3 py-1 backdrop-blur-sm">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                       {group.label}
                     </p>
                     <p className="text-[10px] tabular-nums text-muted-foreground">
@@ -1020,7 +1020,7 @@ export function DayLedgerPage() {
                         <li
                           key={row.paymentId}
                           className={cn(
-                            "group relative border-b border-border/30 last:border-0",
+                            "group relative border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0",
                             mark.reviewed && "bg-emerald-50/35",
                             mark.flagged && !mark.reviewed && "bg-amber-50/40",
                             unverified && !mark.reviewed && "bg-amber-50/25",
@@ -1045,7 +1045,7 @@ export function DayLedgerPage() {
                                 "flex size-5 shrink-0 items-center justify-center rounded border transition-colors",
                                 mark.reviewed
                                   ? "border-emerald-600 bg-emerald-600 text-white"
-                                  : "border-border/80 bg-background text-transparent hover:border-emerald-600/70",
+                                  : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background text-transparent hover:border-emerald-600/70",
                               )}
                               aria-label={
                                 mark.reviewed
@@ -1074,7 +1074,7 @@ export function DayLedgerPage() {
 
                             <span
                               className={cn(
-                                "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                                 accent.chip,
                               )}
                             >
@@ -1083,7 +1083,7 @@ export function DayLedgerPage() {
 
                             {verified ? (
                               <span
-                                className="inline-flex shrink-0 items-center gap-0.5 rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-semibold uppercase text-emerald-800"
+                                className="inline-flex shrink-0 items-center gap-0.5 rounded-none bg-emerald-100 px-1 py-0.5 text-[11px] font-semibold tracking-[-0.02em] text-emerald-800"
                                 title="Gateway verified"
                               >
                                 <ShieldCheck className="size-2.5" />
@@ -1092,7 +1092,7 @@ export function DayLedgerPage() {
                             ) : null}
                             {unverified ? (
                               <span
-                                className="inline-flex shrink-0 items-center gap-0.5 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-semibold uppercase text-amber-900"
+                                className="inline-flex shrink-0 items-center gap-0.5 rounded-none bg-amber-100 px-1 py-0.5 text-[11px] font-semibold tracking-[-0.02em] text-amber-900"
                                 title="No gateway receipt"
                               >
                                 <ShieldAlert className="size-2.5" />
@@ -1101,7 +1101,7 @@ export function DayLedgerPage() {
                             ) : null}
 
                             {refunded ? (
-                              <span className="shrink-0 rounded bg-destructive/10 px-1 py-0.5 text-[9px] font-semibold uppercase text-destructive">
+                              <span className="shrink-0 rounded-none bg-destructive/10 px-1 py-0.5 text-[11px] font-semibold tracking-[-0.02em] text-destructive">
                                 Refund
                               </span>
                             ) : null}

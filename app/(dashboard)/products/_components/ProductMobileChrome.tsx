@@ -2,7 +2,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FileUp, Library, ListFilter, PackagePlus, Search, X } from "lucide-react";
+import {
+  FileUp,
+  Library,
+  ListFilter,
+  PackagePlus,
+  Search,
+  X,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
@@ -65,10 +72,7 @@ function countPanelFilters(catalog: Props["catalog"]): number {
   if (catalog.filterZeroStock) n += 1;
   if (catalog.filterLowStock) n += 1;
   if (catalog.filterInactiveOnly) n += 1;
-  if (
-    catalog.filterCategoryId.trim() &&
-    !catalog.includeCategoryDescendants
-  ) {
+  if (catalog.filterCategoryId.trim() && !catalog.includeCategoryDescendants) {
     n += 1;
   }
   return n;
@@ -291,7 +295,7 @@ export function ProductMobileChrome({
         {showPanel ? (
           <div className="space-y-3 border-t border-border bg-background px-3 py-3">
             <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40">
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-foreground/40">
                 Category
               </p>
               <SearchableSelect
@@ -321,7 +325,7 @@ export function ProductMobileChrome({
                   )}
                 >
                   Include subcategories
-                  <span className="text-[10px] uppercase tracking-wide text-foreground/40">
+                  <span className="text-[10px] tracking-[-0.02em] text-foreground/40">
                     {catalog.includeCategoryDescendants ? "On" : "Off"}
                   </span>
                 </button>
@@ -330,7 +334,7 @@ export function ProductMobileChrome({
 
             {needs.length > 0 ? (
               <div className="space-y-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40">
+                <p className="text-[10px] font-semibold tracking-[-0.02em] text-foreground/40">
                   Needs
                 </p>
                 <div className={catalogFilterNeedsSheetClass}>

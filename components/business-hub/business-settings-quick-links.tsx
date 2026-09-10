@@ -36,9 +36,9 @@ export function BusinessSettingsQuickLinks({
           <Link
             key={href}
             href={href}
-            className="flex min-h-12 items-center gap-3 px-3 py-2.5 active:bg-[#FAF8F3]"
+            className="flex min-h-12 items-center gap-3 px-3 py-2.5 active:bg-white"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center bg-[#F0EEE9] text-[#B08D48]">
+            <span className="flex size-8 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#0f766e]">
               <Icon className="size-4" aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
@@ -70,17 +70,17 @@ export function BusinessSettingsQuickLinks({
             href={href}
             className={cn(
               HUB_SURFACE,
-              "group flex items-start gap-3 p-3.5 transition-colors hover:border-[#B08D48]/40",
+              "group flex items-start gap-3 p-3.5 transition-colors hover:border-[#0f766e]/40",
             )}
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-none bg-[#F0EEE9] text-[#B08D48] transition-colors group-hover:bg-[#F7F2E8]">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#0f766e] transition-colors group-hover:border-[#0f766e]">
               <Icon className="size-4" aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1 text-[13px] font-medium tracking-[-0.01em] text-[#141414]">
                 {label}
                 <ArrowUpRight
-                  className="size-3 shrink-0 text-[#D4CBB8] transition-colors group-hover:text-[#B08D48]"
+                  className="size-3 shrink-0 text-[#8A8A8A] transition-colors group-hover:text-[#0f766e]"
                   aria-hidden
                 />
               </span>

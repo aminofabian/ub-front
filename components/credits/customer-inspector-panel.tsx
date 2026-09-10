@@ -11,9 +11,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
-import {
-  LoyaltyCardLink,
-} from "@/components/credits/loyalty-card-preview";
+import { LoyaltyCardLink } from "@/components/credits/loyalty-card-preview";
 import type { CustomerRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
@@ -37,14 +35,14 @@ function OriginChip({ customer }: { customer: CustomerRecord }) {
   );
   if (customer.origin === "mpesa_inferred" && !verified) {
     return (
-      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 ring-1 ring-amber-200/70">
+      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-amber-800 ring-1 ring-amber-200/70">
         Inferred
       </span>
     );
   }
   if (verified) {
     return (
-      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-200/70">
+      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-emerald-800 ring-1 ring-emerald-200/70">
         Verified
       </span>
     );
@@ -63,7 +61,7 @@ export function CustomerInspectorPanel({
   return (
     <aside className={CRM_INSPECTOR}>
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/50 px-4 py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
           Inspector
         </p>
         {customer ? (
@@ -71,7 +69,7 @@ export function CustomerInspectorPanel({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 gap-1 rounded-lg px-2 text-xs"
+            className="h-7 gap-1 rounded-none px-2 text-xs"
             onClick={onOpenFull}
           >
             Expand
@@ -82,26 +80,31 @@ export function CustomerInspectorPanel({
 
       {!customer ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center">
-          <div className="flex size-12 items-center justify-center rounded-2xl border border-dashed border-border/70 bg-muted/20">
+          <div className="flex size-12 items-center justify-center rounded-none border border-dashed border-border/70 bg-muted/20">
             <Sparkles className="size-5 text-muted-foreground/50" />
           </div>
-          <p className="text-sm font-medium text-foreground">Select a customer</p>
+          <p className="text-sm font-medium text-foreground">
+            Select a customer
+          </p>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Preview balances and quick actions here, or expand for the full profile.
+            Preview balances and quick actions here, or expand for the full
+            profile.
           </p>
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           <div className="flex items-start gap-3">
             <div
-              className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#F9F6F0,#efe6d4)] text-sm font-bold text-[#8B6F3A] shadow-inner ring-1 ring-[#8B6F3A]/10"
+              className="flex size-12 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-sm font-bold text-[#0f766e]"
               aria-hidden
             >
               {customerInitials(customer.name)}
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-mono text-[10px] text-muted-foreground">
-                {customer.customerNo != null ? `C-${customer.customerNo}` : "Customer"}
+                {customer.customerNo != null
+                  ? `C-${customer.customerNo}`
+                  : "Customer"}
               </p>
               <h2 className="truncate text-base font-semibold leading-tight">
                 {customer.name}
@@ -115,7 +118,7 @@ export function CustomerInspectorPanel({
 
           <div className="grid grid-cols-2 gap-2">
             <div className={cn(CRM_PANEL, "px-3 py-2.5")}>
-              <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
                 <CreditCard className="size-3" />
                 Tab
               </div>
@@ -130,7 +133,7 @@ export function CustomerInspectorPanel({
               </p>
             </div>
             <div className={cn(CRM_PANEL, "px-3 py-2.5")}>
-              <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
                 <Wallet className="size-3" />
                 Wallet
               </div>
@@ -141,7 +144,7 @@ export function CustomerInspectorPanel({
           </div>
 
           <div className={cn(CRM_PANEL, "space-y-2 px-3 py-3 text-sm")}>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
               Contact
             </p>
             <p className="font-medium">
@@ -156,7 +159,7 @@ export function CustomerInspectorPanel({
             <div className="mt-auto flex flex-col gap-2 pt-2">
               <Button
                 type="button"
-                className="w-full rounded-xl"
+                className="w-full rounded-none"
                 onClick={onOpenFull}
               >
                 <Pencil className="mr-2 size-4" />
@@ -165,7 +168,7 @@ export function CustomerInspectorPanel({
               <Button
                 type="button"
                 variant="outline"
-                className="w-full rounded-xl"
+                className="w-full rounded-none"
                 onClick={onMessage}
               >
                 <MessageSquare className="mr-2 size-4" />
@@ -176,7 +179,7 @@ export function CustomerInspectorPanel({
             <Button
               type="button"
               variant="outline"
-              className="mt-auto w-full rounded-xl"
+              className="mt-auto w-full rounded-none"
               onClick={onOpenFull}
             >
               View profile

@@ -9,10 +9,7 @@ import type { ItemSummaryRecord } from "@/lib/api";
 import type { ItemLinkPackOfferRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-import {
-  nsdLineCardReady,
-  nsdLineCardShell,
-} from "./new-supply-drawer-ui";
+import { nsdLineCardReady, nsdLineCardShell } from "./new-supply-drawer-ui";
 import { ProductPickCell } from "./product-pick-cell";
 import {
   SupplyCostCell,
@@ -231,7 +228,7 @@ export function SupplyDraftLineCard({
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {isReady ? (
-            <span className="rounded-sm bg-primary/12 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">
+            <span className="rounded-sm bg-primary/12 px-1.5 py-0.5 text-[9px] font-bold tracking-[-0.02em] text-primary">
               Ready
             </span>
           ) : null}
@@ -338,10 +335,8 @@ export function SupplyDraftLineCard({
           aria-expanded={moreOpen}
           onClick={() => setMoreOpen((o) => !o)}
         >
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {row.expiry.trim()
-              ? `Expires ${row.expiry}`
-              : "Expiry (optional)"}
+          <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+            {row.expiry.trim() ? `Expires ${row.expiry}` : "Expiry (optional)"}
           </span>
           <ChevronDown
             className={cn(

@@ -9,7 +9,7 @@ import { CATALOG_SURFACE } from "./catalog-chrome";
 export const PRODUCTS_CATALOG_VARS = {
   ["--catalog-primary" as string]: "#0f766e",
   ["--catalog-ink" as string]: "#15231f",
-  ["--catalog-shelf" as string]: "#f3f6f5",
+  ["--catalog-shelf" as string]: "#ffffff",
   ["--catalog-slip" as string]: "#ffffff",
 } as const;
 
@@ -37,7 +37,7 @@ export function ProductsPageLayout({
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(110%_90%_at_8%_-18%,color-mix(in_srgb,var(--catalog-primary)_10%,transparent),transparent_58%),linear-gradient(180deg,color-mix(in_srgb,var(--catalog-shelf)_90%,#fff),transparent_72%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-white"
       />
 
       <div className="relative flex min-h-0 flex-1 flex-col gap-2">
@@ -49,7 +49,9 @@ export function ProductsPageLayout({
           <header className="shrink-0 space-y-1.5">
             <h1 className="sr-only">Products</h1>
             {headerActions ? (
-              <div className="flex min-w-0 items-center gap-2">{headerActions}</div>
+              <div className="flex min-w-0 items-center gap-2">
+                {headerActions}
+              </div>
             ) : null}
             {headerExtra}
           </header>

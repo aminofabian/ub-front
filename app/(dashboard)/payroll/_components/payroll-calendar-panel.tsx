@@ -194,7 +194,7 @@ export function PayrollCalendarPanel({
             <ChevronLeft className="size-4" />
           </Button>
           <div className="text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
               Calendar year
             </p>
             <p className="text-lg font-semibold tabular-nums">{year}</p>
@@ -230,11 +230,11 @@ export function PayrollCalendarPanel({
         ) : null}
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-background via-background to-muted/25 shadow-sm">
+      <section className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
         <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[1.2fr_1fr]">
           <div className="space-y-3">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-medium tracking-[-0.02em] text-muted-foreground">
                 Year progress
               </p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">
@@ -259,9 +259,17 @@ export function PayrollCalendarPanel({
             </p>
           </div>
           <dl className="grid grid-cols-2 gap-2">
-            <StatTile label="Open runs" value={String(summary.openCount)} warn={summary.openCount > 0} />
+            <StatTile
+              label="Open runs"
+              value={String(summary.openCount)}
+              warn={summary.openCount > 0}
+            />
             <StatTile label="Closed" value={String(summary.paid)} success />
-            <StatTile label="Blocked" value={String(summary.missingSalary)} warn={summary.missingSalary > 0} />
+            <StatTile
+              label="Blocked"
+              value={String(summary.missingSalary)}
+              warn={summary.missingSalary > 0}
+            />
             <StatTile
               label="Net paid"
               value={`KES ${formatPayrollMoney(summary.totalNetPaid)}`}
@@ -270,7 +278,7 @@ export function PayrollCalendarPanel({
         </div>
 
         <div className="border-t border-border/50 px-4 py-4 sm:px-5">
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="mb-3 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
             {year} at a glance
           </p>
           <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-12">
@@ -286,15 +294,20 @@ export function PayrollCalendarPanel({
             ))}
           </div>
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-            {(["paid", "pending", "missing_salary", "future"] as const).map((status) => (
-              <span key={status} className="inline-flex items-center gap-1.5">
-                <span
-                  className={cn("size-2 rounded-full", STATUS_META[status].bar)}
-                  aria-hidden
-                />
-                {payrollCalendarStatusLabel(status)}
-              </span>
-            ))}
+            {(["paid", "pending", "missing_salary", "future"] as const).map(
+              (status) => (
+                <span key={status} className="inline-flex items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "size-2 rounded-full",
+                      STATUS_META[status].bar,
+                    )}
+                    aria-hidden
+                  />
+                  {payrollCalendarStatusLabel(status)}
+                </span>
+              ),
+            )}
           </div>
         </div>
       </section>
@@ -302,7 +315,7 @@ export function PayrollCalendarPanel({
       {grouped.needsAction.length > 0 ? (
         <section className="space-y-3">
           <header className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300">
+            <span className="flex size-8 items-center justify-center rounded-none bg-amber-500/15 text-amber-700 dark:text-amber-300">
               <Clock className="size-4" aria-hidden />
             </span>
             <div>
@@ -330,7 +343,7 @@ export function PayrollCalendarPanel({
       {grouped.closed.length > 0 ? (
         <section className="space-y-3">
           <header className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+            <span className="flex size-8 items-center justify-center rounded-none bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
               <CheckCircle2 className="size-4" aria-hidden />
             </span>
             <div>
@@ -357,7 +370,9 @@ export function PayrollCalendarPanel({
       {grouped.rest.length > 0 ? (
         <section className="space-y-3">
           <header>
-            <h3 className="text-sm font-semibold text-muted-foreground">Upcoming & empty</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Upcoming & empty
+            </h3>
           </header>
           <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
             {grouped.rest.map((month) => (
@@ -399,20 +414,25 @@ function TimelineCell({
       type="button"
       title={`${payrollCalendarMonthName(month.month)} — ${payrollCalendarStatusLabel(month.status)}`}
       className={cn(
-        "group relative flex flex-col items-center gap-1 rounded-lg border px-1 py-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        month.status === "paid" && "border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20",
-        month.status === "pending" && "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20",
-        month.status === "missing_salary" && "border-red-500/35 bg-red-500/10 hover:bg-red-500/20",
-        month.status === "future" && "border-border/50 bg-muted/20 hover:bg-muted/30",
-        month.status === "empty" && "border-border/40 bg-muted/10 hover:bg-muted/15",
+        "group relative flex flex-col items-center gap-1 rounded-none border px-1 py-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        month.status === "paid" &&
+          "border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20",
+        month.status === "pending" &&
+          "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20",
+        month.status === "missing_salary" &&
+          "border-red-500/35 bg-red-500/10 hover:bg-red-500/20",
+        month.status === "future" &&
+          "border-border/50 bg-muted/20 hover:bg-muted/30",
+        month.status === "empty" &&
+          "border-border/40 bg-muted/10 hover:bg-muted/15",
         isCurrent && "ring-2 ring-primary/40",
-        isHovered && "scale-105 shadow-sm",
+        isHovered && "scale-105 shadow-none",
       )}
       onMouseEnter={() => onHover(month.month)}
       onMouseLeave={() => onHover(null)}
       onClick={onSelect}
     >
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
         {payrollCalendarShortMonth(month.month)}
       </span>
       <span
@@ -428,7 +448,11 @@ function TimelineCell({
         {month.status === "paid" ? (
           <CheckCircle2 className="size-3.5" aria-hidden />
         ) : month.status === "pending" ? (
-          partial ? `${progress}%` : "!"
+          partial ? (
+            `${progress}%`
+          ) : (
+            "!"
+          )
         ) : month.status === "missing_salary" ? (
           "!"
         ) : (
@@ -467,12 +491,14 @@ function MonthCard({
         type="button"
         onClick={onSelect}
         className={cn(
-          "rounded-xl border px-3 py-2.5 text-left transition-colors hover:bg-muted/20",
+          "rounded-none border px-3 py-2.5 text-left transition-colors hover:bg-muted/20",
           meta.ring,
           isCurrent && "ring-2 ring-primary/30",
         )}
       >
-        <p className="text-xs font-medium">{payrollCalendarShortMonth(month.month)}</p>
+        <p className="text-xs font-medium">
+          {payrollCalendarShortMonth(month.month)}
+        </p>
         <p className={cn("text-[10px]", meta.text)}>
           {payrollCalendarStatusLabel(month.status)}
         </p>
@@ -485,7 +511,7 @@ function MonthCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        "relative overflow-hidden rounded-2xl border text-left transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "relative overflow-hidden rounded-none border text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         emphasis ? "border-amber-500/30 p-5" : "border-border/60 p-4",
         isCurrent && "ring-2 ring-primary/35",
       )}
@@ -501,16 +527,20 @@ function MonthCard({
       <div className="relative space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
               {year}
             </p>
-            <p className="text-lg font-semibold">{payrollCalendarMonthName(month.month)}</p>
+            <p className="text-lg font-semibold">
+              {payrollCalendarMonthName(month.month)}
+            </p>
           </div>
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
-              month.status === "paid" && "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200",
-              month.status === "pending" && "bg-amber-500/20 text-amber-950 dark:text-amber-100",
+              month.status === "paid" &&
+                "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200",
+              month.status === "pending" &&
+                "bg-amber-500/20 text-amber-950 dark:text-amber-100",
               month.status === "missing_salary" &&
                 "bg-red-500/20 text-red-900 dark:text-red-100",
               (month.status === "future" || month.status === "empty") &&
@@ -523,7 +553,7 @@ function MonthCard({
         </div>
 
         {isCurrent ? (
-          <span className="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+          <span className="inline-block rounded-none bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-primary">
             This month
           </span>
         ) : null}
@@ -552,7 +582,9 @@ function MonthCard({
         {Number(month.totalNetPaid) > 0 ? (
           <p className="text-sm font-semibold tabular-nums">
             KES {formatPayrollMoney(Number(month.totalNetPaid))}{" "}
-            <span className="text-xs font-normal text-muted-foreground">net paid</span>
+            <span className="text-xs font-normal text-muted-foreground">
+              net paid
+            </span>
           </p>
         ) : month.status === "pending" || month.status === "missing_salary" ? (
           <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
@@ -577,8 +609,8 @@ function StatTile({
   success?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border/50 bg-background/60 px-3 py-2">
-      <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="rounded-none border border-border/50 bg-background/60 px-3 py-2">
+      <dt className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
         {label}
       </dt>
       <dd

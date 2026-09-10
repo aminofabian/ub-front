@@ -112,7 +112,10 @@ function formatSoldTime(
     const diffSec = Math.floor((nowMs - d.getTime()) / 1000);
     if (diffSec < 60) return "Just now";
     if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-    return d.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString("en-KE", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
   return d.toLocaleString("en-KE", {
     month: "short",
@@ -133,7 +136,12 @@ function saleMetaParts(tx: SaleTransaction): string[] {
   const parts: string[] = [];
   const pay = formatSalePaymentDisplay(tx.paymentMethod, tx.paymentMethods);
   const payKey = pay.toLowerCase();
-  if (!isOnline && payKey && payKey !== "online" && payKey !== "online checkout") {
+  if (
+    !isOnline &&
+    payKey &&
+    payKey !== "online" &&
+    payKey !== "online checkout"
+  ) {
     parts.push(pay);
   }
   const customer = tx.customerName?.trim() ?? "";
@@ -162,7 +170,7 @@ function Metric({
 }) {
   return (
     <div className="min-w-0 px-3 py-1.5">
-      <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="text-[9px] font-medium tracking-[-0.02em] text-muted-foreground">
         {label}
       </p>
       <p className="truncate text-sm font-semibold tabular-nums tracking-tight text-foreground">
@@ -200,8 +208,7 @@ function TransactionRow({
   const voided = isVoided(tx.status);
   const isOnline = tx.channel === "online_store";
   const [receiptLoading, setReceiptLoading] = useState(false);
-  const showAdjust =
-    canAdjustPayment && !isOnline && !refunded && !voided;
+  const showAdjust = canAdjustPayment && !isOnline && !refunded && !voided;
   const showVoid = canVoid && !isOnline && !refunded && !voided;
   const meta = saleMetaParts(tx);
   const payment = formatSalePaymentDisplay(tx.paymentMethod, tx.paymentMethods);
@@ -246,7 +253,7 @@ function TransactionRow({
   return (
     <article
       className={cn(
-        "border-b border-border/40 last:border-0 transition-colors",
+        "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0 transition-colors",
         refunded && "bg-destructive/[0.03]",
       )}
     >
@@ -270,7 +277,7 @@ function TransactionRow({
             </span>
             <span
               className={cn(
-                "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                "rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                 statusClass,
               )}
             >
@@ -278,16 +285,18 @@ function TransactionRow({
             </span>
             {tx.mpesaVerified && !refunded ? (
               <span
-                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-sky-50 text-sky-800"
+                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] bg-sky-50 text-sky-800"
                 title="M-Pesa confirmed by KopoKopo webhook"
               >
                 <BadgeCheck className="size-3" aria-hidden />
                 Verified
               </span>
             ) : null}
-            {tx.customerId && !tx.customerPhoneVerified && tx.customerMaskedHint ? (
+            {tx.customerId &&
+            !tx.customerPhoneVerified &&
+            tx.customerMaskedHint ? (
               <span
-                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-amber-50 text-amber-800"
+                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] bg-amber-50 text-amber-800"
                 title="M-Pesa number is still masked until the customer fills the missing digits"
               >
                 Unverified number
@@ -366,7 +375,7 @@ function TransactionRow({
         <span>
           <span
             className={cn(
-              "inline-flex max-w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
+              "inline-flex max-w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[-0.02em]",
               statusClass,
             )}
           >
@@ -464,7 +473,7 @@ function TransactionRow({
               Online order — manage in{" "}
               <Link
                 href={APP_ROUTES.storefrontWebOrders}
-                className="font-medium text-[#B08D48] hover:underline"
+                className="font-medium text-[#0f766e] hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 Web orders
@@ -486,7 +495,7 @@ function ListSkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="space-y-2 border-b border-border/40 px-4 py-3 last:border-0 sm:px-5"
+          className="space-y-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-3 last:border-0 sm:px-5"
         >
           <div className="h-3.5 w-36 animate-pulse rounded bg-muted" />
           <div className="h-3 w-52 animate-pulse rounded bg-muted" />
@@ -498,7 +507,10 @@ function ListSkeleton() {
 
 export function TransactionsPage() {
   const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
-  const allowed = hasPermission(me?.permissions, Permission.SalesIntelligenceRead);
+  const allowed = hasPermission(
+    me?.permissions,
+    Permission.SalesIntelligenceRead,
+  );
   const canViewWebOrders = hasPermission(
     me?.permissions,
     Permission.StorefrontOrdersRead,
@@ -514,9 +526,13 @@ export function TransactionsPage() {
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [branchId, setBranchId] = useState("");
   const [adjustSaleId, setAdjustSaleId] = useState<string | null>(null);
-  const [adjustReceiptLabel, setAdjustReceiptLabel] = useState<string | undefined>();
+  const [adjustReceiptLabel, setAdjustReceiptLabel] = useState<
+    string | undefined
+  >();
   const [voidSaleId, setVoidSaleId] = useState<string | null>(null);
-  const [voidReceiptLabel, setVoidReceiptLabel] = useState<string | undefined>();
+  const [voidReceiptLabel, setVoidReceiptLabel] = useState<
+    string | undefined
+  >();
   const [pdfLoading, setPdfLoading] = useState(false);
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   const { branchLocked } = useSyncBranchFilter({
@@ -559,9 +575,7 @@ export function TransactionsPage() {
 
   const periodLabel = useMemo(() => {
     if (!dateRange) {
-      return datePreset === "custom"
-        ? "Choose a start and end date."
-        : "";
+      return datePreset === "custom" ? "Choose a start and end date." : "";
     }
     return formatDateRangeLabel(dateRange.from, dateRange.to);
   }, [dateRange, datePreset]);
@@ -603,7 +617,9 @@ export function TransactionsPage() {
         setLastUpdated(new Date());
         setExpandedId(null);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load transactions.");
+        setError(
+          e instanceof Error ? e.message : "Failed to load transactions.",
+        );
         if (!silent) setLines([]);
       } finally {
         setLoading(false);
@@ -747,7 +763,7 @@ export function TransactionsPage() {
         </p>
         <Link
           href={APP_ROUTES.business}
-          className="mt-6 inline-block text-sm font-medium text-[#B08D48] hover:underline"
+          className="mt-6 inline-block text-sm font-medium text-[#0f766e] hover:underline"
         >
           Back to business
         </Link>
@@ -782,7 +798,13 @@ export function TransactionsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            asChild
+          >
             <Link href={APP_ROUTES.sales}>
               <List className="size-3.5" aria-hidden />
               Activity
@@ -933,7 +955,10 @@ export function TransactionsPage() {
               : "No transactions in this period."}
         </div>
       ) : (
-        <section className={cn(SURFACE, "rounded-none")} aria-label="Transactions">
+        <section
+          className={cn(SURFACE, "rounded-none")}
+          aria-label="Transactions"
+        >
           <div
             className={cn(
               DASHBOARD_TABLE_HEAD,
@@ -962,7 +987,7 @@ export function TransactionsPage() {
               {pdfLoading ? "Preparing…" : "Download PDF"}
             </Button>
           </div>
-          <div className="hidden grid-cols-[2rem_7rem_8rem_minmax(12rem,1.8fr)_minmax(8rem,1fr)_7rem_7rem_8rem] items-center border-b border-border/50 bg-muted/20 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground md:grid">
+          <div className="hidden grid-cols-[2rem_7rem_8rem_minmax(12rem,1.8fr)_minmax(8rem,1fr)_7rem_7rem_8rem] items-center border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 text-[9px] font-semibold tracking-[-0.02em] text-muted-foreground md:grid">
             <span aria-hidden />
             <span className="py-1.5 pr-3">Receipt</span>
             <span className="py-1.5 pr-3">Time</span>

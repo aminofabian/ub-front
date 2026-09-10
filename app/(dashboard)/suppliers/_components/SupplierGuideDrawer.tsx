@@ -61,7 +61,7 @@ export function SupplierGuideDrawer({ trigger }: { trigger?: ReactNode }) {
       <DialogContent side="right" className="gap-0 p-0">
         <div className="flex flex-col overflow-y-auto p-5 pb-6">
           <DialogHeader className="pr-10">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/70">
+            <p className="font-mono text-[10px] font-semibold tracking-[-0.02em] text-primary/70">
               Two-minute summary
             </p>
             <DialogTitle className="pt-1 text-lg">
@@ -77,7 +77,7 @@ export function SupplierGuideDrawer({ trigger }: { trigger?: ReactNode }) {
             {STAGES.map(({ icon: Icon, title, body }) => (
               <div
                 key={title}
-                className="flex items-start gap-3 rounded-lg border border-border bg-card px-3.5 py-3"
+                className="flex items-start gap-3 rounded-none border border-border bg-card px-3.5 py-3"
               >
                 <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 text-primary">
                   <Icon className="size-4" aria-hidden />
@@ -94,7 +94,7 @@ export function SupplierGuideDrawer({ trigger }: { trigger?: ReactNode }) {
             ))}
           </div>
 
-          <div className="mt-5 rounded-lg border border-border bg-muted/40 px-3.5 py-3 text-[12px] leading-relaxed text-muted-foreground">
+          <div className="mt-5 rounded-none border border-border bg-muted/40 px-3.5 py-3 text-[12px] leading-relaxed text-muted-foreground">
             <span className="font-medium text-foreground">Quick rule: </span>
             orders are promises, supplies are the truth. Stock moves only when
             you receive — never bump stock manually for a delivery.
@@ -104,18 +104,21 @@ export function SupplierGuideDrawer({ trigger }: { trigger?: ReactNode }) {
             href={guideUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="group mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="group mt-6 inline-flex items-center justify-center gap-2 rounded-none bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <BookOpen className="size-4" aria-hidden />
             Read the full step-by-step guide
-            <ArrowRight className="size-4 transition group-hover:translate-x-0.5" aria-hidden />
+            <ArrowRight
+              className="size-4 transition group-hover:translate-x-0.5"
+              aria-hidden
+            />
           </Link>
           <p className="mt-2 text-center text-[11px] text-muted-foreground/70">
             Opens the guide on kiosk.ke — no tenant redirect.
           </p>
 
           <div className={cn("mt-5 border-t border-border pt-4")}>
-            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
               <HandCoins className="size-3.5 text-primary/70" aria-hidden />
               Paying later?
             </p>

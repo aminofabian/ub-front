@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSessionItemType, useSyncBranchFilter } from "@/hooks/use-session-scope";
+import {
+  useSessionItemType,
+  useSyncBranchFilter,
+} from "@/hooks/use-session-scope";
 import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import Link from "next/link";
 import {
@@ -58,7 +61,10 @@ import {
   type StockTakeLineRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { filterInventoryQuickLinksForUser, canStockManagerSeeSystemStockDuringCount } from "@/lib/inventory-access";
+import {
+  filterInventoryQuickLinksForUser,
+  canStockManagerSeeSystemStockDuringCount,
+} from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 import { StockTakeSearchResults } from "./_components/StockTakeSearchResults";
 
@@ -94,7 +100,7 @@ function formatCountedQty(line: StockTakeLineRecord | undefined): string {
 }
 
 /** Return a human-readable label for a stock-take line.
- *  Falls back to SKU or a generic label when the backend sends a raw UUID as itemName. */
+ * Falls back to SKU or a generic label when the backend sends a raw UUID as itemName. */
 function getLineDisplayName(line: StockTakeLineRecord): string {
   const name = line.itemName?.trim();
   if (name && !/^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/i.test(name)) {
@@ -111,7 +117,10 @@ export default function StockTakePage() {
   const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
   const { itemTypeId: headerItemTypeId } = useSessionItemType();
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
-  const canSeeSystemStock = canStockManagerSeeSystemStockDuringCount(me, business);
+  const canSeeSystemStock = canStockManagerSeeSystemStockDuringCount(
+    me,
+    business,
+  );
   const dailyAuditSampleSize =
     typeof business?.inventory?.stocktake?.dailyAuditSampleSize === "number"
       ? business.inventory.stocktake.dailyAuditSampleSize
@@ -302,9 +311,7 @@ export default function StockTakePage() {
       const line = session
         ? getLineByItemId(session.lines, item.id)
         : undefined;
-      setCountItem(
-        canSeeSystemStock ? item : { ...item, stockQty: undefined },
-      );
+      setCountItem(canSeeSystemStock ? item : { ...item, stockQty: undefined });
       setCountQty(formatCountedQty(line));
       const zoneById = item.aisleId
         ? shelfZones.find((z) => z.id === item.aisleId)
@@ -423,7 +430,9 @@ export default function StockTakePage() {
           setSession((prev) => (prev?.id === s.id ? null : prev));
           setMessage("Session deleted.");
         } catch (e) {
-          setMessage(e instanceof Error ? e.message : "Failed to delete session.");
+          setMessage(
+            e instanceof Error ? e.message : "Failed to delete session.",
+          );
         } finally {
           setLoading(false);
         }
@@ -588,13 +597,15 @@ export default function StockTakePage() {
   const checklistLines = useMemo(() => session?.lines ?? [], [session]);
 
   const totalChecklist = session?.summary?.totalCount ?? checklistLines.length;
-  const countedCount = session?.summary?.submittedCount ?? checklistLines.filter(
-    (l) => l.status === "submitted",
-  ).length;
-  const confirmedCount = session?.summary?.confirmedCount ?? checklistLines.filter(
-    (l) => l.status === "confirmed",
-  ).length;
-  const remainingCount = session?.summary?.remainingCount ?? (totalChecklist - countedCount - confirmedCount);
+  const countedCount =
+    session?.summary?.submittedCount ??
+    checklistLines.filter((l) => l.status === "submitted").length;
+  const confirmedCount =
+    session?.summary?.confirmedCount ??
+    checklistLines.filter((l) => l.status === "confirmed").length;
+  const remainingCount =
+    session?.summary?.remainingCount ??
+    totalChecklist - countedCount - confirmedCount;
 
   const uncountedLines = useMemo(
     () => checklistLines.filter((l) => l.status === "pending"),
@@ -712,8 +723,8 @@ export default function StockTakePage() {
   if (!session) {
     return (
       <div className={DASHBOARD_MAX}>
-        <div className="space-y-4">
-          <header className="space-y-2 border-b border-border/50 pb-4">
+        <div className="space-y-1">
+          <header className="space-y-1">
             <DashboardPageHero
               compact
               showActiveScope
@@ -725,9 +736,9 @@ export default function StockTakePage() {
             <DashboardQuickLinks compact links={stockTakeQuickLinks} />
           </header>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/60 px-3.5 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3.5 py-3">
             <div className="min-w-0 space-y-0.5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-medium tracking-[-0.02em] text-muted-foreground">
                 Daily audit sample
               </p>
               <p className="text-sm text-foreground">
@@ -759,20 +770,23 @@ export default function StockTakePage() {
 
           {hasStaleSession ? (
             <p className="text-xs text-destructive">
-              Open stocktake from {staleSessionDate ?? "a previous date"} — contact
-              an admin to close it before starting a new session.
+              Open stocktake from {staleSessionDate ?? "a previous date"} —
+              contact an admin to close it before starting a new session.
             </p>
           ) : null}
 
           {branchLocked && !me?.branchId?.trim() ? (
             <p className="text-xs text-destructive">
-              Your account is not assigned to a branch. Contact your administrator.
+              Your account is not assigned to a branch. Contact your
+              administrator.
             </p>
           ) : null}
 
           {canRun ? (
-            <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
-              <p className="text-xs font-semibold text-foreground">New session</p>
+            <div className="space-y-2.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 p-3">
+              <p className="text-xs font-semibold text-foreground">
+                New session
+              </p>
               <div className="flex flex-wrap items-end gap-2">
                 <label className="flex min-w-[9rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[10rem]">
                   <span className="text-muted-foreground">Type</span>
@@ -802,9 +816,7 @@ export default function StockTakePage() {
                       <option value="">Select branch…</option>
                     ) : null}
                     {branches
-                      .filter(
-                        (b) => !branchLocked || b.id === me?.branchId,
-                      )
+                      .filter((b) => !branchLocked || b.id === me?.branchId)
                       .map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.name}
@@ -842,8 +854,8 @@ export default function StockTakePage() {
           )}
 
           {canApprove ? (
-            <div className="overflow-hidden rounded-xl border border-border/60">
-              <div className="flex items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-2">
+            <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
+              <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-3 py-2">
                 <h2 className="text-xs font-semibold sm:text-sm">
                   Pending reviews
                 </h2>
@@ -947,8 +959,8 @@ export default function StockTakePage() {
   // ── Render: Counting mode
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="space-y-4">
-        <header className="space-y-2 border-b border-border/50 pb-3">
+      <div className="space-y-1">
+        <header className="space-y-1">
           <DashboardPageHero
             compact
             showActiveScope
@@ -958,35 +970,43 @@ export default function StockTakePage() {
             description={
               <>
                 {session.name}
-                {session.sessionNumber > 0 ? ` · #${session.sessionNumber}` : ""}
+                {session.sessionNumber > 0
+                  ? ` · #${session.sessionNumber}`
+                  : ""}
               </>
             }
           />
           <DashboardQuickLinks compact links={stockTakeQuickLinks} />
         </header>
 
-        <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
+        <div className="space-y-2.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 p-3">
           <div className="flex flex-wrap gap-1.5">
-            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-2.5 py-2">
-              <span className="text-[11px] text-muted-foreground">Checklist</span>
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background px-2.5 py-2">
+              <span className="text-[11px] text-muted-foreground">
+                Checklist
+              </span>
               <span className="text-base font-bold tabular-nums leading-none">
                 {totalChecklist}
               </span>
             </div>
-            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-amber-500/25 bg-amber-500/5 px-2.5 py-2">
-              <span className="text-[11px] text-muted-foreground">Remaining</span>
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-none border border-amber-500/25 bg-amber-500/5 px-2.5 py-2">
+              <span className="text-[11px] text-muted-foreground">
+                Remaining
+              </span>
               <span className="text-base font-bold tabular-nums leading-none text-amber-700 dark:text-amber-400">
                 {remainingCount}
               </span>
             </div>
-            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-2.5 py-2">
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background px-2.5 py-2">
               <span className="text-[11px] text-muted-foreground">Pending</span>
               <span className="text-base font-bold tabular-nums leading-none">
                 {countedCount}
               </span>
             </div>
-            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-2.5 py-2">
-              <span className="text-[11px] text-muted-foreground">Confirmed</span>
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-none border border-emerald-500/25 bg-emerald-500/5 px-2.5 py-2">
+              <span className="text-[11px] text-muted-foreground">
+                Confirmed
+              </span>
               <span className="text-base font-bold tabular-nums leading-none text-emerald-700 dark:text-emerald-400">
                 {confirmedCount}
               </span>
@@ -997,7 +1017,7 @@ export default function StockTakePage() {
             <button
               type="button"
               onClick={() => setShowScanner(true)}
-              className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background px-2.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex h-9 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background px-2.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               aria-label="Scan barcode"
               title="Scan barcode"
             >
@@ -1019,7 +1039,7 @@ export default function StockTakePage() {
             {canApprove ? (
               <Link
                 href={`/inventory/stock-take/review/${session.id}`}
-                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/5 px-2.5 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-500/10 dark:text-amber-300"
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-none border border-amber-500/30 bg-amber-500/5 px-2.5 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-500/10 dark:text-amber-300"
               >
                 <Clock className="size-3.5" />
                 Review
@@ -1053,17 +1073,17 @@ export default function StockTakePage() {
 
         {hasStaleSession ? (
           <p className="text-xs text-amber-800 dark:text-amber-300">
-            Open stocktake from {staleSessionDate ?? "a previous date"} — contact
-            an admin to close it.
+            Open stocktake from {staleSessionDate ?? "a previous date"} —
+            contact an admin to close it.
           </p>
         ) : null}
 
         {uncountedLines.length > 0 ? (
-          <details open className="group rounded-xl border border-border/60">
+          <details open className="group rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
             <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
               Still to count ({uncountedLines.length})
             </summary>
-            <div className="max-h-40 divide-y divide-border/60 overflow-auto border-t border-border/60">
+            <div className="max-h-40 divide-y divide-border/60 overflow-auto border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
               {uncountedLines.slice(0, 50).map((line) => (
                 <button
                   key={line.id}
@@ -1158,7 +1178,7 @@ export default function StockTakePage() {
         {/* Create product modal */}
         {showCreate ? (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md rounded-t-xl sm:rounded-xl bg-background shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="w-full max-w-md rounded-t-xl sm:rounded-none bg-background shadow-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-start justify-between border-b px-5 py-4">
                 <div className="min-w-0">
                   <h3 className="truncate text-base font-semibold">
@@ -1181,7 +1201,7 @@ export default function StockTakePage() {
                     setCreateSize("");
                     setCreateMode("standalone");
                   }}
-                  className="ml-4 shrink-0 rounded-md p-1 hover:bg-muted"
+                  className="ml-4 shrink-0 rounded-none p-1 hover:bg-muted"
                   aria-label="Close"
                 >
                   ✕
@@ -1189,13 +1209,13 @@ export default function StockTakePage() {
               </div>
               <div className="space-y-4 px-5 py-4">
                 {/* Toggle: Standalone / Variant */}
-                <div className="flex rounded-lg border bg-muted/50 p-1 gap-1">
+                <div className="flex rounded-none border bg-muted/50 p-1 gap-1">
                   <button
                     type="button"
                     className={cn(
-                      "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "flex-1 rounded-none px-3 py-2 text-sm font-medium transition-colors",
                       createMode === "standalone"
-                        ? "bg-background shadow-sm"
+                        ? "bg-background shadow-none"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                     onClick={() => {
@@ -1211,9 +1231,9 @@ export default function StockTakePage() {
                   <button
                     type="button"
                     className={cn(
-                      "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "flex-1 rounded-none px-3 py-2 text-sm font-medium transition-colors",
                       createMode === "variant"
-                        ? "bg-background shadow-sm"
+                        ? "bg-background shadow-none"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                     onClick={() => {
@@ -1227,7 +1247,7 @@ export default function StockTakePage() {
                 {/* Variant: parent search or selected parent */}
                 {createMode === "variant" ? (
                   createParentId ? (
-                    <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
+                    <div className="flex items-center gap-2 rounded-none border bg-muted/30 px-3 py-2">
                       <span className="flex-1 truncate text-sm">
                         {createParentLabel}
                       </span>
@@ -1248,7 +1268,7 @@ export default function StockTakePage() {
                   ) : (
                     <div className="space-y-2">
                       <input
-                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        className="w-full h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm"
                         placeholder="Search parent product…"
                         value={createParentSearch}
                         onChange={(e) => onParentSearch(e.target.value)}
@@ -1260,7 +1280,7 @@ export default function StockTakePage() {
                         </p>
                       )}
                       {createParentHits.length > 0 && (
-                        <div className="max-h-36 overflow-y-auto rounded-md border">
+                        <div className="max-h-36 overflow-y-auto rounded-none border">
                           {createParentHits.map((hit) => (
                             <button
                               key={hit.id}
@@ -1295,7 +1315,7 @@ export default function StockTakePage() {
                     *
                   </span>
                   <input
-                    className="rounded-md border bg-background px-3 py-2 text-sm"
+                    className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm"
                     placeholder={
                       createMode === "variant"
                         ? "e.g. 500ml"
@@ -1309,7 +1329,7 @@ export default function StockTakePage() {
                 <label className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium">Barcode</span>
                   <input
-                    className="rounded-md border bg-background px-3 py-2 text-sm"
+                    className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm"
                     placeholder="Scanned or manual"
                     value={createBarcode}
                     onChange={(e) => setCreateBarcode(e.target.value)}
@@ -1319,7 +1339,7 @@ export default function StockTakePage() {
                   <label className="flex flex-col gap-1.5">
                     <span className="text-sm font-medium">Unit *</span>
                     <select
-                      className="rounded-md border bg-background px-3 py-2 text-sm"
+                      className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm"
                       value={createUnitType}
                       onChange={(e) => setCreateUnitType(e.target.value)}
                     >
@@ -1334,7 +1354,7 @@ export default function StockTakePage() {
                   <label className="flex flex-col gap-1.5">
                     <span className="text-sm font-medium">Shelf zone</span>
                     <select
-                      className="rounded-md border bg-background px-3 py-2 text-sm"
+                      className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm"
                       value={createAisle}
                       onChange={(e) => setCreateAisle(e.target.value)}
                     >
@@ -1357,7 +1377,7 @@ export default function StockTakePage() {
                 <label className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium">Category</span>
                   <select
-                    className="rounded-md border bg-background px-3 py-2 text-sm"
+                    className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm"
                     value={createCategoryId}
                     onChange={(e) => setCreateCategoryId(e.target.value)}
                   >
@@ -1374,7 +1394,7 @@ export default function StockTakePage() {
                     <label className="flex flex-col gap-1.5">
                       <span className="text-sm font-medium">Brand</span>
                       <input
-                        className="rounded-md border bg-background px-3 py-2 text-sm"
+                        className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm"
                         placeholder="e.g. Kellogg's"
                         value={createBrand}
                         onChange={(e) => setCreateBrand(e.target.value)}
@@ -1383,7 +1403,7 @@ export default function StockTakePage() {
                     <label className="flex flex-col gap-1.5">
                       <span className="text-sm font-medium">Size</span>
                       <input
-                        className="rounded-md border bg-background px-3 py-2 text-sm"
+                        className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm"
                         placeholder="e.g. 500g"
                         value={createSize}
                         onChange={(e) => setCreateSize(e.target.value)}
@@ -1396,7 +1416,7 @@ export default function StockTakePage() {
                   <input
                     type="number"
                     inputMode="decimal"
-                    className="rounded-md border bg-background px-3 py-2 text-lg font-semibold tabular-nums"
+                    className="rounded-none border bg-background px-3 py-2 text-lg font-semibold tabular-nums"
                     placeholder="0"
                     value={createCount}
                     onChange={(e) => setCreateCount(e.target.value)}
@@ -1464,7 +1484,7 @@ function CountModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-t-xl sm:rounded-xl bg-background shadow-2xl">
+      <div className="w-full max-w-md rounded-t-xl sm:rounded-none bg-background shadow-2xl">
         {/* Header */}
         <div className="flex items-start justify-between border-b px-5 py-4">
           <div className="min-w-0">
@@ -1476,7 +1496,7 @@ function CountModal({
           </div>
           <button
             onClick={onClose}
-            className="ml-4 shrink-0 rounded-md p-1 hover:bg-muted"
+            className="ml-4 shrink-0 rounded-none p-1 hover:bg-muted"
             aria-label="Close"
           >
             ✕
@@ -1520,7 +1540,7 @@ function CountModal({
                 <input
                   type="number"
                   inputMode="decimal"
-                  className="rounded-md border bg-background px-3 py-2 text-lg font-semibold tabular-nums"
+                  className="rounded-none border bg-background px-3 py-2 text-lg font-semibold tabular-nums"
                   placeholder="0"
                   value={qty}
                   onChange={(e) => onQtyChange(e.target.value)}

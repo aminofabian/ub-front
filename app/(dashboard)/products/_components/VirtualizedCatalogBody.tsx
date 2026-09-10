@@ -11,7 +11,11 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { CatalogEmptyShelf } from "./CatalogEmptyShelf";
 
-import { itemListThumbnailUrl, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
+import {
+  itemListThumbnailUrl,
+  type CategoryRecord,
+  type ItemSummaryRecord,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { formatAmount, formatStockLabel, toNumber } from "../_utils";
@@ -181,7 +185,10 @@ export const VirtualizedCatalogBody = forwardRef<
 ) {
   const parentRef = useRef<HTMLDivElement>(null);
   const rowMetaById = useMemo(() => buildCatalogRowMeta(rows), [rows]);
-  const duplicateRowIds = useMemo(() => findDuplicateCatalogRowIds(rows), [rows]);
+  const duplicateRowIds = useMemo(
+    () => findDuplicateCatalogRowIds(rows),
+    [rows],
+  );
   const rowById = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
   const allLoadedSelected =
     rows.length > 0 && rows.every((row) => selectedIds.has(row.id));
@@ -191,7 +198,11 @@ export const VirtualizedCatalogBody = forwardRef<
   const checkLoadMore = useCallback(
     (el: HTMLDivElement) => {
       const { scrollTop, scrollHeight, clientHeight } = el;
-      if (scrollHeight - scrollTop - clientHeight < 320 && hasMore && !loadingMore) {
+      if (
+        scrollHeight - scrollTop - clientHeight < 320 &&
+        hasMore &&
+        !loadingMore
+      ) {
         onLoadMore();
       }
     },
@@ -216,7 +227,10 @@ export const VirtualizedCatalogBody = forwardRef<
     () => ({
       scrollToIndex: (index: number) => {
         if (index < 0 || index >= rows.length) return;
-        virtualizer.scrollToIndex(index, { align: "start", behavior: "smooth" });
+        virtualizer.scrollToIndex(index, {
+          align: "start",
+          behavior: "smooth",
+        });
       },
     }),
     [rows.length, virtualizer],
@@ -235,57 +249,71 @@ export const VirtualizedCatalogBody = forwardRef<
   return (
     <div className={catalogListShellClass}>
       {catalogEmpty ? null : (
-      <div
-        className={cn(catalogListGridClass, catalogListHeaderRowClass)}
-        role="row"
-        aria-label="Catalog columns"
-      >
-        <span className={catalogGridCol.check}>
-          {onToggleSelectAllLoaded && rows.length > 0 ? (
-            <button
-              type="button"
-              onClick={onToggleSelectAllLoaded}
-              className={cn(
-                catalogSheetRowHeaderClass,
-                "text-[9px] font-semibold uppercase tracking-wide",
-                allLoadedSelected && "bg-foreground text-background hover:bg-foreground",
-                someLoadedSelected &&
-                  !allLoadedSelected &&
-                  "bg-muted text-foreground",
-              )}
-              aria-label={
-                allLoadedSelected
-                  ? "Clear selection of loaded products"
-                  : "Select all loaded products"
-              }
-              title={allLoadedSelected ? "Clear selection" : "Select all"}
-            >
-              {allLoadedSelected ? "✓" : someLoadedSelected ? "−" : "#"}
-            </button>
-          ) : (
-            <span className="text-[9px] font-semibold text-muted-foreground/60">
-              #
-            </span>
-          )}
-        </span>
-        <span
-          className={cn(
-            catalogGridCol.product,
-            "text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/40",
-          )}
+        <div
+          className={cn(catalogListGridClass, catalogListHeaderRowClass)}
+          role="row"
+          aria-label="Catalog columns"
         >
-          Product
-        </span>
-        <span className={cn(catalogListMetricHeaderClass, catalogGridCol.stock)}>
-          Qty
-        </span>
-        <span className={cn(catalogListMetricHeaderClass, catalogGridCol.sell, "pr-2.5")}>
-          Price
-        </span>
-        <span className={cn(catalogListMetricHeaderClass, catalogGridCol.category)}>
-          Category
-        </span>
-      </div>
+          <span className={catalogGridCol.check}>
+            {onToggleSelectAllLoaded && rows.length > 0 ? (
+              <button
+                type="button"
+                onClick={onToggleSelectAllLoaded}
+                className={cn(
+                  catalogSheetRowHeaderClass,
+                  "text-[9px] font-semibold tracking-[-0.02em]",
+                  allLoadedSelected &&
+                    "border border-[var(--catalog-primary,#0f766e)] bg-white text-[var(--catalog-primary,#0f766e)] hover:bg-white",
+                  someLoadedSelected &&
+                    !allLoadedSelected &&
+                    "border border-[var(--catalog-primary,#0f766e)] bg-white text-[var(--catalog-primary,#0f766e)]",
+                )}
+                aria-label={
+                  allLoadedSelected
+                    ? "Clear selection of loaded products"
+                    : "Select all loaded products"
+                }
+                title={allLoadedSelected ? "Clear selection" : "Select all"}
+              >
+                {allLoadedSelected ? "✓" : someLoadedSelected ? "−" : "#"}
+              </button>
+            ) : (
+              <span className="text-[9px] font-semibold text-muted-foreground/60">
+                #
+              </span>
+            )}
+          </span>
+          <span
+            className={cn(
+              catalogGridCol.product,
+              "text-[10px] font-semibold tracking-[-0.02em] text-foreground/40",
+            )}
+          >
+            Product
+          </span>
+          <span
+            className={cn(catalogListMetricHeaderClass, catalogGridCol.stock)}
+          >
+            Qty
+          </span>
+          <span
+            className={cn(
+              catalogListMetricHeaderClass,
+              catalogGridCol.sell,
+              "pr-2.5",
+            )}
+          >
+            Price
+          </span>
+          <span
+            className={cn(
+              catalogListMetricHeaderClass,
+              catalogGridCol.category,
+            )}
+          >
+            Category
+          </span>
+        </div>
       )}
 
       <div
@@ -323,7 +351,10 @@ export const VirtualizedCatalogBody = forwardRef<
             )}
           </div>
         ) : (
-          <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+          <div
+            className="relative w-full"
+            style={{ height: virtualizer.getTotalSize() }}
+          >
             {virtualizer.getVirtualItems().map((vi) => {
               const row = rows[vi.index];
               const meta = rowMetaById.get(row.id) ?? {
@@ -362,7 +393,10 @@ export const VirtualizedCatalogBody = forwardRef<
                 : undefined;
               const parentInList = parentRow != null;
               const variantTitle = isVariant
-                ? resolveCatalogVariantListTitle(row, { parentInList, parentRow })
+                ? resolveCatalogVariantListTitle(row, {
+                    parentInList,
+                    parentRow,
+                  })
                 : null;
               const nameResolution = isVariant
                 ? {
@@ -408,7 +442,8 @@ export const VirtualizedCatalogBody = forwardRef<
                   targetIds.length > 0 &&
                   targetIds.every((tid) => selectedIds.has(tid));
                 checkboxIndeterminate =
-                  !checkboxChecked && targetIds.some((tid) => selectedIds.has(tid));
+                  !checkboxChecked &&
+                  targetIds.some((tid) => selectedIds.has(tid));
               }
               const rowBulkSelected =
                 (isParentSelector &&
@@ -421,8 +456,7 @@ export const VirtualizedCatalogBody = forwardRef<
                 isBulkSelected: rowBulkSelected,
                 isCheckboxChecked: checkboxChecked && !active,
                 zebra: vi.index % 2 === 1,
-                sheetBanded:
-                  isVariant || isGroup || effectiveVariantCount > 0,
+                sheetBanded: isVariant || isGroup || effectiveVariantCount > 0,
               };
 
               return (
@@ -477,10 +511,10 @@ export const VirtualizedCatalogBody = forwardRef<
                         className={cn(
                           catalogSheetRowHeaderClass,
                           checkboxChecked &&
-                            "bg-foreground font-semibold text-background hover:bg-foreground hover:text-background",
+                            "border border-[var(--catalog-primary,#0f766e)] bg-white font-semibold text-[var(--catalog-primary,#0f766e)] hover:bg-white hover:text-[var(--catalog-primary,#0f766e)]",
                           checkboxIndeterminate &&
                             !checkboxChecked &&
-                            "bg-muted font-semibold text-foreground",
+                            "border border-[var(--catalog-primary,#0f766e)] bg-white font-semibold text-[var(--catalog-primary,#0f766e)]",
                         )}
                         onClick={() => void onToggleRowSelect(row.id)}
                         aria-pressed={checkboxChecked}
@@ -525,7 +559,8 @@ export const VirtualizedCatalogBody = forwardRef<
                         <div className="flex min-w-0 items-center gap-1">
                           {nameResolution.needsNameFix ? (
                             <>
-                              {nameResolution.label !== CATALOG_FIX_NAME_LABEL ? (
+                              {nameResolution.label !==
+                              CATALOG_FIX_NAME_LABEL ? (
                                 <span className="min-w-0 truncate text-[11px] font-medium tracking-tight text-foreground">
                                   {nameResolution.label}
                                 </span>
@@ -540,7 +575,10 @@ export const VirtualizedCatalogBody = forwardRef<
                               <span className="font-normal text-foreground/45">
                                 {variantTitle.family}
                               </span>
-                              <span className="mx-0.5 text-foreground/25" aria-hidden>
+                              <span
+                                className="mx-0.5 text-foreground/25"
+                                aria-hidden
+                              >
                                 /
                               </span>
                               <span className="font-medium text-foreground">
@@ -572,13 +610,13 @@ export const VirtualizedCatalogBody = forwardRef<
                             </span>
                           )}
                           {row.packageVariant ? (
-                            <span className="hidden shrink-0 rounded-none border border-border bg-muted/40 px-0.5 text-[8px] font-medium uppercase tracking-[0.06em] text-foreground/55 sm:inline-flex">
+                            <span className="hidden shrink-0 rounded-none border border-border bg-white px-0.5 text-[8px] font-medium tracking-[-0.02em] text-foreground/55 sm:inline-flex">
                               Pack
                             </span>
                           ) : null}
                           {row.aisleCode?.trim() ? (
                             <span
-                              className="hidden shrink-0 rounded-none border border-border bg-muted/40 px-0.5 font-mono text-[8px] font-medium uppercase tracking-[0.06em] text-foreground/55 sm:inline-flex"
+                              className="hidden shrink-0 rounded-none border border-border bg-white px-0.5 font-mono text-[8px] font-medium tracking-[-0.02em] text-foreground/55 sm:inline-flex"
                               title={row.aisleName?.trim() || row.aisleCode}
                             >
                               {row.aisleCode.trim()}
@@ -590,7 +628,7 @@ export const VirtualizedCatalogBody = forwardRef<
                             </span>
                           ) : null}
                           {row.active === false ? (
-                            <span className="shrink-0 text-[8px] font-medium uppercase tracking-[0.06em] text-foreground/40">
+                            <span className="shrink-0 text-[8px] font-medium tracking-[-0.02em] text-foreground/40">
                               Off
                             </span>
                           ) : null}
@@ -601,7 +639,9 @@ export const VirtualizedCatalogBody = forwardRef<
                         effectiveVariantCount > 0 ? (
                           <div className="mt-0.5 truncate text-[10px] font-medium tracking-tight text-foreground/40">
                             {effectiveVariantCount.toLocaleString()}{" "}
-                            {effectiveVariantCount === 1 ? "variant" : "variants"}
+                            {effectiveVariantCount === 1
+                              ? "variant"
+                              : "variants"}
                           </div>
                         ) : density !== "dense" &&
                           !isParentSelector &&
@@ -613,7 +653,12 @@ export const VirtualizedCatalogBody = forwardRef<
                       </div>
                     </div>
 
-                    <span className={cn(catalogListMetricCellClass, catalogGridCol.stock)}>
+                    <span
+                      className={cn(
+                        catalogListMetricCellClass,
+                        catalogGridCol.stock,
+                      )}
+                    >
                       {isParentSelector ? (
                         <span
                           className="text-[10px] tabular-nums text-foreground/20"
@@ -669,7 +714,12 @@ export const VirtualizedCatalogBody = forwardRef<
                       )}
                     </span>
 
-                    <span className={cn(catalogListMetricCellClass, catalogGridCol.category)}>
+                    <span
+                      className={cn(
+                        catalogListMetricCellClass,
+                        catalogGridCol.category,
+                      )}
+                    >
                       {!isParentSelector && categoryLabel ? (
                         <span
                           className={catalogListCategoryTagClass()}

@@ -358,11 +358,7 @@ export function CreditActivityPage() {
   }, [loadSummary]);
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([
-      load({ silent: true }),
-      loadOpenTabs(),
-      loadSummary(),
-    ]);
+    await Promise.all([load({ silent: true }), loadOpenTabs(), loadSummary()]);
   }, [load, loadOpenTabs, loadSummary]);
 
   const totalPaid = toNum(summary?.totalPaid);
@@ -387,7 +383,11 @@ export function CreditActivityPage() {
       const name = (r.customerName ?? "").toLowerCase();
       const cashier = (r.cashierName ?? "").toLowerCase();
       const receipt = r.receiptNo != null ? String(r.receiptNo) : "";
-      return name.includes(query) || cashier.includes(query) || receipt.includes(query);
+      return (
+        name.includes(query) ||
+        cashier.includes(query) ||
+        receipt.includes(query)
+      );
     });
   }, [rows, query]);
 
@@ -401,9 +401,7 @@ export function CreditActivityPage() {
 
   const sortedTabs = useMemo(
     () =>
-      [...openTabs].sort(
-        (a, b) => toNum(b.balanceOwed) - toNum(a.balanceOwed),
-      ),
+      [...openTabs].sort((a, b) => toNum(b.balanceOwed) - toNum(a.balanceOwed)),
     [openTabs],
   );
 
@@ -437,7 +435,10 @@ export function CreditActivityPage() {
     [filteredCharges],
   );
   const tabCount = filteredCharges.length;
-  const ranked = useMemo(() => rankCustomers(filteredCharges), [filteredCharges]);
+  const ranked = useMemo(
+    () => rankCustomers(filteredCharges),
+    [filteredCharges],
+  );
   const peopleCount = ranked.length;
   const avgTab = tabCount > 0 ? totalCredit / tabCount : 0;
   const hours = useMemo(() => hourBuckets(filteredCharges), [filteredCharges]);
@@ -456,9 +457,8 @@ export function CreditActivityPage() {
 
   const phoneIssues = useMemo(
     () =>
-      openTabs.filter(
-        (tab) => !isUsableStoredCustomerPhone(tab.primaryPhone),
-      ).length,
+      openTabs.filter((tab) => !isUsableStoredCustomerPhone(tab.primaryPhone))
+        .length,
     [openTabs],
   );
 
@@ -543,9 +543,7 @@ export function CreditActivityPage() {
       <DashboardAccessDenied
         title="On tab"
         description="Credit sales need sales intelligence access. Ask an admin if you should see this board."
-        backHref={
-          canViewCustomers ? APP_ROUTES.customers : APP_ROUTES.overview
-        }
+        backHref={canViewCustomers ? APP_ROUTES.customers : APP_ROUTES.overview}
         backLabel={canViewCustomers ? "Credit customers" : "Overview"}
       />
     );
@@ -554,13 +552,13 @@ export function CreditActivityPage() {
   return (
     <div className={cn(DASHBOARD_MAX_WIDE, styles.shell, "space-y-5 pb-16")}>
       {/*
-        THESIS: a flush ledger — type and hairlines, no panel, no radius.
-        OWN-WORLD: page paper, charcoal type, rust only on outstanding.
-        STORY: pick a name, collect or freeze, tap a charge to read the items.
-        FIRST VIEWPORT: owed figure, names, selected account.
-        FORM: operate / square ledger.
-        FINISH: verify in the browser.
-      */}
+ THESIS: a flush ledger — type and hairlines, no panel, no radius.
+ OWN-WORLD: page paper, charcoal type, rust only on outstanding.
+ STORY: pick a name, collect or freeze, tap a charge to read the items.
+ FIRST VIEWPORT: owed figure, names, selected account.
+ FORM: operate / square ledger.
+ FINISH: verify in the browser.
+ */}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <DashboardPageHero
           compact
@@ -655,7 +653,11 @@ export function CreditActivityPage() {
           </div>
 
           <div className={styles.toolbar}>
-            <div className={styles.stamps} role="group" aria-label="Credit period">
+            <div
+              className={styles.stamps}
+              role="group"
+              aria-label="Credit period"
+            >
               {PERIOD_OPTIONS.map(({ id, label, hint }) => {
                 const active = period === id;
                 return (
@@ -694,9 +696,10 @@ export function CreditActivityPage() {
                     className={styles.hour}
                     style={{
                       height: `${Math.max(10, (value / maxHour) * 100)}%`,
-                      opacity: value > 0 ? 0.28 + (value / maxHour) * 0.72 : 0.1,
+                      opacity:
+                        value > 0 ? 0.28 + (value / maxHour) * 0.72 : 0.1,
                     }}
-                    title={`${hour}:00  ${fmtKes(value)}`}
+                    title={`${hour}:00 ${fmtKes(value)}`}
                   />
                 ))}
               </div>
@@ -787,7 +790,9 @@ export function CreditActivityPage() {
                                 {tab.primaryPhone?.trim() || "No phone"}
                               </span>
                             </span>
-                            <span className={styles.nameOwed}>{fmtKes(owed)}</span>
+                            <span className={styles.nameOwed}>
+                              {fmtKes(owed)}
+                            </span>
                           </button>
                         </li>
                       );
@@ -931,7 +936,9 @@ export function CreditActivityPage() {
                           <p className={cn(styles.muted, "truncate text-xs")}>
                             {[
                               row.cashierName?.trim() || "Till",
-                              row.receiptNo != null ? `#${row.receiptNo}` : null,
+                              row.receiptNo != null
+                                ? `#${row.receiptNo}`
+                                : null,
                               toNum(row.saleGrandTotal) > amount
                                 ? `sale ${fmtKes(toNum(row.saleGrandTotal))}`
                                 : null,
@@ -999,10 +1006,7 @@ export function CreditActivityPage() {
                           linked && styles.dayRowLinked,
                         )}
                       >
-                        <time
-                          className={styles.paidWhen}
-                          dateTime={row.paidAt}
-                        >
+                        <time className={styles.paidWhen} dateTime={row.paidAt}>
                           {when}
                         </time>
                         <span className="min-w-0 flex-1">
@@ -1051,9 +1055,7 @@ export function CreditActivityPage() {
               return prev.filter((row) => row.customerId !== customerId);
             }
             return prev.map((row) =>
-              row.customerId === customerId
-                ? { ...row, balanceOwed }
-                : row,
+              row.customerId === customerId ? { ...row, balanceOwed } : row,
             );
           });
           void loadSummary();
@@ -1194,9 +1196,7 @@ function SelectedTabWorkspace({
     };
   }, [tab.customerId]);
 
-  const suspended = Boolean(
-    statement?.creditSuspended ?? tab.creditSuspended,
-  );
+  const suspended = Boolean(statement?.creditSuspended ?? tab.creditSuspended);
   const tabLines = useMemo(() => {
     const lines = (statement?.lines ?? []).filter((line) =>
       isTabCreditKind(line.kind),
@@ -1218,7 +1218,10 @@ function SelectedTabWorkspace({
       });
       setStatement((prev) =>
         prev
-          ? { ...prev, creditSuspended: Boolean(updated.credit.creditSuspended) }
+          ? {
+              ...prev,
+              creditSuspended: Boolean(updated.credit.creditSuspended),
+            }
           : prev,
       );
       onCreditSuspended(
@@ -1331,8 +1334,8 @@ function SelectedTabWorkspace({
       {confirmSuspend ? (
         <div className={styles.confirm}>
           <p className="text-sm">
-            Stop {tab.name} from taking more on tab? The balance stays until they
-            pay.
+            Stop {tab.name} from taking more on tab? The balance stays until
+            they pay.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button
@@ -1411,7 +1414,8 @@ function SelectedTabWorkspace({
                   }
                   const match = selectedCharges.find((row) => {
                     const dt = Math.abs(
-                      new Date(row.soldAt).getTime() - new Date(line.at).getTime(),
+                      new Date(row.soldAt).getTime() -
+                        new Date(line.at).getTime(),
                     );
                     return (
                       dt < 15 * 60 * 1000 &&
@@ -1419,11 +1423,15 @@ function SelectedTabWorkspace({
                     );
                   });
                   if (match) {
-                    onOpenSaleSlip(match.saleId, fmtDayTime(match.soldAt, false), {
-                      customerName: tab.name,
-                      cashierName: match.cashierName?.trim() || undefined,
-                      tabAmount: toNum(match.amount),
-                    });
+                    onOpenSaleSlip(
+                      match.saleId,
+                      fmtDayTime(match.soldAt, false),
+                      {
+                        customerName: tab.name,
+                        cashierName: match.cashierName?.trim() || undefined,
+                        tabAmount: toNum(match.amount),
+                      },
+                    );
                     return;
                   }
                   onOpenSlip({
@@ -1473,7 +1481,9 @@ function CreditHistoryRow({
         <span className={styles.ledgerWhen}>
           {fmtDayTime(line.at, false)}
           {itemHint ? (
-            <span className={cn(styles.muted, "mt-0.5 block truncate text-[11px]")}>
+            <span
+              className={cn(styles.muted, "mt-0.5 block truncate text-[11px]")}
+            >
               {itemHint}
             </span>
           ) : null}

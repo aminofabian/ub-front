@@ -60,9 +60,8 @@ export default function FixedCostsPage() {
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
-  const [editingSchedule, setEditingSchedule] = useState<ExpenseScheduleRecord | null>(
-    null,
-  );
+  const [editingSchedule, setEditingSchedule] =
+    useState<ExpenseScheduleRecord | null>(null);
   const [commitment, setCommitment] = useState(0);
   const [activeScheduleCount, setActiveScheduleCount] = useState(0);
   const [expensesTotal, setExpensesTotal] = useState<number | null>(null);
@@ -72,7 +71,11 @@ export default function FixedCostsPage() {
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
-    if (tabParam === "history" || tabParam === "calendar" || tabParam === "schedules") {
+    if (
+      tabParam === "history" ||
+      tabParam === "calendar" ||
+      tabParam === "schedules"
+    ) {
       setTab(tabParam);
     }
   }, [searchParams]);
@@ -115,9 +118,13 @@ export default function FixedCostsPage() {
         const occurrences = await fetchExpenseScheduleOccurrences(year, month, {
           branchId: branchFilter || undefined,
         });
-        setOccurrencePosted(occurrences.filter((o) => o.status === "posted").length);
+        setOccurrencePosted(
+          occurrences.filter((o) => o.status === "posted").length,
+        );
         setOccurrenceOpen(occurrences.filter((o) => o.status === "due").length);
-        setOccurrenceFailed(occurrences.filter((o) => o.status === "failed").length);
+        setOccurrenceFailed(
+          occurrences.filter((o) => o.status === "failed").length,
+        );
       } catch {
         setOccurrencePosted(0);
         setOccurrenceOpen(0);
@@ -158,7 +165,7 @@ export default function FixedCostsPage() {
   const branchOptions = branches.map((b) => ({ id: b.id, name: b.name }));
 
   return (
-    <div className={cn("mx-auto space-y-6", DASHBOARD_MAX_WIDE)}>
+    <div className={DASHBOARD_MAX_WIDE}>
       <DashboardPageHero
         icon={Building2}
         eyebrow="Finance"
@@ -170,10 +177,10 @@ export default function FixedCostsPage() {
         <button
           type="button"
           className={cn(
-            "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            "rounded-none px-3 py-1.5 text-sm font-medium transition-colors",
             tab === "schedules"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted/50 text-muted-foreground hover:text-foreground",
+              ? "border border-[#0f766e] bg-white text-[#0f766e]"
+              : "border border-transparent bg-white text-muted-foreground hover:border-[#0f766e] hover:text-[#0f766e]",
           )}
           onClick={() => setTab("schedules")}
         >
@@ -182,10 +189,10 @@ export default function FixedCostsPage() {
         <button
           type="button"
           className={cn(
-            "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            "rounded-none px-3 py-1.5 text-sm font-medium transition-colors",
             tab === "calendar"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted/50 text-muted-foreground hover:text-foreground",
+              ? "border border-[#0f766e] bg-white text-[#0f766e]"
+              : "border border-transparent bg-white text-muted-foreground hover:border-[#0f766e] hover:text-[#0f766e]",
           )}
           onClick={() => setTab("calendar")}
         >
@@ -197,10 +204,10 @@ export default function FixedCostsPage() {
         <button
           type="button"
           className={cn(
-            "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            "rounded-none px-3 py-1.5 text-sm font-medium transition-colors",
             tab === "history"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted/50 text-muted-foreground hover:text-foreground",
+              ? "border border-[#0f766e] bg-white text-[#0f766e]"
+              : "border border-transparent bg-white text-muted-foreground hover:border-[#0f766e] hover:text-[#0f766e]",
           )}
           onClick={() => setTab("history")}
         >
@@ -323,7 +330,11 @@ export default function FixedCostsPage() {
       ) : null}
 
       {tab === "history" ? (
-        <ExpenseHistoryPanel year={year} month={month} refreshKey={refreshKey} />
+        <ExpenseHistoryPanel
+          year={year}
+          month={month}
+          refreshKey={refreshKey}
+        />
       ) : null}
 
       <ScheduleFormDrawer
@@ -367,7 +378,7 @@ function SummaryCard({
 }) {
   return (
     <div className={cn(DASHBOARD_SECTION_SURFACE, "space-y-1")}>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-xs font-medium tracking-[-0.02em] text-muted-foreground">
         {label}
       </p>
       <p className="text-xl font-semibold tabular-nums">{value}</p>

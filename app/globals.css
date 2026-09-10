@@ -4838,7 +4838,7 @@ html:has([data-store-theme-id="comilmart"]) ::selection {
     --pos-paper: #ffffff;
     --pos-ink: #15231f;
     --order-ink: #15231f;
-    --order-shelf: #f3f6f5;
+    --order-shelf: #ffffff;
     --order-slip: #ffffff;
     --pos-primary: #0f766e;
     background-color: #fff;
@@ -5559,25 +5559,14 @@ html:has([data-store-theme-id="comilmart"]) ::selection {
 }
 
 .hub-paper {
-  background-color: #f3f1ec;
-  background-image:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, #fff 48%, #f3f1ec) 0%,
-      #f3f1ec 40%
-    ),
-    radial-gradient(
-      70% 42% at 100% -4%,
-      color-mix(in srgb, #b08d48 6%, transparent),
-      transparent 72%
-    );
+  background-color: #ffffff;
   color-scheme: light;
-  caret-color: #b08d48;
+  caret-color: #0f766e;
 }
 
 .hub-paper ::selection {
-  background: color-mix(in srgb, #b08d48 28%, #fff);
-  color: #141414;
+  background: color-mix(in srgb, #0f766e 22%, #fff);
+  color: #15231f;
 }
 
 .hub-paper :focus-visible {

@@ -243,7 +243,7 @@ export function AdjustItemCostDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border bg-[#eef2f7] px-4 py-3 sm:gap-2 dark:bg-muted/25">
+        <DialogFooter className="gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3 sm:gap-2">
           <Button
             type="button"
             variant="outline"
@@ -255,7 +255,7 @@ export function AdjustItemCostDialog({
           </Button>
           <Button
             type="button"
-            className="rounded-none bg-[#B08D48] text-white hover:bg-[#9A7A3F]"
+            className="rounded-none bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]"
             onClick={() => void onSave()}
             disabled={!canSave}
           >

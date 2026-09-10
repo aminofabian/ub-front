@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Building2, ChevronDown, Pencil, PencilLine, Send, Trash2, UserPlus, Wallet } from "lucide-react";
+import {
+  Building2,
+  ChevronDown,
+  Pencil,
+  PencilLine,
+  Send,
+  Trash2,
+  UserPlus,
+  Wallet,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import type {
@@ -92,7 +101,9 @@ export function SupplierEditColumn({
           : `Invite created. Code ${res.claimCode}`,
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not send portal invite");
+      toast.error(
+        e instanceof Error ? e.message : "Could not send portal invite",
+      );
     } finally {
       setInviteBusy(false);
     }
@@ -116,15 +127,17 @@ export function SupplierEditColumn({
   });
   const hasPrimaryContact = Boolean(
     primaryContact?.name?.trim() ||
-    primaryContact?.email?.trim() ||
-    primaryContact?.phone?.trim(),
+      primaryContact?.email?.trim() ||
+      primaryContact?.phone?.trim(),
   );
   const showPrimaryInTopCard = hasPrimaryContact && primaryContact && !compact;
 
   return (
     <div
       className={cn(
-        compact ? "flex min-h-0 flex-1 flex-col gap-0 bg-white" : "flex flex-col gap-2",
+        compact
+          ? "flex min-h-0 flex-1 flex-col gap-0 bg-white"
+          : "flex flex-col gap-2",
       )}
     >
       {compact ? (
@@ -159,7 +172,10 @@ export function SupplierEditColumn({
               ) : null}
             </div>
 
-            {canWrite && onEditProfile && onAddContact && !isPlaceholderSupplier ? (
+            {canWrite &&
+            onEditProfile &&
+            onAddContact &&
+            !isPlaceholderSupplier ? (
               <div className="mt-3 flex items-center gap-1.5">
                 <Button
                   type="button"
@@ -188,7 +204,9 @@ export function SupplierEditColumn({
                   className="h-8 gap-1 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 text-[11px] font-semibold shadow-none"
                   disabled={inviteBusy}
                   onClick={() => void onInvite()}
-                  aria-label={inviteBusy ? "Sending invite" : "Invite to portal"}
+                  aria-label={
+                    inviteBusy ? "Sending invite" : "Invite to portal"
+                  }
                 >
                   <Send className="size-3.5" aria-hidden />
                   {inviteBusy ? "…" : "Invite"}
@@ -229,192 +247,197 @@ export function SupplierEditColumn({
             : "contents",
         )}
       >
-      {!compact ? (
-        <div className="border border-border">
-          <table className={supKvTable}>
-            <tbody>
-              <tr>
-                <th scope="row" className={supKvLabel}>
-                  Name
-                </th>
-                <td className={cn(supKvValue, "font-semibold")}>
-                  <SupplierDisplayName
-                    name={detail.name}
-                    code={detail.code}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th scope="row" className={supKvLabel}>
-                  Code
-                </th>
-                <td className={cn(supKvValue, "font-mono")}>
-                  {isPlaceholderSupplier ? "—" : detail.code?.trim() || "—"}
-                </td>
-              </tr>
-              <tr>
-                <th scope="row" className={supKvLabel}>
-                  Status
-                </th>
-                <td className={supKvValue}>
-                  <span
-                    className={cn(
-                      "inline-flex px-1 py-px text-[10px] font-semibold capitalize",
-                      statusBadgeClass(detail.status),
-                    )}
-                  >
-                    {detail.status}
-                  </span>
-                  {detail.supplierType ? (
-                    <span className="ml-2 text-muted-foreground capitalize">
-                      {detail.supplierType}
+        {!compact ? (
+          <div className="border border-border">
+            <table className={supKvTable}>
+              <tbody>
+                <tr>
+                  <th scope="row" className={supKvLabel}>
+                    Name
+                  </th>
+                  <td className={cn(supKvValue, "font-semibold")}>
+                    <SupplierDisplayName
+                      name={detail.name}
+                      code={detail.code}
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" className={supKvLabel}>
+                    Code
+                  </th>
+                  <td className={cn(supKvValue, "font-mono")}>
+                    {isPlaceholderSupplier ? "—" : detail.code?.trim() || "—"}
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" className={supKvLabel}>
+                    Status
+                  </th>
+                  <td className={supKvValue}>
+                    <span
+                      className={cn(
+                        "inline-flex px-1 py-px text-[10px] font-semibold capitalize",
+                        statusBadgeClass(detail.status),
+                      )}
+                    >
+                      {detail.status}
                     </span>
-                  ) : null}
-                  {detail.taxExempt ? (
-                    <span className="ml-2 text-[10px] font-semibold text-primary">
-                      Tax exempt
-                    </span>
-                  ) : null}
-                </td>
-              </tr>
-              {showPrimaryInTopCard && primaryContact ? (
-                <>
-                  <tr>
-                    <th scope="row" className={supKvLabel}>
-                      Contact
-                    </th>
-                    <td className={supKvValue}>
-                      {primaryContact.name?.trim() || "—"}
-                      {primaryContact.roleLabel?.trim()
-                        ? ` · ${primaryContact.roleLabel.trim()}`
-                        : ""}
-                    </td>
-                  </tr>
-                  {primaryContact.email?.trim() ? (
+                    {detail.supplierType ? (
+                      <span className="ml-2 text-muted-foreground capitalize">
+                        {detail.supplierType}
+                      </span>
+                    ) : null}
+                    {detail.taxExempt ? (
+                      <span className="ml-2 text-[10px] font-semibold text-primary">
+                        Tax exempt
+                      </span>
+                    ) : null}
+                  </td>
+                </tr>
+                {showPrimaryInTopCard && primaryContact ? (
+                  <>
                     <tr>
                       <th scope="row" className={supKvLabel}>
-                        Email
+                        Contact
                       </th>
                       <td className={supKvValue}>
-                        <a
-                          href={`mailto:${primaryContact.email.trim()}`}
-                          className="text-primary underline-offset-2 hover:underline"
-                        >
-                          {primaryContact.email.trim()}
-                        </a>
+                        {primaryContact.name?.trim() || "—"}
+                        {primaryContact.roleLabel?.trim()
+                          ? ` · ${primaryContact.roleLabel.trim()}`
+                          : ""}
                       </td>
                     </tr>
-                  ) : null}
-                  {primaryContact.phone?.trim() ? (
-                    <tr>
-                      <th scope="row" className={supKvLabel}>
-                        Phone
-                      </th>
-                      <td className={supKvValue}>
-                        <TelLink
-                          phone={primaryContact.phone.trim()}
-                          className="underline-offset-2"
-                        />
-                      </td>
-                    </tr>
-                  ) : null}
-                </>
-              ) : null}
-            </tbody>
-          </table>
-          {canWrite && onEditProfile && onAddContact && !isPlaceholderSupplier ? (
-            <div className="flex flex-wrap gap-1 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1.5">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 min-w-0 flex-1 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
-                onClick={onEditProfile}
-              >
-                <PencilLine className="size-3.5" aria-hidden />
-                Edit profile
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 min-w-0 flex-1 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
-                onClick={onAddContact}
-              >
-                <UserPlus className="size-3.5" aria-hidden />
-                Add contact
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 min-w-0 flex-1 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
-                disabled={inviteBusy}
-                onClick={() => void onInvite()}
-              >
-                <Send className="size-3.5" aria-hidden />
-                {inviteBusy ? "Sending…" : "Invite portal"}
-              </Button>
-            </div>
-          ) : null}
-          {canDeposit && onDeposit ? (
-            <div className="flex items-center justify-between gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)] px-3 py-2.5">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                  Wallet credit
-                </p>
-                <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
-                  {formatSupplyMoney(walletCredit, currency)}
-                </p>
-                <p className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-                  Applied automatically on the next supply
-                </p>
+                    {primaryContact.email?.trim() ? (
+                      <tr>
+                        <th scope="row" className={supKvLabel}>
+                          Email
+                        </th>
+                        <td className={supKvValue}>
+                          <a
+                            href={`mailto:${primaryContact.email.trim()}`}
+                            className="text-primary underline-offset-2 hover:underline"
+                          >
+                            {primaryContact.email.trim()}
+                          </a>
+                        </td>
+                      </tr>
+                    ) : null}
+                    {primaryContact.phone?.trim() ? (
+                      <tr>
+                        <th scope="row" className={supKvLabel}>
+                          Phone
+                        </th>
+                        <td className={supKvValue}>
+                          <TelLink
+                            phone={primaryContact.phone.trim()}
+                            className="underline-offset-2"
+                          />
+                        </td>
+                      </tr>
+                    ) : null}
+                  </>
+                ) : null}
+              </tbody>
+            </table>
+            {canWrite &&
+            onEditProfile &&
+            onAddContact &&
+            !isPlaceholderSupplier ? (
+              <div className="flex flex-wrap gap-1 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 min-w-0 flex-1 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
+                  onClick={onEditProfile}
+                >
+                  <PencilLine className="size-3.5" aria-hidden />
+                  Edit profile
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 min-w-0 flex-1 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
+                  onClick={onAddContact}
+                >
+                  <UserPlus className="size-3.5" aria-hidden />
+                  Add contact
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 min-w-0 flex-1 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
+                  disabled={inviteBusy}
+                  onClick={() => void onInvite()}
+                >
+                  <Send className="size-3.5" aria-hidden />
+                  {inviteBusy ? "Sending…" : "Invite portal"}
+                </Button>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 text-xs font-semibold text-white shadow-none hover:bg-[#0d6b63]"
-                onClick={onDeposit}
-              >
-                <Wallet className="size-3.5" aria-hidden />
-                Deposit
-              </Button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+            ) : null}
+            {canDeposit && onDeposit ? (
+              <div className="flex items-center justify-between gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)] px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                    Wallet credit
+                  </p>
+                  <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                    {formatSupplyMoney(walletCredit, currency)}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                    Applied automatically on the next supply
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 text-xs font-semibold text-white shadow-none hover:bg-[#0d6b63]"
+                  onClick={onDeposit}
+                >
+                  <Wallet className="size-3.5" aria-hidden />
+                  Deposit
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
-      {!compact ? <SupplierCommercialSection s={detail} compact={compact} /> : null}
+        {!compact ? (
+          <SupplierCommercialSection s={detail} compact={compact} />
+        ) : null}
 
-      <SupplierSidebarPaymentSection
-        detail={detail}
-        canWrite={canWrite}
-        onSavePayout={onSavePayout}
-      />
-
-      <SupplierPurchaseHistorySection
-        key={purchaseHistoryRefreshKey}
-        supplierId={detail.id}
-        variant={variant}
-        selectedInvoiceId={selectedInvoiceId}
-        onSelectInvoice={onSelectInvoice}
-        historyLimit={compact ? 100 : 40}
-      />
-
-      {detail.notes?.trim() && compact ? (
-        <SupFieldTable
-          rows={[
-            {
-              label: "Notes",
-              value: (
-                <span className="whitespace-pre-wrap">
-                  {detail.notes.trim()}
-                </span>
-              ),
-            },
-          ]}
+        <SupplierSidebarPaymentSection
+          detail={detail}
+          canWrite={canWrite}
+          onSavePayout={onSavePayout}
         />
-      ) : null}
+
+        <SupplierPurchaseHistorySection
+          key={purchaseHistoryRefreshKey}
+          supplierId={detail.id}
+          variant={variant}
+          selectedInvoiceId={selectedInvoiceId}
+          onSelectInvoice={onSelectInvoice}
+          historyLimit={compact ? 100 : 40}
+        />
+
+        {detail.notes?.trim() && compact ? (
+          <SupFieldTable
+            rows={[
+              {
+                label: "Notes",
+                value: (
+                  <span className="whitespace-pre-wrap">
+                    {detail.notes.trim()}
+                  </span>
+                ),
+              },
+            ]}
+          />
+        ) : null}
       </div>
 
       {compact ? (
@@ -446,94 +469,104 @@ export function SupplierEditColumn({
       ) : null}
 
       {!compact ? (
-      <SupSection
-        compact={compact}
-        title="Contacts"
-        action={
-          <span className="text-xs font-semibold tabular-nums text-muted-foreground">
-            {contacts.length}
-          </span>
-        }
-        bodyClassName="p-0"
-      >
-        {contacts.length === 0 ? (
-          <p className="px-2 py-4 text-center text-xs text-muted-foreground">
-            No contacts on file yet.
-            {canWrite && onAddContact ? (
-              <>
-                {" "}
-                <button
-                  type="button"
-                  className="font-semibold text-primary underline-offset-2 hover:underline"
-                  onClick={onAddContact}
-                >
-                  Add one
-                </button>
-              </>
-            ) : null}
-          </p>
-        ) : (
-          <table className="w-full border-collapse text-left text-xs">
-            <thead className={supTableHead}>
-              <tr>
-                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">Name</th>
-                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">Role</th>
-                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">Phone</th>
-                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">Email</th>
-                {canWrite && (onEditContact || onDeleteContact) ? (
+        <SupSection
+          compact={compact}
+          title="Contacts"
+          action={
+            <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+              {contacts.length}
+            </span>
+          }
+          bodyClassName="p-0"
+        >
+          {contacts.length === 0 ? (
+            <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+              No contacts on file yet.
+              {canWrite && onAddContact ? (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    className="font-semibold text-primary underline-offset-2 hover:underline"
+                    onClick={onAddContact}
+                  >
+                    Add one
+                  </button>
+                </>
+              ) : null}
+            </p>
+          ) : (
+            <table className="w-full border-collapse text-left text-xs">
+              <thead className={supTableHead}>
+                <tr>
                   <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">
-                    <span className="sr-only">Actions</span>
+                    Name
                   </th>
-                ) : null}
-              </tr>
-            </thead>
-            <tbody>
-              {contacts.map((c) => (
-                <tr key={c.id} className={supTableRow}>
-                  <td className="border border-border/70 px-2 py-1 font-medium">
-                    {c.name?.trim() || "Unnamed"}
-                    {c.primaryContact ? (
-                      <span className="ml-1 text-[10px] font-bold text-primary">*</span>
-                    ) : null}
-                  </td>
-                  <td className="border border-border/70 px-2 py-1 text-muted-foreground">
-                    {c.roleLabel?.trim() || "—"}
-                  </td>
-                  <td className="border border-border/70 px-2 py-1">
-                    {c.phone?.trim() ? (
-                      <TelLink phone={c.phone.trim()} />
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="border border-border/70 px-2 py-1">
-                    {c.email?.trim() ? (
-                      <a
-                        href={`mailto:${c.email.trim()}`}
-                        className="text-primary hover:underline"
-                      >
-                        {c.email.trim()}
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
+                  <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">
+                    Role
+                  </th>
+                  <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">
+                    Phone
+                  </th>
+                  <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">
+                    Email
+                  </th>
                   {canWrite && (onEditContact || onDeleteContact) ? (
-                    <td className="border border-border/70 px-1 py-0.5">
-                      <ContactRowActions
-                        contact={c}
-                        onEditContact={onEditContact}
-                        onDeleteContact={onDeleteContact}
-                        deletingContactId={deletingContactId}
-                      />
-                    </td>
+                    <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   ) : null}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </SupSection>
+              </thead>
+              <tbody>
+                {contacts.map((c) => (
+                  <tr key={c.id} className={supTableRow}>
+                    <td className="border border-border/70 px-2 py-1 font-medium">
+                      {c.name?.trim() || "Unnamed"}
+                      {c.primaryContact ? (
+                        <span className="ml-1 text-[10px] font-bold text-primary">
+                          *
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="border border-border/70 px-2 py-1 text-muted-foreground">
+                      {c.roleLabel?.trim() || "—"}
+                    </td>
+                    <td className="border border-border/70 px-2 py-1">
+                      {c.phone?.trim() ? (
+                        <TelLink phone={c.phone.trim()} />
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="border border-border/70 px-2 py-1">
+                      {c.email?.trim() ? (
+                        <a
+                          href={`mailto:${c.email.trim()}`}
+                          className="text-primary hover:underline"
+                        >
+                          {c.email.trim()}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    {canWrite && (onEditContact || onDeleteContact) ? (
+                      <td className="border border-border/70 px-1 py-0.5">
+                        <ContactRowActions
+                          contact={c}
+                          onEditContact={onEditContact}
+                          onDeleteContact={onDeleteContact}
+                          deletingContactId={deletingContactId}
+                        />
+                      </td>
+                    ) : null}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </SupSection>
       ) : null}
     </div>
   );
@@ -646,7 +679,9 @@ function SupplierSidebarContactsDock({
       {sorted.length === 0 ? (
         <p className="px-3 pb-3 text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
           No contacts yet.
-          {canWrite && onAddContact ? " Add a phone or email for this vendor." : null}
+          {canWrite && onAddContact
+            ? " Add a phone or email for this vendor."
+            : null}
         </p>
       ) : (
         <ul className="max-h-[min(11rem,28vh)] space-y-0 overflow-y-auto overscroll-contain border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] [scrollbar-width:thin]">
@@ -664,7 +699,7 @@ function SupplierSidebarContactsDock({
                   <p className="truncate text-[12px] font-medium text-[var(--order-ink,#15231f)]">
                     {name}
                     {c.primaryContact ? (
-                      <span className="ml-1.5 rounded bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] px-1 py-px text-[9px] font-bold uppercase tracking-wide text-[var(--pos-primary,#0f766e)]">
+                      <span className="ml-1.5 rounded bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] px-1 py-px text-[9px] font-bold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
                         Primary
                       </span>
                     ) : null}
@@ -735,13 +770,17 @@ function SupplierSidebarPaymentSection({
   const vatPin = detail.vatPin?.trim();
   const creditLimit =
     detail.creditLimit != null && Number.isFinite(detail.creditLimit)
-      ? detail.creditLimit.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      ? detail.creditLimit.toLocaleString(undefined, {
+          maximumFractionDigits: 0,
+        })
       : null;
 
   type PayoutType = "manual" | "mobile_wallet" | "till" | "paybill";
   const savedType = (detail.payoutType as PayoutType) || "manual";
   const [payoutType, setPayoutType] = useState<PayoutType>(savedType);
-  const [payoutPhone, setPayoutPhone] = useState(detail.payoutPhone?.trim() ?? "");
+  const [payoutPhone, setPayoutPhone] = useState(
+    detail.payoutPhone?.trim() ?? "",
+  );
   const [payoutTillNumber, setPayoutTillNumber] = useState(
     detail.payoutTillNumber?.trim() ?? "",
   );
@@ -826,7 +865,8 @@ function SupplierSidebarPaymentSection({
       await onSavePayout({
         payoutType,
         payoutPhone: payoutType === "mobile_wallet" ? payoutPhone.trim() : null,
-        payoutTillNumber: payoutType === "till" ? payoutTillNumber.trim() : null,
+        payoutTillNumber:
+          payoutType === "till" ? payoutTillNumber.trim() : null,
         payoutPaybillNumber:
           payoutType === "paybill" ? payoutPaybillNumber.trim() : null,
         payoutPaybillAccount:
@@ -883,14 +923,19 @@ function SupplierSidebarPaymentSection({
               Payment
             </h3>
             {dirty ? (
-              <span className="rounded-none bg-amber-100 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-amber-800">
+              <span className="rounded-none bg-amber-100 px-1.5 py-px text-[9px] font-bold tracking-[-0.02em] text-amber-800">
                 Unsaved
               </span>
             ) : null}
           </div>
           {summaryChips.length > 0 || destinationSummary ? (
             <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
-              {[...summaryChips, destinationSummary && savedType !== "manual" ? destinationSummary : null]
+              {[
+                ...summaryChips,
+                destinationSummary && savedType !== "manual"
+                  ? destinationSummary
+                  : null,
+              ]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
@@ -911,124 +956,132 @@ function SupplierSidebarPaymentSection({
 
       {payoutOpen ? (
         <div className="space-y-2.5 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-2.5">
-        <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-            KopoKopo Send Money
-          </span>
-          <select
-            className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs"
-            value={payoutType}
-            disabled={!canWrite || !onSavePayout || savingPayout}
-            onChange={(e) => setPayoutType(e.target.value as PayoutType)}
-          >
-            <option value="manual">Off — record manually</option>
-            <option value="mobile_wallet">M-Pesa phone</option>
-            <option value="till">Till (Buy Goods)</option>
-            <option value="paybill">Paybill</option>
-          </select>
-          <span className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-            Supplies → Pay can Send Money to this destination (and auto-pay if enabled
-            under Payments settings).
-          </span>
-        </label>
-
-        {payoutType === "mobile_wallet" ? (
           <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-              M-Pesa payout phone
+            <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+              KopoKopo Send Money
             </span>
-            <input
-              className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
-              value={payoutPhone}
-              onChange={(e) => setPayoutPhone(e.target.value)}
-              placeholder="0710514157 or 2547…"
-              inputMode="tel"
+            <select
+              className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs"
+              value={payoutType}
               disabled={!canWrite || !onSavePayout || savingPayout}
-            />
-          </label>
-        ) : null}
-
-        {payoutType === "till" ? (
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-              Till number
+              onChange={(e) => setPayoutType(e.target.value as PayoutType)}
+            >
+              <option value="manual">Off — record manually</option>
+              <option value="mobile_wallet">M-Pesa phone</option>
+              <option value="till">Till (Buy Goods)</option>
+              <option value="paybill">Paybill</option>
+            </select>
+            <span className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+              Supplies → Pay can Send Money to this destination (and auto-pay if
+              enabled under Payments settings).
             </span>
-            <input
-              className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
-              value={payoutTillNumber}
-              onChange={(e) => setPayoutTillNumber(e.target.value)}
-              placeholder="e.g. 567890"
-              inputMode="numeric"
-              disabled={!canWrite || !onSavePayout || savingPayout}
-            />
           </label>
-        ) : null}
 
-        {payoutType === "paybill" ? (
-          <>
+          {payoutType === "mobile_wallet" ? (
             <label className="flex flex-col gap-1">
               <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                Paybill number
+                M-Pesa payout phone
               </span>
               <input
                 className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
-                value={payoutPaybillNumber}
-                onChange={(e) => setPayoutPaybillNumber(e.target.value)}
-                placeholder="e.g. 247247"
+                value={payoutPhone}
+                onChange={(e) => setPayoutPhone(e.target.value)}
+                placeholder="0710514157 or 2547…"
+                inputMode="tel"
+                disabled={!canWrite || !onSavePayout || savingPayout}
+              />
+            </label>
+          ) : null}
+
+          {payoutType === "till" ? (
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                Till number
+              </span>
+              <input
+                className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
+                value={payoutTillNumber}
+                onChange={(e) => setPayoutTillNumber(e.target.value)}
+                placeholder="e.g. 567890"
                 inputMode="numeric"
                 disabled={!canWrite || !onSavePayout || savingPayout}
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                Account number
-              </span>
-              <input
-                className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
-                value={payoutPaybillAccount}
-                onChange={(e) => setPayoutPaybillAccount(e.target.value)}
-                placeholder="Account or reference"
-                disabled={!canWrite || !onSavePayout || savingPayout}
-              />
-            </label>
-          </>
-        ) : null}
+          ) : null}
 
-        <p className="text-[11px] leading-snug text-muted-foreground">
-          Auto-pay schedule (override 12:00 AM / 6:00 PM) is set for the whole business under{" "}
-          <a
-            href="/payments/settings#supplier-payouts"
-            className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
-          >
-            Payments → Supplier payouts
-          </a>
-          .
-        </p>
+          {payoutType === "paybill" ? (
+            <>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                  Paybill number
+                </span>
+                <input
+                  className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
+                  value={payoutPaybillNumber}
+                  onChange={(e) => setPayoutPaybillNumber(e.target.value)}
+                  placeholder="e.g. 247247"
+                  inputMode="numeric"
+                  disabled={!canWrite || !onSavePayout || savingPayout}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                  Account number
+                </span>
+                <input
+                  className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
+                  value={payoutPaybillAccount}
+                  onChange={(e) => setPayoutPaybillAccount(e.target.value)}
+                  placeholder="Account or reference"
+                  disabled={!canWrite || !onSavePayout || savingPayout}
+                />
+              </label>
+            </>
+          ) : null}
 
-        {canWrite && onSavePayout ? (
-          <Button
-            type="button"
-            size="sm"
-            className={cn(
-              "h-8 w-full rounded-none text-xs font-semibold shadow-none",
-              dirty
-                ? "bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
-                : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]",
-            )}
-            disabled={savingPayout || !dirty}
-            onClick={() => void savePayout()}
-          >
-            {savingPayout ? "Saving…" : dirty ? "Save payment settings" : "Saved"}
-          </Button>
-        ) : savedType === "manual" ? (
-          <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-            Open Edit profile to enable KopoKopo payout if you have write access.
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Auto-pay schedule (override 12:00 AM / 6:00 PM) is set for the whole
+            business under{" "}
+            <a
+              href="/payments/settings#supplier-payouts"
+              className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+            >
+              Payments → Supplier payouts
+            </a>
+            .
           </p>
-        ) : (
-          <p className="font-mono text-xs text-[var(--order-ink,#15231f)]">{destinationSummary}</p>
-        )}
 
-      {rows.length > 0 ? <SupFieldTable rows={rows} /> : null}
+          {canWrite && onSavePayout ? (
+            <Button
+              type="button"
+              size="sm"
+              className={cn(
+                "h-8 w-full rounded-none text-xs font-semibold shadow-none",
+                dirty
+                  ? "bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
+                  : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]",
+              )}
+              disabled={savingPayout || !dirty}
+              onClick={() => void savePayout()}
+            >
+              {savingPayout
+                ? "Saving…"
+                : dirty
+                  ? "Save payment settings"
+                  : "Saved"}
+            </Button>
+          ) : savedType === "manual" ? (
+            <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+              Open Edit profile to enable KopoKopo payout if you have write
+              access.
+            </p>
+          ) : (
+            <p className="font-mono text-xs text-[var(--order-ink,#15231f)]">
+              {destinationSummary}
+            </p>
+          )}
+
+          {rows.length > 0 ? <SupFieldTable rows={rows} /> : null}
         </div>
       ) : null}
     </section>
@@ -1084,7 +1137,9 @@ function SupplierCommercialSection({
   }
 
   const rows = [
-    ...financials.filter(({ value }) => value !== "—" && value != null && value !== ""),
+    ...financials.filter(
+      ({ value }) => value !== "—" && value != null && value !== "",
+    ),
     ...(paymentDetails
       ? [
           {

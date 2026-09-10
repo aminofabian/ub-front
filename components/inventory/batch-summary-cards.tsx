@@ -43,7 +43,7 @@ function Card({
   variant?: "default" | "success" | "warning" | "danger" | "info";
 }) {
   const variantStyles = {
-    default: "bg-card border-border/60",
+    default: "bg-white border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
     success: "bg-emerald-50/50 border-emerald-200/60",
     warning: "bg-amber-50/50 border-amber-200/60",
     danger: "bg-rose-50/50 border-rose-200/60",
@@ -58,14 +58,14 @@ function Card({
   };
 
   return (
-    <div className={`rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md ${variantStyles[variant]}`}>
+    <div className={`rounded-none border p-4 shadow-none transition-shadow hover:shadow-none ${variantStyles[variant]}`}>
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">{label}</p>
           <p className="text-xl font-bold tracking-tight text-foreground">{value}</p>
           {trend ? <p className="text-[11px] text-muted-foreground">{trend}</p> : null}
         </div>
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iconStyles[variant]}`}>
+        <div className={`flex size-7 shrink-0 items-center justify-center rounded-none ${iconStyles[variant]}`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>

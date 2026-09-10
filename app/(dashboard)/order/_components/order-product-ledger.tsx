@@ -80,7 +80,7 @@ export function OrderProductLedger({
 
   return (
     <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-      <div className="flex border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_60%,transparent)]">
+      <div className="flex border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#ffffff)_60%,transparent)]">
         <ColHead label="#" width="w-9" />
         <ColHead label="Item" width="min-w-0 flex-1" />
         <ColHead label="SKU" width="w-[5.5rem] hidden md:flex" />
@@ -107,7 +107,7 @@ export function OrderProductLedger({
                 "flex min-h-10 items-stretch border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] text-[12px] last:border-b-0",
                 inCart
                   ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]"
-                  : "hover:bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_40%,transparent)]",
+                  : "hover:bg-[color-mix(in_srgb,var(--order-shelf,#ffffff)_40%,transparent)]",
               )}
             >
               <div className="flex w-9 shrink-0 items-center justify-center border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
@@ -116,9 +116,7 @@ export function OrderProductLedger({
               <button
                 type="button"
                 onClick={() =>
-                  pickMode
-                    ? onPickItem(link)
-                    : onSetQty(link.itemId, qty + 1)
+                  pickMode ? onPickItem(link) : onSetQty(link.itemId, qty + 1)
                 }
                 disabled={pickMode && pickingItemId === link.itemId}
                 className="flex min-w-0 flex-1 items-center border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-2 py-1.5 text-left disabled:opacity-60"
@@ -201,7 +199,7 @@ export function OrderProductLedger({
       </div>
 
       {links.length > 0 ? (
-        <div className="flex border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_50%,transparent)] px-3 py-2 text-[11px]">
+        <div className="flex border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#ffffff)_50%,transparent)] px-3 py-2 text-[11px]">
           <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
             {links.length} item{links.length === 1 ? "" : "s"}
           </span>

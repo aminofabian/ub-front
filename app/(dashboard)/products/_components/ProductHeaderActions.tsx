@@ -35,7 +35,12 @@ export function ProductHeaderActions({
           </Button>
         }
       />
-      <Button asChild variant="outline" size="sm" className={CATALOG_BTN_OUTLINE}>
+      <Button
+        asChild
+        variant="outline"
+        size="sm"
+        className={CATALOG_BTN_OUTLINE}
+      >
         <Link
           href={APP_ROUTES.businessImport}
           title="Add many products from a spreadsheet"

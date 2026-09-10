@@ -5,11 +5,7 @@ import { PackagePlus, Truck } from "lucide-react";
 import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { cn } from "@/lib/utils";
 
-import {
-  nsdBorder,
-  nsdKicker,
-  nsdStatTile,
-} from "./new-supply-drawer-ui";
+import { nsdBorder, nsdKicker, nsdStatTile } from "./new-supply-drawer-ui";
 import { formatSupplyMoneyCompact } from "./supplies-shared";
 
 function SummaryMetric({
@@ -23,7 +19,7 @@ function SummaryMetric({
 }) {
   return (
     <div className={nsdStatTile}>
-      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+      <p className="text-[9px] font-bold tracking-[-0.02em] text-muted-foreground">
         {label}
       </p>
       <p
@@ -88,7 +84,10 @@ export function SupplyDrawerSummaryPanel({
           <Truck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-foreground">
-              <SupplierDisplayName name={supplierName ?? null} fallback="No supplier" />
+              <SupplierDisplayName
+                name={supplierName ?? null}
+                fallback="No supplier"
+              />
             </p>
             <p className="truncate text-[10px] text-muted-foreground">
               {branchName || "No branch"}
@@ -98,7 +97,7 @@ export function SupplyDrawerSummaryPanel({
 
         <div className="space-y-1 px-2.5 py-2">
           <div className="flex items-center justify-between text-[10px]">
-            <span className="font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="font-semibold tracking-[-0.02em] text-muted-foreground">
               Ready
             </span>
             <span className="font-mono tabular-nums text-foreground">

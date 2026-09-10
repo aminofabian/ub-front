@@ -58,7 +58,10 @@ function isPending(line: DailyAuditReviewLineRecord): boolean {
 
 export default function DailyAuditReviewPage() {
   const { me } = useDashboard();
-  const canApprove = hasPermission(me?.permissions, Permission.StocktakeApprove);
+  const canApprove = hasPermission(
+    me?.permissions,
+    Permission.StocktakeApprove,
+  );
 
   const [branchId, setBranchId] = useState("");
   const [date, setDate] = useState(todayStr);
@@ -88,7 +91,8 @@ export default function DailyAuditReviewPage() {
     [review],
   );
   const approvedCount = useMemo(
-    () => review?.lines.filter((l) => l.reviewStatus === "approved").length ?? 0,
+    () =>
+      review?.lines.filter((l) => l.reviewStatus === "approved").length ?? 0,
     [review],
   );
   const pendingLines = useMemo(
@@ -217,7 +221,7 @@ export default function DailyAuditReviewPage() {
   const busy = actionItemId != null || bulkBusy;
 
   return (
-    <div className={cn(DASHBOARD_MAX, "mx-auto space-y-4 px-4 pb-24 pt-4")}>
+    <div className={cn(DASHBOARD_MAX, "space-y-1 pb-8")}>
       <Link
         href={APP_ROUTES.inventoryStockTake}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -262,7 +266,11 @@ export default function DailyAuditReviewPage() {
           />
         </label>
         <div className="flex items-end">
-          <Button variant="outline" onClick={() => void loadReview()} disabled={loading}>
+          <Button
+            variant="outline"
+            onClick={() => void loadReview()}
+            disabled={loading}
+          >
             Refresh
           </Button>
         </div>
@@ -273,23 +281,25 @@ export default function DailyAuditReviewPage() {
 
       {review ? (
         <div className="grid gap-3 sm:grid-cols-4">
-          <div className="rounded-lg border bg-card p-3 text-sm">
+          <div className="rounded-none border bg-white p-3 text-sm">
             <div className="text-muted-foreground">Items</div>
             <div className="text-2xl font-semibold">{review.itemCount}</div>
           </div>
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950/20">
-            <div className="text-emerald-700 dark:text-emerald-400">Matches</div>
+          <div className="rounded-none border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950/20">
+            <div className="text-emerald-700 dark:text-emerald-400">
+              Matches
+            </div>
             <div className="text-2xl font-semibold text-emerald-700 dark:text-emerald-300">
               {matched}
             </div>
           </div>
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/20">
+          <div className="rounded-none border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/20">
             <div className="text-red-700 dark:text-red-400">Mismatches</div>
             <div className="text-2xl font-semibold text-red-700 dark:text-red-300">
               {mismatched}
             </div>
           </div>
-          <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm dark:border-sky-900 dark:bg-sky-950/20">
+          <div className="rounded-none border border-sky-200 bg-sky-50 p-3 text-sm dark:border-sky-900 dark:bg-sky-950/20">
             <div className="text-sky-700 dark:text-sky-400">Approved</div>
             <div className="text-2xl font-semibold text-sky-700 dark:text-sky-300">
               {approvedCount}
@@ -299,7 +309,7 @@ export default function DailyAuditReviewPage() {
       ) : null}
 
       {review && pendingLines.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card px-3 py-2 text-sm">
+        <div className="flex flex-wrap items-center gap-3 rounded-none border bg-white px-3 py-2 text-sm">
           <label className="inline-flex cursor-pointer items-center gap-2">
             <input
               type="checkbox"
@@ -308,9 +318,7 @@ export default function DailyAuditReviewPage() {
               onChange={toggleSelectAllPending}
               disabled={busy}
             />
-            <span>
-              Select all pending ({pendingLines.length})
-            </span>
+            <span>Select all pending ({pendingLines.length})</span>
           </label>
           {selectedIds.size > 0 ? (
             <span className="text-muted-foreground">
@@ -336,7 +344,7 @@ export default function DailyAuditReviewPage() {
               <article
                 key={line.itemId}
                 className={cn(
-                  "rounded-xl border p-4 transition-colors",
+                  "rounded-none border p-4 transition-colors",
                   approved
                     ? "border-sky-300 bg-sky-50/70 ring-1 ring-sky-200 dark:border-sky-800 dark:bg-sky-950/30 dark:ring-sky-900"
                     : escalated
@@ -344,7 +352,9 @@ export default function DailyAuditReviewPage() {
                       : line.matches
                         ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/10"
                         : "border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/10",
-                  selected && pending ? "outline outline-2 outline-offset-2 outline-foreground/20" : null,
+                  selected && pending
+                    ? "outline outline-2 outline-offset-2 outline-foreground/20"
+                    : null,
                 )}
               >
                 <div className="flex flex-col gap-4 sm:flex-row">
@@ -362,11 +372,14 @@ export default function DailyAuditReviewPage() {
                   ) : (
                     <div className="flex w-4 shrink-0 items-start pt-1">
                       {approved ? (
-                        <ShieldCheck className="h-4 w-4 text-sky-600" aria-hidden />
+                        <ShieldCheck
+                          className="h-4 w-4 text-sky-600"
+                          aria-hidden
+                        />
                       ) : null}
                     </div>
                   )}
-                  <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-lg bg-muted sm:h-32 sm:w-32">
+                  <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-none bg-muted sm:h-32 sm:w-32">
                     {line.imageUrl ? (
                       <Image
                         src={line.imageUrl}
@@ -381,7 +394,7 @@ export default function DailyAuditReviewPage() {
                       </div>
                     )}
                     {approved ? (
-                      <div className="absolute inset-x-0 bottom-0 bg-sky-600/90 py-1 text-center text-[10px] font-semibold uppercase tracking-wide text-white">
+                      <div className="absolute inset-x-0 bottom-0 bg-sky-600/90 py-1 text-center text-[10px] font-semibold tracking-[-0.02em] text-white">
                         Stock updated
                       </div>
                     ) : null}
@@ -406,22 +419,30 @@ export default function DailyAuditReviewPage() {
                               : "bg-muted text-muted-foreground",
                         )}
                       >
-                        {approved ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
+                        {approved ? (
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        ) : null}
                         {statusLabel(line.reviewStatus)}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                       <div>
                         <div className="text-muted-foreground">Morning</div>
-                        <div className="font-medium">{num(line.morningCount)}</div>
+                        <div className="font-medium">
+                          {num(line.morningCount)}
+                        </div>
                       </div>
                       <div>
                         <div className="text-muted-foreground">Evening</div>
-                        <div className="font-medium">{num(line.eveningCount)}</div>
+                        <div className="font-medium">
+                          {num(line.eveningCount)}
+                        </div>
                       </div>
                       <div>
                         <div className="text-muted-foreground">System</div>
-                        <div className="font-medium">{num(line.systemStock)}</div>
+                        <div className="font-medium">
+                          {num(line.systemStock)}
+                        </div>
                       </div>
                       <div>
                         <div className="text-muted-foreground">Variance</div>
@@ -450,9 +471,14 @@ export default function DailyAuditReviewPage() {
                     ) : null}
                     {pending || escalated ? (
                       <textarea
-                        className={cn(dashboardInputClass(), "min-h-[56px] text-sm")}
+                        className={cn(
+                          dashboardInputClass(),
+                          "min-h-[56px] text-sm",
+                        )}
                         placeholder="Admin notes"
-                        value={adminNotes[line.itemId] ?? line.reviewNotes ?? ""}
+                        value={
+                          adminNotes[line.itemId] ?? line.reviewNotes ?? ""
+                        }
                         onChange={(e) =>
                           setAdminNotes((prev) => ({
                             ...prev,
@@ -502,11 +528,15 @@ export default function DailyAuditReviewPage() {
 
       {selectedIds.size > 0 ? (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-          <div className={cn(DASHBOARD_MAX, "mx-auto flex flex-wrap items-center justify-between gap-3")}>
+          <div
+            className={cn(
+              DASHBOARD_MAX,
+              "mx-auto flex flex-wrap items-center justify-between gap-3",
+            )}
+          >
             <div className="text-sm">
-              <span className="font-medium">{selectedIds.size}</span>
-              {" "}
-              item{selectedIds.size === 1 ? "" : "s"} selected
+              <span className="font-medium">{selectedIds.size}</span> item
+              {selectedIds.size === 1 ? "" : "s"} selected
             </div>
             <div className="flex flex-wrap gap-2">
               <Button

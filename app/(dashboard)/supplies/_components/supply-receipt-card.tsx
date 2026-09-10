@@ -51,9 +51,7 @@ export function SupplyReceiptCard({
     supplyN(row.amountPaid) < 0.005 &&
     row.source !== "path_a";
   const showPayAll =
-    Boolean(onPayAll) &&
-    (payAllCount ?? 0) >= 2 &&
-    (payAllTotal ?? 0) > 0.009;
+    Boolean(onPayAll) && (payAllCount ?? 0) >= 2 && (payAllTotal ?? 0) > 0.009;
   const created = new Date(row.createdAt).toLocaleString(undefined, {
     month: "short",
     day: "numeric",
@@ -139,9 +137,7 @@ export function SupplyReceiptCard({
           <dd
             className={cn(
               "font-mono text-[12px] font-semibold tabular-nums",
-              needsPay
-                ? "text-amber-800"
-                : "text-[var(--order-ink,#15231f)]",
+              needsPay ? "text-amber-800" : "text-[var(--order-ink,#15231f)]",
             )}
           >
             {formatSupplyMoney(bal)}
@@ -192,8 +188,7 @@ export function SupplyReceiptCard({
           variant={needsPay ? "default" : "outline"}
           className={cn(
             "h-8 flex-1 gap-1 rounded-none text-[11px]",
-            needsPay &&
-              "bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]",
+            needsPay && "bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]",
           )}
           disabled={!canOpenReceiptDrawer}
           onClick={onPayOrDetails}

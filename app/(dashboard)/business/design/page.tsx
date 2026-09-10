@@ -18,7 +18,8 @@ import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { resolveStorefrontDesignReturnTo } from "@/lib/storefront-staff-edit";
 
 /** Studio layout needs more width than the standard dashboard column. */
-const STUDIO_WRAPPER = "mx-auto w-full max-w-[1400px] space-y-8 pb-10";
+const STUDIO_WRAPPER =
+  "relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col gap-1 bg-white px-0 pb-4";
 
 export default function BusinessDesignPage() {
   const { canManageBusinessSettings } = useDashboard();
@@ -66,9 +67,13 @@ export default function BusinessDesignPage() {
         <Suspense fallback={<DesignPageHeaderFallback />}>
           <DesignPageHeader businessSlug={null} />
         </Suspense>
-        <div className="space-y-6" aria-busy="true" aria-label="Loading shop design">
-          <div className="h-40 animate-pulse rounded-2xl bg-muted" />
-          <div className="h-72 animate-pulse rounded-2xl bg-muted" />
+        <div
+          className="space-y-6"
+          aria-busy="true"
+          aria-label="Loading shop design"
+        >
+          <div className="h-40 animate-pulse rounded-none bg-muted" />
+          <div className="h-72 animate-pulse rounded-none bg-muted" />
         </div>
       </div>
     );
@@ -148,7 +153,9 @@ function DesignPageHeaderFallback() {
 
 function DesignPageHeader({ businessSlug }: { businessSlug: string | null }) {
   const searchParams = useSearchParams();
-  const shopBase = businessSlug ? slugDerivedShopUrl(businessSlug) || null : null;
+  const shopBase = businessSlug
+    ? slugDerivedShopUrl(businessSlug) || null
+    : null;
   const shopReturnUrl = useMemo(
     () =>
       resolveStorefrontDesignReturnTo(searchParams.get("returnTo"), shopBase),

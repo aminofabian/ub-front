@@ -79,7 +79,10 @@ function inferExpiryFromBatches(
 
   const received = new Date(latest.receivedAt);
   const expiry = parseISODate(latest.expiryDate!.trim());
-  if (!Number.isFinite(received.getTime()) || !Number.isFinite(expiry.getTime())) {
+  if (
+    !Number.isFinite(received.getTime()) ||
+    !Number.isFinite(expiry.getTime())
+  ) {
     return null;
   }
 

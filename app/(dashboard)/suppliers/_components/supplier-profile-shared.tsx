@@ -92,7 +92,8 @@ export function supplierRecordToProfileDraft(supplier: {
     creditTermsDays:
       supplier.creditTermsDays != null ? String(supplier.creditTermsDays) : "",
     creditLimit:
-      supplier.creditLimit != null && Number.isFinite(Number(supplier.creditLimit))
+      supplier.creditLimit != null &&
+      Number.isFinite(Number(supplier.creditLimit))
         ? String(supplier.creditLimit)
         : "",
     paymentMethodPreferred: supplier.paymentMethodPreferred ?? "",
@@ -142,7 +143,9 @@ export function SupplierProfileFields({
                 <input
                   className={supFormCellInput}
                   value={draft.contactPhone}
-                  onChange={(e) => onDraftChange({ contactPhone: e.target.value })}
+                  onChange={(e) =>
+                    onDraftChange({ contactPhone: e.target.value })
+                  }
                   placeholder="For duplicate check & PO follow-up"
                   inputMode="tel"
                   maxLength={32}
@@ -153,7 +156,9 @@ export function SupplierProfileFields({
                   className={supFormCellInput}
                   type="email"
                   value={draft.contactEmail}
-                  onChange={(e) => onDraftChange({ contactEmail: e.target.value })}
+                  onChange={(e) =>
+                    onDraftChange({ contactEmail: e.target.value })
+                  }
                   placeholder="orders@supplier.co.ke"
                   maxLength={255}
                 />
@@ -162,7 +167,9 @@ export function SupplierProfileFields({
                 <input
                   className={supFormCellInput}
                   value={draft.contactName}
-                  onChange={(e) => onDraftChange({ contactName: e.target.value })}
+                  onChange={(e) =>
+                    onDraftChange({ contactName: e.target.value })
+                  }
                   placeholder="Optional — saved as primary contact after create"
                   maxLength={255}
                 />
@@ -225,7 +232,9 @@ export function SupplierProfileFields({
         <SupFormTable>
           <SupFormRow
             label="VAT / tax ID"
-            hint={mode === "create" ? "Helps match existing vendors" : undefined}
+            hint={
+              mode === "create" ? "Helps match existing vendors" : undefined
+            }
           >
             <input
               className={supFormCellInput}
@@ -246,7 +255,10 @@ export function SupplierProfileFields({
               <span className="text-sm text-foreground">Tax exempt vendor</span>
             </label>
           </SupFormRow>
-          <SupFormRow label="Credit terms (days)" hint="Leave blank to keep current value.">
+          <SupFormRow
+            label="Credit terms (days)"
+            hint="Leave blank to keep current value."
+          >
             <input
               className={cn(supFormCellInput, "tabular-nums")}
               inputMode="numeric"

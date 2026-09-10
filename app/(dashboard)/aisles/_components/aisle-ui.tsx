@@ -15,11 +15,11 @@ export function AisleBar({
   warn?: boolean;
 }) {
   return (
-    <div className={cn("h-1 w-full rounded-full bg-muted/80", className)}>
+    <div className={cn("h-1 w-full rounded-none bg-border", className)}>
       <div
         className={cn(
-          "h-1 origin-left rounded-full",
-          warn ? "bg-amber-500/75" : "bg-foreground/45",
+          "h-1 origin-left rounded-none",
+          warn ? "bg-amber-500/75" : "bg-[var(--aisle-primary,#0f766e)]",
         )}
         style={{
           width: "100%",

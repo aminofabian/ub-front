@@ -98,10 +98,14 @@ export default function DesktopSettingsPage() {
   const [printerSaving, setPrinterSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<DesktopSyncStatus | null>(null);
-  const [mediaStatus, setMediaStatus] = useState<DesktopMediaStatus | null>(null);
+  const [mediaStatus, setMediaStatus] = useState<DesktopMediaStatus | null>(
+    null,
+  );
   const [cloudPlan, setCloudPlan] = useState<DesktopSyncPlan | null>(null);
   const [reconnectOpen, setReconnectOpen] = useState(false);
-  const [reconnectOrigin, setReconnectOrigin] = useState("https://kiosk.zelisline.com");
+  const [reconnectOrigin, setReconnectOrigin] = useState(
+    "https://kiosk.zelisline.com",
+  );
   const [reconnectEmail, setReconnectEmail] = useState("");
   const [reconnectPassword, setReconnectPassword] = useState("");
   const [reconnecting, setReconnecting] = useState(false);
@@ -184,7 +188,9 @@ export default function DesktopSettingsPage() {
         });
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not toggle LAN mode.");
+      toast.error(
+        e instanceof Error ? e.message : "Could not toggle LAN mode.",
+      );
     } finally {
       setLanToggling(false);
     }
@@ -298,7 +304,8 @@ export default function DesktopSettingsPage() {
                 : "";
             const inbox =
               status.messagePull &&
-              (status.messagePull.messages > 0 || status.messagePull.replies > 0)
+              (status.messagePull.messages > 0 ||
+                status.messagePull.replies > 0)
                 ? `${status.messagePull.messages} message(s), ${status.messagePull.replies} reply(ies) mirrored from your online shop.`
                 : status.messagePush && status.messagePush.repliesPushed > 0
                   ? `${status.messagePush.repliesPushed} queued reply(ies) sent.`
@@ -383,7 +390,9 @@ export default function DesktopSettingsPage() {
           <RefreshCw className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1 space-y-4">
             <div>
-              <h2 className="text-base font-semibold">Sync with your online shop</h2>
+              <h2 className="text-base font-semibold">
+                Sync with your online shop
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Pull the latest products, prices and settings from kiosk.ke onto
                 this PC, and upload any sales from closed shifts. The counter
@@ -392,11 +401,16 @@ export default function DesktopSettingsPage() {
               {cloudPlan?.tier ? (
                 <p className="mt-1 text-xs text-muted-foreground">
                   Online shop plan:{" "}
-                  <span className="font-medium capitalize">{cloudPlan.tier}</span>
+                  <span className="font-medium capitalize">
+                    {cloudPlan.tier}
+                  </span>
                   {cloudPlan.status ? (
                     <>
                       {" "}
-                      · <span className="capitalize">{cloudPlan.status.toLowerCase()}</span>
+                      ·{" "}
+                      <span className="capitalize">
+                        {cloudPlan.status.toLowerCase()}
+                      </span>
                     </>
                   ) : null}
                 </p>
@@ -455,8 +469,9 @@ export default function DesktopSettingsPage() {
               {mediaStatus?.downloading ? (
                 <span className="flex items-center gap-2 text-xs text-amber-600">
                   <Loader2 className="size-3 animate-spin" />
-                  Downloading product photos: {mediaStatus.done}/{mediaStatus.total}…
-                  keep this PC online until it finishes for full offline images.
+                  Downloading product photos: {mediaStatus.done}/
+                  {mediaStatus.total}… keep this PC online until it finishes for
+                  full offline images.
                 </span>
               ) : mediaStatus && mediaStatus.total > 0 ? (
                 <span className="text-xs text-muted-foreground">
@@ -474,20 +489,23 @@ export default function DesktopSettingsPage() {
             </div>
 
             {reconnectOpen ? (
-              <form className="space-y-3 rounded-lg border border-border/60 bg-muted/40 p-4" onSubmit={onReconnect}>
+              <form
+                className="space-y-3 rounded-none border border-border/60 bg-muted/40 p-4"
+                onSubmit={onReconnect}
+              >
                 <p className="text-xs text-muted-foreground">
                   If “session expired” keeps appearing, sign in again to refresh
                   the connection to your online shop.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <input
-                    className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                    className="h-9 rounded-none border border-border bg-background px-3 text-sm"
                     placeholder="Shop address"
                     value={reconnectOrigin}
                     onChange={(e) => setReconnectOrigin(e.target.value)}
                   />
                   <input
-                    className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                    className="h-9 rounded-none border border-border bg-background px-3 text-sm"
                     type="email"
                     placeholder="Email"
                     value={reconnectEmail}
@@ -495,7 +513,7 @@ export default function DesktopSettingsPage() {
                     required
                   />
                   <input
-                    className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                    className="h-9 rounded-none border border-border bg-background px-3 text-sm"
                     type="password"
                     placeholder="Password"
                     value={reconnectPassword}
@@ -528,7 +546,7 @@ export default function DesktopSettingsPage() {
             {license ? (
               <div
                 className={cn(
-                  "rounded-lg border px-4 py-3 text-sm",
+                  "rounded-none border px-4 py-3 text-sm",
                   license.readOnly
                     ? "border-destructive/40 bg-destructive/5"
                     : "border-border/60 bg-muted/30",
@@ -539,7 +557,8 @@ export default function DesktopSettingsPage() {
                 {license.plan ? (
                   <p className="mt-2 text-xs text-muted-foreground">
                     Plan:{" "}
-                    {license.plan.charAt(0).toUpperCase() + license.plan.slice(1)}
+                    {license.plan.charAt(0).toUpperCase() +
+                      license.plan.slice(1)}
                     {license.daysRemaining != null
                       ? ` · ${license.daysRemaining} day(s) left`
                       : null}
@@ -608,7 +627,10 @@ export default function DesktopSettingsPage() {
                 </label>
                 <textarea
                   id="license-key"
-                  className={cn(dashboardInputClass(), "min-h-[5rem] font-mono text-xs")}
+                  className={cn(
+                    dashboardInputClass(),
+                    "min-h-[5rem] font-mono text-xs",
+                  )}
                   placeholder="Paste the full license token from your vendor"
                   value={licenseKey}
                   onChange={(e) => setLicenseKey(e.target.value)}
@@ -674,11 +696,18 @@ export default function DesktopSettingsPage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                 <DesktopLanQr
                   url={lan.lanUrl}
-                  className="rounded-lg border border-border/60 bg-white p-2"
+                  className="rounded-none border border-border/60 bg-white p-2"
                 />
-                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/25 px-4 py-3">
-                  <code className="text-sm font-medium break-all">{lan.lanUrl}</code>
-                  <Button type="button" size="sm" variant="outline" onClick={copyLanUrl}>
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-none border border-border/60 bg-muted/25 px-4 py-3">
+                  <code className="text-sm font-medium break-all">
+                    {lan.lanUrl}
+                  </code>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={copyLanUrl}
+                  >
                     <Copy className="size-3.5" />
                     Copy URL
                   </Button>
@@ -728,7 +757,10 @@ export default function DesktopSettingsPage() {
             {printer ? (
               <div className="grid max-w-lg gap-3">
                 <div>
-                  <label className={dashboardLabelClass()} htmlFor="printer-mode">
+                  <label
+                    className={dashboardLabelClass()}
+                    htmlFor="printer-mode"
+                  >
                     Mode
                   </label>
                   <select
@@ -747,7 +779,10 @@ export default function DesktopSettingsPage() {
                 {printer.mode === "network" ? (
                   <>
                     <div>
-                      <label className={dashboardLabelClass()} htmlFor="printer-host">
+                      <label
+                        className={dashboardLabelClass()}
+                        htmlFor="printer-host"
+                      >
                         Printer IP or hostname
                       </label>
                       <input
@@ -761,7 +796,10 @@ export default function DesktopSettingsPage() {
                       />
                     </div>
                     <div>
-                      <label className={dashboardLabelClass()} htmlFor="printer-port">
+                      <label
+                        className={dashboardLabelClass()}
+                        htmlFor="printer-port"
+                      >
                         Port
                       </label>
                       <input
@@ -781,7 +819,10 @@ export default function DesktopSettingsPage() {
                 ) : null}
                 {printer.mode === "file" ? (
                   <div>
-                    <label className={dashboardLabelClass()} htmlFor="printer-path">
+                    <label
+                      className={dashboardLabelClass()}
+                      htmlFor="printer-path"
+                    >
                       Output file (optional)
                     </label>
                     <input
@@ -855,14 +896,16 @@ export default function DesktopSettingsPage() {
                 now.
               </p>
             ) : (
-              <ul className="divide-y rounded-lg border border-border/60">
+              <ul className="divide-y rounded-none border border-border/60">
                 {backups.map((b) => (
                   <li
                     key={b.filename}
                     className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm"
                   >
                     <div className="min-w-0">
-                      <p className="font-mono text-xs sm:text-sm">{b.filename}</p>
+                      <p className="font-mono text-xs sm:text-sm">
+                        {b.filename}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {formatWhen(b.modifiedAt)} · {formatBytes(b.sizeBytes)}
                       </p>

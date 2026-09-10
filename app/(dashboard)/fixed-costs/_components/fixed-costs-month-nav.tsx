@@ -15,7 +15,12 @@ type Props = {
   onRefresh?: () => void;
 };
 
-export function FixedCostsMonthNav({ year, month, onChange, onRefresh }: Props) {
+export function FixedCostsMonthNav({
+  year,
+  month,
+  onChange,
+  onRefresh,
+}: Props) {
   const shift = (delta: number) => {
     const next = shiftFixedCostMonth(year, month, delta);
     onChange(next.year, next.month);

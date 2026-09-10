@@ -1,6 +1,9 @@
 "use client";
 
-import { dashboardInputClass, dashboardSelectClass } from "@/components/dashboard-page-ui";
+import {
+  dashboardInputClass,
+  dashboardSelectClass,
+} from "@/components/dashboard-page-ui";
 import {
   ADVANCE_REPAYMENT_MODES,
   type AdvanceRepaymentMode,
@@ -38,9 +41,13 @@ export function AdvanceRepaymentArrangement({
 }: Props) {
   const previewAdvance = {
     amount: originalAmount ?? 0,
-    balanceOutstanding: balanceOutstanding ?? balancePreview ?? originalAmount ?? 0,
+    balanceOutstanding:
+      balanceOutstanding ?? balancePreview ?? originalAmount ?? 0,
     repaymentMode: mode,
-    repaymentValue: Number(parseRepaymentPercentInput(value)) || Number(parseRepaymentMoneyInput(value)) || 0,
+    repaymentValue:
+      Number(parseRepaymentPercentInput(value)) ||
+      Number(parseRepaymentMoneyInput(value)) ||
+      0,
   };
 
   const preview = advanceRepaymentPreview(previewAdvance, mode, value);
@@ -64,21 +71,25 @@ export function AdvanceRepaymentArrangement({
   return (
     <div className={cn("space-y-3", className)}>
       <div>
-        <p className="text-xs font-medium text-muted-foreground">Repayment arrangement</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          Repayment arrangement
+        </p>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
           How much comes off salary each pay run until this advance is cleared.
         </p>
       </div>
 
       <div>
-        <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">Quick % of original</p>
+        <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">
+          Quick % of original
+        </p>
         <div className="flex flex-wrap gap-1.5">
           {PERCENT_PRESETS.map((pct) => (
             <button
               key={pct}
               type="button"
               className={cn(
-                "rounded-md border px-2.5 py-1 text-xs font-medium tabular-nums transition-colors",
+                "rounded-none border px-2.5 py-1 text-xs font-medium tabular-nums transition-colors",
                 mode === "percent_of_original" && parsedPercent === pct
                   ? "border-primary/50 bg-primary/10 text-primary"
                   : "border-border/60 bg-muted/25 hover:bg-muted/45",
@@ -111,19 +122,24 @@ export function AdvanceRepaymentArrangement({
       ) : null}
 
       <div className="grid gap-1.5 sm:grid-cols-2">
-        {ADVANCE_REPAYMENT_MODES.filter((m) => m.value !== "percent_of_original").map((option) => (
+        {ADVANCE_REPAYMENT_MODES.filter(
+          (m) => m.value !== "percent_of_original",
+        ).map((option) => (
           <button
             key={option.value}
             type="button"
             className={cn(
-              "rounded-lg border px-3 py-2 text-left transition-colors",
+              "rounded-none border px-3 py-2 text-left transition-colors",
               mode === option.value
                 ? "border-primary/40 bg-primary/5"
                 : "border-border/60 bg-muted/20 hover:bg-muted/35",
             )}
             onClick={() => {
               onModeChange(option.value);
-              if (option.value === "full_balance" || option.value === "manual") {
+              if (
+                option.value === "full_balance" ||
+                option.value === "manual"
+              ) {
                 onValueChange("");
               }
             }}
@@ -156,7 +172,7 @@ export function AdvanceRepaymentArrangement({
       ) : null}
 
       {preview.summary ? (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs">
+        <div className="rounded-none border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs">
           <p className="font-medium text-foreground">{preview.summary}</p>
           {preview.perPay > 0 ? (
             <p className="mt-1 text-muted-foreground">
@@ -177,7 +193,7 @@ export function AdvanceRepaymentArrangement({
       ) : null}
 
       {balancePreview != null ? (
-        <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="rounded-none bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           Balance after save:{" "}
           <span className="font-semibold tabular-nums text-foreground">
             {formatPayrollMoney(balancePreview)}

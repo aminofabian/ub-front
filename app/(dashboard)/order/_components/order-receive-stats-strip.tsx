@@ -12,13 +12,11 @@ import {
 import { APP_ROUTES } from "@/lib/config";
 import { useOrderPipelineStats } from "@/app/(dashboard)/order/_hooks/use-order-pipeline-stats";
 import { OrderLifetimeOverview } from "./order-lifetime-overview";
-import {
-  PipelineStat,
-  PipelineStatsGrid,
-} from "./order-pipeline-stat";
+import { PipelineStat, PipelineStatsGrid } from "./order-pipeline-stat";
 
 export function OrderReceiveStatsStrip() {
-  const { loading, receiveStats, localStats, lifetime } = useOrderPipelineStats();
+  const { loading, receiveStats, localStats, lifetime } =
+    useOrderPipelineStats();
 
   const queueActive = receiveStats.openCount > 0;
   const dueActive = receiveStats.awaitingUnits > 0;

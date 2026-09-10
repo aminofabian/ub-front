@@ -14,7 +14,7 @@ export const CRM_GRID = cn(
 
 export const CRM_RAIL = cn(
   "flex min-h-0 min-w-0 flex-col",
-  "border-b border-border/60 bg-[linear-gradient(165deg,color-mix(in_srgb,var(--muted)_42%,transparent)_0%,transparent_42%)]",
+  "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
   "lg:border-b-0 lg:border-r lg:overflow-y-auto",
 );
 
@@ -26,35 +26,34 @@ export const CRM_MAIN = cn(
 
 export const CRM_INSPECTOR = cn(
   "flex min-h-0 min-w-0 flex-col",
-  "border-t border-border/60 bg-muted/10",
+  "border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
   "lg:border-l lg:border-t-0 lg:overflow-y-auto",
 );
 
 export const CRM_PANEL = cn(
-  "overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm",
-  "ring-1 ring-black/[0.02] dark:ring-white/[0.04]",
+  "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none",
 );
 
 export const CRM_PILL_ACTIVE =
-  "bg-[#F9F6F0] text-[#8B6F3A] ring-1 ring-[#8B6F3A]/12 shadow-sm";
+  "border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)] shadow-none";
 
 export const CRM_PILL_IDLE =
-  "text-muted-foreground hover:bg-muted/70 hover:text-foreground";
+  "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]";
 
 export function customerTableCheckboxClass(className?: string) {
   return cn(
-    "size-4 shrink-0 rounded border-input accent-[#8B6F3A]",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+    "size-4 shrink-0 rounded-none border-input accent-[var(--pos-primary,#0f766e)]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
     className,
   );
 }
 
 export function customerTableRowClass(selected?: boolean, focused?: boolean) {
   return cn(
-    "border-b border-border/40 transition-colors last:border-0",
-    selected && "bg-[#8B6F3A]/[0.08] hover:bg-[#8B6F3A]/[0.1]",
-    !selected && focused && "bg-muted/40",
-    !selected && !focused && "hover:bg-muted/25",
+    "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] transition-colors last:border-0",
+    selected && "bg-white text-[var(--pos-primary,#0f766e)]",
+    !selected && focused && "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]",
+    !selected && !focused && "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]",
   );
 }
 

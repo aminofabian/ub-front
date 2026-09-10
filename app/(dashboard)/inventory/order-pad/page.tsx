@@ -115,7 +115,9 @@ export default function OrderPadPage() {
       });
       setRows(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load the order pad.");
+      setError(
+        e instanceof Error ? e.message : "Could not load the order pad.",
+      );
       setRows([]);
     } finally {
       setLoading(false);
@@ -142,7 +144,9 @@ export default function OrderPadPage() {
         return prev.map((r) => (r.id === row.id ? updated : r));
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update ordered status.");
+      setError(
+        e instanceof Error ? e.message : "Could not update ordered status.",
+      );
     } finally {
       setBusyId(null);
     }
@@ -179,14 +183,12 @@ export default function OrderPadPage() {
 
   return (
     <div className="mx-auto w-full max-w-lg">
-      <div className="border border-border bg-card">
-        {/* Compact header */}
-        <header className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
-          <ClipboardList
-            className="size-3.5 shrink-0 text-muted-foreground"
-            aria-hidden
-          />
-          <h1 className="min-w-0 flex-1 truncate text-sm font-bold leading-none tracking-tight">
+      <div className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+        <header className="flex items-center gap-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1">
+          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
+            <ClipboardList className="size-3.5" aria-hidden />
+          </span>
+          <h1 className="min-w-0 flex-1 truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
             Order pad
           </h1>
           <Button
@@ -217,7 +219,12 @@ export default function OrderPadPage() {
         </header>
 
         {/* Filters */}
-        <div className={cn(supFilterRail, "flex-col items-stretch gap-1.5 !py-1.5")}>
+        <div
+          className={cn(
+            supFilterRail,
+            "flex-col items-stretch gap-1.5 !py-1.5",
+          )}
+        >
           <div className="flex items-center gap-1.5">
             {!branchLocked ? (
               <label className="min-w-0 flex-1">
@@ -395,7 +402,10 @@ export default function OrderPadPage() {
                       onClick={() => void removeRow(row)}
                     >
                       {busy ? (
-                        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                        <Loader2
+                          className="size-3.5 animate-spin"
+                          aria-hidden
+                        />
                       ) : (
                         <Trash2 className="size-3.5" aria-hidden />
                       )}

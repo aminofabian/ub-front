@@ -138,7 +138,7 @@ export function BulkStockAdjustModal({
   };
 
   const inputClass =
-    "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm leading-snug shadow-sm transition-[border-color,box-shadow] duration-150 placeholder:text-muted-foreground/70 hover:border-foreground/15 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+    "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm leading-snug shadow-none transition-[border-color,box-shadow] duration-150 placeholder:text-muted-foreground/70 hover:border-foreground/15 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
   return (
     <Dialog open={open} onOpenChange={(o) => !running && onOpenChange(o)}>
@@ -160,7 +160,7 @@ export function BulkStockAdjustModal({
           <div
             role="status"
             className={cn(
-              "flex flex-col gap-1 rounded-xl border px-4 py-3.5 text-sm leading-relaxed shadow-sm",
+              "flex flex-col gap-1 rounded-none border px-4 py-3.5 text-sm leading-relaxed shadow-none",
               summary.failed.length > 0
                 ? "border-destructive/25 bg-destructive/5"
                 : "border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-950 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-50",
@@ -181,15 +181,15 @@ export function BulkStockAdjustModal({
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-foreground">
                   {summary.ok} item(s) adjusted
-                  {summary.skipped > 0
-                    ? ` · ${summary.skipped} unchanged`
-                    : ""}
+                  {summary.skipped > 0 ? ` · ${summary.skipped} unchanged` : ""}
                 </p>
                 {summary.failed.length > 0 ? (
                   <ul className="mt-3 max-h-48 list-inside list-disc space-y-1 overflow-y-auto text-xs text-muted-foreground">
                     {summary.failed.map((f, i) => (
                       <li key={`${f.name}-${i}`}>
-                        <span className="font-medium text-foreground">{f.name}</span>{" "}
+                        <span className="font-medium text-foreground">
+                          {f.name}
+                        </span>{" "}
                         — {f.reason}
                       </li>
                     ))}
@@ -206,7 +206,9 @@ export function BulkStockAdjustModal({
         ) : (
           <div className="space-y-4">
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-semibold text-foreground">Branch</span>
+              <span className="text-sm font-semibold text-foreground">
+                Branch
+              </span>
               <select
                 className={dashboardSelectClass(running)}
                 disabled={running}
@@ -225,7 +227,7 @@ export function BulkStockAdjustModal({
               </select>
             </label>
 
-            <div className="flex flex-wrap gap-2 rounded-xl border border-border/50 bg-muted/25 p-1.5">
+            <div className="flex flex-wrap gap-2 rounded-none border border-border/50 bg-muted/25 p-1.5">
               {MODES.map((m) => (
                 <Button
                   key={m.id}
@@ -234,7 +236,8 @@ export function BulkStockAdjustModal({
                   size="sm"
                   className={cn(
                     "flex-1",
-                    mode !== m.id && "text-muted-foreground hover:text-foreground",
+                    mode !== m.id &&
+                      "text-muted-foreground hover:text-foreground",
                   )}
                   disabled={running}
                   onClick={() => {
@@ -332,14 +335,12 @@ export function BulkStockAdjustModal({
                 aria-valuemax={100}
                 aria-valuenow={pct ?? undefined}
                 aria-valuetext={pct != null ? `${pct}% complete` : "working"}
-                className="rounded-xl border border-primary/15 bg-primary/4 p-4"
+                className="rounded-none border border-primary/15 bg-primary/4 p-4"
               >
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-xs text-muted-foreground">
                     Adjusting {progress.done} of {progress.total} items
-                    {progress.failed > 0
-                      ? ` · ${progress.failed} failed`
-                      : ""}
+                    {progress.failed > 0 ? ` · ${progress.failed} failed` : ""}
                   </span>
                   <span className="text-lg font-bold tabular-nums tracking-tight text-primary">
                     {pct != null ? `${pct}%` : "—"}

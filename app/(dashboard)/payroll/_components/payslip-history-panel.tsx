@@ -9,10 +9,7 @@ import {
   DashboardLoading,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
-import {
-  fetchPayrollPeriodPayslips,
-  type PayslipRecord,
-} from "@/lib/api";
+import { fetchPayrollPeriodPayslips, type PayslipRecord } from "@/lib/api";
 import {
   exportPayslipHistoryCsv,
   formatPayrollDateTime,
@@ -105,7 +102,7 @@ export function PayslipHistoryPanel({ year, month, onOpenPayslip }: Props) {
       <section className={DASHBOARD_TABLE_SURFACE}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[880px] text-left text-sm">
-            <thead className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="border-b border-border/60 bg-muted/30 text-xs tracking-[-0.02em] text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Employee</th>
                 <th className="px-4 py-3 font-medium text-right">Base</th>

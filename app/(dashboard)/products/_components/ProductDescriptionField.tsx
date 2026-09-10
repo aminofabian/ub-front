@@ -11,7 +11,10 @@ import {
 import { IS_DESKTOP } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 
-import { productFormFieldClass, productFormTextareaClass } from "./product-form-styles";
+import {
+  productFormFieldClass,
+  productFormTextareaClass,
+} from "./product-form-styles";
 import { formatMutationError } from "../_utils";
 
 export type ProductDescriptionContext = {
@@ -31,7 +34,9 @@ type Props = {
   onChange: (value: string) => void;
   context: ProductDescriptionContext;
   onError?: (message: string) => void;
-  onGenerated?: (result: GenerateProductDescriptionResponse) => void | Promise<void>;
+  onGenerated?: (
+    result: GenerateProductDescriptionResponse,
+  ) => void | Promise<void>;
   rows?: number;
   placeholder?: string;
   className?: string;
@@ -83,7 +88,7 @@ export function ProductDescriptionField({
   return (
     <div className={cn(productFormFieldClass, className)}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
           Description
         </span>
         {/* SokoMind (same provider as theme AI). Hidden on desktop — that SKU is offline. */}
@@ -92,7 +97,7 @@ export function ProductDescriptionField({
             type="button"
             variant="secondary"
             size="sm"
-            className="h-7 gap-1.5 px-2 text-[11px] shadow-sm"
+            className="h-7 gap-1.5 px-2 text-[11px] shadow-none"
             disabled={generating}
             onClick={() => void handleGenerate()}
           >

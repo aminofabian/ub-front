@@ -17,7 +17,10 @@ import {
 
 import { DashboardLoading } from "@/components/dashboard-page-ui";
 import { boardMoney } from "@/components/credits/customer-board-theme";
-import { DirectoryEmpty, DirectoryStat } from "@/components/credits/directory-workspace-ui";
+import {
+  DirectoryEmpty,
+  DirectoryStat,
+} from "@/components/credits/directory-workspace-ui";
 import { Button } from "@/components/ui/button";
 import {
   fetchCatalogListStats,
@@ -133,9 +136,7 @@ export function AisleDetailColumn({
       setHasMore(!page.last);
       setStats(listStats);
       const ids = new Set(page.content.map((p) => p.id));
-      setBestSellers(
-        topProducts.filter((p) => ids.has(p.id)).slice(0, 6),
-      );
+      setBestSellers(topProducts.filter((p) => ids.has(p.id)).slice(0, 6));
     } catch {
       setProducts([]);
       setStats(null);
@@ -155,8 +156,7 @@ export function AisleDetailColumn({
   );
 
   const shelfValue = useMemo(
-    () =>
-      products.reduce((sum, p) => sum + stockQty(p) * linePrice(p), 0),
+    () => products.reduce((sum, p) => sum + stockQty(p) * linePrice(p), 0),
     [products],
   );
 
@@ -188,11 +188,7 @@ export function AisleDetailColumn({
   );
 
   const maxSold = useMemo(
-    () =>
-      Math.max(
-        ...bestSellers.map((p) => Number(p.totalQuantity ?? 0)),
-        1,
-      ),
+    () => Math.max(...bestSellers.map((p) => Number(p.totalQuantity ?? 0)), 1),
     [bestSellers],
   );
 
@@ -245,7 +241,7 @@ export function AisleDetailColumn({
       <AislePanel className="px-3 py-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="font-mono text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
               {aisle.code}
             </p>
             <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-foreground">
@@ -281,7 +277,7 @@ export function AisleDetailColumn({
                 <ChevronRight className="size-3.5 shrink-0" />
               </Button>
             ) : null}
-            <Button type="button" size="sm" className="h-7 text-xs" asChild>
+            <Button type="button" size="sm" className="h-7 rounded-none bg-[var(--aisle-primary,#0f766e)] text-xs text-white hover:bg-[color-mix(in_srgb,var(--aisle-primary,#0f766e)_88%,#000)]" asChild>
               <Link
                 href={`${APP_ROUTES.products}?aisleId=${encodeURIComponent(aisle.id)}`}
               >
@@ -302,10 +298,10 @@ export function AisleDetailColumn({
                   type="button"
                   title={stop.name}
                   className={cn(
-                    "flex h-6 min-w-[1.5rem] items-center justify-center rounded px-1.5 text-[10px] font-bold tabular-nums transition-colors",
+                    "flex h-6 min-w-[1.5rem] items-center justify-center rounded-none border px-1.5 text-[10px] font-bold tabular-nums transition-colors",
                     active
-                      ? "bg-foreground text-background"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                      ? "border-[var(--aisle-primary,#0f766e)] bg-white text-[var(--aisle-primary,#0f766e)]"
+                      : "border-border bg-white text-muted-foreground hover:text-foreground",
                     !stop.active && "opacity-60",
                   )}
                   onClick={() => onSelectAisle(stop.id)}
@@ -335,7 +331,9 @@ export function AisleDetailColumn({
         />
         <StatBlock
           label="On hand"
-          value={totalOnHand.toLocaleString("en-KE", { maximumFractionDigits: 0 })}
+          value={totalOnHand.toLocaleString("en-KE", {
+            maximumFractionDigits: 0,
+          })}
         />
         <StatBlock label="Shelf value" value={money(shelfValue)} />
         <StatBlock
@@ -349,8 +347,11 @@ export function AisleDetailColumn({
         {bestSellers.length > 0 ? (
           <AislePanel className="px-3 py-3">
             <div className="flex items-center gap-1.5">
-              <TrendingUp className="size-3.5 text-muted-foreground" aria-hidden />
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <TrendingUp
+                className="size-3.5 text-muted-foreground"
+                aria-hidden
+              />
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 Best sellers
               </p>
             </div>
@@ -365,7 +366,10 @@ export function AisleDetailColumn({
                         {index + 1}. {item.name}
                       </span>
                       <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-                        {qty.toLocaleString("en-KE", { maximumFractionDigits: 1 })} sold
+                        {qty.toLocaleString("en-KE", {
+                          maximumFractionDigits: 1,
+                        })}{" "}
+                        sold
                       </span>
                     </div>
                     <div className="mt-1">
@@ -388,7 +392,7 @@ export function AisleDetailColumn({
           <AislePanel className="px-3 py-3">
             <div className="flex items-center gap-1.5">
               <Layers className="size-3.5 text-muted-foreground" aria-hidden />
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 On the shelf
               </p>
             </div>
@@ -402,7 +406,11 @@ export function AisleDetailColumn({
                         {row.name}
                       </span>
                       <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-                        {row.count} · {row.stock.toLocaleString("en-KE", { maximumFractionDigits: 0 })} u
+                        {row.count} ·{" "}
+                        {row.stock.toLocaleString("en-KE", {
+                          maximumFractionDigits: 0,
+                        })}{" "}
+                        u
                       </span>
                     </div>
                     <div className="mt-1">
@@ -420,7 +428,7 @@ export function AisleDetailColumn({
         <AislePanel className="px-3 py-2">
           <div className="flex items-center gap-1.5">
             <AlertTriangle className="size-3.5 text-amber-600" aria-hidden />
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
               Running empty ({emptyShelf.length})
             </p>
           </div>
@@ -428,7 +436,7 @@ export function AisleDetailColumn({
             {emptyShelf.slice(0, 12).map((row) => (
               <span
                 key={row.id}
-                className="shrink-0 rounded-md bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+                className="shrink-0 rounded-none border border-amber-200 bg-white px-2 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200"
               >
                 {row.name}
               </span>
@@ -442,7 +450,7 @@ export function AisleDetailColumn({
           <div className="flex items-center gap-1.5">
             <Package className="size-3.5 text-muted-foreground" aria-hidden />
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 Stock on shelf
               </p>
               <p className="text-[11px] text-muted-foreground">
@@ -463,11 +471,12 @@ export function AisleDetailColumn({
               const qty = stockQty(row);
               const pct = Math.max((qty / maxStock) * 100, qty > 0 ? 3 : 0);
               const thumb = itemListThumbnailUrl(row);
-              const price = row.bundlePrice != null ? money(row.bundlePrice) : null;
+              const price =
+                row.bundlePrice != null ? money(row.bundlePrice) : null;
               return (
                 <li key={row.id} className="px-3 py-2">
                   <div className="flex gap-2.5">
-                    <div className="size-9 shrink-0 overflow-hidden rounded-md bg-muted">
+                    <div className="size-9 shrink-0 overflow-hidden rounded-none border bg-white">
                       {thumb ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -476,7 +485,7 @@ export function AisleDetailColumn({
                           className="size-full object-cover"
                         />
                       ) : (
-                        <div className="flex size-full items-center justify-center text-[10px] font-bold uppercase text-muted-foreground">
+                        <div className="flex size-full items-center justify-center text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                           {row.name.slice(0, 2)}
                         </div>
                       )}
@@ -508,7 +517,9 @@ export function AisleDetailColumn({
                               : "text-foreground",
                           )}
                         >
-                          {qty.toLocaleString("en-KE", { maximumFractionDigits: 1 })}
+                          {qty.toLocaleString("en-KE", {
+                            maximumFractionDigits: 1,
+                          })}
                         </span>
                       </div>
                     </div>
@@ -537,19 +548,35 @@ export function AisleDetailColumn({
 
       {canWrite ? (
         <AislePanel className="px-3 py-3">
-          <h2 className="text-xs font-semibold text-foreground">Manage aisle</h2>
+          <h2 className="text-xs font-semibold text-foreground">
+            Manage aisle
+          </h2>
           <div className="mt-2 space-y-2">
             <div className="grid grid-cols-2 gap-1.5">
-              <Button type="button" variant="default" size="sm" className="h-7 text-xs" onClick={onEdit}>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={onEdit}
+              >
                 <Pencil className="mr-1.5 size-3" />
                 Edit
               </Button>
-              <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={onToggleStatus}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={onToggleStatus}
+              >
                 {aisle.active ? "Deactivate" : "Activate"}
               </Button>
             </div>
-            <div className="flex items-center justify-between rounded-md border border-dashed border-border px-2.5 py-1.5">
-              <span className="text-[11px] text-muted-foreground">Walk order</span>
+            <div className="flex items-center justify-between rounded-none border border-dashed border-border px-2.5 py-1.5">
+              <span className="text-[11px] text-muted-foreground">
+                Walk order
+              </span>
               <div className="flex gap-0.5">
                 <Button
                   type="button"

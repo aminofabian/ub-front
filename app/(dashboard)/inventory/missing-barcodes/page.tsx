@@ -254,9 +254,7 @@ export default function InventoryMissingBarcodesPage() {
         toast.success(`Barcode saved for ${variantOptionLabel(row)}.`);
       } catch (error) {
         toast.error(
-          error instanceof Error
-            ? error.message
-            : "Failed to save barcode.",
+          error instanceof Error ? error.message : "Failed to save barcode.",
         );
       } finally {
         setSavingIds((prev) => {
@@ -409,8 +407,8 @@ export default function InventoryMissingBarcodesPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="flex min-h-0 flex-col gap-0 overflow-hidden border border-border bg-card">
-        <header className="space-y-2 border-b border-border px-3 py-3">
+      <div className="flex min-h-0 flex-col gap-0 overflow-hidden border border-border bg-white">
+        <header className="space-y-1">
           <DashboardPageHero
             compact
             showActiveScope
@@ -476,13 +474,17 @@ export default function InventoryMissingBarcodesPage() {
               variant="outline"
               size="sm"
               className="h-8 shrink-0 gap-1.5 rounded-none px-3"
-              disabled={loading || (isBranchLockedRole && !me?.branchId?.trim())}
+              disabled={
+                loading || (isBranchLockedRole && !me?.branchId?.trim())
+              }
               onClick={() => {
                 setQuery(search.trim());
                 void runLoad(branchFilter, search.trim());
               }}
             >
-              <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
+              <RefreshCw
+                className={cn("size-3.5", loading && "animate-spin")}
+              />
               {loading ? "…" : "Refresh"}
             </Button>
           </div>
@@ -576,7 +578,7 @@ export default function InventoryMissingBarcodesPage() {
                       >
                         <td className={cn(supTableCell, "py-2")} colSpan={3}>
                           <div className="flex min-w-0 flex-col gap-0.5">
-                            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                               Parent
                             </span>
                             <span className="truncate text-sm font-semibold text-foreground">
@@ -615,9 +617,7 @@ export default function InventoryMissingBarcodesPage() {
 
                     const variantRows = group.variants.map((row) => {
                       const option = variantOptionLabel(row);
-                      const stock = branchFilter
-                        ? toNum(row.stockQty)
-                        : null;
+                      const stock = branchFilter ? toNum(row.stockQty) : null;
                       const draft = barcodeDrafts[row.id] ?? "";
                       const saving = savingIds.has(row.id);
                       return (

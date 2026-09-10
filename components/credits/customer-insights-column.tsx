@@ -3,10 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DashboardLoading } from "@/components/dashboard-page-ui";
-import {
-  CrmBar,
-  boardMoney,
-} from "@/components/credits/customer-board-theme";
+import { CrmBar, boardMoney } from "@/components/credits/customer-board-theme";
 import { CustomerPurchasesSection } from "@/components/credits/customer-purchases-section";
 import {
   insightsFromPurchases,
@@ -43,7 +40,7 @@ function MetricCell({
 }) {
   return (
     <div className="min-w-0 flex-1 px-1.5 py-1 text-center first:pl-0 last:pr-0">
-      <p className="truncate text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="truncate text-[9px] font-medium tracking-[-0.02em] text-muted-foreground">
         {label}
       </p>
       <p
@@ -68,8 +65,8 @@ function TopItemsStrip({
   if (items.length === 0) return null;
 
   return (
-    <div className="shrink-0 rounded-md border border-border/60 bg-background/60 px-2 py-1.5">
-      <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+    <div className="shrink-0 rounded-none border border-border/60 bg-background/60 px-2 py-1.5">
+      <p className="mb-1 text-[9px] font-semibold tracking-[-0.02em] text-muted-foreground">
         Top picks
       </p>
       <div className="grid grid-cols-3 gap-1.5">
@@ -99,7 +96,9 @@ export function CustomerInsightsColumn({
   currency,
   canViewAnalytics,
 }: Props) {
-  const [insights, setInsights] = useState<CustomerPurchaseInsights | null>(null);
+  const [insights, setInsights] = useState<CustomerPurchaseInsights | null>(
+    null,
+  );
   const [spendRow, setSpendRow] = useState<CustomerSpendRow | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -120,8 +119,9 @@ export function CustomerInsightsColumn({
       const [purchases, spend] = await Promise.all([
         fetchCustomerTabPurchases(customer.id, { offset: 0, limit: 100 }),
         canViewAnalytics && range
-          ? fetchCustomerSpend(range.from, range.to, undefined, 500).then((res) =>
-              res.rows.find((r) => r.customerId === customer.id) ?? null,
+          ? fetchCustomerSpend(range.from, range.to, undefined, 500).then(
+              (res) =>
+                res.rows.find((r) => r.customerId === customer.id) ?? null,
             )
           : Promise.resolve(null),
       ]);
@@ -163,14 +163,16 @@ export function CustomerInsightsColumn({
     <div className="flex min-h-0 flex-col gap-1.5">
       {display ? (
         <div className="shrink-0 space-y-1.5">
-          <div className="rounded-md border border-border/60 bg-muted/25 px-2 py-1">
+          <div className="rounded-none border border-border/60 bg-muted/25 px-2 py-1">
             <div className="mb-1 flex items-center justify-between gap-2">
               {spendRow?.cohort ? (
                 <span className="rounded bg-foreground/8 px-1.5 py-0.5 text-[9px] font-semibold capitalize text-muted-foreground">
                   {cohortLabel(String(spendRow.cohort))}
                 </span>
               ) : (
-                <span className="text-[9px] text-muted-foreground">Last 30 days</span>
+                <span className="text-[9px] text-muted-foreground">
+                  Last 30 days
+                </span>
               )}
               {spendRow?.weekStreak && spendRow.weekStreak > 0 ? (
                 <span className="text-[9px] tabular-nums text-muted-foreground">
@@ -184,7 +186,11 @@ export function CustomerInsightsColumn({
                 label="Items"
                 value={String(Math.round(display.itemsBought))}
               />
-              <MetricCell label="Spend" value={money(display.totalSpend)} lead />
+              <MetricCell
+                label="Spend"
+                value={money(display.totalSpend)}
+                lead
+              />
               <MetricCell label="Basket" value={money(display.avgBasket)} />
             </div>
           </div>

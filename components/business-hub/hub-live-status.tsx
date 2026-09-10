@@ -116,14 +116,14 @@ export function HubLiveStatus({
   return (
     <span
       className={cn(
-        "relative inline-flex items-center gap-2 overflow-hidden border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
+        "relative inline-flex items-center gap-2 overflow-hidden border px-2.5 py-1 text-[10px] font-semibold tracking-[-0.02em]",
         view.tone === "live" &&
           "border-emerald-300/80 bg-[#0B1F17] text-emerald-100",
-        view.tone === "sync" &&
-          "border-amber-300 bg-amber-50 text-amber-950",
-        view.tone === "off" && "border-[#E6E1D8] bg-[#F7F5F1] text-[#666666]",
+        view.tone === "sync" && "border-amber-300 bg-amber-50 text-amber-950",
+        view.tone === "off" &&
+          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666]",
         view.tone === "paused" &&
-          "border-[#E6E1D8] bg-muted text-muted-foreground",
+          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted text-muted-foreground",
         justUpdated && view.tone === "live" && "hub-scan-sweep",
         className,
       )}

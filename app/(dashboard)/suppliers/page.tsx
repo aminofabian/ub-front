@@ -31,7 +31,10 @@ import { APP_ROUTES } from "@/lib/config";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { supplierReceivePath } from "@/lib/supplier-slug";
 import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
-import { displaySupplierName, isSystemUnassignedSupplier } from "@/lib/supplier-display";
+import {
+  displaySupplierName,
+  isSystemUnassignedSupplier,
+} from "@/lib/supplier-display";
 import { toast } from "sonner";
 import {
   addItemSupplierLink,
@@ -72,7 +75,10 @@ import {
   type SupplierProfileDraft,
 } from "./_components/supplier-profile-shared";
 import { NewSupplierForm } from "./_components/NewSupplierForm";
-import { SupDrawerFooter, SupMobileSelectionBar } from "./_components/supplier-layout-primitives";
+import {
+  SupDrawerFooter,
+  SupMobileSelectionBar,
+} from "./_components/supplier-layout-primitives";
 import { SupplierPageHeader } from "./_components/SupplierPageHeader";
 import { SupplierPageLayout } from "./_components/supplier-page-layout";
 import { SupplierWorkspaceEmpty } from "./_components/SupplierWorkspaceEmpty";
@@ -361,11 +367,13 @@ export default function SuppliersPage() {
   const onDeleteContact = useCallback(
     (contact: SupplierContactRecord) => {
       if (!selectedId || !canWrite) return;
-      const label = contact.name?.trim() || contact.phone?.trim() || "this contact";
+      const label =
+        contact.name?.trim() || contact.phone?.trim() || "this contact";
       showThemedConfirmToast({
         id: `delete-supplier-contact-${contact.id}`,
         title: `Delete contact “${label}”?`,
-        description: "They will be removed from this supplier. This cannot be undone.",
+        description:
+          "They will be removed from this supplier. This cannot be undone.",
         confirmLabel: "Delete",
         onConfirm: async () => {
           setDeletingContactId(contact.id);
@@ -494,7 +502,9 @@ export default function SuppliersPage() {
             }
             await refreshFullDirectory();
           } catch (e) {
-            toast.error(e instanceof Error ? e.message : "Could not delete supplier.");
+            toast.error(
+              e instanceof Error ? e.message : "Could not delete supplier.",
+            );
           } finally {
             setDeletingSupplierId(null);
           }
@@ -511,10 +521,9 @@ export default function SuppliersPage() {
     }
     if (createIdentityConflict) {
       setFeedback({
-        text:
-          createIdentityConflict.matchReasons?.includes("email")
-            ? `Email already belongs to “${createIdentityConflict.name ?? "an existing supplier"}”. Open them instead.`
-            : `Phone already belongs to “${createIdentityConflict.name ?? "an existing supplier"}” (last 9 digits match). Open them instead.`,
+        text: createIdentityConflict.matchReasons?.includes("email")
+          ? `Email already belongs to “${createIdentityConflict.name ?? "an existing supplier"}”. Open them instead.`
+          : `Phone already belongs to “${createIdentityConflict.name ?? "an existing supplier"}” (last 9 digits match). Open them instead.`,
         kind: "error",
       });
       return;
@@ -567,16 +576,20 @@ export default function SuppliersPage() {
         ...(createDraft.payoutType.trim()
           ? { payoutType: createDraft.payoutType.trim() }
           : {}),
-        ...(createDraft.payoutType === "mobile_wallet" && createDraft.payoutPhone.trim()
+        ...(createDraft.payoutType === "mobile_wallet" &&
+        createDraft.payoutPhone.trim()
           ? { payoutPhone: createDraft.payoutPhone.trim() }
           : {}),
-        ...(createDraft.payoutType === "till" && createDraft.payoutTillNumber.trim()
+        ...(createDraft.payoutType === "till" &&
+        createDraft.payoutTillNumber.trim()
           ? { payoutTillNumber: createDraft.payoutTillNumber.trim() }
           : {}),
-        ...(createDraft.payoutType === "paybill" && createDraft.payoutPaybillNumber.trim()
+        ...(createDraft.payoutType === "paybill" &&
+        createDraft.payoutPaybillNumber.trim()
           ? {
               payoutPaybillNumber: createDraft.payoutPaybillNumber.trim(),
-              payoutPaybillAccount: createDraft.payoutPaybillAccount.trim() || undefined,
+              payoutPaybillAccount:
+                createDraft.payoutPaybillAccount.trim() || undefined,
             }
           : {}),
       };
@@ -965,762 +978,761 @@ export default function SuppliersPage() {
           isLg && "h-full min-h-0 flex-1 overflow-hidden pb-0",
         )}
       >
-      <SupplierPageHeader
-        canWrite={canWrite}
-        canOpenNewSupply={canOpenNewSupply}
-        listLoadingInitial={listLoadingInitial}
-        totalCount={listTotalElements}
-        receiveTillHref={detail ? supplierReceivePath(detail) : null}
-        onNewSupplier={() => {
-          skipCreateDrawerResetAfterCreate.current = false;
-          setCreateDrawerOpen(true);
-        }}
-        onNewSupply={() => setNewSupplyOpen(true)}
-      />
-
-      {feedback ? (
-        <DashboardFeedback
-          kind={feedback.kind === "error" ? "error" : "success"}
-          text={feedback.text}
+        <SupplierPageHeader
+          canWrite={canWrite}
+          canOpenNewSupply={canOpenNewSupply}
+          listLoadingInitial={listLoadingInitial}
+          totalCount={listTotalElements}
+          receiveTillHref={detail ? supplierReceivePath(detail) : null}
+          onNewSupplier={() => {
+            skipCreateDrawerResetAfterCreate.current = false;
+            setCreateDrawerOpen(true);
+          }}
+          onNewSupply={() => setNewSupplyOpen(true)}
         />
-      ) : null}
 
-      <div
-        className={cn(
-          supWorkspaceShell,
-          isLg ? "min-h-0 flex-1" : undefined,
-        )}
-      >
+        {feedback ? (
+          <DashboardFeedback
+            kind={feedback.kind === "error" ? "error" : "success"}
+            text={feedback.text}
+          />
+        ) : null}
+
         <div
-          className={cn(
-            "grid min-h-0",
-            isXl && detail
-              ? "min-h-0 flex-1 grid-cols-[minmax(15rem,17rem)_minmax(19rem,23rem)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
-              : isLg
-                ? "min-h-0 flex-1 grid-cols-[minmax(16rem,min(24rem,38%))_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
-                : "gap-0",
-          )}
+          className={cn(supWorkspaceShell, isLg ? "min-h-0 flex-1" : undefined)}
         >
           <div
             className={cn(
-              "flex min-h-0 min-w-0 flex-col",
-              isLg
-                ? "overflow-hidden border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
-                : "max-h-[min(70dvh,32rem)] sm:max-h-[calc(100dvh-12rem)]",
+              "grid min-h-0",
+              isXl && detail
+                ? "min-h-0 flex-1 grid-cols-[minmax(15rem,17rem)_minmax(19rem,23rem)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
+                : isLg
+                  ? "min-h-0 flex-1 grid-cols-[minmax(16rem,min(24rem,38%))_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
+                  : "gap-0",
             )}
           >
             <div
               className={cn(
-                "flex shrink-0 flex-col gap-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5",
+                "flex min-h-0 min-w-0 flex-col",
+                isLg
+                  ? "overflow-hidden border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
+                  : "max-h-[min(70dvh,32rem)] sm:max-h-[calc(100dvh-12rem)]",
               )}
             >
-              <div className="relative">
-                <Search
-                  className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
-                  aria-hidden
-                />
-                <input
-                  id="supplier-directory-search"
-                  className={cn(
-                    dashboardInputClass(listLoadingInitial),
-                    "h-8 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 text-sm focus-visible:ring-0 focus-visible:border-[var(--pos-primary,#0f766e)]",
-                  )}
-                  placeholder="Search name or code…"
-                  value={listSearch}
-                  onChange={(e) => setListSearch(e.target.value)}
-                  aria-label="Search suppliers"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className="flex min-w-0 flex-1 flex-wrap gap-1"
-                  role="group"
-                  aria-label="Filter by status"
-                >
-                  {statusOptions.map((opt) => {
-                    const active = statusFilter === opt.value;
-                    return (
-                      <button
-                        key={opt.value || "all"}
-                        type="button"
-                        disabled={listLoadingInitial}
-                        onClick={() => setStatusFilter(opt.value)}
-                        className={cn(
-                          "h-8 rounded-none border px-2.5 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
-                          active
-                            ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
-                            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
-                    isLg ? "size-8" : "h-8 gap-1 px-2.5 text-xs",
-                  )}
-                  disabled={listLoadingInitial}
-                  onClick={() => void refreshFullDirectory()}
-                  aria-label={
-                    listLoadingInitial
-                      ? "Loading suppliers"
-                      : "Refresh supplier list"
-                  }
-                >
-                  <RefreshCw
-                    className={cn(
-                      "size-3.5",
-                      listLoadingInitial && "animate-spin",
-                    )}
+              <div
+                className={cn(
+                  "flex shrink-0 flex-col gap-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5",
+                )}
+              >
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
                     aria-hidden
                   />
-                  {!isLg ? (
-                    <span>{listLoadingInitial ? "…" : "Refresh"}</span>
-                  ) : null}
-                </Button>
-              </div>
-            </div>
-
-            <VirtualizedSupplierList
-              compact={isLg}
-              rows={rows}
-              selectedId={selectedId}
-              totalLoaded={rows.length}
-              totalElements={listTotalElements}
-              onRowClick={(id) => void onSelectSupplier(id)}
-              canWrite={canWrite}
-              deletingId={deletingSupplierId}
-              onEdit={(id) => void onEditSupplierFromList(id)}
-              onDelete={(row) => void onDeleteSupplierFromList(row)}
-              loadingInitial={listLoadingInitial}
-              loadingMore={listLoadingMore}
-              hasMore={!listLast}
-              onLoadMore={loadMoreDirectory}
-            />
-
-            {!isLg && detail ? (
-              <div className="border-t border-border/50 p-3">
-                <SupMobileSelectionBar
-                  name={
-                    <SupplierDisplayName
-                      name={detail.name}
-                      code={detail.code}
-                    />
-                  }
-                >
+                  <input
+                    id="supplier-directory-search"
+                    className={cn(
+                      dashboardInputClass(listLoadingInitial),
+                      "h-8 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 text-sm focus-visible:ring-0 focus-visible:border-[var(--pos-primary,#0f766e)]",
+                    )}
+                    placeholder="Search name or code…"
+                    value={listSearch}
+                    onChange={(e) => setListSearch(e.target.value)}
+                    aria-label="Search suppliers"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="flex min-w-0 flex-1 flex-wrap gap-1"
+                    role="group"
+                    aria-label="Filter by status"
+                  >
+                    {statusOptions.map((opt) => {
+                      const active = statusFilter === opt.value;
+                      return (
+                        <button
+                          key={opt.value || "all"}
+                          type="button"
+                          disabled={listLoadingInitial}
+                          onClick={() => setStatusFilter(opt.value)}
+                          className={cn(
+                            "h-8 rounded-none border px-2.5 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
+                            active
+                              ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                   <Button
                     type="button"
+                    variant="ghost"
                     size="sm"
-                    className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
-                    onClick={() => setEditDrawerOpen(true)}
+                    className={cn(
+                      "shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                      isLg ? "size-8" : "h-8 gap-1 px-2.5 text-xs",
+                    )}
+                    disabled={listLoadingInitial}
+                    onClick={() => void refreshFullDirectory()}
+                    aria-label={
+                      listLoadingInitial
+                        ? "Loading suppliers"
+                        : "Refresh supplier list"
+                    }
                   >
-                    <Building2 className="size-3.5" aria-hidden />
-                    Profile
-                  </Button>
-                  {canReadCatalog ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
-                      onClick={() => setCatalogDrawerOpen(true)}
-                    >
-                      <Link2 className="size-3.5" aria-hidden />
-                      Catalog
-                    </Button>
-                  ) : null}
-                  {canOpenNewSupply && detail ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
-                      onClick={() => router.push(supplierReceivePath(detail))}
-                    >
-                      <PackagePlus className="size-3.5" aria-hidden />
-                      Till
-                    </Button>
-                  ) : null}
-                  {canOpenNewSupply ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
-                      onClick={() => setNewSupplyOpen(true)}
-                    >
-                      <PackagePlus className="size-3.5" aria-hidden />
-                      Supply
-                    </Button>
-                  ) : null}
-                  {canDeposit ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-none border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
-                      onClick={() => setAdvanceOpen(true)}
-                    >
-                      <Wallet className="size-3.5" aria-hidden />
-                      Deposit
-                    </Button>
-                  ) : null}
-                </SupMobileSelectionBar>
-              </div>
-            ) : null}
-          </div>
-
-          {isLg ? (
-            !detail ? (
-              <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-                <SupplierWorkspaceEmpty
-                  canWrite={canWrite}
-                  canOpenNewSupply={canOpenNewSupply}
-                  canReadCatalog={canReadCatalog}
-                  totalCount={listTotalElements}
-                  suggestions={rows}
-                  onSelectSupplier={(id) => void onSelectSupplier(id)}
-                  onNewSupplier={() => {
-                    skipCreateDrawerResetAfterCreate.current = false;
-                    setCreateDrawerOpen(true);
-                  }}
-                  onNewSupply={() => setNewSupplyOpen(true)}
-                />
-              </aside>
-            ) : (
-              <>
-                <aside
-                  className={cn(
-                    "flex min-h-0 flex-col overflow-hidden",
-                    isXl
-                      ? "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
-                      : "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
-                  )}
-                >
-                  {!isXl ? (
-                    <div className={cn(supPanelHeader)}>
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className={supPanelHeaderIcon()}>
-                          <Building2 className="size-3" aria-hidden />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-semibold leading-tight text-foreground">
-                            <SupplierDisplayName
-                              name={detail.name}
-                              code={detail.code}
-                            />
-                          </p>
-                        </div>
-                        {canReadCatalog ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-7 shrink-0 gap-1 rounded-none px-2 text-[11px]"
-                            onClick={() => setCatalogDrawerOpen(true)}
-                          >
-                            <Link2 className="size-3" aria-hidden />
-                            Catalog
-                          </Button>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : null}
-                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
-                    <SupplierEditColumn
-                      variant="sidebar"
-                      detail={detail}
-                      contacts={contacts}
-                      canWrite={canWrite}
-                      canDeposit={canDeposit}
-                      currency={currency}
-                      onDeposit={
-                        canDeposit ? () => setAdvanceOpen(true) : undefined
-                      }
-                      selectedInvoiceId={
-                        selectedInvoice?.supplierInvoiceId ?? null
-                      }
-                      onSelectInvoice={handleSelectInvoice}
-                      purchaseHistoryRefreshKey={purchaseHistoryKey}
-                      onSavePayout={canWrite ? onSaveSupplierPayout : undefined}
-                      onEditProfile={
-                        canWrite
-                          ? () => {
-                              setProfileEditDrawerOpen(true);
-                            }
-                          : undefined
-                      }
-                      onAddContact={canWrite ? openAddContactDrawer : undefined}
-                      onEditContact={
-                        canWrite ? openEditContactDrawer : undefined
-                      }
-                      onDeleteContact={canWrite ? onDeleteContact : undefined}
-                      deletingContactId={deletingContactId}
+                    <RefreshCw
+                      className={cn(
+                        "size-3.5",
+                        listLoadingInitial && "animate-spin",
+                      )}
+                      aria-hidden
                     />
-                  </div>
+                    {!isLg ? (
+                      <span>{listLoadingInitial ? "…" : "Refresh"}</span>
+                    ) : null}
+                  </Button>
+                </div>
+              </div>
+
+              <VirtualizedSupplierList
+                compact={isLg}
+                rows={rows}
+                selectedId={selectedId}
+                totalLoaded={rows.length}
+                totalElements={listTotalElements}
+                onRowClick={(id) => void onSelectSupplier(id)}
+                canWrite={canWrite}
+                deletingId={deletingSupplierId}
+                onEdit={(id) => void onEditSupplierFromList(id)}
+                onDelete={(row) => void onDeleteSupplierFromList(row)}
+                loadingInitial={listLoadingInitial}
+                loadingMore={listLoadingMore}
+                hasMore={!listLast}
+                onLoadMore={loadMoreDirectory}
+              />
+
+              {!isLg && detail ? (
+                <div className="border-t border-border/50 p-3">
+                  <SupMobileSelectionBar
+                    name={
+                      <SupplierDisplayName
+                        name={detail.name}
+                        code={detail.code}
+                      />
+                    }
+                  >
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
+                      onClick={() => setEditDrawerOpen(true)}
+                    >
+                      <Building2 className="size-3.5" aria-hidden />
+                      Profile
+                    </Button>
+                    {canReadCatalog ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
+                        onClick={() => setCatalogDrawerOpen(true)}
+                      >
+                        <Link2 className="size-3.5" aria-hidden />
+                        Catalog
+                      </Button>
+                    ) : null}
+                    {canOpenNewSupply && detail ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
+                        onClick={() => router.push(supplierReceivePath(detail))}
+                      >
+                        <PackagePlus className="size-3.5" aria-hidden />
+                        Till
+                      </Button>
+                    ) : null}
+                    {canOpenNewSupply ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
+                        onClick={() => setNewSupplyOpen(true)}
+                      >
+                        <PackagePlus className="size-3.5" aria-hidden />
+                        Supply
+                      </Button>
+                    ) : null}
+                    {canDeposit ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 min-h-9 flex-1 gap-1.5 rounded-none border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
+                        onClick={() => setAdvanceOpen(true)}
+                      >
+                        <Wallet className="size-3.5" aria-hidden />
+                        Deposit
+                      </Button>
+                    ) : null}
+                  </SupMobileSelectionBar>
+                </div>
+              ) : null}
+            </div>
+
+            {isLg ? (
+              !detail ? (
+                <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+                  <SupplierWorkspaceEmpty
+                    canWrite={canWrite}
+                    canOpenNewSupply={canOpenNewSupply}
+                    canReadCatalog={canReadCatalog}
+                    totalCount={listTotalElements}
+                    suggestions={rows}
+                    onSelectSupplier={(id) => void onSelectSupplier(id)}
+                    onNewSupplier={() => {
+                      skipCreateDrawerResetAfterCreate.current = false;
+                      setCreateDrawerOpen(true);
+                    }}
+                    onNewSupply={() => setNewSupplyOpen(true)}
+                  />
                 </aside>
-                {isXl ? (
-                  <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-                    <div className={cn(supPanelHeader)}>
-                      <div className="flex min-w-0 flex-1 items-center gap-2">
-                        {selectedInvoice ? (
-                          <>
+              ) : (
+                <>
+                  <aside
+                    className={cn(
+                      "flex min-h-0 flex-col overflow-hidden",
+                      isXl
+                        ? "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
+                        : "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+                    )}
+                  >
+                    {!isXl ? (
+                      <div className={cn(supPanelHeader)}>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className={supPanelHeaderIcon()}>
+                            <Building2 className="size-3" aria-hidden />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-semibold leading-tight text-foreground">
+                              <SupplierDisplayName
+                                name={detail.name}
+                                code={detail.code}
+                              />
+                            </p>
+                          </div>
+                          {canReadCatalog ? (
                             <Button
                               type="button"
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              className="h-7 shrink-0 gap-1 rounded-none px-2 text-xs"
-                              onClick={() => setSelectedInvoice(null)}
+                              className="h-7 shrink-0 gap-1 rounded-none px-2 text-[11px]"
+                              onClick={() => setCatalogDrawerOpen(true)}
                             >
-                              <ChevronLeft className="size-3.5" aria-hidden />
-                              Back
+                              <Link2 className="size-3" aria-hidden />
+                              Catalog
                             </Button>
-                            <span className={supPanelHeaderIcon()}>
-                              <Receipt className="size-3.5" aria-hidden />
-                            </span>
-                            <div className="min-w-0">
-                              <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                                Invoice
-                              </p>
-                              <p className="truncate text-sm font-semibold leading-tight text-foreground">
-                                {selectedInvoice.invoiceNumber}
-                              </p>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <span className={supPanelHeaderIcon()}>
-                              <Link2 className="size-3.5" aria-hidden />
-                            </span>
-                            <div className="min-w-0">
-                              <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                                Catalog
-                              </p>
-                              <p className="truncate text-sm font-semibold leading-tight text-foreground">
-                                Linked products
-                              </p>
-                            </div>
-                          </>
-                        )}
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                    <div className={cn(supPanelBodyFill, "p-0")}>
-                      {selectedInvoice ? (
-                        <SupplierSupplyInvoicePanel
-                          invoiceId={selectedInvoice.supplierInvoiceId}
-                          onUpdated={() =>
-                            setPurchaseHistoryKey((k) => k + 1)
-                          }
-                        />
-                      ) : (
-                        <SupplierCatalogColumn
-                          detail={detail}
-                          canReadCatalog={canReadCatalog}
-                          canLinkProducts={canLinkProducts}
-                          itemLinks={itemLinks}
-                          linksBusy={linksBusy}
-                          onRemoveLink={onRemoveLink}
-                          onSetPrimaryLink={onSetPrimaryLink}
-                          onLinkCatalogItems={onLinkCatalogItems}
-                          onMoveUnassignedItems={onMoveUnassignedItems}
-                          onRefreshLinks={refreshItemLinks}
-                        />
-                      )}
+                    ) : null}
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+                      <SupplierEditColumn
+                        variant="sidebar"
+                        detail={detail}
+                        contacts={contacts}
+                        canWrite={canWrite}
+                        canDeposit={canDeposit}
+                        currency={currency}
+                        onDeposit={
+                          canDeposit ? () => setAdvanceOpen(true) : undefined
+                        }
+                        selectedInvoiceId={
+                          selectedInvoice?.supplierInvoiceId ?? null
+                        }
+                        onSelectInvoice={handleSelectInvoice}
+                        purchaseHistoryRefreshKey={purchaseHistoryKey}
+                        onSavePayout={
+                          canWrite ? onSaveSupplierPayout : undefined
+                        }
+                        onEditProfile={
+                          canWrite
+                            ? () => {
+                                setProfileEditDrawerOpen(true);
+                              }
+                            : undefined
+                        }
+                        onAddContact={
+                          canWrite ? openAddContactDrawer : undefined
+                        }
+                        onEditContact={
+                          canWrite ? openEditContactDrawer : undefined
+                        }
+                        onDeleteContact={canWrite ? onDeleteContact : undefined}
+                        deletingContactId={deletingContactId}
+                      />
                     </div>
                   </aside>
-                ) : null}
-              </>
-            )
-          ) : null}
-        </div>
-      </div>
-
-      {!isLg && !detail ? (
-        <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-          <SupplierWorkspaceEmpty
-            compact
-            canWrite={canWrite}
-            canOpenNewSupply={canOpenNewSupply}
-            canReadCatalog={canReadCatalog}
-            totalCount={listTotalElements}
-            suggestions={rows}
-            onSelectSupplier={(id) => void onSelectSupplier(id)}
-            onNewSupplier={() => {
-              skipCreateDrawerResetAfterCreate.current = false;
-              setCreateDrawerOpen(true);
-            }}
-            onNewSupply={() => setNewSupplyOpen(true)}
-          />
-        </div>
-      ) : null}
-
-      {!isXl ? (
-        <>
-          <FormDrawer
-            open={editDrawerOpen}
-            onOpenChange={setEditDrawerOpen}
-            title="Supplier details"
-            description="Overview, commercial data, and contacts. Use the buttons below to edit the profile or manage contacts."
-            contextLabel="Supplier record"
-            icon={<PencilLine className="size-5 text-primary" aria-hidden />}
-            width="wide"
-            footer={
-              <SupDrawerFooter
-                onCancel={() => setEditDrawerOpen(false)}
-                cancelLabel="Close"
-              />
-            }
-          >
-            <SupplierEditColumn
-              detail={detail}
-              contacts={contacts}
-              canWrite={canWrite}
-              canDeposit={canDeposit}
-              currency={currency}
-              onDeposit={
-                canDeposit
-                  ? () => {
-                      setEditDrawerOpen(false);
-                      setAdvanceOpen(true);
-                    }
-                  : undefined
-              }
-              selectedInvoiceId={selectedInvoice?.supplierInvoiceId ?? null}
-              onSelectInvoice={handleSelectInvoice}
-              purchaseHistoryRefreshKey={purchaseHistoryKey}
-              onSavePayout={canWrite ? onSaveSupplierPayout : undefined}
-              onEditProfile={
-                canWrite
-                  ? () => {
-                      setEditDrawerOpen(false);
-                      setProfileEditDrawerOpen(true);
-                    }
-                  : undefined
-              }
-              onAddContact={
-                canWrite
-                  ? () => {
-                      setEditDrawerOpen(false);
-                      openAddContactDrawer();
-                    }
-                  : undefined
-              }
-              onEditContact={
-                canWrite
-                  ? (contact) => {
-                      setEditDrawerOpen(false);
-                      openEditContactDrawer(contact);
-                    }
-                  : undefined
-              }
-              onDeleteContact={canWrite ? onDeleteContact : undefined}
-              deletingContactId={deletingContactId}
-            />
-          </FormDrawer>
-
-          <FormDrawer
-            open={catalogDrawerOpen}
-            onOpenChange={setCatalogDrawerOpen}
-            title="Catalog & links"
-            description="Browse the full catalog with filters and multi-select to attach items."
-            contextLabel="Catalog"
-            icon={
-              <Link2
-                className="size-5 text-primary"
-                aria-hidden
-              />
-            }
-            width="wide"
-            footer={
-              <SupDrawerFooter
-                onCancel={() => setCatalogDrawerOpen(false)}
-                cancelLabel="Close"
-              />
-            }
-          >
-            <SupplierCatalogColumn
-              detail={detail}
-              canReadCatalog={canReadCatalog}
-              canLinkProducts={canLinkProducts}
-              itemLinks={itemLinks}
-              linksBusy={linksBusy}
-              onRemoveLink={onRemoveLink}
-              onSetPrimaryLink={onSetPrimaryLink}
-              onLinkCatalogItems={onLinkCatalogItems}
-              onMoveUnassignedItems={onMoveUnassignedItems}
-              onRefreshLinks={refreshItemLinks}
-            />
-          </FormDrawer>
-
-          <FormDrawer
-            open={invoiceDrawerOpen}
-            onOpenChange={(open) => {
-              setInvoiceDrawerOpen(open);
-              if (!open) {
-                setSelectedInvoice(null);
-              }
-            }}
-            title={selectedInvoice?.invoiceNumber ?? "Supply bill"}
-            contextLabel="Purchase"
-            icon={<Receipt className="size-5 text-primary" aria-hidden />}
-            width="wide"
-            footer={
-              <SupDrawerFooter
-                onCancel={() => {
-                  setInvoiceDrawerOpen(false);
-                  setSelectedInvoice(null);
-                }}
-                cancelLabel="Close"
-              />
-            }
-          >
-            <SupplierSupplyInvoicePanel
-              invoiceId={selectedInvoice?.supplierInvoiceId ?? null}
-              onUpdated={() => setPurchaseHistoryKey((k) => k + 1)}
-            />
-          </FormDrawer>
-        </>
-      ) : null}
-
-      {canWrite && detail ? (
-        <>
-          <FormDrawer
-            open={profileEditDrawerOpen}
-            onOpenChange={setProfileEditDrawerOpen}
-            title="Edit profile"
-            description="Identity, notes, commercial data, and payment instructions."
-            contextLabel="Workspace"
-            icon={<PencilLine className="size-5 text-primary" aria-hidden />}
-            width="wide"
-            footer={
-              <SupDrawerFooter
-                onCancel={() => setProfileEditDrawerOpen(false)}
-                submitLabel="Save changes"
-                submitForm="supplier-patch-form"
-              />
-            }
-          >
-            <form
-              id="supplier-patch-form"
-              className="space-y-8"
-              onSubmit={onPatchSave}
-            >
-              <FormDrawerFields
-                legend="Supplier profile"
-                hint="All changes save to this supplier record and sync to the directory list."
-              >
-                <SupplierProfileFields
-                  draft={patchDraft}
-                  onDraftChange={(partial) =>
-                    setPatchDraft((p) => ({ ...p, ...partial }))
-                  }
-                />
-              </FormDrawerFields>
-            </form>
-          </FormDrawer>
-
-          <FormDrawer
-            open={contactDrawerOpen}
-            onOpenChange={onContactDrawerOpenChange}
-            title={editingContactId ? "Edit contact" : "Add contact"}
-            description="Optional fields — include at least one way to reach this person."
-            contextLabel="Workspace"
-            icon={
-              editingContactId ? (
-                <UserRoundPen className="size-5 text-primary" aria-hidden />
-              ) : (
-                <UserPlus className="size-5 text-primary" aria-hidden />
+                  {isXl ? (
+                    <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+                      <div className={cn(supPanelHeader)}>
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          {selectedInvoice ? (
+                            <>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 shrink-0 gap-1 rounded-none px-2 text-xs"
+                                onClick={() => setSelectedInvoice(null)}
+                              >
+                                <ChevronLeft className="size-3.5" aria-hidden />
+                                Back
+                              </Button>
+                              <span className={supPanelHeaderIcon()}>
+                                <Receipt className="size-3.5" aria-hidden />
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                                  Invoice
+                                </p>
+                                <p className="truncate text-sm font-semibold leading-tight text-foreground">
+                                  {selectedInvoice.invoiceNumber}
+                                </p>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <span className={supPanelHeaderIcon()}>
+                                <Link2 className="size-3.5" aria-hidden />
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                                  Catalog
+                                </p>
+                                <p className="truncate text-sm font-semibold leading-tight text-foreground">
+                                  Linked products
+                                </p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className={cn(supPanelBodyFill, "p-0")}>
+                        {selectedInvoice ? (
+                          <SupplierSupplyInvoicePanel
+                            invoiceId={selectedInvoice.supplierInvoiceId}
+                            onUpdated={() =>
+                              setPurchaseHistoryKey((k) => k + 1)
+                            }
+                          />
+                        ) : (
+                          <SupplierCatalogColumn
+                            detail={detail}
+                            canReadCatalog={canReadCatalog}
+                            canLinkProducts={canLinkProducts}
+                            itemLinks={itemLinks}
+                            linksBusy={linksBusy}
+                            onRemoveLink={onRemoveLink}
+                            onSetPrimaryLink={onSetPrimaryLink}
+                            onLinkCatalogItems={onLinkCatalogItems}
+                            onMoveUnassignedItems={onMoveUnassignedItems}
+                            onRefreshLinks={refreshItemLinks}
+                          />
+                        )}
+                      </div>
+                    </aside>
+                  ) : null}
+                </>
               )
-            }
+            ) : null}
+          </div>
+        </div>
+
+        {!isLg && !detail ? (
+          <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+            <SupplierWorkspaceEmpty
+              compact
+              canWrite={canWrite}
+              canOpenNewSupply={canOpenNewSupply}
+              canReadCatalog={canReadCatalog}
+              totalCount={listTotalElements}
+              suggestions={rows}
+              onSelectSupplier={(id) => void onSelectSupplier(id)}
+              onNewSupplier={() => {
+                skipCreateDrawerResetAfterCreate.current = false;
+                setCreateDrawerOpen(true);
+              }}
+              onNewSupply={() => setNewSupplyOpen(true)}
+            />
+          </div>
+        ) : null}
+
+        {!isXl ? (
+          <>
+            <FormDrawer
+              open={editDrawerOpen}
+              onOpenChange={setEditDrawerOpen}
+              title="Supplier details"
+              description="Overview, commercial data, and contacts. Use the buttons below to edit the profile or manage contacts."
+              contextLabel="Supplier record"
+              icon={<PencilLine className="size-5 text-primary" aria-hidden />}
+              width="wide"
+              footer={
+                <SupDrawerFooter
+                  onCancel={() => setEditDrawerOpen(false)}
+                  cancelLabel="Close"
+                />
+              }
+            >
+              <SupplierEditColumn
+                detail={detail}
+                contacts={contacts}
+                canWrite={canWrite}
+                canDeposit={canDeposit}
+                currency={currency}
+                onDeposit={
+                  canDeposit
+                    ? () => {
+                        setEditDrawerOpen(false);
+                        setAdvanceOpen(true);
+                      }
+                    : undefined
+                }
+                selectedInvoiceId={selectedInvoice?.supplierInvoiceId ?? null}
+                onSelectInvoice={handleSelectInvoice}
+                purchaseHistoryRefreshKey={purchaseHistoryKey}
+                onSavePayout={canWrite ? onSaveSupplierPayout : undefined}
+                onEditProfile={
+                  canWrite
+                    ? () => {
+                        setEditDrawerOpen(false);
+                        setProfileEditDrawerOpen(true);
+                      }
+                    : undefined
+                }
+                onAddContact={
+                  canWrite
+                    ? () => {
+                        setEditDrawerOpen(false);
+                        openAddContactDrawer();
+                      }
+                    : undefined
+                }
+                onEditContact={
+                  canWrite
+                    ? (contact) => {
+                        setEditDrawerOpen(false);
+                        openEditContactDrawer(contact);
+                      }
+                    : undefined
+                }
+                onDeleteContact={canWrite ? onDeleteContact : undefined}
+                deletingContactId={deletingContactId}
+              />
+            </FormDrawer>
+
+            <FormDrawer
+              open={catalogDrawerOpen}
+              onOpenChange={setCatalogDrawerOpen}
+              title="Catalog & links"
+              description="Browse the full catalog with filters and multi-select to attach items."
+              contextLabel="Catalog"
+              icon={<Link2 className="size-5 text-primary" aria-hidden />}
+              width="wide"
+              footer={
+                <SupDrawerFooter
+                  onCancel={() => setCatalogDrawerOpen(false)}
+                  cancelLabel="Close"
+                />
+              }
+            >
+              <SupplierCatalogColumn
+                detail={detail}
+                canReadCatalog={canReadCatalog}
+                canLinkProducts={canLinkProducts}
+                itemLinks={itemLinks}
+                linksBusy={linksBusy}
+                onRemoveLink={onRemoveLink}
+                onSetPrimaryLink={onSetPrimaryLink}
+                onLinkCatalogItems={onLinkCatalogItems}
+                onMoveUnassignedItems={onMoveUnassignedItems}
+                onRefreshLinks={refreshItemLinks}
+              />
+            </FormDrawer>
+
+            <FormDrawer
+              open={invoiceDrawerOpen}
+              onOpenChange={(open) => {
+                setInvoiceDrawerOpen(open);
+                if (!open) {
+                  setSelectedInvoice(null);
+                }
+              }}
+              title={selectedInvoice?.invoiceNumber ?? "Supply bill"}
+              contextLabel="Purchase"
+              icon={<Receipt className="size-5 text-primary" aria-hidden />}
+              width="wide"
+              footer={
+                <SupDrawerFooter
+                  onCancel={() => {
+                    setInvoiceDrawerOpen(false);
+                    setSelectedInvoice(null);
+                  }}
+                  cancelLabel="Close"
+                />
+              }
+            >
+              <SupplierSupplyInvoicePanel
+                invoiceId={selectedInvoice?.supplierInvoiceId ?? null}
+                onUpdated={() => setPurchaseHistoryKey((k) => k + 1)}
+              />
+            </FormDrawer>
+          </>
+        ) : null}
+
+        {canWrite && detail ? (
+          <>
+            <FormDrawer
+              open={profileEditDrawerOpen}
+              onOpenChange={setProfileEditDrawerOpen}
+              title="Edit profile"
+              description="Identity, notes, commercial data, and payment instructions."
+              contextLabel="Workspace"
+              icon={<PencilLine className="size-5 text-primary" aria-hidden />}
+              width="wide"
+              footer={
+                <SupDrawerFooter
+                  onCancel={() => setProfileEditDrawerOpen(false)}
+                  submitLabel="Save changes"
+                  submitForm="supplier-patch-form"
+                />
+              }
+            >
+              <form
+                id="supplier-patch-form"
+                className="space-y-8"
+                onSubmit={onPatchSave}
+              >
+                <FormDrawerFields
+                  legend="Supplier profile"
+                  hint="All changes save to this supplier record and sync to the directory list."
+                >
+                  <SupplierProfileFields
+                    draft={patchDraft}
+                    onDraftChange={(partial) =>
+                      setPatchDraft((p) => ({ ...p, ...partial }))
+                    }
+                  />
+                </FormDrawerFields>
+              </form>
+            </FormDrawer>
+
+            <FormDrawer
+              open={contactDrawerOpen}
+              onOpenChange={onContactDrawerOpenChange}
+              title={editingContactId ? "Edit contact" : "Add contact"}
+              description="Optional fields — include at least one way to reach this person."
+              contextLabel="Workspace"
+              icon={
+                editingContactId ? (
+                  <UserRoundPen className="size-5 text-primary" aria-hidden />
+                ) : (
+                  <UserPlus className="size-5 text-primary" aria-hidden />
+                )
+              }
+              width="wide"
+              footer={
+                <SupDrawerFooter
+                  onCancel={() => onContactDrawerOpenChange(false)}
+                  submitLabel={
+                    editingContactId ? "Save contact" : "Add contact"
+                  }
+                  submitForm="supplier-contact-form"
+                />
+              }
+            >
+              <form
+                id="supplier-contact-form"
+                className="space-y-5"
+                onSubmit={onSaveContact}
+              >
+                <FormDrawerFields
+                  legend="Contact details"
+                  hint="Stored against this supplier only."
+                >
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1.5 sm:col-span-2">
+                      <span className={supFieldLabel}>Full name</span>
+                      <input
+                        className={supInput}
+                        placeholder="e.g. Jane Smith"
+                        value={contactDraft.name ?? ""}
+                        onChange={(e) =>
+                          setContactDraft((d) => ({
+                            ...d,
+                            name: e.target.value,
+                          }))
+                        }
+                        aria-label="Contact name"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className={supFieldLabel}>Role / title</span>
+                      <input
+                        className={supInput}
+                        placeholder="Optional"
+                        value={contactDraft.roleLabel ?? ""}
+                        onChange={(e) =>
+                          setContactDraft((d) => ({
+                            ...d,
+                            roleLabel: e.target.value,
+                          }))
+                        }
+                        aria-label="Role or title"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className={supFieldLabel}>Email</span>
+                      <input
+                        className={supInput}
+                        placeholder="name@company.com"
+                        type="email"
+                        value={contactDraft.email ?? ""}
+                        onChange={(e) =>
+                          setContactDraft((d) => ({
+                            ...d,
+                            email: e.target.value,
+                          }))
+                        }
+                        aria-label="Email"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5 sm:col-span-2">
+                      <span className={supFieldLabel}>Phone</span>
+                      <input
+                        className={supInput}
+                        placeholder="Optional"
+                        value={contactDraft.phone ?? ""}
+                        onChange={(e) =>
+                          setContactDraft((d) => ({
+                            ...d,
+                            phone: e.target.value,
+                          }))
+                        }
+                        aria-label="Phone"
+                      />
+                    </label>
+                  </div>
+                </FormDrawerFields>
+              </form>
+            </FormDrawer>
+          </>
+        ) : null}
+
+        {canWrite ? (
+          <FormDrawer
+            open={createDrawerOpen}
+            onboardingTarget={ONBOARDING_TARGETS.supplierDrawer}
+            onOpenChange={onCreateDrawerOpenChange}
+            title="New supplier"
+            description="Connect a marketplace vendor for catalogue import and portal POs, or create a private supplier record below."
+            contextLabel="Purchasing"
+            icon={<Truck className="size-5 text-primary" aria-hidden />}
             width="wide"
             footer={
               <SupDrawerFooter
-                onCancel={() => onContactDrawerOpenChange(false)}
+                onCancel={() => onCreateDrawerOpenChange(false)}
                 submitLabel={
-                  editingContactId ? "Save contact" : "Add contact"
+                  createIdentityConflict
+                    ? "Already in your directory"
+                    : canViewMarketplace
+                      ? "Create global supplier"
+                      : "Create supplier"
                 }
-                submitForm="supplier-contact-form"
+                submitForm="new-supplier-form"
+                submitDisabled={Boolean(createIdentityConflict)}
               />
             }
           >
             <form
-              id="supplier-contact-form"
-              className="space-y-5"
-              onSubmit={onSaveContact}
+              id="new-supplier-form"
+              className="space-y-8"
+              onSubmit={onCreate}
             >
-              <FormDrawerFields
-                legend="Contact details"
-                hint="Stored against this supplier only."
-              >
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1.5 sm:col-span-2">
-                    <span className={supFieldLabel}>Full name</span>
-                    <input
-                      className={supInput}
-                      placeholder="e.g. Jane Smith"
-                      value={contactDraft.name ?? ""}
-                      onChange={(e) =>
-                        setContactDraft((d) => ({ ...d, name: e.target.value }))
-                      }
-                      aria-label="Contact name"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1.5">
-                    <span className={supFieldLabel}>Role / title</span>
-                    <input
-                      className={supInput}
-                      placeholder="Optional"
-                      value={contactDraft.roleLabel ?? ""}
-                      onChange={(e) =>
-                        setContactDraft((d) => ({
-                          ...d,
-                          roleLabel: e.target.value,
-                        }))
-                      }
-                      aria-label="Role or title"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1.5">
-                    <span className={supFieldLabel}>Email</span>
-                    <input
-                      className={supInput}
-                      placeholder="name@company.com"
-                      type="email"
-                      value={contactDraft.email ?? ""}
-                      onChange={(e) =>
-                        setContactDraft((d) => ({
-                          ...d,
-                          email: e.target.value,
-                        }))
-                      }
-                      aria-label="Email"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1.5 sm:col-span-2">
-                    <span className={supFieldLabel}>Phone</span>
-                    <input
-                      className={supInput}
-                      placeholder="Optional"
-                      value={contactDraft.phone ?? ""}
-                      onChange={(e) =>
-                        setContactDraft((d) => ({
-                          ...d,
-                          phone: e.target.value,
-                        }))
-                      }
-                      aria-label="Phone"
-                    />
-                  </label>
-                </div>
-              </FormDrawerFields>
+              <NewSupplierForm
+                draft={createDraft}
+                onDraftChange={(partial) =>
+                  setCreateDraft((d) => ({ ...d, ...partial }))
+                }
+                lookupSupplierNumber={lookupSupplierNumber}
+                onLookupSupplierNumberChange={setLookupSupplierNumber}
+                canViewMarketplace={canViewMarketplace}
+                canConnectMarketplace={canConnectMarketplace}
+                onIdentityConflictChange={setCreateIdentityConflict}
+                onBrowseMarketplace={() => {
+                  setCreateDrawerOpen(false);
+                  router.push(APP_ROUTES.marketplace);
+                }}
+                onAttached={async (result) => {
+                  setLookupSupplierNumber("");
+                  setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
+                  setCreateIdentityConflict(null);
+                  await refreshList();
+                  await onSelectSupplier(result.localSupplierId);
+                  skipCreateDrawerResetAfterCreate.current = true;
+                  setCreateDrawerOpen(false);
+                  const parts = [
+                    result.linkedExisting > 0
+                      ? `${result.linkedExisting} linked`
+                      : null,
+                    result.createdItems > 0
+                      ? `${result.createdItems} items created`
+                      : null,
+                  ].filter(Boolean);
+                  setFeedback({
+                    text: `Attached ${result.supplierName}${result.supplierNumber ? ` (${result.supplierNumber})` : ""}${parts.length ? ` — ${parts.join(", ")}` : ""}.`,
+                    kind: "success",
+                  });
+                }}
+              />
             </form>
           </FormDrawer>
-        </>
-      ) : null}
+        ) : null}
 
-      {canWrite ? (
-        <FormDrawer
-          open={createDrawerOpen}
-          onboardingTarget={ONBOARDING_TARGETS.supplierDrawer}
-          onOpenChange={onCreateDrawerOpenChange}
-          title="New supplier"
-          description="Connect a marketplace vendor for catalogue import and portal POs, or create a private supplier record below."
-          contextLabel="Purchasing"
-          icon={<Truck className="size-5 text-primary" aria-hidden />}
-          width="wide"
-          footer={
-            <SupDrawerFooter
-              onCancel={() => onCreateDrawerOpenChange(false)}
-              submitLabel={
-                createIdentityConflict
-                  ? "Already in your directory"
-                  : canViewMarketplace
-                    ? "Create global supplier"
-                    : "Create supplier"
+        {canOpenNewSupply ? (
+          <NewSupplyDrawer
+            open={newSupplyOpen}
+            onOpenChange={setNewSupplyOpen}
+            onPosted={() => {
+              if (selectedId) {
+                void refreshItemLinks();
               }
-              submitForm="new-supplier-form"
-              submitDisabled={Boolean(createIdentityConflict)}
-            />
-          }
-        >
-          <form
-            id="new-supplier-form"
-            className="space-y-8"
-            onSubmit={onCreate}
-          >
-            <NewSupplierForm
-              draft={createDraft}
-              onDraftChange={(partial) =>
-                setCreateDraft((d) => ({ ...d, ...partial }))
+            }}
+            initialSupplier={detail}
+          />
+        ) : null}
+
+        {canDeposit ? (
+          <AdvanceDepositDrawer
+            open={advanceOpen}
+            onOpenChange={setAdvanceOpen}
+            onDeposited={() => {
+              if (selectedId) {
+                void onSelectSupplier(selectedId);
               }
-              lookupSupplierNumber={lookupSupplierNumber}
-              onLookupSupplierNumberChange={setLookupSupplierNumber}
-              canViewMarketplace={canViewMarketplace}
-              canConnectMarketplace={canConnectMarketplace}
-              onIdentityConflictChange={setCreateIdentityConflict}
-              onBrowseMarketplace={() => {
-                setCreateDrawerOpen(false);
-                router.push(APP_ROUTES.marketplace);
-              }}
-              onAttached={async (result) => {
-                setLookupSupplierNumber("");
-                setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
-                setCreateIdentityConflict(null);
-                await refreshList();
-                await onSelectSupplier(result.localSupplierId);
-                skipCreateDrawerResetAfterCreate.current = true;
-                setCreateDrawerOpen(false);
-                const parts = [
-                  result.linkedExisting > 0
-                    ? `${result.linkedExisting} linked`
-                    : null,
-                  result.createdItems > 0
-                    ? `${result.createdItems} items created`
-                    : null,
-                ].filter(Boolean);
-                setFeedback({
-                  text: `Attached ${result.supplierName}${result.supplierNumber ? ` (${result.supplierNumber})` : ""}${parts.length ? ` — ${parts.join(", ")}` : ""}.`,
-                  kind: "success",
-                });
-              }}
-            />
-          </form>
-        </FormDrawer>
-      ) : null}
-
-      {canOpenNewSupply ? (
-        <NewSupplyDrawer
-          open={newSupplyOpen}
-          onOpenChange={setNewSupplyOpen}
-          onPosted={() => {
-            if (selectedId) {
-              void refreshItemLinks();
-            }
-          }}
-          initialSupplier={detail}
-        />
-      ) : null}
-
-      {canDeposit ? (
-        <AdvanceDepositDrawer
-          open={advanceOpen}
-          onOpenChange={setAdvanceOpen}
-          onDeposited={() => {
-            if (selectedId) {
-              void onSelectSupplier(selectedId);
-            }
-            setPurchaseHistoryKey((k) => k + 1);
-          }}
-          currency={currency}
-          initialSupplierId={detail?.id ?? selectedId}
-        />
-      ) : null}
+              setPurchaseHistoryKey((k) => k + 1);
+            }}
+            currency={currency}
+            initialSupplierId={detail?.id ?? selectedId}
+          />
+        ) : null}
       </div>
     </SupplierPageLayout>
   );

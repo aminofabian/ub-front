@@ -44,7 +44,7 @@ function outcomeMessage(
   if (res.outcome === "skipped") {
     return {
       ok: false,
-        text: res.detail?.trim() || "Reminder skipped. Check messaging setup.",
+      text: res.detail?.trim() || "Reminder skipped. Check messaging setup.",
     };
   }
   return {
@@ -78,7 +78,7 @@ export function RemindPaymentButtons({
   };
 
   return (
-    <div className="inline-flex shrink-0 overflow-hidden rounded-lg border border-border/70 bg-background">
+    <div className="inline-flex shrink-0 overflow-hidden rounded-none border border-border/70 bg-background">
       <Button
         type="button"
         size="sm"

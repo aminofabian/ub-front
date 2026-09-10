@@ -139,9 +139,7 @@ function sortRows(rows: CustomerSpendRow[], key: SortKey): CustomerSpendRow[] {
   copy.sort((a, b) => {
     switch (key) {
       case "visits":
-        return (
-          b.saleCount - a.saleCount || toNum(b.spend) - toNum(a.spend)
-        );
+        return b.saleCount - a.saleCount || toNum(b.spend) - toNum(a.spend);
       case "streak":
         return (
           b.weekStreak - a.weekStreak ||
@@ -154,7 +152,10 @@ function sortRows(rows: CustomerSpendRow[], key: SortKey): CustomerSpendRow[] {
           toNum(b.spend) - toNum(a.spend)
         );
       case "basket":
-        return toNum(b.avgBasket) - toNum(a.avgBasket) || toNum(b.spend) - toNum(a.spend);
+        return (
+          toNum(b.avgBasket) - toNum(a.avgBasket) ||
+          toNum(b.spend) - toNum(a.spend)
+        );
       default:
         return toNum(b.spend) - toNum(a.spend) || b.saleCount - a.saleCount;
     }
@@ -169,16 +170,16 @@ function BoardSkeleton() {
       aria-busy
       aria-label="Loading shoppers"
     >
-      <div className="mb-6 h-10 w-64 animate-pulse rounded-lg bg-muted" />
-      <div className="mb-4 h-8 w-full max-w-xl animate-pulse rounded-lg bg-muted" />
+      <div className="mb-6 h-10 w-64 animate-pulse rounded-none bg-muted" />
+      <div className="mb-4 h-8 w-full max-w-xl animate-pulse rounded-none bg-muted" />
       <div className="grid gap-3 md:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-xl bg-muted" />
+          <div key={i} className="h-28 animate-pulse rounded-none bg-muted" />
         ))}
       </div>
       <div className="mt-4 space-y-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-20 animate-pulse rounded-xl bg-muted" />
+          <div key={i} className="h-20 animate-pulse rounded-none bg-muted" />
         ))}
       </div>
     </div>
@@ -447,92 +448,96 @@ export function CustomerSpendBoard() {
                 />
               </label>
 
-            {filtered.length === 0 ? (
-              <WhiteCard className="px-4 py-8">
-                <p className="max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
-                  {data && (data.rows?.length ?? 0) > 0
-                    ? "No shopper matches that search or filter. Clear it to see the full ranking."
-                    : "Shoppers you rang against a customer rank here, and so do Lipa Na M-Pesa payers — M-Pesa gives us the name on the receipt even when there is no tab open."}
-                </p>
-              </WhiteCard>
-            ) : (
-              <>
-                {podium.length > 0 ? (
-                  <ol className="grid gap-2 sm:grid-cols-3">
-                    {podium.map((row, index) => {
-                      const lead = index === 0;
-                      const href = customerHref(row.customerId);
-                      const card = (
-                            <WhiteCard
-                              className={cn(
-                                "flex h-full flex-col justify-between px-3 py-3",
-                                lead ? "min-h-[7.5rem]" : "min-h-[6.5rem]",
-                              )}
-                            >
-                              <div className="flex items-start gap-2.5">
+              {filtered.length === 0 ? (
+                <WhiteCard className="px-4 py-8">
+                  <p className="max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
+                    {data && (data.rows?.length ?? 0) > 0
+                      ? "No shopper matches that search or filter. Clear it to see the full ranking."
+                      : "Shoppers you rang against a customer rank here, and so do Lipa Na M-Pesa payers — M-Pesa gives us the name on the receipt even when there is no tab open."}
+                  </p>
+                </WhiteCard>
+              ) : (
+                <>
+                  {podium.length > 0 ? (
+                    <ol className="grid gap-2 sm:grid-cols-3">
+                      {podium.map((row, index) => {
+                        const lead = index === 0;
+                        const href = customerHref(row.customerId);
+                        const card = (
+                          <WhiteCard
+                            className={cn(
+                              "flex h-full flex-col justify-between px-3 py-3",
+                              lead ? "min-h-[7.5rem]" : "min-h-[6.5rem]",
+                            )}
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <p
+                                className={cn(
+                                  "tabular-nums font-bold tracking-tight text-foreground",
+                                  lead
+                                    ? "text-2xl leading-none"
+                                    : "text-xl leading-none",
+                                )}
+                              >
+                                {index + 1}
+                              </p>
+                              <div className="min-w-0">
                                 <p
                                   className={cn(
-                                    "tabular-nums font-bold tracking-tight text-foreground",
-                                    lead ? "text-2xl leading-none" : "text-xl leading-none",
+                                    "truncate font-semibold tracking-tight text-foreground",
+                                    lead
+                                      ? "text-base leading-tight"
+                                      : "text-sm leading-tight",
                                   )}
                                 >
-                                  {index + 1}
+                                  {row.name}
                                 </p>
-                                <div className="min-w-0">
-                                  <p
-                                    className={cn(
-                                      "truncate font-semibold tracking-tight text-foreground",
-                                      lead ? "text-base leading-tight" : "text-sm leading-tight",
-                                    )}
-                                  >
-                                    {row.name}
-                                  </p>
-                                  <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-foreground">
-                                    {money(row.spend)}
-                                  </p>
-                                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                                    {row.saleCount} till
-                                    {row.saleCount === 1 ? "" : "s"}
-                                    {row.weekStreak > 1
-                                      ? ` · ${row.weekStreak}-week streak`
-                                      : ""}
-                                    {` · ${cohortLabel(row.cohort)}`}
-                                  </p>
-                                </div>
+                                <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-foreground">
+                                  {money(row.spend)}
+                                </p>
+                                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                  {row.saleCount} till
+                                  {row.saleCount === 1 ? "" : "s"}
+                                  {row.weekStreak > 1
+                                    ? ` · ${row.weekStreak}-week streak`
+                                    : ""}
+                                  {` · ${cohortLabel(row.cohort)}`}
+                                </p>
                               </div>
-                            </WhiteCard>
-                      );
-                      return (
-                        <li key={row.customerId}>
-                          {href ? (
-                            <Link
-                              href={href}
-                              className="block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            >
-                              {card}
-                            </Link>
-                          ) : (
-                            card
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ol>
-                ) : null}
+                            </div>
+                          </WhiteCard>
+                        );
+                        return (
+                          <li key={row.customerId}>
+                            {href ? (
+                              <Link
+                                href={href}
+                                className="block h-full rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              >
+                                {card}
+                              </Link>
+                            ) : (
+                              card
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  ) : null}
 
-                <WhiteCard className="overflow-hidden">
-                  <ul>
-                    {filtered.map((row, index) => {
-                      const pct = Math.max(
-                        (toNum(row.spend) / maxSpend) * 100,
-                        toNum(row.spend) ? 4 : 0,
-                      );
-                      const no = customerNoLabel(row.customerNo);
-                      const href = customerHref(row.customerId);
-                      const rowClass =
-                        "grid gap-2 px-3 py-2.5 sm:grid-cols-[1.75rem_minmax(0,1fr)_auto]";
-                      const body = (
-                        <>
+                  <WhiteCard className="overflow-hidden">
+                    <ul>
+                      {filtered.map((row, index) => {
+                        const pct = Math.max(
+                          (toNum(row.spend) / maxSpend) * 100,
+                          toNum(row.spend) ? 4 : 0,
+                        );
+                        const no = customerNoLabel(row.customerNo);
+                        const href = customerHref(row.customerId);
+                        const rowClass =
+                          "grid gap-2 px-3 py-2.5 sm:grid-cols-[1.75rem_minmax(0,1fr)_auto]";
+                        const body = (
+                          <>
                             <p className="text-[11px] font-semibold tabular-nums text-muted-foreground">
                               {index + 1}
                             </p>
@@ -569,9 +574,7 @@ export function CustomerSpendBoard() {
                                     ? ` · ${row.visitDays} shopping days`
                                     : ""}
                                 </span>
-                                <span>
-                                  Basket {money(row.avgBasket)}
-                                </span>
+                                <span>Basket {money(row.avgBasket)}</span>
                                 <span className="inline-flex items-center gap-1.5">
                                   <StreakTicks count={row.weekStreak} />
                                   {row.weekStreak > 0
@@ -605,95 +608,99 @@ export function CustomerSpendBoard() {
                                 % of named spend
                               </p>
                             </div>
-                        </>
-                      );
-                      return (
-                        <li
-                          key={row.customerId}
-                          className="border-b border-border/50 last:border-0"
-                        >
-                          {href ? (
-                            <Link
-                              href={href}
-                              className={`${rowClass} transition-colors duration-150 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring`}
-                            >
-                              {body}
-                            </Link>
-                          ) : (
-                            <div className={rowClass}>{body}</div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  {data?.truncated && cohort === "all" && !query.trim() ? (
-                    <p className="border-t border-border/60 px-4 py-3 text-xs text-muted-foreground">
-                      Showing the top spenders in this window. Narrow the period
-                      if you need a smaller book.
-                    </p>
-                  ) : null}
-                </WhiteCard>
-              </>
-            )}
+                          </>
+                        );
+                        return (
+                          <li
+                            key={row.customerId}
+                            className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0"
+                          >
+                            {href ? (
+                              <Link
+                                href={href}
+                                className={`${rowClass} transition-colors duration-150 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring`}
+                              >
+                                {body}
+                              </Link>
+                            ) : (
+                              <div className={rowClass}>{body}</div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {data?.truncated && cohort === "all" && !query.trim() ? (
+                      <p className="border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-3 text-xs text-muted-foreground">
+                        Showing the top spenders in this window. Narrow the
+                        period if you need a smaller book.
+                      </p>
+                    ) : null}
+                  </WhiteCard>
+                </>
+              )}
             </div>
           </DirectoryColumn>
 
-          <DirectoryColumn title="Scope" hint="Period & branch" className="lg:order-2">
+          <DirectoryColumn
+            title="Scope"
+            hint="Period & branch"
+            className="lg:order-2"
+          >
             <div className="flex flex-col gap-2">
-            <NavySidebarSection title="Period">
-              {ANALYTICS_PRESET_LABELS.map((item) => (
-                <NavyRadioOption
-                  key={item.key}
-                  name="shopper-period"
-                  value={item.key}
-                  checked={preset === item.key}
-                  onChange={() => setPreset(item.key)}
-                  label={item.label}
-                />
-              ))}
-            </NavySidebarSection>
-
-            {preset === "custom" ? (
-              <WhiteCard className="space-y-2 p-3">
-                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                  From
-                  <input
-                    type="date"
-                    value={customFrom}
-                    onChange={(e) => setCustomFrom(e.target.value)}
-                    className={dashboardInputClass(false, "h-10")}
+              <NavySidebarSection title="Period">
+                {ANALYTICS_PRESET_LABELS.map((item) => (
+                  <NavyRadioOption
+                    key={item.key}
+                    name="shopper-period"
+                    value={item.key}
+                    checked={preset === item.key}
+                    onChange={() => setPreset(item.key)}
+                    label={item.label}
                   />
-                </label>
-                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                  To
-                  <input
-                    type="date"
-                    value={customTo}
-                    onChange={(e) => setCustomTo(e.target.value)}
-                    className={dashboardInputClass(false, "h-10")}
-                  />
-                </label>
-              </WhiteCard>
-            ) : null}
+                ))}
+              </NavySidebarSection>
 
-            <NavySidebarSection title="Branch">
-              {(branchLocked
-                ? branches.map((b) => ({ id: b.id, label: b.name }))
-                : [
-                    { id: "", label: "All branches" },
-                    ...branches.map((b) => ({ id: b.id, label: b.name })),
-                  ]
-              ).map((item) => (
-                <NavyRadioOption
-                  key={item.id || "all-branches"}
-                  name="shopper-branch"
-                  value={item.id}
-                  checked={branchId === item.id}
-                  onChange={() => onChangeBranch(item.id)}
-                  label={item.label}
-                />
-              ))}
-            </NavySidebarSection>
+              {preset === "custom" ? (
+                <WhiteCard className="space-y-2 p-3">
+                  <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                    From
+                    <input
+                      type="date"
+                      value={customFrom}
+                      onChange={(e) => setCustomFrom(e.target.value)}
+                      className={dashboardInputClass(false, "h-10")}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                    To
+                    <input
+                      type="date"
+                      value={customTo}
+                      onChange={(e) => setCustomTo(e.target.value)}
+                      className={dashboardInputClass(false, "h-10")}
+                    />
+                  </label>
+                </WhiteCard>
+              ) : null}
+
+              <NavySidebarSection title="Branch">
+                {(branchLocked
+                  ? branches.map((b) => ({ id: b.id, label: b.name }))
+                  : [
+                      { id: "", label: "All branches" },
+                      ...branches.map((b) => ({ id: b.id, label: b.name })),
+                    ]
+                ).map((item) => (
+                  <NavyRadioOption
+                    key={item.id || "all-branches"}
+                    name="shopper-branch"
+                    value={item.id}
+                    checked={branchId === item.id}
+                    onChange={() => onChangeBranch(item.id)}
+                    label={item.label}
+                  />
+                ))}
+              </NavySidebarSection>
             </div>
           </DirectoryColumn>
         </div>

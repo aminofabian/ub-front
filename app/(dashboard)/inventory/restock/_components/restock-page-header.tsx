@@ -31,13 +31,12 @@ export function RestockPageHeader({
   );
 
   return (
-    <header className="min-w-0 space-y-1.5 border-b border-border px-3 py-3">
-      <div className="flex min-w-0 items-center gap-2">
-        <PackageX
-          className="size-4 shrink-0 text-muted-foreground"
-          aria-hidden
-        />
-        <h1 className="min-w-0 flex-1 truncate text-base font-bold leading-tight tracking-tight">
+    <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1 sm:px-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
+          <PackageX className="size-3.5" aria-hidden />
+        </span>
+        <h1 className="min-w-0 flex-1 truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
           Out of stock
         </h1>
         <Button
@@ -56,7 +55,7 @@ export function RestockPageHeader({
           Refresh
         </Button>
       </div>
-      <ActiveScopeSubtitle className="text-xs" />
+      <ActiveScopeSubtitle className="text-[11px] tracking-[-0.02em]" />
 
       {canShowQuickLinks && quickLinks.length > 0 ? (
         <DashboardQuickLinks compact links={quickLinks} />

@@ -42,7 +42,7 @@ import {
 import { productDossierPath } from "@/lib/product-dossier-url";
 
 /* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
+/* Helpers */
 /* ------------------------------------------------------------------ */
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -52,20 +52,26 @@ function toNum(n: number | string | null | undefined): number {
 function fmtQty(n: number | string | null | undefined): string {
   const v = toNum(n);
   if (Number.isInteger(v)) return v.toLocaleString();
-  return v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return v.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
 }
 
 function fmtMoney(n: number | string | null | undefined): string {
   const v = toNum(n);
   if (v === 0) return "—";
-  return v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return v.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
 }
 
 const PAGE_SIZE = 60;
 const MAX_ITEMS = 500; // don't hammer the API — cap at 500
 
 /* ------------------------------------------------------------------ */
-/*  Upload button (per card)                                           */
+/* Upload button (per card) */
 /* ------------------------------------------------------------------ */
 function QuickUpload({
   itemId,
@@ -104,7 +110,7 @@ function QuickUpload({
         disabled={busy}
         onClick={() => ref.current?.click()}
         className={cn(
-          "inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[10px] font-semibold transition-all",
+          "inline-flex h-7 items-center gap-1 rounded-none px-2.5 text-[10px] font-semibold transition-all",
           "border border-primary/25 bg-primary/5 text-primary hover:bg-primary/10 active:scale-95",
           busy && "opacity-50",
         )}
@@ -128,7 +134,7 @@ function QuickUpload({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Bulk import (CSV of sku,image_url, or SKU-named image files)       */
+/* Bulk import (CSV of sku,image_url, or SKU-named image files) */
 /* ------------------------------------------------------------------ */
 type BulkMode = "files" | "csv";
 
@@ -137,7 +143,9 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
   const [files, setFiles] = useState<File[]>([]);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<BulkItemImageImportResponse | null>(null);
+  const [result, setResult] = useState<BulkItemImageImportResponse | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const pickRef = useRef<HTMLInputElement>(null);
 
@@ -182,7 +190,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
   const readyCount = mode === "files" ? files.length : csvFile ? 1 : 0;
 
   return (
-    <div className="rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
+    <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 shadow-none">
       <div className="flex flex-wrap items-center gap-2">
         <FileSpreadsheet className="size-4 shrink-0 text-primary" aria-hidden />
         <div className="min-w-0 flex-1">
@@ -198,7 +206,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
       </div>
 
       {/* Mode toggle */}
-      <div className="mt-2.5 flex items-center gap-1 rounded-lg bg-muted/30 p-0.5">
+      <div className="mt-2.5 flex items-center gap-1 rounded-none bg-muted/30 p-0.5">
         {(
           [
             { key: "files", label: "Files (named by SKU)" },
@@ -218,9 +226,9 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
               if (pickRef.current) pickRef.current.value = "";
             }}
             className={cn(
-              "flex-1 rounded-md px-2 py-1 text-[10px] font-semibold transition-colors",
+              "flex-1 rounded-none px-2 py-1 text-[10px] font-semibold transition-colors",
               mode === opt.key
-                ? "bg-background text-foreground shadow-sm"
+                ? "bg-background text-foreground shadow-none"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -262,7 +270,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
           disabled={busy}
           onClick={() => pickRef.current?.click()}
           className={cn(
-            "inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[10px] font-semibold transition-all",
+            "inline-flex h-7 items-center gap-1 rounded-none px-2.5 text-[10px] font-semibold transition-all",
             "border border-primary/25 bg-primary/5 text-primary hover:bg-primary/10 active:scale-95",
             busy && "opacity-50",
           )}
@@ -274,7 +282,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
           disabled={busy || readyCount === 0}
           onClick={() => void submit()}
           className={cn(
-            "inline-flex h-7 items-center gap-1 rounded-lg px-3 text-[10px] font-semibold transition-all",
+            "inline-flex h-7 items-center gap-1 rounded-none px-3 text-[10px] font-semibold transition-all",
             "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95",
             (busy || readyCount === 0) && "opacity-50",
           )}
@@ -297,7 +305,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
       </div>
 
       {mode === "files" && files.length > 0 ? (
-        <ul className="mt-2 max-h-28 space-y-0.5 overflow-y-auto rounded-lg border border-border/40 bg-muted/15 px-2.5 py-1.5">
+        <ul className="mt-2 max-h-28 space-y-0.5 overflow-y-auto rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-2.5 py-1.5">
           {files.slice(0, 12).map((f, i) => (
             <li
               key={`${f.name}-${i}`}
@@ -316,7 +324,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
       ) : null}
 
       {mode === "csv" && csvFile ? (
-        <div className="mt-2 truncate rounded-lg border border-border/40 bg-muted/15 px-2.5 py-1.5 font-mono text-[10px] text-foreground/75">
+        <div className="mt-2 truncate rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-2.5 py-1.5 font-mono text-[10px] text-foreground/75">
           {csvFile.name}
         </div>
       ) : null}
@@ -326,16 +334,18 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
       ) : null}
 
       {result ? (
-        <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2">
+        <div className="mt-3 rounded-none border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2">
           <p className="text-[11px] font-semibold text-emerald-900 dark:text-emerald-100">
-            {result.updated} image(s) set · {result.notFound.length} SKU(s) not found ·{" "}
-            {result.invalid.length} file(s)/row(s) invalid
+            {result.updated} image(s) set · {result.notFound.length} SKU(s) not
+            found · {result.invalid.length} file(s)/row(s) invalid
           </p>
           {issues.length > 0 ? (
             <ul className="mt-1 max-h-32 list-inside list-disc space-y-0.5 overflow-y-auto text-[10px] text-muted-foreground">
               {issues.map((iss, i) => (
                 <li key={`${iss.line}-${i}`}>
-                  <span className="font-mono text-foreground/80">{iss.sku || `item ${iss.line}`}</span>
+                  <span className="font-mono text-foreground/80">
+                    {iss.sku || `item ${iss.line}`}
+                  </span>
                   : {iss.message}
                 </li>
               ))}
@@ -348,7 +358,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Page                                                               */
+/* Page */
 /* ------------------------------------------------------------------ */
 export default function InventoryMissingImagesPage() {
   const { setBranchId: setHeaderBranchId } = useDashboard();
@@ -423,9 +433,7 @@ export default function InventoryMissingImagesPage() {
 
         // Filter to items *without* any image
         for (const item of res.content) {
-          const hasImage =
-            item.imageKey?.trim() ||
-            item.thumbnailUrl?.trim();
+          const hasImage = item.imageKey?.trim() || item.thumbnailUrl?.trim();
           if (!hasImage) {
             all.push(item);
             if (all.length >= MAX_ITEMS) {
@@ -455,7 +463,9 @@ export default function InventoryMissingImagesPage() {
   }, [load]);
 
   // Debounced search
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const handleSearch = useCallback((v: string) => {
     setSearch(v);
     clearTimeout(searchTimer.current);
@@ -474,41 +484,53 @@ export default function InventoryMissingImagesPage() {
 
   // Quick links to other inventory pages
   const quickLinks = [
-    { href: "/inventory/missing-barcodes", label: "Missing barcodes", desc: "Products without barcodes" },
-    { href: "/inventory/stock", label: "Stock levels", desc: "Current stock across branches" },
-    { href: "/inventory/valuation", label: "Valuation", desc: "Inventory value report" },
-    { href: "/inventory/restock", label: "Restock", desc: "Low-stock reorder suggestions" },
+    {
+      href: "/inventory/missing-barcodes",
+      label: "Missing barcodes",
+      desc: "Products without barcodes",
+    },
+    {
+      href: "/inventory/stock",
+      label: "Stock levels",
+      desc: "Current stock across branches",
+    },
+    {
+      href: "/inventory/valuation",
+      label: "Valuation",
+      desc: "Inventory value report",
+    },
+    {
+      href: "/inventory/restock",
+      label: "Restock",
+      desc: "Low-stock reorder suggestions",
+    },
   ];
 
   return (
-    <div className="relative isolate h-full scroll-smooth overflow-y-auto overscroll-contain">
-      {/* Ambient glow */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
-        <div className="absolute -left-24 -top-28 h-80 w-80 bg-orange-400/[0.04] blur-3xl" />
-        <div className="absolute -right-20 top-1/3 h-72 w-80 bg-teal-400/[0.04] blur-3xl" />
-      </div>
-
-      <div className={cn(DASHBOARD_MAX_WIDE, "!space-y-4 !pb-12")}>
-        {/* ── Header ── */}
-        <div className="sticky top-0 z-30 overflow-hidden border border-border/40 bg-linear-to-b from-card/95 via-card/90 to-card/85 shadow-lg backdrop-blur-xl">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-            <div className="flex min-w-0 items-center gap-2.5">
+      <div className="relative isolate h-full scroll-smooth overflow-y-auto overscroll-contain bg-white">
+      <div className={cn(DASHBOARD_MAX_WIDE, "!space-y-1 !pb-8")}>
+        <div className="sticky top-0 z-30 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2.5 py-1 sm:px-3">
+            <div className="flex min-w-0 items-center gap-2">
               <Link
                 href="/inventory"
-                className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-muted/30 text-muted-foreground/70 transition-colors hover:border-border/60 hover:bg-muted/50 hover:text-foreground"
+                className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
                 aria-label="Back to inventory"
               >
-                <ArrowLeft className="size-[15px]" />
+                <ArrowLeft className="size-3.5" />
               </Link>
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-[13px] font-bold leading-none tracking-tight text-foreground">
+              <div className="flex min-w-0 flex-col">
+                <span className="font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
                   Missing Images
                 </span>
-                <ActiveScopeSubtitle className="text-[10px]" />
+                <ActiveScopeSubtitle className="text-[11px] tracking-[-0.02em]" />
               </div>
             </div>
 
-            <span className="hidden h-5 w-px bg-border/60 sm:block" aria-hidden />
+            <span
+              className="hidden h-5 w-px bg-border/60 sm:block"
+              aria-hidden
+            />
 
             {/* Stats pill */}
             {!loading ? (
@@ -516,9 +538,12 @@ export default function InventoryMissingImagesPage() {
                 <div className="flex items-center gap-1.5 rounded-full border border-orange-400/20 bg-orange-400/[0.06] px-3 py-1">
                   <ImageOff className="size-3 text-orange-500" />
                   <span className="text-[11px] font-semibold tabular-nums text-orange-700">
-                    {totalMissing}{capped ? "+" : ""}
+                    {totalMissing}
+                    {capped ? "+" : ""}
                   </span>
-                  <span className="text-[10px] text-orange-600/60">without image</span>
+                  <span className="text-[10px] text-orange-600/60">
+                    without image
+                  </span>
                 </div>
                 {totalAll > 0 ? (
                   <span className="text-[10px] text-muted-foreground/50">
@@ -533,18 +558,21 @@ export default function InventoryMissingImagesPage() {
                 type="button"
                 onClick={load}
                 disabled={loading}
-                className="group flex size-7.5 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-muted/30 text-muted-foreground/80 transition-all hover:border-border/70 hover:bg-muted/50 hover:text-foreground active:scale-95 disabled:opacity-40"
+                className="group flex size-7.5 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground/80 transition-all hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/50 hover:text-foreground active:scale-95 disabled:opacity-40"
                 aria-label="Refresh"
               >
                 <RefreshCw
-                  className={cn("size-3.5 transition-transform", loading && "animate-spin")}
+                  className={cn(
+                    "size-3.5 transition-transform",
+                    loading && "animate-spin",
+                  )}
                 />
               </button>
             </div>
           </div>
 
           {/* ── Filters bar ── */}
-          <div className="flex flex-wrap items-center gap-2 border-t border-border/30 px-4 py-2">
+          <div className="flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-2">
             {/* Search */}
             <div className="relative min-w-[140px] flex-1 sm:max-w-[220px]">
               <Search className="absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground/50" />
@@ -552,7 +580,7 @@ export default function InventoryMissingImagesPage() {
                 placeholder="Search products…"
                 value={search}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="h-7.5 w-full rounded-lg border border-border/50 bg-muted/30 pl-7.5 pr-2.5 text-[11px] outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/45"
+                className="h-7.5 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 pl-7.5 pr-2.5 text-[11px] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/45"
               />
             </div>
 
@@ -560,11 +588,13 @@ export default function InventoryMissingImagesPage() {
             <select
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
-              className="h-7.5 rounded-lg border border-border/50 bg-muted/30 px-2.5 pr-7 text-[11px] font-medium text-foreground/80 outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+              className="h-7.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 pr-7 text-[11px] font-medium text-foreground/80 outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
             >
               <option value="">All branches</option>
               {branches.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
               ))}
             </select>
 
@@ -572,11 +602,13 @@ export default function InventoryMissingImagesPage() {
             <select
               value={itemTypeId}
               onChange={(e) => setItemTypeId(e.target.value)}
-              className="h-7.5 rounded-lg border border-border/50 bg-muted/30 px-2.5 pr-7 text-[11px] font-medium text-foreground/80 outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+              className="h-7.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 pr-7 text-[11px] font-medium text-foreground/80 outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
             >
               <option value="">All departments</option>
               {itemTypes.map((t) => (
-                <option key={t.id} value={t.id}>{t.label}</option>
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
               ))}
             </select>
 
@@ -584,11 +616,13 @@ export default function InventoryMissingImagesPage() {
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="h-7.5 rounded-lg border border-border/50 bg-muted/30 px-2.5 pr-7 text-[11px] font-medium text-foreground/80 outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+              className="h-7.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 pr-7 text-[11px] font-medium text-foreground/80 outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
             >
               <option value="">All categories</option>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
               ))}
             </select>
           </div>
@@ -601,7 +635,9 @@ export default function InventoryMissingImagesPage() {
         {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
         {loading ? (
-          <DashboardLoading label={`Scanning ${activeTypeName ? activeTypeName.toLowerCase() : "catalog"} for items without images…`} />
+          <DashboardLoading
+            label={`Scanning ${activeTypeName ? activeTypeName.toLowerCase() : "catalog"} for items without images…`}
+          />
         ) : items.length === 0 ? (
           /* Empty state */
           <div className="flex flex-col items-center gap-4 py-16">
@@ -609,7 +645,9 @@ export default function InventoryMissingImagesPage() {
               <ImageOff className="size-8 text-emerald-400/60" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold text-foreground/80">All products have images</p>
+              <p className="text-sm font-semibold text-foreground/80">
+                All products have images
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {query || branchId || itemTypeId || categoryId || headerAisleId
                   ? "No matching items found without images. Try adjusting your filters."
@@ -621,10 +659,11 @@ export default function InventoryMissingImagesPage() {
           <>
             {/* Info banner */}
             {capped ? (
-              <div className="flex items-center gap-2 rounded-xl border border-amber-400/25 bg-amber-400/[0.05] px-4 py-2.5">
+              <div className="flex items-center gap-2 rounded-none border border-amber-400/25 bg-amber-400/[0.05] px-4 py-2.5">
                 <Package className="size-4 shrink-0 text-amber-500" />
                 <p className="text-[11px] text-amber-800">
-                  Showing the first {MAX_ITEMS} items without images. Narrow your search or filters to see more specific results.
+                  Showing the first {MAX_ITEMS} items without images. Narrow
+                  your search or filters to see more specific results.
                 </p>
               </div>
             ) : null}
@@ -634,13 +673,13 @@ export default function InventoryMissingImagesPage() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-border/40 bg-card p-4 shadow-sm transition-all hover:border-border/70 hover:shadow-md"
+                  className="group relative flex flex-col gap-3 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 shadow-none transition-all hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] "
                 >
                   {/* Placeholder image area */}
-                  <div className="flex aspect-[4/3] items-center justify-center rounded-xl border-2 border-dashed border-border/50 bg-muted/20 transition-colors group-hover:border-orange-400/20 group-hover:bg-orange-400/[0.03]">
+                  <div className="flex aspect-[4/3] items-center justify-center rounded-none border-2 border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 transition-colors group-hover:border-orange-400/20 group-hover:bg-orange-400/[0.03]">
                     <div className="flex flex-col items-center gap-1.5">
                       <ImageOff className="size-8 text-muted-foreground/25 group-hover:text-orange-400/30" />
-                      <span className="text-[9px] font-medium uppercase tracking-widest text-muted-foreground/35 group-hover:text-orange-400/40">
+                      <span className="text-[9px] font-medium tracking-[-0.02em] text-muted-foreground/35 group-hover:text-orange-400/40">
                         No image
                       </span>
                     </div>
@@ -656,11 +695,17 @@ export default function InventoryMissingImagesPage() {
                     </Link>
 
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <span className="font-mono text-[10px] text-muted-foreground/55">{item.sku}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground/55">
+                        {item.sku}
+                      </span>
                       {item.categoryName ? (
                         <>
-                          <span className="text-[10px] text-muted-foreground/25">·</span>
-                          <span className="truncate text-[10px] text-muted-foreground/50">{item.categoryName}</span>
+                          <span className="text-[10px] text-muted-foreground/25">
+                            ·
+                          </span>
+                          <span className="truncate text-[10px] text-muted-foreground/50">
+                            {item.categoryName}
+                          </span>
                         </>
                       ) : null}
                     </div>
@@ -669,19 +714,27 @@ export default function InventoryMissingImagesPage() {
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px]">
                       {item.stockQty != null ? (
                         <span className="inline-flex items-center gap-1 font-mono tabular-nums text-muted-foreground/70">
-                          <span className="text-[9px] text-muted-foreground/40">Stock</span>
+                          <span className="text-[9px] text-muted-foreground/40">
+                            Stock
+                          </span>
                           {fmtQty(item.stockQty)}
                         </span>
                       ) : null}
-                      {(item.buyingPrice != null && toNum(item.buyingPrice) > 0) ? (
+                      {item.buyingPrice != null &&
+                      toNum(item.buyingPrice) > 0 ? (
                         <span className="inline-flex items-center gap-1 font-mono tabular-nums text-muted-foreground/70">
-                          <span className="text-[9px] text-muted-foreground/40">Buy</span>
+                          <span className="text-[9px] text-muted-foreground/40">
+                            Buy
+                          </span>
                           {fmtMoney(item.buyingPrice)}
                         </span>
                       ) : null}
-                      {(item.bundlePrice != null && toNum(item.bundlePrice) > 0) ? (
+                      {item.bundlePrice != null &&
+                      toNum(item.bundlePrice) > 0 ? (
                         <span className="inline-flex items-center gap-1 font-mono tabular-nums text-muted-foreground/70">
-                          <span className="text-[9px] text-muted-foreground/40">Sell</span>
+                          <span className="text-[9px] text-muted-foreground/40">
+                            Sell
+                          </span>
                           {fmtMoney(item.bundlePrice)}
                         </span>
                       ) : null}
@@ -689,22 +742,25 @@ export default function InventoryMissingImagesPage() {
                   </div>
 
                   {/* Upload action */}
-                  <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/30 pt-3">
+                  <div className="mt-auto flex items-center justify-between gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-3">
                     <Link
                       href={productDossierPath(item)}
                       className="text-[10px] font-medium text-muted-foreground/60 transition-colors hover:text-foreground"
                     >
                       View product →
                     </Link>
-                    <QuickUpload itemId={item.id} onDone={() => removeItem(item.id)} />
+                    <QuickUpload
+                      itemId={item.id}
+                      onDone={() => removeItem(item.id)}
+                    />
                   </div>
                 </div>
               ))}
             </div>
 
             {/* ── Quick links footer ── */}
-            <div className="rounded-2xl border border-border/40 bg-muted/10 p-4">
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+            <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/10 p-4">
+              <p className="mb-3 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/60">
                 Quick actions
               </p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -712,12 +768,14 @@ export default function InventoryMissingImagesPage() {
                   <Link
                     key={l.href}
                     href={l.href}
-                    className="group flex flex-col gap-0.5 rounded-xl border border-border/30 bg-card px-3.5 py-2.5 transition-all hover:border-primary/20 hover:bg-primary/[0.03] hover:shadow-sm"
+                    className="group flex flex-col gap-0.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3.5 py-2.5 transition-all hover:border-primary/20 hover:bg-primary/[0.03] "
                   >
                     <span className="text-[11px] font-semibold text-foreground/80 group-hover:text-primary">
                       {l.label}
                     </span>
-                    <span className="text-[10px] text-muted-foreground/50">{l.desc}</span>
+                    <span className="text-[10px] text-muted-foreground/50">
+                      {l.desc}
+                    </span>
                   </Link>
                 ))}
               </div>

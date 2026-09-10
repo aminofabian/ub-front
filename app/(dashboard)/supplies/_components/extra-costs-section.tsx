@@ -25,11 +25,7 @@ interface Props {
   busy: boolean;
 }
 
-export function ExtraCostsBody({
-  extras,
-  onChange,
-  busy,
-}: Props) {
+export function ExtraCostsBody({ extras, onChange, busy }: Props) {
   return (
     <>
       {extras.length === 0 ? (
@@ -64,7 +60,10 @@ export function ExtraCostsBody({
                 <option value="other">Other</option>
               </select>
               <input
-                className={cn(nsdInput, "w-20 text-right font-mono tabular-nums")}
+                className={cn(
+                  nsdInput,
+                  "w-20 text-right font-mono tabular-nums",
+                )}
                 placeholder="0.00"
                 value={e.amount}
                 onChange={(ev) =>
@@ -133,14 +132,10 @@ export function ExtraCostsBody({
 }
 
 export function ExtraCostsSection({ extras, onChange, busy }: Props) {
-  const badge =
-    extras.length > 0 ? `${extras.length} added` : "Optional";
+  const badge = extras.length > 0 ? `${extras.length} added` : "Optional";
 
   return (
-    <details
-      className={cn(nsdSectionShell, "group")}
-      open={extras.length > 0}
-    >
+    <details className={cn(nsdSectionShell, "group")} open={extras.length > 0}>
       <summary
         className={cn(
           nsdSectionHeader,

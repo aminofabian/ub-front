@@ -68,9 +68,9 @@ export function DailyAuditProductCard({
     <article className="flex min-w-0 items-center gap-3">
       <div
         className={cn(
-          "relative size-[4.5rem] shrink-0 overflow-hidden rounded-2xl",
+          "relative size-[4.5rem] shrink-0 overflow-hidden rounded-none",
           "bg-gradient-to-br from-muted/80 via-muted/40 to-background",
-          "ring-1 ring-border/70 shadow-sm",
+          "ring-1 ring-border/70 shadow-none",
         )}
       >
         {shownUrl ? (
@@ -101,7 +101,9 @@ export function DailyAuditProductCard({
           {itemName}
         </h2>
         {metaLine ? (
-          <p className="truncate text-[11px] text-muted-foreground">{metaLine}</p>
+          <p className="truncate text-[11px] text-muted-foreground">
+            {metaLine}
+          </p>
         ) : null}
         {systemStockLabel ? (
           <p className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
@@ -117,7 +119,7 @@ export function DailyAuditProductCard({
               onClick={() => cameraInputRef.current?.click()}
               className={cn(
                 "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium",
-                "bg-foreground text-background shadow-sm transition active:scale-[0.97]",
+                "bg-foreground text-background shadow-none transition active:scale-[0.97]",
                 "disabled:opacity-50",
               )}
             >
@@ -130,7 +132,7 @@ export function DailyAuditProductCard({
               onClick={() => libraryInputRef.current?.click()}
               className={cn(
                 "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium",
-                "border border-border/80 bg-background/80 text-foreground",
+                "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background/80 text-foreground",
                 "transition active:scale-[0.97] disabled:opacity-50",
               )}
             >

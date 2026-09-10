@@ -13,7 +13,11 @@ type Props = {
   canEdit: boolean;
 };
 
-export function CustomerMessagingDrawer({ open, onOpenChange, canEdit }: Props) {
+export function CustomerMessagingDrawer({
+  open,
+  onOpenChange,
+  canEdit,
+}: Props) {
   return (
     <FormDrawer
       open={open}
@@ -23,7 +27,7 @@ export function CustomerMessagingDrawer({ open, onOpenChange, canEdit }: Props) 
       title="Messaging"
       description="Reminders, templates, and test sends for customer outreach."
       icon={
-        <span className="flex size-9 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+        <span className="flex size-9 items-center justify-center rounded-none bg-muted text-muted-foreground">
           <MessageCircle className="size-5" />
         </span>
       }

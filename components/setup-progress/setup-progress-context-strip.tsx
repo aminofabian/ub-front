@@ -44,7 +44,7 @@ export function SetupProgressContextStrip({
     <>
       <div
         role="status"
-        className="shrink-0 border-b border-[#B08D48]/25 bg-[#FCFAF6] text-[#141414]"
+        className="shrink-0 border-b border-[#0f766e]/25 bg-[#ffffff] text-[#141414]"
       >
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 sm:px-4">
           <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -55,8 +55,8 @@ export function SetupProgressContextStrip({
                   className={cn(
                     "size-1.5 rounded-full",
                     step.status === "completed" && "bg-[#0D9488]",
-                    step.status === "current" && "bg-[#B08D48]",
-                    step.status === "pending" && "bg-[#E6E1D8]",
+                    step.status === "current" && "bg-[#0f766e]",
+                    step.status === "pending" && "bg-[#e4e7e6]",
                   )}
                   aria-hidden
                 />
@@ -69,7 +69,7 @@ export function SetupProgressContextStrip({
           </div>
           <button
             type="button"
-            className="shrink-0 text-[11px] font-medium text-[#8A6B2E] hover:underline sm:text-xs"
+            className="shrink-0 text-[11px] font-medium text-[#0f766e] hover:underline sm:text-xs"
             onClick={() => setGuideOpen(true)}
           >
             How?
@@ -79,7 +79,7 @@ export function SetupProgressContextStrip({
               type="button"
               className={cn(
                 "shrink-0 text-[11px] font-semibold underline underline-offset-2 sm:text-xs",
-                "decoration-[#B08D48]/50 hover:decoration-[#8A6B2E]",
+                "decoration-[#0f766e]/50 hover:decoration-[#0f766e]",
               )}
               onClick={() => setPhoneOpen(true)}
             >
@@ -90,7 +90,7 @@ export function SetupProgressContextStrip({
               href={actionUrl}
               className={cn(
                 "shrink-0 text-[11px] font-semibold underline underline-offset-2 sm:text-xs",
-                "decoration-[#B08D48]/50 hover:decoration-[#8A6B2E]",
+                "decoration-[#0f766e]/50 hover:decoration-[#0f766e]",
               )}
             >
               Continue →

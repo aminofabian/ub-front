@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 
 /** Shared panel surface for directory / ranking workspaces */
 export const directoryPanelClass =
-  "overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm";
+  "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none";
 
 export const directoryFrameClass =
-  "flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/40 shadow-sm backdrop-blur-[2px] lg:min-h-[min(72dvh,44rem)] lg:max-h-[calc(100dvh-10.5rem)]";
+  "flex min-h-0 flex-col overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none lg:min-h-[min(72dvh,44rem)] lg:max-h-[calc(100dvh-10.5rem)]";
 
 export function DirectoryPanel({
   children,
@@ -40,15 +40,17 @@ export function DirectoryColumnHeader({
       )}
     >
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {title}
         </p>
         {hint ? (
-          <p className="truncate text-[11px] text-muted-foreground/90">{hint}</p>
+          <p className="truncate text-[11px] text-muted-foreground/90">
+            {hint}
+          </p>
         ) : null}
       </div>
       {badge ? (
-        <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+        <span className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
           {badge}
         </span>
       ) : null}
@@ -91,11 +93,11 @@ export function DirectoryStat({
   return (
     <div
       className={cn(
-        "min-w-0 rounded-lg border border-border/60 bg-background/80 px-2.5 py-2",
+        "min-w-0 rounded-none border border-border/60 bg-background/80 px-2.5 py-2",
         className,
       )}
     >
-      <p className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="truncate text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
         {label}
       </p>
       <p
@@ -135,11 +137,11 @@ export function DirectoryToolbar({
       )}
     >
       <div className="flex min-w-0 items-start gap-2.5">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-foreground">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-none border border-border/60 bg-muted/40 text-foreground">
           <Icon className="size-4" aria-hidden />
         </span>
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
             {eyebrow}
           </p>
           <h1 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
@@ -157,7 +159,7 @@ export function DirectoryToolbar({
           <Link
             key={link.href}
             href={link.href}
-            className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-1 text-[12px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]"
           >
             {link.label}
           </Link>
@@ -178,7 +180,7 @@ export function DirectoryBackButton({
   return (
     <button
       type="button"
-      className="mb-2 flex items-center gap-1.5 rounded-md px-1 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+      className="mb-2 flex items-center gap-1.5 rounded-none px-1 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
       onClick={onClick}
     >
       <span aria-hidden>←</span>

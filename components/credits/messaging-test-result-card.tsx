@@ -17,7 +17,11 @@ function lookupStatusLabel(r: CreditSaleReminderTestResult): string {
 function explainLookupDetail(detail: string): string | null {
   const d = detail.trim().toLowerCase();
   if (!d) return null;
-  if (d === "whatsapp_only_test" || d === "sms_only_test" || d === "direct_send") {
+  if (
+    d === "whatsapp_only_test" ||
+    d === "sms_only_test" ||
+    d === "direct_send"
+  ) {
     return null;
   }
   if (d.startsWith("http_")) {
@@ -74,9 +78,7 @@ function splitDeliveryDetail(detail: string): {
 
 function explainMetaDetail(detail: string): string | null {
   const d = detail.toLowerCase();
-  if (
-    /api access blocked|permissions error|\[code=200\b/i.test(detail)
-  ) {
+  if (/api access blocked|permissions error|\[code=200\b/i.test(detail)) {
     return "Meta blocked this app or System User from the WhatsApp Cloud API (Graph code 200). The token is not expired — it is not allowed to use this number. In Business Settings → System Users, assign full control on the WhatsApp Business Account and phone number, generate a new token with whatsapp_business_messaging and whatsapp_business_management, then paste it in Super Admin → Platform integrations. Also check developers.facebook.com: app Live (or recipient is a tester), WhatsApp permissions on Advanced Access, and App Quality / Account Quality not restricted.";
   }
   if (/object with id|does not exist|missing permissions/i.test(detail)) {
@@ -151,7 +153,8 @@ export function MessagingTestResultCard({
     r.channel === "sms_stub" ||
     r.outcome === "stub" ||
     Boolean(parts.sms);
-  const metaHint = showMeta && metaDetail ? explainMetaDetail(metaDetail) : null;
+  const metaHint =
+    showMeta && metaDetail ? explainMetaDetail(metaDetail) : null;
   const smsHint =
     showSms && (smsDetail || r.detail)
       ? explainSmsDetail(smsDetail || r.detail, r.channel)
@@ -167,7 +170,7 @@ export function MessagingTestResultCard({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border text-sm",
+        "overflow-hidden rounded-none border text-sm",
         ok
           ? "border-emerald-500/25 bg-emerald-500/[0.04]"
           : "border-border/70 bg-muted/20",
@@ -176,7 +179,7 @@ export function MessagingTestResultCard({
     >
       <div
         className={cn(
-          "border-b px-3 py-2 text-xs font-medium uppercase tracking-wide",
+          "border-b px-3 py-2 text-xs font-medium tracking-[-0.02em]",
           ok
             ? "border-emerald-500/20 text-emerald-800 dark:text-emerald-200"
             : "border-border/60 text-muted-foreground",
@@ -191,7 +194,10 @@ export function MessagingTestResultCard({
           <section className="space-y-1 px-3 py-2.5">
             <p className="text-xs font-semibold text-foreground">Reminders</p>
             <p className="text-muted-foreground">
-              Enabled: <span className="text-foreground">{yesNo(r.remindersEnabled)}</span>
+              Enabled:{" "}
+              <span className="text-foreground">
+                {yesNo(r.remindersEnabled)}
+              </span>
             </p>
           </section>
         ) : null}
@@ -203,7 +209,9 @@ export function MessagingTestResultCard({
             </p>
             <p className="text-muted-foreground">
               Configured:{" "}
-              <span className="text-foreground">{yesNo(r.rapidApiConfigured)}</span>
+              <span className="text-foreground">
+                {yesNo(r.rapidApiConfigured)}
+              </span>
             </p>
             <p className="text-muted-foreground">
               Result:{" "}
@@ -228,11 +236,15 @@ export function MessagingTestResultCard({
         {showMeta ? (
           <section className="space-y-1.5 px-3 py-2.5">
             <p className="text-xs font-semibold text-foreground">
-              {variant === "full" ? "2. Meta WhatsApp send" : "Meta WhatsApp send"}
+              {variant === "full"
+                ? "2. Meta WhatsApp send"
+                : "Meta WhatsApp send"}
             </p>
             <p className="text-muted-foreground">
               Configured:{" "}
-              <span className="text-foreground">{yesNo(r.metaWhatsAppConfigured)}</span>
+              <span className="text-foreground">
+                {yesNo(r.metaWhatsAppConfigured)}
+              </span>
             </p>
             <p className="text-muted-foreground">
               Result:{" "}
@@ -257,7 +269,9 @@ export function MessagingTestResultCard({
               </p>
             ) : null}
             {variant === "full" && smsUsed && whatsappFailed ? (
-              <p className="text-xs text-muted-foreground">Falling back to SMS…</p>
+              <p className="text-xs text-muted-foreground">
+                Falling back to SMS…
+              </p>
             ) : null}
           </section>
         ) : null}
@@ -294,19 +308,21 @@ export function MessagingTestResultCard({
                 ) : null}
                 {r.outcome === "stub" ? (
                   <p className="text-xs leading-relaxed text-muted-foreground">
-                    SMS provider is “none”: nothing is sent to the phone (server log
-                    only).
+                    SMS provider is “none”: nothing is sent to the phone (server
+                    log only).
                   </p>
                 ) : null}
               </>
             ) : variant === "full" &&
               r.channel === "whatsapp" &&
               r.outcome === "sent" ? (
-              <p className="text-muted-foreground">Not used (WhatsApp delivered).</p>
+              <p className="text-muted-foreground">
+                Not used (WhatsApp delivered).
+              </p>
             ) : variant === "full" && !r.smsConfigured ? (
               <p className="text-muted-foreground">
-                Not configured — enable TextSMS, Sozuri, or Africa&apos;s Talking to fall back when
-                WhatsApp fails.
+                Not configured — enable TextSMS, Sozuri, or Africa&apos;s
+                Talking to fall back when WhatsApp fails.
               </p>
             ) : (
               <p className="text-muted-foreground">Not used.</p>
@@ -361,7 +377,10 @@ export function messagingTestHeadline(
   ) {
     return "Meta blocked API access (permissions / app restriction). See details below.";
   }
-  if (r.channel === "whatsapp" && /object with id|does not exist/i.test(r.detail)) {
+  if (
+    r.channel === "whatsapp" &&
+    /object with id|does not exist/i.test(r.detail)
+  ) {
     return "Meta WhatsApp send failed (phone number ID / permissions). See details below.";
   }
   if (r.whatsAppLookupSkipped && /^http_/i.test(r.lookupDetail)) {

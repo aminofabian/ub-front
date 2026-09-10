@@ -18,9 +18,7 @@ import { toast } from "sonner";
 import { useDashboard } from "@/components/dashboard-provider";
 import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
 import { HubSettingsSectionNav } from "@/components/business-hub/hub-settings-section-nav";
-import {
-  DashboardFeedback,
-} from "@/components/dashboard-page-ui";
+import { DashboardFeedback } from "@/components/dashboard-page-ui";
 import { FormDrawer } from "@/components/form-drawer";
 import { AirtimeSettingsSection } from "@/components/payments/airtime-settings-section";
 import { GatewayConfigForm } from "@/components/payments/gateway-config-form";
@@ -142,9 +140,7 @@ function providerDashboardUrl(
       href: production
         ? "https://app.kopokopo.com"
         : "https://sandbox.kopokopo.com",
-      label: production
-        ? "Open KopoKopo Dashboard"
-        : "Open KopoKopo Sandbox",
+      label: production ? "Open KopoKopo Dashboard" : "Open KopoKopo Sandbox",
     };
   }
   return null;
@@ -162,7 +158,7 @@ function CheckoutStatusBadge({ status }: { status: string | null }) {
   return (
     <span
       className={cn(
-        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
         tone,
       )}
     >
@@ -204,11 +200,13 @@ export default function PaymentGatewaySettingsPage() {
   const [manualEditInitial, setManualEditInitial] = useState<
     Partial<{ label: string; displayInstructionsJson: string }> | undefined
   >(undefined);
-  const [checkoutRows, setCheckoutRows] = useState<GatewayCheckoutRecord[] | null>(
+  const [checkoutRows, setCheckoutRows] = useState<
+    GatewayCheckoutRecord[] | null
+  >(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [manageEnvironment, setManageEnvironment] = useState<string | null>(
     null,
   );
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [manageEnvironment, setManageEnvironment] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -239,10 +237,7 @@ export default function PaymentGatewaySettingsPage() {
   }, [canRead, reload]);
 
   const addableApi = useMemo(
-    () =>
-      available.filter(
-        (a) => a.gatewayType !== "MANUAL" && !a.configured,
-      ),
+    () => available.filter((a) => a.gatewayType !== "MANUAL" && !a.configured),
     [available],
   );
 
@@ -254,8 +249,7 @@ export default function PaymentGatewaySettingsPage() {
     (c) => c.gatewayType === "KOPOKOPO" && c.status !== "ACTIVE",
   );
 
-  const manageConfig =
-    drawer.kind === "manage" ? drawer.config : null;
+  const manageConfig = drawer.kind === "manage" ? drawer.config : null;
   const manageBusy = manageConfig ? rowBusyId === manageConfig.id : false;
 
   // Load recent Paystack checkout attempts when the Manage drawer opens on a
@@ -327,10 +321,7 @@ export default function PaymentGatewaySettingsPage() {
     }
   };
 
-  const onUpdate = async (
-    id: string,
-    payload: CreateGatewayConfigPayload,
-  ) => {
+  const onUpdate = async (id: string, payload: CreateGatewayConfigPayload) => {
     setSaving(true);
     try {
       await updateGatewayConfig(id, payload);
@@ -441,9 +432,7 @@ export default function PaymentGatewaySettingsPage() {
       }
       await reload();
     } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : "Connection test failed.",
-      );
+      toast.error(e instanceof Error ? e.message : "Connection test failed.");
     } finally {
       setRowBusyId(null);
     }
@@ -516,9 +505,9 @@ export default function PaymentGatewaySettingsPage() {
             disabled={loading}
             onClick={() => void reload()}
             className={cn(
-              "inline-flex size-9 items-center justify-center rounded-lg border border-[#E6E1D8] bg-white text-[#666666]",
-              "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+              "inline-flex size-7 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666]",
+              "transition-colors hover:border-[#0f766e] hover:text-[#0f766e]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/30",
               "disabled:cursor-not-allowed disabled:opacity-60",
             )}
             aria-label="Refresh payment methods"
@@ -532,7 +521,7 @@ export default function PaymentGatewaySettingsPage() {
             <Button
               type="button"
               size="sm"
-              className="h-9 gap-1.5 rounded-lg bg-[#141414] px-3.5 text-[#F5E6C8] hover:bg-[#141414]/90"
+              className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3.5 text-white hover:bg-[#0d6b63]"
               onClick={() => setDrawer({ kind: "pick" })}
             >
               <Plus className="size-4" aria-hidden />
@@ -542,7 +531,7 @@ export default function PaymentGatewaySettingsPage() {
         </>
       }
     >
-      <div className="space-y-6 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:pb-2">
+      <div className="space-y-1 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:pb-2">
         <HubSettingsSectionNav
           ariaLabel="Payment settings sections"
           items={[
@@ -553,9 +542,14 @@ export default function PaymentGatewaySettingsPage() {
           ]}
         />
 
-        <dl className={cn(HUB_SURFACE, "grid gap-px bg-[#E6E1D8]/80 sm:grid-cols-3")}>
+        <dl
+          className={cn(
+            HUB_SURFACE,
+            "grid gap-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:grid-cols-3",
+          )}
+        >
           <div className="bg-white px-4 py-3">
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A8A8A]">
+            <dt className="text-[10px] font-semibold tracking-[-0.02em] text-[#8A8A8A]">
               Methods
             </dt>
             <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-[#141414]">
@@ -563,7 +557,7 @@ export default function PaymentGatewaySettingsPage() {
             </dd>
           </div>
           <div className="bg-white px-4 py-3">
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A8A8A]">
+            <dt className="text-[10px] font-semibold tracking-[-0.02em] text-[#8A8A8A]">
               Active
             </dt>
             <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-emerald-700">
@@ -571,7 +565,7 @@ export default function PaymentGatewaySettingsPage() {
             </dd>
           </div>
           <div className="bg-white px-4 py-3">
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A8A8A]">
+            <dt className="text-[10px] font-semibold tracking-[-0.02em] text-[#8A8A8A]">
               Needs attention
             </dt>
             <dd
@@ -585,150 +579,159 @@ export default function PaymentGatewaySettingsPage() {
           </div>
         </dl>
 
-      {loadError ? (
-        <DashboardFeedback kind="error" text={loadError} />
-      ) : null}
+        {loadError ? <DashboardFeedback kind="error" text={loadError} /> : null}
 
-      <section id="accept-payments" className="relative scroll-mt-24 space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="min-w-0 max-w-2xl">
-            <h2 className="font-heading text-lg font-semibold tracking-tight text-[#141414]">
-              Accept payments
-            </h2>
-            <p className="mt-1 text-sm leading-relaxed text-[#666666]">
-              API gateways need a successful connection test before activation.
-              Manual till / paybill methods go live immediately.
-            </p>
+        <section
+          id="accept-payments"
+          className="relative scroll-mt-24 space-y-4"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0 max-w-2xl">
+              <h2 className="font-heading text-lg font-semibold tracking-tight text-[#141414]">
+                Accept payments
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-[#666666]">
+                API gateways need a successful connection test before
+                activation. Manual till / paybill methods go live immediately.
+              </p>
+            </div>
           </div>
-        </div>
 
-        {kopokopoNeedsAttention ? (
-          <div
-            role="status"
-            className="rounded-xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-          >
-            <p className="font-semibold">KopoKopo is not active yet</p>
-            <p className="mt-1 text-xs leading-relaxed opacity-90">
-              Open <strong>Manage</strong> on the KopoKopo row →{" "}
-              <strong>Test</strong> → <strong>Activate</strong> →{" "}
-              <strong>Till webhooks</strong>. A Manual “Mpesa Till” row only prints
-              instructions; it does not receive payments.
-            </p>
-          </div>
-        ) : null}
+          {kopokopoNeedsAttention ? (
+            <div
+              role="status"
+              className="rounded-none border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+            >
+              <p className="font-semibold">KopoKopo is not active yet</p>
+              <p className="mt-1 text-xs leading-relaxed opacity-90">
+                Open <strong>Manage</strong> on the KopoKopo row →{" "}
+                <strong>Test</strong> → <strong>Activate</strong> →{" "}
+                <strong>Till webhooks</strong>. A Manual “Mpesa Till” row only
+                prints instructions; it does not receive payments.
+              </p>
+            </div>
+          ) : null}
 
-        {loading ? (
-          <div className={cn(HUB_SURFACE, "flex items-center gap-2 px-4 py-10 text-sm text-[#666666]")}>
-            <Loader2 className="size-4 animate-spin" aria-hidden />
-            Loading payment methods…
-          </div>
-        ) : configs.length === 0 ? (
-          <div className={cn(HUB_SURFACE, "border-dashed px-5 py-12 text-center")}>
-            <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-[#F9F6F0] text-[#8A6B2E]">
-              <CreditCard className="size-6" aria-hidden />
-            </span>
-            <p className="mt-4 text-sm font-semibold text-[#141414]">
-              No payment methods yet
-            </p>
-            <p className="mx-auto mt-1 max-w-md text-sm text-[#666666]">
-              {canWrite
-                ? "Add KopoKopo for M-Pesa STK and supplier Send Money, or a manual till / paybill for receipt instructions."
-                : "Ask an admin to connect a payment gateway."}
-            </p>
-            {canWrite ? (
-              <Button
-                type="button"
-                size="sm"
-                className="mt-5 gap-1.5 rounded-lg bg-[#141414] text-[#F5E6C8] hover:bg-[#141414]/90"
-                onClick={() => setDrawer({ kind: "pick" })}
-              >
-                <Plus className="size-4" aria-hidden />
-                Add your first method
-              </Button>
-            ) : null}
-          </div>
-        ) : (
-          <ul className={cn(HUB_SURFACE, "divide-y divide-[#E6E1D8]/80")}>
-            {configs.map((config) => {
-              const busy = rowBusyId === config.id;
-              const name = gatewayDisplayName(config, available);
-              return (
-                <li
-                  key={config.id}
-                  className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+          {loading ? (
+            <div
+              className={cn(
+                HUB_SURFACE,
+                "flex items-center gap-2 px-4 py-10 text-sm text-[#666666]",
+              )}
+            >
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Loading payment methods…
+            </div>
+          ) : configs.length === 0 ? (
+            <div
+              className={cn(
+                HUB_SURFACE,
+                "border-dashed px-5 py-12 text-center",
+              )}
+            >
+              <span className="mx-auto flex size-12 items-center justify-center rounded-none bg-[#ffffff] text-[#0f766e]">
+                <CreditCard className="size-6" aria-hidden />
+              </span>
+              <p className="mt-4 text-sm font-semibold text-[#141414]">
+                No payment methods yet
+              </p>
+              <p className="mx-auto mt-1 max-w-md text-sm text-[#666666]">
+                {canWrite
+                  ? "Add KopoKopo for M-Pesa STK and supplier Send Money, or a manual till / paybill for receipt instructions."
+                  : "Ask an admin to connect a payment gateway."}
+              </p>
+              {canWrite ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-5 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
+                  onClick={() => setDrawer({ kind: "pick" })}
                 >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span
-                      className={cn(
-                        "mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-bold",
-                        config.status === "ACTIVE"
-                          ? "bg-[#141414] text-[#F5E6C8]"
-                          : config.status === "ERROR"
-                            ? "bg-destructive/15 text-destructive"
-                            : "bg-[#F0EBE3] text-[#666666]",
-                      )}
-                      aria-hidden
-                    >
-                      {gatewayGlyph(config.gatewayType)}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate font-medium text-foreground">
-                          {config.label}
+                  <Plus className="size-4" aria-hidden />
+                  Add your first method
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <ul className={cn(HUB_SURFACE, "divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]")}>
+              {configs.map((config) => {
+                const busy = rowBusyId === config.id;
+                const name = gatewayDisplayName(config, available);
+                return (
+                  <li
+                    key={config.id}
+                    className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                  >
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span
+                        className={cn(
+                          "mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-none font-mono text-sm font-bold",
+                          config.status === "ACTIVE"
+                            ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                            : config.status === "ERROR"
+                              ? "bg-destructive/15 text-destructive"
+                              : "bg-white text-[#666666]",
+                        )}
+                        aria-hidden
+                      >
+                        {gatewayGlyph(config.gatewayType)}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate font-medium text-foreground">
+                            {config.label}
+                          </p>
+                          <GatewayStatusBadge status={config.status} />
+                          {config.isDefault ? (
+                            <span className="bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-primary">
+                              Default
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {name}
+                          {config.lastTestedAt
+                            ? ` · Last tested ${new Date(config.lastTestedAt).toLocaleString()}`
+                            : ""}
                         </p>
-                        <GatewayStatusBadge status={config.status} />
-                        {config.isDefault ? (
-                          <span className="bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                            Default
-                          </span>
-                        ) : null}
                       </div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {name}
-                        {config.lastTestedAt
-                          ? ` · Last tested ${new Date(config.lastTestedAt).toLocaleString()}`
-                          : ""}
-                      </p>
                     </div>
-                  </div>
 
-                  <div className="flex flex-wrap gap-2 sm:justify-end">
-                    {canWrite ? (
+                    <div className="flex flex-wrap gap-2 sm:justify-end">
+                      {canWrite ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          disabled={busy}
+                          onClick={() => void openEdit(config)}
+                        >
+                          <Pencil className="size-3.5" aria-hidden />
+                          Edit
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
-                        variant="outline"
                         size="sm"
                         className="gap-1.5"
                         disabled={busy}
-                        onClick={() => void openEdit(config)}
+                        onClick={() => setDrawer({ kind: "manage", config })}
                       >
-                        <Pencil className="size-3.5" aria-hidden />
-                        Edit
+                        <MoreHorizontal className="size-3.5" aria-hidden />
+                        Manage
                       </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="gap-1.5"
-                      disabled={busy}
-                      onClick={() =>
-                        setDrawer({ kind: "manage", config })
-                      }
-                    >
-                      <MoreHorizontal className="size-3.5" aria-hidden />
-                      Manage
-                    </Button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
-      <SupplierPayoutSettingsSection canWrite={canWrite} />
-      <KioskPaySettingsSection canWrite={canWrite} />
-      <AirtimeSettingsSection />
+        <SupplierPayoutSettingsSection canWrite={canWrite} />
+        <KioskPaySettingsSection canWrite={canWrite} />
+        <AirtimeSettingsSection />
       </div>
 
       {/* Pick provider */}
@@ -752,7 +755,7 @@ export default function PaymentGatewaySettingsPage() {
             <li>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-xl border border-[#E6E1D8]/90 bg-white px-4 py-3.5 text-left transition-colors hover:border-[#B08D48]/55 hover:bg-[#FCFAF6]"
+                className="flex w-full items-center justify-between rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3.5 text-left transition-colors hover:border-[#0f766e]/55 hover:bg-[#ffffff]"
                 onClick={() => setDrawer({ kind: "manual-create" })}
               >
                 <span>
@@ -771,7 +774,7 @@ export default function PaymentGatewaySettingsPage() {
             <li key={gw.gatewayType}>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-xl border border-[#E6E1D8]/90 bg-white px-4 py-3.5 text-left transition-colors hover:border-[#B08D48]/55 hover:bg-[#FCFAF6]"
+                className="flex w-full items-center justify-between rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3.5 text-left transition-colors hover:border-[#0f766e]/55 hover:bg-[#ffffff]"
                 onClick={() =>
                   setDrawer({
                     kind: "api-create",
@@ -825,10 +828,10 @@ export default function PaymentGatewaySettingsPage() {
       >
         {manageConfig ? (
           <div className="space-y-5">
-            <div className="flex flex-wrap items-center gap-2 border border-border/70 bg-muted/20 px-3.5 py-3">
+            <div className="flex flex-wrap items-center gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3.5 py-3">
               <GatewayStatusBadge status={manageConfig.status} />
               {manageConfig.isDefault ? (
-                <span className="bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                <span className="bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-primary">
                   Default
                 </span>
               ) : null}
@@ -845,15 +848,17 @@ export default function PaymentGatewaySettingsPage() {
             </div>
 
             {manageConfig.gatewayType === "KOPOKOPO" ? (
-              <ol className="list-decimal space-y-1.5 border border-border/70 bg-card px-4 py-3 pl-8 text-xs leading-relaxed text-muted-foreground">
+              <ol className="list-decimal space-y-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3 pl-8 text-xs leading-relaxed text-muted-foreground">
                 <li>Edit credentials if needed, then Test connection.</li>
                 <li>Activate when the test succeeds.</li>
-                <li>Subscribe Till webhooks so till payments land in PalMart.</li>
+                <li>
+                  Subscribe Till webhooks so till payments land in PalMart.
+                </li>
               </ol>
             ) : null}
 
             {manageConfig.gatewayType === "PAYSTACK" ? (
-              <ol className="list-decimal space-y-1.5 border border-border/70 bg-card px-4 py-3 pl-8 text-xs leading-relaxed text-muted-foreground">
+              <ol className="list-decimal space-y-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3 pl-8 text-xs leading-relaxed text-muted-foreground">
                 <li>Edit keys if needed, then Test connection.</li>
                 <li>Activate when the test succeeds.</li>
                 <li>
@@ -870,9 +875,9 @@ export default function PaymentGatewaySettingsPage() {
               );
               if (!dash) return null;
               return (
-                <div className="space-y-3 border border-border/70 bg-muted/20 px-4 py-3">
+                <div className="space-y-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-4 py-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <p className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
                       Settlement &amp; withdrawals
                     </p>
                     <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
@@ -883,8 +888,17 @@ export default function PaymentGatewaySettingsPage() {
                       account. Withdraw to your bank from their dashboard.
                     </p>
                   </div>
-                  <Button type="button" variant="outline" className="w-full justify-start gap-2" asChild>
-                    <a href={dash.href} target="_blank" rel="noopener noreferrer">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start gap-2"
+                    asChild
+                  >
+                    <a
+                      href={dash.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <ExternalLink className="size-3.5" aria-hidden />
                       {dash.label}
                     </a>
@@ -1011,12 +1025,15 @@ export default function PaymentGatewaySettingsPage() {
             </div>
 
             {manageConfig.gatewayType === "PAYSTACK" ? (
-              <div className="space-y-2 border border-border/70 bg-card px-4 py-3">
+              <div className="space-y-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  <p className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
                     Recent Paystack checkouts
                   </p>
-                  <RefreshCw className="size-3.5 text-muted-foreground" aria-hidden />
+                  <RefreshCw
+                    className="size-3.5 text-muted-foreground"
+                    aria-hidden
+                  />
                 </div>
                 {checkoutLoading ? (
                   <p className="flex items-center gap-2 text-xs text-muted-foreground">

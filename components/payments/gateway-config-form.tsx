@@ -171,18 +171,18 @@ export function GatewayConfigForm({
   };
 
   const secretInputClass =
-    "w-full rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm shadow-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring";
+    "h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 font-mono text-sm shadow-none focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
       {credentialSettings?.readError ? (
-        <p className="rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+        <p className="rounded-none border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
           {credentialSettings.readError}
         </p>
       ) : null}
 
       {formError ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-none border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {formError}
         </p>
       ) : null}
@@ -190,7 +190,7 @@ export function GatewayConfigForm({
       <FormDrawerFields legend="Label" hint="A friendly name for this gateway.">
         <input
           type="text"
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+          className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
           placeholder={displayName}
           value={label}
           onChange={(e) => setLabel(e.target.value)}
@@ -200,7 +200,7 @@ export function GatewayConfigForm({
 
       <FormDrawerFields legend="Environment">
         <div className="flex gap-2">
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent/50">
+          <label className="flex cursor-pointer items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background px-3 py-2 text-sm font-medium shadow-none transition-colors hover:bg-accent/50">
             <input
               type="radio"
               name="environment"
@@ -210,7 +210,7 @@ export function GatewayConfigForm({
             />
             Sandbox
           </label>
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent/50">
+          <label className="flex cursor-pointer items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background px-3 py-2 text-sm font-medium shadow-none transition-colors hover:bg-accent/50">
             <input
               type="radio"
               name="environment"
@@ -283,7 +283,7 @@ export function GatewayConfigForm({
             <input
               type="text"
               inputMode="numeric"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
               placeholder="e.g. 3502582"
               value={tillNumber}
               onChange={(e) => setTillNumber(e.target.value.replace(/[^\d]/g, ""))}
@@ -297,7 +297,7 @@ export function GatewayConfigForm({
           >
             <input
               type="text"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
               placeholder="3020127,3502582"
               value={webhookTillNumbers}
               onChange={(e) => setWebhookTillNumbers(e.target.value)}
@@ -347,7 +347,7 @@ export function GatewayConfigForm({
               placeholder={environment === "production" ? "pk_live_…" : "pk_test_…"}
             />
           </FormDrawerFields>
-          <p className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          <p className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
             After you activate Paystack, register this webhook URL in the Paystack
             dashboard (Settings → API Keys &amp; Webhooks):{" "}
             <code className="break-all font-mono text-[11px]">
@@ -397,7 +397,7 @@ export function GatewayConfigForm({
           </FormDrawerFields>
           <FormDrawerFields legend="Shortcode type">
             <div className="flex gap-2">
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm">
+              <label className="flex cursor-pointer items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background px-3 py-2 text-sm font-medium shadow-none">
                 <input
                   type="radio"
                   name="shortcodeType"
@@ -406,7 +406,7 @@ export function GatewayConfigForm({
                 />
                 Paybill
               </label>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm">
+              <label className="flex cursor-pointer items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background px-3 py-2 text-sm font-medium shadow-none">
                 <input
                   type="radio"
                   name="shortcodeType"
@@ -420,7 +420,7 @@ export function GatewayConfigForm({
           <FormDrawerFields legend={`Shortcode${isEdit ? "" : " *"}`}>
             <input
               type="text"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
               placeholder="174379"
               value={shortcode}
               onChange={(e) => setShortcode(e.target.value)}

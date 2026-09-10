@@ -46,13 +46,17 @@ type SupplyPackQtyModalProps = {
   onApply: (result: SupplyPackQtyApply) => void;
 };
 
-function toPositiveNumber(raw: string | number | null | undefined): number | null {
+function toPositiveNumber(
+  raw: string | number | null | undefined,
+): number | null {
   if (raw == null || raw === "") return null;
   const n = typeof raw === "number" ? raw : Number(String(raw).trim());
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function toNonNegNumber(raw: string | number | null | undefined): number | null {
+function toNonNegNumber(
+  raw: string | number | null | undefined,
+): number | null {
   if (raw == null || raw === "") return null;
   const n = typeof raw === "number" ? raw : Number(String(raw).trim());
   return Number.isFinite(n) && n >= 0 ? n : null;
@@ -93,14 +97,9 @@ export function resolveSupplyPackDefaults(args: {
   packagingUnitQty?: number | string | null;
 }): SupplyPackQtyDefaults {
   const packUnit =
-    args.packUnit?.trim() ||
-    args.packagingUnitName?.trim() ||
-    "pack";
+    args.packUnit?.trim() || args.packagingUnitName?.trim() || "pack";
   const packSize =
-    args.packSize ??
-    args.packageUnitsPerSale ??
-    args.packagingUnitQty ??
-    null;
+    args.packSize ?? args.packageUnitsPerSale ?? args.packagingUnitQty ?? null;
   return {
     packUnit,
     packSize,
@@ -197,7 +196,8 @@ export function SupplyPackQtyModal({
     window.setTimeout(() => onOpenChange(false), 0);
   };
 
-  const savedPacks = savedOptions && savedOptions.length > 0 ? savedOptions : null;
+  const savedPacks =
+    savedOptions && savedOptions.length > 0 ? savedOptions : null;
 
   const applySavedOption = (option: ItemLinkPackOfferRecord) => {
     const units = Number(option.unitsPerPack);
@@ -268,7 +268,7 @@ export function SupplyPackQtyModal({
 
             {savedPacks ? (
               <div className="flex flex-col gap-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                <p className="text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
                   Saved packs from this supplier
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -300,7 +300,7 @@ export function SupplyPackQtyModal({
             ) : null}
 
             <div className="flex flex-col items-center gap-2 border border-amber-900/25 bg-[color-mix(in_srgb,oklch(0.86_0.08_85)_72%,var(--card))] px-4 py-5 dark:border-amber-200/20 dark:bg-amber-950/40">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-950/70 dark:text-amber-100/70">
+              <p className="text-[10px] font-bold tracking-[-0.02em] text-amber-950/70 dark:text-amber-100/70">
                 Pieces in this pack
               </p>
               <input
@@ -347,7 +347,7 @@ export function SupplyPackQtyModal({
             </div>
 
             <label className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              <span className="text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
                 Pack price{" "}
                 <span className="font-medium normal-case tracking-normal text-muted-foreground/80">
                   (optional)
@@ -379,7 +379,7 @@ export function SupplyPackQtyModal({
               )}
             >
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                <p className="text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
                   Each costs
                 </p>
                 <p

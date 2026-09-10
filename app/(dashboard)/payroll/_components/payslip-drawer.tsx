@@ -23,20 +23,17 @@ type Props = {
   initialPayslip?: PayslipRecord | null;
 };
 
-function payslipDocumentHtml(payslip: PayslipRecord, staffName: string): string {
+function payslipDocumentHtml(
+  payslip: PayslipRecord,
+  staffName: string,
+): string {
   const period = payrollMonthLabel(payslip.periodYear, payslip.periodMonth);
   const lines = [
     ["Period", period],
     ["Paid on", formatPayrollDateTime(payslip.paidAt)],
     ["Base salary", formatPayrollMoney(Number(payslip.baseSalary))],
-    [
-      "Advances deducted",
-      formatPayrollMoney(Number(payslip.advancesDeducted)),
-    ],
-    [
-      "Other deductions",
-      formatPayrollMoney(Number(payslip.otherDeductions)),
-    ],
+    ["Advances deducted", formatPayrollMoney(Number(payslip.advancesDeducted))],
+    ["Other deductions", formatPayrollMoney(Number(payslip.otherDeductions))],
     ["Net paid", formatPayrollMoney(Number(payslip.netPaid))],
   ];
   const note = payslip.note
@@ -45,25 +42,25 @@ function payslipDocumentHtml(payslip: PayslipRecord, staffName: string): string 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Payslip — ${staffName}</title>
 <style>
-  body { font-family: system-ui, sans-serif; padding: 32px; color: #111; max-width: 480px; margin: 0 auto; }
-  h1 { font-size: 1.25rem; margin: 0 0 4px; }
-  p.sub { color: #555; margin: 0 0 24px; }
-  table { width: 100%; border-collapse: collapse; }
-  td { padding: 8px 0; border-bottom: 1px solid #eee; }
-  td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-  tr.total td { font-weight: 700; border-top: 2px solid #111; border-bottom: none; padding-top: 12px; }
+ body { font-family: system-ui, sans-serif; padding: 32px; color: #111; max-width: 480px; margin: 0 auto; }
+ h1 { font-size: 1.25rem; margin: 0 0 4px; }
+ p.sub { color: #555; margin: 0 0 24px; }
+ table { width: 100%; border-collapse: collapse; }
+ td { padding: 8px 0; border-bottom: 1px solid #eee; }
+ td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+ tr.total td { font-weight: 700; border-top: 2px solid #111; border-bottom: none; padding-top: 12px; }
 </style></head><body>
-  <h1>Payslip</h1>
-  <p class="sub">${staffName} · ${period}</p>
-  <table>
-    ${lines
-      .map(
-        ([label, value], i) =>
-          `<tr class="${i === lines.length - 1 ? "total" : ""}"><td>${label}</td><td>${value}</td></tr>`,
-      )
-      .join("")}
-  </table>
-  ${note}
+ <h1>Payslip</h1>
+ <p class="sub">${staffName} · ${period}</p>
+ <table>
+ ${lines
+   .map(
+     ([label, value], i) =>
+       `<tr class="${i === lines.length - 1 ? "total" : ""}"><td>${label}</td><td>${value}</td></tr>`,
+   )
+   .join("")}
+ </table>
+ ${note}
 </body></html>`;
 }
 
@@ -120,7 +117,11 @@ export function PayslipDrawer({
   function onPrint() {
     if (!payslip) return;
     const html = payslipDocumentHtml(payslip, staffName || payslip.displayName);
-    const win = window.open("", "_blank", "noopener,noreferrer,width=520,height=720");
+    const win = window.open(
+      "",
+      "_blank",
+      "noopener,noreferrer,width=520,height=720",
+    );
     if (!win) return;
     win.document.write(html);
     win.document.close();
@@ -148,7 +149,11 @@ export function PayslipDrawer({
               Print
             </Button>
           ) : null}
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Close
           </Button>
         </div>
@@ -160,13 +165,13 @@ export function PayslipDrawer({
           Loading payslip…
         </div>
       ) : error && !payslip ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-none border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       ) : payslip ? (
         <FormDrawerFields legend="Payment record">
           <div ref={printRef}>
-            <dl className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4 text-sm">
+            <dl className="space-y-3 rounded-none border border-border/50 bg-muted/20 p-4 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Period</dt>
                 <dd className="font-medium">
@@ -189,66 +194,77 @@ export function PayslipDrawer({
                   − {formatPayrollMoney(Number(payslip.advancesDeducted))}
                 </dd>
               </div>
-            {Number(payslip.otherDeductions) > 0 ? (
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Other deductions</dt>
-                <dd className="tabular-nums text-amber-800 dark:text-amber-200">
-                  − {formatPayrollMoney(Number(payslip.otherDeductions))}
-                </dd>
-              </div>
-            ) : null}
-            {Number(payslip.payeDeducted) > 0 ||
-            Number(payslip.nssfDeducted) > 0 ||
-            Number(payslip.shifDeducted) > 0 ||
-            Number(payslip.housingLevyDeducted) > 0 ? (
-              <div className="space-y-1 border-t border-border/40 pt-2 text-xs">
-                <p className="font-medium text-muted-foreground">Statutory</p>
-                {Number(payslip.payeDeducted) > 0 ? (
-                  <div className="flex justify-between gap-4">
-                    <dt>PAYE</dt>
-                    <dd className="tabular-nums">− {formatPayrollMoney(Number(payslip.payeDeducted))}</dd>
-                  </div>
-                ) : null}
-                {Number(payslip.nssfDeducted) > 0 ? (
-                  <div className="flex justify-between gap-4">
-                    <dt>NSSF</dt>
-                    <dd className="tabular-nums">− {formatPayrollMoney(Number(payslip.nssfDeducted))}</dd>
-                  </div>
-                ) : null}
-                {Number(payslip.shifDeducted) > 0 ? (
-                  <div className="flex justify-between gap-4">
-                    <dt>SHIF</dt>
-                    <dd className="tabular-nums">− {formatPayrollMoney(Number(payslip.shifDeducted))}</dd>
-                  </div>
-                ) : null}
-                {Number(payslip.housingLevyDeducted) > 0 ? (
-                  <div className="flex justify-between gap-4">
-                    <dt>Housing Levy</dt>
-                    <dd className="tabular-nums">
-                      − {formatPayrollMoney(Number(payslip.housingLevyDeducted))}
-                    </dd>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
+              {Number(payslip.otherDeductions) > 0 ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Other deductions</dt>
+                  <dd className="tabular-nums text-amber-800 dark:text-amber-200">
+                    − {formatPayrollMoney(Number(payslip.otherDeductions))}
+                  </dd>
+                </div>
+              ) : null}
+              {Number(payslip.payeDeducted) > 0 ||
+              Number(payslip.nssfDeducted) > 0 ||
+              Number(payslip.shifDeducted) > 0 ||
+              Number(payslip.housingLevyDeducted) > 0 ? (
+                <div className="space-y-1 border-t border-border/40 pt-2 text-xs">
+                  <p className="font-medium text-muted-foreground">Statutory</p>
+                  {Number(payslip.payeDeducted) > 0 ? (
+                    <div className="flex justify-between gap-4">
+                      <dt>PAYE</dt>
+                      <dd className="tabular-nums">
+                        − {formatPayrollMoney(Number(payslip.payeDeducted))}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {Number(payslip.nssfDeducted) > 0 ? (
+                    <div className="flex justify-between gap-4">
+                      <dt>NSSF</dt>
+                      <dd className="tabular-nums">
+                        − {formatPayrollMoney(Number(payslip.nssfDeducted))}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {Number(payslip.shifDeducted) > 0 ? (
+                    <div className="flex justify-between gap-4">
+                      <dt>SHIF</dt>
+                      <dd className="tabular-nums">
+                        − {formatPayrollMoney(Number(payslip.shifDeducted))}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {Number(payslip.housingLevyDeducted) > 0 ? (
+                    <div className="flex justify-between gap-4">
+                      <dt>Housing Levy</dt>
+                      <dd className="tabular-nums">
+                        −{" "}
+                        {formatPayrollMoney(
+                          Number(payslip.housingLevyDeducted),
+                        )}
+                      </dd>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="flex justify-between gap-4 border-t border-border/50 pt-2">
                 <dt className="font-medium">Net paid</dt>
                 <dd className="tabular-nums text-base font-semibold">
                   {formatPayrollMoney(Number(payslip.netPaid))}
                 </dd>
               </div>
-            {payslip.note ? (
-              <div className="border-t border-border/50 pt-2">
-                <dt className="text-xs text-muted-foreground">Note</dt>
-                <dd className="mt-1">{payslip.note}</dd>
-              </div>
-            ) : null}
-            {payslip.expenseId ? (
-              <div className="border-t border-border/50 pt-2 text-xs text-muted-foreground">
-                Posted to finance
-                {payslip.paymentMethod ? ` · ${payslip.paymentMethod.replace("_", " ")}` : ""}
-              </div>
-            ) : null}
+              {payslip.note ? (
+                <div className="border-t border-border/50 pt-2">
+                  <dt className="text-xs text-muted-foreground">Note</dt>
+                  <dd className="mt-1">{payslip.note}</dd>
+                </div>
+              ) : null}
+              {payslip.expenseId ? (
+                <div className="border-t border-border/50 pt-2 text-xs text-muted-foreground">
+                  Posted to finance
+                  {payslip.paymentMethod
+                    ? ` · ${payslip.paymentMethod.replace("_", " ")}`
+                    : ""}
+                </div>
+              ) : null}
             </dl>
           </div>
         </FormDrawerFields>

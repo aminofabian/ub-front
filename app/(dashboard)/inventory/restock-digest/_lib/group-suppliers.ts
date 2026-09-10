@@ -85,8 +85,8 @@ export function buildSupplierRail(
 
 export function firstPendingRailKey(rail: SupplierRailItem[]): string | null {
   const pending = rail.find(
-    (item) => item.kind !== "handled" && item.lines.some((l) => l.status === "pending"),
+    (item) =>
+      item.kind !== "handled" && item.lines.some((l) => l.status === "pending"),
   );
   return (pending ?? rail[0])?.key ?? null;
 }
-

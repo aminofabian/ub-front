@@ -63,7 +63,9 @@ export function ScheduleHistoryDrawer({
 
   const summary = useMemo(() => {
     const posted = rows.filter((r) => r.status === "posted").length;
-    const due = rows.filter((r) => r.status === "due" || r.status === "failed").length;
+    const due = rows.filter(
+      (r) => r.status === "due" || r.status === "failed",
+    ).length;
     const total = rows.reduce((s, r) => s + Number(r.amount), 0);
     return { posted, due, total, count: rows.length };
   }, [rows]);
@@ -92,7 +94,9 @@ export function ScheduleHistoryDrawer({
           >
             ← Prev
           </button>
-          <span className="font-medium">{fixedCostMonthLabel(viewYear, viewMonth)}</span>
+          <span className="font-medium">
+            {fixedCostMonthLabel(viewYear, viewMonth)}
+          </span>
           <button
             type="button"
             className="text-muted-foreground hover:text-foreground"
@@ -110,7 +114,8 @@ export function ScheduleHistoryDrawer({
           <DashboardLoading label="Loading occurrences…" />
         ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No due dates for this schedule in {fixedCostMonthLabel(viewYear, viewMonth)}.
+            No due dates for this schedule in{" "}
+            {fixedCostMonthLabel(viewYear, viewMonth)}.
           </p>
         ) : (
           <>
@@ -119,20 +124,26 @@ export function ScheduleHistoryDrawer({
               {summary.posted} posted
               {summary.due > 0 ? ` · ${summary.due} open` : ""}
             </p>
-            <ul className="divide-y divide-border/50 rounded-lg border border-border/60">
+            <ul className="divide-y divide-border/50 rounded-none border border-border/60">
               {rows.map((row) => (
                 <li
                   key={row.id ?? `${row.scheduleId}:${row.occurrenceDate}`}
                   className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
                 >
                   <div>
-                    <p className="font-medium">{formatFixedCostDate(row.occurrenceDate)}</p>
+                    <p className="font-medium">
+                      {formatFixedCostDate(row.occurrenceDate)}
+                    </p>
                     {row.failureReason ? (
-                      <p className="text-xs text-red-600">{row.failureReason}</p>
+                      <p className="text-xs text-red-600">
+                        {row.failureReason}
+                      </p>
                     ) : null}
                   </div>
                   <div className="text-right">
-                    <p className="tabular-nums">{formatFixedCostMoney(Number(row.amount))}</p>
+                    <p className="tabular-nums">
+                      {formatFixedCostMoney(Number(row.amount))}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {occurrenceStatusLabel(row.status)}
                     </p>

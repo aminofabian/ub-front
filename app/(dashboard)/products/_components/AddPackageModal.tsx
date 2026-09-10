@@ -60,17 +60,25 @@ export function AddPackageModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[min(90vh,40rem)] max-w-lg gap-0 overflow-hidden p-0">
-        <form onSubmit={(e) => void handleSubmit(e)} className="flex min-h-0 flex-col">
+        <form
+          onSubmit={(e) => void handleSubmit(e)}
+          className="flex min-h-0 flex-col"
+        >
           <DialogHeader className="border-b border-border/50 px-5 py-4">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Boxes className="size-5 text-primary" aria-hidden />
               Package sales
             </DialogTitle>
             <DialogDescription>
-              Creates a <span className="font-medium text-foreground">new variant SKU</span> for{" "}
-              <span className="font-medium text-foreground">{parentName}</span> (e.g. tray of 30).
-              Stock stays on the base product — selling one package deducts that many base units.
-              This does not change your existing single-unit variant.
+              Creates a{" "}
+              <span className="font-medium text-foreground">
+                new variant SKU
+              </span>{" "}
+              for{" "}
+              <span className="font-medium text-foreground">{parentName}</span>{" "}
+              (e.g. tray of 30). Stock stays on the base product — selling one
+              package deducts that many base units. This does not change your
+              existing single-unit variant.
             </DialogDescription>
           </DialogHeader>
 

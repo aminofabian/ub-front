@@ -44,7 +44,11 @@ import {
   type SaleTransaction,
 } from "@/lib/sale-transactions";
 import { formatDateRangeLabel, presetRange } from "@/lib/analytics-date-range";
-import { fetchBranches, type BranchRecord, type RecentSaleRow } from "@/lib/api";
+import {
+  fetchBranches,
+  type BranchRecord,
+  type RecentSaleRow,
+} from "@/lib/api";
 import { fetchMergedSalesActivity } from "@/lib/sales-activity";
 import {
   formatChannelLabel,
@@ -99,7 +103,10 @@ function formatSoldTime(
     const diffSec = Math.floor((nowMs - d.getTime()) / 1000);
     if (diffSec < 60) return "Just now";
     if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-    return d.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString("en-KE", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
   return d.toLocaleString("en-KE", {
     month: "short",
@@ -152,11 +159,11 @@ function RevenueSparkline({
       role="img"
       aria-label={`Revenue trend: ${labels[0]} to ${labels[labels.length - 1]}`}
     >
-      <path d={area} fill="#B08D48" fillOpacity={0.12} />
+      <path d={area} fill="#0f766e" fillOpacity={0.12} />
       <polyline
         points={points.join(" ")}
         fill="none"
-        stroke="#B08D48"
+        stroke="#0f766e"
         strokeWidth={1.5}
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -178,7 +185,7 @@ function Metric({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
         {label}
       </p>
       <p className="mt-0.5 truncate text-xl font-semibold tabular-nums tracking-tight text-foreground">
@@ -186,7 +193,9 @@ function Metric({
       </p>
       {chart}
       {hint ? (
-        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{hint}</p>
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+          {hint}
+        </p>
       ) : null}
     </div>
   );
@@ -249,15 +258,16 @@ function buildRevenueTrend(
       }
     }
     if (first >= 0 && last >= first) {
-      slice = entries.slice(Math.max(0, first - 1), Math.min(entries.length, last + 2));
+      slice = entries.slice(
+        Math.max(0, first - 1),
+        Math.min(entries.length, last + 2),
+      );
     }
   }
 
   return {
     values: slice.map(([, v]) => v),
-    labels: slice.map(([k]) =>
-      opts.hourly ? `${k}:00` : k.slice(5),
-    ),
+    labels: slice.map(([k]) => (opts.hourly ? `${k}:00` : k.slice(5))),
   };
 }
 
@@ -270,7 +280,7 @@ function FeedSkeleton() {
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
-          className="space-y-3 border-b border-border/40 px-5 py-5 last:border-0 sm:px-6"
+          className="space-y-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-5 py-5 last:border-0 sm:px-6"
         >
           <div className="flex justify-between gap-4">
             <div className="h-4 w-40 animate-pulse rounded bg-muted" />
@@ -290,10 +300,15 @@ function saleMetaParts(tx: SaleTransaction): string[] {
   const pay = formatSalePaymentDisplay(tx.paymentMethod, tx.paymentMethods);
   const payKey = pay.toLowerCase();
   // Online rows already show an Online badge — skip repeating "Online checkout".
-  if (!isOnline && payKey && payKey !== "online" && payKey !== "online checkout") {
+  if (
+    !isOnline &&
+    payKey &&
+    payKey !== "online" &&
+    payKey !== "online checkout"
+  ) {
     parts.push(pay);
   }
-          const customer = tx.customerName?.trim() ?? "";
+  const customer = tx.customerName?.trim() ?? "";
   const cashier = tx.cashierName?.trim() ?? "";
   if (isOnline) {
     if (customer) parts.push(customer);
@@ -330,7 +345,7 @@ function SaleGroup({
   return (
     <article
       className={cn(
-        "border-b border-border/40 last:border-0 transition-colors",
+        "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0 transition-colors",
         isNew && "bg-primary/[0.04]",
         refunded && "bg-destructive/[0.03]",
       )}
@@ -343,7 +358,7 @@ function SaleGroup({
             </span>
             <span
               className={cn(
-                "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                "rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                 isOnline
                   ? "bg-sky-50 text-sky-800"
                   : refunded
@@ -359,16 +374,18 @@ function SaleGroup({
             </span>
             {tx.mpesaVerified && !refunded ? (
               <span
-                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-sky-50 text-sky-800"
+                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] bg-sky-50 text-sky-800"
                 title="M-Pesa confirmed by KopoKopo webhook"
               >
                 <BadgeCheck className="size-3" aria-hidden />
                 Verified
               </span>
             ) : null}
-            {tx.customerId && !tx.customerPhoneVerified && tx.customerMaskedHint ? (
+            {tx.customerId &&
+            !tx.customerPhoneVerified &&
+            tx.customerMaskedHint ? (
               <span
-                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-amber-50 text-amber-800"
+                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] bg-amber-50 text-amber-800"
                 title="M-Pesa number is still masked until the customer fills the missing digits"
               >
                 Unverified number
@@ -759,7 +776,7 @@ export function SalesOverviewPage() {
         </p>
         <Link
           href={APP_ROUTES.business}
-          className="mt-6 inline-block text-sm font-medium text-[#B08D48] hover:underline"
+          className="mt-6 inline-block text-sm font-medium text-[#0f766e] hover:underline"
         >
           Back to business
         </Link>
@@ -784,7 +801,7 @@ export function SalesOverviewPage() {
     <div className={cn(DASHBOARD_MAX, "space-y-5")}>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Sales
           </p>
           <h1 className="mt-0.5 font-sans text-xl font-bold tracking-tight text-foreground sm:text-2xl">
@@ -836,7 +853,7 @@ export function SalesOverviewPage() {
           <Button
             size="sm"
             asChild
-            className="gap-1.5 bg-[#B08D48] text-white hover:bg-[#9A7A3F]"
+            className="gap-1.5 bg-[#0f766e] text-white hover:bg-[#9A7A3F]"
           >
             <Link href={APP_ROUTES.salesQuick}>
               <Receipt className="size-3.5" aria-hidden />
@@ -963,9 +980,7 @@ export function SalesOverviewPage() {
         />
       </section>
 
-      {error ? (
-        <DashboardFeedback kind="error" text={error} />
-      ) : null}
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
       {loading ? (
         <FeedSkeleton />

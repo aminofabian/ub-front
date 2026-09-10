@@ -47,13 +47,13 @@ export function BusinessHubEmptyState({
         Products are on the shelf
       </p>
       <p className={cn("mt-1.5 max-w-lg text-sm leading-relaxed", HUB_MUTED)}>
-        Nothing through the till {label}. Open the cashier when you are ready
-        to sell. The pulse fills in as money moves.
+        Nothing through the till {label}. Open the cashier when you are ready to
+        sell. The pulse fills in as money moves.
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <Link
           href={APP_ROUTES.cashier}
-          className="inline-flex items-center gap-2 rounded-none bg-[#141414] px-3.5 py-2 text-sm font-medium text-[#F5E6C8] transition-opacity hover:opacity-90"
+          className="inline-flex items-center gap-2 rounded-none bg-[#0f766e] px-3.5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
         >
           <ShoppingCart className="size-3.5" aria-hidden />
           Open the till
@@ -62,7 +62,7 @@ export function BusinessHubEmptyState({
           <Link
             key={item.href}
             href={item.href}
-            className="text-[13px] font-medium text-[#8A6B2E] underline-offset-4 hover:underline"
+            className="text-[13px] font-medium text-[#0f766e] underline-offset-4 hover:underline"
           >
             {item.text}
           </Link>

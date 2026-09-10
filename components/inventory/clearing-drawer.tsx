@@ -118,7 +118,7 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
             All items are fully accounted for. No remaining stock to write off.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-xl border shadow-sm">
+          <div className="overflow-hidden rounded-none border shadow-none">
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/50">
                 <tr>
@@ -153,7 +153,7 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
         )}
 
         {/* Reason + notes */}
-        <div className="rounded-xl border p-4 space-y-3">
+        <div className="rounded-none border p-4 space-y-3">
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted-foreground">Reason</span>
             <select

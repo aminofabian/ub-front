@@ -15,12 +15,12 @@ describe("shouldOfferCreate", () => {
 
   test("does not offer create for an exact match", () => {
     expect(shouldOfferCreate("Dairy", options)).toBe(false);
-    expect(shouldOfferCreate("  dairy  ", options)).toBe(false);
+    expect(shouldOfferCreate(" dairy ", options)).toBe(false);
   });
 
   test("does not offer create for an empty query", () => {
     expect(shouldOfferCreate("", options)).toBe(false);
-    expect(shouldOfferCreate("   ", options)).toBe(false);
+    expect(shouldOfferCreate(" ", options)).toBe(false);
   });
 
   test("offers create for a partial match that is a different name", () => {

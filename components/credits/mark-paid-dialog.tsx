@@ -13,10 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { dashboardInputClass } from "@/components/dashboard-page-ui";
-import {
-  recordTabPayment,
-  type OutstandingTabRowRecord,
-} from "@/lib/api";
+import { recordTabPayment, type OutstandingTabRowRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useFormatMoney } from "@/hooks/use-format-money";
 
@@ -107,7 +104,7 @@ export function MarkPaidDialog({
         </DialogHeader>
 
         <div className="space-y-4 px-5 py-4">
-          <div className="rounded-xl bg-[#F9F6F0] px-4 py-3 text-center dark:bg-muted/40">
+          <div className="rounded-none bg-[#ffffff] px-4 py-3 text-center dark:bg-muted/40">
             <p className="text-xs text-muted-foreground">Owed now</p>
             <p className="mt-1 font-serif text-3xl tabular-nums tracking-tight">
               {fmtMoney(owed)}
@@ -120,7 +117,7 @@ export function MarkPaidDialog({
           </div>
 
           <div
-            className="grid grid-cols-2 gap-1 rounded-lg bg-muted/50 p-1"
+            className="grid grid-cols-2 gap-1 rounded-none bg-muted/50 p-1"
             role="group"
             aria-label="Payment amount"
           >
@@ -128,9 +125,9 @@ export function MarkPaidDialog({
               type="button"
               onClick={() => setMode("full")}
               className={cn(
-                "rounded-md px-2 py-1.5 text-xs font-semibold transition-colors",
+                "rounded-none px-2 py-1.5 text-xs font-semibold transition-colors",
                 mode === "full"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-none"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -140,9 +137,9 @@ export function MarkPaidDialog({
               type="button"
               onClick={() => setMode("partial")}
               className={cn(
-                "rounded-md px-2 py-1.5 text-xs font-semibold transition-colors",
+                "rounded-none px-2 py-1.5 text-xs font-semibold transition-colors",
                 mode === "partial"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-none"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -166,7 +163,7 @@ export function MarkPaidDialog({
           </label>
 
           <div
-            className="grid grid-cols-2 gap-1 rounded-lg bg-muted/50 p-1"
+            className="grid grid-cols-2 gap-1 rounded-none bg-muted/50 p-1"
             role="group"
             aria-label="Payment channel"
           >
@@ -174,9 +171,9 @@ export function MarkPaidDialog({
               type="button"
               onClick={() => setChannel("cash")}
               className={cn(
-                "inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors",
+                "inline-flex items-center justify-center gap-1.5 rounded-none px-2 py-1.5 text-xs font-semibold transition-colors",
                 channel === "cash"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-none"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -187,9 +184,9 @@ export function MarkPaidDialog({
               type="button"
               onClick={() => setChannel("mpesa")}
               className={cn(
-                "inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors",
+                "inline-flex items-center justify-center gap-1.5 rounded-none px-2 py-1.5 text-xs font-semibold transition-colors",
                 channel === "mpesa"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-none"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >

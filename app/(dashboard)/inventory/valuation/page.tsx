@@ -237,8 +237,8 @@ export default function InventoryValuationPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="space-y-4">
-        <header className="space-y-2 border-b border-border/50 pb-4">
+      <div className="space-y-1">
+        <header className="space-y-1">
           <DashboardPageHero
             compact
             showActiveScope
@@ -252,16 +252,16 @@ export default function InventoryValuationPage() {
           ) : null}
         </header>
 
-        <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
+        <div className="space-y-2.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 p-3">
           {branchScopeStale ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-950 dark:text-amber-100">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-950 dark:text-amber-100">
               <span>
                 Branch changed to <strong>{pendingBranchLabel}</strong>. Report
                 still shows <strong>{appliedBranchLabel}</strong>.
               </span>
               <button
                 type="button"
-                className="shrink-0 rounded-md border border-amber-600/30 bg-background/80 px-2.5 py-1 text-[11px] font-semibold shadow-sm hover:bg-background"
+                className="shrink-0 rounded-none border border-amber-600/30 bg-background/80 px-2.5 py-1 text-[11px] font-semibold shadow-none hover:bg-background"
                 onClick={() => setAppliedBranchId(branchFilter)}
               >
                 Apply branch
@@ -271,7 +271,7 @@ export default function InventoryValuationPage() {
 
           {data ? (
             <div className="flex flex-wrap gap-1.5 sm:flex-nowrap">
-              <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-primary/25 bg-primary/5 px-2.5 py-2 sm:px-3">
+              <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-none border border-primary/25 bg-primary/5 px-2.5 py-2 sm:px-3">
                 <span className="truncate text-[11px] font-medium text-muted-foreground">
                   Total value
                 </span>
@@ -279,7 +279,7 @@ export default function InventoryValuationPage() {
                   {formatMoney(moneyValue(data.totalExtensionValue), currency)}
                 </span>
               </div>
-              <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-2.5 py-2 sm:px-3">
+              <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background px-2.5 py-2 sm:px-3">
                 <span className="truncate text-[11px] font-medium text-muted-foreground">
                   Branches
                 </span>
@@ -321,7 +321,9 @@ export default function InventoryValuationPage() {
               variant="outline"
               size="sm"
               className="h-9 shrink-0 gap-1.5"
-              disabled={loading || (isBranchLockedRole && !me?.branchId?.trim())}
+              disabled={
+                loading || (isBranchLockedRole && !me?.branchId?.trim())
+              }
               onClick={() => void runValuationLoad(appliedBranchId)}
             >
               <RefreshCw
@@ -332,19 +334,15 @@ export default function InventoryValuationPage() {
           </div>
         </div>
 
-        {message ? (
-          <p className="text-xs text-destructive">{message}</p>
-        ) : null}
+        {message ? <p className="text-xs text-destructive">{message}</p> : null}
 
-        <div className="overflow-hidden rounded-xl border border-border/60">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-2">
+        <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-3 py-2">
             <h2 className="text-xs font-semibold sm:text-sm">
               {loading ? (
                 "Loading valuation…"
               ) : data ? (
-                <>
-                  By branch · {activeBranchName}
-                </>
+                <>By branch · {activeBranchName}</>
               ) : (
                 "Valuation report"
               )}
@@ -358,7 +356,7 @@ export default function InventoryValuationPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-[24rem] text-left text-sm">
-              <thead className="border-b border-border/60 bg-background text-[11px] uppercase tracking-wide text-muted-foreground">
+              <thead className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background text-[11px] tracking-[-0.02em] text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium">Branch</th>
                   <th className="px-3 py-2 text-right font-medium">
@@ -403,10 +401,7 @@ export default function InventoryValuationPage() {
                         </div>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">
-                        {formatMoney(
-                          moneyValue(row.extensionValue),
-                          currency,
-                        )}
+                        {formatMoney(moneyValue(row.extensionValue), currency)}
                       </td>
                     </tr>
                   ))

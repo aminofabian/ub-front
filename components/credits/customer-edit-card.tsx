@@ -5,7 +5,10 @@ import { Pencil, Plus, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CustomerPhoneFlag } from "@/components/credits/customer-phone-flag";
-import { dashboardInputClass, dashboardTextareaClass } from "@/components/dashboard-page-ui";
+import {
+  dashboardInputClass,
+  dashboardTextareaClass,
+} from "@/components/dashboard-page-ui";
 import {
   addCustomerPhone,
   patchCustomer,
@@ -111,7 +114,7 @@ export function CustomerEditCard({
   };
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+    <section className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
       <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
         <div>
           <h2 className="text-sm font-semibold">Profile</h2>
@@ -126,7 +129,7 @@ export function CustomerEditCard({
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-xl"
+            className="rounded-none"
             onClick={() => {
               resetForm();
               setEditing(true);
@@ -142,7 +145,7 @@ export function CustomerEditCard({
         {editing ? (
           <div className="space-y-3">
             <label className="block space-y-1.5">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <span className="text-[11px] font-medium tracking-[-0.02em] text-muted-foreground">
                 Name
               </span>
               <input
@@ -153,7 +156,7 @@ export function CustomerEditCard({
               />
             </label>
             <label className="block space-y-1.5">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <span className="text-[11px] font-medium tracking-[-0.02em] text-muted-foreground">
                 Email
               </span>
               <input
@@ -165,7 +168,7 @@ export function CustomerEditCard({
               />
             </label>
             <label className="block space-y-1.5">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <span className="text-[11px] font-medium tracking-[-0.02em] text-muted-foreground">
                 Notes
               </span>
               <textarea
@@ -179,7 +182,7 @@ export function CustomerEditCard({
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                className="rounded-xl"
+                className="rounded-none"
                 disabled={busy}
                 onClick={() => void onSave()}
               >
@@ -188,7 +191,7 @@ export function CustomerEditCard({
               <Button
                 type="button"
                 variant="ghost"
-                className="rounded-xl"
+                className="rounded-none"
                 disabled={busy}
                 onClick={() => {
                   resetForm();
@@ -203,7 +206,9 @@ export function CustomerEditCard({
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs text-muted-foreground">Email</dt>
-              <dd className="mt-0.5 font-medium">{customer.email?.trim() || "—"}</dd>
+              <dd className="mt-0.5 font-medium">
+                {customer.email?.trim() || "—"}
+              </dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">Primary phone</dt>
@@ -221,7 +226,7 @@ export function CustomerEditCard({
         )}
 
         <div className="space-y-2 border-t border-border/50 pt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Phone numbers
           </p>
           {customer.phones.length > 0 ? (
@@ -229,12 +234,12 @@ export function CustomerEditCard({
               {customer.phones.map((phone) => (
                 <li
                   key={phone.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-border/50 bg-muted/20 px-3 py-2.5 text-sm"
                 >
                   <span className="min-w-0">
                     <span className="font-medium">{phone.phone}</span>
                     {phone.primary ? (
-                      <span className="ml-2 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-200">
+                      <span className="ml-2 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-emerald-800 ring-1 ring-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-200">
                         Primary
                       </span>
                     ) : null}
@@ -245,7 +250,7 @@ export function CustomerEditCard({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-8 rounded-lg px-2 text-xs"
+                      className="h-8 rounded-none px-2 text-xs"
                       disabled={busy}
                       onClick={() => void onSetPrimary(phone.id)}
                     >
@@ -257,7 +262,9 @@ export function CustomerEditCard({
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">No phone numbers yet.</p>
+            <p className="text-sm text-muted-foreground">
+              No phone numbers yet.
+            </p>
           )}
           {canEdit ? (
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -271,7 +278,7 @@ export function CustomerEditCard({
               <Button
                 type="button"
                 variant="secondary"
-                className="h-11 rounded-xl px-4"
+                className="h-11 rounded-none px-4"
                 disabled={busy || !newPhone.trim()}
                 onClick={() => void onAddPhone()}
               >

@@ -45,7 +45,10 @@ import {
   TabletMoreSheet,
 } from "@/components/shell/tablet-app-chrome";
 
-import { useOptionalTenant, useFeatureFlags } from "@/components/providers/tenant-provider";
+import {
+  useOptionalTenant,
+  useFeatureFlags,
+} from "@/components/providers/tenant-provider";
 import { NotificationBell } from "@/components/notification-bell";
 import { useSupportUnread } from "@/hooks/use-support-unread";
 import { Button } from "@/components/ui/button";
@@ -60,13 +63,20 @@ import {
   useHeaderShelfZoneOptions,
 } from "@/hooks/use-department-aisles";
 import { APP_ROUTES } from "@/lib/config";
-import { groceryClerkStockAccessEnabled, stockManagerActivityEnabled, stockManagerStockPageEnabled } from "@/lib/inventory-access";
+import {
+  groceryClerkStockAccessEnabled,
+  stockManagerActivityEnabled,
+  stockManagerStockPageEnabled,
+} from "@/lib/inventory-access";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import {
   canLinkSupplierProducts,
   canWriteSuppliers,
 } from "@/lib/supplier-access";
-import { BUTCHER_POS_FEATURE_FLAG, isButcherPosEnabled } from "@/lib/butcher-feature";
+import {
+  BUTCHER_POS_FEATURE_FLAG,
+  isButcherPosEnabled,
+} from "@/lib/butcher-feature";
 import { logoutRemoteAndRedirectToLogin } from "@/lib/api";
 import { OPEN_SHELL_MORE_EVENT } from "@/lib/branch-guidance";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -309,7 +319,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         label: "Deliveries",
         group: "In the shop",
       },
-      { href: APP_ROUTES.inventoryStock, label: "Stock levels", group: "In the shop" },
+      {
+        href: APP_ROUTES.inventoryStock,
+        label: "Stock levels",
+        group: "In the shop",
+      },
       {
         href: APP_ROUTES.inventoryRestock,
         label: "Sold out",
@@ -611,10 +625,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   // Grocery clerks: generate invoices and look at the ones they created.
   // No cashier, no sales, no other dashboard surfaces.
   if (gate.roleKey === "grocery_clerk") {
-    const allowed: string[] = [
-      APP_ROUTES.grocery,
-      APP_ROUTES.groceryInvoices,
-    ];
+    const allowed: string[] = [APP_ROUTES.grocery, APP_ROUTES.groceryInvoices];
     if (gate.groceryClerkStockAccess) {
       allowed.push(APP_ROUTES.inventoryStock, APP_ROUTES.inventoryRestock);
     }
@@ -649,11 +660,11 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewSalesIntelligence || gate.canViewCustomers;
   if (item.href === APP_ROUTES.customers) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.customerPhones) return gate.canViewCustomers;
-  if (item.href === APP_ROUTES.customerEmailCampaigns) return gate.canViewCustomers;
+  if (item.href === APP_ROUTES.customerEmailCampaigns)
+    return gate.canViewCustomers;
   if (item.href === APP_ROUTES.customerSegments) return gate.canViewAnalytics;
   if (item.href === APP_ROUTES.messages) return gate.canViewMessages;
-  if (item.href === APP_ROUTES.businessLogs)
-    return gate.canViewAuditLog;
+  if (item.href === APP_ROUTES.businessLogs) return gate.canViewAuditLog;
   if (item.href === APP_ROUTES.creditsPaymentClaims)
     return gate.canReviewPaymentClaims;
   if (item.href === APP_ROUTES.purchasingRecordPayment)
@@ -705,8 +716,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesTransactions)
     return gate.canViewSalesIntelligence;
-  if (item.href === APP_ROUTES.salesPendingCarts)
-    return gate.canViewPosDrafts;
+  if (item.href === APP_ROUTES.salesPendingCarts) return gate.canViewPosDrafts;
   if (item.href === APP_ROUTES.salesReports)
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.storefrontWebOrders)
@@ -727,9 +737,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return isButcherPosEnabled(gate.featureFlags) && gate.canQuickSale;
   }
   if (item.href === APP_ROUTES.butcherSuppliers) {
-    return (
-      isButcherPosEnabled(gate.featureFlags) && gate.canViewSuppliers
-    );
+    return isButcherPosEnabled(gate.featureFlags) && gate.canViewSuppliers;
   }
   return featureFlagAllows(item, gate.featureFlags);
 }
@@ -917,7 +925,8 @@ export function AppShell({ children }: AppShellProps) {
   // at 1366px — in native-app mode; only wide desktop monitors get the sidebar.
   const desktopChromeVisible = "hidden 2xl:flex";
   const tabletChromeVisible = "2xl:hidden";
-  const mainContentPadding = "p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:p-6 2xl:pb-6";
+  const mainContentPadding =
+    "p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:p-6 2xl:pb-6";
   const homeHref = resolvePostAuthDestination(me, null, business);
   const canViewPaymentGateways = hasPermission(
     me?.permissions,
@@ -938,8 +947,7 @@ export function AppShell({ children }: AppShellProps) {
   const canViewAirtime =
     hasPermission(me?.permissions, Permission.AirtimeRead) ||
     hasPermission(me?.permissions, Permission.AirtimeSell);
-  const showOwnerKioskPay =
-    isOwner && canViewPaymentGateways;
+  const showOwnerKioskPay = isOwner && canViewPaymentGateways;
   const canViewPosDrafts = hasPermission(
     me?.permissions,
     Permission.PosDraftsRead,
@@ -1010,7 +1018,9 @@ export function AppShell({ children }: AppShellProps) {
       canLinkSupplierProducts: canLinkSupplierProductsDelegated,
     };
     return NAV_SECTIONS.map((section) => {
-      const items = section.items.filter((item) => isNavItemVisible(item, gate));
+      const items = section.items.filter((item) =>
+        isNavItemVisible(item, gate),
+      );
       const preferredEntry =
         items.find((item) => item.href === section.entryHref)?.href ??
         items[0]?.href ??
@@ -1023,10 +1033,10 @@ export function AppShell({ children }: AppShellProps) {
     }).filter((s) => s.items.length > 0);
   }, [
     mergedFeatureFlags,
-      canListUsers,
-      canViewPayroll,
-      canReadFinanceExpenses,
-      canManageBusinessSettings,
+    canListUsers,
+    canViewPayroll,
+    canReadFinanceExpenses,
+    canManageBusinessSettings,
     canViewAuditLog,
     canViewCategories,
     canViewPurchasingIntelligence,
@@ -1286,11 +1296,8 @@ export function AppShell({ children }: AppShellProps) {
   // ── current selections for header display ─────────────────────────────────
   const currentBranch = branches.find((b) => b.id === branchId);
   const currentItemType = itemTypes.find((t) => t.id === itemTypeId);
-  const {
-    activeAisles,
-    showUnassignedOption,
-    departmentScoped,
-  } = useHeaderShelfZoneOptions(aisles, itemTypeId);
+  const { activeAisles, showUnassignedOption, departmentScoped } =
+    useHeaderShelfZoneOptions(aisles, itemTypeId);
   const showShelfZonePicker =
     canViewCategories &&
     (aislesLoading ||
@@ -1302,9 +1309,7 @@ export function AppShell({ children }: AppShellProps) {
   const departmentLocked = isGroceryClerk && itemTypes.length === 1;
 
   useEffect(() => {
-    if (
-      !headerAisleSelectionValid(aisleId, itemTypeId, departmentScoped)
-    ) {
+    if (!headerAisleSelectionValid(aisleId, itemTypeId, departmentScoped)) {
       setAisleId("");
     }
   }, [aisleId, itemTypeId, departmentScoped, setAisleId]);
@@ -1379,7 +1384,10 @@ export function AppShell({ children }: AppShellProps) {
     }
 
     if (roleKey === "grocery_clerk") {
-      const allowed: string[] = [APP_ROUTES.grocery, APP_ROUTES.groceryInvoices];
+      const allowed: string[] = [
+        APP_ROUTES.grocery,
+        APP_ROUTES.groceryInvoices,
+      ];
       if (groceryClerkStockAccessEnabled(business)) {
         allowed.push(APP_ROUTES.inventoryStock, APP_ROUTES.inventoryRestock);
       }
@@ -1415,7 +1423,9 @@ export function AppShell({ children }: AppShellProps) {
           faviconUrl={business?.branding?.faviconUrl}
           primaryColor={business?.branding?.primaryColor}
           sections={visibleSections}
-          flat={isStockManager || isCashier || isButcherCashier || isGroceryClerk}
+          flat={
+            isStockManager || isCashier || isButcherCashier || isGroceryClerk
+          }
           badgeByHref={navBadgeByHref}
         />
       </div>
@@ -1463,7 +1473,10 @@ export function AppShell({ children }: AppShellProps) {
             />
             <NotificationBell />
             {/* Phase 9: Branch selector — hidden for stock managers, cashiers and grocery clerks who are locked to their assigned branch */}
-            {isStockManager || isCashier || isButcherCashier || isGroceryClerk ? (
+            {isStockManager ||
+            isCashier ||
+            isButcherCashier ||
+            isGroceryClerk ? (
               currentBranch ? (
                 <span
                   className="inline-flex items-center gap-1.5 h-8 px-2 text-xs font-medium text-muted-foreground border rounded-md bg-muted/30 cursor-not-allowed"
@@ -1517,29 +1530,29 @@ export function AppShell({ children }: AppShellProps) {
                 {currentItemType.label}
               </span>
             ) : (
-            <select
-              className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
-              value={itemTypeId}
-              onChange={(e) => setItemTypeId(e.target.value)}
-              disabled={itemTypesLoading || itemTypes.length === 0}
-              aria-label="Select department"
-            >
-              {itemTypes.length === 0 ? (
-                <option value="">
-                  {itemTypesLoading ? "Loading…" : "No departments"}
-                </option>
-              ) : (
-                <>
-                  <option value="">{ALL_DEPARTMENTS_LABEL}</option>
-                  {itemTypes.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
-                      {t.isDefault ? " ★" : ""}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
+              <select
+                className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                value={itemTypeId}
+                onChange={(e) => setItemTypeId(e.target.value)}
+                disabled={itemTypesLoading || itemTypes.length === 0}
+                aria-label="Select department"
+              >
+                {itemTypes.length === 0 ? (
+                  <option value="">
+                    {itemTypesLoading ? "Loading…" : "No departments"}
+                  </option>
+                ) : (
+                  <>
+                    <option value="">{ALL_DEPARTMENTS_LABEL}</option>
+                    {itemTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                        {t.isDefault ? " ★" : ""}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
             )}
 
             {showShelfZonePicker ? (
@@ -1641,9 +1654,18 @@ export function AppShell({ children }: AppShellProps) {
         {/* ── Main content ───────────────────────────────────────────────────── */}
         <main
           className={cn(
-            "tablet-app-main relative min-h-0 flex-1 overflow-y-auto",
+            "tablet-app-main relative min-h-0 flex-1 overflow-y-auto bg-white",
             mainContentPadding,
           )}
+          style={{
+            ["--pos-primary" as string]: "#0f766e",
+            ["--order-ink" as string]: "#15231f",
+            ["--order-shelf" as string]: "#ffffff",
+            ["--order-slip" as string]: "#ffffff",
+            ["--catalog-primary" as string]: "#0f766e",
+            ["--catalog-ink" as string]: "#15231f",
+            ["--catalog-shelf" as string]: "#ffffff",
+          }}
         >
           {IS_DESKTOP ? <DesktopReadOnlyOverlay /> : null}
           {children}
@@ -1676,7 +1698,9 @@ export function AppShell({ children }: AppShellProps) {
             sections={visibleSections}
             pathname={pathname}
             branchName={currentBranch?.name}
-            branchLocked={isStockManager || isCashier || isButcherCashier || isGroceryClerk}
+            branchLocked={
+              isStockManager || isCashier || isButcherCashier || isGroceryClerk
+            }
             branches={branches}
             branchId={branchId}
             branchesLoading={branchesLoading}
@@ -1701,7 +1725,9 @@ export function AppShell({ children }: AppShellProps) {
             showShelfZonePicker={showShelfZonePicker}
             onLogout={onLogout}
             itemIsActive={itemIsActive}
-            compactNav={isStockManager || isCashier || isButcherCashier || isGroceryClerk}
+            compactNav={
+              isStockManager || isCashier || isButcherCashier || isGroceryClerk
+            }
             badgeByHref={navBadgeByHref}
             myPayHref={canViewPayrollSelf ? APP_ROUTES.myPay : null}
           />

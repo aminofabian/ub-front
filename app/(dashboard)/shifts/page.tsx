@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
@@ -26,12 +25,13 @@ import {
 } from "lucide-react";
 
 import {
+  DASHBOARD_MAX_WIDE,
   DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
-  dashboardInputClass,
-  dashboardSelectClass,
+  DashboardPageHero,
+  DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { Button } from "@/components/ui/button";
@@ -76,36 +76,41 @@ import {
   DRAWOUT_CATEGORIES,
 } from "@/components/shifts/shift-action-modals";
 import { DrawoutApprovalActions } from "@/components/shifts/drawout-approval-actions";
-import {
-  mktChip,
-  mktChipActive,
-  mktPosAccentBar,
-  mktPosHeader,
-  mktPosSearch,
-  mktPosShell,
-} from "@/app/marketplace/_components/marketplace-ui";
+
+const HAIRLINE =
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+const SHIFT_CHIP = cn(
+  "inline-flex h-8 shrink-0 items-center rounded-none border bg-white px-2.5",
+  "text-[12px] font-semibold tracking-[-0.02em]",
+);
+const SHIFT_CHIP_ACTIVE =
+  "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]";
+const SHIFT_CHIP_IDLE = cn(
+  HAIRLINE,
+  "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+);
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * THE SHIFTS BOARD — direction contract (marketplace shelf grammar)
  *
  * THESIS: one till board arranged like the supplier marketplace shelf —
- *   passport header → search → chips → teal section bar → list rail + detail.
- *   Refuses the three-panel console and soft dashboard cards.
+ * passport header → search → chips → teal section bar → list rail + detail.
+ * Refuses the three-panel console and soft dashboard cards.
  *
  * OWN-WORLD: marketplace paper/ink/teal tokens (sharp corners, pos-primary
- *   rails, chip filters); ledger figures stay mono.
+ * rails, chip filters); ledger figures stay mono.
  *
  * STORY: the manager scans status chips, picks a shift from the board rail,
- *   and the detail shelf shows the cash story.
+ * and the detail shelf shows the cash story.
  *
  * FIRST VIEWPORT: title + Products-style status tabs; search; branch chips;
- *   teal "Board / Detail" bar; list + pane.
+ * teal "Board / Detail" bar; list + pane.
  *
  * FORM: marketplace shelf arrangement applied to shifts Operate task;
- *   inherits live palmart.co.ke/marketplace chrome.
+ * inherits live palmart.co.ke/marketplace chrome.
  *
  * FINISH: unreviewed and undocumented is unfinished; this build ends with the
- *   finish review, the verdict, and DESIGN.md.
+ * finish review, the verdict, and DESIGN.md.
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 const STATUS_OPTIONS = [
@@ -129,8 +134,8 @@ const DRAWOUT_STATUS_BADGE: Record<string, string> = {
 /** Ledger convention: money renders in monospace tabular figures. */
 const NUM = "font-mono tabular-nums";
 
-/** Marketplace-style sharp paper panel. */
-const CARD = mktPosShell;
+/** White hairline panel. */
+const CARD = cn("overflow-hidden rounded-none border bg-white", HAIRLINE);
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -349,7 +354,7 @@ function PanelEmptyState({
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-      <span className="flex size-12 items-center justify-center border border-border/60 bg-muted/40 text-muted-foreground/70 shadow-sm">
+      <span className="flex size-12 items-center justify-center border border-border/60 bg-muted/40 text-muted-foreground/70 shadow-none">
         <Icon className="size-5" aria-hidden />
       </span>
       <div className="space-y-1">
@@ -390,7 +395,13 @@ function LeaderRow({
         className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-border/60"
         aria-hidden
       />
-      <dd className={cn("shrink-0 font-medium text-foreground", NUM, valueClassName)}>
+      <dd
+        className={cn(
+          "shrink-0 font-medium text-foreground",
+          NUM,
+          valueClassName,
+        )}
+      >
         {value}
       </dd>
     </div>
@@ -427,7 +438,7 @@ function NoteBlock({
           )}
           aria-hidden
         />
-        <span className="font-sans text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
+        <span className="font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/70">
           {label}
         </span>
       </div>
@@ -438,10 +449,16 @@ function NoteBlock({
   );
 }
 
-/** Small uppercase section heading with a leading icon. */
-function SectionLabel({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
+/** Small section heading with a leading icon. */
+function SectionLabel({
+  icon: Icon,
+  text,
+}: {
+  icon: LucideIcon;
+  text: string;
+}) {
   return (
-    <h4 className="flex items-center gap-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
+    <h4 className="flex items-center gap-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/70">
       <Icon className="size-3.5 text-foreground/45" aria-hidden />
       {text}
     </h4>
@@ -464,9 +481,9 @@ function KpiCard({
   dotClassName?: string | null;
 }) {
   return (
-    <div className="border border-border/60 bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
+    <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
+        <p className="font-sans text-[10px] font-semibold tracking-[-0.02em] text-foreground/70">
           {label}
         </p>
         {dotClassName ? (
@@ -475,10 +492,7 @@ function KpiCard({
             aria-hidden
           />
         ) : Icon ? (
-          <Icon
-            className="size-3.5 shrink-0 text-foreground/40"
-            aria-hidden
-          />
+          <Icon className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
         ) : null}
       </div>
       <p
@@ -514,7 +528,8 @@ function ShiftRow({
 }) {
   const v = shift.variance;
   const varNum = v != null ? (typeof v === "number" ? v : Number(v)) : null;
-  const needsReview = varNum != null && Math.abs(varNum) >= VARIANCE_THRESHOLD_RED;
+  const needsReview =
+    varNum != null && Math.abs(varNum) >= VARIANCE_THRESHOLD_RED;
 
   return (
     <button
@@ -525,28 +540,35 @@ function ShiftRow({
         "group relative w-full overflow-hidden border text-left transition-[border-color,background-color,box-shadow] duration-150",
         "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
         isSelected
-          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-none"
-          : "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_32%,transparent)] hover:bg-card hover:shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+          ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+          : "bg-white hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_24%,transparent)]",
         compact && "p-2.5",
       )}
     >
       <span
         className={cn(
           "absolute inset-y-0 left-0 w-1 transition-opacity duration-150",
-          isSelected ? "bg-[var(--pos-primary-ink,#fff)]/35 opacity-100" : "opacity-0 group-hover:opacity-70",
+          isSelected
+            ? "bg-[var(--pos-primary,#0f766e)] opacity-100"
+            : "opacity-0 group-hover:opacity-70",
           !isSelected && statusRailClass(shift.status),
         )}
         aria-hidden
       />
 
-      <div className={cn("flex items-start justify-between gap-2", compact ? "" : "p-3")}>
+      <div
+        className={cn(
+          "flex items-start justify-between gap-2",
+          compact ? "" : "p-3",
+        )}
+      >
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <span
             className={cn(
               "flex size-9 shrink-0 items-center justify-center border font-sans text-[11px] font-bold tracking-tight",
               isSelected
-                ? "border-white/30 bg-white/15 text-[var(--pos-primary-ink,#fff)]"
-                : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] text-[var(--pos-ink,#1c1915)]",
+                ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--order-ink,#15231f)]",
             )}
             aria-hidden
           >
@@ -556,7 +578,9 @@ function ShiftRow({
             <span
               className={cn(
                 "block truncate text-sm font-semibold",
-                isSelected ? "text-[var(--pos-primary-ink,#fff)]" : "text-[var(--pos-ink,#1c1915)]",
+                isSelected
+                  ? "text-[var(--pos-primary,#0f766e)]"
+                  : "text-[var(--order-ink,#15231f)]",
               )}
             >
               {shift.cashierName}
@@ -565,7 +589,7 @@ function ShiftRow({
               className={cn(
                 "mt-0.5 flex items-center gap-1 truncate text-xs",
                 isSelected
-                  ? "text-[var(--pos-primary-ink,#fff)]/75"
+                  ? "text-[var(--pos-primary,#0f766e)]"
                   : "text-muted-foreground",
               )}
             >
@@ -575,7 +599,7 @@ function ShiftRow({
           </div>
         </div>
         {isSelected ? (
-          <span className="inline-flex items-center border border-white/30 bg-white/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--pos-primary-ink,#fff)]">
+          <span className="inline-flex items-center border border-[var(--pos-primary,#0f766e)] bg-white px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
             {statusLabel(shift.status)}
           </span>
         ) : (
@@ -593,7 +617,7 @@ function ShiftRow({
           className={cn(
             "inline-flex shrink-0 items-center gap-1",
             isSelected
-              ? "text-[var(--pos-primary-ink,#fff)]/75"
+              ? "text-[var(--pos-primary,#0f766e)]"
               : "text-muted-foreground",
           )}
         >
@@ -601,14 +625,17 @@ function ShiftRow({
           <span className={NUM}>{fmtShortDate(shift.openedAt)}</span>
         </span>
         <span
-          className={cn("h-3 w-px", isSelected ? "bg-white/30" : "bg-border/70")}
+          className={cn(
+            "h-3 w-px",
+            isSelected ? "bg-white/30" : "bg-border/70",
+          )}
           aria-hidden
         />
         <span
           className={cn(
             "inline-flex shrink-0 items-baseline gap-0.5",
             isSelected
-              ? "text-[var(--pos-primary-ink,#fff)]/75"
+              ? "text-[var(--pos-primary,#0f766e)]"
               : "text-muted-foreground",
           )}
         >
@@ -618,7 +645,7 @@ function ShiftRow({
               "font-medium",
               NUM,
               isSelected
-                ? "text-[var(--pos-primary-ink,#fff)]"
+                ? "text-[var(--pos-primary,#0f766e)]"
                 : "text-foreground",
             )}
           >
@@ -634,7 +661,7 @@ function ShiftRow({
                 "inline-flex shrink-0 items-center gap-1 border px-1.5 py-0.5 font-medium",
                 NUM,
                 isSelected
-                  ? "border-white/30 bg-white/15 text-[var(--pos-primary-ink,#fff)]"
+                  ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
                   : cn(
                       varianceBgColor(v),
                       needsReview && "text-red-700 dark:text-red-300",
@@ -658,7 +685,7 @@ function ShiftRow({
               className={cn(
                 "size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5",
                 isSelected
-                  ? "text-[var(--pos-primary-ink,#fff)]/70"
+                  ? "text-[var(--pos-primary,#0f766e)]"
                   : "text-muted-foreground/50",
               )}
               aria-hidden
@@ -764,7 +791,8 @@ function DenominationComparison({
   const expected = toNum(expectedClosingCash);
   const counted = toNum(countedClosingCash);
   const variance = toNum(closingVariance);
-  const showReconciliation = expected != null || counted != null || variance != null;
+  const showReconciliation =
+    expected != null || counted != null || variance != null;
 
   const deltaColor = (v: number) =>
     v < 0
@@ -782,7 +810,7 @@ function DenominationComparison({
               <tr className="border-b border-border/50 bg-muted/25">
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                  className="px-3 py-2 text-left font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
                 >
                   Denom
                   <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/60">
@@ -791,7 +819,7 @@ function DenominationComparison({
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                  className="px-3 py-2 text-right font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
                 >
                   Opening
                   <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/55">
@@ -802,7 +830,7 @@ function DenominationComparison({
                   <th
                     scope="col"
                     title="Opening + ledger movements"
-                    className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                    className="px-3 py-2 text-right font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
                   >
                     Expected
                     <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/55">
@@ -812,7 +840,7 @@ function DenominationComparison({
                 ) : null}
                 <th
                   scope="col"
-                  className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                  className="px-3 py-2 text-right font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
                 >
                   Closing
                   <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/55">
@@ -826,7 +854,7 @@ function DenominationComparison({
                       ? "Closing − Expected (per denomination)"
                       : "Net cash movement during the shift (Closing − Opening)"
                   }
-                  className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                  className="px-3 py-2 text-right font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
                 >
                   {hasExpected ? "Variance" : "Change"}
                 </th>
@@ -846,7 +874,10 @@ function DenominationComparison({
                 const hasData = oQty > 0 || cQty > 0 || eQty !== 0;
                 if (!hasData) return null;
                 return (
-                  <tr key={d.value} className="transition-colors hover:bg-muted/25">
+                  <tr
+                    key={d.value}
+                    className="transition-colors hover:bg-muted/25"
+                  >
                     <td className="px-3 py-1.5 font-medium font-mono tabular-nums sm:px-4">
                       {d.value.toLocaleString("en-KE")}
                     </td>
@@ -891,7 +922,9 @@ function DenominationComparison({
                                   : "bg-amber-500/15 text-amber-700 dark:text-amber-300",
                               )}
                             >
-                              {deltaQty < 0 ? `Short ${-deltaQty}` : `Long ${deltaQty}`}
+                              {deltaQty < 0
+                                ? `Short ${-deltaQty}`
+                                : `Long ${deltaQty}`}
                             </span>
                           ) : null}
                           <span
@@ -920,7 +953,7 @@ function DenominationComparison({
             </tbody>
             <tfoot className="border-t border-border/50 bg-muted/30 font-semibold">
               <tr>
-                <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4">
+                <td className="px-3 py-2 text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4">
                   Total
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right sm:px-4">
@@ -955,10 +988,14 @@ function DenominationComparison({
                 <td
                   className={cn(
                     "px-3 py-2 text-right font-mono tabular-nums sm:px-4",
-                    hasExpected ? deltaColor(closeTotal - expectedTotal) : changeColor(netChange),
+                    hasExpected
+                      ? deltaColor(closeTotal - expectedTotal)
+                      : changeColor(netChange),
                   )}
                 >
-                  {hasExpected ? signedMoney(closeTotal - expectedTotal) : signedMoney(netChange)}
+                  {hasExpected
+                    ? signedMoney(closeTotal - expectedTotal)
+                    : signedMoney(netChange)}
                 </td>
               </tr>
             </tfoot>
@@ -970,7 +1007,7 @@ function DenominationComparison({
         <div className={cn(CARD, "p-3.5")}>
           <div className="mb-2 flex items-center gap-1.5">
             <Scale className="size-3.5 text-muted-foreground/70" aria-hidden />
-            <h5 className="font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/70">
+            <h5 className="font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/70">
               Drawer Reconciliation
             </h5>
           </div>
@@ -984,7 +1021,7 @@ function DenominationComparison({
               value={counted != null ? moneyStr(counted) : "—"}
             />
             <div className="flex items-baseline gap-2 border-t border-dashed border-border/60 pt-2">
-              <dt className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-foreground">
+              <dt className="shrink-0 text-[11px] font-bold tracking-[-0.02em] text-foreground">
                 Variance
               </dt>
               <span
@@ -1020,7 +1057,7 @@ function ExpectedDrawerCard({ balances }: { balances: DrawerBalanceRecord }) {
   return (
     <div className={cn(DASHBOARD_TABLE_SURFACE, "overflow-hidden")}>
       <div className="flex items-center justify-between border-b border-border/50 bg-muted/25 px-3 py-2">
-        <span className="font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65">
+        <span className="font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65">
           Expected drawer · live
         </span>
         <span
@@ -1036,9 +1073,7 @@ function ExpectedDrawerCard({ balances }: { balances: DrawerBalanceRecord }) {
       </div>
       <div className="divide-y divide-border/40">
         {KES_DENOMINATIONS.map((d) => {
-          const row = balances.balances.find(
-            (r) => r.denomination === d.value,
-          );
+          const row = balances.balances.find((r) => r.denomination === d.value);
           if (!row) return null;
           return (
             <div
@@ -1056,7 +1091,7 @@ function ExpectedDrawerCard({ balances }: { balances: DrawerBalanceRecord }) {
         })}
       </div>
       <div className="flex items-center justify-between border-t border-border/50 bg-muted/30 px-3 py-2 text-xs font-semibold">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/65">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-foreground/65">
           Total
         </span>
         <span className="font-mono tabular-nums text-foreground">
@@ -1119,48 +1154,48 @@ function DrawoutList({
               <tr className="border-b border-border/50 bg-muted/25">
                 <th
                   scope="col"
-                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
                 >
                   Time
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
                 >
                   Category
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
                 >
                   Description
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
                 >
                   Recipient
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                  className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
                 >
                   Amount
                 </th>
+                <th
+                  scope="col"
+                  className="px-3 py-2.5 text-center font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
+                >
+                  Status
+                </th>
+                {canApprove ? (
                   <th
                     scope="col"
-                    className="px-3 py-2.5 text-center font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                    className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold tracking-[-0.02em] text-foreground/65 sm:px-4"
                   >
-                    Status
+                    Action
                   </th>
-                  {canApprove ? (
-                    <th
-                      scope="col"
-                      className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
-                    >
-                      Action
-                    </th>
-                  ) : null}
+                ) : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
@@ -1394,7 +1429,7 @@ function ShiftDetail({
                 className={cn(
                   "flex flex-1 items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
                   active
-                    ? "bg-card text-foreground shadow-sm"
+                    ? "bg-card text-foreground shadow-none"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -1476,10 +1511,7 @@ function ShiftDetail({
                     strong
                   />
                   {counted != null ? (
-                    <LeaderRow
-                      label="Counted cash"
-                      value={moneyStr(counted)}
-                    />
+                    <LeaderRow label="Counted cash" value={moneyStr(counted)} />
                   ) : null}
                   {variance != null ? (
                     <LeaderRow
@@ -1505,14 +1537,20 @@ function ShiftDetail({
             ) : cashMovement != null ? (
               <div className="flex items-center justify-between gap-2 border border-border/60 bg-muted/20 px-3.5 py-2.5">
                 <div className="min-w-0">
-                  <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
+                  <p className="font-sans text-[10px] font-semibold tracking-[-0.02em] text-foreground/70">
                     Cash movement
                   </p>
                   <p className="truncate text-[10px] text-muted-foreground">
                     Expected − Opening
                   </p>
                 </div>
-                <p className={cn("shrink-0 text-sm font-semibold", NUM, changeColor(cashMovement))}>
+                <p
+                  className={cn(
+                    "shrink-0 text-sm font-semibold",
+                    NUM,
+                    changeColor(cashMovement),
+                  )}
+                >
                   {signedMoney(cashMovement)}
                 </p>
               </div>
@@ -1529,7 +1567,9 @@ function ShiftDetail({
                 <div className="relative flex items-center gap-2.5">
                   <span className="z-10 size-2 rounded-full bg-emerald-500 ring-2 ring-background" />
                   <span className="text-muted-foreground">Opened</span>
-                  <span className={cn("ml-auto font-medium text-foreground", NUM)}>
+                  <span
+                    className={cn("ml-auto font-medium text-foreground", NUM)}
+                  >
                     {fmtShortDate(detail.openedAt)}
                   </span>
                 </div>
@@ -1537,7 +1577,9 @@ function ShiftDetail({
                   <div className="relative flex items-center gap-2.5">
                     <span className="z-10 size-2 rounded-full bg-red-500 ring-2 ring-background" />
                     <span className="text-muted-foreground">Closed</span>
-                    <span className={cn("ml-auto font-medium text-foreground", NUM)}>
+                    <span
+                      className={cn("ml-auto font-medium text-foreground", NUM)}
+                    >
                       {fmtShortDate(detail.closedAt)}
                     </span>
                   </div>
@@ -1622,9 +1664,7 @@ function ShiftDetail({
             ) : (
               <p className="text-sm text-muted-foreground">
                 No denomination data recorded for this shift.
-                {showEditOpening
-                  ? " Use Edit opening to add a count."
-                  : null}
+                {showEditOpening ? " Use Edit opening to add a count." : null}
               </p>
             )}
           </div>
@@ -1984,7 +2024,16 @@ export default function ShiftsPage() {
         clearQuery();
       }
     })();
-  }, [allowed, searchParams, canOpen, canClose, canRecordDrawout, router, isBranchLockedRole, me?.branchId]);
+  }, [
+    allowed,
+    searchParams,
+    canOpen,
+    canClose,
+    canRecordDrawout,
+    router,
+    isBranchLockedRole,
+    me?.branchId,
+  ]);
 
   const handleShiftOpened = useCallback(
     (shift: ShiftRecord) => {
@@ -2035,32 +2084,35 @@ export default function ShiftsPage() {
   ];
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[1400px] flex-col gap-2 px-2 pb-10 sm:px-5 sm:pb-12">
-      {/* Passport trail — same grammar as marketplace */}
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-0.5 pt-1">
-        <p className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
-          shifts
-          <span className="font-sans text-muted-foreground/80">
-            {" "}
-            · branch → board → count
-          </span>
-        </p>
-        {quickLinks.length > 0 ? (
-          <nav aria-label="Related pages" className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            {quickLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className="text-[11px] font-medium text-muted-foreground underline-offset-2 hover:text-[var(--pos-ink,#1c1915)] hover:underline"
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1")}>
+      <DashboardPageHero
+        icon={Clock}
+        title="Shifts"
+        description="Branch → board → count"
+        showActiveScope
+      >
+        <DashboardQuickLinks
+          compact
+          links={quickLinks.map(({ href, label, icon }) => ({
+            href,
+            label,
+            desc: label,
+            icon,
+          }))}
+        />
+        {canOpen ? (
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 text-[11px] font-semibold tracking-[-0.02em] text-white"
+            onClick={() => setOpenModal(true)}
+          >
+            Open shift
+          </Button>
         ) : null}
-      </div>
+      </DashboardPageHero>
 
-      {(notice || error || (canApproveDrawouts && pendingDrawouts.length > 0)) ? (
+      {notice || error || (canApproveDrawouts && pendingDrawouts.length > 0) ? (
         <div className="flex flex-col gap-2">
           {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
           {error ? <DashboardFeedback kind="error" text={error} /> : null}
@@ -2106,8 +2158,14 @@ export default function ShiftsPage() {
           />
           <span className="relative flex items-center gap-2.5 pl-1">
             <span className="relative flex size-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--pos-primary,#0f766e)] opacity-60" aria-hidden />
-              <span className="relative inline-flex size-2.5 rounded-full bg-[var(--pos-primary,#0f766e)]" aria-hidden />
+              <span
+                className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--pos-primary,#0f766e)] opacity-60"
+                aria-hidden
+              />
+              <span
+                className="relative inline-flex size-2.5 rounded-full bg-[var(--pos-primary,#0f766e)]"
+                aria-hidden
+              />
             </span>
             <p className="text-sm font-semibold text-[var(--pos-ink,#1c1915)]">
               {currentOpenShift.openedByName || "Cashier"}
@@ -2118,12 +2176,17 @@ export default function ShiftsPage() {
           </span>
           <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="size-3.5" aria-hidden />
-            Since <span className={NUM}>{fmtShortDate(currentOpenShift.openedAt)}</span>
+            Since{" "}
+            <span className={NUM}>
+              {fmtShortDate(currentOpenShift.openedAt)}
+            </span>
           </p>
           <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Wallet className="size-3.5" aria-hidden />
             Float{" "}
-            <span className={cn("font-semibold text-[var(--pos-ink,#1c1915)]", NUM)}>
+            <span
+              className={cn("font-semibold text-[var(--pos-ink,#1c1915)]", NUM)}
+            >
               {moneyStr(currentOpenShift.openingCash)}
             </span>
           </p>
@@ -2167,22 +2230,20 @@ export default function ShiftsPage() {
       {/* Marketplace-style POS shell: header → search → chips → board */}
       <div
         className={cn(
-          mktPosShell,
-          "relative flex min-h-0 flex-1 flex-col",
-          "min-h-[min(82dvh,52rem)]",
+          "relative flex min-h-0 min-h-[min(82dvh,52rem)] flex-1 flex-col overflow-hidden rounded-none border bg-white",
+          HAIRLINE,
         )}
       >
-        {/* Passport identity + search strip */}
-        <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 sm:px-3">
-          <span aria-hidden className={mktPosAccentBar} />
-          <div className="space-y-2 pl-2">
+        <section className={cn("relative shrink-0 border-b bg-white px-2.5 py-2 sm:px-3", HAIRLINE)}>
+          <div className="space-y-2">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
-                <h1 className="text-[15px] font-semibold leading-tight text-[var(--pos-ink,#1c1915)] sm:text-base">
+                <h2 className="text-[15px] font-semibold leading-tight text-[var(--order-ink,#15231f)]">
                   {branchFilter
-                    ? branches.find((b) => b.id === branchFilter)?.name ?? "Shifts"
+                    ? (branches.find((b) => b.id === branchFilter)?.name ??
+                      "Shifts")
                     : "All shifts"}
-                </h1>
+                </h2>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
                   {loading
                     ? "Loading…"
@@ -2197,22 +2258,12 @@ export default function ShiftsPage() {
                 <ActiveScopeSubtitle className="mt-0.5 text-[11px]" />
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                {canOpen ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-8 rounded-none px-3 text-[11px] font-semibold uppercase tracking-[0.08em]"
-                    onClick={() => setOpenModal(true)}
-                  >
-                    Open shift
-                  </Button>
-                ) : null}
                 {currentOpenShift && canRecordDrawout ? (
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-8 rounded-none px-3 text-[11px] font-semibold uppercase tracking-[0.08em]"
+                    className="h-8 rounded-none px-3 text-[11px] font-semibold tracking-[-0.02em]"
                     onClick={() => setDrawoutModal(true)}
                   >
                     Drawout
@@ -2221,7 +2272,7 @@ export default function ShiftsPage() {
                 <div
                   role="tablist"
                   aria-label="Shift status"
-                  className="flex rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]"
+                  className={cn("flex rounded-none border bg-white", HAIRLINE)}
                 >
                   {STATUS_OPTIONS.filter((o) =>
                     ["", "open", "closed", "reconciled"].includes(o.value),
@@ -2234,10 +2285,10 @@ export default function ShiftsPage() {
                         role="tab"
                         aria-selected={active}
                         className={cn(
-                          "inline-flex h-8 items-center rounded-none px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] transition sm:px-3",
+                          "inline-flex h-8 items-center rounded-none px-2.5 text-[11px] font-semibold tracking-[-0.02em] transition sm:px-3",
                           active
-                            ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
-                            : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
+                            ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
+                            : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                         )}
                         onClick={() => setStatusFilter(opt.value)}
                       >
@@ -2249,10 +2300,10 @@ export default function ShiftsPage() {
               </div>
             </div>
 
-            <div className="relative rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_82%,transparent)]">
+            <div className={cn("relative rounded-none border bg-white", HAIRLINE)}>
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
-                className={mktPosSearch}
+                className="h-9 w-full rounded-none bg-transparent pl-8 pr-9 text-[13px] outline-none placeholder:text-muted-foreground/50"
                 placeholder="Find a cashier or branch…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -2274,12 +2325,15 @@ export default function ShiftsPage() {
             {!isBranchLockedRole && branches.length > 0 ? (
               <div className="flex flex-col gap-1.5 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2">
                 <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
-                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                    1 · Branch
+                  <span className="shrink-0 text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
+                    Branch
                   </span>
                   <button
                     type="button"
-                    className={cn(mktChip, !branchFilter && mktChipActive)}
+                    className={cn(
+                      SHIFT_CHIP,
+                      !branchFilter ? SHIFT_CHIP_ACTIVE : SHIFT_CHIP_IDLE,
+                    )}
                     onClick={() => setBranchFilter("")}
                   >
                     All
@@ -2291,8 +2345,10 @@ export default function ShiftsPage() {
                         key={b.id}
                         type="button"
                         className={cn(
-                          mktChip,
-                          branchFilter === b.id && mktChipActive,
+                          SHIFT_CHIP,
+                          branchFilter === b.id
+                            ? SHIFT_CHIP_ACTIVE
+                            : SHIFT_CHIP_IDLE,
                         )}
                         onClick={() =>
                           setBranchFilter((cur) => (cur === b.id ? "" : b.id))
@@ -2304,7 +2360,7 @@ export default function ShiftsPage() {
                 </div>
                 {statusFilter === "suspended" ? null : (
                   <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
-                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    <span className="shrink-0 text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
                       Status
                     </span>
                     {STATUS_OPTIONS.map((opt) => (
@@ -2312,8 +2368,10 @@ export default function ShiftsPage() {
                         key={opt.value || "all-status"}
                         type="button"
                         className={cn(
-                          mktChip,
-                          statusFilter === opt.value && mktChipActive,
+                          SHIFT_CHIP,
+                          statusFilter === opt.value
+                            ? SHIFT_CHIP_ACTIVE
+                            : SHIFT_CHIP_IDLE,
                         )}
                         onClick={() => setStatusFilter(opt.value)}
                       >
@@ -2325,7 +2383,7 @@ export default function ShiftsPage() {
               </div>
             ) : (
               <div className="flex items-center gap-2 overflow-x-auto border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2 pb-0.5">
-                <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                <span className="shrink-0 text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
                   Status
                 </span>
                 {STATUS_OPTIONS.map((opt) => (
@@ -2333,8 +2391,10 @@ export default function ShiftsPage() {
                     key={opt.value || "all-status"}
                     type="button"
                     className={cn(
-                      mktChip,
-                      statusFilter === opt.value && mktChipActive,
+                      SHIFT_CHIP,
+                      statusFilter === opt.value
+                        ? SHIFT_CHIP_ACTIVE
+                        : SHIFT_CHIP_IDLE,
                     )}
                     onClick={() => setStatusFilter(opt.value)}
                   >
@@ -2347,9 +2407,14 @@ export default function ShiftsPage() {
         </section>
 
         {/* Teal section bar — marketplace "2 · Supplier | Shelf" */}
-        <div className={cn(mktPosHeader, "gap-2")}>
+        <div
+          className={cn(
+            "flex h-8 shrink-0 items-center justify-between gap-2 border-b bg-white px-2.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+            HAIRLINE,
+          )}
+        >
           <span className="flex min-w-0 items-center gap-2">
-            <span>2 · Board</span>
+            <span>Board</span>
             <span className="font-mono font-normal tabular-nums opacity-80">
               {filteredShifts.length}
             </span>
@@ -2359,7 +2424,7 @@ export default function ShiftsPage() {
               ? `${selectedShift.cashierName} · ${selectedShift.branchName}`
               : "Select a shift"}
           </span>
-          <VarianceLegend className="ml-auto hidden text-[var(--pos-primary-ink,#fff)]/85 sm:flex" />
+          <VarianceLegend className="ml-auto hidden sm:flex" />
         </div>
 
         {/* Board: list rail + detail shelf */}
@@ -2376,7 +2441,8 @@ export default function ShiftsPage() {
                   isSelected={selectedShiftId === s.id}
                   onSelect={() =>
                     setSelectedShiftId((cur) =>
-                      cur === s.id && typeof window !== "undefined" &&
+                      cur === s.id &&
+                      typeof window !== "undefined" &&
                       window.matchMedia("(max-width: 767px)").matches
                         ? null
                         : s.id,
@@ -2386,7 +2452,10 @@ export default function ShiftsPage() {
               ))}
               {filteredShifts.length === 0 && !loading ? (
                 <div className="flex flex-col items-center gap-2 py-10 text-center">
-                  <Search className="size-5 text-muted-foreground/50" aria-hidden />
+                  <Search
+                    className="size-5 text-muted-foreground/50"
+                    aria-hidden
+                  />
                   <p className="text-sm font-medium text-[var(--pos-ink,#1c1915)]">
                     {shifts.length === 0 ? "No shifts yet" : "No shifts match"}
                   </p>
@@ -2421,7 +2490,10 @@ export default function ShiftsPage() {
             {selectedShift ? (
               <div className="flex items-center gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 py-2.5">
                 <span
-                  className="flex size-9 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] font-sans text-[11px] font-bold tracking-tight text-[var(--pos-ink,#1c1915)]"
+                  className={cn(
+                    "flex size-9 shrink-0 items-center justify-center border bg-white font-sans text-[11px] font-bold tracking-tight text-[var(--order-ink,#15231f)]",
+                    HAIRLINE,
+                  )}
                   aria-hidden
                 >
                   {initials(selectedShift.cashierName)}
@@ -2434,7 +2506,9 @@ export default function ShiftsPage() {
                     <MapPin className="size-3 shrink-0" aria-hidden />
                     <span className="truncate">{selectedShift.branchName}</span>
                     <span aria-hidden>·</span>
-                    <span className={NUM}>{fmtShortDate(selectedShift.openedAt)}</span>
+                    <span className={NUM}>
+                      {fmtShortDate(selectedShift.openedAt)}
+                    </span>
                   </p>
                 </div>
                 <StatusBadge status={selectedShift.status} />
@@ -2476,13 +2550,18 @@ export default function ShiftsPage() {
       <div className="space-y-3 md:hidden">
         {selectedShiftId ? (
           <div className={cn(CARD, "overflow-hidden")}>
-            <div className={mktPosHeader}>
+            <div
+              className={cn(
+                "flex h-8 items-center justify-between border-b bg-white px-2.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+                HAIRLINE,
+              )}
+            >
               <span>Detail</span>
               <button
                 type="button"
                 onClick={() => setSelectedShiftId(null)}
                 aria-label="Close shift details"
-                className="p-0.5 text-[var(--pos-primary-ink,#fff)]/90 hover:text-[var(--pos-primary-ink,#fff)]"
+                className="p-0.5 text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]"
               >
                 <X className="size-4" />
               </button>
@@ -2517,7 +2596,9 @@ export default function ShiftsPage() {
         }}
         branches={branches}
         preferredBranchId={openShiftPreferredBranchId}
-        lockBranchSelectionTo={isBranchLockedRole ? me?.branchId ?? null : null}
+        lockBranchSelectionTo={
+          isBranchLockedRole ? (me?.branchId ?? null) : null
+        }
         onOpened={handleShiftOpened}
       />
       <CloseShiftModal

@@ -2,10 +2,7 @@
 
 import { LayoutGrid, Table2 } from "lucide-react";
 
-import {
-  ORDER_TEMPLATES,
-  type OrderTemplateId,
-} from "@/lib/order-templates";
+import { ORDER_TEMPLATES, type OrderTemplateId } from "@/lib/order-templates";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<OrderTemplateId, typeof LayoutGrid> = {

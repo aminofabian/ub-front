@@ -13,7 +13,10 @@ import {
 type Props = {
   draft: ParentDraft;
   setDraft: React.Dispatch<React.SetStateAction<ParentDraft>>;
-  syncCostsFromBuyingPrice: (buyingPrice: string, prev: ParentDraft) => ParentDraft;
+  syncCostsFromBuyingPrice: (
+    buyingPrice: string,
+    prev: ParentDraft,
+  ) => ParentDraft;
   currencyCode: string;
   marginInfo: {
     profit: number;
@@ -32,7 +35,9 @@ export function ProductCreatePricingSection({
   isWeighed = false,
 }: Props) {
   const cur = currencyCode ? ` · ${currencyCode}` : "";
-  const sellLabel = isWeighed ? `Selling price / kg${cur}` : `Selling price${cur}`;
+  const sellLabel = isWeighed
+    ? `Selling price / kg${cur}`
+    : `Selling price${cur}`;
   const valid = marginInfo?.valid;
 
   return (
@@ -45,7 +50,9 @@ export function ProductCreatePricingSection({
           className={cn(productFormInputClass, "w-full")}
           placeholder="0.00"
           value={draft.bundlePrice}
-          onChange={(e) => setDraft((p) => ({ ...p, bundlePrice: e.target.value }))}
+          onChange={(e) =>
+            setDraft((p) => ({ ...p, bundlePrice: e.target.value }))
+          }
           required
         />
       </label>
@@ -60,12 +67,18 @@ export function ProductCreatePricingSection({
           className={cn(productFormInputClass, "w-full")}
           placeholder="0.00"
           value={draft.buyingPrice}
-          onChange={(e) => setDraft((p) => syncCostsFromBuyingPrice(e.target.value, p))}
+          onChange={(e) =>
+            setDraft((p) => syncCostsFromBuyingPrice(e.target.value, p))
+          }
         />
       </label>
       {valid ? (
-        <p className={cn(productFormHintClass, "tabular-nums")} aria-live="polite">
-          {marginInfo.margin.toFixed(0)}% margin · {formatAmount(marginInfo.profit)}
+        <p
+          className={cn(productFormHintClass, "tabular-nums")}
+          aria-live="polite"
+        >
+          {marginInfo.margin.toFixed(0)}% margin ·{" "}
+          {formatAmount(marginInfo.profit)}
           {currencyCode ? ` ${currencyCode}` : ""} profit
         </p>
       ) : null}

@@ -22,7 +22,9 @@ export function formatMutationError(
   return fallback;
 }
 
-export function toNumber(value: number | string | null | undefined): number | null {
+export function toNumber(
+  value: number | string | null | undefined,
+): number | null {
   if (value == null || value === "") return null;
   const n = typeof value === "number" ? value : Number(value);
   return Number.isFinite(n) ? n : null;
@@ -67,13 +69,16 @@ export function resolveCatalogParentId(
 
 /** Package sale or shared-stock variant — inventory lives on the parent product. */
 export function usesSharedPackageStock(
-  row: {
-    packageVariant?: boolean;
-    variantOfItemId?: string | null;
-    isStocked?: boolean;
-    packageUnitsPerSale?: number | string | null;
-    packagingUnitQty?: number | string | null;
-  } | null | undefined,
+  row:
+    | {
+        packageVariant?: boolean;
+        variantOfItemId?: string | null;
+        isStocked?: boolean;
+        packageUnitsPerSale?: number | string | null;
+        packagingUnitQty?: number | string | null;
+      }
+    | null
+    | undefined,
 ): boolean {
   if (!row) return false;
   if (row.packageVariant) return true;
@@ -85,7 +90,12 @@ export function usesSharedPackageStock(
 
 /** Parent catalog id when stock is shared; otherwise the row itself. */
 export function stockCatalogItemId(
-  row: { id: string; variantOfItemId?: string | null; packageVariant?: boolean; isStocked?: boolean } & {
+  row: {
+    id: string;
+    variantOfItemId?: string | null;
+    packageVariant?: boolean;
+    isStocked?: boolean;
+  } & {
     packageUnitsPerSale?: number | string | null;
     packagingUnitQty?: number | string | null;
   },
@@ -99,10 +109,13 @@ export function stockCatalogItemId(
 
 /** Conversion factor for package / shared-stock SKUs (API list field or detail packagingUnitQty). */
 export function packageUnitsPerSaleFromRow(
-  row: {
-    packageUnitsPerSale?: number | string | null;
-    packagingUnitQty?: number | string | null;
-  } | null | undefined,
+  row:
+    | {
+        packageUnitsPerSale?: number | string | null;
+        packagingUnitQty?: number | string | null;
+      }
+    | null
+    | undefined,
 ): number | null {
   if (!row) return null;
   return toNumber(row.packageUnitsPerSale) ?? toNumber(row.packagingUnitQty);
@@ -123,13 +136,16 @@ export function normalizeItemDetail<T extends ItemDetailRecord>(row: T): T {
  * `currentStock` (overall), which would blend the two numbers.
  */
 export function formatStockLabel(
-  row: {
-    packageVariant?: boolean;
-    stockQty?: number | string | null;
-    baseStockQty?: number | string | null;
-    packageUnitsPerSale?: number | string | null;
-    packagingUnitQty?: number | string | null;
-  } | null | undefined,
+  row:
+    | {
+        packageVariant?: boolean;
+        stockQty?: number | string | null;
+        baseStockQty?: number | string | null;
+        packageUnitsPerSale?: number | string | null;
+        packagingUnitQty?: number | string | null;
+      }
+    | null
+    | undefined,
 ): string {
   if (!row) return "—";
   if (row.packageVariant) {
@@ -162,13 +178,16 @@ export function formatOverallStockLabel(
  * Never uses overall `currentStock` as a stand-in for in-store qty.
  */
 export function effectiveOnHand(
-  detail: {
-    packageVariant?: boolean;
-    stockQty?: number | string | null;
-    baseStockQty?: number | string | null;
-    packageUnitsPerSale?: number | string | null;
-    packagingUnitQty?: number | string | null;
-  } | null | undefined,
+  detail:
+    | {
+        packageVariant?: boolean;
+        stockQty?: number | string | null;
+        baseStockQty?: number | string | null;
+        packageUnitsPerSale?: number | string | null;
+        packagingUnitQty?: number | string | null;
+      }
+    | null
+    | undefined,
 ): number | null {
   if (!detail) return null;
   if (detail.packageVariant) {
@@ -190,7 +209,10 @@ export function formatAmount(value: number | null | undefined): string {
   });
 }
 
-export function optionalPositiveNumber(raw: string, label: string): number | undefined {
+export function optionalPositiveNumber(
+  raw: string,
+  label: string,
+): number | undefined {
   const t = raw.trim();
   if (!t) return undefined;
   const n = Number(t);
@@ -251,7 +273,9 @@ export function buildCreatePackageVariantBody(
   return body;
 }
 
-export function buildCreateVariantBody(draft: VariantDraft): CreateVariantPayload {
+export function buildCreateVariantBody(
+  draft: VariantDraft,
+): CreateVariantPayload {
   const variantName = draft.variantName.trim();
   if (!variantName) throw new Error("Variant label is required.");
 
@@ -300,17 +324,21 @@ export function buildCreateVariantBody(draft: VariantDraft): CreateVariantPayloa
   return body;
 }
 
-export function bundlePatchFromVariantDraft(draft: VariantDraft): PatchItemPayload | null {
+export function bundlePatchFromVariantDraft(
+  draft: VariantDraft,
+): PatchItemPayload | null {
   const patch: PatchItemPayload = {};
 
   if (draft.bundleQty.trim()) {
     const n = Number(draft.bundleQty.trim());
-    if (!Number.isFinite(n)) throw new Error("Bundle qty must be a valid number.");
+    if (!Number.isFinite(n))
+      throw new Error("Bundle qty must be a valid number.");
     patch.bundleQty = n;
   }
   if (draft.bundlePrice.trim()) {
     const n = Number(draft.bundlePrice.trim());
-    if (!Number.isFinite(n)) throw new Error("Bundle price must be a valid number.");
+    if (!Number.isFinite(n))
+      throw new Error("Bundle price must be a valid number.");
     patch.bundlePrice = n;
   }
   // Variant form "Buy price" is draft.defaultCostPrice; Commerce COST reads item.buyingPrice

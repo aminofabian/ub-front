@@ -100,7 +100,10 @@ export default function GlobalCatalogPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { me, business, branches, branchId } = useDashboard();
-  const canAdopt = hasPermission(me?.permissions, Permission.CatalogGlobalAdopt);
+  const canAdopt = hasPermission(
+    me?.permissions,
+    Permission.CatalogGlobalAdopt,
+  );
 
   const [meta, setMeta] = useState<{
     catalogId: string;
@@ -115,21 +118,32 @@ export default function GlobalCatalogPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [totalElements, setTotalElements] = useState<number | null>(null);
-  const [selected, setSelected] = useState<Map<string, GlobalProductRecord>>(new Map());
+  const [selected, setSelected] = useState<Map<string, GlobalProductRecord>>(
+    new Map(),
+  );
   const [reviewOpen, setReviewOpen] = useState(false);
   const [adopting, setAdopting] = useState(false);
   const [importProgress, setImportProgress] =
     useState<GlobalCatalogAdoptProgress | null>(null);
-  const [lineOverrides, setLineOverrides] = useState<Map<string, GlobalCatalogAdoptLine>>(new Map());
-  const [skippedProductIds, setSkippedProductIds] = useState<Set<string>>(new Set());
+  const [lineOverrides, setLineOverrides] = useState<
+    Map<string, GlobalCatalogAdoptLine>
+  >(new Map());
+  const [skippedProductIds, setSkippedProductIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [hideImported, setHideImported] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [tenantCategories, setTenantCategories] = useState<CategoryRecord[]>([]);
-  const [previewResult, setPreviewResult] = useState<GlobalCatalogAdoptResult | null>(null);
+  const [tenantCategories, setTenantCategories] = useState<CategoryRecord[]>(
+    [],
+  );
+  const [previewResult, setPreviewResult] =
+    useState<GlobalCatalogAdoptResult | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [refreshOpen, setRefreshOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -179,7 +193,9 @@ export default function GlobalCatalogPage() {
     setSelected((prev) => {
       if (prev.size === 0) return prev;
       const importedIds = new Set(
-        rows.filter((product) => product.alreadyImported).map((product) => product.id),
+        rows
+          .filter((product) => product.alreadyImported)
+          .map((product) => product.id),
       );
       if (importedIds.size === 0) return prev;
       const next = new Map(prev);
@@ -338,10 +354,7 @@ export default function GlobalCatalogPage() {
     });
     if (!fromOnboarding || !selectedPackId) return;
     if (autoSelectedForPackIdRef.current === selectedPackId) return;
-    if (
-      initialLoading ||
-      productsSourcePackIdRef.current !== selectedPackId
-    ) {
+    if (initialLoading || productsSourcePackIdRef.current !== selectedPackId) {
       setActionPhase("loading");
     }
   }, [
@@ -402,7 +415,9 @@ export default function GlobalCatalogPage() {
         if (reset) {
           productsSourcePackIdRef.current = null;
         }
-        setProducts((prev) => (reset ? result.content : [...prev, ...result.content]));
+        setProducts((prev) =>
+          reset ? result.content : [...prev, ...result.content],
+        );
         const nextHasMore = !result.last;
         setHasMore(nextHasMore);
         hasMoreRef.current = nextHasMore;
@@ -416,7 +431,7 @@ export default function GlobalCatalogPage() {
         setLoadingMore(false);
       }
     },
-    [debouncedSearch, hideImported]
+    [debouncedSearch, hideImported],
   );
 
   const syncLoadedProducts = useCallback(async () => {
@@ -499,7 +514,8 @@ export default function GlobalCatalogPage() {
   });
 
   const loadMore = useCallback(() => {
-    if (loadingRef.current || !hasMoreRef.current || selectedPackIdRef.current) return;
+    if (loadingRef.current || !hasMoreRef.current || selectedPackIdRef.current)
+      return;
     void fetchProducts({
       reset: false,
       page: pageRef.current + 1,
@@ -526,7 +542,13 @@ export default function GlobalCatalogPage() {
       categoryId: selectedCategoryId,
       packId: selectedPackId,
     });
-  }, [selectedCategoryId, selectedPackId, debouncedSearch, hideImported, fetchProducts]);
+  }, [
+    selectedCategoryId,
+    selectedPackId,
+    debouncedSearch,
+    hideImported,
+    fetchProducts,
+  ]);
 
   useEffect(() => {
     if (initialLoading || !hasMore || selectedPackId) return;
@@ -545,7 +567,7 @@ export default function GlobalCatalogPage() {
         root,
         rootMargin: "160px 0px",
         threshold: 0,
-      }
+      },
     );
 
     observer.observe(sentinel);
@@ -591,7 +613,10 @@ export default function GlobalCatalogPage() {
     setActionPhase("ready");
   };
 
-  const updateOverride = (productId: string, patch: Partial<GlobalCatalogAdoptLine>) => {
+  const updateOverride = (
+    productId: string,
+    patch: Partial<GlobalCatalogAdoptLine>,
+  ) => {
     setLineOverrides((prev) => {
       const next = new Map(prev);
       const existing = next.get(productId) ?? { globalProductId: productId };
@@ -602,12 +627,16 @@ export default function GlobalCatalogPage() {
 
   const applyBulkDefaults = (patch: Partial<GlobalCatalogAdoptLine>) => {
     if (Object.keys(patch).length === 0) return;
-    const targets = selectedImportable.filter((product) => !skippedProductIds.has(product.id));
+    const targets = selectedImportable.filter(
+      (product) => !skippedProductIds.has(product.id),
+    );
     if (targets.length === 0) return;
     setLineOverrides((prev) => {
       const next = new Map(prev);
       for (const product of targets) {
-        const existing = next.get(product.id) ?? { globalProductId: product.id };
+        const existing = next.get(product.id) ?? {
+          globalProductId: product.id,
+        };
         next.set(product.id, { ...existing, ...patch });
       }
       return next;
@@ -644,27 +673,43 @@ export default function GlobalCatalogPage() {
     return selectedImportable
       .filter((p) => !skippedProductIds.has(p.id))
       .map((p) => {
-      const override = lineOverrides.get(p.id);
-      const globalCategory = meta?.categories.find((c) => c.id === p.globalCategoryId);
-      const slugHint = globalCategory?.tenantCategorySlugHint?.trim();
-      const suggestedCategoryId = slugHint
-        ? tenantCategories.find((category) => category.slug === slugHint)?.id
-        : undefined;
-      return {
-        globalProductId: p.id,
-        sku: override?.sku ?? p.skuTemplate ?? undefined,
-        categoryId: override?.categoryId ?? suggestedCategoryId ?? undefined,
-        sellingPrice: override?.sellingPrice ?? p.recommendedSellingPrice ?? undefined,
-        buyingPrice: override?.buyingPrice ?? p.recommendedBuyingPrice ?? undefined,
-        openingQty: override?.openingQty ?? undefined,
-        openingUnitCost: override?.openingUnitCost ?? override?.buyingPrice ?? p.recommendedBuyingPrice ?? undefined,
-        reorderLevel: override?.reorderLevel ?? p.defaultReorderLevel ?? undefined,
-        reorderQty: override?.reorderQty ?? p.defaultReorderQty ?? undefined,
-        minStockLevel: override?.minStockLevel ?? p.defaultMinStockLevel ?? undefined,
-        onSkuConflict: override?.onSkuConflict ?? undefined,
-      };
-    });
-  }, [selectedImportable, skippedProductIds, lineOverrides, meta?.categories, tenantCategories]);
+        const override = lineOverrides.get(p.id);
+        const globalCategory = meta?.categories.find(
+          (c) => c.id === p.globalCategoryId,
+        );
+        const slugHint = globalCategory?.tenantCategorySlugHint?.trim();
+        const suggestedCategoryId = slugHint
+          ? tenantCategories.find((category) => category.slug === slugHint)?.id
+          : undefined;
+        return {
+          globalProductId: p.id,
+          sku: override?.sku ?? p.skuTemplate ?? undefined,
+          categoryId: override?.categoryId ?? suggestedCategoryId ?? undefined,
+          sellingPrice:
+            override?.sellingPrice ?? p.recommendedSellingPrice ?? undefined,
+          buyingPrice:
+            override?.buyingPrice ?? p.recommendedBuyingPrice ?? undefined,
+          openingQty: override?.openingQty ?? undefined,
+          openingUnitCost:
+            override?.openingUnitCost ??
+            override?.buyingPrice ??
+            p.recommendedBuyingPrice ??
+            undefined,
+          reorderLevel:
+            override?.reorderLevel ?? p.defaultReorderLevel ?? undefined,
+          reorderQty: override?.reorderQty ?? p.defaultReorderQty ?? undefined,
+          minStockLevel:
+            override?.minStockLevel ?? p.defaultMinStockLevel ?? undefined,
+          onSkuConflict: override?.onSkuConflict ?? undefined,
+        };
+      });
+  }, [
+    selectedImportable,
+    skippedProductIds,
+    lineOverrides,
+    meta?.categories,
+    tenantCategories,
+  ]);
 
   const runPreview = useCallback(async () => {
     if (selectedImportable.length === 0) {
@@ -694,12 +739,20 @@ export default function GlobalCatalogPage() {
       void runPreview();
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [reviewOpen, runPreview, lineOverrides, selectedImportable, skippedProductIds, createMissingCategories]);
+  }, [
+    reviewOpen,
+    runPreview,
+    lineOverrides,
+    selectedImportable,
+    skippedProductIds,
+    createMissingCategories,
+  ]);
 
   const readyImportCount = useMemo(
     () =>
-      previewResult?.lines.filter((line) => isImportableAdoptStatus(line.status)).length ??
-      buildLines().length,
+      previewResult?.lines.filter((line) =>
+        isImportableAdoptStatus(line.status),
+      ).length ?? buildLines().length,
     [previewResult, buildLines],
   );
 
@@ -945,7 +998,9 @@ export default function GlobalCatalogPage() {
       return;
     }
     if (selectedImported.length === 0) {
-      toast.error("Select products already in your catalog (uncheck Hide already in catalog).");
+      toast.error(
+        "Select products already in your catalog (uncheck Hide already in catalog).",
+      );
       return;
     }
     if (!refreshSell && !refreshBuy && !refreshImage) {
@@ -965,7 +1020,8 @@ export default function GlobalCatalogPage() {
       const preview = await previewGlobalCatalogRefresh(body);
       if (preview.updatedCount === 0) {
         toast.message("Nothing to update", {
-          description: preview.lines[0]?.message ?? "All selected products were skipped.",
+          description:
+            preview.lines[0]?.message ?? "All selected products were skipped.",
         });
         setRefreshOpen(false);
         return;
@@ -1010,14 +1066,18 @@ export default function GlobalCatalogPage() {
         previewResult ??
         (await previewGlobalCatalogAdopt(lines, { createMissingCategories }));
       const hasErrors = preview.lines.some((l) => l.status.startsWith("error"));
-      const readyCount = preview.lines.filter((l) => isImportableAdoptStatus(l.status)).length;
+      const readyCount = preview.lines.filter((l) =>
+        isImportableAdoptStatus(l.status),
+      ).length;
       if (hasErrors) {
         toast.error("Preview has errors. Fix or remove those products.");
         setPreviewResult(preview);
         return;
       }
       if (unresolvedConflictCount > 0) {
-        toast.error("Resolve SKU conflicts (skip, rename, or merge) before importing.");
+        toast.error(
+          "Resolve SKU conflicts (skip, rename, or merge) before importing.",
+        );
         setPreviewResult(preview);
         return;
       }
@@ -1034,7 +1094,9 @@ export default function GlobalCatalogPage() {
         ),
       ).length;
       if (stillUnresolved > 0) {
-        toast.error("Resolve SKU conflicts (skip, rename, or merge) before importing.");
+        toast.error(
+          "Resolve SKU conflicts (skip, rename, or merge) before importing.",
+        );
         setPreviewResult(preview);
         return;
       }
@@ -1053,9 +1115,15 @@ export default function GlobalCatalogPage() {
         packId: selectedPackId,
         onProgress: setImportProgress,
       });
-      const importedNew = result.lines.filter((l) => l.status === "imported").length;
-      const mergedCount = result.lines.filter((l) => l.status === "merged").length;
-      const skuSkipped = result.lines.filter((l) => l.status === "skip_sku_conflict").length;
+      const importedNew = result.lines.filter(
+        (l) => l.status === "imported",
+      ).length;
+      const mergedCount = result.lines.filter(
+        (l) => l.status === "merged",
+      ).length;
+      const skuSkipped = result.lines.filter(
+        (l) => l.status === "skip_sku_conflict",
+      ).length;
       if (importedNew === 0 && mergedCount === 0) {
         toast.error(
           skuSkipped > 0
@@ -1121,11 +1189,14 @@ export default function GlobalCatalogPage() {
   const handleReplaceWithPack = async () => {
     if (!canAdopt || !selectedPackId || !defaultBranchId || replacing) return;
     const packName =
-      orderedPacks.find((p) => p.id === selectedPackId)?.name ?? "this starter pack";
+      orderedPacks.find((p) => p.id === selectedPackId)?.name ??
+      "this starter pack";
     try {
       const eligibility = await previewGlobalCatalogReplace(selectedPackId);
       if (!eligibility.eligible) {
-        toast.error(eligibility.blockReason || "Cannot replace catalogue for this shop.");
+        toast.error(
+          eligibility.blockReason || "Cannot replace catalogue for this shop.",
+        );
         return;
       }
       showThemedConfirmToast({
@@ -1138,7 +1209,10 @@ export default function GlobalCatalogPage() {
         onConfirm: async () => {
           setReplacing(true);
           try {
-            const result = await replaceGlobalCatalog(defaultBranchId, selectedPackId);
+            const result = await replaceGlobalCatalog(
+              defaultBranchId,
+              selectedPackId,
+            );
             toast.success(
               `Replaced catalogue: removed ${result.softDeletedCount}, imported ${result.adopt.importedCount}`,
             );
@@ -1243,27 +1317,40 @@ export default function GlobalCatalogPage() {
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
-      <header className="flex shrink-0 items-center justify-between border-b bg-card px-4 py-3">
+      <header className="flex shrink-0 items-center justify-between border-b bg-white px-3 py-2">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/products")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/products")}
+          >
             <ArrowLeft className="size-4" />
           </Button>
           <div>
             <h1 className="text-sm font-semibold">
-              {fromOnboarding ? "Import products we already have" : "Stock your shelves"}
+              {fromOnboarding
+                ? "Import products we already have"
+                : "Stock your shelves"}
             </h1>
             <p className="text-xs text-muted-foreground">
               {fromOnboarding ? (
                 <>
-                  These are ready-made products with barcodes and prices. Everything
-                  in the pack is selected to sell — uncheck anything you don&apos;t
-                  carry, then press{" "}
-                  <span className="font-medium text-foreground">Review &amp; import</span>.
+                  These are ready-made products with barcodes and prices.
+                  Everything in the pack is selected to sell — uncheck anything
+                  you don&apos;t carry, then press{" "}
+                  <span className="font-medium text-foreground">
+                    Review &amp; import
+                  </span>
+                  .
                 </>
               ) : (
                 <>
-                  Import ready-made products with barcodes and prices, then press{" "}
-                  <span className="font-medium text-foreground">Review &amp; import</span>.
+                  Import ready-made products with barcodes and prices, then
+                  press{" "}
+                  <span className="font-medium text-foreground">
+                    Review &amp; import
+                  </span>
+                  .
                 </>
               )}
             </p>
@@ -1347,6 +1434,7 @@ export default function GlobalCatalogPage() {
                 ? "Select products below to enable import"
                 : undefined
             }
+            className="rounded-none bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]"
             onClick={handlePreview}
           >
             <ShoppingCart className="mr-1.5 size-4" />
@@ -1359,10 +1447,10 @@ export default function GlobalCatalogPage() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/20 lg:flex">
+        <aside className="hidden w-72 shrink-0 flex-col border-r bg-white lg:flex">
           <div className="flex-1 overflow-auto p-3">
             <div className="mb-4">
-              <h3 className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h3 className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
                 <Package className="size-3.5" /> Starter packs
               </h3>
               <p className="mb-2 text-[11px] leading-snug text-muted-foreground">
@@ -1381,13 +1469,15 @@ export default function GlobalCatalogPage() {
                       type="button"
                       onClick={() => {
                         setSelectedCategoryId(null);
-                        setSelectedPackId(pack.id === selectedPackId ? null : pack.id);
+                        setSelectedPackId(
+                          pack.id === selectedPackId ? null : pack.id,
+                        );
                       }}
                       className={cn(
-                        "flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors",
+                        "flex w-full items-start gap-2 rounded-none border px-2.5 py-2 text-left transition-colors",
                         active
-                          ? "border-primary bg-primary/10 text-foreground shadow-sm"
-                          : "border-transparent hover:border-border hover:bg-muted/60",
+                          ? "border-[var(--catalog-primary,#0f766e)] bg-white text-[var(--catalog-primary,#0f766e)] shadow-none"
+                          : "border-transparent hover:border-border hover:bg-white",
                       )}
                     >
                       <span className="min-w-0 flex-1">
@@ -1395,17 +1485,17 @@ export default function GlobalCatalogPage() {
                           {pack.name}
                         </span>
                         {recommended ? (
-                          <span className="mt-0.5 inline-flex rounded-full bg-primary/15 px-1.5 py-px text-[10px] font-medium text-primary">
+                          <span className="mt-0.5 inline-flex rounded-none border border-[var(--catalog-primary,#0f766e)] bg-white px-1.5 py-px text-[10px] font-medium text-[var(--catalog-primary,#0f766e)]">
                             Matches your shop
                           </span>
                         ) : null}
                       </span>
                       <span
                         className={cn(
-                          "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] tabular-nums",
+                          "shrink-0 rounded-none border px-1.5 py-0.5 text-[10px] tabular-nums",
                           active
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground",
+                            ? "border-[var(--catalog-primary,#0f766e)] bg-white text-[var(--catalog-primary,#0f766e)]"
+                            : "border-border bg-white text-muted-foreground",
                         )}
                       >
                         {pack.productCount}
@@ -1416,7 +1506,7 @@ export default function GlobalCatalogPage() {
               </div>
               {comingSoonPacks.length > 0 ? (
                 <div className="mt-3 space-y-1">
-                  <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  <p className="px-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">
                     Coming soon
                   </p>
                   {comingSoonPacks.map((pack) => {
@@ -1427,17 +1517,21 @@ export default function GlobalCatalogPage() {
                         type="button"
                         onClick={() => {
                           setSelectedCategoryId(null);
-                          setSelectedPackId(pack.id === selectedPackId ? null : pack.id);
+                          setSelectedPackId(
+                            pack.id === selectedPackId ? null : pack.id,
+                          );
                         }}
                         className={cn(
-                          "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
+                          "flex w-full items-center justify-between rounded-none px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
                           active
-                            ? "bg-muted text-foreground"
-                            : "hover:bg-muted/50",
+                            ? "border border-[var(--catalog-primary,#0f766e)] bg-white text-[var(--catalog-primary,#0f766e)]"
+                            : "hover:bg-white",
                         )}
                       >
                         <span className="truncate">{pack.name}</span>
-                        <span className="shrink-0 text-[10px] opacity-70">0</span>
+                        <span className="shrink-0 text-[10px] opacity-70">
+                          0
+                        </span>
                       </button>
                     );
                   })}
@@ -1448,7 +1542,7 @@ export default function GlobalCatalogPage() {
             <div className="my-3 border-t" />
 
             <div>
-              <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
                 <BookOpen className="size-3.5" /> Browse by category
               </h3>
               <div className="space-y-1">
@@ -1459,10 +1553,10 @@ export default function GlobalCatalogPage() {
                     setSelectedCategoryId(null);
                   }}
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors",
+                    "flex w-full items-center gap-2 rounded-none px-2.5 py-1.5 text-left text-xs transition-colors",
                     selectedCategoryId === null && selectedPackId === null
-                      ? "bg-primary/10 font-medium text-foreground ring-1 ring-primary/30"
-                      : "hover:bg-muted",
+                      ? "border border-[var(--catalog-primary,#0f766e)] bg-white font-medium text-[var(--catalog-primary,#0f766e)]"
+                      : "hover:bg-white",
                   )}
                 >
                   <Store className="size-3.5" /> All products
@@ -1479,10 +1573,10 @@ export default function GlobalCatalogPage() {
                     }}
                     style={{ paddingLeft: `${0.625 + cat.depth * 0.75}rem` }}
                     className={cn(
-                      "w-full rounded-lg py-1.5 pr-2.5 text-left text-xs transition-colors",
+                      "w-full rounded-none py-1.5 pr-2.5 text-left text-xs transition-colors",
                       selectedCategoryId === cat.id
-                        ? "bg-primary/10 font-medium text-foreground ring-1 ring-primary/30"
-                        : "hover:bg-muted",
+                        ? "border border-[var(--catalog-primary,#0f766e)] bg-white font-medium text-[var(--catalog-primary,#0f766e)]"
+                        : "hover:bg-white",
                       cat.depth > 0 && "text-muted-foreground",
                     )}
                   >
@@ -1495,11 +1589,11 @@ export default function GlobalCatalogPage() {
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <div className="flex shrink-0 flex-col gap-2 border-b bg-card/40 p-3">
+          <div className="flex shrink-0 flex-col gap-2 border-b bg-white p-2.5">
             {selectedPack || selectedCategoryId ? (
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="text-muted-foreground">Viewing</span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 font-medium">
+                <span className="inline-flex items-center gap-1.5 rounded-none border bg-white px-2.5 py-1 font-medium">
                   {selectedPack ? (
                     <>
                       <Package className="size-3.5 text-primary" />
@@ -1535,46 +1629,46 @@ export default function GlobalCatalogPage() {
               </div>
             ) : null}
             <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search
-                className={cn(
-                  "absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground transition-opacity",
-                  isSearching && "opacity-40"
-                )}
-              />
-              <Input
-                ref={searchInputRef}
-                placeholder="Search by name, brand, or barcode..."
-                className="pl-9"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-              />
-              {isSearching ? (
-                <Loader2 className="absolute right-2.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-              ) : null}
-            </div>
-            <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={hideImported}
-                onChange={(e) => setHideImported(e.target.checked)}
-                className="size-4 rounded border"
-              />
-              Hide items you already have
-            </label>
-            {selected.size > 0 && (
-              <Button variant="ghost" size="sm" onClick={clearSelection}>
-                Clear
+              <div className="relative flex-1">
+                <Search
+                  className={cn(
+                    "absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground transition-opacity",
+                    isSearching && "opacity-40",
+                  )}
+                />
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Search by name, brand, or barcode..."
+                  className="pl-9"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
+                {isSearching ? (
+                  <Loader2 className="absolute right-2.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                ) : null}
+              </div>
+              <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={hideImported}
+                  onChange={(e) => setHideImported(e.target.checked)}
+                  className="size-4 rounded border"
+                />
+                Hide items you already have
+              </label>
+              {selected.size > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearSelection}>
+                  Clear
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={products.every((p) => p.alreadyImported)}
+                onClick={selectAllVisible}
+              >
+                {fromOnboarding ? "Select all to sell" : "Select all"}
               </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={products.every((p) => p.alreadyImported)}
-              onClick={selectAllVisible}
-            >
-              {fromOnboarding ? "Select all to sell" : "Select all"}
-            </Button>
             </div>
           </div>
 
@@ -1583,14 +1677,14 @@ export default function GlobalCatalogPage() {
             className="relative flex-1 overflow-auto scroll-smooth"
           >
             <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 z-10 bg-card/95 shadow-[0_1px_0_0_hsl(var(--border))] backdrop-blur-sm">
+              <thead className="sticky top-0 z-10 bg-white shadow-[0_1px_0_0_hsl(var(--border))]">
                 <tr className="text-xs text-muted-foreground">
-                  <th className="w-10 bg-card/95 py-2.5 pl-3" />
-                  <th className="bg-card/95 py-2.5">Product</th>
-                  <th className="bg-card/95 py-2.5">Category</th>
-                  <th className="bg-card/95 py-2.5">Barcode</th>
-                  <th className="bg-card/95 py-2.5 text-right">Buy</th>
-                  <th className="bg-card/95 py-2.5 pr-3 text-right">Sell</th>
+                  <th className="w-10 bg-white py-2.5 pl-3" />
+                  <th className="bg-white py-2.5">Product</th>
+                  <th className="bg-white py-2.5">Category</th>
+                  <th className="bg-white py-2.5">Barcode</th>
+                  <th className="bg-white py-2.5 text-right">Buy</th>
+                  <th className="bg-white py-2.5 pr-3 text-right">Sell</th>
                 </tr>
               </thead>
 
@@ -1605,11 +1699,14 @@ export default function GlobalCatalogPage() {
                         key={p.id}
                         onClick={() => toggleProduct(p)}
                         className={cn(
-                          "cursor-pointer border-b transition-colors hover:bg-muted/40 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300",
+                          "cursor-pointer border-b transition-colors hover:bg-white motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300",
                           p.alreadyImported && "opacity-50",
-                          selected.has(p.id) && "bg-primary/5 hover:bg-primary/10"
+                          selected.has(p.id) &&
+                            "border-[var(--catalog-primary,#0f766e)] bg-white text-[var(--catalog-primary,#0f766e)] hover:bg-white",
                         )}
-                        style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                        style={{
+                          animationDelay: `${Math.min(index, 8) * 30}ms`,
+                        }}
                       >
                         <td className="py-2 pl-3">
                           <input
@@ -1627,11 +1724,11 @@ export default function GlobalCatalogPage() {
                               <img
                                 src={imageSrc}
                                 alt={p.name}
-                                className="size-8 rounded border object-cover"
+                                className="size-8 rounded-none border object-cover"
                                 loading="lazy"
                               />
                             ) : (
-                              <div className="flex size-8 items-center justify-center rounded border bg-muted">
+                              <div className="flex size-8 items-center justify-center rounded-none border bg-white">
                                 <Package className="size-4 text-muted-foreground" />
                               </div>
                             )}
@@ -1647,7 +1744,9 @@ export default function GlobalCatalogPage() {
                                       className="text-primary underline-offset-2 hover:underline"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        router.push(`/products?product=${p.adoptedItemId}`);
+                                        router.push(
+                                          `/products?product=${p.adoptedItemId}`,
+                                        );
                                       }}
                                     >
                                       In your catalog
@@ -1660,10 +1759,14 @@ export default function GlobalCatalogPage() {
                         </td>
                         <td className="py-2">
                           <span className="text-xs">
-                            {meta?.categories.find((c) => c.id === p.globalCategoryId)?.name ?? "—"}
+                            {meta?.categories.find(
+                              (c) => c.id === p.globalCategoryId,
+                            )?.name ?? "—"}
                           </span>
                         </td>
-                        <td className="py-2 text-xs text-muted-foreground">{p.barcode ?? "—"}</td>
+                        <td className="py-2 text-xs text-muted-foreground">
+                          {p.barcode ?? "—"}
+                        </td>
                         <td className="py-2 text-right text-xs">
                           {p.recommendedBuyingPrice != null
                             ? formatMoney(p.recommendedBuyingPrice, currency)
@@ -1719,7 +1822,7 @@ export default function GlobalCatalogPage() {
                   </div>
                 ) : debouncedSearch ? (
                   <div className="w-full max-w-lg text-center">
-                    <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl border bg-muted/40">
+                    <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-none border bg-white">
                       <Search className="size-5 text-muted-foreground" />
                     </div>
                     <p className="text-sm font-semibold">
@@ -1744,7 +1847,7 @@ export default function GlobalCatalogPage() {
                   </div>
                 ) : hideImported ? (
                   <div className="w-full max-w-lg text-center">
-                    <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl border bg-muted/40">
+                    <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-none border bg-white">
                       <Package className="size-5 text-muted-foreground" />
                     </div>
                     <p className="text-sm font-semibold">
@@ -1772,7 +1875,11 @@ export default function GlobalCatalogPage() {
                       </Button>
                       {suggestedReadyPack &&
                       suggestedReadyPack.id !== selectedPackId ? (
-                        <Button size="sm" variant="ghost" onClick={goSuggestedPack}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={goSuggestedPack}
+                        >
                           Try {suggestedReadyPack.name}
                         </Button>
                       ) : null}
@@ -1803,7 +1910,9 @@ export default function GlobalCatalogPage() {
                     Loading more products…
                   </span>
                 ) : (
-                  <span className="sr-only">More products load as you scroll</span>
+                  <span className="sr-only">
+                    More products load as you scroll
+                  </span>
                 )}
               </div>
             ) : null}
@@ -1851,14 +1960,14 @@ export default function GlobalCatalogPage() {
                   className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400"
                 />
               ) : (
-                <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-full border border-border/80 bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-md motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
+                <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-none border border-border bg-white px-2 py-1.5 shadow-none motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
                   <span className="hidden pl-2 text-[11px] text-muted-foreground sm:inline">
                     Can&apos;t find a product?
                   </span>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 gap-1.5 rounded-full"
+                    className="h-8 gap-1.5 rounded-none"
                     onClick={goCreateFromScratch}
                   >
                     <PenLine className="size-3.5" />
@@ -1867,7 +1976,7 @@ export default function GlobalCatalogPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-8 rounded-full text-xs"
+                    className="h-8 rounded-none text-xs"
                     onClick={goBrowseAll}
                   >
                     Clear filters
@@ -1886,9 +1995,10 @@ export default function GlobalCatalogPage() {
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">
-              Apply latest catalog recommendations to {selectedImported.length} product
-              {selectedImported.length === 1 ? "" : "s"} already in your shop. Nothing changes
-              until you confirm.
+              Apply latest catalog recommendations to {selectedImported.length}{" "}
+              product
+              {selectedImported.length === 1 ? "" : "s"} already in your shop.
+              Nothing changes until you confirm.
             </p>
             <label className="flex items-center gap-2">
               <input
@@ -1928,11 +2038,20 @@ export default function GlobalCatalogPage() {
               Skip products with customized sell prices
             </label>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setRefreshOpen(false)} disabled={refreshing}>
+              <Button
+                variant="outline"
+                onClick={() => setRefreshOpen(false)}
+                disabled={refreshing}
+              >
                 Cancel
               </Button>
-              <Button disabled={refreshing} onClick={() => void handleRefreshFromTemplate()}>
-                {refreshing ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
+              <Button
+                disabled={refreshing}
+                onClick={() => void handleRefreshFromTemplate()}
+              >
+                {refreshing ? (
+                  <Loader2 className="mr-1.5 size-4 animate-spin" />
+                ) : null}
                 Preview & apply
               </Button>
             </div>
@@ -1945,7 +2064,8 @@ export default function GlobalCatalogPage() {
         onOpenChange={setReviewOpen}
         products={selectedImportable}
         branchName={
-          branches.find((b) => b.id === defaultBranchId)?.name ?? "default branch"
+          branches.find((b) => b.id === defaultBranchId)?.name ??
+          "default branch"
         }
         currency={meta?.currency}
         tenantCategories={tenantCategories}

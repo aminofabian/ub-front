@@ -17,12 +17,14 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  FormDrawer,
-  type FormDrawerProps,
-} from "@/components/form-drawer";
+import { FormDrawer, type FormDrawerProps } from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
-import { postStockIncrease, type AisleRecord, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
+import {
+  postStockIncrease,
+  type AisleRecord,
+  type CategoryRecord,
+  type ItemSummaryRecord,
+} from "@/lib/api";
 
 import type { ProductDetailApi } from "../_hooks/useProductDetail";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
@@ -52,7 +54,12 @@ import {
   productFormToggleCardClass,
 } from "./product-form-styles";
 
-type Cat = { id: string; name: string; active: boolean; parentId?: string | null };
+type Cat = {
+  id: string;
+  name: string;
+  active: boolean;
+  parentId?: string | null;
+};
 
 const NOOP_UPSERT_CATEGORY = (_category: CategoryRecord) => {};
 const NOOP_UPSERT_AISLE = (_aisle: AisleRecord) => {};
@@ -126,14 +133,16 @@ export function ProductEditDrawer({
   const [stockUnitCost, setStockUnitCost] = useState("");
   const [stockSaving, setStockSaving] = useState(false);
 
-  const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
-    basics: true,
-    package: true,
-    pricing: true,
-    inventory: true,
-    visibility: true,
-    media: false,
-  });
+  const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>(
+    {
+      basics: true,
+      package: true,
+      pricing: true,
+      inventory: true,
+      visibility: true,
+      media: false,
+    },
+  );
 
   const toggleSection = (key: SectionKey) =>
     setOpenSections((s) => ({ ...s, [key]: !s[key] }));
@@ -142,8 +151,7 @@ export function ProductEditDrawer({
     if (!open || !d) return;
     setStockQty("");
     setStockBranchId(headerBranchId || m.branches[0]?.id || "");
-    const cost =
-      toNumber(d.buyingPrice) ?? toNumber(dr.buyingPriceStr) ?? null;
+    const cost = toNumber(d.buyingPrice) ?? toNumber(dr.buyingPriceStr) ?? null;
     setStockUnitCost(cost != null ? String(cost) : "");
     setOpenSections({
       basics: true,
@@ -153,7 +161,16 @@ export function ProductEditDrawer({
       visibility: false,
       media: false,
     });
-  }, [open, d?.id, d?.buyingPrice, headerBranchId, dr.buyingPriceStr, m.branches, isVariant, sharedStock]);
+  }, [
+    open,
+    d?.id,
+    d?.buyingPrice,
+    headerBranchId,
+    dr.buyingPriceStr,
+    m.branches,
+    isVariant,
+    sharedStock,
+  ]);
 
   useEffect(() => {
     if (!open || !d) return;
@@ -286,7 +303,9 @@ export function ProductEditDrawer({
           ? [d.sku, d.variantName?.trim()].filter(Boolean).join(" · ")
           : undefined
       }
-      contextLabel={sharedStock ? "Pack" : isVariant ? "Size / pack" : "Product"}
+      contextLabel={
+        sharedStock ? "Pack" : isVariant ? "Size / pack" : "Product"
+      }
       icon={
         sharedStock ? (
           <Boxes className="size-3.5 text-primary" aria-hidden />
@@ -337,10 +356,19 @@ export function ProductEditDrawer({
           <div className={productFormDrawerHeroClass}>
             <div className="relative size-14 shrink-0 overflow-hidden rounded-none border border-border bg-muted shadow-none">
               {thumb ? (
-                <Image src={thumb} alt="" fill className="object-cover" sizes="56px" />
+                <Image
+                  src={thumb}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="56px"
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
-                  <Package className="size-6 text-muted-foreground/40" aria-hidden />
+                  <Package
+                    className="size-6 text-muted-foreground/40"
+                    aria-hidden
+                  />
                 </div>
               )}
             </div>
@@ -399,7 +427,10 @@ export function ProductEditDrawer({
                   className={productFormInputClass}
                   value={dr.name ?? ""}
                   onChange={(e) =>
-                    detail.setPatchDraft((p) => ({ ...p, name: e.target.value }))
+                    detail.setPatchDraft((p) => ({
+                      ...p,
+                      name: e.target.value,
+                    }))
                   }
                 />
               </ProductFormField>
@@ -409,7 +440,10 @@ export function ProductEditDrawer({
                     className={productFormInputMonoClass}
                     value={dr.sku ?? ""}
                     onChange={(e) =>
-                      detail.setPatchDraft((p) => ({ ...p, sku: e.target.value }))
+                      detail.setPatchDraft((p) => ({
+                        ...p,
+                        sku: e.target.value,
+                      }))
                     }
                   />
                 </ProductFormField>
@@ -532,7 +566,7 @@ export function ProductEditDrawer({
                 <div className={productFormSectionBodyClass}>
                   <ProductFormField
                     label={
-                      dr.packageVariant ?? d.packageVariant
+                      (dr.packageVariant ?? d.packageVariant)
                         ? "Package name"
                         : "Variant label"
                     }
@@ -583,7 +617,8 @@ export function ProductEditDrawer({
                       <span className="font-semibold text-foreground">
                         Sell as package
                       </span>{" "}
-                      — stock stays on the parent; each sale uses the units above.
+                      — stock stays on the parent; each sale uses the units
+                      above.
                     </span>
                   </label>
                 </div>
@@ -601,7 +636,9 @@ export function ProductEditDrawer({
           {openSections.pricing ? (
             <div className={productFormSectionBodyClass}>
               <div className={productFormGrid2Class}>
-                <ProductFormField label={isWeighed ? "Selling price / kg" : "Selling price"}>
+                <ProductFormField
+                  label={isWeighed ? "Selling price / kg" : "Selling price"}
+                >
                   <input
                     className={productFormInputClass}
                     inputMode="decimal"
@@ -665,12 +702,15 @@ export function ProductEditDrawer({
               {sharedStock ? (
                 <p className="rounded-none border border-border bg-muted/20 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
                   Quantity is tracked on the{" "}
-                  <span className="font-medium text-foreground">parent product</span>.
-                  Each sale deducts{" "}
+                  <span className="font-medium text-foreground">
+                    parent product
+                  </span>
+                  . Each sale deducts{" "}
                   <span className="font-semibold tabular-nums text-foreground">
                     {dr.packagingUnitQtyStr || "—"}
                   </span>{" "}
-                  base units. Use the detail panel or base SKU to adjust on-hand stock.
+                  base units. Use the detail panel or base SKU to adjust on-hand
+                  stock.
                 </p>
               ) : (
                 <>
@@ -720,8 +760,8 @@ export function ProductEditDrawer({
                   </div>
                   {d.isStocked === false ? (
                     <p className="text-[11px] text-amber-800 dark:text-amber-200">
-                      Stock tracking is off for this SKU — enable it before adding
-                      quantity.
+                      Stock tracking is off for this SKU — enable it before
+                      adding quantity.
                     </p>
                   ) : null}
                   <StockIncreaseFields
@@ -750,7 +790,10 @@ export function ProductEditDrawer({
                       onClick={() => void handleStockIncrease()}
                     >
                       {stockSaving ? (
-                        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                        <Loader2
+                          className="size-3.5 animate-spin"
+                          aria-hidden
+                        />
                       ) : null}
                       {stockSaving ? "Adding stock…" : "Add stock now"}
                     </Button>
@@ -781,7 +824,9 @@ export function ProductEditDrawer({
                     }))
                   }
                 />
-                <span className="text-sm font-medium text-foreground">Active</span>
+                <span className="text-sm font-medium text-foreground">
+                  Active
+                </span>
                 <span className="block text-[11px] text-muted-foreground">
                   Inactive SKUs are hidden from sale flows.
                 </span>

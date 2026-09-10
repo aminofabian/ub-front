@@ -47,7 +47,7 @@ export function CatalogEmptyShelf({
             )}
           >
             <span className="block p-4 pb-3.5">
-              <span className="flex aspect-[16/9] w-full flex-col items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_18%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_88%,white)]">
+              <span className="flex aspect-[16/9] w-full flex-col items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_18%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_88%,white)]">
                 <ImagePlus
                   className="size-6 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]"
                   aria-hidden
@@ -61,7 +61,7 @@ export function CatalogEmptyShelf({
                 <span className="block text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
                   Product name
                 </span>
-                <span className="mt-1 block h-10 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_92%,white)] px-3 text-[14px] leading-10 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
+                <span className="mt-1 block h-10 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-3 text-[14px] leading-10 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
                   e.g. Brookside 500ml
                 </span>
               </span>
@@ -71,7 +71,7 @@ export function CatalogEmptyShelf({
                   <span className="block text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
                     Buying price
                   </span>
-                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_92%,white)] px-2.5 text-[12px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
+                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 text-[12px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
                     What you paid
                   </span>
                 </span>
@@ -79,7 +79,7 @@ export function CatalogEmptyShelf({
                   <span className="block text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
                     Selling price
                   </span>
-                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_92%,white)] px-2.5 text-[12px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
+                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 text-[12px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
                     What you charge
                   </span>
                 </span>
@@ -90,7 +90,7 @@ export function CatalogEmptyShelf({
                   <span className="block text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
                     Barcode
                   </span>
-                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_92%,white)] px-2.5 font-mono text-[11px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
+                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 font-mono text-[11px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
                     Scan or type
                   </span>
                 </span>
@@ -98,7 +98,7 @@ export function CatalogEmptyShelf({
                   <span className="block text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
                     Number of items
                   </span>
-                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_92%,white)] px-2.5 text-[12px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
+                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 text-[12px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
                     On the shelf
                   </span>
                 </span>

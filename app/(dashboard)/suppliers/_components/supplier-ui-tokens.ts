@@ -34,7 +34,10 @@ export const supInput = cn(supControlBase, "h-8 px-2.5");
 
 export const supSelect = cn(supControlBase, "h-8 cursor-pointer px-2.5 py-0");
 
-export const supTextarea = cn(supControlBase, "min-h-[5rem] resize-y px-2.5 py-2");
+export const supTextarea = cn(
+  supControlBase,
+  "min-h-[5rem] resize-y px-2.5 py-2",
+);
 
 /** Borderless controls for label|value form tables */
 export const supFormCellInput = cn(
@@ -193,17 +196,11 @@ export const supDrawerFooter = cn(
   "flex flex-wrap items-center justify-end gap-2",
 );
 
-export const supBtnPrimary = cn(
-  "h-8 gap-1.5 rounded-none px-3 font-semibold",
-);
+export const supBtnPrimary = cn("h-8 gap-1.5 rounded-none px-3 font-semibold");
 
-export const supBtnOutline = cn(
-  "h-8 rounded-none px-3 font-medium",
-);
+export const supBtnOutline = cn("h-8 rounded-none px-3 font-medium");
 
-export const supRowActive = cn(
-  "bg-white text-[var(--pos-primary,#0f766e)]",
-);
+export const supRowActive = cn("bg-white text-[var(--pos-primary,#0f766e)]");
 
 export const supRowActiveCompact = supRowActive;
 

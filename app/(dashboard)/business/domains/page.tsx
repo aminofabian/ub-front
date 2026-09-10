@@ -56,15 +56,23 @@ import {
 } from "@/lib/api";
 
 type TabId = "buy" | "manage" | "connect";
-type Busy = { kind: "idle" } | { kind: "save" } | { kind: "row"; id: string; action: string };
+type Busy =
+  | { kind: "idle" }
+  | { kind: "save" }
+  | { kind: "row"; id: string; action: string };
 type SortKey = "domain" | "status" | "source";
 type DnsRecord = { type?: string; name?: string; value?: string };
 
-function sortDomains(rows: DomainRecord[], key: SortKey, dir: "asc" | "desc"): DomainRecord[] {
+function sortDomains(
+  rows: DomainRecord[],
+  key: SortKey,
+  dir: "asc" | "desc",
+): DomainRecord[] {
   const mul = dir === "asc" ? 1 : -1;
   return [...rows].sort((a, b) => {
     if (key === "domain") return mul * a.domain.localeCompare(b.domain);
-    if (key === "source") return mul * (a.source || "").localeCompare(b.source || "");
+    if (key === "source")
+      return mul * (a.source || "").localeCompare(b.source || "");
     const sa = (a.status || (a.active ? "active" : "pending")).toLowerCase();
     const sb = (b.status || (b.active ? "active" : "pending")).toLowerCase();
     return mul * sa.localeCompare(sb);
@@ -72,16 +80,25 @@ function sortDomains(rows: DomainRecord[], key: SortKey, dir: "asc" | "desc"): D
 }
 
 function messageFor(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message.trim() ? error.message : fallback;
+  return error instanceof Error && error.message.trim()
+    ? error.message
+    : fallback;
 }
 
-function statusMeta(row: DomainRecord): { text: string; variant: "success" | "warning" | "destructive" | "secondary" | "default" } {
-  const status = (row.status || (row.active ? "active" : "pending")).toLowerCase();
+function statusMeta(row: DomainRecord): {
+  text: string;
+  variant: "success" | "warning" | "destructive" | "secondary" | "default";
+} {
+  const status = (
+    row.status || (row.active ? "active" : "pending")
+  ).toLowerCase();
   const source = (row.source || "").toLowerCase();
-  if (status === "active" && row.active) return { text: "Live", variant: "success" };
+  if (status === "active" && row.active)
+    return { text: "Live", variant: "success" };
   if (status === "verifying") return { text: "Verifying", variant: "warning" };
   if (status === "failed") return { text: "Failed", variant: "destructive" };
-  if (source === "hostafrica_purchase") return { text: "Provisioning", variant: "default" };
+  if (source === "hostafrica_purchase")
+    return { text: "Provisioning", variant: "default" };
   return { text: "Pending DNS", variant: "secondary" };
 }
 
@@ -101,12 +118,19 @@ function recommendedRecords(row: DomainRecord): DnsRecord[] {
 
 function LockedNotice() {
   return (
-    <div className={cn(DASHBOARD_MAX, "flex min-h-[50vh] items-center justify-center")}>
+    <div
+      className={cn(
+        DASHBOARD_MAX,
+        "flex min-h-[50vh] items-center justify-center",
+      )}
+    >
       <div className={cn(DASHBOARD_SECTION_SURFACE, "max-w-md text-center")}>
         <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-border/60 bg-muted/50 text-muted-foreground">
           <Lock className="size-5" aria-hidden />
         </div>
-        <h1 className="mt-4 text-lg font-semibold tracking-tight">Domains are restricted</h1>
+        <h1 className="mt-4 text-lg font-semibold tracking-tight">
+          Domains are restricted
+        </h1>
         <p className={cn(dashboardHintClass(), "mt-2")}>
           Ask an owner or admin with settings access to map custom hostnames.
         </p>
@@ -137,17 +161,24 @@ function StatCard({
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "rounded-2xl border border-border/70 bg-card p-4 text-left shadow-sm ring-1 ring-black/[0.02] transition-all dark:ring-white/[0.04]",
-        onClick && "hover:-translate-y-0.5 hover:border-border hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        "rounded-none border border-border/70 bg-card p-4 text-left shadow-none ring-1 ring-black/[0.02] transition-all dark:ring-white/[0.04]",
+        onClick &&
+          "hover:-translate-y-0.5 hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
-          {hint ? <p className={cn(dashboardHintClass(), "mt-1")}>{hint}</p> : null}
+          <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+            {label}
+          </p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">
+            {value}
+          </p>
+          {hint ? (
+            <p className={cn(dashboardHintClass(), "mt-1")}>{hint}</p>
+          ) : null}
         </div>
-        <span className="flex size-9 items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-muted-foreground">
+        <span className="flex size-9 items-center justify-center rounded-none border border-border/60 bg-muted/40 text-muted-foreground">
           <Icon className="size-4" aria-hidden />
         </span>
       </div>
@@ -178,7 +209,10 @@ function DomainDetailDrawer({
   const isPurchase = (row.source || "").toLowerCase() === "hostafrica_purchase";
   const needsVerify = !isPlatform && !isPurchase && !row.active;
   const records = recommendedRecords(row);
-  const note = typeof row.dnsInstructions?.note === "string" ? row.dnsInstructions.note : null;
+  const note =
+    typeof row.dnsInstructions?.note === "string"
+      ? row.dnsInstructions.note
+      : null;
 
   const copy = async (text: string) => {
     try {
@@ -202,14 +236,23 @@ function DomainDetailDrawer({
         <div className="flex flex-wrap gap-2">
           {row.active ? (
             <Button asChild variant="outline" size="sm" className="gap-1.5">
-              <a href={`https://${row.domain}`} target="_blank" rel="noreferrer">
+              <a
+                href={`https://${row.domain}`}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Visit
                 <ExternalLink className="size-3.5" aria-hidden />
               </a>
             </Button>
           ) : null}
           {needsVerify ? (
-            <Button size="sm" disabled={busy} className="gap-1.5" onClick={() => onVerify(row)}>
+            <Button
+              size="sm"
+              disabled={busy}
+              className="gap-1.5"
+              onClick={() => onVerify(row)}
+            >
               <ShieldCheck className="size-3.5" aria-hidden />
               Verify DNS
             </Button>
@@ -246,32 +289,36 @@ function DomainDetailDrawer({
 
         {isPlatform ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Always free. Staff login stays here by default even after you add a custom domain.
+            Always free. Staff login stays here by default even after you add a
+            custom domain.
           </p>
         ) : null}
         {isPurchase && !row.active ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            We&apos;re finishing DNS and SSL for this purchased domain — no manual DNS changes needed.
+            We&apos;re finishing DNS and SSL for this purchased domain — no
+            manual DNS changes needed.
           </p>
         ) : null}
         {row.lastError ? (
-          <div className="rounded-xl border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
+          <div className="rounded-none border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
             {row.lastError}
           </div>
         ) : null}
 
         {needsVerify ? (
-          <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+          <div className="space-y-3 rounded-none border border-border/60 bg-muted/20 p-4">
             <p className="text-sm font-semibold">DNS checklist</p>
             {note ? <p className={dashboardHintClass()}>{note}</p> : null}
             {records.length > 0 ? (
               <ul className="space-y-2">
                 {records.map((r, i) => {
-                  const line = [r.type, r.name, r.value].filter(Boolean).join(" → ");
+                  const line = [r.type, r.name, r.value]
+                    .filter(Boolean)
+                    .join(" → ");
                   return (
                     <li
                       key={`${line}-${i}`}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-background px-2.5 py-2 font-mono text-xs"
+                      className="flex items-center justify-between gap-2 rounded-none border border-border/50 bg-background px-2.5 py-2 font-mono text-xs"
                     >
                       <span className="min-w-0 truncate">{line}</span>
                       {r.value ? (
@@ -289,7 +336,9 @@ function DomainDetailDrawer({
                 })}
               </ul>
             ) : (
-              <p className={dashboardHintClass()}>No recommended records yet — try Verify after DNS propagates.</p>
+              <p className={dashboardHintClass()}>
+                No recommended records yet — try Verify after DNS propagates.
+              </p>
             )}
           </div>
         ) : null}
@@ -325,7 +374,12 @@ function ConnectDomainDrawer({
       icon={<Link2 className="size-4" aria-hidden />}
       footer={
         <div className="flex gap-2">
-          <Button type="button" variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button
@@ -334,7 +388,11 @@ function ConnectDomainDrawer({
             className="gap-1.5"
             onClick={() => void onSubmit(value.trim())}
           >
-            {busy ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Plus className="size-3.5" aria-hidden />}
+            {busy ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Plus className="size-3.5" aria-hidden />
+            )}
             Connect domain
           </Button>
         </div>
@@ -396,8 +454,13 @@ function RowActionsMenu({
       </Button>
       {open ? (
         <>
-          <button type="button" className="fixed inset-0 z-40 cursor-default" aria-label="Close menu" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-50 mt-1 min-w-[11rem] overflow-hidden rounded-xl border border-border/70 bg-background py-1 shadow-lg">
+          <button
+            type="button"
+            className="fixed inset-0 z-40 cursor-default"
+            aria-label="Close menu"
+            onClick={() => setOpen(false)}
+          />
+          <div className="absolute right-0 z-50 mt-1 min-w-[11rem] overflow-hidden rounded-none border border-border/70 bg-background py-1 shadow-none">
             <button
               type="button"
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/50"
@@ -494,7 +557,9 @@ export default function DomainsPage() {
     setBusy({ kind: "save" });
     try {
       const created = await addMyDomain(domain);
-      setRows((previous) => sortDomains([...previous, created], sortKey, sortDir));
+      setRows((previous) =>
+        sortDomains([...previous, created], sortKey, sortDir),
+      );
       setConnectOpen(false);
       setTab("manage");
       toast.success(
@@ -528,10 +593,15 @@ export default function DomainsPage() {
     setBusy({ kind: "row", id: row.id, action: "verify" });
     try {
       const updated = await verifyMyDomain(row.id);
-      setRows((previous) => previous.map((r) => (r.id === updated.id ? updated : r)));
+      setRows((previous) =>
+        previous.map((r) => (r.id === updated.id ? updated : r)),
+      );
       setDetailRow(updated);
       if (updated.active) toast.success(`${updated.domain} is live.`);
-      else toast.error(`${updated.domain} is not verified yet. Check DNS and try again.`);
+      else
+        toast.error(
+          `${updated.domain} is not verified yet. Check DNS and try again.`,
+        );
     } catch (e) {
       toast.error(messageFor(e, "Could not verify domain."));
       await reload();
@@ -563,7 +633,9 @@ export default function DomainsPage() {
     const q = query.trim().toLowerCase();
     let list = rows;
     if (sourceFilter !== "all") {
-      list = list.filter((r) => (r.source || "").toLowerCase() === sourceFilter);
+      list = list.filter(
+        (r) => (r.source || "").toLowerCase() === sourceFilter,
+      );
     }
     if (q) {
       list = list.filter((r) => r.domain.toLowerCase().includes(q));
@@ -582,13 +654,30 @@ export default function DomainsPage() {
 
   const rowBusyId = busy.kind === "row" ? busy.id : null;
   const showListLoading = fetchPass === 0 && !loadFailed && rows.length === 0;
-  const platformRow = rows.find((r) => (r.source || "").toLowerCase() === "platform_subdomain");
+  const platformRow = rows.find(
+    (r) => (r.source || "").toLowerCase() === "platform_subdomain",
+  );
   const liveCount = rows.filter((r) => r.active).length;
   const pendingCount = rows.filter((r) => !r.active).length;
 
-  const tabs: { id: TabId; label: string; icon: typeof Globe; count?: number }[] = [
-    { id: "buy", label: "Buy .ke", icon: ShoppingCart, count: orderStats.awaitingPay || undefined },
-    { id: "manage", label: "Your domains", icon: Globe, count: rows.length || undefined },
+  const tabs: {
+    id: TabId;
+    label: string;
+    icon: typeof Globe;
+    count?: number;
+  }[] = [
+    {
+      id: "buy",
+      label: "Buy .ke",
+      icon: ShoppingCart,
+      count: orderStats.awaitingPay || undefined,
+    },
+    {
+      id: "manage",
+      label: "Your domains",
+      icon: Globe,
+      count: rows.length || undefined,
+    },
     { id: "connect", label: "Connect own", icon: Link2 },
   ];
 
@@ -627,7 +716,11 @@ export default function DomainsPage() {
         <StatCard
           label="Purchases"
           value={orderStats.open}
-          hint={orderStats.awaitingPay ? `${orderStats.awaitingPay} awaiting pay` : "Open orders"}
+          hint={
+            orderStats.awaitingPay
+              ? `${orderStats.awaitingPay} awaiting pay`
+              : "Open orders"
+          }
           icon={ShoppingCart}
           onClick={() => setTab("buy")}
         />
@@ -640,18 +733,31 @@ export default function DomainsPage() {
       </div>
 
       {platformRow ? (
-        <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-gradient-to-br from-muted/35 via-card to-card px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex flex-col gap-3 rounded-none border border-border/70 bg-gradient-to-br from-muted/35 via-card to-card px-4 py-4 shadow-none sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background text-emerald-600 shadow-sm dark:text-emerald-400">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-none border border-border/60 bg-background text-emerald-600 shadow-none dark:text-emerald-400">
               <CheckCircle2 className="size-4" aria-hidden />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold tracking-tight">Your free shop URL is live</p>
-              <p className="mt-0.5 truncate font-mono text-sm text-muted-foreground">{platformRow.domain}</p>
+              <p className="text-sm font-semibold tracking-tight">
+                Your free shop URL is live
+              </p>
+              <p className="mt-0.5 truncate font-mono text-sm text-muted-foreground">
+                {platformRow.domain}
+              </p>
             </div>
           </div>
-          <Button asChild variant="outline" size="sm" className="shrink-0 gap-1.5">
-            <a href={`https://${platformRow.domain}`} target="_blank" rel="noreferrer">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="shrink-0 gap-1.5"
+          >
+            <a
+              href={`https://${platformRow.domain}`}
+              target="_blank"
+              rel="noreferrer"
+            >
               Visit shop
               <ExternalLink className="size-3.5" aria-hidden />
             </a>
@@ -663,7 +769,7 @@ export default function DomainsPage() {
         <div
           role="tablist"
           aria-label="Domains sections"
-          className="flex flex-wrap gap-1 rounded-xl border border-border/60 bg-muted/30 p-1"
+          className="flex flex-wrap gap-1 rounded-none border border-border/60 bg-muted/30 p-1"
         >
           {tabs.map(({ id, label, icon: Icon, count }) => {
             const active = tab === id;
@@ -674,9 +780,9 @@ export default function DomainsPage() {
                 role="tab"
                 aria-selected={active}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all",
+                  "inline-flex items-center gap-2 rounded-none px-3.5 py-2 text-sm font-medium transition-all",
                   active
-                    ? "bg-background text-foreground shadow-sm"
+                    ? "bg-background text-foreground shadow-none"
                     : "text-muted-foreground hover:text-foreground",
                 )}
                 onClick={() => setTab(id)}
@@ -698,12 +804,15 @@ export default function DomainsPage() {
             <div className={cn(DASHBOARD_SECTION_SURFACE, "space-y-6")}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 max-w-xl">
-                  <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <p className="font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                     Kenyan TLDs
                   </p>
-                  <h2 className="mt-1.5 text-xl font-semibold tracking-tight">Find and buy your .ke name</h2>
+                  <h2 className="mt-1.5 text-xl font-semibold tracking-tight">
+                    Find and buy your .ke name
+                  </h2>
                   <p className={cn(dashboardHintClass(), "mt-2")}>
-                    Search availability, pay with M-Pesa in a focused modal, and we register and provision it for you.
+                    Search availability, pay with M-Pesa in a focused modal, and
+                    we register and provision it for you.
                   </p>
                 </div>
               </div>
@@ -722,14 +831,18 @@ export default function DomainsPage() {
           <div role="tabpanel" className="animate-in fade-in-0 duration-200">
             <div className={cn(DASHBOARD_SECTION_SURFACE, "max-w-2xl")}>
               <div className="flex items-start gap-4">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-muted-foreground">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-none border border-border/60 bg-muted/40 text-muted-foreground">
                   <Link2 className="size-4" aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-lg font-semibold tracking-tight">Already own a domain?</h2>
+                  <h2 className="text-lg font-semibold tracking-tight">
+                    Already own a domain?
+                  </h2>
                   <p className={cn(dashboardHintClass(), "mt-2")}>
-                    Connect a hostname you manage elsewhere. We&apos;ll show the DNS records to point at us, then you
-                    verify when they&apos;ve propagated. Your free platform URL remains the default staff login host.
+                    Connect a hostname you manage elsewhere. We&apos;ll show the
+                    DNS records to point at us, then you verify when
+                    they&apos;ve propagated. Your free platform URL remains the
+                    default staff login host.
                   </p>
                   <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
                     <li className="flex gap-2">
@@ -746,11 +859,19 @@ export default function DomainsPage() {
                     </li>
                   </ol>
                   <div className="mt-6 flex flex-wrap gap-2">
-                    <Button type="button" className="gap-1.5" onClick={() => setConnectOpen(true)}>
+                    <Button
+                      type="button"
+                      className="gap-1.5"
+                      onClick={() => setConnectOpen(true)}
+                    >
                       <Plus className="size-3.5" aria-hidden />
                       Connect domain
                     </Button>
-                    <Button type="button" variant="outline" onClick={() => setTab("manage")}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setTab("manage")}
+                    >
                       View your domains
                     </Button>
                   </div>
@@ -761,7 +882,10 @@ export default function DomainsPage() {
         ) : null}
 
         {tab === "manage" ? (
-          <div role="tabpanel" className="space-y-4 animate-in fade-in-0 duration-200">
+          <div
+            role="tabpanel"
+            className="space-y-4 animate-in fade-in-0 duration-200"
+          >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative min-w-0 flex-1 sm:max-w-sm">
                 <Search
@@ -777,7 +901,10 @@ export default function DomainsPage() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <select
-                  className={dashboardInputClass(false, "h-10 w-auto cursor-pointer py-2")}
+                  className={dashboardInputClass(
+                    false,
+                    "h-10 w-auto cursor-pointer py-2",
+                  )}
                   value={sourceFilter}
                   onChange={(e) => setSourceFilter(e.target.value)}
                   aria-label="Filter by source"
@@ -787,7 +914,13 @@ export default function DomainsPage() {
                   <option value="hostafrica_purchase">Purchased</option>
                   <option value="manual_connect">Connected</option>
                 </select>
-                <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => void reload()}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => void reload()}
+                >
                   <RefreshCw className="size-3.5" aria-hidden />
                   Reload
                 </Button>
@@ -806,26 +939,44 @@ export default function DomainsPage() {
             {showListLoading ? (
               <div className="space-y-2">
                 {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="h-14 animate-pulse rounded-xl border border-border/50 bg-muted/30" />
+                  <div
+                    key={i}
+                    className="h-14 animate-pulse rounded-none border border-border/50 bg-muted/30"
+                  />
                 ))}
               </div>
             ) : loadFailed ? (
-              <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center">
-                <p className="text-sm font-medium text-destructive">Could not load domains</p>
-                <Button className="mt-4 gap-2" variant="outline" onClick={() => void reload()}>
+              <div className="rounded-none border border-destructive/30 bg-destructive/5 p-8 text-center">
+                <p className="text-sm font-medium text-destructive">
+                  Could not load domains
+                </p>
+                <Button
+                  className="mt-4 gap-2"
+                  variant="outline"
+                  onClick={() => void reload()}
+                >
                   <RefreshCw className="size-4" aria-hidden />
                   Try again
                 </Button>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border/70 bg-muted/15 px-6 py-14 text-center">
-                <Globe className="mx-auto size-9 text-muted-foreground/55" aria-hidden />
+              <div className="rounded-none border border-dashed border-border/70 bg-muted/15 px-6 py-14 text-center">
+                <Globe
+                  className="mx-auto size-9 text-muted-foreground/55"
+                  aria-hidden
+                />
                 <p className="mt-3 text-sm font-medium">No domains match</p>
-                <p className={cn(dashboardHintClass(), "mx-auto mt-1 max-w-sm")}>
+                <p
+                  className={cn(dashboardHintClass(), "mx-auto mt-1 max-w-sm")}
+                >
                   Buy a .ke name or connect a hostname you already own.
                 </p>
                 <div className="mt-4 flex justify-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setTab("buy")}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setTab("buy")}
+                  >
                     Buy .ke
                   </Button>
                   <Button size="sm" onClick={() => setConnectOpen(true)}>
@@ -834,24 +985,51 @@ export default function DomainsPage() {
                 </div>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+              <div className="overflow-hidden rounded-none border border-border/70 bg-card shadow-none">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[640px] text-left text-sm">
-                    <thead className="border-b border-border/50 bg-muted/35 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <thead className="border-b border-border/50 bg-muted/35 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3">
-                          <button type="button" className="hover:text-foreground" onClick={() => toggleSort("domain")}>
-                            Domain {sortKey === "domain" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                          <button
+                            type="button"
+                            className="hover:text-foreground"
+                            onClick={() => toggleSort("domain")}
+                          >
+                            Domain{" "}
+                            {sortKey === "domain"
+                              ? sortDir === "asc"
+                                ? "↑"
+                                : "↓"
+                              : ""}
                           </button>
                         </th>
                         <th className="px-4 py-3">
-                          <button type="button" className="hover:text-foreground" onClick={() => toggleSort("status")}>
-                            Status {sortKey === "status" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                          <button
+                            type="button"
+                            className="hover:text-foreground"
+                            onClick={() => toggleSort("status")}
+                          >
+                            Status{" "}
+                            {sortKey === "status"
+                              ? sortDir === "asc"
+                                ? "↑"
+                                : "↓"
+                              : ""}
                           </button>
                         </th>
                         <th className="px-4 py-3">
-                          <button type="button" className="hover:text-foreground" onClick={() => toggleSort("source")}>
-                            Source {sortKey === "source" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                          <button
+                            type="button"
+                            className="hover:text-foreground"
+                            onClick={() => toggleSort("source")}
+                          >
+                            Source{" "}
+                            {sortKey === "source"
+                              ? sortDir === "asc"
+                                ? "↑"
+                                : "↓"
+                              : ""}
                           </button>
                         </th>
                         <th className="px-4 py-3 text-right">Actions</th>
@@ -890,20 +1068,32 @@ export default function DomainsPage() {
                               </button>
                             </td>
                             <td className="px-4 py-3">
-                              <Badge variant={badge.variant}>{badge.text}</Badge>
+                              <Badge variant={badge.variant}>
+                                {badge.text}
+                              </Badge>
                             </td>
-                            <td className="px-4 py-3 text-muted-foreground">{sourceLabel(row)}</td>
+                            <td className="px-4 py-3 text-muted-foreground">
+                              {sourceLabel(row)}
+                            </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center justify-end gap-1.5">
                                 {row.active ? (
-                                  <Button asChild variant="ghost" size="sm" className="size-8 p-0">
+                                  <Button
+                                    asChild
+                                    variant="ghost"
+                                    size="sm"
+                                    className="size-8 p-0"
+                                  >
                                     <a
                                       href={`https://${row.domain}`}
                                       target="_blank"
                                       rel="noreferrer"
                                       aria-label="Open site"
                                     >
-                                      <ExternalLink className="size-3.5" aria-hidden />
+                                      <ExternalLink
+                                        className="size-3.5"
+                                        aria-hidden
+                                      />
                                     </a>
                                   </Button>
                                 ) : null}
@@ -914,7 +1104,9 @@ export default function DomainsPage() {
                                     setDetailRow(row);
                                     setDetailOpen(true);
                                   }}
-                                  onMakePrimary={() => void handleMakePrimary(row)}
+                                  onMakePrimary={() =>
+                                    void handleMakePrimary(row)
+                                  }
                                   onVerify={() => void handleVerify(row)}
                                   onDelete={() => setDeleteRow(row)}
                                 />
@@ -929,7 +1121,8 @@ export default function DomainsPage() {
                 {pageCount > 1 ? (
                   <div className="flex items-center justify-between border-t border-border/50 px-4 py-3 text-xs text-muted-foreground">
                     <span>
-                      {filtered.length} domain{filtered.length === 1 ? "" : "s"} · page {page + 1} of {pageCount}
+                      {filtered.length} domain{filtered.length === 1 ? "" : "s"}{" "}
+                      · page {page + 1} of {pageCount}
                     </span>
                     <div className="flex gap-2">
                       <Button
@@ -946,7 +1139,9 @@ export default function DomainsPage() {
                         variant="outline"
                         size="sm"
                         disabled={page >= pageCount - 1}
-                        onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                        onClick={() =>
+                          setPage((p) => Math.min(pageCount - 1, p + 1))
+                        }
                       >
                         Next
                       </Button>
@@ -976,16 +1171,25 @@ export default function DomainsPage() {
         onSubmit={handleAdd}
       />
 
-      <Dialog open={!!deleteRow} onOpenChange={(open) => !open && !deleting && setDeleteRow(null)}>
+      <Dialog
+        open={!!deleteRow}
+        onOpenChange={(open) => !open && !deleting && setDeleteRow(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Remove {deleteRow?.domain}?</DialogTitle>
             <DialogDescription>
-              This disconnects the hostname from your shop. You can reconnect it later if needed.
+              This disconnects the hostname from your shop. You can reconnect it
+              later if needed.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button type="button" variant="outline" disabled={deleting} onClick={() => setDeleteRow(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={deleting}
+              onClick={() => setDeleteRow(null)}
+            >
               Cancel
             </Button>
             <Button
@@ -995,7 +1199,11 @@ export default function DomainsPage() {
               className="gap-1.5"
               onClick={() => void confirmDelete()}
             >
-              {deleting ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Trash2 className="size-3.5" aria-hidden />}
+              {deleting ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Trash2 className="size-3.5" aria-hidden />
+              )}
               Remove
             </Button>
           </DialogFooter>

@@ -61,10 +61,10 @@ const PAYMENT_ICONS: Record<
 };
 
 const SEGMENT =
-  "inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors";
+  "inline-flex shrink-0 items-center gap-1 rounded-none px-2 py-1 text-[11px] font-medium transition-colors";
 const SEGMENT_IDLE =
   "text-muted-foreground hover:bg-muted/70 hover:text-foreground";
-const SEGMENT_ACTIVE = "bg-[#F9F6F0] text-[#8B6F3A]";
+const SEGMENT_ACTIVE = "bg-[#ffffff] text-[#0f766e]";
 
 function Seg({
   active,
@@ -98,7 +98,7 @@ function FilterCluster({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-1.5">
-      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/80">
+      <span className="shrink-0 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/80">
         {label}
       </span>
       <div className="flex flex-wrap items-center gap-0.5">{children}</div>
@@ -137,8 +137,7 @@ export function SalesFeedFilters({
   showChannelFilter?: boolean;
   compact?: boolean;
 }) {
-  const showTender =
-    channelFilter === "all" || channelFilter === "walk_in";
+  const showTender = channelFilter === "all" || channelFilter === "walk_in";
 
   const hasExtraFilters =
     statusFilter !== "all" ||
@@ -154,15 +153,15 @@ export function SalesFeedFilters({
   return (
     <div
       className={cn(
-        "border border-border/70 bg-card shadow-sm",
+        "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none",
         compact
-          ? "flex flex-wrap items-center gap-x-3 rounded-lg px-2"
-          : "rounded-xl",
+          ? "flex flex-wrap items-center gap-x-3 rounded-none px-2"
+          : "rounded-none",
       )}
     >
       <div
         className={cn(
-          "flex flex-wrap items-center gap-x-1 gap-y-1.5 border-b border-border/40 px-2.5 py-1.5",
+          "flex flex-wrap items-center gap-x-1 gap-y-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 py-1.5",
           compact && "border-b-0 px-0 py-1",
         )}
       >
@@ -187,7 +186,7 @@ export function SalesFeedFilters({
             type="button"
             onClick={clearExtra}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+              "inline-flex items-center gap-1 rounded-none px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground",
               !compact && "ml-auto",
             )}
             title="Clear filters"
@@ -201,7 +200,7 @@ export function SalesFeedFilters({
       {datePreset === "custom" ? (
         <div
           className={cn(
-            "flex flex-wrap items-center gap-2 border-b border-border/40 bg-muted/20 px-2.5 py-1.5",
+            "flex flex-wrap items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-2.5 py-1.5",
             compact && "border-b-0 bg-transparent px-0 py-1",
           )}
         >
@@ -289,9 +288,7 @@ export function SalesFeedFilters({
                     <Seg
                       key={id}
                       active={active}
-                      onClick={() =>
-                        onPaymentFilterChange(active ? "all" : id)
-                      }
+                      onClick={() => onPaymentFilterChange(active ? "all" : id)}
                       title={label}
                     >
                       <Icon className="size-3 opacity-70" aria-hidden />

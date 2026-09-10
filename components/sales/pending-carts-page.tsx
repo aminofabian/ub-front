@@ -65,7 +65,7 @@ const HOURS_OPTIONS = [
 const STALE_MINUTES = 30;
 
 const SUMMARY_CARD =
-  "flex min-h-[88px] flex-col rounded-xl border border-border/70 bg-card p-4 shadow-sm ring-1 ring-black/[0.02]";
+  "flex min-h-[88px] flex-col rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 shadow-none ring-1 ring-black/[0.02]";
 
 function SummaryCard({
   label,
@@ -153,7 +153,9 @@ function formatAuditAction(action: string): string {
   return AUDIT_ACTION_LABELS[action] ?? action;
 }
 
-function parseAuditPayload(raw: string | null | undefined): AuditLinePayload | null {
+function parseAuditPayload(
+  raw: string | null | undefined,
+): AuditLinePayload | null {
   if (!raw?.trim()) return null;
   try {
     const parsed = JSON.parse(raw) as AuditLinePayload;
@@ -248,8 +250,7 @@ export function PendingCartsPage() {
   const myId = me?.id?.trim() ?? "";
 
   const currency = business?.currency?.trim() || "KES";
-  const branchName =
-    branches.find((b) => b.id === branchId)?.name ?? "Branch";
+  const branchName = branches.find((b) => b.id === branchId)?.name ?? "Branch";
 
   const [statusTab, setStatusTab] = useState<StatusTab>("pending");
   const [hoursBack, setHoursBack] = useState(48);
@@ -315,11 +316,15 @@ export function PendingCartsPage() {
       // Refresh detail drawer if the updated draft is currently open
       const updatedDraftId = String(frame.data?.draftId ?? "");
       if (updatedDraftId && updatedDraftId === selectedId) {
-        void fetchPosDraft(updatedDraftId).then(setDetail).catch(() => {});
+        void fetchPosDraft(updatedDraftId)
+          .then(setDetail)
+          .catch(() => {});
         void fetchPosDraft(updatedDraftId, { includeDeleted: true })
           .then((full) => setAuditItemNames(buildItemNameMap(full.lines)))
           .catch(() => {});
-        void fetchPosDraftAudit(updatedDraftId).then(setAuditEntries).catch(() => {});
+        void fetchPosDraftAudit(updatedDraftId)
+          .then(setAuditEntries)
+          .catch(() => {});
       }
     },
     onCancelled: (frame) => {
@@ -415,9 +420,7 @@ export function PendingCartsPage() {
         fetchPosDraft(id, { includeDeleted: true }).catch(() => null),
       ]);
       setDetail(full);
-      setAuditItemNames(
-        buildItemNameMap(withDeleted?.lines ?? full.lines),
-      );
+      setAuditItemNames(buildItemNameMap(withDeleted?.lines ?? full.lines));
     } catch (e) {
       toast.error(
         e instanceof PosDraftApiError ? e.message : "Could not load details",
@@ -477,14 +480,7 @@ export function PendingCartsPage() {
         }
       },
     });
-  }, [
-    detail,
-    canCancelAny,
-    canCancelOwn,
-    myId,
-    closeDetail,
-    loadDrafts,
-  ]);
+  }, [detail, canCancelAny, canCancelOwn, myId, closeDetail, loadDrafts]);
 
   if (!canRead) {
     return (
@@ -506,7 +502,9 @@ export function PendingCartsPage() {
     return (
       <div className={cn(DASHBOARD_MAX, "py-8")}>
         <section className={cn(DASHBOARD_TABLE_SURFACE, "p-6")}>
-          <h1 className="text-xl font-semibold tracking-tight">Pending sales</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Pending sales
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             POS draft persistence is not enabled for this business. Open{" "}
             <Link
@@ -516,7 +514,9 @@ export function PendingCartsPage() {
               Business settings
             </Link>
             , edit settings, and turn on{" "}
-            <span className="font-medium text-foreground">Cashier POS drafts</span>
+            <span className="font-medium text-foreground">
+              Cashier POS drafts
+            </span>
             .
           </p>
         </section>
@@ -525,8 +525,8 @@ export function PendingCartsPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX, "space-y-6 pb-8")}>
-      <header className="flex flex-wrap items-start justify-between gap-4">
+    <div className={cn(DASHBOARD_MAX, "space-y-1 pb-4")}>
+      <header className="flex flex-wrap items-center justify-between gap-1">
         <DashboardPageHero
           compact
           showActiveScope
@@ -551,7 +551,13 @@ export function PendingCartsPage() {
           }
         />
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" size="sm" className="gap-2" asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            asChild
+          >
             <Link href={APP_ROUTES.cashier}>
               Open cashier
               <ArrowUpRight className="size-3.5" aria-hidden />
@@ -578,7 +584,10 @@ export function PendingCartsPage() {
         />
       ) : null}
 
-      <section aria-label="Draft summary" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section
+        aria-label="Draft summary"
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+      >
         <SummaryCard
           label="Pending now"
           value={summary.pendingCount.toLocaleString("en-KE")}
@@ -632,7 +641,7 @@ export function PendingCartsPage() {
           )}
         >
           <div
-            className="inline-flex w-full rounded-lg border border-border/60 bg-muted/35 p-1 sm:w-auto"
+            className="inline-flex w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/35 p-1 sm:w-auto"
             role="tablist"
             aria-label="Sale status"
           >
@@ -644,9 +653,9 @@ export function PendingCartsPage() {
                 aria-selected={statusTab === tab.value}
                 onClick={() => setStatusTab(tab.value)}
                 className={cn(
-                  "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none",
+                  "flex-1 rounded-none px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none",
                   statusTab === tab.value
-                    ? "bg-background text-foreground shadow-sm"
+                    ? "bg-background text-foreground shadow-none"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -658,10 +667,7 @@ export function PendingCartsPage() {
             {filteredDrafts.length.toLocaleString("en-KE")} result
             {filteredDrafts.length === 1 ? "" : "s"}
             {hasActiveFilters && drafts.length !== filteredDrafts.length ? (
-              <span>
-                {" "}
-                · {drafts.length.toLocaleString("en-KE")} loaded
-              </span>
+              <span> · {drafts.length.toLocaleString("en-KE")} loaded</span>
             ) : null}
           </p>
         </div>
@@ -669,7 +675,9 @@ export function PendingCartsPage() {
         <div className={cn(DASHBOARD_FILTER_WELL, "mx-5 mb-0 mt-0 sm:mx-6")}>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
             <label className="block space-y-1.5">
-              <span className={dashboardFilterFieldLabelClass()}>Time range</span>
+              <span className={dashboardFilterFieldLabelClass()}>
+                Time range
+              </span>
               <select
                 value={hoursBack}
                 onChange={(e) => setHoursBack(Number(e.target.value))}
@@ -705,7 +713,7 @@ export function PendingCartsPage() {
                 onClick={() => setStaleOnly((value) => !value)}
                 aria-pressed={staleOnly}
                 className={cn(
-                  "inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors sm:w-auto",
+                  "inline-flex w-full items-center justify-center gap-2 rounded-none border px-3 py-2 text-sm font-medium transition-colors sm:w-auto",
                   staleOnly
                     ? "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100"
                     : "border-border bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground",
@@ -720,7 +728,7 @@ export function PendingCartsPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-y border-border/50 bg-muted/25 text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="border-y border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/25 text-xs tracking-[-0.02em] text-muted-foreground">
               <tr>
                 <th className="px-5 py-3 font-semibold sm:px-6">Sale #</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
@@ -735,7 +743,9 @@ export function PendingCartsPage() {
                 <tr>
                   <td colSpan={6} className="px-5 py-16 text-center sm:px-6">
                     <Loader2 className="mx-auto mb-3 size-6 animate-spin text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Loading sales…</p>
+                    <p className="text-sm text-muted-foreground">
+                      Loading sales…
+                    </p>
                   </td>
                 </tr>
               ) : filteredDrafts.length === 0 ? (
@@ -788,7 +798,7 @@ export function PendingCartsPage() {
                         #{d.ticketNumber}
                       </span>
                       {d.status === "pending" && isStale(d.updatedAt, nowMs) ? (
-                        <span className="ml-2 inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900 dark:text-amber-200">
+                        <span className="ml-2 inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-amber-900 dark:text-amber-200">
                           Stale
                         </span>
                       ) : null}
@@ -823,10 +833,10 @@ export function PendingCartsPage() {
             onClick={closeDetail}
             aria-hidden
           />
-          <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+          <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-3">
               <div className="flex items-center gap-2">
-                <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="flex size-9 items-center justify-center rounded-none bg-primary/10 text-primary">
                   <ShoppingCart className="size-4" aria-hidden />
                 </span>
                 <div>
@@ -843,7 +853,7 @@ export function PendingCartsPage() {
               <button
                 type="button"
                 onClick={closeDetail}
-                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="rounded-none p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Close details"
               >
                 <X className="size-5" />
@@ -857,21 +867,28 @@ export function PendingCartsPage() {
                 </div>
               ) : detail ? (
                 <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-3 rounded-xl border border-border/60 bg-muted/20 p-4 text-sm">
+                  <div className="grid grid-cols-2 gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 p-4 text-sm">
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground">Status</p>
+                      <p className="text-xs font-medium text-muted-foreground">
+                        Status
+                      </p>
                       <div className="mt-1">
                         <StatusBadge status={detail.status} />
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground">Total</p>
+                      <p className="text-xs font-medium text-muted-foreground">
+                        Total
+                      </p>
                       <p className="mt-1 font-semibold tabular-nums">
                         {fmtKes(Number(detail.grandTotal), currency)}
                       </p>
                     </div>
                     <div className="col-span-2 flex items-center gap-2">
-                      <User className="size-4 text-muted-foreground" aria-hidden />
+                      <User
+                        className="size-4 text-muted-foreground"
+                        aria-hidden
+                      />
                       <span>{detail.createdByName || "Staff"}</span>
                     </div>
                     <div className="col-span-2 flex items-center gap-2 text-muted-foreground">
@@ -881,17 +898,19 @@ export function PendingCartsPage() {
                   </div>
 
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="mb-2 text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
                       Lines
                     </p>
-                    <ul className="divide-y divide-border/50 overflow-hidden rounded-xl border border-border/60">
+                    <ul className="divide-y divide-border/50 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
                       {detail.lines.map((line) => (
                         <li
                           key={line.id}
-                          className="flex items-start justify-between gap-3 bg-card px-3 py-2.5 text-sm"
+                          className="flex items-start justify-between gap-3 bg-white px-3 py-2.5 text-sm"
                         >
                           <div className="min-w-0">
-                            <p className="font-medium text-foreground">{line.itemName}</p>
+                            <p className="font-medium text-foreground">
+                              {line.itemName}
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               {line.quantity} ×{" "}
                               {fmtKes(Number(line.unitPrice), currency)}
@@ -907,7 +926,7 @@ export function PendingCartsPage() {
 
                   {/* ── Activity timeline ── */}
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="mb-2 text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
                       Activity
                     </p>
                     {auditLoading ? (
@@ -919,7 +938,7 @@ export function PendingCartsPage() {
                         No activity recorded yet.
                       </p>
                     ) : (
-                      <ol className="relative ml-3 border-l border-border/60 pl-4">
+                      <ol className="relative ml-3 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pl-4">
                         {auditEntries.map((entry) => {
                           const change = formatAuditChange(
                             entry,
@@ -927,14 +946,17 @@ export function PendingCartsPage() {
                             auditItemNames,
                           );
                           return (
-                            <li key={entry.id} className="relative mb-3 last:mb-0">
-                              <span className="absolute -left-[1.15rem] top-1.5 size-2 rounded-full border border-border bg-card" />
+                            <li
+                              key={entry.id}
+                              className="relative mb-3 last:mb-0"
+                            >
+                              <span className="absolute -left-[1.15rem] top-1.5 size-2 rounded-full border border-border bg-white" />
                               <p className="text-xs font-medium text-foreground">
                                 {formatAuditAction(entry.action)}
                               </p>
                               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                                {entry.userName || "Staff"}{" "}
-                                · {formatDateTime(entry.createdAt)}
+                                {entry.userName || "Staff"} ·{" "}
+                                {formatDateTime(entry.createdAt)}
                               </p>
                               {change ? (
                                 <p className="mt-0.5 whitespace-normal break-words text-[11px] leading-snug text-muted-foreground">
@@ -951,7 +973,7 @@ export function PendingCartsPage() {
                   {detail.status === "pending" ? (
                     <Link
                       href={`${APP_ROUTES.cashier}?resumeDraft=${encodeURIComponent(detail.id)}`}
-                      className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                      className="inline-flex w-full items-center justify-center rounded-none bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                     >
                       Resume at register
                     </Link>
@@ -960,7 +982,7 @@ export function PendingCartsPage() {
                   {detail.status === "completed" && detail.saleId ? (
                     <Link
                       href={APP_ROUTES.salesTransactions}
-                      className="inline-flex w-full items-center justify-center rounded-lg border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted/50"
+                      className="inline-flex w-full items-center justify-center rounded-none border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted/50"
                     >
                       View in transactions
                     </Link>
@@ -970,23 +992,23 @@ export function PendingCartsPage() {
             </div>
 
             {detail?.status === "pending" &&
-              (canCancelAny || (canCancelOwn && detail.createdBy === myId)) ? (
-                <div className="border-t border-border/60 p-4">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    className="w-full"
-                    disabled={cancelling}
-                    onClick={() => void handleCancel()}
-                  >
-                    {cancelling ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      "Void sale"
-                    )}
-                  </Button>
-                </div>
-              ) : null}
+            (canCancelAny || (canCancelOwn && detail.createdBy === myId)) ? (
+              <div className="border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] p-4">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="w-full"
+                  disabled={cancelling}
+                  onClick={() => void handleCancel()}
+                >
+                  {cancelling ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    "Void sale"
+                  )}
+                </Button>
+              </div>
+            ) : null}
           </aside>
         </>
       )}

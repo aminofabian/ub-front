@@ -10,7 +10,10 @@ import {
   DashboardFeedback,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
-import { useSyncBranchFilter, useSessionAisle } from "@/hooks/use-session-scope";
+import {
+  useSyncBranchFilter,
+  useSessionAisle,
+} from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
@@ -20,10 +23,7 @@ import {
   type ItemSummaryRecord,
 } from "@/lib/api";
 import { Permission } from "@/lib/permissions";
-import {
-  canEditStockLevels,
-  canViewStockLevels,
-} from "@/lib/inventory-access";
+import { canEditStockLevels, canViewStockLevels } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 
 import {
@@ -37,10 +37,13 @@ import {
   supWorkspaceShell,
 } from "../../suppliers/_components/supplier-ui-tokens";
 import { RestockPageHeader } from "./_components/restock-page-header";
-import { RestockRowItem, type RestockRow } from "./_components/restock-row-item";
+import {
+  RestockRowItem,
+  type RestockRow,
+} from "./_components/restock-row-item";
 
 /** Stop paging the catalog after this many rows so very large catalogs can't
- *  hang the page. The notice tells the user if the cap was hit. */
+ * hang the page. The notice tells the user if the cap was hit. */
 const MAX_SCAN_PAGES = 40;
 const PAGE_SIZE = 100;
 
@@ -51,7 +54,7 @@ function toNum(v: number | string | null | undefined): number | null {
 }
 
 /** On-hand at the selected branch. Package variants derive stock from a parent,
- *  so they're excluded from this screen (restock the base SKU instead). */
+ * so they're excluded from this screen (restock the base SKU instead). */
 function onHandOf(row: ItemSummaryRecord): number {
   return toNum(row.stockQty) ?? 0;
 }
@@ -187,9 +190,7 @@ export default function InventoryRestockPage() {
     } catch (e) {
       setRows([]);
       setMessageKind("error");
-      setMessage(
-        e instanceof Error ? e.message : "Failed to load products.",
-      );
+      setMessage(e instanceof Error ? e.message : "Failed to load products.");
     } finally {
       setLoading(false);
     }
@@ -249,9 +250,7 @@ export default function InventoryRestockPage() {
         setRows((prev) =>
           prev.map((r) => (r.item.id === id ? { ...r, saving: false } : r)),
         );
-        toast.error(
-          e instanceof Error ? e.message : "Stock update failed.",
-        );
+        toast.error(e instanceof Error ? e.message : "Stock update failed.");
       }
     },
     [canWrite, branchId, rows],
@@ -292,8 +291,8 @@ export default function InventoryRestockPage() {
         title="Out of stock"
         description={
           <>
-            You do not have permission to view inventory. Ask an administrator to
-            grant{" "}
+            You do not have permission to view inventory. Ask an administrator
+            to grant{" "}
             <code className="rounded bg-muted px-1 py-0.5 text-xs">
               {Permission.InventoryRead}
             </code>
@@ -307,8 +306,13 @@ export default function InventoryRestockPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX, "min-w-0 max-w-full overflow-x-hidden pb-12")}>
-      <div className="flex min-h-0 flex-col overflow-hidden border border-border bg-card">
+    <div
+      className={cn(
+        DASHBOARD_MAX,
+        "min-w-0 max-w-full overflow-x-hidden pb-12",
+      )}
+    >
+      <div className="flex min-h-0 flex-col overflow-hidden border border-border bg-white">
         <RestockPageHeader
           me={me}
           canShowQuickLinks={canShowQuickLinks}
@@ -333,7 +337,10 @@ export default function InventoryRestockPage() {
             <label className="flex shrink-0 flex-col gap-1">
               <span className={supFieldLabel}>Branch</span>
               <select
-                className={cn(supSelect, "h-8 min-w-[7.5rem] max-w-[10rem] bg-background py-0 text-xs")}
+                className={cn(
+                  supSelect,
+                  "h-8 min-w-[7.5rem] max-w-[10rem] bg-background py-0 text-xs",
+                )}
                 value={branchId}
                 onChange={(e) => setBranchId(e.target.value)}
                 aria-label="Branch"
@@ -376,7 +383,8 @@ export default function InventoryRestockPage() {
 
         {capped ? (
           <p className="border-b border-border bg-muted/10 px-3 py-1.5 text-[11px] leading-snug text-muted-foreground">
-            Scanned first {MAX_SCAN_PAGES * PAGE_SIZE} products — search for more.
+            Scanned first {MAX_SCAN_PAGES * PAGE_SIZE} products — search for
+            more.
           </p>
         ) : null}
 
@@ -400,7 +408,10 @@ export default function InventoryRestockPage() {
 
           {!branchId.trim() ? (
             <div className="flex flex-col items-center justify-center gap-1.5 border-b border-border px-3 py-8 text-center">
-              <Package className="size-6 text-muted-foreground/40" aria-hidden />
+              <Package
+                className="size-6 text-muted-foreground/40"
+                aria-hidden
+              />
               <p className="text-xs text-muted-foreground">{emptyMessage}</p>
             </div>
           ) : loading && !loaded ? (
@@ -426,10 +437,18 @@ export default function InventoryRestockPage() {
                 <table className="w-full min-w-[28rem] border-collapse border-0 text-left text-xs">
                   <thead>
                     <tr className={supTableHead}>
-                      <th className={cn(supTableCell, "min-w-[10rem]")}>Product</th>
-                      <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Qty</th>
-                      <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Cost</th>
-                      <th className={cn(supTableCell, "w-[4.5rem] text-right")}>Save</th>
+                      <th className={cn(supTableCell, "min-w-[10rem]")}>
+                        Product
+                      </th>
+                      <th className={cn(supTableCell, "w-[5.5rem] text-right")}>
+                        Qty
+                      </th>
+                      <th className={cn(supTableCell, "w-[5.5rem] text-right")}>
+                        Cost
+                      </th>
+                      <th className={cn(supTableCell, "w-[4.5rem] text-right")}>
+                        Save
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -453,7 +472,8 @@ export default function InventoryRestockPage() {
               <div className="border-t border-border bg-[#eef2f7] px-2.5 py-1.5 text-[10px] text-muted-foreground dark:bg-muted/25">
                 <span className={supKicker}>Tip</span>
                 <span className="ml-2">
-                  Enter qty and cost, then Save — row removes when stock is posted.
+                  Enter qty and cost, then Save — row removes when stock is
+                  posted.
                 </span>
               </div>
             </>

@@ -200,7 +200,10 @@ export default function SuppliesPage() {
   );
 
   useEffect(() => {
-    if (searchParams.get("onboarding") === "create-supply" && canOpenNewSupply) {
+    if (
+      searchParams.get("onboarding") === "create-supply" &&
+      canOpenNewSupply
+    ) {
       setNewOpen(true);
     }
   }, [searchParams, canOpenNewSupply]);
@@ -251,7 +254,9 @@ export default function SuppliesPage() {
   const filterCounts = useMemo(() => {
     const counts: Partial<Record<SupplyBillFilterId, number>> = {};
     for (const f of SUPPLY_BILL_FILTERS) {
-      counts[f.id] = rows.filter((r) => matchesSupplyBillFilter(r, f.id)).length;
+      counts[f.id] = rows.filter((r) =>
+        matchesSupplyBillFilter(r, f.id),
+      ).length;
     }
     return counts;
   }, [rows]);
@@ -286,8 +291,7 @@ export default function SuppliesPage() {
   }, [rows]);
 
   const unpaidGroups = useMemo(
-    () =>
-      billFilter === "unpaid" ? groupRowsBySupplier(displayRows) : [],
+    () => (billFilter === "unpaid" ? groupRowsBySupplier(displayRows) : []),
     [billFilter, displayRows],
   );
 
@@ -368,9 +372,7 @@ export default function SuppliesPage() {
           />
         }
       >
-        {listError ? (
-          <DashboardFeedback kind="error" text={listError} />
-        ) : null}
+        {listError ? <DashboardFeedback kind="error" text={listError} /> : null}
 
         <section
           className="grid grid-cols-2 gap-1 lg:grid-cols-4"
@@ -705,9 +707,7 @@ export default function SuppliesPage() {
                                   variant="ghost"
                                   className="size-7 rounded-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] hover:bg-destructive/10 hover:text-destructive"
                                   aria-label={`Delete ${r.invoiceNumber}`}
-                                  disabled={
-                                    deletingId === r.supplierInvoiceId
-                                  }
+                                  disabled={deletingId === r.supplierInvoiceId}
                                   onClick={() => void onDeleteSupply(r)}
                                 >
                                   <Trash2 className="size-3" aria-hidden />
@@ -842,9 +842,7 @@ function PulseTile({
         onClick &&
           !active &&
           "hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]",
-        emphasize &&
-          !active &&
-          "border-amber-700/40",
+        emphasize && !active && "border-amber-700/40",
       )}
       title={hint}
     >
@@ -894,7 +892,10 @@ function UnpaidByVendor({
         const showPayAll = canPay && group.count >= 2 && group.total > 0.009;
         const first = group.bills[0];
         return (
-          <li key={group.supplierId || group.firstUnpaidId} className="p-3 sm:p-3.5">
+          <li
+            key={group.supplierId || group.firstUnpaidId}
+            className="p-3 sm:p-3.5"
+          >
             <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate font-semibold text-[var(--order-ink,#15231f)]">
@@ -982,8 +983,9 @@ function UnpaidByVendor({
                           {formatSupplyMoney(bal, currency)}
                         </p>
                         <p className="text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                          of {formatSupplyMoney(supplyN(r.grandTotal), currency)}{" "}
-                          · paid{" "}
+                          of{" "}
+                          {formatSupplyMoney(supplyN(r.grandTotal), currency)} ·
+                          paid{" "}
                           {formatSupplyMoney(supplyN(r.amountPaid), currency)}
                         </p>
                       </div>

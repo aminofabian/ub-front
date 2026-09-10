@@ -140,9 +140,7 @@ function focusNsdField(rowKey: string, field: NsdField) {
     if (!root) {
       return;
     }
-    const el = root.querySelector(
-      `[data-nsd-${field}]`,
-    ) as HTMLElement | null;
+    const el = root.querySelector(`[data-nsd-${field}]`) as HTMLElement | null;
     if (!el) {
       return;
     }
@@ -371,14 +369,23 @@ function applyRowPackMode(
   const current = rowPack(row);
   if (!next) {
     if (!current) return { ...row, packMode: null, packOptionId: null };
-    const converted = toUnitEntry(row.qtyStr, row.unitStr, current.unitsPerPack);
+    const converted = toUnitEntry(
+      row.qtyStr,
+      row.unitStr,
+      current.unitsPerPack,
+    );
     return { ...row, ...converted, packMode: null, packOptionId: null };
   }
   if (current) {
     return { ...row, packMode: next, packOptionId: packOptionId ?? null };
   }
   const converted = toPackEntry(row.qtyStr, row.unitStr, next.unitsPerPack);
-  return { ...row, ...converted, packMode: next, packOptionId: packOptionId ?? null };
+  return {
+    ...row,
+    ...converted,
+    packMode: next,
+    packOptionId: packOptionId ?? null,
+  };
 }
 
 /** Saved pack shapes offered by the row's supplier link (Unit-only when empty). */
@@ -386,7 +393,9 @@ function rowSavedPacks(row: SupplyDraftRow): ItemLinkPackOfferRecord[] | null {
   return row.link?.packs && row.link.packs.length > 0 ? row.link.packs : null;
 }
 
-function rowCatalogPack(row: SupplyDraftRow): { size: number; unit: string } | null {
+function rowCatalogPack(
+  row: SupplyDraftRow,
+): { size: number; unit: string } | null {
   const size = Number(row.link?.packSize ?? row.item?.packageUnitsPerSale);
   if (!Number.isFinite(size) || size <= 1) return null;
   const unit = row.link?.packUnit?.trim() || "pack";
@@ -464,8 +473,16 @@ export function NewSupplyDrawer({
   onPosted,
   initialSupplier = null,
 }: NewSupplyDrawerProps) {
-  const { branches, branchId, setBranchId, branchesLoading, me, business, itemTypes, itemTypeId } =
-    useDashboard();
+  const {
+    branches,
+    branchId,
+    setBranchId,
+    branchesLoading,
+    me,
+    business,
+    itemTypes,
+    itemTypeId,
+  } = useDashboard();
   const currency = business?.currency?.trim() || "KES";
   const draftBusinessId =
     business?.id?.trim() || getSessionTenantId()?.trim() || "";
@@ -568,9 +585,7 @@ export function NewSupplyDrawer({
     (next: boolean) => {
       if (
         !next &&
-        (addLineOpenRef.current ||
-          packModalOpenRef.current ||
-          packGuideOpen)
+        (addLineOpenRef.current || packModalOpenRef.current || packGuideOpen)
       ) {
         return;
       }
@@ -586,13 +601,16 @@ export function NewSupplyDrawer({
     packModalOpenRef.current = open;
   }, []);
 
-  const handlePackGuideOpenChange = useCallback((open: boolean) => {
-    if (packGuideOpen && !open) {
-      suppressPostUntilRef.current = Date.now() + 400;
-    }
-    setPackGuideOpen(open);
-    packModalOpenRef.current = open;
-  }, [packGuideOpen]);
+  const handlePackGuideOpenChange = useCallback(
+    (open: boolean) => {
+      if (packGuideOpen && !open) {
+        suppressPostUntilRef.current = Date.now() + 400;
+      }
+      setPackGuideOpen(open);
+      packModalOpenRef.current = open;
+    },
+    [packGuideOpen],
+  );
 
   useEffect(() => {
     if (!open || supplier) {
@@ -616,70 +634,69 @@ export function NewSupplyDrawer({
     return () => window.clearTimeout(id);
   }, [open, supplier, supplierQuery]);
 
-  const loadLinks = useCallback(async (sid: string) => {
-    setLinksLoading(true);
-    setError(null);
-    try {
-      const list = await fetchSupplierItemLinks(sid, {
-        branchId: branchId.trim() || undefined,
-      });
-      const active = list.filter((l) => l.active);
-      const seedRow = (link: SupplierItemLinkRecord): SupplyDraftRow => ({
-        key: newRowKey(),
-        source: "linked",
-        link,
-        item: null,
-        qtyStr: "",
-        unitStr: linkSeedUnitCost(link),
-        sellPriceStr: linkSeedShelfPrice(link),
-        sellPriceTouched: false,
-        expiry: "",
-      });
-      const mergeFrom =
-        pendingMergeRowsRef.current ??
-        (rowsRef.current.length > 0
-          ? (rowsRef.current as SupplyDraftRowPersisted[])
-          : null);
-      pendingMergeRowsRef.current = null;
-      if (mergeFrom && mergeFrom.length > 0) {
-        setRows(
-          mergeNewSupplyRowsOntoLinks(
-            active,
-            mergeFrom,
-            seedRow,
-            (row) =>
+  const loadLinks = useCallback(
+    async (sid: string) => {
+      setLinksLoading(true);
+      setError(null);
+      try {
+        const list = await fetchSupplierItemLinks(sid, {
+          branchId: branchId.trim() || undefined,
+        });
+        const active = list.filter((l) => l.active);
+        const seedRow = (link: SupplierItemLinkRecord): SupplyDraftRow => ({
+          key: newRowKey(),
+          source: "linked",
+          link,
+          item: null,
+          qtyStr: "",
+          unitStr: linkSeedUnitCost(link),
+          sellPriceStr: linkSeedShelfPrice(link),
+          sellPriceTouched: false,
+          expiry: "",
+        });
+        const mergeFrom =
+          pendingMergeRowsRef.current ??
+          (rowsRef.current.length > 0
+            ? (rowsRef.current as SupplyDraftRowPersisted[])
+            : null);
+        pendingMergeRowsRef.current = null;
+        if (mergeFrom && mergeFrom.length > 0) {
+          setRows(
+            mergeNewSupplyRowsOntoLinks(active, mergeFrom, seedRow, (row) =>
               row.source === "linked" && row.link
                 ? row.link.itemId
                 : (row.item?.id ?? null),
-          ) as SupplyDraftRow[],
-        );
-      } else {
-        setRows(active.map(seedRow));
-      }
-      if (active.length === 0 && !(mergeFrom && mergeFrom.length > 0)) {
+            ) as SupplyDraftRow[],
+          );
+        } else {
+          setRows(active.map(seedRow));
+        }
+        if (active.length === 0 && !(mergeFrom && mergeFrom.length > 0)) {
+          setError(
+            "No catalog products are linked to this supplier yet. Use Link product or link SKUs on the supplier profile.",
+          );
+        }
+      } catch (e) {
         setError(
-          "No catalog products are linked to this supplier yet. Use Link product or link SKUs on the supplier profile.",
+          e instanceof Error ? e.message : "Failed to load supplier catalog.",
         );
+        const mergeFrom =
+          pendingMergeRowsRef.current ??
+          (rowsRef.current.length > 0
+            ? (rowsRef.current as SupplyDraftRowPersisted[])
+            : null);
+        pendingMergeRowsRef.current = null;
+        if (mergeFrom && mergeFrom.length > 0) {
+          setRows(mergeFrom as SupplyDraftRow[]);
+        } else {
+          setRows([]);
+        }
+      } finally {
+        setLinksLoading(false);
       }
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Failed to load supplier catalog.",
-      );
-      const mergeFrom =
-        pendingMergeRowsRef.current ??
-        (rowsRef.current.length > 0
-          ? (rowsRef.current as SupplyDraftRowPersisted[])
-          : null);
-      pendingMergeRowsRef.current = null;
-      if (mergeFrom && mergeFrom.length > 0) {
-        setRows(mergeFrom as SupplyDraftRow[]);
-      } else {
-        setRows([]);
-      }
-    } finally {
-      setLinksLoading(false);
-    }
-  }, [branchId]);
+    },
+    [branchId],
+  );
 
   useEffect(() => {
     rowsRef.current = rows;
@@ -738,9 +755,7 @@ export function NewSupplyDrawer({
       setSupplier(stored.supplier);
       setSupplierQuery("");
       setSupplierHits([]);
-      setReceivedAtLocal(
-        stored.receivedAtLocal.trim() || defaultReceived,
-      );
+      setReceivedAtLocal(stored.receivedAtLocal.trim() || defaultReceived);
       setNotes(stored.notes);
       setDocRef(stored.docRef);
       setExtras(stored.extras);
@@ -1389,17 +1404,20 @@ export function NewSupplyDrawer({
     return list.filter((row) => rowMatchesLineSearch(row, q));
   }, [rows, lineSearchQuery, lineFocus]);
 
-  const focusNextEmptyQty = useCallback((afterKey: string) => {
-    const keys = rows.map((r) => r.key);
-    const start = keys.indexOf(afterKey);
-    if (start < 0) return;
-    for (let i = 1; i <= keys.length; i++) {
-      const row = rows[(start + i) % keys.length];
-      if (!row || parsePositiveQty(row.qtyStr) != null) continue;
-      focusNsdField(row.key, "qty");
-      return;
-    }
-  }, [rows]);
+  const focusNextEmptyQty = useCallback(
+    (afterKey: string) => {
+      const keys = rows.map((r) => r.key);
+      const start = keys.indexOf(afterKey);
+      if (start < 0) return;
+      for (let i = 1; i <= keys.length; i++) {
+        const row = rows[(start + i) % keys.length];
+        if (!row || parsePositiveQty(row.qtyStr) != null) continue;
+        focusNsdField(row.key, "qty");
+        return;
+      }
+    },
+    [rows],
+  );
 
   const receivedYmd = useMemo(
     () => receivedLocalToYmd(receivedAtLocal),
@@ -1482,7 +1500,9 @@ export function NewSupplyDrawer({
       throw new Error("Select a supplier first.");
     }
     if (!canLinkProducts) {
-      throw new Error("You do not have permission to link products to suppliers.");
+      throw new Error(
+        "You do not have permission to link products to suppliers.",
+      );
     }
 
     await addItemSupplierLink(draft.item.id, {
@@ -1494,9 +1514,7 @@ export function NewSupplyDrawer({
     const links = await fetchSupplierItemLinks(supplierId, {
       branchId: branchId.trim() || undefined,
     });
-    const link = links.find(
-      (l) => l.itemId === draft.item.id && l.active,
-    );
+    const link = links.find((l) => l.itemId === draft.item.id && l.active);
     if (!link) {
       throw new Error("Product linked but catalog row could not be loaded.");
     }
@@ -1570,7 +1588,8 @@ export function NewSupplyDrawer({
               ? {
                   ...row,
                   sellPriceStr: row.sellPriceStr.trim() || sell,
-                  sellPriceTouched: row.sellPriceTouched || !row.sellPriceStr.trim(),
+                  sellPriceTouched:
+                    row.sellPriceTouched || !row.sellPriceStr.trim(),
                 }
               : row,
           ),
@@ -1767,881 +1786,997 @@ export function NewSupplyDrawer({
 
   return (
     <>
-    <FormDrawer
-      open={open}
-      onboardingTarget={ONBOARDING_TARGETS.suppliesDrawer}
-      onOpenChange={handleDrawerOpenChange}
-      title="New supply"
-      width="full"
-      appearance="sharp"
-      headerDensity="compact"
-      icon={<PackagePlus className="size-3.5 text-primary" aria-hidden />}
-      contextLabel="Purchasing"
-      banner={error ? <FormDrawerMessageBanner text={error} sharp /> : undefined}
-      footer={
-        <div className="flex w-full flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <div className="flex min-w-0 items-center justify-between gap-3 sm:flex-row sm:items-baseline sm:justify-start sm:gap-2">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                Payable
-              </span>
-              <p className="font-mono text-xl font-bold tabular-nums text-foreground sm:text-base">
-                {formatSupplyMoneyCompact(payableTotal, currency)}
+      <FormDrawer
+        open={open}
+        onboardingTarget={ONBOARDING_TARGETS.suppliesDrawer}
+        onOpenChange={handleDrawerOpenChange}
+        title="New supply"
+        width="full"
+        appearance="sharp"
+        headerDensity="compact"
+        icon={<PackagePlus className="size-3.5 text-primary" aria-hidden />}
+        contextLabel="Purchasing"
+        banner={
+          error ? <FormDrawerMessageBanner text={error} sharp /> : undefined
+        }
+        footer={
+          <div className="flex w-full flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <div className="flex min-w-0 items-center justify-between gap-3 sm:flex-row sm:items-baseline sm:justify-start sm:gap-2">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
+                  Payable
+                </span>
+                <p className="font-mono text-xl font-bold tabular-nums text-foreground sm:text-base">
+                  {formatSupplyMoneyCompact(payableTotal, currency)}
+                </p>
+              </div>
+              <p className="truncate text-[11px] text-muted-foreground sm:text-[10px]">
+                {lineStats.valid} of {lineStats.totalRows} ready
+                {supplier
+                  ? ` · ${displaySupplierName({ name: supplier.name, code: supplier.code })}`
+                  : ""}
+                {canPost ? (
+                  <span className="ml-1 font-semibold text-primary">
+                    · Ready
+                  </span>
+                ) : null}
               </p>
+              <Link
+                href={helpHostUrl(APP_ROUTES.helpSupplierFlow)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground/80 underline-offset-2 hover:text-primary hover:underline"
+              >
+                <BookOpen className="size-3" aria-hidden />
+                Receiving tips &amp; guide
+              </Link>
             </div>
-            <p className="truncate text-[11px] text-muted-foreground sm:text-[10px]">
-              {lineStats.valid} of {lineStats.totalRows} ready
-              {supplier ? ` · ${displaySupplierName({ name: supplier.name, code: supplier.code })}` : ""}
-              {canPost ? (
-                <span className="ml-1 font-semibold text-primary">· Ready</span>
-              ) : null}
-            </p>
-            <Link
-              href={helpHostUrl(APP_ROUTES.helpSupplierFlow)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground/80 underline-offset-2 hover:text-primary hover:underline"
-            >
-              <BookOpen className="size-3" aria-hidden />
-              Receiving tips &amp; guide
-            </Link>
+            <div className="grid grid-cols-[auto_1fr] gap-2 sm:flex sm:shrink-0 sm:items-center sm:gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 rounded-none px-4 text-sm touch-manipulation sm:h-8 sm:px-3 sm:text-xs"
+                disabled={busy}
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="new-supply-form"
+                className={cn(
+                  supBtnPrimary,
+                  "h-12 rounded-none px-4 text-[15px] font-semibold touch-manipulation sm:h-8 sm:px-4 sm:text-xs",
+                )}
+                disabled={busy || !canPost}
+              >
+                {busy ? "Posting…" : "Post supply"}
+              </Button>
+            </div>
           </div>
-          <div className="grid grid-cols-[auto_1fr] gap-2 sm:flex sm:shrink-0 sm:items-center sm:gap-1.5">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 rounded-none px-4 text-sm touch-manipulation sm:h-8 sm:px-3 sm:text-xs"
-              disabled={busy}
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="new-supply-form"
-              className={cn(
-                supBtnPrimary,
-                "h-12 rounded-none px-4 text-[15px] font-semibold touch-manipulation sm:h-8 sm:px-4 sm:text-xs",
-              )}
-              disabled={busy || !canPost}
-            >
-              {busy ? "Posting…" : "Post supply"}
-            </Button>
-          </div>
-        </div>
-      }
-    >
-      <form
-        id="new-supply-form"
-        className="flex flex-col gap-2 pb-0"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (Date.now() < suppressPostUntilRef.current) {
-            return;
-          }
-          void onSubmit();
-        }}
+        }
       >
-        {draftRestoredAt != null || serverSessionId ? (
-          <div
-            className={cn(
-              nsdAlert,
-              "flex flex-wrap items-center justify-between gap-2",
-            )}
-            role="status"
-          >
-            <p className="text-[11px] leading-snug">
-              {draftRestoredAt != null
-                ? `Restored unsaved draft${
-                    Number.isFinite(draftRestoredAt)
-                      ? ` from ${new Date(draftRestoredAt).toLocaleString()}`
-                      : ""
-                  }. `
-                : null}
-              {serverSessionId
-                ? serverSyncState === "syncing"
-                  ? "Saving to server…"
-                  : serverSyncState === "error"
-                    ? "Server save failed — browser draft is still kept."
-                    : "Also saved on the server for this branch."
-                : "Edits are saved in this browser until you post."}
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 shrink-0 rounded-none px-2 text-[11px]"
-              disabled={busy}
-              onClick={discardLocalDraft}
+        <form
+          id="new-supply-form"
+          className="flex flex-col gap-2 pb-0"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (Date.now() < suppressPostUntilRef.current) {
+              return;
+            }
+            void onSubmit();
+          }}
+        >
+          {draftRestoredAt != null || serverSessionId ? (
+            <div
+              className={cn(
+                nsdAlert,
+                "flex flex-wrap items-center justify-between gap-2",
+              )}
+              role="status"
             >
-              Discard draft
-            </Button>
-          </div>
-        ) : null}
+              <p className="text-[11px] leading-snug">
+                {draftRestoredAt != null
+                  ? `Restored unsaved draft${
+                      Number.isFinite(draftRestoredAt)
+                        ? ` from ${new Date(draftRestoredAt).toLocaleString()}`
+                        : ""
+                    }. `
+                  : null}
+                {serverSessionId
+                  ? serverSyncState === "syncing"
+                    ? "Saving to server…"
+                    : serverSyncState === "error"
+                      ? "Server save failed — browser draft is still kept."
+                      : "Also saved on the server for this branch."
+                  : "Edits are saved in this browser until you post."}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 shrink-0 rounded-none px-2 text-[11px]"
+                disabled={busy}
+                onClick={discardLocalDraft}
+              >
+                Discard draft
+              </Button>
+            </div>
+          ) : null}
 
-        {!supplier ? <SupplyWorkflowRail steps={workflowSteps} /> : null}
+          {!supplier ? <SupplyWorkflowRail steps={workflowSteps} /> : null}
 
-        <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1fr)_min(13rem,20%)] lg:items-start">
-          <div className="flex min-w-0 flex-col gap-2">
-            <SupplyDrawerSection
-              step={supplier ? undefined : 1}
-              title={supplier ? "Delivery" : "1 · Supplier"}
-              hint={
-                !supplier
-                  ? "Who delivered this stock?"
-                  : deliveryExpanded
-                    ? "Branch and receive time."
-                    : undefined
-              }
-              done={
-                supplier != null &&
-                Boolean(branchId.trim() && receivedAtLocal)
-              }
-              className="relative z-30 overflow-visible lg:z-20"
-              bodyClassName="overflow-visible p-2 sm:p-2.5"
-            >
-              <DeliverySetupSection
-                busy={busy}
-                supplier={supplier}
-                supplierQuery={supplierQuery}
-                supplierHits={supplierHits}
-                supplierLoading={supplierLoading}
-                onSupplierQueryChange={setSupplierQuery}
-                onSelectSupplier={(s) => {
-                  if (supplier?.id !== s.id) {
+          <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1fr)_min(13rem,20%)] lg:items-start">
+            <div className="flex min-w-0 flex-col gap-2">
+              <SupplyDrawerSection
+                step={supplier ? undefined : 1}
+                title={supplier ? "Delivery" : "1 · Supplier"}
+                hint={
+                  !supplier
+                    ? "Who delivered this stock?"
+                    : deliveryExpanded
+                      ? "Branch and receive time."
+                      : undefined
+                }
+                done={
+                  supplier != null &&
+                  Boolean(branchId.trim() && receivedAtLocal)
+                }
+                className="relative z-30 overflow-visible lg:z-20"
+                bodyClassName="overflow-visible p-2 sm:p-2.5"
+              >
+                <DeliverySetupSection
+                  busy={busy}
+                  supplier={supplier}
+                  supplierQuery={supplierQuery}
+                  supplierHits={supplierHits}
+                  supplierLoading={supplierLoading}
+                  onSupplierQueryChange={setSupplierQuery}
+                  onSelectSupplier={(s) => {
+                    if (supplier?.id !== s.id) {
+                      serverSyncGenRef.current += 1;
+                      setServerSessionId(null);
+                      setServerSyncState("idle");
+                      setRows((prev) =>
+                        prev.map((r) => ({ ...r, serverLineId: null })),
+                      );
+                    }
+                    setSupplier(s);
+                    setSupplierQuery("");
+                    setSupplierHits([]);
+                    setDeliveryExpanded(false);
+                  }}
+                  onClearSupplier={() => {
                     serverSyncGenRef.current += 1;
                     setServerSessionId(null);
                     setServerSyncState("idle");
-                    setRows((prev) =>
-                      prev.map((r) => ({ ...r, serverLineId: null })),
-                    );
-                  }
-                  setSupplier(s);
-                  setSupplierQuery("");
-                  setSupplierHits([]);
-                  setDeliveryExpanded(false);
-                }}
-                onClearSupplier={() => {
-                  serverSyncGenRef.current += 1;
-                  setServerSessionId(null);
-                  setServerSyncState("idle");
-                  setSupplier(null);
-                  setSupplierQuery("");
-                  setSupplierHits([]);
-                  setDeliveryExpanded(true);
-                }}
-                branchId={branchId}
-                branches={branches}
-                branchesLoading={branchesLoading}
-                branchLocked={branchLocked}
-                selectedBranchName={selectedBranchName}
-                onBranchChange={setBranchId}
-                receivedAtLocal={receivedAtLocal}
-                onReceivedAtChange={setReceivedAtLocal}
-                docRef={docRef}
-                onDocRefChange={setDocRef}
-                notes={notes}
-                onNotesChange={setNotes}
-                extras={extras}
-                onExtrasChange={setExtras}
-                showExtras={supplier != null}
-                collapsed={!deliveryExpanded && supplier != null}
-                onToggleCollapsed={() =>
-                  setDeliveryExpanded((open) => !open)
-                }
-              />
-            </SupplyDrawerSection>
-
-            <div ref={linesSectionRef}>
-            <SupplyDrawerSection
-              step={supplier ? undefined : 2}
-              title="Receive stock"
-              hint={
-                supplier
-                  ? "Qty, cost, sell, and margin. Turn on Expiry only if needed."
-                  : undefined
-              }
-              done={lineStats.valid > 0 && duplicateIds.length === 0}
-              className="overflow-visible"
-              action={
-                <div className="flex flex-wrap items-center justify-end gap-1.5">
-                  <SupplyPackGuideHintButton
-                    open={packGuideOpen}
-                    onOpenChange={handlePackGuideOpenChange}
-                  />
-                  {canLinkProducts && supplier ? (
-                    <>
-                      {canCreateProduct ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
-                          onClick={openCreateProductModal}
-                          disabled={busy || !branchId.trim()}
-                        >
-                          <PackagePlus className="size-3.5" aria-hidden />
-                          Create product
-                        </Button>
-                      ) : null}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
-                        onClick={openLinkModal}
-                        disabled={busy}
-                      >
-                        <Plus className="size-3.5" aria-hidden />
-                        Add product
-                      </Button>
-                    </>
-                  ) : null}
-                </div>
-              }
-              bodyClassName="p-0"
-            >
-              {!supplier ? (
-                <SupplyEmptyState
-                  icon={Truck}
-                  title="Pick a supplier above"
-                  description="Their linked products will appear here to receive."
+                    setSupplier(null);
+                    setSupplierQuery("");
+                    setSupplierHits([]);
+                    setDeliveryExpanded(true);
+                  }}
+                  branchId={branchId}
+                  branches={branches}
+                  branchesLoading={branchesLoading}
+                  branchLocked={branchLocked}
+                  selectedBranchName={selectedBranchName}
+                  onBranchChange={setBranchId}
+                  receivedAtLocal={receivedAtLocal}
+                  onReceivedAtChange={setReceivedAtLocal}
+                  docRef={docRef}
+                  onDocRefChange={setDocRef}
+                  notes={notes}
+                  onNotesChange={setNotes}
+                  extras={extras}
+                  onExtrasChange={setExtras}
+                  showExtras={supplier != null}
+                  collapsed={!deliveryExpanded && supplier != null}
+                  onToggleCollapsed={() => setDeliveryExpanded((open) => !open)}
                 />
-              ) : linksLoading ? (
-                <>
-                  <SupplyLoadingInline label="Loading products…" />
-                  <SupplyTableSkeleton />
-                </>
-              ) : rows.length === 0 ? (
-                <SupplyEmptyState
-                  icon={PackagePlus}
-                  title="No products linked yet"
-                  description="Add a catalog product to this supplier, then receive it here."
+              </SupplyDrawerSection>
+
+              <div ref={linesSectionRef}>
+                <SupplyDrawerSection
+                  step={supplier ? undefined : 2}
+                  title="Receive stock"
+                  hint={
+                    supplier
+                      ? "Qty, cost, sell, and margin. Turn on Expiry only if needed."
+                      : undefined
+                  }
+                  done={lineStats.valid > 0 && duplicateIds.length === 0}
+                  className="overflow-visible"
                   action={
-                    canLinkProducts ? (
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        {canCreateProduct ? (
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      <SupplyPackGuideHintButton
+                        open={packGuideOpen}
+                        onOpenChange={handlePackGuideOpenChange}
+                      />
+                      {canLinkProducts && supplier ? (
+                        <>
+                          {canCreateProduct ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
+                              onClick={openCreateProductModal}
+                              disabled={busy || !branchId.trim()}
+                            >
+                              <PackagePlus className="size-3.5" aria-hidden />
+                              Create product
+                            </Button>
+                          ) : null}
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="gap-1 rounded-none"
-                            onClick={openCreateProductModal}
-                            disabled={busy || !supplier || !branchId.trim()}
+                            className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
+                            onClick={openLinkModal}
+                            disabled={busy}
                           >
-                            <PackagePlus className="size-3.5" aria-hidden />
-                            Create product
+                            <Plus className="size-3.5" aria-hidden />
+                            Add product
                           </Button>
-                        ) : null}
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="gap-1 rounded-none"
-                          onClick={openLinkModal}
-                          disabled={busy || !supplier}
-                        >
-                          <Plus className="size-3.5" aria-hidden />
-                          Add product
-                        </Button>
-                      </div>
-                    ) : null
-                  }
-                />
-              ) : (
-                <>
-                  {duplicateIds.length > 0 ? (
-                    <div className={cn(nsdAlert, "m-2")}>
-                      Duplicate products in the grid — keep one row per SKU.
-                    </div>
-                  ) : null}
-
-                  <SupplyLinesToolbar
-                    searchQuery={lineSearchQuery}
-                    onSearchChange={setLineSearchQuery}
-                    visibleCount={visibleRows.length}
-                    totalCount={rows.length}
-                    readyCount={lineStats.valid}
-                    needsCount={needsCount}
-                    lineFocus={lineFocus}
-                    onLineFocusChange={setLineFocus}
-                    showExpiry={showExpiry}
-                    onShowExpiryChange={setShowExpiry}
-                    disabled={busy}
-                  />
-
-                  {visibleRows.length === 0 ? (
-                    <div className="px-3 py-6 text-center">
-                      <p className="text-sm text-muted-foreground">
-                        {lineSearchQuery.trim()
-                          ? `No lines match “${lineSearchQuery.trim()}”.`
-                          : lineFocus === "fill"
-                            ? "All quantities entered — switch to All to finish cost & retail."
-                            : lineFocus === "ready"
-                              ? "No ready lines yet — enter qty & cost."
-                              : "No lines to show."}
-                      </p>
-                      {lineFocus !== "all" && !lineSearchQuery.trim() ? (
-                        <button
-                          type="button"
-                          className="mt-2 text-xs font-semibold text-primary underline-offset-2 hover:underline"
-                          onClick={() => setLineFocus("all")}
-                        >
-                          Show all lines
-                        </button>
+                        </>
                       ) : null}
                     </div>
-                  ) : (
-                  <>
-                  <div className="space-y-1.5 p-2 lg:hidden">
-                    {visibleRows.map((row) => {
-                      const p = linePayload(row);
-                      const stock = rowStock(row);
-                      const qty = supplyStockQty(row.qtyStr, rowPack(row));
-                      const stockAfter =
-                        stock != null && qty != null ? stock + qty : null;
-                      const iid = rowItemId(row);
-                      const hint = iid ? rowPricing[iid] : undefined;
-                      const unitCost = supplyUnitCost(row.unitStr, rowPack(row));
-                      const referenceCost =
-                        row.source === "linked" ? rowReferenceCost(row.link) : null;
-                      const reorderLevel =
-                        row.source === "linked" ? linkReorderLevel(row.link) : null;
-                      return (
-                        <div key={row.key} data-nsd-row={row.key}>
-                        <SupplyDraftLineCard
-                          row={row}
-                          label={rowLabel(row)}
-                          barcode={rowBarcode(row)}
-                          busy={busy}
-                          canSetSellPrice={canSetSellPrice}
-                          isReady={p != null}
-                          stock={stock}
-                          stockAfter={stockAfter}
-                          lineTotal={p?.amountMoney ?? null}
-                          qty={qty}
-                          unitCost={unitCost}
-                          referenceCost={referenceCost}
-                          reorderLevel={reorderLevel}
-                          pricingHint={hint}
-                          hasItemId={Boolean(iid)}
-                          branchId={branchId}
-                          canEditStock={canEditOnHandStock && Boolean(iid)}
-                          itemId={iid}
-                          receivedYmd={receivedYmd}
-                          showSellExpiry
-                          showExpiryColumn={showExpiry}
-                          packMode={rowPack(row)}
-                          onStockChange={(next) => {
-                            if (!iid) return;
-                            setRows((prev) => applyOnHandToRows(prev, iid, next));
-                          }}
-                          onQtyChange={(value) =>
-                            setRows((prev) =>
-                              prev.map((r) =>
-                                r.key === row.key ? { ...r, qtyStr: value } : r,
-                              ),
-                            )
-                          }
-                          onPackModeChange={(next) =>
-                            setRows((prev) =>
-                              prev.map((r) =>
-                                r.key === row.key
-                                  ? applyRowPackMode(r, next)
-                                  : r,
-                              ),
-                            )
-                          }
-                          savedOptions={rowSavedPacks(row)}
-                          onPackOptionIdChange={(packOptionId) =>
-                            setRows((prev) =>
-                              prev.map((r) =>
-                                r.key === row.key
-                                  ? { ...r, packOptionId }
-                                  : r,
-                              ),
-                            )
-                          }
-                          onUnitChange={(value) =>
-                            setRows((prev) =>
-                              prev.map((r) =>
-                                r.key === row.key ? { ...r, unitStr: value } : r,
-                              ),
-                            )
-                          }
-                          onSellPriceChange={(value) =>
-                            setRows((prev) =>
-                              prev.map((r) =>
-                                r.key === row.key
-                                  ? {
-                                      ...r,
-                                      sellPriceStr: value,
-                                      sellPriceTouched: true,
-                                    }
-                                  : r,
-                              ),
-                            )
-                          }
-                          onExpiryChange={(value) =>
-                            setRows((prev) =>
-                              prev.map((r) =>
-                                r.key === row.key ? { ...r, expiry: value } : r,
-                              ),
-                            )
-                          }
-                          onItemChange={(item) =>
-                            setRows((prev) =>
-                              prev.map((r) =>
-                                r.key === row.key
-                                  ? {
-                                      ...r,
-                                      item,
-                                      sellPriceStr: "",
-                                      sellPriceTouched: false,
-                                    }
-                                  : r,
-                              ),
-                            )
-                          }
-                          onRemove={() => removeRow(row.key)}
-                          onQtyEnterNext={() => focusNextEmptyQty(row.key)}
-                          onFocusCost={() => focusNsdField(row.key, "cost")}
-                          onFocusRetail={() => focusNsdField(row.key, "retail")}
-                          onFocusExpiry={() => focusNsdField(row.key, "expiry")}
-                        />
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="hidden max-h-[min(70vh,40rem)] overflow-auto border-t border-border lg:block">
-          <table
-            className={cn(
-              "w-full border-collapse border border-border text-left text-xs",
-              showExpiry ? "min-w-[50rem]" : "min-w-[42rem]",
-            )}
-          >
-            <thead>
-              <tr className={nsdTableHead}>
-                <th className={cn(nsdTableTh, nsdStickyProductHead)}>
-                  Product
-                </th>
-                <th
-                  className={cn(
-                    nsdTableTh,
-                    nsdEntryLaneHead,
-                    "w-[5.25rem] text-right",
-                  )}
-                  title="Enter quantity first"
+                  }
+                  bodyClassName="p-0"
                 >
-                  <span className="mr-1 font-mono text-[9px] opacity-70">1</span>
-                  Qty
-                </th>
-                <th
-                  className={cn(
-                    nsdTableTh,
-                    nsdEntryLaneHead,
-                    "w-[5.25rem] text-right",
-                  )}
-                  title="Then unit cost"
-                >
-                  <span className="mr-1 font-mono text-[9px] opacity-70">2</span>
-                  Cost
-                </th>
-                <th
-                  className={cn(
-                    nsdTableTh,
-                    nsdEntryLaneHead,
-                    "w-[5.75rem] text-right",
-                  )}
-                  title="Qty × cost, or type total to set unit cost"
-                >
-                  Total
-                </th>
-                <th
-                  className={cn(nsdTableTh, "w-[5.25rem] text-right")}
-                  title="Optional shelf price"
-                >
-                  <span className="mr-1 font-mono text-[9px] opacity-70">3</span>
-                  Sell
-                </th>
-                <th
-                  className={cn(
-                    nsdTableTh,
-                    nsdReadoutCell,
-                    "w-[4.25rem] text-right",
-                  )}
-                >
-                  Margin
-                </th>
-                {showExpiry ? (
-                  <th className={cn(nsdTableTh, "min-w-[6rem]")}>Expires</th>
-                ) : null}
-                <th className={cn(nsdTableTh, "w-7")} />
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRows.map((row) => {
-                const p = linePayload(row);
-                const stock = rowStock(row);
-                const qty = supplyStockQty(row.qtyStr, rowPack(row));
-                const stockAfter =
-                  stock != null && qty != null ? stock + qty : null;
-                const iid = rowItemId(row);
-                const hint = iid ? rowPricing[iid] : undefined;
-                const isReady = p != null;
-                const needsQty = parsePositiveQty(row.qtyStr) == null;
-                const unitCost = supplyUnitCost(row.unitStr, rowPack(row));
-                const sellPrice = parseNonNeg(row.sellPriceStr);
-                const marginLabel =
-                  unitCost != null &&
-                  unitCost > 0 &&
-                  sellPrice != null
-                    ? formatSupplyMargin(sellPrice, unitCost)
-                    : null;
-                const belowCost =
-                  unitCost != null &&
-                  sellPrice != null &&
-                  unitCost > 0 &&
-                  sellPrice < unitCost;
-                const referenceCost =
-                  row.source === "linked" ? rowReferenceCost(row.link) : null;
-                const catalogPack = rowCatalogPack(row);
-                return (
-                  <tr
-                    key={row.key}
-                    data-nsd-row={row.key}
-                    className={cn(
-                      nsdTableRow,
-                      needsQty ? nsdTableRowNeed : null,
-                      isReady ? nsdTableRowReady : null,
-                    )}
-                  >
-                    <td
-                      className={cn(
-                        nsdTableCell,
-                        nsdStickyProductCell,
-                        "bg-inherit py-1.5 align-middle",
-                      )}
-                    >
-                      <div className="flex min-w-0 items-start gap-2 pl-0.5">
-                        {rowPack(row) ? (
-                          <WholesalePackStamp
-                            units={rowPack(row)!.unitsPerPack}
-                            packCount={parsePositiveQty(row.qtyStr) ?? 1}
-                            packUnit={rowPack(row)!.packUnit}
-                            className="mt-0.5 shrink-0"
-                          />
-                        ) : catalogPack ? (
-                          <WholesalePackStamp
-                            units={catalogPack.size}
-                            packUnit={catalogPack.unit}
-                            className="mt-0.5 shrink-0 opacity-80"
-                          />
-                        ) : null}
-                        <div className="min-w-0 flex-1">
-                        {row.source === "adhoc" ? (
-                          <ProductPickCell
-                            sharp
-                            branchId={branchId}
-                            item={row.item}
-                            disabled={busy}
-                            onItemChange={(item) =>
-                              setRows((prev) =>
-                                prev.map((r) =>
-                                  r.key === row.key
-                                    ? {
-                                        ...r,
-                                        item,
-                                        sellPriceStr: "",
-                                        sellPriceTouched: false,
-                                      }
-                                    : r,
-                                ),
-                              )
-                            }
-                          />
-                        ) : (
-                          <div
-                            className="max-w-[16rem] truncate text-[13px] font-medium leading-snug"
-                            title={rowLabel(row)}
-                          >
-                            {rowLabel(row)}
+                  {!supplier ? (
+                    <SupplyEmptyState
+                      icon={Truck}
+                      title="Pick a supplier above"
+                      description="Their linked products will appear here to receive."
+                    />
+                  ) : linksLoading ? (
+                    <>
+                      <SupplyLoadingInline label="Loading products…" />
+                      <SupplyTableSkeleton />
+                    </>
+                  ) : rows.length === 0 ? (
+                    <SupplyEmptyState
+                      icon={PackagePlus}
+                      title="No products linked yet"
+                      description="Add a catalog product to this supplier, then receive it here."
+                      action={
+                        canLinkProducts ? (
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            {canCreateProduct ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="gap-1 rounded-none"
+                                onClick={openCreateProductModal}
+                                disabled={busy || !supplier || !branchId.trim()}
+                              >
+                                <PackagePlus className="size-3.5" aria-hidden />
+                                Create product
+                              </Button>
+                            ) : null}
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="gap-1 rounded-none"
+                              onClick={openLinkModal}
+                              disabled={busy || !supplier}
+                            >
+                              <Plus className="size-3.5" aria-hidden />
+                              Add product
+                            </Button>
                           </div>
-                        )}
-                        {stock != null ? (
-                          <p
-                            className={cn(
-                              "mt-0.5 text-[10px] tabular-nums text-muted-foreground",
-                              stock <= 0 &&
-                                "font-medium text-red-700 dark:text-red-300",
-                            )}
-                          >
-                            Stock{" "}
-                            {Number.isInteger(stock) ? stock : stock.toFixed(1)}
-                            {stockAfter != null && qty != null
-                              ? ` → ${
-                                  Number.isInteger(stockAfter)
-                                    ? stockAfter
-                                    : stockAfter.toFixed(1)
-                                }`
-                              : ""}
-                          </p>
-                        ) : null}
-                        </div>
-                      </div>
-                    </td>
-                    <td
-                      className={cn(
-                        nsdTableCell,
-                        nsdEntryLaneCell,
-                        "p-0 align-middle",
-                      )}
-                    >
-                      <SupplyQtyCell
-                        compact
-                        quiet
-                        value={row.qtyStr}
-                        packDefaults={rowPackDefaults(row)}
-                        packMode={rowPack(row)}
-                        onPackModeChange={(next) =>
-                          setRows((prev) =>
-                            prev.map((r) =>
-                              r.key === row.key
-                                ? applyRowPackMode(r, next)
-                                : r,
-                            ),
-                          )
-                        }
-                        savedOptions={rowSavedPacks(row)}
-                        onPackOptionIdChange={(packOptionId) =>
-                          setRows((prev) =>
-                            prev.map((r) =>
-                              r.key === row.key
-                                ? { ...r, packOptionId }
-                                : r,
-                              ),
-                            )
-                        }
-                        onPackModalOpenChange={handlePackModalOpenChange}
-                        onChange={(value) =>
-                          setRows((prev) =>
-                            prev.map((r) =>
-                              r.key === row.key ? { ...r, qtyStr: value } : r,
-                            ),
-                          )
-                        }
-                        onUnitCostChange={(value) =>
-                          setRows((prev) =>
-                            prev.map((r) =>
-                              r.key === row.key ? { ...r, unitStr: value } : r,
-                            ),
-                          )
-                        }
-                        onEnterCost={() => focusNsdField(row.key, "cost")}
-                        onEnterNext={() => focusNextEmptyQty(row.key)}
-                        disabled={busy}
-                        isReady={isReady}
-                      />
-                    </td>
-                    <td
-                      className={cn(
-                        nsdTableCell,
-                        nsdEntryLaneCell,
-                        "p-0 align-middle",
-                      )}
-                    >
-                      <SupplyCostCell
-                        compact
-                        quiet
-                        value={row.unitStr}
-                        onChange={(value) =>
-                          setRows((prev) =>
-                            prev.map((r) =>
-                              r.key === row.key ? { ...r, unitStr: value } : r,
-                            ),
-                          )
-                        }
-                        onEnterNext={() => focusNsdField(row.key, "total")}
-                        disabled={busy}
-                        referenceCost={referenceCost}
-                        packMode={rowPack(row)}
-                        unitEach={unitCost}
-                      />
-                    </td>
-                    <td
-                      className={cn(
-                        nsdTableCell,
-                        nsdEntryLaneCell,
-                        "p-0 align-middle",
-                      )}
-                    >
-                      <SupplyLineTotalCell
-                        compact
-                        quiet
-                        total={p?.amountMoney ?? null}
-                        qty={qty}
-                        unitCost={unitCost}
-                        isReady={isReady}
-                        disabled={busy}
-                        onUnitCostChange={(value) =>
-                          setRows((prev) =>
-                            prev.map((r) =>
-                              r.key === row.key ? { ...r, unitStr: value } : r,
-                            ),
-                          )
-                        }
-                        onEnterNext={() => focusNsdField(row.key, "retail")}
-                      />
-                    </td>
-                    <td className={cn(nsdTableCell, "p-0 align-middle")}>
-                      <SupplyShelfPriceCell
-                        compact
-                        quiet
-                        value={row.sellPriceStr}
-                        onChange={(value) =>
-                          setRows((prev) =>
-                            prev.map((r) =>
-                              r.key === row.key
-                                ? {
-                                    ...r,
-                                    sellPriceStr: value,
-                                    sellPriceTouched: true,
-                                  }
-                                : r,
-                            ),
-                          )
-                        }
-                        onEnterNext={() =>
-                          showExpiry
-                            ? focusNsdField(row.key, "expiry")
-                            : focusNextEmptyQty(row.key)
-                        }
-                        disabled={busy || !iid}
-                        canSetSellPrice={canSetSellPrice}
-                        hint={hint}
-                        unitStr={row.unitStr}
-                        sellPriceTouched={row.sellPriceTouched}
-                      />
-                    </td>
-                    <td
-                      className={cn(
-                        nsdTableCell,
-                        nsdReadoutCell,
-                        "px-2 py-1.5 text-right align-middle",
-                      )}
-                      title={
-                        belowCost
-                          ? "Sell is below cost"
-                          : marginLabel
-                            ? `Margin on cost: ${marginLabel}`
-                            : "Enter cost and sell to see margin"
+                        ) : null
                       }
-                    >
-                      <span
-                        className={cn(
-                          "font-mono text-xs tabular-nums",
-                          belowCost
-                            ? "font-semibold text-red-700 dark:text-red-300"
-                            : marginLabel
-                              ? "text-primary"
-                              : "text-muted-foreground/45",
-                        )}
-                      >
-                        {belowCost
-                          ? marginLabel ?? "Loss"
-                          : (marginLabel ?? "—")}
-                      </span>
-                    </td>
-                    {showExpiry ? (
-                      <td className={cn(nsdTableCell, "p-0 align-middle")}>
-                        <SupplyExpiryCell
-                          compact
-                          quiet
-                          label=""
-                          value={row.expiry}
-                          onChange={(value) =>
-                            setRows((prev) =>
-                              prev.map((r) =>
-                                r.key === row.key ? { ...r, expiry: value } : r,
-                              ),
-                            )
-                          }
-                          disabled={busy}
-                          baseYmd={receivedYmd}
-                          onEnterNext={() => focusNextEmptyQty(row.key)}
-                        />
-                      </td>
-                    ) : null}
-                    <td className={cn(nsdTableCell, "p-0 text-center align-middle")}>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 rounded-none text-destructive hover:bg-destructive/10"
+                    />
+                  ) : (
+                    <>
+                      {duplicateIds.length > 0 ? (
+                        <div className={cn(nsdAlert, "m-2")}>
+                          Duplicate products in the grid — keep one row per SKU.
+                        </div>
+                      ) : null}
+
+                      <SupplyLinesToolbar
+                        searchQuery={lineSearchQuery}
+                        onSearchChange={setLineSearchQuery}
+                        visibleCount={visibleRows.length}
+                        totalCount={rows.length}
+                        readyCount={lineStats.valid}
+                        needsCount={needsCount}
+                        lineFocus={lineFocus}
+                        onLineFocusChange={setLineFocus}
+                        showExpiry={showExpiry}
+                        onShowExpiryChange={setShowExpiry}
                         disabled={busy}
-                        aria-label="Remove row"
-                        onClick={() => removeRow(row.key)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-                  </div>
-                  </>
+                      />
+
+                      {visibleRows.length === 0 ? (
+                        <div className="px-3 py-6 text-center">
+                          <p className="text-sm text-muted-foreground">
+                            {lineSearchQuery.trim()
+                              ? `No lines match “${lineSearchQuery.trim()}”.`
+                              : lineFocus === "fill"
+                                ? "All quantities entered — switch to All to finish cost & retail."
+                                : lineFocus === "ready"
+                                  ? "No ready lines yet — enter qty & cost."
+                                  : "No lines to show."}
+                          </p>
+                          {lineFocus !== "all" && !lineSearchQuery.trim() ? (
+                            <button
+                              type="button"
+                              className="mt-2 text-xs font-semibold text-primary underline-offset-2 hover:underline"
+                              onClick={() => setLineFocus("all")}
+                            >
+                              Show all lines
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="space-y-1.5 p-2 lg:hidden">
+                            {visibleRows.map((row) => {
+                              const p = linePayload(row);
+                              const stock = rowStock(row);
+                              const qty = supplyStockQty(
+                                row.qtyStr,
+                                rowPack(row),
+                              );
+                              const stockAfter =
+                                stock != null && qty != null
+                                  ? stock + qty
+                                  : null;
+                              const iid = rowItemId(row);
+                              const hint = iid ? rowPricing[iid] : undefined;
+                              const unitCost = supplyUnitCost(
+                                row.unitStr,
+                                rowPack(row),
+                              );
+                              const referenceCost =
+                                row.source === "linked"
+                                  ? rowReferenceCost(row.link)
+                                  : null;
+                              const reorderLevel =
+                                row.source === "linked"
+                                  ? linkReorderLevel(row.link)
+                                  : null;
+                              return (
+                                <div key={row.key} data-nsd-row={row.key}>
+                                  <SupplyDraftLineCard
+                                    row={row}
+                                    label={rowLabel(row)}
+                                    barcode={rowBarcode(row)}
+                                    busy={busy}
+                                    canSetSellPrice={canSetSellPrice}
+                                    isReady={p != null}
+                                    stock={stock}
+                                    stockAfter={stockAfter}
+                                    lineTotal={p?.amountMoney ?? null}
+                                    qty={qty}
+                                    unitCost={unitCost}
+                                    referenceCost={referenceCost}
+                                    reorderLevel={reorderLevel}
+                                    pricingHint={hint}
+                                    hasItemId={Boolean(iid)}
+                                    branchId={branchId}
+                                    canEditStock={
+                                      canEditOnHandStock && Boolean(iid)
+                                    }
+                                    itemId={iid}
+                                    receivedYmd={receivedYmd}
+                                    showSellExpiry
+                                    showExpiryColumn={showExpiry}
+                                    packMode={rowPack(row)}
+                                    onStockChange={(next) => {
+                                      if (!iid) return;
+                                      setRows((prev) =>
+                                        applyOnHandToRows(prev, iid, next),
+                                      );
+                                    }}
+                                    onQtyChange={(value) =>
+                                      setRows((prev) =>
+                                        prev.map((r) =>
+                                          r.key === row.key
+                                            ? { ...r, qtyStr: value }
+                                            : r,
+                                        ),
+                                      )
+                                    }
+                                    onPackModeChange={(next) =>
+                                      setRows((prev) =>
+                                        prev.map((r) =>
+                                          r.key === row.key
+                                            ? applyRowPackMode(r, next)
+                                            : r,
+                                        ),
+                                      )
+                                    }
+                                    savedOptions={rowSavedPacks(row)}
+                                    onPackOptionIdChange={(packOptionId) =>
+                                      setRows((prev) =>
+                                        prev.map((r) =>
+                                          r.key === row.key
+                                            ? { ...r, packOptionId }
+                                            : r,
+                                        ),
+                                      )
+                                    }
+                                    onUnitChange={(value) =>
+                                      setRows((prev) =>
+                                        prev.map((r) =>
+                                          r.key === row.key
+                                            ? { ...r, unitStr: value }
+                                            : r,
+                                        ),
+                                      )
+                                    }
+                                    onSellPriceChange={(value) =>
+                                      setRows((prev) =>
+                                        prev.map((r) =>
+                                          r.key === row.key
+                                            ? {
+                                                ...r,
+                                                sellPriceStr: value,
+                                                sellPriceTouched: true,
+                                              }
+                                            : r,
+                                        ),
+                                      )
+                                    }
+                                    onExpiryChange={(value) =>
+                                      setRows((prev) =>
+                                        prev.map((r) =>
+                                          r.key === row.key
+                                            ? { ...r, expiry: value }
+                                            : r,
+                                        ),
+                                      )
+                                    }
+                                    onItemChange={(item) =>
+                                      setRows((prev) =>
+                                        prev.map((r) =>
+                                          r.key === row.key
+                                            ? {
+                                                ...r,
+                                                item,
+                                                sellPriceStr: "",
+                                                sellPriceTouched: false,
+                                              }
+                                            : r,
+                                        ),
+                                      )
+                                    }
+                                    onRemove={() => removeRow(row.key)}
+                                    onQtyEnterNext={() =>
+                                      focusNextEmptyQty(row.key)
+                                    }
+                                    onFocusCost={() =>
+                                      focusNsdField(row.key, "cost")
+                                    }
+                                    onFocusRetail={() =>
+                                      focusNsdField(row.key, "retail")
+                                    }
+                                    onFocusExpiry={() =>
+                                      focusNsdField(row.key, "expiry")
+                                    }
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <div className="hidden max-h-[min(70vh,40rem)] overflow-auto border-t border-border lg:block">
+                            <table
+                              className={cn(
+                                "w-full border-collapse border border-border text-left text-xs",
+                                showExpiry ? "min-w-[50rem]" : "min-w-[42rem]",
+                              )}
+                            >
+                              <thead>
+                                <tr className={nsdTableHead}>
+                                  <th
+                                    className={cn(
+                                      nsdTableTh,
+                                      nsdStickyProductHead,
+                                    )}
+                                  >
+                                    Product
+                                  </th>
+                                  <th
+                                    className={cn(
+                                      nsdTableTh,
+                                      nsdEntryLaneHead,
+                                      "w-[5.25rem] text-right",
+                                    )}
+                                    title="Enter quantity first"
+                                  >
+                                    <span className="mr-1 font-mono text-[9px] opacity-70">
+                                      1
+                                    </span>
+                                    Qty
+                                  </th>
+                                  <th
+                                    className={cn(
+                                      nsdTableTh,
+                                      nsdEntryLaneHead,
+                                      "w-[5.25rem] text-right",
+                                    )}
+                                    title="Then unit cost"
+                                  >
+                                    <span className="mr-1 font-mono text-[9px] opacity-70">
+                                      2
+                                    </span>
+                                    Cost
+                                  </th>
+                                  <th
+                                    className={cn(
+                                      nsdTableTh,
+                                      nsdEntryLaneHead,
+                                      "w-[5.75rem] text-right",
+                                    )}
+                                    title="Qty × cost, or type total to set unit cost"
+                                  >
+                                    Total
+                                  </th>
+                                  <th
+                                    className={cn(
+                                      nsdTableTh,
+                                      "w-[5.25rem] text-right",
+                                    )}
+                                    title="Optional shelf price"
+                                  >
+                                    <span className="mr-1 font-mono text-[9px] opacity-70">
+                                      3
+                                    </span>
+                                    Sell
+                                  </th>
+                                  <th
+                                    className={cn(
+                                      nsdTableTh,
+                                      nsdReadoutCell,
+                                      "w-[4.25rem] text-right",
+                                    )}
+                                  >
+                                    Margin
+                                  </th>
+                                  {showExpiry ? (
+                                    <th
+                                      className={cn(nsdTableTh, "min-w-[6rem]")}
+                                    >
+                                      Expires
+                                    </th>
+                                  ) : null}
+                                  <th className={cn(nsdTableTh, "w-7")} />
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {visibleRows.map((row) => {
+                                  const p = linePayload(row);
+                                  const stock = rowStock(row);
+                                  const qty = supplyStockQty(
+                                    row.qtyStr,
+                                    rowPack(row),
+                                  );
+                                  const stockAfter =
+                                    stock != null && qty != null
+                                      ? stock + qty
+                                      : null;
+                                  const iid = rowItemId(row);
+                                  const hint = iid
+                                    ? rowPricing[iid]
+                                    : undefined;
+                                  const isReady = p != null;
+                                  const needsQty =
+                                    parsePositiveQty(row.qtyStr) == null;
+                                  const unitCost = supplyUnitCost(
+                                    row.unitStr,
+                                    rowPack(row),
+                                  );
+                                  const sellPrice = parseNonNeg(
+                                    row.sellPriceStr,
+                                  );
+                                  const marginLabel =
+                                    unitCost != null &&
+                                    unitCost > 0 &&
+                                    sellPrice != null
+                                      ? formatSupplyMargin(sellPrice, unitCost)
+                                      : null;
+                                  const belowCost =
+                                    unitCost != null &&
+                                    sellPrice != null &&
+                                    unitCost > 0 &&
+                                    sellPrice < unitCost;
+                                  const referenceCost =
+                                    row.source === "linked"
+                                      ? rowReferenceCost(row.link)
+                                      : null;
+                                  const catalogPack = rowCatalogPack(row);
+                                  return (
+                                    <tr
+                                      key={row.key}
+                                      data-nsd-row={row.key}
+                                      className={cn(
+                                        nsdTableRow,
+                                        needsQty ? nsdTableRowNeed : null,
+                                        isReady ? nsdTableRowReady : null,
+                                      )}
+                                    >
+                                      <td
+                                        className={cn(
+                                          nsdTableCell,
+                                          nsdStickyProductCell,
+                                          "bg-inherit py-1.5 align-middle",
+                                        )}
+                                      >
+                                        <div className="flex min-w-0 items-start gap-2 pl-0.5">
+                                          {rowPack(row) ? (
+                                            <WholesalePackStamp
+                                              units={rowPack(row)!.unitsPerPack}
+                                              packCount={
+                                                parsePositiveQty(row.qtyStr) ??
+                                                1
+                                              }
+                                              packUnit={rowPack(row)!.packUnit}
+                                              className="mt-0.5 shrink-0"
+                                            />
+                                          ) : catalogPack ? (
+                                            <WholesalePackStamp
+                                              units={catalogPack.size}
+                                              packUnit={catalogPack.unit}
+                                              className="mt-0.5 shrink-0 opacity-80"
+                                            />
+                                          ) : null}
+                                          <div className="min-w-0 flex-1">
+                                            {row.source === "adhoc" ? (
+                                              <ProductPickCell
+                                                sharp
+                                                branchId={branchId}
+                                                item={row.item}
+                                                disabled={busy}
+                                                onItemChange={(item) =>
+                                                  setRows((prev) =>
+                                                    prev.map((r) =>
+                                                      r.key === row.key
+                                                        ? {
+                                                            ...r,
+                                                            item,
+                                                            sellPriceStr: "",
+                                                            sellPriceTouched: false,
+                                                          }
+                                                        : r,
+                                                    ),
+                                                  )
+                                                }
+                                              />
+                                            ) : (
+                                              <div
+                                                className="max-w-[16rem] truncate text-[13px] font-medium leading-snug"
+                                                title={rowLabel(row)}
+                                              >
+                                                {rowLabel(row)}
+                                              </div>
+                                            )}
+                                            {stock != null ? (
+                                              <p
+                                                className={cn(
+                                                  "mt-0.5 text-[10px] tabular-nums text-muted-foreground",
+                                                  stock <= 0 &&
+                                                    "font-medium text-red-700 dark:text-red-300",
+                                                )}
+                                              >
+                                                Stock{" "}
+                                                {Number.isInteger(stock)
+                                                  ? stock
+                                                  : stock.toFixed(1)}
+                                                {stockAfter != null &&
+                                                qty != null
+                                                  ? ` → ${
+                                                      Number.isInteger(
+                                                        stockAfter,
+                                                      )
+                                                        ? stockAfter
+                                                        : stockAfter.toFixed(1)
+                                                    }`
+                                                  : ""}
+                                              </p>
+                                            ) : null}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td
+                                        className={cn(
+                                          nsdTableCell,
+                                          nsdEntryLaneCell,
+                                          "p-0 align-middle",
+                                        )}
+                                      >
+                                        <SupplyQtyCell
+                                          compact
+                                          quiet
+                                          value={row.qtyStr}
+                                          packDefaults={rowPackDefaults(row)}
+                                          packMode={rowPack(row)}
+                                          onPackModeChange={(next) =>
+                                            setRows((prev) =>
+                                              prev.map((r) =>
+                                                r.key === row.key
+                                                  ? applyRowPackMode(r, next)
+                                                  : r,
+                                              ),
+                                            )
+                                          }
+                                          savedOptions={rowSavedPacks(row)}
+                                          onPackOptionIdChange={(
+                                            packOptionId,
+                                          ) =>
+                                            setRows((prev) =>
+                                              prev.map((r) =>
+                                                r.key === row.key
+                                                  ? { ...r, packOptionId }
+                                                  : r,
+                                              ),
+                                            )
+                                          }
+                                          onPackModalOpenChange={
+                                            handlePackModalOpenChange
+                                          }
+                                          onChange={(value) =>
+                                            setRows((prev) =>
+                                              prev.map((r) =>
+                                                r.key === row.key
+                                                  ? { ...r, qtyStr: value }
+                                                  : r,
+                                              ),
+                                            )
+                                          }
+                                          onUnitCostChange={(value) =>
+                                            setRows((prev) =>
+                                              prev.map((r) =>
+                                                r.key === row.key
+                                                  ? { ...r, unitStr: value }
+                                                  : r,
+                                              ),
+                                            )
+                                          }
+                                          onEnterCost={() =>
+                                            focusNsdField(row.key, "cost")
+                                          }
+                                          onEnterNext={() =>
+                                            focusNextEmptyQty(row.key)
+                                          }
+                                          disabled={busy}
+                                          isReady={isReady}
+                                        />
+                                      </td>
+                                      <td
+                                        className={cn(
+                                          nsdTableCell,
+                                          nsdEntryLaneCell,
+                                          "p-0 align-middle",
+                                        )}
+                                      >
+                                        <SupplyCostCell
+                                          compact
+                                          quiet
+                                          value={row.unitStr}
+                                          onChange={(value) =>
+                                            setRows((prev) =>
+                                              prev.map((r) =>
+                                                r.key === row.key
+                                                  ? { ...r, unitStr: value }
+                                                  : r,
+                                              ),
+                                            )
+                                          }
+                                          onEnterNext={() =>
+                                            focusNsdField(row.key, "total")
+                                          }
+                                          disabled={busy}
+                                          referenceCost={referenceCost}
+                                          packMode={rowPack(row)}
+                                          unitEach={unitCost}
+                                        />
+                                      </td>
+                                      <td
+                                        className={cn(
+                                          nsdTableCell,
+                                          nsdEntryLaneCell,
+                                          "p-0 align-middle",
+                                        )}
+                                      >
+                                        <SupplyLineTotalCell
+                                          compact
+                                          quiet
+                                          total={p?.amountMoney ?? null}
+                                          qty={qty}
+                                          unitCost={unitCost}
+                                          isReady={isReady}
+                                          disabled={busy}
+                                          onUnitCostChange={(value) =>
+                                            setRows((prev) =>
+                                              prev.map((r) =>
+                                                r.key === row.key
+                                                  ? { ...r, unitStr: value }
+                                                  : r,
+                                              ),
+                                            )
+                                          }
+                                          onEnterNext={() =>
+                                            focusNsdField(row.key, "retail")
+                                          }
+                                        />
+                                      </td>
+                                      <td
+                                        className={cn(
+                                          nsdTableCell,
+                                          "p-0 align-middle",
+                                        )}
+                                      >
+                                        <SupplyShelfPriceCell
+                                          compact
+                                          quiet
+                                          value={row.sellPriceStr}
+                                          onChange={(value) =>
+                                            setRows((prev) =>
+                                              prev.map((r) =>
+                                                r.key === row.key
+                                                  ? {
+                                                      ...r,
+                                                      sellPriceStr: value,
+                                                      sellPriceTouched: true,
+                                                    }
+                                                  : r,
+                                              ),
+                                            )
+                                          }
+                                          onEnterNext={() =>
+                                            showExpiry
+                                              ? focusNsdField(row.key, "expiry")
+                                              : focusNextEmptyQty(row.key)
+                                          }
+                                          disabled={busy || !iid}
+                                          canSetSellPrice={canSetSellPrice}
+                                          hint={hint}
+                                          unitStr={row.unitStr}
+                                          sellPriceTouched={
+                                            row.sellPriceTouched
+                                          }
+                                        />
+                                      </td>
+                                      <td
+                                        className={cn(
+                                          nsdTableCell,
+                                          nsdReadoutCell,
+                                          "px-2 py-1.5 text-right align-middle",
+                                        )}
+                                        title={
+                                          belowCost
+                                            ? "Sell is below cost"
+                                            : marginLabel
+                                              ? `Margin on cost: ${marginLabel}`
+                                              : "Enter cost and sell to see margin"
+                                        }
+                                      >
+                                        <span
+                                          className={cn(
+                                            "font-mono text-xs tabular-nums",
+                                            belowCost
+                                              ? "font-semibold text-red-700 dark:text-red-300"
+                                              : marginLabel
+                                                ? "text-primary"
+                                                : "text-muted-foreground/45",
+                                          )}
+                                        >
+                                          {belowCost
+                                            ? (marginLabel ?? "Loss")
+                                            : (marginLabel ?? "—")}
+                                        </span>
+                                      </td>
+                                      {showExpiry ? (
+                                        <td
+                                          className={cn(
+                                            nsdTableCell,
+                                            "p-0 align-middle",
+                                          )}
+                                        >
+                                          <SupplyExpiryCell
+                                            compact
+                                            quiet
+                                            label=""
+                                            value={row.expiry}
+                                            onChange={(value) =>
+                                              setRows((prev) =>
+                                                prev.map((r) =>
+                                                  r.key === row.key
+                                                    ? { ...r, expiry: value }
+                                                    : r,
+                                                ),
+                                              )
+                                            }
+                                            disabled={busy}
+                                            baseYmd={receivedYmd}
+                                            onEnterNext={() =>
+                                              focusNextEmptyQty(row.key)
+                                            }
+                                          />
+                                        </td>
+                                      ) : null}
+                                      <td
+                                        className={cn(
+                                          nsdTableCell,
+                                          "p-0 text-center align-middle",
+                                        )}
+                                      >
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="size-7 rounded-none text-destructive hover:bg-destructive/10"
+                                          disabled={busy}
+                                          aria-label="Remove row"
+                                          onClick={() => removeRow(row.key)}
+                                        >
+                                          <Trash2 className="size-3.5" />
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </SupplyDrawerSection>
+                </SupplyDrawerSection>
+              </div>
             </div>
+
+            <SupplyDrawerSummaryPanel
+              className="hidden lg:flex lg:sticky lg:top-0"
+              supplierName={supplier?.name ?? null}
+              branchName={selectedBranchName}
+              lineStats={lineStats}
+              estimatedProfit={estimatedProfit}
+              extrasTotal={extrasTotal}
+              canPost={canPost}
+              currency={currency}
+              onEditExtras={supplier ? focusExtraCosts : undefined}
+            />
           </div>
+        </form>
+      </FormDrawer>
 
-          <SupplyDrawerSummaryPanel
-            className="hidden lg:flex lg:sticky lg:top-0"
-            supplierName={supplier?.name ?? null}
-            branchName={selectedBranchName}
-            lineStats={lineStats}
-            estimatedProfit={estimatedProfit}
-            extrasTotal={extrasTotal}
-            canPost={canPost}
-            currency={currency}
-            onEditExtras={supplier ? focusExtraCosts : undefined}
-          />
-        </div>
-      </form>
-    </FormDrawer>
+      <LinkSupplierProductModal
+        open={addLineOpen}
+        onOpenChange={(next) => {
+          setAddLineOpen(next);
+          if (!next) {
+            setLinkModalSupplierId(null);
+          }
+        }}
+        branchId={branchId}
+        supplierId={linkModalSupplierId ?? supplier?.id ?? null}
+        supplierName={supplier?.name ?? null}
+        busy={busy}
+        onLink={linkProductFromModal}
+      />
 
-    <LinkSupplierProductModal
-      open={addLineOpen}
-      onOpenChange={(next) => {
-        setAddLineOpen(next);
-        if (!next) {
-          setLinkModalSupplierId(null);
-        }
-      }}
-      branchId={branchId}
-      supplierId={linkModalSupplierId ?? supplier?.id ?? null}
-      supplierName={supplier?.name ?? null}
-      busy={busy}
-      onLink={linkProductFromModal}
-    />
-
-    <CashierCreateProductModal
-      open={createProductOpen}
-      onOpenChange={setCreateProductOpen}
-      brandTheme={brandTheme}
-      currency={currency}
-      branchId={branchId}
-      itemTypes={itemTypes}
-      preferredItemTypeId={itemTypeId || null}
-      purpose="receive"
-      onCreated={(item, unitPrice) => {
-        void onProductCreatedForSupply(item, unitPrice);
-      }}
-    />
-  </>
+      <CashierCreateProductModal
+        open={createProductOpen}
+        onOpenChange={setCreateProductOpen}
+        brandTheme={brandTheme}
+        currency={currency}
+        branchId={branchId}
+        itemTypes={itemTypes}
+        preferredItemTypeId={itemTypeId || null}
+        purpose="receive"
+        onCreated={(item, unitPrice) => {
+          void onProductCreatedForSupply(item, unitPrice);
+        }}
+      />
+    </>
   );
 }

@@ -143,7 +143,7 @@ function WithdrawStatusStamp({ status }: { status: string }) {
   const bucket = withdrawBucket(status);
   if (bucket === "paid") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-600/12 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-300">
+      <span className="inline-flex items-center gap-1 rounded-none bg-emerald-600/12 px-1.5 py-0.5 text-[10px] font-bold tracking-[-0.02em] text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-300">
         <Check className="size-3 stroke-[2.5]" aria-hidden />
         Paid
       </span>
@@ -151,14 +151,14 @@ function WithdrawStatusStamp({ status }: { status: string }) {
   }
   if (bucket === "failed") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-md bg-rose-600/12 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-rose-800 dark:bg-rose-400/15 dark:text-rose-300">
+      <span className="inline-flex items-center gap-1 rounded-none bg-rose-600/12 px-1.5 py-0.5 text-[10px] font-bold tracking-[-0.02em] text-rose-800 dark:bg-rose-400/15 dark:text-rose-300">
         <X className="size-3 stroke-[2.5]" aria-hidden />
         Failed
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-900 dark:bg-amber-400/15 dark:text-amber-200">
+    <span className="inline-flex items-center gap-1 rounded-none bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold tracking-[-0.02em] text-amber-900 dark:bg-amber-400/15 dark:text-amber-200">
       <Loader2 className="size-3 animate-spin" aria-hidden />
       {status === "PROCESSING" ? "Sending" : "Queued"}
     </span>
@@ -390,7 +390,7 @@ export function KioskPayActivityPage() {
       {topUpOpen && canWrite ? (
         <section className={cn(DASHBOARD_TABLE_SURFACE, "space-y-2 px-3 py-3 sm:px-3.5")}>
           <div className="flex items-baseline justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
               Top up from M-Pesa
             </p>
             <button
@@ -412,10 +412,10 @@ export function KioskPayActivityPage() {
                 type="button"
                 onClick={() => setTopUpAmount(String(preset))}
                 className={cn(
-                  "rounded-md border px-2 py-1 text-[11px] font-semibold tabular-nums transition-colors",
+                  "rounded-none border px-2 py-1 text-[11px] font-semibold tabular-nums transition-colors",
                   Number(topUpAmount) === preset
                     ? "border-foreground bg-foreground text-background"
-                    : "border-border/70 text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                 )}
               >
                 {preset.toLocaleString("en-KE")}
@@ -428,14 +428,14 @@ export function KioskPayActivityPage() {
               min={1}
               step="1"
               inputMode="numeric"
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm tabular-nums"
+              className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none tabular-nums"
               placeholder="Amount"
               value={topUpAmount}
               onChange={(e) => setTopUpAmount(e.target.value)}
             />
             <input
               type="tel"
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
               placeholder={account?.payoutPhone || "M-Pesa number (2547…)"}
               value={topUpPhone}
               onChange={(e) => setTopUpPhone(e.target.value)}
@@ -455,7 +455,7 @@ export function KioskPayActivityPage() {
       ) : null}
 
       <div className="flex flex-wrap items-center gap-1.5">
-        <div className="inline-flex rounded-lg border border-border/70 bg-muted/30 p-0.5">
+        <div className="inline-flex rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 p-0.5">
           {(
             [
               { id: "withdrawals" as const, label: "Withdrawals", n: wdCounts.all },
@@ -467,9 +467,9 @@ export function KioskPayActivityPage() {
               type="button"
               onClick={() => setTab(t.id)}
               className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
+                "rounded-none px-2.5 py-1 text-xs font-semibold transition-colors",
                 tab === t.id
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-none"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -495,7 +495,7 @@ export function KioskPayActivityPage() {
                 onClick={() => setWdFilter(f.id)}
                 disabled={f.n === 0 && f.id !== "all"}
                 className={cn(
-                  "rounded-md px-2 py-1 text-[11px] font-semibold tabular-nums transition-colors disabled:opacity-40",
+                  "rounded-none px-2 py-1 text-[11px] font-semibold tabular-nums transition-colors disabled:opacity-40",
                   wdFilter === f.id
                     ? f.id === "paid"
                       ? "bg-emerald-600/15 text-emerald-900 dark:text-emerald-200"
@@ -543,7 +543,7 @@ export function KioskPayActivityPage() {
                   >
                     <span
                       className={cn(
-                        "flex size-7 shrink-0 items-center justify-center rounded-md",
+                        "flex size-7 shrink-0 items-center justify-center rounded-none",
                         credit
                           ? "bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
                           : "bg-muted text-muted-foreground",
@@ -558,7 +558,7 @@ export function KioskPayActivityPage() {
                     </span>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                        <span className="rounded bg-muted/70 px-1 py-px text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                        <span className="rounded bg-muted/70 px-1 py-px text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
                           {entryLabel(e.entryType)}
                         </span>
                         <span className="truncate text-xs font-medium text-foreground">

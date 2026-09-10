@@ -10,7 +10,11 @@ import {
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { fetchStaffAdvances, type PayrollRunRow, type SalaryAdvanceRecord } from "@/lib/api";
+import {
+  fetchStaffAdvances,
+  type PayrollRunRow,
+  type SalaryAdvanceRecord,
+} from "@/lib/api";
 import {
   advanceBalanceLabel,
   advanceRepaymentCap,
@@ -70,7 +74,9 @@ export function PayConfirmDrawer({
   const [paymentMethod, setPaymentMethod] = useState("mpesa_manual");
   const [advances, setAdvances] = useState<SalaryAdvanceRecord[]>([]);
   const [loadingAdvances, setLoadingAdvances] = useState(false);
-  const [deductionPreset, setDeductionPreset] = useState<"scheduled" | "full" | "half" | "none" | "custom">("scheduled");
+  const [deductionPreset, setDeductionPreset] = useState<
+    "scheduled" | "full" | "half" | "none" | "custom"
+  >("scheduled");
 
   useEffect(() => {
     if (!open || !row) return;
@@ -93,8 +99,12 @@ export function PayConfirmDrawer({
 
   const other = Number(otherDeductions) || 0;
   const combinedBase = row ? payrollCombinedBase(row) : 0;
-  const currentStatutory = applyStatutory ? Number(row?.statutoryTotal) || 0 : 0;
-  const arrearsStatutory = applyStatutory ? Number(row?.arrearsStatutoryTotal ?? 0) : 0;
+  const currentStatutory = applyStatutory
+    ? Number(row?.statutoryTotal) || 0
+    : 0;
+  const arrearsStatutory = applyStatutory
+    ? Number(row?.arrearsStatutoryTotal ?? 0)
+    : 0;
   const combinedStatutory = currentStatutory + arrearsStatutory;
   const statutory = combinedStatutory;
   const advancePool = row
@@ -166,7 +176,10 @@ export function PayConfirmDrawer({
   ]);
 
   const maxAdvanceDeduct = fullDeductCap;
-  const advanceInput = advancesToDeduct.trim() === "" ? maxAdvanceDeduct : Number(advancesToDeduct) || 0;
+  const advanceInput =
+    advancesToDeduct.trim() === ""
+      ? maxAdvanceDeduct
+      : Number(advancesToDeduct) || 0;
   const advancesApplied = Math.min(maxAdvanceDeduct, Math.max(0, advanceInput));
   const includeManualAdvances = advancesApplied > scheduledThisRun + 0.009;
 
@@ -182,7 +195,10 @@ export function PayConfirmDrawer({
     }));
   }, [advancesApplied, advances, includeManualAdvances]);
   const currentPeriodNet = row
-    ? Math.max(0, Number(row.baseSalary) - currentStatutory - advancesApplied - other)
+    ? Math.max(
+        0,
+        Number(row.baseSalary) - currentStatutory - advancesApplied - other,
+      )
     : 0;
   const arrearNet = row ? payrollArrearsNet(row) : 0;
   const cashOut = arrearNet + currentPeriodNet;
@@ -222,11 +238,16 @@ export function PayConfirmDrawer({
       width="wide"
       footer={
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button
             type="button"
+            className="rounded-none bg-[var(--pos-primary,#0f766e)] text-white"
             disabled={saving || row.employmentStatus === "on_leave"}
             onClick={() =>
               onConfirm({
@@ -252,17 +273,19 @@ export function PayConfirmDrawer({
       }
     >
       {row.employmentStatus === "on_leave" ? (
-        <p className="mb-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+        <p className="mb-4 rounded-none border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
           This employee is on leave. Update their status before paying.
         </p>
       ) : null}
 
       {row.arrearPeriods?.length ? (
-        <p className="mb-4 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-sm text-violet-950 dark:text-violet-100">
+        <p className="mb-4 rounded-none border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-sm text-violet-950 dark:text-violet-100">
           Includes arrears from{" "}
-          <span className="font-medium">{payrollArrearMonthsLabel(row.arrearPeriods)}</span>
-          {" "}({formatPayrollMoney(row.arrearsBaseTotal)} gross). Paying now creates payslips for
-          each missed month plus {payrollMonthLabel(year, month)}.
+          <span className="font-medium">
+            {payrollArrearMonthsLabel(row.arrearPeriods)}
+          </span>{" "}
+          ({formatPayrollMoney(row.arrearsBaseTotal)} gross). Paying now creates
+          payslips for each missed month plus {payrollMonthLabel(year, month)}.
         </p>
       ) : null}
 
@@ -274,14 +297,17 @@ export function PayConfirmDrawer({
           <button
             type="button"
             className={cn(
-              "flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors",
+              "flex w-full items-start gap-3 rounded-none border px-3 py-2.5 text-left transition-colors",
               applyStatutory
                 ? "border-primary/40 bg-primary/5"
                 : "border-border/60 bg-muted/20",
             )}
             onClick={() => setApplyStatutory((v) => !v)}
           >
-            <Scale className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            <Scale
+              className="mt-0.5 size-4 shrink-0 text-primary"
+              aria-hidden
+            />
             <span>
               <span className="block text-sm font-medium">Kenya statutory</span>
               <span className="block text-xs text-muted-foreground">
@@ -291,11 +317,13 @@ export function PayConfirmDrawer({
           </button>
 
           {statutoryLines.length > 0 ? (
-            <dl className="space-y-1 rounded-lg bg-muted/30 px-3 py-2 text-xs">
+            <dl className="space-y-1 rounded-none bg-muted/30 px-3 py-2 text-xs">
               {statutoryLines.map(([label, amount]) => (
                 <div key={label} className="flex justify-between gap-3">
                   <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="tabular-nums">− {formatPayrollMoney(Number(amount))}</dd>
+                  <dd className="tabular-nums">
+                    − {formatPayrollMoney(Number(amount))}
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -307,24 +335,30 @@ export function PayConfirmDrawer({
               Loading advance arrangements…
             </p>
           ) : advances.length > 0 && payPreview ? (
-            <div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3">
+            <div className="space-y-2 rounded-none border border-border/50 bg-muted/20 p-3">
               <p className="text-xs font-medium text-muted-foreground">
                 Repayment plan this run
                 {payPreview.poolLimited ? (
                   <span className="font-normal text-muted-foreground">
                     {" "}
-                    · pool {formatPayrollMoney(payPreview.payPool)}, oldest first
+                    · pool {formatPayrollMoney(payPreview.payPool)}, oldest
+                    first
                   </span>
                 ) : null}
               </p>
               {payPreview.lines.map((line) => {
                 const applied =
-                  allocationPreview.find((item) => item.advance?.id === line.id)?.amount ??
-                  line.allocatedThisRun;
+                  allocationPreview.find((item) => item.advance?.id === line.id)
+                    ?.amount ?? line.allocatedThisRun;
                 return (
-                  <div key={line.id} className="rounded-md bg-background/60 px-2.5 py-2 text-xs">
+                  <div
+                    key={line.id}
+                    className="rounded-none bg-background/60 px-2.5 py-2 text-xs"
+                  >
                     <div className="flex justify-between gap-3">
-                      <span className="font-medium">{formatPayrollDateShort(line.advancedOn)}</span>
+                      <span className="font-medium">
+                        {formatPayrollDateShort(line.advancedOn)}
+                      </span>
                       <span className="tabular-nums font-semibold text-amber-800 dark:text-amber-200">
                         {applied > 0
                           ? `− ${formatPayrollMoney(applied)}`
@@ -355,7 +389,10 @@ export function PayConfirmDrawer({
 
           <div className="flex flex-wrap gap-1.5">
             {[
-              { key: "scheduled" as const, label: `Scheduled (${formatPayrollMoney(Math.min(scheduledThisRun, advancePool))})` },
+              {
+                key: "scheduled" as const,
+                label: `Scheduled (${formatPayrollMoney(Math.min(scheduledThisRun, advancePool))})`,
+              },
               { key: "full" as const, label: "All outstanding" },
               { key: "half" as const, label: "Half scheduled" },
               { key: "none" as const, label: "Skip" },
@@ -364,7 +401,7 @@ export function PayConfirmDrawer({
                 key={preset.key}
                 type="button"
                 className={cn(
-                  "rounded-md border px-2 py-0.5 text-xs transition-colors",
+                  "rounded-none border px-2 py-0.5 text-xs transition-colors",
                   deductionPreset === preset.key
                     ? "border-primary/40 bg-primary/10 text-primary"
                     : "border-border/60 hover:bg-muted/50",
@@ -377,7 +414,8 @@ export function PayConfirmDrawer({
           </div>
 
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Total advance deduction this run (max {formatPayrollMoney(maxAdvanceDeduct)})
+            Total advance deduction this run (max{" "}
+            {formatPayrollMoney(maxAdvanceDeduct)})
             <input
               type="number"
               min="0"
@@ -390,7 +428,9 @@ export function PayConfirmDrawer({
           </label>
           <p className="text-[11px] text-muted-foreground">
             Outstanding: {formatPayrollMoney(row.advancesOutstanding)}
-            {scheduledThisRun > 0 ? ` · Arrangements schedule ${formatPayrollMoney(scheduledThisRun)}` : ""}
+            {scheduledThisRun > 0
+              ? ` · Arrangements schedule ${formatPayrollMoney(scheduledThisRun)}`
+              : ""}
             {" · "}
             Pay pool: {formatPayrollMoney(advancePool)}
           </p>
@@ -400,7 +440,7 @@ export function PayConfirmDrawer({
               <button
                 key={template.label}
                 type="button"
-                className="rounded-md border border-border/60 px-2 py-0.5 text-xs hover:bg-muted/50"
+                className="rounded-none border border-border/60 px-2 py-0.5 text-xs hover:bg-muted/50"
                 onClick={() => setOtherDeductions(String(template.amount))}
               >
                 {template.label} ({template.amount})
@@ -422,10 +462,12 @@ export function PayConfirmDrawer({
         </FormDrawerFields>
 
         <FormDrawerFields legend="Summary & finance">
-          <dl className="space-y-2 rounded-xl border border-border/50 bg-muted/25 p-4 text-sm">
+          <dl className="space-y-2 rounded-none border border-border/50 bg-muted/25 p-4 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">This period</dt>
-              <dd className="tabular-nums font-medium">{formatPayrollMoney(row.baseSalary)}</dd>
+              <dd className="tabular-nums font-medium">
+                {formatPayrollMoney(row.baseSalary)}
+              </dd>
             </div>
             {(row.arrearPeriods?.length ?? 0) > 0 ? (
               <div className="flex justify-between gap-4">
@@ -439,12 +481,16 @@ export function PayConfirmDrawer({
             ) : null}
             <div className="flex justify-between gap-4 border-b border-border/40 pb-2">
               <dt className="text-muted-foreground">Combined gross</dt>
-              <dd className="tabular-nums font-semibold">{formatPayrollMoney(combinedBase)}</dd>
+              <dd className="tabular-nums font-semibold">
+                {formatPayrollMoney(combinedBase)}
+              </dd>
             </div>
             {combinedStatutory > 0 ? (
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Statutory</dt>
-                <dd className="tabular-nums">− {formatPayrollMoney(combinedStatutory)}</dd>
+                <dd className="tabular-nums">
+                  − {formatPayrollMoney(combinedStatutory)}
+                </dd>
               </div>
             ) : null}
             <div className="flex justify-between gap-4">
@@ -458,10 +504,14 @@ export function PayConfirmDrawer({
                 {allocationPreview
                   .filter((line) => line.amount > 0)
                   .map((line) => (
-                    <div key={line.advance?.id} className="flex justify-between gap-3">
+                    <div
+                      key={line.advance?.id}
+                      className="flex justify-between gap-3"
+                    >
                       <span>
                         {formatPayrollDateShort(line.advance?.advancedOn)}
-                        {line.advance?.repaymentMode === "percent_of_original" &&
+                        {line.advance?.repaymentMode ===
+                          "percent_of_original" &&
                         line.advance.repaymentValue ? (
                           <span className="ml-1 opacity-80">
                             ({line.advance.repaymentValue}%)
@@ -483,12 +533,14 @@ export function PayConfirmDrawer({
             ) : null}
             <div className="flex justify-between gap-4 border-t border-border/50 pt-2">
               <dt className="font-medium">Net to pay</dt>
-              <dd className="text-lg font-semibold tabular-nums">{formatPayrollMoney(cashOut)}</dd>
+              <dd className="text-lg font-semibold tabular-nums">
+                {formatPayrollMoney(cashOut)}
+              </dd>
             </div>
             {(row.arrearPeriods?.length ?? 0) > 0 ? (
               <p className="text-[11px] text-muted-foreground">
-                Creates {row.arrearPeriods!.length + 1} payslips — arrears months plus{" "}
-                {payrollMonthLabel(year, month)}
+                Creates {row.arrearPeriods!.length + 1} payslips — arrears
+                months plus {payrollMonthLabel(year, month)}
               </p>
             ) : null}
           </dl>

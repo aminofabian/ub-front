@@ -28,7 +28,7 @@ export function PayrollMonthNav({ year, month, onChange, onRefresh }: Props) {
 
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-muted/20 p-1">
+      <div className="flex items-center gap-1 rounded-none border border-border/60 bg-muted/20 p-1">
         <Button
           type="button"
           variant="ghost"
@@ -107,7 +107,12 @@ export function PayrollMonthNav({ year, month, onChange, onRefresh }: Props) {
       ) : null}
 
       {onRefresh ? (
-        <Button type="button" variant="outline" className="h-[42px]" onClick={onRefresh}>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-[42px]"
+          onClick={onRefresh}
+        >
           Refresh
         </Button>
       ) : null}

@@ -170,7 +170,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
         {message ? <DashboardNotice text={message} /> : null}
 
         {clearResult && (
-          <div className="rounded-md border bg-emerald-50 p-4 text-sm text-emerald-800">
+          <div className="rounded-none border bg-emerald-50 p-4 text-sm text-emerald-800">
             <div className="flex items-center gap-2 font-medium">
               <CheckCircle2 className="h-4 w-4" />
               Batch cleared successfully
@@ -197,7 +197,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
 
         {data ? (
           <>
-            <div className="space-y-4 rounded-md border bg-muted/20 p-4">
+            <div className="space-y-4 rounded-none border bg-muted/20 p-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -398,7 +398,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
               <h2 className="text-sm font-medium text-muted-foreground">
                 Items in this batch
               </h2>
-              <div className="overflow-x-auto rounded-md border">
+              <div className="overflow-x-auto rounded-none border">
                 <table className="w-full min-w-[36rem] text-left text-sm">
                   <thead className="border-b bg-muted/40">
                     <tr>

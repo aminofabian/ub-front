@@ -34,14 +34,14 @@ export function ProductAttentionBar({
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-wrap items-center gap-1.5 rounded-none border bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_72%,var(--catalog-slip,#fff))] px-2 py-1.5",
+        "flex min-w-0 flex-wrap items-center gap-1.5 rounded-none border bg-white px-2 py-1.5",
         CATALOG_EDGE,
         className,
       )}
       role="group"
       aria-label="Needs a look"
     >
-      <span className="inline-flex items-center gap-2 pr-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)] before:block before:h-px before:w-2 before:shrink-0 before:bg-[var(--catalog-primary,#0f766e)] before:content-['']">
+      <span className="inline-flex items-center pr-1 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)]">
         Needs a look
       </span>
       {visibleAttention.map((stat) => (

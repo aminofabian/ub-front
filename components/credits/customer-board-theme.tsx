@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export const crmPanelClass =
-  "overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm";
+  "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none";
 
 /** @deprecated Use DirectoryPanel from directory-workspace-ui */
 export function WhiteCard({
@@ -60,11 +60,11 @@ export function BoardFilterButton({
       onClick={onClick}
       aria-pressed={ariaPressed ?? selected}
       className={cn(
-        "rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "rounded-none font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
         compact ? "h-7 px-2 text-[11px]" : "h-8 px-2.5 text-xs",
         selected
-          ? "bg-foreground text-background shadow-sm"
-          : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? "border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+          : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
       )}
     >
       {children}
@@ -81,10 +81,10 @@ export function NavySidebarSection({
 }) {
   return (
     <section className="space-y-1">
-      <p className="px-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="px-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
         {title}
       </p>
-      <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto rounded-lg border border-border/60 bg-muted/20 p-1">
+      <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto rounded-none border border-border/60 bg-muted/20 p-1">
         {children}
       </div>
     </section>
@@ -115,11 +115,11 @@ export function NavyRadioOption({
       />
       <span
         className={cn(
-          "flex h-8 cursor-pointer items-center rounded-md px-2 text-xs font-medium transition-colors",
-          "peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-1",
+          "flex h-8 cursor-pointer items-center rounded-none px-2 text-xs font-medium transition-colors",
+          "peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--pos-primary,#0f766e)] peer-focus-visible:ring-offset-1",
           checked
-            ? "bg-foreground text-background"
-            : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
+            ? "border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+            : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
         )}
       >
         {label}

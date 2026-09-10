@@ -192,7 +192,7 @@ export function OneOffExpenseDrawer({
         </label>
       </FormDrawerFields>
 
-      <div className="flex justify-end gap-2 border-t border-border/60 pt-4">
+      <div className="flex justify-end gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-4">
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
           Cancel
         </Button>

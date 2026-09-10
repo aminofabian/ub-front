@@ -15,10 +15,7 @@ import {
   type SupplyPackQtyDefaults,
 } from "./supply-pack-qty-modal";
 import { supFormCellInput } from "../../suppliers/_components/supplier-ui-tokens";
-import {
-  formatSupplyQty,
-  type SupplyPackMode,
-} from "@/lib/supply-pack-math";
+import { formatSupplyQty, type SupplyPackMode } from "@/lib/supply-pack-math";
 
 function selectOnFocus(e: FocusEvent<HTMLInputElement>) {
   e.currentTarget.select();
@@ -123,11 +120,15 @@ function moneyMatch(a: number, b: number): boolean {
 }
 
 function formatQty(n: number): string {
-  return Number.isInteger(n) ? n.toLocaleString() : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return Number.isInteger(n)
+    ? n.toLocaleString()
+    : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 function formatQtyInput(n: number): string {
-  return Number.isInteger(n) ? String(n) : String(Math.round(n * 10000) / 10000);
+  return Number.isInteger(n)
+    ? String(n)
+    : String(Math.round(n * 10000) / 10000);
 }
 
 type CompactProps = {
@@ -228,9 +229,14 @@ export function SupplyQtyCell({
   };
 
   return (
-    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
+    <div
+      className={cn(
+        "flex min-w-0 flex-col",
+        touch || !compact ? "gap-1" : "gap-0.5",
+      )}
+    >
       {label ? (
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {packed ? "Packs" : label}
         </span>
       ) : null}
@@ -373,11 +379,7 @@ function resolveStockTone(
   if (stock <= 0) {
     return "out";
   }
-  if (
-    reorderLevel != null &&
-    reorderLevel > 0 &&
-    stock <= reorderLevel
-  ) {
+  if (reorderLevel != null && reorderLevel > 0 && stock <= reorderLevel) {
     return "low";
   }
   return "readonly";
@@ -398,7 +400,11 @@ export function SupplyStockCell({
 }: SupplyStockCellProps) {
   const tone = resolveStockTone(stock, reorderLevel);
   const [draft, setDraft] = useState(
-    stock != null ? (Number.isInteger(stock) ? String(stock) : String(stock)) : "",
+    stock != null
+      ? Number.isInteger(stock)
+        ? String(stock)
+        : String(stock)
+      : "",
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -420,7 +426,10 @@ export function SupplyStockCell({
   }, [stock, busy]);
 
   const editable =
-    canEdit && Boolean(itemId?.trim()) && Boolean(branchId?.trim()) && !disabled;
+    canEdit &&
+    Boolean(itemId?.trim()) &&
+    Boolean(branchId?.trim()) &&
+    !disabled;
 
   const commit = async () => {
     if (!editable || busy) {
@@ -467,7 +476,9 @@ export function SupplyStockCell({
       });
       baselineRef.current = nextDisplay;
       setDraft(
-        Number.isInteger(nextDisplay) ? String(nextDisplay) : String(nextDisplay),
+        Number.isInteger(nextDisplay)
+          ? String(nextDisplay)
+          : String(nextDisplay),
       );
       onStockChange?.(nextDisplay);
     } catch (e) {
@@ -485,15 +496,25 @@ export function SupplyStockCell({
   };
 
   return (
-    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
+    <div
+      className={cn(
+        "flex min-w-0 flex-col",
+        touch || !compact ? "gap-1" : "gap-0.5",
+      )}
+    >
       {label ? (
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {label}
         </span>
       ) : null}
       <div
         className={cn(
-          metricShellClass(compact, touch, tone, editable && !compact ? "bg-background" : undefined),
+          metricShellClass(
+            compact,
+            touch,
+            tone,
+            editable && !compact ? "bg-background" : undefined,
+          ),
         )}
         title={
           editable
@@ -514,7 +535,8 @@ export function SupplyStockCell({
               metricText(compact, touch),
               "focus-visible:ring-0 focus-visible:ring-offset-0",
               tone === "out" && "font-semibold text-red-700 dark:text-red-300",
-              tone === "low" && "font-semibold text-amber-800 dark:text-amber-200",
+              tone === "low" &&
+                "font-semibold text-amber-800 dark:text-amber-200",
               busy && "opacity-60",
             )}
             value={draft}
@@ -554,7 +576,8 @@ export function SupplyStockCell({
               metricText(compact, touch),
               stock == null && "text-muted-foreground/60",
               tone === "out" && "font-semibold text-red-700 dark:text-red-300",
-              tone === "low" && "font-semibold text-amber-800 dark:text-amber-200",
+              tone === "low" &&
+                "font-semibold text-amber-800 dark:text-amber-200",
               tone === "readonly" && "text-foreground",
             )}
           >
@@ -564,7 +587,9 @@ export function SupplyStockCell({
       </div>
       <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center justify-end gap-1 leading-none">
         {error ? (
-          <span className="text-[10px] font-medium text-destructive">{error}</span>
+          <span className="text-[10px] font-medium text-destructive">
+            {error}
+          </span>
         ) : busy ? (
           <span className="text-[10px] text-muted-foreground">Saving…</span>
         ) : tone === "out" ? (
@@ -600,9 +625,14 @@ export function SupplyStockAfterCell({
   const delta = qty != null ? qty : null;
 
   return (
-    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
+    <div
+      className={cn(
+        "flex min-w-0 flex-col",
+        touch || !compact ? "gap-1" : "gap-0.5",
+      )}
+    >
       {label ? (
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {label}
         </span>
       ) : null}
@@ -679,9 +709,7 @@ export function SupplyCostCell({
 }: SupplyCostCellProps) {
   const packed = packMode != null && packMode.unitsPerPack > 0;
   const parsed = parseNonNeg(value);
-  const unitParsed = packed
-    ? unitEach
-    : parsed;
+  const unitParsed = packed ? unitEach : parsed;
   const hasText = value.trim().length > 0;
   const matchesRef =
     unitParsed != null &&
@@ -698,9 +726,14 @@ export function SupplyCostCell({
         : "active";
 
   return (
-    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
+    <div
+      className={cn(
+        "flex min-w-0 flex-col",
+        touch || !compact ? "gap-1" : "gap-0.5",
+      )}
+    >
       {label ? (
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {packed ? "Pack price" : label}
         </span>
       ) : null}
@@ -860,9 +893,14 @@ export function SupplyLineTotalCell({
   };
 
   return (
-    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
+    <div
+      className={cn(
+        "flex min-w-0 flex-col",
+        touch || !compact ? "gap-1" : "gap-0.5",
+      )}
+    >
       {label ? (
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {label}
         </span>
       ) : null}
@@ -956,13 +994,11 @@ export function SupplyLineTotalCell({
   );
 }
 
-function rowReferenceCost(
-  link?: {
-    lastCostPrice?: number | string | null;
-    defaultCostPrice?: number | string | null;
-    catalogBuyingPrice?: number | string | null;
-  },
-): number | null {
+function rowReferenceCost(link?: {
+  lastCostPrice?: number | string | null;
+  defaultCostPrice?: number | string | null;
+  catalogBuyingPrice?: number | string | null;
+}): number | null {
   if (!link) {
     return null;
   }
@@ -982,9 +1018,9 @@ function rowReferenceCost(
   return null;
 }
 
-export function linkReorderLevel(
-  link?: { reorderLevel?: number | string | null },
-): number | null {
+export function linkReorderLevel(link?: {
+  reorderLevel?: number | string | null;
+}): number | null {
   const v = link?.reorderLevel;
   if (v == null || String(v).trim() === "") {
     return null;
@@ -1021,13 +1057,14 @@ export function SupplyExpiryCell({
 }: SupplyExpiryCellProps) {
   const showLabel = Boolean(label) && (touch || !compact);
   const [showChips, setShowChips] = useState(false);
-  const chipsVisible = quiet
-    ? showChips
-    : touch || showChips || !value.trim();
+  const chipsVisible = quiet ? showChips : touch || showChips || !value.trim();
 
   return (
     <div
-      className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}
+      className={cn(
+        "flex min-w-0 flex-col",
+        touch || !compact ? "gap-1" : "gap-0.5",
+      )}
       data-nsd-expiry=""
       onFocusCapture={() => setShowChips(true)}
       onBlurCapture={(e) => {
@@ -1039,7 +1076,7 @@ export function SupplyExpiryCell({
       onMouseLeave={() => setShowChips(false)}
     >
       {showLabel ? (
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {label}
         </span>
       ) : null}

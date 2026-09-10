@@ -26,7 +26,7 @@ export function HubSettingsSectionNav({
           href={`#${item.id}`}
           className={cn(
             HUB_BTN,
-            "px-3 py-1.5 text-[12px] font-medium text-[#666666] hover:bg-[#F4F2ED] hover:text-[#141414]",
+            "px-3 py-1.5 text-[12px] font-medium text-[#666666] hover:border-[#0f766e] hover:text-[#0f766e]",
           )}
         >
           {item.label}

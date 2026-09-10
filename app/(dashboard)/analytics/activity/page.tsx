@@ -91,12 +91,12 @@ function SectionCard({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm",
+        "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none",
         className,
       )}
     >
-      <div className="flex flex-col gap-2 border-b border-border/30 bg-muted/10 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/90">
+      <div className="flex flex-col gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/10 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+        <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[-0.02em] text-foreground/90">
           <Icon className="size-3.5 text-muted-foreground/60" aria-hidden />
           <span className="truncate">{title}</span>
         </div>
@@ -256,10 +256,7 @@ export default function AnalyticsActivityPage() {
   );
 
   const patchItemSummary = useCallback(
-    (
-      itemId: string,
-      patch: Partial<ItemActivityResponse["summary"]>,
-    ) => {
+    (itemId: string, patch: Partial<ItemActivityResponse["summary"]>) => {
       setItemActivity((prev) => {
         if (!prev || prev.summary.itemId !== itemId) return prev;
         return { ...prev, summary: { ...prev.summary, ...patch } };
@@ -311,9 +308,7 @@ export default function AnalyticsActivityPage() {
               dateRange.to,
               branchFilter,
               typeFilter,
-              view === "lines" && selectedItemId
-                ? selectedItemId
-                : undefined,
+              view === "lines" && selectedItemId ? selectedItemId : undefined,
             ).catch(() => [] as RecentSaleRow[])
           : Promise.resolve([] as RecentSaleRow[]);
 
@@ -355,7 +350,9 @@ export default function AnalyticsActivityPage() {
         if (!cancelled) {
           setItemActivity(null);
           setItemError(
-            err instanceof Error ? err.message : "Failed to load item activity.",
+            err instanceof Error
+              ? err.message
+              : "Failed to load item activity.",
           );
         }
       })
@@ -455,34 +452,26 @@ export default function AnalyticsActivityPage() {
   }
 
   return (
-    <div className="relative isolate h-full scroll-smooth overflow-y-auto overscroll-contain">
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
-        aria-hidden
-      >
-        <div className="absolute -left-24 -top-28 h-80 w-80 bg-primary/[0.05] blur-3xl" />
-        <div className="absolute -right-20 top-1/3 h-72 w-80 bg-chart-2/[0.06] blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-56 w-[min(100%,32rem)] -translate-x-1/2 bg-accent/[0.06] blur-3xl" />
-      </div>
+    <div className="relative isolate h-full scroll-smooth overflow-y-auto overscroll-contain bg-white">
       <div
         className={cn(
           DASHBOARD_MAX_WIDE,
-          "!space-y-3 !pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:!space-y-4 md:!pb-12",
+          "!space-y-1 !pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:!pb-8",
         )}
       >
-        <div className="sticky top-0 z-30 overflow-hidden rounded-2xl border border-border/40 bg-linear-to-b from-card/97 via-card/92 to-card/88 shadow-lg shadow-foreground/[0.02] backdrop-blur-xl">
-          <div className="flex items-center gap-2.5 px-3 py-2.5 sm:gap-4 sm:px-4">
-            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        <div className="sticky top-0 z-30 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+          <div className="flex items-center gap-2 px-2.5 py-1 sm:px-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
               <Link
                 href="/analytics"
-                className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-muted/30 text-muted-foreground/70 transition-colors hover:border-border/60 hover:bg-muted/50 hover:text-foreground active:scale-95 sm:size-8"
+                className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
                 aria-label="Back to analytics"
               >
-                <ArrowLeft className="size-[15px]" />
+                <ArrowLeft className="size-3.5" />
               </Link>
-              <div className="flex min-w-0 flex-col gap-0.5">
+              <div className="flex min-w-0 flex-col">
                 <div className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2">
-                  <span className="text-[15px] font-bold leading-none tracking-tight text-foreground sm:text-[13px]">
+                  <span className="font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
                     Activity
                   </span>
                   {showDatePresets && activeRangeSummary ? (
@@ -495,7 +484,7 @@ export default function AnalyticsActivityPage() {
                     </span>
                   )}
                 </div>
-                <ActiveScopeSubtitle className="text-[10px]" />
+                <ActiveScopeSubtitle className="text-[11px] tracking-[-0.02em]" />
               </div>
             </div>
 
@@ -509,10 +498,10 @@ export default function AnalyticsActivityPage() {
                     type="button"
                     onClick={() => setView(tab.id)}
                     className={cn(
-                      "inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10.5px] font-semibold tracking-tight transition-all duration-200",
+                      "inline-flex h-8 items-center gap-1.5 rounded-none border px-2.5 text-[10.5px] font-semibold tracking-tight transition-all duration-200",
                       view === tab.id
-                        ? "border-primary/20 bg-linear-to-b from-primary to-primary/90 text-primary-foreground shadow-sm shadow-primary/20"
-                        : "border-transparent bg-muted/50 text-muted-foreground hover:border-border/60 hover:bg-muted/80 hover:text-foreground",
+                        ? "border-primary/20 bg-linear-to-b from-primary to-primary/90 text-primary-foreground shadow-none shadow-primary/20"
+                        : "border-transparent bg-muted/50 text-muted-foreground hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/80 hover:text-foreground",
                     )}
                   >
                     <Icon className="size-3" aria-hidden />
@@ -529,7 +518,7 @@ export default function AnalyticsActivityPage() {
                   onChange={(e) => onChangeBranch(e.target.value)}
                   disabled={branchLocked}
                   aria-label="Branch"
-                  className="h-10 max-w-[7.5rem] appearance-none rounded-xl border border-border/50 bg-muted/40 py-0 pl-2.5 pr-7 text-[12px] font-medium text-foreground/90 outline-none transition-colors hover:border-border/80 hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60 sm:h-8 sm:max-w-none sm:rounded-lg sm:text-[11px]"
+                  className="h-10 max-w-[7.5rem] appearance-none rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 py-0 pl-2.5 pr-7 text-[12px] font-medium text-foreground/90 outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60 sm:h-8 sm:max-w-none sm:rounded-none sm:text-[11px]"
                 >
                   <option value="">All branches</option>
                   {branches.map((b) => (
@@ -551,7 +540,7 @@ export default function AnalyticsActivityPage() {
               </div>
               <button
                 type="button"
-                className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-muted/30 text-muted-foreground/80 transition-all duration-200 hover:border-border/70 hover:bg-muted/50 hover:text-foreground active:scale-95 disabled:opacity-40 sm:size-8 sm:rounded-lg"
+                className="flex size-10 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground/80 transition-all duration-200 hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/50 hover:text-foreground active:scale-95 disabled:opacity-40 sm:size-8 sm:rounded-none"
                 onClick={() => {
                   setRefreshing(true);
                   load();
@@ -580,7 +569,7 @@ export default function AnalyticsActivityPage() {
           </div>
 
           {showDatePresets ? (
-            <div className="-mx-px flex gap-1.5 overflow-x-auto border-t border-border/30 px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible sm:px-4">
+            <div className="-mx-px flex gap-1.5 overflow-x-auto border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible sm:px-4">
               {ANALYTICS_PRESET_LABELS.map(({ key, label, hint }) => (
                 <button
                   key={key}
@@ -588,10 +577,10 @@ export default function AnalyticsActivityPage() {
                   title={hint}
                   onClick={() => setPreset(key)}
                   className={cn(
-                    "h-8 shrink-0 rounded-full border px-3 text-[11px] font-semibold tracking-tight transition-all duration-200 sm:h-7 sm:rounded-lg sm:px-2.5 sm:text-[10.5px]",
+                    "h-8 shrink-0 rounded-full border px-3 text-[11px] font-semibold tracking-tight transition-all duration-200 sm:h-7 sm:rounded-none sm:px-2.5 sm:text-[10.5px]",
                     preset === key
                       ? "border-primary/20 bg-primary/10 text-primary"
-                      : "border-transparent bg-muted/40 text-muted-foreground hover:border-border/60 hover:bg-muted/70 hover:text-foreground",
+                      : "border-transparent bg-muted/40 text-muted-foreground hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/70 hover:text-foreground",
                   )}
                 >
                   {label}
@@ -601,22 +590,22 @@ export default function AnalyticsActivityPage() {
           ) : null}
 
           {showDatePresets && preset === "custom" ? (
-            <div className="flex flex-wrap items-center gap-2 border-t border-border/30 bg-muted/[0.15] px-3 pb-2.5 pt-2 sm:px-4">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            <div className="flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/[0.15] px-3 pb-2.5 pt-2 sm:px-4">
+              <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/60">
                 From
               </span>
               <input
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-10 min-w-0 flex-1 rounded-xl border border-border/50 bg-muted/30 px-2.5 text-[14px] font-medium text-foreground outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 sm:h-7 sm:flex-none sm:rounded-lg sm:text-[11px]"
+                className="h-10 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 text-[14px] font-medium text-foreground outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 sm:h-7 sm:flex-none sm:rounded-none sm:text-[11px]"
               />
               <span className="text-[11px] text-muted-foreground/60">to</span>
               <input
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="h-10 min-w-0 flex-1 rounded-xl border border-border/50 bg-muted/30 px-2.5 text-[14px] font-medium text-foreground outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 sm:h-7 sm:flex-none sm:rounded-lg sm:text-[11px]"
+                className="h-10 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 text-[14px] font-medium text-foreground outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 sm:h-7 sm:flex-none sm:rounded-none sm:text-[11px]"
               />
             </div>
           ) : null}
@@ -638,7 +627,7 @@ export default function AnalyticsActivityPage() {
                   placeholder="Filter products…"
                   value={velocitySearch}
                   onChange={(e) => setVelocitySearch(e.target.value)}
-                  className="h-10 w-full rounded-xl border border-border/50 bg-muted/30 pl-8 pr-3 text-[14px] outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:rounded-lg sm:text-[11px]"
+                  className="h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 pl-8 pr-3 text-[14px] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:rounded-none sm:text-[11px]"
                 />
               </div>
             }
@@ -684,7 +673,7 @@ export default function AnalyticsActivityPage() {
                       setSelectedItemId(null);
                       syncItemInUrl(null);
                     }}
-                    className="h-9 rounded-xl border border-border/50 bg-muted/30 px-2.5 text-[11px] font-semibold text-muted-foreground hover:bg-muted/50 sm:h-7 sm:rounded-lg sm:px-2 sm:text-[10px]"
+                    className="h-9 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 text-[11px] font-semibold text-muted-foreground hover:bg-muted/50 sm:h-7 sm:rounded-none sm:px-2 sm:text-[10px]"
                   >
                     Clear item filter
                   </button>
@@ -696,7 +685,7 @@ export default function AnalyticsActivityPage() {
                       setStockTakeBranchId(branchId || (branches[0]?.id ?? ""));
                       setShowStockTakeDialog(true);
                     }}
-                    className="flex h-9 items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-2.5 text-[12px] font-semibold text-primary transition-colors hover:bg-primary/20 sm:h-7 sm:rounded-lg sm:text-[11px]"
+                    className="flex h-9 items-center gap-1.5 rounded-none border border-primary/30 bg-primary/10 px-2.5 text-[12px] font-semibold text-primary transition-colors hover:bg-primary/20 sm:h-7 sm:rounded-none sm:text-[11px]"
                   >
                     <ClipboardList className="size-3.5" />
                     Stock Take ({selectedItemIds.size})
@@ -713,7 +702,7 @@ export default function AnalyticsActivityPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setSaleSearch(e.target.value)
                     }
-                    className="h-10 w-full rounded-xl border border-border/50 bg-muted/30 pl-8 pr-3 text-[14px] outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:rounded-lg sm:text-[11px]"
+                    className="h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 pl-8 pr-3 text-[14px] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:rounded-none sm:text-[11px]"
                   />
                 </div>
               </div>
@@ -729,7 +718,7 @@ export default function AnalyticsActivityPage() {
                     return (
                       <li
                         key={`${s.saleId}-${s.itemId}-${idx}`}
-                        className="rounded-2xl border border-border/50 bg-muted/[0.12] p-3"
+                        className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/[0.12] p-3"
                       >
                         <div className="flex items-start gap-2.5">
                           <label className="flex size-10 shrink-0 items-center justify-center">
@@ -765,7 +754,8 @@ export default function AnalyticsActivityPage() {
                             <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
                               <div className="flex items-baseline gap-2 font-mono tabular-nums">
                                 <span className="text-[12px] text-muted-foreground">
-                                  ×{Number(s.quantity).toFixed(
+                                  ×
+                                  {Number(s.quantity).toFixed(
                                     Number.isInteger(Number(s.quantity))
                                       ? 0
                                       : 2,
@@ -778,13 +768,13 @@ export default function AnalyticsActivityPage() {
                               <div className="flex items-center gap-1.5">
                                 <span
                                   className={cn(
-                                    "rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase",
+                                    "rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                                     s.paymentMethod.toLowerCase() === "cash"
                                       ? "border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-600"
                                       : s.paymentMethod.toLowerCase() ===
                                           "mpesa"
                                         ? "border-sky-500/20 bg-sky-500/[0.06] text-sky-600"
-                                        : "border-border/50 bg-muted/30 text-muted-foreground",
+                                        : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground",
                                   )}
                                 >
                                   {s.paymentMethod}
@@ -813,8 +803,8 @@ export default function AnalyticsActivityPage() {
                 <div className="hidden overflow-x-auto md:block">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b-2 border-border/50 text-left">
-                        <th className="sticky top-0 z-10 w-8 bg-muted/20 pb-2.5 pt-1 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                      <tr className="border-b-2 border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-left">
+                        <th className="sticky top-0 z-10 w-8 bg-muted/20 pb-2.5 pt-1 text-center text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 backdrop-blur-sm">
                           <input
                             type="checkbox"
                             checked={
@@ -831,31 +821,31 @@ export default function AnalyticsActivityPage() {
                             className="size-3.5 accent-primary"
                           />
                         </th>
-                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 backdrop-blur-sm">
                           Date
                         </th>
-                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 backdrop-blur-sm">
                           Product
                         </th>
-                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 backdrop-blur-sm">
                           Qty
                         </th>
-                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 backdrop-blur-sm">
                           Price
                         </th>
-                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 backdrop-blur-sm">
                           Total
                         </th>
-                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 backdrop-blur-sm">
                           Profit
                         </th>
-                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 backdrop-blur-sm">
                           Cashier
                         </th>
-                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 backdrop-blur-sm">
                           Payment
                         </th>
-                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70 backdrop-blur-sm">
                           Status
                         </th>
                       </tr>
@@ -879,7 +869,7 @@ export default function AnalyticsActivityPage() {
                             key={`${s.saleId}-${s.itemId}-${idx}`}
                             className={cn(
                               "group relative transition-all duration-150",
-                              "hover:bg-primary/[0.03] hover:shadow-sm",
+                              "hover:bg-primary/[0.03] ",
                               isEven ? "bg-transparent" : "bg-muted/[0.15]",
                             )}
                           >
@@ -954,12 +944,12 @@ export default function AnalyticsActivityPage() {
                             <td className="px-3 py-2.5">
                               <span
                                 className={cn(
-                                  "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                  "inline-flex items-center rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                                   s.paymentMethod.toLowerCase() === "cash"
                                     ? "border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-600"
                                     : s.paymentMethod.toLowerCase() === "mpesa"
                                       ? "border-sky-500/20 bg-sky-500/[0.06] text-sky-600"
-                                      : "border-border/50 bg-muted/30 text-muted-foreground",
+                                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground",
                                 )}
                               >
                                 {s.paymentMethod}
@@ -968,10 +958,10 @@ export default function AnalyticsActivityPage() {
                             <td className="py-2.5 pr-3">
                               <span
                                 className={cn(
-                                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
+                                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                                   s.status === "completed"
                                     ? "border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-600"
-                                    : "border-border/40 bg-muted/30 text-muted-foreground/70",
+                                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground/70",
                                 )}
                               >
                                 <span
@@ -993,7 +983,7 @@ export default function AnalyticsActivityPage() {
                   </table>
                 </div>
                 {filteredSales.length > 100 && (
-                  <div className="mt-3 border-t border-border/30 pt-2 text-center text-[11px] font-medium text-muted-foreground">
+                  <div className="mt-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-2 text-center text-[11px] font-medium text-muted-foreground">
                     Showing 100 of {filteredSales.length.toLocaleString()}{" "}
                     transactions
                   </div>
@@ -1011,7 +1001,7 @@ export default function AnalyticsActivityPage() {
 
         {showStockTakeDialog ? (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
-            <div className="w-full max-w-sm rounded-t-2xl bg-background shadow-2xl sm:rounded-xl">
+            <div className="w-full max-w-sm rounded-t-2xl bg-background shadow-2xl sm:rounded-none">
               <div className="flex justify-center pt-2.5 sm:hidden" aria-hidden>
                 <span className="h-1 w-10 rounded-full bg-muted-foreground/25" />
               </div>
@@ -1030,17 +1020,27 @@ export default function AnalyticsActivityPage() {
                     setShowStockTakeDialog(false);
                     setStockTakeMessage("");
                   }}
-                  className="ml-4 flex size-10 shrink-0 items-center justify-center rounded-xl hover:bg-muted sm:size-8"
+                  className="ml-4 flex size-10 shrink-0 items-center justify-center rounded-none hover:bg-muted sm:size-8"
                   aria-label="Close"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
               <div className="space-y-4 px-5 py-4">
                 <label className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium">Branch *</span>
                   <select
-                    className="h-12 rounded-xl border bg-background px-3 text-[16px] sm:h-10 sm:text-sm"
+                    className="h-8 rounded-none border bg-background px-3 text-[16px] sm:h-10 sm:text-sm"
                     value={stockTakeBranchId}
                     onChange={(e) => setStockTakeBranchId(e.target.value)}
                   >
@@ -1057,7 +1057,7 @@ export default function AnalyticsActivityPage() {
                 <label className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium">Notes</span>
                   <input
-                    className="h-12 rounded-xl border bg-background px-3 text-[16px] sm:h-10 sm:text-sm"
+                    className="h-8 rounded-none border bg-background px-3 text-[16px] sm:h-10 sm:text-sm"
                     placeholder={`Stock take from ${selectedItemIds.size} sale items`}
                     value={stockTakeNotes}
                     onChange={(e) => setStockTakeNotes(e.target.value)}
@@ -1069,7 +1069,7 @@ export default function AnalyticsActivityPage() {
               </div>
               <div className="border-t px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <Button
-                  className="h-12 w-full rounded-xl text-[15px] sm:h-10 sm:text-sm"
+                  className="h-12 w-full rounded-none text-[15px] sm:h-10 sm:text-sm"
                   disabled={stockTakeLoading || !stockTakeBranchId}
                   onClick={onStartStockTake}
                 >
@@ -1083,7 +1083,7 @@ export default function AnalyticsActivityPage() {
 
       {/* Thumb-zone view dock — phone only */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border/50 bg-card/95 px-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_32px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_32px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl md:hidden"
         aria-label="Activity views"
       >
         <div className="mx-auto grid max-w-lg grid-cols-3 gap-1">
@@ -1096,10 +1096,8 @@ export default function AnalyticsActivityPage() {
                 type="button"
                 onClick={() => setView(tab.id)}
                 className={cn(
-                  "relative flex flex-col items-center gap-0.5 rounded-xl px-1 py-2 transition-colors active:scale-[0.97]",
-                  active
-                    ? "text-primary"
-                    : "text-muted-foreground",
+                  "relative flex flex-col items-center gap-0.5 rounded-none px-1 py-2 transition-colors active:scale-[0.97]",
+                  active ? "text-primary" : "text-muted-foreground",
                 )}
               >
                 {active ? (
@@ -1110,7 +1108,7 @@ export default function AnalyticsActivityPage() {
                 ) : null}
                 <span
                   className={cn(
-                    "flex size-9 items-center justify-center rounded-xl transition-colors",
+                    "flex size-9 items-center justify-center rounded-none transition-colors",
                     active ? "bg-primary/12" : "bg-transparent",
                   )}
                 >

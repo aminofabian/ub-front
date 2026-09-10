@@ -29,9 +29,8 @@ type Props = {
 };
 
 export function CreditSaleReminderSettings({ canEdit }: Props) {
-  const [settings, setSettings] = useState<CreditSaleReminderSettingsRecord | null>(
-    null,
-  );
+  const [settings, setSettings] =
+    useState<CreditSaleReminderSettingsRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{
@@ -69,9 +68,8 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
   );
   const [testPhone, setTestPhone] = useState("");
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<CreditSaleReminderTestResult | null>(
-    null,
-  );
+  const [testResult, setTestResult] =
+    useState<CreditSaleReminderTestResult | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -99,7 +97,8 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       setSmsTextsmsPartnerId(data.smsTextsmsPartnerId ?? "");
       setSmsTextsmsShortcode(data.smsTextsmsShortcode ?? "");
       setSmsTextsmsApiUrl(
-        data.smsTextsmsApiUrl || "https://sms.textsms.co.ke/api/services/sendsms/",
+        data.smsTextsmsApiUrl ||
+          "https://sms.textsms.co.ke/api/services/sendsms/",
       );
       setRapidApiKey("");
       setWhatsappToken("");
@@ -107,7 +106,8 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       setSmsSozuriApiKey("");
       setSmsTextsmsApiKey("");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Could not load reminder settings.";
+      const msg =
+        e instanceof Error ? e.message : "Could not load reminder settings.";
       setMessage({
         text:
           msg.includes("500") || /internal server error/i.test(msg)
@@ -166,10 +166,14 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         smsProvider,
         smsAfricasTalkingUsername:
           smsProvider === "africas_talking" ? smsUsername.trim() : null,
-        smsSozuriProject: smsProvider === "sozuri" ? smsSozuriProject.trim() : null,
-        smsSozuriFrom: smsProvider === "sozuri" ? smsSozuriFrom.trim() || "Sozuri" : null,
+        smsSozuriProject:
+          smsProvider === "sozuri" ? smsSozuriProject.trim() : null,
+        smsSozuriFrom:
+          smsProvider === "sozuri" ? smsSozuriFrom.trim() || "Sozuri" : null,
         smsSozuriType:
-          smsProvider === "sozuri" ? smsSozuriType.trim() || "transactional" : null,
+          smsProvider === "sozuri"
+            ? smsSozuriType.trim() || "transactional"
+            : null,
         smsSozuriApiUrl:
           smsProvider === "sozuri"
             ? smsSozuriApiUrl.trim() || "https://sozuri.net/api/v1/messaging"
@@ -219,25 +223,32 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
 
   if (loading) {
     return (
-      <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
-        <p className="text-sm text-muted-foreground">Loading credit tab reminders…</p>
+      <section className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-5 sm:p-6">
+        <p className="text-sm text-muted-foreground">
+          Loading credit tab reminders…
+        </p>
       </section>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-border/80 bg-gradient-to-b from-primary/[0.03] to-card p-5 shadow-sm sm:p-6">
+    <section className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-5 sm:p-6">
       <div className="flex items-start gap-3">
-        <MessageCircle className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+        <MessageCircle
+          className="mt-0.5 size-5 shrink-0 text-primary"
+          aria-hidden
+        />
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold tracking-tight">Credit tab reminders</h2>
+          <h2 className="text-lg font-semibold tracking-tight">
+            Credit tab reminders
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            When a customer takes items on credit, always send a short payment reminder
-            with your account link. Outstanding-balance re-reminders and staff Remind
-            are limited to once every{" "}
-            <span className="font-medium text-foreground">3 days</span> per customer
-            (protects Meta template quality). WhatsApp is tried first; SMS is the
-            fallback.
+            When a customer takes items on credit, always send a short payment
+            reminder with your account link. Outstanding-balance re-reminders
+            and staff Remind are limited to once every{" "}
+            <span className="font-medium text-foreground">3 days</span> per
+            customer (protects Meta template quality). WhatsApp is tried first;
+            SMS is the fallback.
           </p>
           <p className="mt-2 text-sm">
             <Link
@@ -262,7 +273,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       ) : null}
 
       {settings?.secretsReadError ? (
-        <p className="mt-4 rounded-lg border border-amber-200/60 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+        <p className="mt-4 rounded-none border border-amber-200/60 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
           {settings.secretsReadError}
         </p>
       ) : null}
@@ -276,7 +287,10 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
             onChange={(e) => setEnabled(e.target.checked)}
             disabled={!canEdit}
           />
-          <span>Send receipt after credit (tab) sales (WhatsApp + SMS when configured)</span>
+          <span>
+            Send receipt after credit (tab) sales (WhatsApp + SMS when
+            configured)
+          </span>
         </label>
 
         <label className="flex items-start gap-2 text-sm">
@@ -299,7 +313,9 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className={dashboardLabelClass()}>Shop site URL (pay link origin)</span>
+          <span className={dashboardLabelClass()}>
+            Shop site URL (pay link origin)
+          </span>
           <input
             className={dashboardInputClass()}
             value={paymentUrl}
@@ -311,17 +327,16 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
           <span className="text-xs text-muted-foreground">
             Origin only — each reminder appends the customer phone, e.g.{" "}
             <span className="font-mono">
-              {(settings?.suggestedPaymentAccountUrl || "https://palmart.co.ke").replace(
-                /\/+$/,
-                "",
-              )}
+              {(
+                settings?.suggestedPaymentAccountUrl || "https://palmart.co.ke"
+              ).replace(/\/+$/, "")}
               /0714282874
             </span>
             .
           </span>
         </label>
 
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+        <div className="rounded-none border border-border/60 bg-muted/20 p-4 space-y-3">
           <p className="text-sm font-medium">WhatsApp</p>
           <label className="flex flex-col gap-1.5">
             <span className={dashboardLabelClass()}>RapidAPI key</span>
@@ -331,7 +346,9 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
               value={rapidApiKey}
               onChange={(e) => setRapidApiKey(e.target.value)}
               placeholder={
-                settings?.hasRapidApiKey ? "••••••••  (leave blank to keep)" : "Paste key"
+                settings?.hasRapidApiKey
+                  ? "•••••••• (leave blank to keep)"
+                  : "Paste key"
               }
               disabled={!canEdit}
               autoComplete="off"
@@ -402,15 +419,16 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
               onChange={(e) => setWhatsappToken(e.target.value)}
               placeholder={
                 settings?.hasWhatsappMetaAccessToken
-                  ? "••••••••  (leave blank to keep)"
+                  ? "•••••••• (leave blank to keep)"
                   : "Leave blank to use Super Admin → Platform integrations"
               }
               disabled={!canEdit}
               autoComplete="off"
             />
             <span className="text-xs text-muted-foreground">
-              Tenant token overrides the platform token. If WhatsApp returns 401, clear
-              this field and rely on Super Admin → Platform integrations.
+              Tenant token overrides the platform token. If WhatsApp returns
+              401, clear this field and rely on Super Admin → Platform
+              integrations.
             </span>
             {settings?.hasWhatsappMetaAccessToken && canEdit ? (
               <button
@@ -438,7 +456,10 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                       });
                     } catch (err) {
                       setMessage({
-                        text: err instanceof Error ? err.message : "Could not clear token.",
+                        text:
+                          err instanceof Error
+                            ? err.message
+                            : "Could not clear token.",
                         kind: "error",
                       });
                     } finally {
@@ -462,11 +483,12 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
           </label>
         </div>
 
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+        <div className="rounded-none border border-border/60 bg-muted/20 p-4 space-y-3">
           <p className="text-sm font-medium">SMS fallback</p>
           <p className="text-xs text-muted-foreground">
-            Leave TextSMS / Sozuri fields blank to use Super Admin → Platform integrations defaults.
-            Provider &quot;None&quot; still inherits the platform default provider when set.
+            Leave TextSMS / Sozuri fields blank to use Super Admin → Platform
+            integrations defaults. Provider &quot;None&quot; still inherits the
+            platform default provider when set.
           </p>
           <label className="flex flex-col gap-1.5 sm:max-w-xs">
             <span className={dashboardLabelClass()}>Provider</span>
@@ -502,7 +524,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                   onChange={(e) => setSmsApiKey(e.target.value)}
                   placeholder={
                     settings?.hasSmsAfricasTalkingApiKey
-                      ? "••••••••  (leave blank to keep)"
+                      ? "•••••••• (leave blank to keep)"
                       : "Paste key"
                   }
                   disabled={!canEdit}
@@ -532,7 +554,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                   onChange={(e) => setSmsSozuriApiKey(e.target.value)}
                   placeholder={
                     settings?.hasSmsSozuriApiKey
-                      ? "••••••••  (leave blank to keep)"
+                      ? "•••••••• (leave blank to keep)"
                       : "Paste Sozuri API key"
                   }
                   disabled={!canEdit}
@@ -541,7 +563,9 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5">
-                  <span className={dashboardLabelClass()}>Sender ID (from)</span>
+                  <span className={dashboardLabelClass()}>
+                    Sender ID (from)
+                  </span>
                   <input
                     className={dashboardInputClass()}
                     value={smsSozuriFrom}
@@ -576,8 +600,8 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
               <p className="text-xs text-muted-foreground">
                 Callbacks (set in Sozuri dashboard):{" "}
                 <span className="font-mono">/webhooks/sozuri/inbox</span> and{" "}
-                <span className="font-mono">/webhooks/sozuri/delivery</span> on your
-                API host. Use type that matches your registered sender ID.
+                <span className="font-mono">/webhooks/sozuri/delivery</span> on
+                your API host. Use type that matches your registered sender ID.
               </p>
             </>
           ) : null}
@@ -595,7 +619,9 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                   />
                 </label>
                 <label className="flex flex-col gap-1.5">
-                  <span className={dashboardLabelClass()}>Shortcode / sender ID</span>
+                  <span className={dashboardLabelClass()}>
+                    Shortcode / sender ID
+                  </span>
                   <input
                     className={dashboardInputClass()}
                     value={smsTextsmsShortcode}
@@ -614,7 +640,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                   onChange={(e) => setSmsTextsmsApiKey(e.target.value)}
                   placeholder={
                     settings?.hasSmsTextsmsApiKey
-                      ? "••••••••  (leave blank to keep)"
+                      ? "•••••••• (leave blank to keep)"
                       : "Paste TextSMS API key"
                   }
                   disabled={!canEdit}
@@ -632,7 +658,8 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                 />
               </label>
               <p className="text-xs text-muted-foreground">
-                Blank fields inherit Super Admin → Platform integrations TextSMS defaults.
+                Blank fields inherit Super Admin → Platform integrations TextSMS
+                defaults.
               </p>
             </>
           ) : null}

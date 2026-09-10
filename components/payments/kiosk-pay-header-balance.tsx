@@ -207,7 +207,7 @@ export function KioskPayHeaderBalance({
     <div
       className={cn(
         variant === "desktop"
-          ? "inline-flex h-8 max-w-[18rem] items-center gap-1.5 rounded-md border bg-background pl-2.5 pr-1 text-xs font-semibold shadow-sm"
+          ? "inline-flex h-8 max-w-[18rem] items-center gap-1.5 rounded-none border bg-background pl-2.5 pr-1 text-xs font-semibold shadow-none"
           : "tablet-header-tool inline-flex h-full items-center gap-1.5 border-l border-[var(--tablet-header-ink)]/12 pl-2.5 pr-1 text-[11px] font-semibold text-[var(--tablet-header-ink)]",
         className,
       )}
@@ -283,7 +283,7 @@ export function KioskPayHeaderBalance({
                 type="number"
                 min={0}
                 step="0.01"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
                 placeholder="0.00"
                 value={withdrawAmount}
                 disabled={saving}
@@ -297,7 +297,7 @@ export function KioskPayHeaderBalance({
               </span>
               <input
                 type="tel"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"
                 placeholder={account.payoutPhone || "2547…"}
                 value={withdrawPhone}
                 disabled={saving}

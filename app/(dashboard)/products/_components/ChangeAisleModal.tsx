@@ -39,7 +39,9 @@ export function ChangeAisleModal({
   selectionCount,
   onSave,
 }: Props) {
-  const [selected, setSelected] = useState<string>(currentAisleId ?? CLEAR_AISLE);
+  const [selected, setSelected] = useState<string>(
+    currentAisleId ?? CLEAR_AISLE,
+  );
   const isBulk = selectionCount != null && selectionCount > 0;
 
   useEffect(() => {
@@ -63,8 +65,7 @@ export function ChangeAisleModal({
   const currentLabel =
     aisles.find((a) => a.id === currentAisleId)?.name?.trim() || null;
 
-  const resolvedSelection =
-    selected === CLEAR_AISLE ? "" : selected.trim();
+  const resolvedSelection = selected === CLEAR_AISLE ? "" : selected.trim();
   const resolvedCurrent = currentAisleId?.trim() || "";
   const changed = resolvedSelection !== resolvedCurrent;
 
@@ -93,7 +94,9 @@ export function ChangeAisleModal({
             </DialogTitle>
             <DialogDescription>
               Set shelf zone for{" "}
-              <span className="font-medium text-foreground">{subjectLabel}</span>
+              <span className="font-medium text-foreground">
+                {subjectLabel}
+              </span>
               {currentLabel ? (
                 <>
                   . Currently{" "}
@@ -116,7 +119,7 @@ export function ChangeAisleModal({
                   onClick={() => setSelected(CLEAR_AISLE)}
                   disabled={busy}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors",
+                    "flex w-full items-center gap-3 rounded-none border p-3 text-left transition-colors",
                     selected === CLEAR_AISLE
                       ? "border-primary/60 bg-primary/[0.06] ring-1 ring-inset ring-primary/30"
                       : "border-border/60 bg-background hover:bg-muted/30",
@@ -128,7 +131,7 @@ export function ChangeAisleModal({
                 </button>
               </li>
               {sorted.length === 0 ? (
-                <li className="rounded-xl border border-dashed border-border/50 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+                <li className="rounded-none border border-dashed border-border/50 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
                   No shelf zones yet. Create one from Your shop → Shelf zones.
                 </li>
               ) : (
@@ -142,7 +145,7 @@ export function ChangeAisleModal({
                         onClick={() => setSelected(a.id)}
                         disabled={busy}
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors",
+                          "flex w-full items-center gap-3 rounded-none border p-3 text-left transition-colors",
                           isSelected
                             ? "border-primary/60 bg-primary/[0.06] ring-1 ring-inset ring-primary/30"
                             : "border-border/60 bg-background hover:bg-muted/30",
@@ -152,7 +155,7 @@ export function ChangeAisleModal({
                           <span className="block truncate text-sm font-semibold text-foreground">
                             {a.name}
                             {isCurrent ? (
-                              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                                 Current
                               </span>
                             ) : null}

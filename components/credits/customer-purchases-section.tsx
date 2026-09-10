@@ -4,9 +4,15 @@ import { useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, PackageOpen, Receipt } from "lucide-react";
 
 import { DashboardLoading } from "@/components/dashboard-page-ui";
-import { WhiteCard, boardMoney } from "@/components/credits/customer-board-theme";
+import {
+  WhiteCard,
+  boardMoney,
+} from "@/components/credits/customer-board-theme";
 import { Button } from "@/components/ui/button";
-import { fetchCustomerTabPurchases, type TabPurchaseRowRecord } from "@/lib/api";
+import {
+  fetchCustomerTabPurchases,
+  type TabPurchaseRowRecord,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 40;
@@ -95,9 +101,9 @@ export function CustomerPurchasesSection({
           className={cn(
             "font-semibold text-foreground",
             dense
-              ? "text-[10px] uppercase tracking-wide text-muted-foreground"
+              ? "text-[10px] tracking-[-0.02em] text-muted-foreground"
               : isBoard
-                ? "text-[11px] uppercase tracking-wide text-muted-foreground"
+                ? "text-[11px] tracking-[-0.02em] text-muted-foreground"
                 : "text-sm",
           )}
         >
@@ -112,8 +118,10 @@ export function CustomerPurchasesSection({
       {!loading && rows.length > 0 ? (
         <span
           className={cn(
-            "shrink-0 rounded-md bg-muted font-medium tabular-nums text-muted-foreground",
-            dense ? "px-1.5 py-0.5 text-[10px]" : "rounded-full px-2.5 py-0.5 text-xs",
+            "shrink-0 rounded-none bg-muted font-medium tabular-nums text-muted-foreground",
+            dense
+              ? "px-1.5 py-0.5 text-[10px]"
+              : "rounded-full px-2.5 py-0.5 text-xs",
           )}
         >
           {rows.length}
@@ -135,13 +143,15 @@ export function CustomerPurchasesSection({
       )}
     >
       <PackageOpen
-        className={cn(
-          "text-muted-foreground/40",
-          dense ? "size-5" : "size-8",
-        )}
+        className={cn("text-muted-foreground/40", dense ? "size-5" : "size-8")}
         aria-hidden
       />
-      <p className={cn("font-medium text-foreground", dense ? "text-xs" : "text-sm")}>
+      <p
+        className={cn(
+          "font-medium text-foreground",
+          dense ? "text-xs" : "text-sm",
+        )}
+      >
         No purchases yet
       </p>
       {!dense ? (
@@ -162,7 +172,9 @@ export function CustomerPurchasesSection({
                 type="button"
                 className={cn(
                   "flex w-full items-center gap-2 text-left transition-colors hover:bg-muted/30",
-                  dense ? "px-2 py-1.5" : "items-start gap-3 px-4 py-3.5 sm:px-5",
+                  dense
+                    ? "px-2 py-1.5"
+                    : "items-start gap-3 px-4 py-3.5 sm:px-5",
                 )}
                 aria-expanded={open}
                 onClick={() => setOpenSaleId(open ? null : row.saleId)}
@@ -170,7 +182,7 @@ export function CustomerPurchasesSection({
                 <span
                   className={cn(
                     "flex shrink-0 items-center justify-center rounded border border-border/50 bg-muted/40",
-                    dense ? "size-5" : "mt-0.5 size-8 rounded-lg",
+                    dense ? "size-5" : "mt-0.5 size-8 rounded-none",
                   )}
                 >
                   <Receipt
@@ -249,10 +261,17 @@ export function CustomerPurchasesSection({
                 <div
                   className={cn(
                     "border-t border-border/40 bg-muted/10",
-                    dense ? "px-2 py-1.5 pl-9" : "px-4 py-3 sm:px-5 sm:pl-[4.25rem]",
+                    dense
+                      ? "px-2 py-1.5 pl-9"
+                      : "px-4 py-3 sm:px-5 sm:pl-[4.25rem]",
                   )}
                 >
-                  <table className={cn("w-full text-left", dense ? "text-[11px]" : "text-sm")}>
+                  <table
+                    className={cn(
+                      "w-full text-left",
+                      dense ? "text-[11px]" : "text-sm",
+                    )}
+                  >
                     <thead>
                       <tr className="text-muted-foreground">
                         <th
@@ -285,9 +304,16 @@ export function CustomerPurchasesSection({
                       {row.lines.map((line, index) => (
                         <tr
                           key={`${row.saleId}-${index}`}
-                          className={cn(index > 0 && "border-t border-border/30")}
+                          className={cn(
+                            index > 0 && "border-t border-border/30",
+                          )}
                         >
-                          <td className={cn("pr-2 text-foreground", dense ? "py-1" : "py-2 pr-3")}>
+                          <td
+                            className={cn(
+                              "pr-2 text-foreground",
+                              dense ? "py-1" : "py-2 pr-3",
+                            )}
+                          >
                             {line.itemName}
                             {line.itemSku && !dense ? (
                               <span className="mt-0.5 block font-mono text-[11px] text-muted-foreground">
@@ -353,7 +379,7 @@ export function CustomerPurchasesSection({
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+    <section className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
       {header}
       {body}
     </section>

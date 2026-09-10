@@ -7,10 +7,7 @@ export function supplyN(v: number | string | null | undefined): number {
 }
 
 /** Kenyan-market money: always label with business currency (default KES). */
-export function formatSupplyMoney(
-  v: number,
-  currency: string = "KES",
-): string {
+export function formatSupplyMoney(v: number, currency: string = "KES"): string {
   const code = currency.trim().toUpperCase() || "KES";
   try {
     return new Intl.NumberFormat("en-KE", {

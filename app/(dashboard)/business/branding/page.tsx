@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useSearchParams } from "next/navigation";
 
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
@@ -207,11 +213,13 @@ function BrandingSection({
 }) {
   return (
     <section id={id} className={cn(HUB_SURFACE, "scroll-mt-24 p-4 sm:p-5")}>
-      <div className="border-b border-[#E6E1D8]/80 pb-3">
+      <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pb-3">
         <h2 className="font-heading text-sm font-semibold tracking-tight text-[#141414]">
           {title}
         </h2>
-        <p className="mt-1 text-[12px] leading-relaxed text-[#7A7A7A]">{hint}</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-[#7A7A7A]">
+          {hint}
+        </p>
       </div>
       <div className="mt-4 space-y-4">{children}</div>
     </section>
@@ -226,7 +234,7 @@ function messageFor(error: unknown, fallback: string): string {
 
 function inputClass() {
   return cn(
-    "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm shadow-sm transition-colors",
+    "w-full rounded-none border border-input bg-background px-3 py-2.5 text-sm shadow-none transition-colors",
     "placeholder:text-muted-foreground/70",
     "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
   );
@@ -258,11 +266,11 @@ function BrandingColorPresetCard({
         onClick={onSelect}
         title={preset.name}
         className={cn(
-          "flex w-full flex-col gap-1 rounded-lg border bg-card p-1.5 text-left transition-colors",
-          "hover:border-[#B08D48]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+          "flex w-full flex-col gap-1 rounded-none border bg-card p-1.5 text-left transition-colors",
+          "hover:border-[#0f766e]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
           selected
-            ? "border-[#B08D48] ring-2 ring-[#B08D48]/20"
-            : "border-[#E6E1D8]",
+            ? "border-[#0f766e] ring-2 ring-[#0f766e]/20"
+            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
         )}
       >
         <span className="flex gap-0.5">
@@ -318,11 +326,7 @@ function BrandingColorPresetPicker({
           <BrandingColorPresetCard
             key={preset.name}
             preset={preset}
-            selected={brandingPresetMatches(
-              preset,
-              primaryColor,
-              accentColor,
-            )}
+            selected={brandingPresetMatches(preset, primaryColor, accentColor)}
             onSelect={() => onSelect(preset)}
           />
         ))}
@@ -354,7 +358,7 @@ function ColorField({
           type="color"
           value={valid ? value : "#000000"}
           onChange={(e) => onChange(e.target.value.toUpperCase())}
-          className="h-10 w-14 cursor-pointer rounded-lg border border-input bg-background shadow-sm"
+          className="h-10 w-14 cursor-pointer rounded-none border border-input bg-background shadow-none"
         />
         <input
           aria-label={`${label} hex value`}
@@ -402,11 +406,7 @@ function SerpPreview({
 }) {
   const display =
     form.displayName.trim() || business?.name?.trim() || "Your storefront";
-  const title = resolveStorefrontMetaTitle(
-    display,
-    form.metaTitle,
-    location,
-  );
+  const title = resolveStorefrontMetaTitle(display, form.metaTitle, location);
   const description = resolveStorefrontMetaDescription(
     display,
     form.metaDescription,
@@ -419,13 +419,13 @@ function SerpPreview({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/20 shadow-sm",
+        "rounded-none border border-border/80 bg-gradient-to-b from-card to-muted/20 shadow-none",
         compact ? "p-4" : "p-5 sm:p-6",
       )}
     >
       <div className="flex items-center gap-2 text-primary">
         <Globe className="size-4" aria-hidden />
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-primary/90">
+        <h2 className="text-xs font-semibold tracking-[-0.02em] text-primary/90">
           Search preview
         </h2>
       </div>
@@ -435,13 +435,14 @@ function SerpPreview({
         {areaHint ? (
           <>
             {" "}
-            (now <span className="font-medium text-foreground">{areaHint}</span>)
+            (now <span className="font-medium text-foreground">{areaHint}</span>
+            )
           </>
         ) : null}
         . Use <span className="font-mono text-xs">[Area]</span> in custom copy
         to keep it dynamic.
       </p>
-      <div className="mt-4 rounded-xl border border-border/70 bg-background p-4 shadow-inner">
+      <div className="mt-4 rounded-none border border-border/70 bg-background p-4 shadow-inner">
         <p className="truncate text-xs text-muted-foreground">{host}</p>
         <p className="mt-1 line-clamp-2 text-lg font-medium leading-snug text-[#8ab4f8]">
           {title}
@@ -572,10 +573,10 @@ function BrandingPreview({
   const hasLogo = Boolean(logoUrl?.trim());
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/20 p-5 shadow-sm sm:p-6">
+      <div className="rounded-none border border-border/80 bg-gradient-to-b from-card to-muted/20 p-5 shadow-none sm:p-6">
         <div className="flex items-center gap-2 text-primary">
           <Sparkles className="size-4" aria-hidden />
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-primary/90">
+          <h2 className="text-xs font-semibold tracking-[-0.02em] text-primary/90">
             Live preview
           </h2>
         </div>
@@ -583,7 +584,7 @@ function BrandingPreview({
           Approximates your public shop header.
         </p>
         <div
-          className="mt-4 overflow-visible rounded-xl border-2 bg-background/80 p-4 shadow-inner backdrop-blur-sm"
+          className="mt-4 overflow-visible rounded-none border-2 bg-background/80 p-4 shadow-inner backdrop-blur-sm"
           style={{
             borderColor: `${primary}55`,
             ...storefrontLogoScaleVarStyle(form.logoScale),
@@ -615,7 +616,7 @@ function BrandingPreview({
               />
             )}
             <span
-              className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
+              className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-none"
               style={{ backgroundColor: accent }}
             >
               Sale
@@ -726,11 +727,11 @@ function FaviconSection({
             alt="Current favicon"
             width={56}
             height={56}
-            className="size-14 rounded-xl border border-border/60 bg-muted/30 object-contain shadow-sm"
+            className="size-14 rounded-none border border-border/60 bg-muted/30 object-contain shadow-none"
             unoptimized
           />
         ) : (
-          <div className="flex size-14 items-center justify-center rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 text-xs text-muted-foreground">
+          <div className="flex size-14 items-center justify-center rounded-none border border-dashed border-muted-foreground/30 bg-muted/20 text-xs text-muted-foreground">
             None
           </div>
         )}
@@ -795,11 +796,11 @@ function OgImageSection({
             alt="Social preview"
             width={112}
             height={60}
-            className="aspect-[1200/630] w-28 rounded-xl border border-border/60 bg-muted/30 object-cover shadow-sm"
+            className="aspect-[1200/630] w-28 rounded-none border border-border/60 bg-muted/30 object-cover shadow-none"
             unoptimized
           />
         ) : (
-          <div className="flex aspect-[1200/630] w-28 items-center justify-center rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 text-xs text-muted-foreground">
+          <div className="flex aspect-[1200/630] w-28 items-center justify-center rounded-none border border-dashed border-muted-foreground/30 bg-muted/20 text-xs text-muted-foreground">
             None
           </div>
         )}
@@ -869,10 +870,10 @@ function BannerSection({
               alt={`Banner ${i + 1}`}
               width={200}
               height={80}
-              className="h-20 w-40 rounded-lg border object-cover shadow-sm"
+              className="h-20 w-40 rounded-none border object-cover shadow-none"
               unoptimized
             />
-            <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition bg-black/40 rounded-lg">
+            <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition bg-black/40 rounded-none">
               {i > 0 && (
                 <Button
                   type="button"
@@ -929,7 +930,7 @@ function BannerSection({
         <button
           type="button"
           disabled={busy}
-          className="flex h-20 w-40 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors"
+          className="flex h-20 w-40 items-center justify-center rounded-none border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors"
           onClick={() => inputRef.current?.click()}
         >
           <span className="text-xs text-muted-foreground">+ Add banner</span>
@@ -964,9 +965,9 @@ function RelatedLinks() {
         <Link
           key={href}
           href={href}
-          className="inline-flex items-center gap-2 rounded-lg border border-[#E6E1D8]/90 bg-white px-3 py-2 text-sm transition-colors hover:border-[#B08D48]/50 hover:bg-[#FCFAF6]"
+          className="inline-flex items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2 text-sm transition-colors hover:border-[#0f766e] hover:text-[#0f766e] hover:bg-white"
         >
-          <Icon className="size-3.5 text-[#B08D48]" aria-hidden />
+          <Icon className="size-3.5 text-[#0f766e]" aria-hidden />
           <span className="font-medium text-[#141414]">{label}</span>
           <span className="hidden text-[11px] text-[#7A7A7A] sm:inline">
             {desc}
@@ -1292,7 +1293,10 @@ export default function BrandingPage() {
         description="Logo, colours, and the name shoppers see on your storefront."
       >
         <div className="flex flex-col items-center justify-center gap-4 py-24">
-          <Loader2 className="size-10 animate-spin text-[#B08D48]" aria-hidden />
+          <Loader2
+            className="size-10 animate-spin text-[#0f766e]"
+            aria-hidden
+          />
           <p className="text-sm text-[#7A7A7A]">Loading branding…</p>
         </div>
       </BusinessPageLayout>
@@ -1306,14 +1310,16 @@ export default function BrandingPage() {
         description="Logo, colours, and the name shoppers see on your storefront."
       >
         <div className="mx-auto max-w-lg py-8">
-          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-sm">
+          <div className="rounded-none border border-destructive/30 bg-destructive/5 p-8 text-center shadow-none">
             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
               <AlertCircle className="size-6" aria-hidden />
             </div>
             <h2 className="mt-4 text-lg font-semibold tracking-tight">
               Could not load branding
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">{feedback?.text}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {feedback?.text}
+            </p>
             <Button
               className="mt-6 gap-2"
               variant="outline"
@@ -1338,9 +1344,7 @@ export default function BrandingPage() {
   const onboardingLocalitiesRaw =
     snapshot?.onboarding?.answers?.branchLocalities;
   const onboardingLocalities = Array.isArray(onboardingLocalitiesRaw)
-    ? onboardingLocalitiesRaw.filter(
-        (v): v is string => typeof v === "string",
-      )
+    ? onboardingLocalitiesRaw.filter((v): v is string => typeof v === "string")
     : [];
 
   const seoLocation: StorefrontSeoLocation = {
@@ -1352,7 +1356,7 @@ export default function BrandingPage() {
     form.displayName.trim() || snapshot?.name?.trim() || "Your store";
 
   const saveBar = (
-    <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-10 -mx-1 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E6E1D8]/90 bg-white/95 p-2.5 shadow-md backdrop-blur supports-[backdrop-filter]:bg-white/80 lg:static lg:bottom-auto lg:mx-0 lg:justify-end lg:shadow-none">
+    <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-10 -mx-1 flex flex-wrap items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-2.5 shadow-none lg:static lg:bottom-auto lg:mx-0 lg:justify-end lg:shadow-none">
       <p className="hidden text-[11px] text-[#7A7A7A] sm:block lg:mr-auto">
         Logo, favicon, and banners apply immediately. Name, colours, and search
         fields save here.
@@ -1441,11 +1445,7 @@ export default function BrandingPage() {
         ) : null}
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_22rem]">
-          <form
-            id="branding-edit-form"
-            className="space-y-4"
-            onSubmit={onSave}
-          >
+          <form id="branding-edit-form" className="space-y-4" onSubmit={onSave}>
             <BrandingSection
               id="branding-identity"
               title="Name & logo"
@@ -1628,8 +1628,8 @@ export default function BrandingPage() {
                 </p>
               </div>
 
-              <div className="space-y-3 rounded-xl border border-[#E6E1D8]/80 bg-[#FCFAF6] p-3.5">
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#8A8A8A]">
+              <div className="space-y-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5">
+                <p className="text-xs font-semibold tracking-[-0.02em] text-[#8A8A8A]">
                   Social preview image
                 </p>
                 <OgImageSection
@@ -1659,7 +1659,10 @@ export default function BrandingPage() {
               </div>
 
               <div className="space-y-2">
-                <label className={labelClass()} htmlFor="branding-meta-keywords">
+                <label
+                  className={labelClass()}
+                  htmlFor="branding-meta-keywords"
+                >
                   Meta keywords{" "}
                   <span className="font-normal text-muted-foreground">
                     (optional)

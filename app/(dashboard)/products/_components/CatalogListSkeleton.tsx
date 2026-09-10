@@ -22,18 +22,22 @@ function CatalogListSkeletonRow({
 
   return (
     <div
-      className={cn(
-        catalogListGridClass,
-        withBlockGap && "mt-4 first:mt-0",
-      )}
+      className={cn(catalogListGridClass, withBlockGap && "mt-4 first:mt-0")}
       style={{ minHeight: minH }}
       role="row"
       aria-hidden
     >
-      <span className={cn("flex items-center justify-center", catalogGridCol.check)}>
+      <span
+        className={cn("flex items-center justify-center", catalogGridCol.check)}
+      >
         <span className="size-4 animate-pulse rounded bg-muted" />
       </span>
-      <span className={cn("flex min-w-0 items-center gap-2 py-1", catalogGridCol.product)}>
+      <span
+        className={cn(
+          "flex min-w-0 items-center gap-2 py-1",
+          catalogGridCol.product,
+        )}
+      >
         <span className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
           <span className="h-3.5 w-[72%] max-w-xs animate-pulse rounded bg-muted" />
           <span className="h-3 w-[42%] max-w-[10rem] animate-pulse rounded bg-muted/80" />

@@ -25,10 +25,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
-import {
-  fetchStockTakeMyStats,
-  type StockTakeMyStatsRecord,
-} from "@/lib/api";
+import { fetchStockTakeMyStats, type StockTakeMyStatsRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
@@ -66,14 +63,14 @@ function StatTile({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-3.5 shadow-sm",
+        "relative overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5 shadow-none",
         accent === "good" && "border-emerald-500/30 bg-emerald-500/[0.06]",
         accent === "warn" && "border-amber-500/30 bg-amber-500/[0.06]",
         accent === "hot" && "border-orange-500/35 bg-orange-500/[0.07]",
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           {label}
         </p>
         <Icon className="size-4 shrink-0 text-muted-foreground/80" />
@@ -141,8 +138,8 @@ export default function StockTakeMyStatsPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="space-y-4 pb-8">
-        <header className="space-y-3 border-b border-border/50 pb-4">
+      <div className="space-y-1 pb-4">
+        <header className="space-y-1">
           <DashboardPageHero
             compact
             icon={Award}
@@ -172,7 +169,12 @@ export default function StockTakeMyStatsPage() {
             >
               Next
             </Button>
-            <Button asChild variant="secondary" size="sm" className="ml-auto h-9">
+            <Button
+              asChild
+              variant="secondary"
+              size="sm"
+              className="ml-auto h-9"
+            >
               <Link href={APP_ROUTES.inventoryStockTakeDailyAudit}>
                 Open daily audit
               </Link>
@@ -190,9 +192,9 @@ export default function StockTakeMyStatsPage() {
           <>
             <section
               className={cn(
-                "relative overflow-hidden rounded-[1.35rem] border border-border/60",
+                "relative overflow-hidden rounded-[1.35rem] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
                 "bg-gradient-to-br from-primary/[0.12] via-card to-emerald-500/[0.08]",
-                "p-5 shadow-sm",
+                "p-5 shadow-none",
               )}
             >
               <div
@@ -200,17 +202,19 @@ export default function StockTakeMyStatsPage() {
                 className="pointer-events-none absolute -right-8 -top-10 size-36 rounded-full bg-primary/10 blur-2xl"
               />
               <div className="relative flex items-start gap-3">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-background/80 shadow-sm ring-1 ring-border/60">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-none bg-background/80 shadow-none ring-1 ring-border/60">
                   <Sparkles className="size-5 text-primary" />
                 </div>
                 <div className="min-w-0 space-y-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                     This month&apos;s title
                   </p>
                   <h2 className="text-2xl font-semibold tracking-tight text-foreground">
                     {stats.title}
                   </h2>
-                  <p className="text-sm text-muted-foreground">{stats.highlight}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {stats.highlight}
+                  </p>
                   <p className="pt-1 text-[11px] tabular-nums text-muted-foreground">
                     {stats.from} → {stats.to}
                     {stats.timezone ? ` · ${stats.timezone}` : ""}
@@ -273,8 +277,8 @@ export default function StockTakeMyStatsPage() {
               />
             </div>
 
-            <section className="rounded-2xl border border-border/60 bg-card/70 p-4 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <section className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 shadow-none">
+              <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 AM / PM balance
               </p>
               <div className="mt-3 flex items-center gap-3">

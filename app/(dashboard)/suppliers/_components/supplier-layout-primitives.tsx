@@ -50,12 +50,16 @@ export function SupSection({
         )}
       >
         <div className="min-w-0">
-          <h3 className={cn(supSectionTitle, compact && "text-[11px]")}>{title}</h3>
+          <h3 className={cn(supSectionTitle, compact && "text-[11px]")}>
+            {title}
+          </h3>
           {hint && !compact ? <p className={supSectionHint}>{hint}</p> : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className={cn(compact ? "p-0" : "p-0", bodyClassName)}>{children}</div>
+      <div className={cn(compact ? "p-0" : "p-0", bodyClassName)}>
+        {children}
+      </div>
     </section>
   );
 }
@@ -105,7 +109,10 @@ export function SupLoadingBlock({
         className,
       )}
     >
-      <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
+      <Loader2
+        className="size-4 animate-spin text-muted-foreground"
+        aria-hidden
+      />
       <span>{label}</span>
     </div>
   );
@@ -170,23 +177,26 @@ export function SupDrawerFooter({
 
   return (
     <div className={supDrawerFooter}>
-      <Button type="button" variant="outline" className="h-9 rounded-none px-3" onClick={onCancel}>
+      <Button
+        type="button"
+        variant="outline"
+        className="h-9 rounded-none px-3"
+        onClick={onCancel}
+      >
         {cancelLabel}
       </Button>
-      {hasCustomActions
-        ? children
-        : submitLabel && submitForm
-          ? (
-              <Button
-                type="submit"
-                form={submitForm}
-                className="h-9 gap-2 rounded-none px-4 font-semibold"
-                disabled={submitDisabled}
-              >
-                {submitLabel}
-              </Button>
-            )
-          : null}
+      {hasCustomActions ? (
+        children
+      ) : submitLabel && submitForm ? (
+        <Button
+          type="submit"
+          form={submitForm}
+          className="h-9 gap-2 rounded-none px-4 font-semibold"
+          disabled={submitDisabled}
+        >
+          {submitLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }

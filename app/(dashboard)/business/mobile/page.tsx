@@ -33,7 +33,11 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
-import { fetchMyMobileConfig, fetchMyMobilePublishStatus, requestMyMobilePublish } from "@/lib/api";
+import {
+  fetchMyMobileConfig,
+  fetchMyMobilePublishStatus,
+  requestMyMobilePublish,
+} from "@/lib/api";
 import type {
   MobilePublishStatus,
   MobileTenantProfileExport,
@@ -45,14 +49,17 @@ import { cn } from "@/lib/utils";
 function LockedNotice() {
   return (
     <div className="mx-auto max-w-lg py-16">
-      <div className="rounded-2xl border border-border/80 bg-card p-8 text-center shadow-sm">
+      <div className="rounded-none border border-border/80 bg-card p-8 text-center shadow-none">
         <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Lock className="size-6" aria-hidden />
         </div>
-        <h1 className="mt-4 text-lg font-semibold tracking-tight">Store app settings are restricted</h1>
+        <h1 className="mt-4 text-lg font-semibold tracking-tight">
+          Store app settings are restricted
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Ask an owner or admin with{" "}
-          <span className="font-mono text-xs">business.manage_settings</span> to launch your mobile store.
+          <span className="font-mono text-xs">business.manage_settings</span> to
+          launch your mobile store.
         </p>
         <Button asChild className="mt-6" variant="outline">
           <Link href={APP_ROUTES.business}>Back to business</Link>
@@ -64,12 +71,42 @@ function LockedNotice() {
 
 function RelatedLinks() {
   const links = [
-    { href: APP_ROUTES.business, label: "Business", desc: "Business hub", icon: Building2 },
-    { href: APP_ROUTES.businessSettings, label: "Settings", desc: "Profile & storefront", icon: Settings },
-    { href: APP_ROUTES.businessConfiguration, label: "Operations", desc: "Inventory & till", icon: SlidersHorizontal },
-    { href: APP_ROUTES.businessBranding, label: "Branding", desc: "Logo & colors", icon: Palette },
-    { href: APP_ROUTES.businessDomains, label: "Domains", desc: "Custom hostnames", icon: Globe },
-    { href: APP_ROUTES.branches, label: "Branches", desc: "Locations", icon: MapPin },
+    {
+      href: APP_ROUTES.business,
+      label: "Business",
+      desc: "Business hub",
+      icon: Building2,
+    },
+    {
+      href: APP_ROUTES.businessSettings,
+      label: "Settings",
+      desc: "Profile & storefront",
+      icon: Settings,
+    },
+    {
+      href: APP_ROUTES.businessConfiguration,
+      label: "Operations",
+      desc: "Inventory & till",
+      icon: SlidersHorizontal,
+    },
+    {
+      href: APP_ROUTES.businessBranding,
+      label: "Branding",
+      desc: "Logo & colors",
+      icon: Palette,
+    },
+    {
+      href: APP_ROUTES.businessDomains,
+      label: "Domains",
+      desc: "Custom hostnames",
+      icon: Globe,
+    },
+    {
+      href: APP_ROUTES.branches,
+      label: "Branches",
+      desc: "Locations",
+      icon: MapPin,
+    },
   ] as const;
 
   return (
@@ -79,11 +116,11 @@ function RelatedLinks() {
           key={href}
           href={href}
           className={cn(
-            "group flex items-start gap-3 rounded-xl border border-border/80 bg-card p-3 shadow-sm transition-all",
-            "hover:border-primary/25 hover:bg-accent/40 hover:shadow-md",
+            "group flex items-start gap-3 rounded-none border border-border/80 bg-card p-3 shadow-none transition-all",
+            "hover:border-primary/25 hover:bg-accent/40 ",
           )}
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-none bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
             <Icon className="size-4" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
@@ -94,7 +131,9 @@ function RelatedLinks() {
                 aria-hidden
               />
             </span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">{desc}</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              {desc}
+            </span>
           </span>
         </Link>
       ))}
@@ -134,9 +173,14 @@ export default function BusinessMobilePage() {
   const bootstrapBusiness = useSessionBootstrapSnapshot().business;
   const [slug, setSlug] = useState(bootstrapBusiness?.slug?.trim() ?? "");
   const [config, setConfig] = useState<PublicMobileConfig | null>(null);
-  const [tenantProfile, setTenantProfile] = useState<MobileTenantProfileExport | null>(null);
-  const [publishStatus, setPublishStatus] = useState<MobilePublishStatus | null>(null);
-  const [feedback, setFeedback] = useState<{ kind: "success"; text: string } | null>(null);
+  const [tenantProfile, setTenantProfile] =
+    useState<MobileTenantProfileExport | null>(null);
+  const [publishStatus, setPublishStatus] =
+    useState<MobilePublishStatus | null>(null);
+  const [feedback, setFeedback] = useState<{
+    kind: "success";
+    text: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -164,7 +208,9 @@ export default function BusinessMobilePage() {
       setConfig(null);
       setTenantProfile(null);
       setPublishStatus(null);
-      setError(err instanceof Error ? err.message : "Could not load your store app.");
+      setError(
+        err instanceof Error ? err.message : "Could not load your store app.",
+      );
     } finally {
       setLoading(false);
     }
@@ -174,7 +220,10 @@ export default function BusinessMobilePage() {
     setPublishing(true);
     setFeedback(null);
     try {
-      const result = await requestMyMobilePublish({ app: "shopper", platform: "all" });
+      const result = await requestMyMobilePublish({
+        app: "shopper",
+        platform: "all",
+      });
       setPublishStatus(result);
       if (result.status === "failed") {
         setError(result.lastError ?? "Could not start the store build.");
@@ -193,7 +242,9 @@ export default function BusinessMobilePage() {
         });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not request store build.");
+      setError(
+        err instanceof Error ? err.message : "Could not request store build.",
+      );
     } finally {
       setPublishing(false);
     }
@@ -214,30 +265,36 @@ export default function BusinessMobilePage() {
   const storefrontOff = config && !config.storefrontEnabled;
 
   return (
-    <div className={cn(DASHBOARD_MAX, "space-y-6 pb-20")}>
+    <div className={cn(DASHBOARD_MAX, "pb-4")}>
       <DashboardPageHero
         icon={Store}
         eyebrow="Your ecommerce"
         title="Launch your store app"
         description={
           <>
-            Every business gets a mobile storefront — your catalog, branding, and checkout in a
-            dedicated shopper app. Share the QR code on posters and receipts, or publish a branded
-            listing on the App Store and Google Play.
+            Every business gets a mobile storefront — your catalog, branding,
+            and checkout in a dedicated shopper app. Share the QR code on
+            posters and receipts, or publish a branded listing on the App Store
+            and Google Play.
           </>
         }
       />
 
-      {feedback ? <DashboardFeedback kind="success" text={feedback.text} /> : null}
+      {feedback ? (
+        <DashboardFeedback kind="success" text={feedback.text} />
+      ) : null}
 
       {storefrontOff ? (
         <div
           role="status"
-          className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3.5 text-sm leading-relaxed text-amber-950 shadow-sm dark:text-amber-50"
+          className="flex items-start gap-3 rounded-none border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3.5 text-sm leading-relaxed text-amber-950 shadow-none dark:text-amber-50"
         >
           <span>
             Your web storefront is off.{" "}
-            <Link href={APP_ROUTES.business} className="font-medium underline underline-offset-2">
+            <Link
+              href={APP_ROUTES.business}
+              className="font-medium underline underline-offset-2"
+            >
               Enable it in Business settings
             </Link>{" "}
             so the mobile app can load your catalog.
@@ -247,10 +304,12 @@ export default function BusinessMobilePage() {
 
       <RelatedLinks />
 
-      <div className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-4 shadow-sm sm:p-6">
+      <div className="rounded-none border border-primary/20 bg-primary/[0.04] p-4 shadow-none sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold tracking-tight">Publish to App Store &amp; Play</h2>
+            <h2 className="text-base font-semibold tracking-tight">
+              Publish to App Store &amp; Play
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Build your branded shopper app with EAS. Status:{" "}
               <span className="font-medium text-foreground">
@@ -269,7 +328,9 @@ export default function BusinessMobilePage() {
               </a>
             ) : null}
             {publishStatus?.lastError ? (
-              <p className="mt-2 text-sm text-destructive">{publishStatus.lastError}</p>
+              <p className="mt-2 text-sm text-destructive">
+                {publishStatus.lastError}
+              </p>
             ) : null}
             {publishStatus?.requestedAt ? (
               <p className="mt-1 text-xs text-muted-foreground">
@@ -295,22 +356,26 @@ export default function BusinessMobilePage() {
           </Button>
         </div>
         {publishStatus && !publishStatus.automationConfigured ? (
-          <p className="mt-4 rounded-lg border border-border/70 bg-background/80 px-3 py-2 font-mono text-[11px] text-muted-foreground">
+          <p className="mt-4 rounded-none border border-border/70 bg-background/80 px-3 py-2 font-mono text-[11px] text-muted-foreground">
             {publishStatus.manualCommand}
           </p>
         ) : null}
       </div>
 
-      <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm sm:p-6">
+      <div className="rounded-none border border-border/80 bg-card p-4 shadow-none sm:p-6">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold tracking-tight">Shopper app</h2>
+            <h2 className="text-base font-semibold tracking-tight">
+              Shopper app
+            </h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
               {shopperApp ? (
                 <>
-                  <span className="font-medium text-foreground">{shopperApp.name}</span>
+                  <span className="font-medium text-foreground">
+                    {shopperApp.name}
+                  </span>
                   {shopperApp.whiteLabel ? (
-                    <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-primary">
                       Branded
                     </span>
                   ) : null}
@@ -326,7 +391,8 @@ export default function BusinessMobilePage() {
             ) : null}
             {slug ? (
               <p className="mt-1 text-xs text-muted-foreground">
-                Slug <span className="font-mono text-foreground/90">{slug}</span>
+                Slug{" "}
+                <span className="font-mono text-foreground/90">{slug}</span>
               </p>
             ) : null}
           </div>
@@ -351,7 +417,10 @@ export default function BusinessMobilePage() {
               disabled={loading}
               onClick={() => void load()}
             >
-              <RefreshCw className={cn("size-4", loading && "animate-spin")} aria-hidden />
+              <RefreshCw
+                className={cn("size-4", loading && "animate-spin")}
+                aria-hidden
+              />
               Refresh
             </Button>
           </div>
@@ -362,33 +431,49 @@ export default function BusinessMobilePage() {
           <div className="space-y-4">
             <GetTheAppPanelError message={error} />
             <div className="flex justify-center">
-              <Button type="button" variant="outline" className="gap-2" onClick={() => void load()}>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => void load()}
+              >
                 <AlertCircle className="size-4" aria-hidden />
                 Try again
               </Button>
             </div>
           </div>
         ) : null}
-        {!loading && config ? <GetTheAppPanel config={config} variant="admin" /> : null}
+        {!loading && config ? (
+          <GetTheAppPanel config={config} variant="admin" />
+        ) : null}
       </div>
 
-      <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-        <p className="font-medium text-foreground">Operator setup (once per platform)</p>
+      <div className="rounded-none border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+        <p className="font-medium text-foreground">
+          Operator setup (once per platform)
+        </p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>
             API server: set{" "}
             <code className="text-xs">APP_MOBILE_PUBLISH_GITHUB_TOKEN</code>,{" "}
             <code className="text-xs">APP_MOBILE_PUBLISH_GITHUB_REPO</code>, and{" "}
-            <code className="text-xs">APP_MOBILE_PUBLISH_CALLBACK_SECRET</code> (generate with{" "}
+            <code className="text-xs">APP_MOBILE_PUBLISH_CALLBACK_SECRET</code>{" "}
+            (generate with{" "}
             <code className="text-xs">openssl rand -base64 32</code>).
           </li>
           <li>
             GitHub repo secrets: <code className="text-xs">EXPO_TOKEN</code>,{" "}
             <code className="text-xs">API_PUBLIC_BASE_URL</code>, and the same{" "}
-            <code className="text-xs">MOBILE_PUBLISH_CALLBACK_SECRET</code> value.
+            <code className="text-xs">MOBILE_PUBLISH_CALLBACK_SECRET</code>{" "}
+            value.
           </li>
-          <li>Register bundle IDs in Apple Developer and Google Play Console.</li>
-          <li>After a successful build, set store URLs on the API server for install buttons.</li>
+          <li>
+            Register bundle IDs in Apple Developer and Google Play Console.
+          </li>
+          <li>
+            After a successful build, set store URLs on the API server for
+            install buttons.
+          </li>
         </ul>
       </div>
     </div>
