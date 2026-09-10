@@ -64,6 +64,9 @@ import pastryCaseStyles from "@/components/storefront/templates/store/pastry-cas
 import { ClimaxFloorHeader } from "@/components/storefront/templates/store/climax-floor-header";
 import { climaxFloorFontVariables } from "@/components/storefront/templates/store/climax-floor-fonts";
 import climaxFloorStyles from "@/components/storefront/templates/store/climax-floor.module.css";
+import { DailyGazetteHeader } from "@/components/storefront/templates/store/daily-gazette-header";
+import { dailyGazetteFontVariables } from "@/components/storefront/templates/store/daily-gazette-fonts";
+import dailyGazetteStyles from "@/components/storefront/templates/store/daily-gazette.module.css";
 import { SpiritsCellarHeader } from "@/components/storefront/templates/store/spirits-cellar-header";
 import { spiritsCellarFontVariables } from "@/components/storefront/templates/store/spirits-cellar-fonts";
 import spiritsCellarStyles from "@/components/storefront/templates/store/spirits-cellar.module.css";
@@ -191,7 +194,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop" | "pastry-case" | "comilmart" | "climax-floor";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop" | "pastry-case" | "comilmart" | "climax-floor" | "daily-gazette";
   storeThemeId?: string | null;
   /** D8: `ub.session` presence hint from `StorefrontShell` (label-only). */
   hasPresence: boolean;
@@ -230,7 +233,8 @@ export function ShopStorefrontChrome({
   const isPastryCase = chromeVariant === "pastry-case";
   const isComilmart = chromeVariant === "comilmart";
   const isClimaxFloor = chromeVariant === "climax-floor";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase || isComilmart || isClimaxFloor;
+  const isDailyGazette = chromeVariant === "daily-gazette";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase || isComilmart || isClimaxFloor || isDailyGazette;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const restoreAttemptedRef = useRef(false);
@@ -344,6 +348,10 @@ export function ShopStorefrontChrome({
                           ? ({
                               ["--cf-green" as string]: primaryHex || "#006651",
                             } as CSSProperties)
+                          : isDailyGazette
+                            ? ({
+                                ["--dg-orange" as string]: primaryHex || "#E24E04",
+                              } as CSSProperties)
         : undefined;
 
   return (
@@ -460,6 +468,13 @@ export function ShopStorefrontChrome({
               climaxFloorFontVariables,
               "[--storefront-paper:#FBFCFB]",
             ),
+          isDailyGazette &&
+            cn(
+              dailyGazetteStyles.root,
+              dailyGazetteStyles.body,
+              dailyGazetteFontVariables,
+              "[--storefront-paper:#D2C19A]",
+            ),
           isChemLab &&
             cn(
               chemLabStyles.root,
@@ -570,6 +585,17 @@ export function ShopStorefrontChrome({
             logoUrl={logoUrl}
             tagline={locationHint}
             categories={categories}
+          />
+        </Suspense>
+      ) : null}
+      {isDailyGazette && !compactChrome ? (
+        <Suspense fallback={null}>
+          <DailyGazetteHeader
+            slug={slug}
+            storeName={headerTitle}
+            logoUrl={logoUrl}
+            announcement={announcement}
+            design={initialDesign}
           />
         </Suspense>
       ) : null}

@@ -383,6 +383,35 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
       unit: "px",
     },
   ],
+  "daily-gazette": [
+    {
+      key: "paper",
+      label: "Newsprint tone",
+      hint: "The kraft sheet behind the edition",
+      type: "select",
+      var: "--dg-paper",
+      default: "kraft",
+      values: {
+        kraft: "#d2c19a",
+        oak: "#c4ae82",
+        pulp: "#e4d6b4",
+      },
+      options: [
+        { value: "kraft", label: "Kraft", swatch: "#d2c19a" },
+        { value: "oak", label: "Oak", swatch: "#c4ae82" },
+        { value: "pulp", label: "Pulp", swatch: "#e4d6b4" },
+      ],
+    },
+    {
+      key: "kicker",
+      label: "Masthead kicker",
+      hint: "The small line above the shop name, e.g. The Daily",
+      type: "text",
+      default: "The Daily",
+      max: 24,
+      placeholder: "The Daily",
+    },
+  ],
 };
 
 /** Every option key across all themes — the blob-level whitelist. */

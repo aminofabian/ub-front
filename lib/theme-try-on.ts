@@ -60,8 +60,9 @@ export function tryOnPrice(
 }
 
 /**
- * First three sellable items with a photo, preferring in-stock. Name-only
+ * First six sellable items with a photo, preferring in-stock. Name-only
  * tiles are a last resort so an empty catalogue still doesn't invent SKUs.
+ * Six fills the gazette classified grid; other phones only read the first three.
  */
 export function pickTryOnProducts(
   items: readonly ItemSummaryRecord[],
@@ -78,7 +79,7 @@ export function pickTryOnProducts(
   });
   const pool = (
     inStock.length > 0 ? inStock : withImage.length > 0 ? withImage : sellable
-  ).slice(0, 3);
+  ).slice(0, 6);
   return pool.map((item) => {
     const price = tryOnPrice(item, currency);
     return {

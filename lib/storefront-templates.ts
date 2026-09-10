@@ -22,7 +22,8 @@ export type StoreThemeId =
   | "blank-drop"
   | "pastry-case"
   | "comilmart"
-  | "climax-floor";
+  | "climax-floor"
+  | "daily-gazette";
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
@@ -69,7 +70,8 @@ export type ThemePhoneLayout =
   | "shop-window"
   | "locked-shelf"
   | "marketplace"
-  | "showroom";
+  | "showroom"
+  | "gazette";
 
 /**
  * Per-theme "try it on" skin: what a miniature of the theme looks like when
@@ -184,6 +186,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "pastry-case",
   "comilmart",
   "climax-floor",
+  "daily-gazette",
 ] as const;
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
@@ -208,6 +211,7 @@ export const STORE_THEME_VIBES = [
   "Industrial & office",
   "Bakery",
   "Minimal",
+  "Vintage",
 ] as const;
 
 export type StoreThemeVibe = (typeof STORE_THEME_VIBES)[number];
@@ -845,6 +849,54 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
       onAccent: "#FFFFFF",
       radius: "sharp",
       font: "sans",
+    },
+  },
+  {
+    id: "daily-gazette",
+    kind: "store",
+    name: "Daily gazette",
+    blurb:
+      "A kraft newsprint front page - masthead, orange prices, boxed classifieds. The shop as today's edition.",
+    previewFrom: "#D2C19A",
+    previewTo: "#E24E04",
+    accent: "#E24E04",
+    vibes: ["Vintage", "Boutique & gifts"],
+    matches: [
+      "gazette",
+      "newspaper",
+      "newsprint",
+      "broadsheet",
+      "vintage",
+      "retro",
+      "classified",
+      "bookstore",
+      "bookshop",
+      "stationery",
+      "journal",
+      "magazine",
+      "publisher",
+      "antique",
+      "collectible",
+      "records",
+      "vinyl",
+      "press",
+    ],
+    points: [
+      "Your shop prints as today's paper: masthead, rules, boxed ads.",
+      "Brand colour becomes the orange prices and headline words.",
+      "For vintage, books, records, stationery, and anyone who wants a front page.",
+    ],
+    phone: {
+      layout: "gazette",
+      surface: "#D2C19A",
+      ink: "#1C1610",
+      muted: "#5A4A38",
+      card: "#D9C7A4",
+      accent: "#E24E04",
+      onAccent: "#FFF8EE",
+      radius: "sharp",
+      font: "serif",
+      border: true,
     },
   },
 ];

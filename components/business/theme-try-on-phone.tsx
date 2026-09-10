@@ -467,6 +467,68 @@ function StoreBody({
     );
   }
 
+  if (layout === "gazette") {
+    const ads = [p0, p1, p2, productAt(products, 3), productAt(products, 4), productAt(products, 5)];
+    return (
+      <div className="flex min-h-0 flex-1 flex-col px-[0.7em] pb-[0.55em] pt-[0.2em]">
+        <div
+          className="border-y-[0.14em] py-[0.18em]"
+          style={{ borderColor: skin.ink }}
+        >
+          <p
+            className="text-center text-[0.42em] font-semibold tracking-[0.28em]"
+            style={{ color: skin.ink }}
+          >
+            THE DAILY
+          </p>
+          <p
+            className="truncate text-center text-[0.95em] font-bold leading-[0.9] tracking-wide"
+            style={{ color: skin.ink }}
+          >
+            {(storeName || "Gazette").toUpperCase()}
+          </p>
+        </div>
+        <p
+          className="mt-[0.35em] text-center text-[0.72em] font-black uppercase leading-[0.9]"
+          style={{ color: skin.ink }}
+        >
+          A new era for
+        </p>
+        <p
+          className="mb-[0.35em] truncate text-center text-[0.82em] font-black uppercase leading-[0.9]"
+          style={{ color: skin.accent }}
+        >
+          {(storeName || "Gazette").toUpperCase()}
+        </p>
+        <div
+          className="grid min-h-0 flex-1 grid-cols-3 border-[0.1em]"
+          style={{ borderColor: skin.ink }}
+        >
+          {ads.map((product, i) => (
+            <div
+              key={i}
+              className="flex min-h-0 flex-col items-center border-r-[0.08em] border-b-[0.08em] p-[0.18em] last:border-r-0 [&:nth-child(3n)]:border-r-0"
+              style={{ borderColor: skin.ink }}
+            >
+              <Face
+                product={product}
+                skin={skin}
+                index={i}
+                className="min-h-0 w-full flex-1 object-contain"
+              />
+              <span
+                className="mt-[0.12em] text-[0.48em] font-black leading-none"
+                style={{ color: skin.accent }}
+              >
+                {product?.price?.replace(/[^\d.]/g, "").slice(0, 4) || "9"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (layout === "marketplace") {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
@@ -1173,6 +1235,16 @@ function PriceTag({
       </span>
     );
   }
+  if (layout === "gazette") {
+    return (
+      <span
+        className={cn("shrink-0 text-[0.9em] font-black leading-none", className)}
+        style={{ color: skin.accent }}
+      >
+        {text}
+      </span>
+    );
+  }
   return (
     <span
       className={cn("shrink-0 text-[0.75em] font-bold leading-none", className)}
@@ -1189,6 +1261,7 @@ function productCta(layout: ThemePhoneLayout): string {
   if (layout === "console") return "Dispense";
   if (layout === "poster") return "Enquire";
   if (layout === "pastry") return "Add to bag";
+  if (layout === "gazette") return "Add";
   if (layout === "marketplace") return "Add to cart";
   if (layout === "showroom") return "Add to cart";
   if (layout === "locked-shelf") return "Notify";
@@ -1203,6 +1276,7 @@ function cartCta(layout: ThemePhoneLayout): string {
   if (layout === "editorial" || layout === "scent") return "Request";
   if (layout === "poster") return "Enquire";
   if (layout === "pastry") return "Order";
+  if (layout === "gazette") return "Pay";
   if (layout === "marketplace") return "Checkout";
   if (layout === "showroom") return "Checkout";
   if (layout === "locked-shelf") return "Notify";
@@ -1331,6 +1405,42 @@ function ProductBody({
             "mt-[0.45em] flex h-[1.65em] items-center justify-center text-[0.62em] font-bold",
             RADIUS_PILL[skin.radius],
           )}
+          style={{ backgroundColor: skin.accent, color: skin.onAccent }}
+        >
+          {cta}
+        </span>
+      </div>
+    );
+  }
+
+  if (layout === "gazette") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col px-[0.75em] pb-[0.7em] pt-[0.25em]">
+        <p className="text-center text-[0.42em] font-semibold tracking-[0.22em]">
+          THE DAILY
+        </p>
+        <div
+          className="mt-[0.25em] flex min-h-0 flex-1 flex-col items-center border-[0.12em] p-[0.4em]"
+          style={{ borderColor: skin.ink }}
+        >
+          <p className="mb-[0.3em] w-full truncate text-center text-[0.62em] font-black uppercase">
+            {name}
+          </p>
+          <Face
+            product={product}
+            skin={skin}
+            index={0}
+            className="min-h-0 w-full flex-1 object-contain"
+          />
+          <p
+            className="mt-[0.25em] text-[1.05em] font-black leading-none"
+            style={{ color: skin.accent }}
+          >
+            {product?.price || ""}
+          </p>
+        </div>
+        <span
+          className="mt-[0.4em] flex h-[1.5em] items-center justify-center text-[0.55em] font-black uppercase tracking-wide"
           style={{ backgroundColor: skin.accent, color: skin.onAccent }}
         >
           {cta}
@@ -1908,7 +2018,10 @@ export function ThemeTryOnPhone({
                 Call / WhatsApp
               </p>
             ) : null}
-            {!(skin.layout === "pastry" && page === "home") ? (
+            {!(
+              (skin.layout === "pastry" || skin.layout === "gazette") &&
+              page === "home"
+            ) ? (
               <ShopHeader
                 skin={skin}
                 storeName={storeName}
@@ -1921,7 +2034,9 @@ export function ThemeTryOnPhone({
                       ? "+"
                       : skin.layout === "pastry"
                         ? "Bag"
-                        : "Cart"
+                        : skin.layout === "gazette"
+                          ? "Cart"
+                          : "Cart"
                 }
                 cartActive={page === "cart"}
               />

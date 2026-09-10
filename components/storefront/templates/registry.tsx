@@ -16,6 +16,7 @@ import { CarbonDeskStoreHome } from "@/components/storefront/templates/store/car
 import { ChemLabStoreHome } from "@/components/storefront/templates/store/chem-lab-home";
 import { ClimaxFloorStoreHome } from "@/components/storefront/templates/store/climax-floor-home";
 import { ComilmartStoreHome } from "@/components/storefront/templates/store/comilmart-home";
+import { DailyGazetteStoreHome } from "@/components/storefront/templates/store/daily-gazette-home";
 import { MartStoreHome } from "@/components/storefront/templates/store/mart-home";
 import { MilkRunStoreHome } from "@/components/storefront/templates/store/milk-run-home";
 import { OxideStoreHome } from "@/components/storefront/templates/store/oxide-home";
@@ -55,6 +56,7 @@ const STORE_HOMES: Record<
   "pastry-case": PastryCaseStoreHome,
   comilmart: ComilmartStoreHome,
   "climax-floor": ClimaxFloorStoreHome,
+  "daily-gazette": DailyGazetteStoreHome,
 };
 
 const LANDING_PAGES: Record<
@@ -89,7 +91,8 @@ export type StoreChromeVariant =
   | "blank-drop"
   | "pastry-case"
   | "comilmart"
-  | "climax-floor";
+  | "climax-floor"
+  | "daily-gazette";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -137,6 +140,8 @@ export function resolveStoreChromeVariant(
       return "comilmart";
     case "climax-floor":
       return "climax-floor";
+    case "daily-gazette":
+      return "daily-gazette";
     default:
       return "default";
   }

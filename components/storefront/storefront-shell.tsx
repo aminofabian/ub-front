@@ -162,6 +162,7 @@ export async function StorefrontShell({
         chromeVariant === "pastry-case" && "bg-[#FFFBFC] dark:bg-[#FFFBFC]",
         chromeVariant === "comilmart" && "bg-[#F6F4EF] dark:bg-[#F6F4EF]",
         chromeVariant === "climax-floor" && "bg-[#FBFCFB] dark:bg-[#FBFCFB]",
+        chromeVariant === "daily-gazette" && "bg-[#D2C19A] dark:bg-[#D2C19A]",
         chromeVariant === "chem-lab" && "bg-transparent dark:bg-transparent",
         chromeVariant === "spirits-cellar" && "bg-[#14100E] dark:bg-[#14100E]",
       )}

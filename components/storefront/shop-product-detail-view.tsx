@@ -10,6 +10,7 @@ import {
   ShopItemVariantPicker,
 } from "@/components/storefront/shop-item-variant-picker";
 import { ClimaxFloorProduct } from "@/components/storefront/templates/store/climax-floor-product";
+import { DailyGazetteProduct } from "@/components/storefront/templates/store/daily-gazette-product";
 import { PrintAtelierProduct } from "@/components/storefront/templates/store/print-atelier-product";
 import { BlankDropProduct } from "@/components/storefront/templates/store/blank-drop-product";
 import { PastryCaseProduct } from "@/components/storefront/templates/store/pastry-case-product";
@@ -43,6 +44,9 @@ export function ShopProductDetailView({
   }
   if (theme === "climax-floor") {
     return <ClimaxFloorProduct slug={slug} item={item} />;
+  }
+  if (theme === "daily-gazette") {
+    return <DailyGazetteProduct slug={slug} item={item} />;
   }
 
   const variantOptions = mergeVariantOptions(item);

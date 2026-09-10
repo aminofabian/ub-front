@@ -61,6 +61,15 @@ describe("theme recommendation", () => {
     );
   });
 
+  test("newspaper and gazette names pick daily gazette", () => {
+    expect(recommendStoreThemeId({ name: "Westlands Vintage Gazette" })).toBe(
+      "daily-gazette",
+    );
+    expect(recommendStoreThemeId({ name: "River Road Newspaper Shop" })).toBe(
+      "daily-gazette",
+    );
+  });
+
   test("landing scorer picks a butcher closed-sign", () => {
     expect(
       recommendLandingTemplateId({ name: "Kamau Butchery" }),
