@@ -372,7 +372,7 @@ export function TenantLogo({
         <TenantLogoImage
           src={logo}
           alt={brand}
-          className={cn("w-auto object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.35)]", className)}
+          className={cn("w-auto object-contain object-center drop-shadow-[0_8px_24px_rgba(0,0,0,0.35)]", className)}
           style={storefrontLogoImageStyle("lg")}
         />
       );

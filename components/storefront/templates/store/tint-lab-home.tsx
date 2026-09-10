@@ -65,6 +65,7 @@ export function TintLabStoreHome(props: StoreHomeTemplateProps) {
     accentHex,
     primaryHex,
     logoUrl,
+    logoDarkUrl,
     heroBannerUrls,
     landingContent,
     design: designProp,
@@ -122,6 +123,7 @@ export function TintLabStoreHome(props: StoreHomeTemplateProps) {
           accentHex={accentHex}
           showcaseImage={showcaseImage}
           logoUrl={logoUrl}
+          logoDarkUrl={logoDarkUrl}
           heroBannerUrls={heroBannerUrls}
           design={design}
           whatsappNumber={

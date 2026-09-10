@@ -131,6 +131,7 @@ export function MilkRunStoreHome(props: StoreHomeTemplateProps) {
     primaryHex,
     accentHex,
     logoUrl,
+    logoDarkUrl,
     heroBannerUrls,
     showcaseImage,
     landingContent,
@@ -188,6 +189,7 @@ export function MilkRunStoreHome(props: StoreHomeTemplateProps) {
             accentHex={accentHex}
             showcaseImage={showcaseImage}
             logoUrl={logoUrl}
+            logoDarkUrl={logoDarkUrl}
             heroBannerUrls={heroBannerUrls}
             design={design}
             whatsappNumber={whatsappDigits}

@@ -62,6 +62,8 @@ export type OnboardingQuestionnaireAnswers = {
 export type OnboardingQuestionnaireFinishExtras = {
   logoFile?: File | null;
   logoDarkFile?: File | null;
+  faviconFile?: File | null;
+  ogImageFile?: File | null;
 };
 
 export type OnboardingQuestionnaireStatus =

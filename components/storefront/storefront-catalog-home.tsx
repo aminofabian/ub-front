@@ -33,6 +33,7 @@ import {
   parseStorefrontDesignJson,
   storefrontSectionsInRegion,
 } from "@/lib/storefront-design";
+import { resolveLogoForTemplate } from "@/lib/branding-themed-logo";
 
 function isHexColor(value: string): boolean {
   return /^#[0-9a-fA-F]{6}$/.test(value.trim());
@@ -137,6 +138,7 @@ export async function StorefrontCatalogHome({
   const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
   const accentHex = isHexColor(accentRaw) ? accentRaw : null;
   const logoUrl = tenant?.branding?.logoUrl ?? null;
+  const logoDarkUrl = tenant?.branding?.logoDarkUrl ?? null;
   const heroBannerUrls = tenant?.branding?.heroBannerUrls ?? null;
   const categories = categoriesPayload?.categories ?? [];
   const types =
@@ -179,7 +181,11 @@ export async function StorefrontCatalogHome({
         <Landing
           templateId={landingTemplateId}
           storeName={storeName}
-          logoUrl={logoUrl}
+          logoUrl={resolveLogoForTemplate(
+            { logoUrl, logoDarkUrl },
+            { id: landingTemplateId, kind: "landing" },
+          )}
+          logoDarkUrl={logoDarkUrl}
           primaryHex={primary}
           accentHex={accentHex}
           landingContent={tenant?.landingContent ?? null}
@@ -288,6 +294,7 @@ export async function StorefrontCatalogHome({
         primaryHex={primary}
         accentHex={accentHex}
         logoUrl={logoUrl}
+        logoDarkUrl={logoDarkUrl}
         heroBannerUrls={heroBannerUrls}
         showcaseImage={showcaseImage}
         storefront={storefront}

@@ -11,6 +11,9 @@ import {
   uploadMyBrandingLogo,
   uploadMyBrandingLogoDark,
   uploadMyBrandingLogoPair,
+  uploadMyBrandingFavicon,
+  uploadMyBrandingOgImage,
+  uploadMyBrandingAssetKit,
   type BusinessRecord,
 } from "@/lib/api";
 import {
@@ -269,20 +272,46 @@ export async function applyOnboardingQuestionnaire(
         if (!businessId) {
           return { phase: "logo", status: "skipped" };
         }
+        if (
+          opts.logoFile &&
+          opts.logoDarkFile &&
+          opts.faviconFile &&
+          opts.ogImageFile
+        ) {
+          await uploadMyBrandingAssetKit(
+            {
+              light: opts.logoFile,
+              dark: opts.logoDarkFile,
+              favicon: opts.faviconFile,
+              og: opts.ogImageFile,
+            },
+            businessId,
+          );
+          return { phase: "logo", status: "done" };
+        }
         if (opts.logoFile && opts.logoDarkFile) {
           await uploadMyBrandingLogoPair(
             opts.logoFile,
             opts.logoDarkFile,
             businessId,
           );
-          return { phase: "logo", status: "done" };
-        }
-        if (opts.logoFile) {
+        } else if (opts.logoFile) {
           await uploadMyBrandingLogo(opts.logoFile, businessId);
-          return { phase: "logo", status: "done" };
-        }
-        if (opts.logoDarkFile) {
+        } else if (opts.logoDarkFile) {
           await uploadMyBrandingLogoDark(opts.logoDarkFile, businessId);
+        }
+        if (opts.faviconFile) {
+          await uploadMyBrandingFavicon(opts.faviconFile, businessId);
+        }
+        if (opts.ogImageFile) {
+          await uploadMyBrandingOgImage(opts.ogImageFile, businessId);
+        }
+        if (
+          opts.logoFile ||
+          opts.logoDarkFile ||
+          opts.faviconFile ||
+          opts.ogImageFile
+        ) {
           return { phase: "logo", status: "done" };
         }
         return { phase: "logo", status: "skipped" };

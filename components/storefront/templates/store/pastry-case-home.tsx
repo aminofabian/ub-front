@@ -53,6 +53,7 @@ export function PastryCaseStoreHome(props: StoreHomeTemplateProps) {
     areaLabel,
     branchHint,
     logoUrl,
+    logoDarkUrl,
     heroBannerUrls,
     showcaseImage,
     landingContent,
@@ -160,6 +161,7 @@ export function PastryCaseStoreHome(props: StoreHomeTemplateProps) {
           accentHex={accentHex}
           showcaseImage={showcaseImage}
           logoUrl={logoUrl}
+          logoDarkUrl={logoDarkUrl}
           heroBannerUrls={heroBannerUrls}
           design={design}
           whatsappNumber={landingContent?.whatsapp ?? landingContent?.phone ?? null}

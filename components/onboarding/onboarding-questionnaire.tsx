@@ -28,7 +28,7 @@ import {
 } from "@/lib/branding-color-presets";
 import { KioskLogoMark } from "@/components/brand/kiosk-logo-mark";
 import { TenantLogo } from "@/components/brand/tenant-logo";
-import { AiLogoGenerator, type GeneratedLogoPair } from "@/components/brand/ai-logo-generator";
+import { AiLogoGenerator, type GeneratedBrandKit } from "@/components/brand/ai-logo-generator";
 import { ThemeTryOnPhone } from "@/components/business/theme-try-on-phone";
 import {
   MilkRunWhatsAppDialog,
@@ -75,6 +75,7 @@ import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
 import { findSelfServeCountry } from "@/lib/selfserve-countries";
 
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
+const MAX_FAVICON_BYTES = 512 * 1024;
 const ACCEPTED_LOGO_TYPES = "image/png,image/jpeg,image/webp,image/svg+xml";
 
 const STORE_TYPE_ICONS: Record<
@@ -454,7 +455,9 @@ export function OnboardingQuestionnaire({
   );
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoDarkFile, setLogoDarkFile] = useState<File | null>(null);
-  const [logoDraftPair, setLogoDraftPair] = useState<GeneratedLogoPair | null>(
+  const [faviconFile, setFaviconFile] = useState<File | null>(null);
+  const [ogImageFile, setOgImageFile] = useState<File | null>(null);
+  const [logoDraftPair, setLogoDraftPair] = useState<GeneratedBrandKit | null>(
     null,
   );
   const [logoError, setLogoError] = useState("");
@@ -701,6 +704,9 @@ export function OnboardingQuestionnaire({
       return;
     }
     setLogoFile(file);
+    setLogoDarkFile(null);
+    setFaviconFile(null);
+    setOgImageFile(null);
     setLogoDraftPair(null);
   };
 
@@ -762,6 +768,8 @@ export function OnboardingQuestionnaire({
           {
             logoFile: logoFile ?? logoDraftPair?.light ?? null,
             logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
+            faviconFile: faviconFile ?? logoDraftPair?.favicon ?? null,
+            ogImageFile: ogImageFile ?? logoDraftPair?.og ?? null,
           },
         );
         break;
@@ -776,6 +784,8 @@ export function OnboardingQuestionnaire({
           {
             logoFile: logoFile ?? logoDraftPair?.light ?? null,
             logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
+            faviconFile: faviconFile ?? logoDraftPair?.favicon ?? null,
+            ogImageFile: ogImageFile ?? logoDraftPair?.og ?? null,
           },
         );
         break;
@@ -1573,14 +1583,21 @@ export function OnboardingQuestionnaire({
                           onGenerated={(pair) => {
                             if (
                               pair.light.size > MAX_LOGO_BYTES ||
-                              pair.dark.size > MAX_LOGO_BYTES
+                              pair.dark.size > MAX_LOGO_BYTES ||
+                              pair.og.size > MAX_LOGO_BYTES
                             ) {
                               setLogoError("Logo must be 4 MB or smaller.");
                               throw new Error("Logo must be 4 MB or smaller.");
                             }
+                            if (pair.favicon.size > MAX_FAVICON_BYTES) {
+                              setLogoError("Favicon must be 512 KB or smaller.");
+                              throw new Error("Favicon must be 512 KB or smaller.");
+                            }
                             setLogoError("");
                             setLogoFile(pair.light);
                             setLogoDarkFile(pair.dark);
+                            setFaviconFile(pair.favicon);
+                            setOgImageFile(pair.og);
                             setLogoDraftPair(null);
                             hapticTap();
                           }}
@@ -1591,6 +1608,8 @@ export function OnboardingQuestionnaire({
                             onClick={() => {
                               setLogoFile(null);
                               setLogoDarkFile(null);
+                              setFaviconFile(null);
+                              setOgImageFile(null);
                               setLogoDraftPair(null);
                               setLogoError("");
                               setLogoGeneratorKey((key) => key + 1);

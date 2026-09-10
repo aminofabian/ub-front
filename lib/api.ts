@@ -1403,7 +1403,7 @@ export async function suggestStorefrontDesign(
 }
 
 export type BrandingLogoVariant = {
-  theme: "light" | "dark";
+  theme: "light" | "dark" | "favicon" | "og";
   mimeType: string;
   imageBase64: string;
 };
@@ -1413,7 +1413,7 @@ export type BrandingLogoGenerateResponse = {
   logos: BrandingLogoVariant[];
 };
 
-/** Generate light and dark shop logos. Returns PNG/JPEG bytes as Base64. */
+/** Generate light/dark logos, favicon, and a social share image. */
 export async function generateBrandingLogo(body: {
   prompt?: string;
   shopName?: string;
@@ -1425,7 +1425,7 @@ export async function generateBrandingLogo(body: {
     method: "POST",
     requiresAuth: true,
     toast: false,
-    timeoutMs: 180_000,
+    timeoutMs: 240_000,
     body: {
       prompt: body.prompt?.trim() || undefined,
       shopName: body.shopName?.trim() || undefined,
@@ -3358,6 +3358,37 @@ export async function uploadMyBrandingLogoPair(
     logoPublicId: lightResult.public_id,
     logoDarkUrl: darkResult.secure_url,
     logoDarkPublicId: darkResult.public_id,
+  });
+}
+
+export async function uploadMyBrandingAssetKit(
+  kit: { light: File; dark: File; favicon: File; og: File },
+  businessId: string,
+): Promise<BusinessRecord> {
+  const lightFolder = `ub/${businessId}/branding/logo`;
+  const darkFolder = `ub/${businessId}/branding/logo-dark`;
+  const faviconFolder = `ub/${businessId}/branding/favicon`;
+  const ogFolder = `ub/${businessId}/branding/og-image`;
+  const [lightSig, darkSig, faviconSig, ogSig] = await Promise.all([
+    getCloudinarySignature(lightFolder),
+    getCloudinarySignature(darkFolder),
+    getCloudinarySignature(faviconFolder),
+    getCloudinarySignature(ogFolder),
+  ]);
+  const [lightResult, darkResult, faviconResult, ogResult] = await Promise.all([
+    uploadToCloudinary(kit.light, lightSig),
+    uploadToCloudinary(kit.dark, darkSig),
+    uploadToCloudinary(kit.favicon, faviconSig),
+    uploadToCloudinary(kit.og, ogSig),
+  ]);
+  return updateMyBranding({
+    logoUrl: lightResult.secure_url,
+    logoPublicId: lightResult.public_id,
+    logoDarkUrl: darkResult.secure_url,
+    logoDarkPublicId: darkResult.public_id,
+    faviconUrl: faviconResult.secure_url,
+    ogImage: ogResult.secure_url,
+    ogImagePublicId: ogResult.public_id,
   });
 }
 

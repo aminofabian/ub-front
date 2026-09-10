@@ -18,6 +18,7 @@ import { MilkRunHeader } from "@/components/storefront/templates/store/milk-run-
 import { MilkRunCheckoutChoice } from "@/components/storefront/templates/store/milk-run-checkout-choice";
 import { milkRunFontVariables } from "@/components/storefront/templates/store/milk-run-fonts";
 import milkRunStyles from "@/components/storefront/templates/store/milk-run.module.css";
+import { StorefrontBrandMarksProvider } from "@/components/storefront/storefront-brand-marks";
 import { resolveThemedLogoUrl, resolveStorefrontLogoSurface } from "@/lib/branding-themed-logo";
 import { OxideHeader } from "@/components/storefront/templates/store/oxide-header";
 import { oxideFontVariables } from "@/components/storefront/templates/store/oxide-fonts";
@@ -367,6 +368,7 @@ export function ShopStorefrontChrome({
         : undefined;
 
   const shell = (
+      <StorefrontBrandMarksProvider logoUrl={logoUrl} logoDarkUrl={logoDarkUrl}>
       <ChemLabCopyProvider enabled={isChemLab}>
       <div
         data-store-theme-id={storeThemeId ?? undefined}
@@ -675,6 +677,7 @@ export function ShopStorefrontChrome({
       ) : null}
       </div>
       </ChemLabCopyProvider>
+      </StorefrontBrandMarksProvider>
   );
 
   if (preview) return shell;

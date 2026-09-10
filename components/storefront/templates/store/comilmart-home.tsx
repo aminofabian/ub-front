@@ -56,6 +56,7 @@ function ComilmartHomeBody(props: StoreHomeTemplateProps) {
     areaLabel,
     branchHint,
     logoUrl,
+    logoDarkUrl,
     heroBannerUrls,
     showcaseImage,
     landingContent,
@@ -185,6 +186,7 @@ function ComilmartHomeBody(props: StoreHomeTemplateProps) {
               accentHex={accentHex}
               showcaseImage={showcaseImage}
               logoUrl={logoUrl}
+              logoDarkUrl={logoDarkUrl}
               heroBannerUrls={heroBannerUrls}
               design={design}
               whatsappNumber={wa || null}

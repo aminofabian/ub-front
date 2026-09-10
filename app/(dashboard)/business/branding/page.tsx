@@ -28,7 +28,7 @@ import {
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { AiLogoGenerator } from "@/components/brand/ai-logo-generator";
 import { useLogoObjectUrl } from "@/components/onboarding/onboarding-branding-preview";
-import type { GeneratedLogoPair } from "@/components/brand/ai-logo-generator";
+import type { GeneratedBrandKit } from "@/components/brand/ai-logo-generator";
 import { darkStorefrontThemeNames } from "@/lib/branding-themed-logo";
 import { BrandingTemplateSection } from "@/components/business/branding-template-section";
 import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
@@ -80,7 +80,7 @@ import {
   uploadMyBrandingFavicon,
   uploadMyBrandingLogo,
   uploadMyBrandingLogoDark,
-  uploadMyBrandingLogoPair,
+  uploadMyBrandingAssetKit,
   uploadMyBrandingOgImage,
   type BrandingPatchPayload,
   type BrandingRecord,
@@ -663,13 +663,13 @@ function LogoSection({
   busy: boolean;
   onUpload: (file: File) => Promise<void>;
   onUploadDark: (file: File) => Promise<void>;
-  onUploadPair: (pair: GeneratedLogoPair) => Promise<void>;
+  onUploadPair: (kit: GeneratedBrandKit) => Promise<void>;
   onClear: () => Promise<void>;
   onClearDark: () => Promise<void>;
 }) {
   const lightInputRef = useRef<HTMLInputElement | null>(null);
   const darkInputRef = useRef<HTMLInputElement | null>(null);
-  const [draftPair, setDraftPair] = useState<GeneratedLogoPair | null>(null);
+  const [draftPair, setDraftPair] = useState<GeneratedBrandKit | null>(null);
   const draftLightUrl = useLogoObjectUrl(draftPair?.light ?? null);
   const draftDarkUrl = useLogoObjectUrl(draftPair?.dark ?? null);
   const lightUrl = draftLightUrl ?? logoUrl;
@@ -781,7 +781,7 @@ function LogoSection({
       />
       {draftPair ? (
         <p className={hintClass()}>
-          Preview only — tap Save and use both to apply the pair.
+          Preview only — tap Save and use to apply the kit.
         </p>
       ) : (
         <p className={hintClass()}>PNG, JPEG, WEBP, or SVG · max 4&nbsp;MB</p>
@@ -1252,27 +1252,33 @@ export default function BrandingPage() {
     }
   };
 
-  const onLogoUploadPair = async (pair: GeneratedLogoPair) => {
+  const onLogoUploadPair = async (kit: GeneratedBrandKit) => {
     if (!snapshot?.id) {
       const text = "Business not loaded yet.";
       setFeedback({ kind: "error", text });
       throw new Error(text);
     }
-    if (pair.light.size > MAX_LOGO_BYTES || pair.dark.size > MAX_LOGO_BYTES) {
-      const text = "Logo exceeds the 4 MB limit.";
+    if (
+      kit.light.size > MAX_LOGO_BYTES ||
+      kit.dark.size > MAX_LOGO_BYTES ||
+      kit.og.size > MAX_OG_IMAGE_BYTES
+    ) {
+      const text = "An asset exceeds the 4 MB limit.";
+      setFeedback({ kind: "error", text });
+      throw new Error(text);
+    }
+    if (kit.favicon.size > MAX_FAVICON_BYTES) {
+      const text = "Favicon exceeds the 512 KB limit.";
       setFeedback({ kind: "error", text });
       throw new Error(text);
     }
     setLogoBusy(true);
     setFeedback(null);
     try {
-      const next = await uploadMyBrandingLogoPair(
-        pair.light,
-        pair.dark,
-        snapshot.id,
-      );
+      const next = await uploadMyBrandingAssetKit(kit, snapshot.id);
       applyAssetSnapshot(next);
-      setFeedback({ kind: "success", text: "Light and dark logos updated." });
+      setDocumentFavicon(resolveBusinessFaviconHref(next));
+      setFeedback({ kind: "success", text: "Brand kit updated." });
     } catch (error) {
       const text = messageFor(error, "Upload failed.");
       setFeedback({ kind: "error", text });
@@ -1571,7 +1577,7 @@ export default function BrandingPage() {
   return (
     <BusinessPageLayout
       title="Branding"
-      description="Upload a logo, pick colours, and set the name shoppers see. Logo and favicon apply immediately; name, colours, and search fields save with the button below."
+      description="Upload a logo, pick colours, and set the name shoppers see. Generate a kit (logos, favicon, share image) to save and download. Logo and favicon apply immediately; name, colours, and search fields save with the button below."
       headerActions={
         dirty ? (
           <Button

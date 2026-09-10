@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  resolveHeroLogo,
   resolveStorefrontLogoSurface,
   resolveThemedLogoUrl,
 } from "@/lib/branding-themed-logo";
@@ -49,5 +50,22 @@ describe("resolveStorefrontLogoSurface", () => {
   test("follows Chem lab day/night", () => {
     expect(resolveStorefrontLogoSurface("chem-lab", "light")).toBe("light");
     expect(resolveStorefrontLogoSurface("chem-lab", "dark")).toBe("dark");
+  });
+});
+
+describe("resolveHeroLogo", () => {
+  test("uses the dark mark on the hero panel when both exist", () => {
+    expect(
+      resolveHeroLogo({
+        logoUrl: "https://cdn.example/light.png",
+        logoDarkUrl: "https://cdn.example/dark.png",
+      }),
+    ).toEqual({ url: "https://cdn.example/dark.png", knockout: false });
+  });
+
+  test("knocks the light mark out to white when the dark file is missing", () => {
+    expect(
+      resolveHeroLogo({ logoUrl: "https://cdn.example/light.png" }),
+    ).toEqual({ url: "https://cdn.example/light.png", knockout: true });
   });
 });

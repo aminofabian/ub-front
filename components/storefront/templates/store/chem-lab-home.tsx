@@ -62,6 +62,7 @@ export function ChemLabStoreHome(props: StoreHomeTemplateProps) {
     accentHex,
     types,
     logoUrl,
+    logoDarkUrl,
     heroBannerUrls,
     showcaseImage,
     landingContent,
@@ -139,6 +140,7 @@ export function ChemLabStoreHome(props: StoreHomeTemplateProps) {
             accentHex={accentHex}
             showcaseImage={showcaseImage}
             logoUrl={logoUrl}
+            logoDarkUrl={logoDarkUrl}
             heroBannerUrls={heroBannerUrls}
             design={design}
             whatsappNumber={

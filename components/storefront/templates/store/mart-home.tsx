@@ -45,6 +45,7 @@ export function MartStoreHome(props: StoreHomeTemplateProps) {
     primaryHex,
     accentHex,
     logoUrl,
+    logoDarkUrl,
     heroBannerUrls,
     showcaseImage,
     landingContent,
@@ -92,6 +93,7 @@ export function MartStoreHome(props: StoreHomeTemplateProps) {
               accentHex={accentHex}
               showcaseImage={showcaseImage}
               logoUrl={logoUrl}
+              logoDarkUrl={logoDarkUrl}
               heroBannerUrls={heroBannerUrls}
               design={design}
               whatsappNumber={

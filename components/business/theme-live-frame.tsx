@@ -296,6 +296,7 @@ function StoreHomePreview({
     primaryHex: brandPrimary,
     accentHex: brandPrimary,
     logoUrl,
+    logoDarkUrl: logoDarkUrl ?? null,
     heroBannerUrls: heroUrl ? [heroUrl] : null,
     showcaseImage: heroUrl,
     storefront: {

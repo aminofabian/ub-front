@@ -29,6 +29,7 @@ export type StoreHomeTemplateProps = {
   primaryHex: string | null;
   accentHex: string | null;
   logoUrl: string | null;
+  logoDarkUrl?: string | null;
   heroBannerUrls: string[] | null;
   showcaseImage: string | null;
   storefront: PublicStorefrontPayload | null;
@@ -41,6 +42,7 @@ export type StoreHomeTemplateProps = {
 export type LandingTemplateProps = {
   storeName: string;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
   primaryHex?: string | null;
   accentHex?: string | null;
   landingContent?: LandingContent | null;

@@ -355,6 +355,8 @@ export function OnboardingQuestionnaireProvider({
             business,
             logoFile: extras?.logoFile ?? null,
             logoDarkFile: extras?.logoDarkFile ?? null,
+            faviconFile: extras?.faviconFile ?? null,
+            ogImageFile: extras?.ogImageFile ?? null,
           });
           await Promise.all([
             refreshBranches(),

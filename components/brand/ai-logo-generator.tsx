@@ -6,15 +6,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { fileFromImageBase64, logoPromptChips } from "@/lib/ai-logo";
 import { fetchAiStatus, generateBrandingLogo } from "@/lib/api";
+import { prepareFaviconFile } from "@/lib/branding-asset-prepare";
 import {
   darkStorefrontThemeNames,
   type BrandingLogoSurface,
 } from "@/lib/branding-themed-logo";
+import { downloadFile, downloadFilesAsZip } from "@/lib/download-zip";
 import { cn } from "@/lib/utils";
 
 export type GeneratedLogoPair = {
   light: File;
   dark: File;
+};
+
+export type GeneratedBrandKit = GeneratedLogoPair & {
+  favicon: File;
+  og: File;
 };
 
 type Props = {
@@ -25,20 +32,24 @@ type Props = {
   accentColor?: string;
   disabled?: boolean;
   onBusyChange?: (busy: boolean) => void;
-  onDraftPair?: (pair: GeneratedLogoPair | null) => void;
-  onGenerated: (pair: GeneratedLogoPair) => void | Promise<void>;
+  onDraftPair?: (kit: GeneratedBrandKit | null) => void;
+  onGenerated: (kit: GeneratedBrandKit) => void | Promise<void>;
 };
 
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
+const MAX_FAVICON_BYTES = 512 * 1024;
 
-type PreviewPair = {
+type PreviewKit = {
   light: string;
   dark: string;
+  favicon: string;
+  og: string;
 };
 
 /**
- * Prompt + generate light and dark shop marks. After a result, the merchant
- * previews both and saves the pair — each theme then picks the matching file.
+ * Prompt + generate a brand kit: light and dark marks, favicon, and a
+ * social share image. After a result, the merchant previews, downloads,
+ * and saves — each surface then picks the matching file.
  */
 export function AiLogoGenerator({
   variant,
@@ -55,40 +66,54 @@ export function AiLogoGenerator({
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   const [available, setAvailable] = useState(true);
-  const [pair, setPair] = useState<GeneratedLogoPair | null>(null);
-  const [previews, setPreviews] = useState<PreviewPair | null>(null);
+  const [kit, setKit] = useState<GeneratedBrandKit | null>(null);
+  const [previews, setPreviews] = useState<PreviewKit | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const previewRef = useRef<PreviewPair | null>(null);
+  const previewRef = useRef<PreviewKit | null>(null);
   const chips = logoPromptChips(shopType);
   const onboarding = variant === "onboarding";
   const blocked = busy || applying || disabled;
-  const hasResult = Boolean(pair && previews && !busy);
+  const hasResult = Boolean(kit && previews && !busy);
   const darkThemeLabel = useMemo(
     () => darkStorefrontThemeNames().join(", "),
     [],
   );
+  const zipName = useMemo(() => {
+    const slug = shopName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 40);
+    return `${slug || "shop"}-brand-kit.zip`;
+  }, [shopName]);
 
   const revokePreviews = () => {
     if (previewRef.current) {
       URL.revokeObjectURL(previewRef.current.light);
       URL.revokeObjectURL(previewRef.current.dark);
+      URL.revokeObjectURL(previewRef.current.favicon);
+      URL.revokeObjectURL(previewRef.current.og);
       previewRef.current = null;
     }
     setPreviews(null);
   };
 
-  const showPair = (next: GeneratedLogoPair | null) => {
+  const showKit = (next: GeneratedBrandKit | null) => {
     revokePreviews();
-    setPair(next);
+    setKit(next);
     if (!next) {
       onDraftPair?.(null);
       return;
     }
-    const urls = {
+    const urls: PreviewKit = {
       light: URL.createObjectURL(next.light),
       dark: URL.createObjectURL(next.dark),
+      favicon: URL.createObjectURL(next.favicon),
+      og: URL.createObjectURL(next.og),
     };
     previewRef.current = urls;
     setPreviews(urls);
@@ -100,6 +125,8 @@ export function AiLogoGenerator({
       if (previewRef.current) {
         URL.revokeObjectURL(previewRef.current.light);
         URL.revokeObjectURL(previewRef.current.dark);
+        URL.revokeObjectURL(previewRef.current.favicon);
+        URL.revokeObjectURL(previewRef.current.og);
       }
     };
   }, []);
@@ -130,10 +157,10 @@ export function AiLogoGenerator({
     setOpen(false);
     setError("");
     if (discardDraft) {
-      showPair(null);
+      showKit(null);
     } else {
       revokePreviews();
-      setPair(null);
+      setKit(null);
     }
   };
 
@@ -157,7 +184,7 @@ export function AiLogoGenerator({
     setBusy(true);
     onBusyChange?.(true);
     setError("");
-    showPair(null);
+    showKit(null);
     try {
       const result = await generateBrandingLogo({
         prompt: prompt.trim(),
@@ -168,24 +195,47 @@ export function AiLogoGenerator({
       });
       const lightDto = result.logos.find((logo) => logo.theme === "light");
       const darkDto = result.logos.find((logo) => logo.theme === "dark");
-      if (!lightDto || !darkDto) {
-        setError("The pair did not come back complete. Try again.");
+      const faviconDto = result.logos.find((logo) => logo.theme === "favicon");
+      const ogDto = result.logos.find((logo) => logo.theme === "og");
+      if (!lightDto || !darkDto || !faviconDto || !ogDto) {
+        setError("The kit did not come back complete. Try again.");
         return;
       }
-      const next: GeneratedLogoPair = {
+      const faviconRaw = fileFromResult(
+        faviconDto.mimeType,
+        faviconDto.imageBase64,
+        "favicon",
+      );
+      let favicon = faviconRaw;
+      try {
+        favicon = await prepareFaviconFile(faviconRaw);
+      } catch {
+        favicon = faviconRaw;
+      }
+      const next: GeneratedBrandKit = {
         light: fileFromResult(lightDto.mimeType, lightDto.imageBase64, "logo-light"),
         dark: fileFromResult(darkDto.mimeType, darkDto.imageBase64, "logo-dark"),
+        favicon,
+        og: fileFromResult(ogDto.mimeType, ogDto.imageBase64, "og-image"),
       };
-      if (next.light.size > MAX_LOGO_BYTES || next.dark.size > MAX_LOGO_BYTES) {
-        setError("That logo is too large to save. Try a simpler description.");
+      if (
+        next.light.size > MAX_LOGO_BYTES ||
+        next.dark.size > MAX_LOGO_BYTES ||
+        next.og.size > MAX_LOGO_BYTES
+      ) {
+        setError("An asset is too large to save. Try a simpler description.");
         return;
       }
-      showPair(next);
+      if (next.favicon.size > MAX_FAVICON_BYTES) {
+        setError("The favicon is too large to save. Try again.");
+        return;
+      }
+      showKit(next);
     } catch (e) {
       setError(
         e instanceof Error && e.message.trim()
           ? e.message
-          : "Could not generate logos. Try again.",
+          : "Could not generate the kit. Try again.",
       );
     } finally {
       setBusy(false);
@@ -193,25 +243,43 @@ export function AiLogoGenerator({
     }
   };
 
-  const usePair = async () => {
-    if (!pair || blocked) {
+  const useKit = async () => {
+    if (!kit || blocked) {
       return;
     }
     setApplying(true);
     onBusyChange?.(true);
     setError("");
     try {
-      await onGenerated(pair);
+      await onGenerated(kit);
       resetPanel(false);
     } catch (e) {
       setError(
         e instanceof Error && e.message.trim()
           ? e.message
-          : "Could not save the logos. Try again.",
+          : "Could not save the kit. Try again.",
       );
     } finally {
       setApplying(false);
       onBusyChange?.(false);
+    }
+  };
+
+  const downloadZip = async () => {
+    if (!kit || downloading) {
+      return;
+    }
+    setDownloading(true);
+    setError("");
+    try {
+      await downloadFilesAsZip(
+        [kit.light, kit.dark, kit.favicon, kit.og],
+        zipName,
+      );
+    } catch {
+      setError("Could not build the zip. Download each file instead.");
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -235,7 +303,7 @@ export function AiLogoGenerator({
     "inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#0D9488] px-4 text-sm font-medium text-white transition active:scale-[0.98] hover:bg-[#0F766E] disabled:opacity-60 sm:h-10 sm:rounded-xl";
   const secondaryLinkClass = "min-h-10 text-xs text-[#6B7280] active:opacity-70";
 
-  const variantCard = (
+  const logoCard = (
     surface: BrandingLogoSurface,
     src: string,
     file: File,
@@ -254,7 +322,7 @@ export function AiLogoGenerator({
     return (
       <div className="min-w-0 space-y-2 text-left">
         <p className={fieldLabel}>
-          {dark ? "Dark theme" : "Light theme"}
+          {dark ? "Dark — heroes & night themes" : "Light — dashboard & receipts"}
         </p>
         <div className={frame}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -265,17 +333,81 @@ export function AiLogoGenerator({
           />
         </div>
         <p className={hintClass}>{uses}</p>
-        <a
-          href={src}
-          download={file.name}
-          className={cn(
-            secondaryLinkClass,
-            "inline-flex items-center gap-1",
-          )}
+        <button
+          type="button"
+          onClick={() => downloadFile(file, src)}
+          className={cn(secondaryLinkClass, "inline-flex items-center gap-1")}
         >
           <Download className="size-3.5" aria-hidden />
           Download
-        </a>
+        </button>
+      </div>
+    );
+  };
+
+  const webCard = (
+    kind: "favicon" | "og",
+    src: string,
+    file: File,
+    uses: string,
+  ) => {
+    const favicon = kind === "favicon";
+    const frame = onboarding
+      ? "overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] sm:rounded-xl"
+      : "overflow-hidden rounded-none border border-border bg-muted/40";
+    return (
+      <div className="min-w-0 space-y-2 text-left">
+        <p className={fieldLabel}>{favicon ? "Favicon" : "Share image"}</p>
+        <div className={cn(frame, "flex aspect-square items-center justify-center")}>
+          {favicon ? (
+            <div className="flex w-[min(100%,11rem)] flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm">
+              <div className="flex items-center gap-1.5 border-b border-black/8 bg-[#F3F4F6] px-2 py-1.5">
+                <span className="size-2 rounded-full bg-[#F87171]" />
+                <span className="size-2 rounded-full bg-[#FBBF24]" />
+                <span className="size-2 rounded-full bg-[#34D399]" />
+                <span className="ml-1 flex min-w-0 flex-1 items-center gap-1.5 rounded-md bg-white px-1.5 py-0.5 ring-1 ring-black/8">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt="" className="size-3.5 object-contain" />
+                  <span className="truncate text-[9px] text-[#6B7280]">
+                    {shopName.trim() || "yourshop"}
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-center justify-center bg-[#111827] py-6">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt="Favicon"
+                  className="size-14 rounded-[14px] object-contain shadow-md"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="w-[min(100%,12rem)] overflow-hidden rounded-lg bg-[#0F172A] shadow-sm ring-1 ring-black/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt="Social share image"
+                className="aspect-square w-full object-cover"
+              />
+              <div className="space-y-0.5 px-2.5 py-2">
+                <p className="truncate text-[10px] font-semibold text-white">
+                  {shopName.trim() || "Your shop"}
+                </p>
+                <p className="text-[9px] text-white/50">whatsapp · facebook</p>
+              </div>
+            </div>
+          )}
+        </div>
+        <p className={hintClass}>{uses}</p>
+        <button
+          type="button"
+          onClick={() => downloadFile(file, src)}
+          className={cn(secondaryLinkClass, "inline-flex items-center gap-1")}
+        >
+          <Download className="size-3.5" aria-hidden />
+          Download
+        </button>
       </div>
     );
   };
@@ -311,20 +443,32 @@ export function AiLogoGenerator({
         )
       ) : (
         <div ref={panelRef} className="space-y-3 scroll-mb-32">
-          {hasResult && pair && previews ? (
+          {hasResult && kit && previews ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                {variantCard(
+                {logoCard(
                   "light",
                   previews.light,
-                  pair.light,
-                  "Dashboard, receipts, emails, and light storefronts like Mart aisles.",
+                  kit.light,
+                  "Dashboard, receipts, emails, and light headers.",
                 )}
-                {variantCard(
+                {logoCard(
                   "dark",
                   previews.dark,
-                  pair.dark,
-                  `Dark storefronts: ${darkThemeLabel}. Chem lab follows night/day.`,
+                  kit.dark,
+                  `Hero banner and dark storefronts: ${darkThemeLabel}.`,
+                )}
+                {webCard(
+                  "favicon",
+                  previews.favicon,
+                  kit.favicon,
+                  "Browser tab and home-screen icon.",
+                )}
+                {webCard(
+                  "og",
+                  previews.og,
+                  kit.og,
+                  "Link preview when someone shares your shop.",
                 )}
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -333,7 +477,7 @@ export function AiLogoGenerator({
                     <button
                       type="button"
                       disabled={blocked}
-                      onClick={() => void usePair()}
+                      onClick={() => void useKit()}
                       className={primaryBtnClass}
                     >
                       {applying ? (
@@ -344,16 +488,29 @@ export function AiLogoGenerator({
                       ) : (
                         <>
                           <Check className="size-4" aria-hidden />
-                          Use these logos
+                          Use this kit
                         </>
                       )}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={blocked || downloading}
+                      onClick={() => void downloadZip()}
+                      className={cn(secondaryLinkClass, "inline-flex items-center gap-1")}
+                    >
+                      {downloading ? (
+                        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                      ) : (
+                        <Download className="size-3.5" aria-hidden />
+                      )}
+                      Download all
                     </button>
                     <button
                       type="button"
                       disabled={blocked}
                       onClick={() => {
                         setError("");
-                        showPair(null);
+                        showKit(null);
                       }}
                       className={secondaryLinkClass}
                     >
@@ -365,7 +522,7 @@ export function AiLogoGenerator({
                     <Button
                       type="button"
                       disabled={blocked}
-                      onClick={() => void usePair()}
+                      onClick={() => void useKit()}
                     >
                       {applying ? (
                         <>
@@ -375,9 +532,22 @@ export function AiLogoGenerator({
                       ) : (
                         <>
                           <Check className="size-4" aria-hidden />
-                          Save and use both
+                          Save and use
                         </>
                       )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={blocked || downloading}
+                      onClick={() => void downloadZip()}
+                    >
+                      {downloading ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                      ) : (
+                        <Download className="size-4" aria-hidden />
+                      )}
+                      Download all
                     </Button>
                     <Button
                       type="button"
@@ -385,7 +555,7 @@ export function AiLogoGenerator({
                       disabled={blocked}
                       onClick={() => {
                         setError("");
-                        showPair(null);
+                        showKit(null);
                       }}
                     >
                       Generate another
@@ -394,8 +564,8 @@ export function AiLogoGenerator({
                 )}
               </div>
               <p className={hintClass}>
-                Each theme picks the matching mark automatically. You can
-                replace them later.
+                Light marks stay on pale chrome. Dark marks sit on the navy
+                hero. Favicon and share image apply with the same save.
               </p>
             </div>
           ) : (
@@ -408,7 +578,7 @@ export function AiLogoGenerator({
                   disabled={blocked}
                   rows={2}
                   maxLength={600}
-                  placeholder="Optional — leave blank for a light and dark pair"
+                  placeholder="Optional — leave blank for a full brand kit"
                   className={textareaClass}
                 />
               </label>
@@ -440,7 +610,7 @@ export function AiLogoGenerator({
                           Generating
                         </>
                       ) : (
-                        "Generate logos"
+                        "Generate kit"
                       )}
                     </button>
                     <button
@@ -465,7 +635,7 @@ export function AiLogoGenerator({
                           Generating
                         </>
                       ) : (
-                        "Generate logos"
+                        "Generate kit"
                       )}
                     </Button>
                     <Button
@@ -480,8 +650,9 @@ export function AiLogoGenerator({
                 )}
               </div>
               <p className={hintClass}>
-                Two logos — light for the dashboard and bright themes, dark
-                for {darkThemeLabel}. About 20 seconds.
+                Four files — light logo, dark logo, favicon, and a share
+                image. About 30 seconds. Dark versions never sit on a white
+                plate.
               </p>
             </>
           )}

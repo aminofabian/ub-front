@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 
 import { StorefrontEditableLogo } from "@/components/storefront/storefront-editable-logo";
+import { useStorefrontBrandMarks } from "@/components/storefront/storefront-brand-marks";
 import { StorefrontInlineText } from "@/components/storefront/storefront-inline-text";
 import { whatsappHref } from "@/components/storefront/sections/shared";
 import {
@@ -19,6 +20,7 @@ import {
   useStorefrontLiveDesign,
   useStorefrontStaffEditOptional,
 } from "@/components/storefront/storefront-staff-edit";
+import { resolveHeroLogo } from "@/lib/branding-themed-logo";
 import type {
   StorefrontDesign,
   StorefrontDesignButtons,
@@ -84,6 +86,7 @@ export function StorefrontHeroSection({
   accentHex,
   showcaseImage,
   logoUrl,
+  logoDarkUrl,
   heroBannerUrls,
   design,
   subheadline,
@@ -104,6 +107,7 @@ export function StorefrontHeroSection({
   accentHex: string | null;
   showcaseImage?: string | null;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
   heroBannerUrls?: string[] | null;
   /** Merchant design overrides — the hero photo slot with focal point wins. */
   design?: StorefrontDesign | null;
@@ -179,6 +183,8 @@ export function StorefrontHeroSection({
   }, [banners]);
 
   const staff = useStorefrontStaffEditOptional();
+  const marks = useStorefrontBrandMarks({ logoUrl, logoDarkUrl });
+  const heroLogo = resolveHeroLogo(marks);
 
   return (
     <StorefrontQuickEditTarget field="hero" label="hero headline">
@@ -386,7 +392,8 @@ export function StorefrontHeroSection({
           ) : (
             <ShopWindowIllustration
               primary={primary}
-              logoUrl={logoUrl}
+              logoUrl={heroLogo.url}
+              knockout={heroLogo.knockout}
               title={title}
               branchHint={branchHint}
             />
@@ -423,34 +430,39 @@ export function StorefrontHeroSection({
 function ShopWindowIllustration({
   primary,
   logoUrl,
+  knockout,
   title,
   branchHint,
 }: {
   primary: string | null;
   logoUrl: string | null | undefined;
+  knockout: boolean;
   title: string;
   branchHint: string | null | undefined;
 }) {
   return (
-    <div className="relative flex h-full min-h-[140px] items-center justify-center bg-black/15">
+    <div className="relative flex h-full min-h-[140px] items-center justify-center bg-black/20">
       <div
-        className="pointer-events-none absolute inset-0 opacity-30"
+        className="pointer-events-none absolute inset-0 opacity-40"
         style={
           primary
             ? {
-                background: `radial-gradient(circle at 50% 40%, ${primary}, transparent 68%)`,
+                background: `radial-gradient(circle at 50% 38%, color-mix(in srgb, ${primary} 55%, transparent), transparent 62%)`,
               }
             : undefined
         }
         aria-hidden
       />
-      <div className="relative z-10 flex flex-col items-center gap-2 px-4 py-6 text-center">
-        <StorefrontEditableLogo
-          brand={title}
-          logoUrl={logoUrl}
-          primaryColor={primary}
-          variant="storefront-hero"
-        />
+      <div className="relative z-10 flex flex-col items-center gap-2.5 px-4 py-6 text-center">
+        <div className="flex size-[6.75rem] items-center justify-center rounded-full bg-white/8 ring-1 ring-white/16 backdrop-blur-[2px]">
+          <StorefrontEditableLogo
+            brand={title}
+            logoUrl={logoUrl}
+            primaryColor={primary}
+            variant="storefront-hero"
+            className={knockout ? "brightness-0 invert" : undefined}
+          />
+        </div>
         <p className="font-heading text-lg font-semibold tracking-tight text-white">
           {title}
         </p>

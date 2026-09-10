@@ -53,6 +53,7 @@ export function OxideStoreHome(props: StoreHomeTemplateProps) {
     areaLabel,
     branchHint,
     logoUrl,
+    logoDarkUrl,
     showcaseImage,
     accentHex,
     primaryHex,
@@ -100,6 +101,7 @@ export function OxideStoreHome(props: StoreHomeTemplateProps) {
           accentHex={accentHex}
           showcaseImage={showcaseImage}
           logoUrl={logoUrl}
+          logoDarkUrl={logoDarkUrl}
           heroBannerUrls={heroBannerUrls}
           design={design}
           whatsappNumber={

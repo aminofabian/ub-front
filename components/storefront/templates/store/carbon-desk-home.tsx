@@ -57,6 +57,7 @@ export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
     accentHex,
     types,
     logoUrl,
+    logoDarkUrl,
     heroBannerUrls,
     showcaseImage,
     landingContent,
@@ -138,6 +139,7 @@ export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
             accentHex={accentHex}
             showcaseImage={showcaseImage}
             logoUrl={logoUrl}
+            logoDarkUrl={logoDarkUrl}
             heroBannerUrls={heroBannerUrls}
             design={design}
             whatsappNumber={

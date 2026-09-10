@@ -50,6 +50,32 @@ export function resolveThemedLogoUrl(
   return light || dark;
 }
 
+export type HeroLogoResolution = {
+  url: string | null;
+  /**
+   * True when only the light file exists. The hero paints a white knockout
+   * so a pale plate never sits on the navy panel.
+   */
+  knockout: boolean;
+};
+
+/**
+ * The merchant hero is always a dark brand panel, even on light storefronts
+ * like Mart. Prefer the dark mark; if it is missing, knock the light file
+ * out to a white silhouette instead of showing a white box on navy.
+ */
+export function resolveHeroLogo(urls: ThemedLogoUrls): HeroLogoResolution {
+  const light = trimUrl(urls.logoUrl);
+  const dark = trimUrl(urls.logoDarkUrl);
+  if (dark) {
+    return { url: dark, knockout: false };
+  }
+  if (light) {
+    return { url: light, knockout: true };
+  }
+  return { url: null, knockout: false };
+}
+
 export function isDarkStorefrontTheme(
   themeId: string | null | undefined,
 ): boolean {
