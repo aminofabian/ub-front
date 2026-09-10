@@ -79,14 +79,14 @@ export function OrderProductLedger({
   );
 
   return (
+    <div className="min-w-0 overflow-x-auto">
     <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-      <div className="flex border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#ffffff)_60%,transparent)]">
-        <ColHead label="#" width="w-9" />
+      <div className="flex min-w-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white">
+        <ColHead label="#" width="w-8 shrink-0" />
         <ColHead label="Item" width="min-w-0 flex-1" />
-        <ColHead label="SKU" width="w-[5.5rem] hidden md:flex" />
-        <ColHead label="Stock" width="w-[4rem]" align="right" />
-        <ColHead label="Price" width="w-[5.5rem]" align="right" />
-        <ColHead label="Qty" width="w-[9.5rem]" align="right" />
+        <ColHead label="Stock" width="w-[3.5rem] hidden xl:flex" align="right" />
+        <ColHead label="Price" width="w-[4.75rem] shrink-0" align="right" />
+        <ColHead label="Qty" width="w-[7.25rem] shrink-0" align="right" />
       </div>
 
       <div className="max-h-[calc(100vh-18rem)] overflow-y-auto [scrollbar-width:thin]">
@@ -104,13 +104,13 @@ export function OrderProductLedger({
             <div
               key={link.id}
               className={cn(
-                "flex min-h-10 items-stretch border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] text-[12px] last:border-b-0",
+                "flex min-w-0 items-stretch border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] text-[12px] last:border-b-0",
                 inCart
                   ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]"
                   : "hover:bg-[color-mix(in_srgb,var(--order-shelf,#ffffff)_40%,transparent)]",
               )}
             >
-              <div className="flex w-9 shrink-0 items-center justify-center border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+              <div className="flex w-8 shrink-0 items-center justify-center border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
                 {index + 1}
               </div>
               <button
@@ -132,14 +132,9 @@ export function OrderProductLedger({
                   ) : null}
                 </div>
               </button>
-              <div className="hidden w-[5.5rem] shrink-0 items-center border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-2 md:flex">
-                <span className="truncate font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-                  {link.sku || link.supplierSku || "—"}
-                </span>
-              </div>
               <div
                 className={cn(
-                  "flex w-[4rem] shrink-0 items-center justify-end border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-2 font-mono text-[11px] tabular-nums",
+                  "hidden w-[3.5rem] shrink-0 items-center justify-end border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-2 font-mono text-[11px] tabular-nums xl:flex",
                   low
                     ? "font-semibold text-amber-800"
                     : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
@@ -147,10 +142,10 @@ export function OrderProductLedger({
               >
                 {stock}
               </div>
-              <div className="flex w-[5.5rem] shrink-0 items-center justify-end border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-2 font-mono text-[11px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+              <div className="flex w-[4.75rem] shrink-0 items-center justify-end border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-2 font-mono text-[11px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
                 {cost > 0 ? formatMoney(cost, ORDER_CURRENCY) : "—"}
               </div>
-              <div className="flex w-[9.5rem] shrink-0 items-center justify-end gap-1 px-1.5">
+              <div className="flex w-[7.25rem] min-w-0 shrink-0 items-center justify-end gap-0.5 px-1">
                 {pickMode ? (
                   <button
                     type="button"
@@ -176,7 +171,7 @@ export function OrderProductLedger({
                       onSetQty={(next) => onSetQty(link.itemId, next)}
                       ariaLabel={`Quantity for ${primary}`}
                       className={cn(
-                        "h-7 min-w-[4.5rem] w-[4.5rem] text-[12px]",
+                        "h-7 min-w-0 w-full text-[12px]",
                         inCart
                           ? "text-[var(--pos-primary,#0f766e)]"
                           : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]",
@@ -210,6 +205,7 @@ export function OrderProductLedger({
           ) : null}
         </div>
       ) : null}
+    </div>
     </div>
   );
 }

@@ -268,7 +268,7 @@ export function OrderProductShelf({
   const pickMode = onPickItem != null;
 
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-3 xl:grid-cols-5">
+    <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2.5 sm:grid-cols-[repeat(3,minmax(0,1fr))] 2xl:grid-cols-[repeat(4,minmax(0,1fr))]">
       {links.map((link) => {
         const qty = cart[link.itemId] ?? 0;
         const pack = packByItemId[link.itemId] ?? null;

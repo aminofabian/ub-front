@@ -52,7 +52,6 @@ import {
   type SupplierRecord,
 } from "@/lib/api";
 import {
-  clearOrderCartForSupplier,
   readOrderCartDraft,
   writeOrderCartDraft,
   type OrderCartPackMeta,
@@ -84,6 +83,10 @@ import { type OrderParentOption } from "./order-parent-floater";
 const ORDER_CURRENCY = "KES";
 
 type CartQty = OrderCartQty;
+
+function cartItemIds(cart: CartQty): string[] {
+  return Object.keys(cart).filter((id) => (cart[id] ?? 0) > 0);
+}
 
 function formatPackSize(n: number): string {
   return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
@@ -284,6 +287,10 @@ export function TenantOrderWorkspace({
   const [hydrated, setHydrated] = useState(false);
   const [parentFilterId, setParentFilterId] = useState<string | null>(null);
   const [mobileOrderOpen, setMobileOrderOpen] = useState(false);
+  const [lineOrder, setLineOrder] = useState<string[]>([]);
+  const [flashItemId, setFlashItemId] = useState<string | null>(null);
+  const desktopSlipRef = useRef<HTMLDivElement>(null);
+  const mobileSlipRef = useRef<HTMLDivElement>(null);
   const [supplierPickerOpen, setSupplierPickerOpen] = useState(false);
   /** Round the order total to the nearest 10 (default on; toggle in the footer). */
   const [roundTo10, setRoundTo10] = useState(true);
@@ -357,6 +364,16 @@ export function TenantOrderWorkspace({
     });
   };
 
+  const clearCart = useCallback(() => {
+    setCart({});
+    setPackByItemId({});
+    setPriceByItemId({});
+    setPriceDraftByItemId({});
+    setTotalDraftByItemId({});
+    setLineOrder([]);
+    setFlashItemId(null);
+  }, []);
+
   useEffect(() => {
     if (!businessId) {
       setHydrated(true);
@@ -376,10 +393,13 @@ export function TenantOrderWorkspace({
           setCart({});
           setPackByItemId({});
           setPriceByItemId({});
+          setLineOrder([]);
         } else {
-          setCart(draft.cartsBySupplier[preferred] ?? {});
+          const nextCart = draft.cartsBySupplier[preferred] ?? {};
+          setCart(nextCart);
           setPackByItemId(draft.packsBySupplier?.[preferred] ?? {});
           setPriceByItemId(draft.pricesBySupplier?.[preferred] ?? {});
+          setLineOrder(cartItemIds(nextCart));
         }
       }
     } else {
@@ -485,6 +505,7 @@ export function TenantOrderWorkspace({
     setCart(cartsBySupplierRef.current[supplierId] ?? {});
     setPackByItemId(packsBySupplierRef.current[supplierId] ?? {});
     setPriceByItemId(pricesBySupplierRef.current[supplierId] ?? {});
+    setLineOrder(cartItemIds(cartsBySupplierRef.current[supplierId] ?? {}));
     void reloadSupplierLinks();
   }, [supplierId, reloadSupplierLinks]);
 
@@ -507,6 +528,7 @@ export function TenantOrderWorkspace({
       return;
     }
     setCart(result.cart);
+    setLineOrder(cartItemIds(result.cart));
     setPackByItemId(result.packs);
     setPriceByItemId({});
     setMobileOrderOpen(true);
@@ -538,6 +560,7 @@ export function TenantOrderWorkspace({
     }
 
     setCart(result.cart);
+    setLineOrder(cartItemIds(result.cart));
     setPackByItemId(result.packs);
     setPriceByItemId(result.prices);
     setMobileOrderOpen(true);
@@ -605,6 +628,7 @@ export function TenantOrderWorkspace({
         );
       }
       setCart(result.cart);
+      setLineOrder(cartItemIds(result.cart));
       setPackByItemId(result.packs);
       setPriceByItemId(result.prices);
       setMobileOrderOpen(true);
@@ -718,19 +742,26 @@ export function TenantOrderWorkspace({
     });
   }, [links, filter, parentFilterId]);
 
-  const cartLines = useMemo(
-    () =>
-      links
-        .filter((l) => (cart[l.itemId] ?? 0) > 0)
-        .map((l) => ({
-          link: l,
-          qty: cart[l.itemId] ?? 0,
-          pack: packByItemId[l.itemId] ?? null,
-          packOptionId: packByItemId[l.itemId]?.packOptionId ?? null,
-          priceOverride: priceByItemId[l.itemId] ?? null,
-        })),
-    [links, cart, packByItemId, priceByItemId],
-  );
+  const cartLines = useMemo(() => {
+    const lines = links
+      .filter((l) => (cart[l.itemId] ?? 0) > 0)
+      .map((l) => ({
+        link: l,
+        qty: cart[l.itemId] ?? 0,
+        pack: packByItemId[l.itemId] ?? null,
+        packOptionId: packByItemId[l.itemId]?.packOptionId ?? null,
+        priceOverride: priceByItemId[l.itemId] ?? null,
+      }));
+    const rank = new Map(lineOrder.map((id, i) => [id, i]));
+    return lines.sort((a, b) => {
+      const ia = rank.get(a.link.itemId);
+      const ib = rank.get(b.link.itemId);
+      if (ia == null && ib == null) return 0;
+      if (ia == null) return 1;
+      if (ib == null) return -1;
+      return ia - ib;
+    });
+  }, [links, cart, packByItemId, priceByItemId, lineOrder]);
 
   const cartUnits = cartLines.reduce((sum, line) => sum + line.qty, 0);
   const cartTotal = cartLines.reduce(
@@ -817,6 +848,7 @@ export function TenantOrderWorkspace({
       return;
     }
     setCart(result.cart);
+    setLineOrder(cartItemIds(result.cart));
     setPackByItemId(result.packs);
     setPriceByItemId({});
     setImportOpen(false);
@@ -886,27 +918,7 @@ export function TenantOrderWorkspace({
         : new Error("Could not send order to supplier");
     }
 
-    setCart({});
-    setPackByItemId({});
-    setPriceByItemId({});
-    setPriceDraftByItemId({});
-    setTotalDraftByItemId({});
-    if (businessId) {
-      clearOrderCartForSupplier({
-        businessId,
-        branchId,
-        supplierId,
-      });
-      const maps = { ...cartsBySupplierRef.current };
-      delete maps[supplierId];
-      cartsBySupplierRef.current = maps;
-      const packMaps = { ...packsBySupplierRef.current };
-      delete packMaps[supplierId];
-      packsBySupplierRef.current = packMaps;
-      const priceMaps = { ...pricesBySupplierRef.current };
-      delete priceMaps[supplierId];
-      pricesBySupplierRef.current = priceMaps;
-    }
+    clearCart();
     return po.poNumber;
   };
 
@@ -1011,6 +1023,8 @@ export function TenantOrderWorkspace({
       return next;
     });
     if (qty <= 0) {
+      setLineOrder((prev) => prev.filter((id) => id !== itemId));
+      setFlashItemId((id) => (id === itemId ? null : id));
       setPackByItemId((prev) => {
         if (!prev[itemId]) return prev;
         const next = { ...prev };
@@ -1035,8 +1049,33 @@ export function TenantOrderWorkspace({
         delete next[itemId];
         return next;
       });
+      return;
     }
+    setLineOrder((prev) => [itemId, ...prev.filter((id) => id !== itemId)]);
+    setFlashItemId(itemId);
   };
+
+  useEffect(() => {
+    if (!flashItemId) return;
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const roots = [desktopSlipRef.current, mobileSlipRef.current];
+    for (const root of roots) {
+      if (!root || root.offsetParent === null) continue;
+      const el = root.querySelector(
+        `[data-slip-item="${flashItemId.replace(/["\\]/g, "")}"]`,
+      );
+      el?.scrollIntoView({
+        block: "nearest",
+        behavior: reduce ? "auto" : "smooth",
+      });
+    }
+    const t = window.setTimeout(() => {
+      setFlashItemId((id) => (id === flashItemId ? null : id));
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, [flashItemId]);
 
   const applyLinePrice = (itemId: string, price: number) => {
     const nextPrice = Number.isFinite(price) ? Math.max(0, price) : 0;
@@ -1162,7 +1201,12 @@ export function TenantOrderWorkspace({
           return (
             <div
               key={link.itemId}
-              className="space-y-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-3 last:border-b-0"
+              data-slip-item={link.itemId}
+              className={cn(
+                "space-y-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-3 last:border-b-0",
+                flashItemId === link.itemId &&
+                  "bg-white ring-1 ring-inset ring-[var(--pos-primary,#0f766e)]",
+              )}
             >
               <div className="flex gap-3">
                 <div className="relative size-11 shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
@@ -1601,7 +1645,7 @@ export function TenantOrderWorkspace({
           className={cn(
             "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-none px-3 py-2.5 text-left transition-colors",
             "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] active:bg-black/[0.03]",
-            !embedded && "lg:pointer-events-none",
+            !embedded && "xl:pointer-events-none",
           )}
         >
           <div className="min-w-0">
@@ -1612,7 +1656,7 @@ export function TenantOrderWorkspace({
           <ChevronDown
             className={cn(
               "size-4 shrink-0 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]",
-              !embedded && "lg:hidden",
+              !embedded && "xl:hidden",
             )}
           />
         </button>
@@ -1694,14 +1738,15 @@ export function TenantOrderWorkspace({
 
       <div
         className={cn(
-          "relative z-[1] flex min-h-0 flex-1 flex-col overflow-hidden",
-          !embedded && "lg:flex-row",
+          "relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+          !embedded &&
+            "xl:grid xl:grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)_minmax(16rem,18rem)]",
         )}
       >
         <aside
           className={cn(
-            "min-h-0 w-[19rem] shrink-0 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white xl:w-[21rem]",
-            embedded ? "hidden" : "hidden lg:flex",
+            "min-h-0 min-w-0 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+            embedded ? "hidden" : "hidden xl:flex",
           )}
         >
           <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2.5">
@@ -1894,19 +1939,34 @@ export function TenantOrderWorkspace({
 
         <aside
           className={cn(
-            "min-h-0 w-[20rem] shrink-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white xl:w-[22rem]",
-            embedded ? "hidden" : "hidden lg:flex",
+            "min-h-0 min-w-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+            embedded ? "hidden" : "hidden xl:flex",
           )}
         >
-          <div className="flex shrink-0 items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3">
             <p className="font-heading text-[16px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
               Order slip
             </p>
-            <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-[11px] font-bold tabular-nums text-[var(--order-ink,#15231f)]">
-              {cartUnits}
-            </span>
+            <div className="flex items-center gap-2">
+              {cartLines.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={clearCart}
+                  className="shrink-0 px-1.5 py-1 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-destructive"
+                  aria-label="Clear order"
+                >
+                  Clear
+                </button>
+              ) : null}
+              <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-[11px] font-bold tabular-nums text-[var(--order-ink,#15231f)]">
+                {cartUnits}
+              </span>
+            </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
+          <div
+            ref={desktopSlipRef}
+            className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
+          >
             {cartLinesPanel}
           </div>
           {placeFooter}
@@ -1918,7 +1978,9 @@ export function TenantOrderWorkspace({
         onClick={() => setMobileOrderOpen(true)}
         className={cn(
           "relative z-[1] flex w-full shrink-0 items-center justify-between gap-3 rounded-none border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3 text-[var(--order-ink,#15231f)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]",
-          !embedded && "lg:hidden",
+          flashItemId &&
+            "ring-1 ring-inset ring-[var(--pos-primary,#0f766e)]",
+          !embedded && "xl:hidden",
         )}
       >
         <span className="text-left">
@@ -1943,7 +2005,7 @@ export function TenantOrderWorkspace({
         <div
           className={cn(
             "absolute inset-0 z-50 flex flex-col",
-            !embedded && "lg:hidden",
+            !embedded && "xl:hidden",
           )}
         >
           <button
@@ -2005,7 +2067,7 @@ export function TenantOrderWorkspace({
         <div
           className={cn(
             "absolute inset-0 z-50 flex flex-col",
-            !embedded && "lg:hidden",
+            !embedded && "xl:hidden",
           )}
         >
           <button
@@ -2015,20 +2077,35 @@ export function TenantOrderWorkspace({
             onClick={() => setMobileOrderOpen(false)}
           />
           <div className="flex max-h-[88%] min-h-[45%] flex-col rounded-t-none border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3.5 py-3">
-              <p className="truncate font-heading text-[16px] font-semibold tracking-[-0.02em]">
+            <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3.5 py-3">
+              <p className="min-w-0 truncate font-heading text-[16px] font-semibold tracking-[-0.02em]">
                 {activeSupplier?.name ?? "Supplier"}
               </p>
-              <button
-                type="button"
-                className="flex size-9 items-center justify-center text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] active:scale-95"
-                onClick={() => setMobileOrderOpen(false)}
-                aria-label="Close"
-              >
-                <X className="size-4" />
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                {cartLines.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={clearCart}
+                    className="px-1.5 py-1 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-destructive"
+                    aria-label="Clear order"
+                  >
+                    Clear
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="flex size-9 items-center justify-center text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] active:scale-95"
+                  onClick={() => setMobileOrderOpen(false)}
+                  aria-label="Close"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div
+              ref={mobileSlipRef}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+            >
               {cartLinesPanel}
             </div>
             {placeFooter}

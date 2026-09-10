@@ -27,7 +27,7 @@ export function OrderPageLayout({
   return (
     <div
       className={cn(
-        "relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col bg-white px-3 pt-1 sm:px-5 sm:pt-1.5",
+        "relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[1400px] flex-col overflow-hidden bg-white px-3 pt-1 sm:px-5 sm:pt-1.5",
         className,
       )}
       style={PROCUREMENT_VARS}
