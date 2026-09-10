@@ -190,7 +190,8 @@ function resolveHeadline(
     headline.split(/\s+/).length >= 2
   ) {
     const parts = headline
-      .split(/(?<=[.!?])\s+/)
+      .replace(/([.!?])\s+/g, "$1\n")
+      .split("\n")
       .map((p) => p.trim())
       .filter(Boolean);
     const lines = (parts.length > 1 ? parts : [headline]).slice(0, 3);
