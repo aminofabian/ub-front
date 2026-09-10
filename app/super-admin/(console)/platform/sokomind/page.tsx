@@ -194,7 +194,7 @@ export default function SuperAdminSokoMindSettingsPage() {
     showThemedConfirmToast({
       id: `clear-sokomind-${field}`,
       title: `Clear ${label}?`,
-      description: `The stored ${label} will be cleared. Env fallback (if any) still applies at runtime.`,
+      description: "The stored key will be removed from Super Admin.",
       confirmLabel: "Clear",
       onConfirm: async () => {
         setBusy(true);
@@ -250,7 +250,7 @@ export default function SuperAdminSokoMindSettingsPage() {
     <div className="space-y-6">
       <SuperAdminPageHeader
         title="SokoMind"
-        description="Platform AI co-pilot — Guide (help), Brain (analytics / pricing), Eye (vision / images). Keys are encrypted at rest and never returned after save. OpenRouter (GLM) is a single key for chat and logos. DeepSeek direct and DeepSeek via RapidAPI are separate setups with separate keys."
+        description="Paste API keys here — OpenAI, Anthropic, OpenRouter (GLM), or DeepSeek. They are encrypted in the database and never shown again after save. Pick a primary provider, then Save SokoMind."
       />
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
@@ -259,8 +259,8 @@ export default function SuperAdminSokoMindSettingsPage() {
 
       {settings?.encryptionEphemeral ? (
         <AuthAlert variant="error">
-          APP_PAYMENTS_ENCRYPTION_KEY is not set on the server. Stored keys will be lost on restart
-          — set a stable encryption key in production.
+          APP_PAYMENTS_ENCRYPTION_KEY is not set on the server. Keys you paste here
+          will be lost on restart until that key is set.
         </AuthAlert>
       ) : null}
       {settings && !settings.secretsReadable && settings.secretsError ? (
@@ -270,15 +270,7 @@ export default function SuperAdminSokoMindSettingsPage() {
       <form onSubmit={onSave} className="space-y-6">
         <SaSection
           title="Faces & master switch"
-          description={
-            <>
-              Master off disables all SokoMind traffic. Face toggles gate Guide / Brain / Eye. Env fallbacks:{" "}
-              <code className="rounded bg-muted px-1 font-mono text-xs">SOKOMIND_ENABLED</code>,{" "}
-              <code className="rounded bg-muted px-1 font-mono text-xs">OPENAI_API_KEY</code>,{" "}
-              <code className="rounded bg-muted px-1 font-mono text-xs">ANTHROPIC_API_KEY</code>,{" "}
-              <code className="rounded bg-muted px-1 font-mono text-xs">OPENROUTER_API_KEY</code>.
-            </>
-          }
+          description="Master off disables all SokoMind traffic. Face toggles gate Guide / Brain / Eye. API keys belong in the provider sections below — not in .env."
         >
           <div className="space-y-3">
             <SaToggleRow
@@ -386,8 +378,7 @@ export default function SuperAdminSokoMindSettingsPage() {
           title="OpenAI"
           description={
             <>
-              Stored key: {settings?.hasOpenaiApiKey ? "yes" : "no"}
-              {settings?.envOpenaiConfigured ? " · env fallback configured" : ""}
+              Paste the OpenAI key here and Save. Stored: {settings?.hasOpenaiApiKey ? "yes" : "no"}
             </>
           }
         >
@@ -442,8 +433,7 @@ export default function SuperAdminSokoMindSettingsPage() {
           title="Anthropic"
           description={
             <>
-              Stored key: {settings?.hasAnthropicApiKey ? "yes" : "no"}
-              {settings?.envAnthropicConfigured ? " · env fallback configured" : ""}
+              Paste the Anthropic key here and Save. Stored: {settings?.hasAnthropicApiKey ? "yes" : "no"}
             </>
           }
         >
@@ -495,9 +485,8 @@ export default function SuperAdminSokoMindSettingsPage() {
           title="OpenRouter (GLM)"
           description={
             <>
-              One key for Guide/Brain chat (GLM) and logo generation. Stored key:{" "}
+              Paste the OpenRouter key here — one key for GLM chat and logos. Stored:{" "}
               {settings?.hasOpenrouterApiKey ? "yes" : "no"}
-              {settings?.envOpenrouterConfigured ? " · env fallback configured" : ""}
             </>
           }
         >
@@ -578,8 +567,7 @@ export default function SuperAdminSokoMindSettingsPage() {
             <>
               Two separate setups with two separate keys — a direct key will not
               work against the RapidAPI proxy and vice versa. Stored: direct{" "}
-              {settings?.hasDeepseekApiKey ? "yes" : "no"}
-              {settings?.envDeepseekConfigured ? " · env fallback" : ""}, RapidAPI{" "}
+              {settings?.hasDeepseekApiKey ? "yes" : "no"}, RapidAPI{" "}
               {settings?.hasRapidapiDeepseekApiKey ? "yes" : "no"}. Independent
               from catalog DeepSeek under Integrations (product descriptions).
             </>
