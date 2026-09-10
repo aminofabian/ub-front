@@ -7,6 +7,7 @@ import {
   Drumstick,
   LayoutGrid,
   Leaf,
+  Loader2,
   MessageCircle,
   Package,
   ShoppingCart,
@@ -27,6 +28,7 @@ import {
 } from "@/lib/branding-color-presets";
 import { KioskLogoMark } from "@/components/brand/kiosk-logo-mark";
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { AiLogoGenerator } from "@/components/brand/ai-logo-generator";
 import { ThemeTryOnPhone } from "@/components/business/theme-try-on-phone";
 import {
   MilkRunWhatsAppDialog,
@@ -452,6 +454,7 @@ export function OnboardingQuestionnaire({
   );
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoError, setLogoError] = useState("");
+  const [logoGenerating, setLogoGenerating] = useState(false);
   const [productSource, setProductSource] = useState<ProductSourceChoice | "">(
     initialAnswers.productSource ?? "",
   );
@@ -691,6 +694,9 @@ export function OnboardingQuestionnaire({
   };
 
   const handleContinue = () => {
+    if (logoGenerating) {
+      return;
+    }
     clearAutoAdvance();
     switch (step) {
       case 1:
@@ -1491,18 +1497,30 @@ export function OnboardingQuestionnaire({
                       </span>
                     </p>
                     <p className="mb-3 text-xs text-[#9CA3AF]">
-                      Skip for now if you don&apos;t have one — we use a
-                      generated mark from your shop name.
+                      Skip if you don&apos;t have one. We&apos;ll use a mark
+                      from your shop name, or you can describe one for AI to
+                      draw.
                     </p>
                     <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-                      <TenantLogo
-                        brand={
-                          displayName.trim() || businessName || "Your shop"
-                        }
-                        logoUrl={uploadedLogoUrl}
-                        primaryColor={primaryColor}
-                        variant="upload"
-                      />
+                      <div className="relative">
+                        <TenantLogo
+                          brand={
+                            displayName.trim() || businessName || "Your shop"
+                          }
+                          logoUrl={uploadedLogoUrl}
+                          primaryColor={primaryColor}
+                          variant="upload"
+                        />
+                        {logoGenerating ? (
+                          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/70">
+                            <Loader2
+                              className="size-6 animate-spin text-[#0D9488]"
+                              aria-hidden
+                            />
+                            <span className="sr-only">Generating logo</span>
+                          </div>
+                        ) : null}
+                      </div>
                       <div className="flex w-full flex-col gap-2 text-center sm:text-left">
                         <input
                           ref={logoInputRef}
@@ -1513,7 +1531,7 @@ export function OnboardingQuestionnaire({
                         />
                         <button
                           type="button"
-                          disabled={submitting}
+                          disabled={submitting || logoGenerating}
                           onClick={() => logoInputRef.current?.click()}
                           className="h-11 rounded-2xl border border-[#E5E7EB] bg-white px-3 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-auto sm:rounded-xl sm:py-2"
                         >
@@ -1521,6 +1539,24 @@ export function OnboardingQuestionnaire({
                             ? "Replace logo"
                             : "Upload logo (optional)"}
                         </button>
+                        <AiLogoGenerator
+                          variant="onboarding"
+                          shopName={displayName.trim() || businessName || ""}
+                          shopType={storeTypesLabel}
+                          primaryColor={primaryColor}
+                          accentColor={accentColor}
+                          disabled={submitting}
+                          onBusyChange={setLogoGenerating}
+                          onGenerated={(file) => {
+                            if (file.size > MAX_LOGO_BYTES) {
+                              setLogoError("Logo must be 4 MB or smaller.");
+                              return;
+                            }
+                            setLogoError("");
+                            setLogoFile(file);
+                            hapticTap();
+                          }}
+                        />
                         {logoFile ? (
                           <button
                             type="button"
@@ -1530,12 +1566,12 @@ export function OnboardingQuestionnaire({
                             }}
                             className="min-h-10 text-xs text-[#6B7280] active:opacity-70"
                           >
-                            Use generated logo instead
+                            Use name mark instead
                           </button>
                         ) : (
                           <p className="text-xs text-[#9CA3AF]">
-                            Optional — a generated mark is used until you
-                            upload one.
+                            Optional. A name mark is used until you upload or
+                            generate one.
                           </p>
                         )}
                         {logoError ? (
@@ -1892,22 +1928,24 @@ export function OnboardingQuestionnaire({
           ) : (
             <button
               type="button"
-              disabled={!canContinue || submitting}
+              disabled={!canContinue || submitting || logoGenerating}
               onClick={handleContinue}
               className={cn(
                 primaryCtaClass,
-                canContinue && !submitting
+                canContinue && !submitting && !logoGenerating
                   ? "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]"
                   : "cursor-not-allowed bg-[#E5E7EB] text-white",
               )}
             >
               {submitting
                 ? "Setting up your shop…"
-                : step === QUESTIONNAIRE_PHONE_STEP
-                  ? "That’s my number"
-                  : step === 5
-                    ? "Use this look"
-                    : "Continue"}
+                : logoGenerating
+                  ? "Generating logo…"
+                  : step === QUESTIONNAIRE_PHONE_STEP
+                    ? "That’s my number"
+                    : step === 5
+                      ? "Use this look"
+                      : "Continue"}
             </button>
           )}
 

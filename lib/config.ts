@@ -318,6 +318,7 @@ export const API_ROUTES = {
   aiRouteGuide: "/api/v1/ai/route-guide",
   aiPriceRadar: "/api/v1/ai/price-radar",
   aiProductPolish: "/api/v1/ai/product-polish",
+  aiBrandingLogoGenerate: "/api/v1/ai/branding/logo/generate",
   supplierPortalAiStatus: "/api/v1/supplier-portal/ai/status",
   supplierPortalAiChat: "/api/v1/supplier-portal/ai/chat",
   supplierPortalAiFeedback: "/api/v1/supplier-portal/ai/feedback",

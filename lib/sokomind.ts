@@ -17,6 +17,7 @@ export type SokoMindStatus = {
   providerConfigured: boolean;
   primaryProvider: string;
   defaultLocale: string;
+  imageGenerationAvailable?: boolean;
 };
 
 export type SokoMindChatMessage = {

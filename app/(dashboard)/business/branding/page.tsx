@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { AiLogoGenerator } from "@/components/brand/ai-logo-generator";
 import { BrandingTemplateSection } from "@/components/business/branding-template-section";
 import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
 import { HubSettingsSectionNav } from "@/components/business-hub/hub-settings-section-nav";
@@ -639,12 +640,16 @@ function BrandingPreview({
 function LogoSection({
   logoUrl,
   primaryColor,
+  accentColor,
+  shopName,
   busy,
   onUpload,
   onClear,
 }: {
   logoUrl: string | null | undefined;
   primaryColor?: string | null;
+  accentColor?: string | null;
+  shopName?: string;
   busy: boolean;
   onUpload: (file: File) => Promise<void>;
   onClear: () => Promise<void>;
@@ -693,6 +698,14 @@ function LogoSection({
           ) : null}
         </div>
       </div>
+      <AiLogoGenerator
+        variant="dashboard"
+        shopName={shopName ?? ""}
+        primaryColor={primaryColor ?? undefined}
+        accentColor={accentColor ?? undefined}
+        disabled={busy}
+        onGenerated={(file) => onUpload(file)}
+      />
       <p className={hintClass()}>PNG, JPEG, WEBP, or SVG · max 4&nbsp;MB</p>
     </div>
   );
@@ -1473,6 +1486,8 @@ export default function BrandingPage() {
               <LogoSection
                 logoUrl={logoUrl}
                 primaryColor={form.primaryColor}
+                accentColor={form.accentColor}
+                shopName={form.displayName || snapshot?.name}
                 busy={logoBusy}
                 onUpload={onLogoUpload}
                 onClear={onLogoClear}

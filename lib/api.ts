@@ -1401,6 +1401,35 @@ export async function suggestStorefrontDesign(
   });
 }
 
+export type BrandingLogoGenerateResponse = {
+  requestId: string;
+  mimeType: string;
+  imageBase64: string;
+};
+
+/** Generate a shop logo from a prompt. Returns PNG/JPEG bytes as Base64. */
+export async function generateBrandingLogo(body: {
+  prompt?: string;
+  shopName?: string;
+  shopType?: string;
+  primaryColor?: string;
+  accentColor?: string;
+}): Promise<BrandingLogoGenerateResponse> {
+  return request<BrandingLogoGenerateResponse>(API_ROUTES.aiBrandingLogoGenerate, {
+    method: "POST",
+    requiresAuth: true,
+    toast: false,
+    timeoutMs: 95_000,
+    body: {
+      prompt: body.prompt?.trim() || undefined,
+      shopName: body.shopName?.trim() || undefined,
+      shopType: body.shopType?.trim() || undefined,
+      primaryColor: body.primaryColor?.trim() || undefined,
+      accentColor: body.accentColor?.trim() || undefined,
+    },
+  });
+}
+
 export type AiStatusRecord = {
   enabled: boolean;
   guideEnabled: boolean;
@@ -1409,6 +1438,7 @@ export type AiStatusRecord = {
   providerConfigured: boolean;
   primaryProvider: string;
   defaultLocale: string;
+  imageGenerationAvailable?: boolean;
 };
 
 /** Whether the platform AI provider is switched on and has a key configured. */
