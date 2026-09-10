@@ -1974,7 +1974,7 @@ export function ThemeTryOnPhone({
   } | null;
   products?: readonly ThemeTryOnProduct[];
   heroUrl?: string | null;
-  size?: "md" | "sm";
+  size?: "md" | "sm" | "tile";
   /** Phone bezel, or a crop used as gallery-card art. */
   frame?: "phone" | "card";
   /** Home / product / cart — pane only. Gallery cards stay on home. */
@@ -1985,7 +1985,7 @@ export function ThemeTryOnPhone({
   className?: string;
 }) {
   const skin = item.phone;
-  const rootPx = size === "md" ? 9.5 : 6.5;
+  const rootPx = size === "md" ? 9.5 : size === "tile" ? 7.6 : 6.5;
   const brand = brandPrimary || skin.accent;
   const stock = products ?? [];
   const isCard = frame === "card";
@@ -1996,7 +1996,7 @@ export function ThemeTryOnPhone({
     <div
       className={cn(
         isCard
-          ? "w-full overflow-hidden rounded-[1.15em] border border-black/15 shadow-sm"
+          ? "w-full overflow-hidden rounded-[0.45em] border border-black/12"
           : "mx-auto w-full max-w-60 rounded-[2.1em] border border-black/70 bg-[#15161a] p-[0.55em] shadow-[0_18px_40px_-18px_rgba(0,0,0,0.55)]",
         className,
       )}

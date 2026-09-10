@@ -82,7 +82,7 @@ export default function BusinessThemesPage() {
 
   return (
     <div className={STUDIO_WRAPPER}>
-      <div className="space-y-8">
+      <div className="space-y-3">
         <ThemesPageHeader />
         <StorefrontThemesStudio
           business={business}
@@ -95,84 +95,86 @@ export default function BusinessThemesPage() {
 
 function ThemesPageHeader() {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <DashboardPageHero
-        compact
-        icon={LayoutTemplate}
-        title="How your shop looks online"
-        description="Pick a look in the middle. The phone shows your shop in that layout. Open the drawers for details, colours, and side-by-side compare."
-      />
-      <div className="flex flex-wrap gap-2 sm:pt-1">
-        <Button asChild variant="outline" size="sm" className="gap-1.5">
-          <Link href={APP_ROUTES.businessDesign}>
-            <Brush className="size-3.5" aria-hidden />
-            Design
-          </Link>
-        </Button>
-        <Button asChild variant="outline" size="sm" className="gap-1.5">
-          <Link href={APP_ROUTES.businessBranding}>
-            <Palette className="size-3.5" aria-hidden />
-            Branding
-          </Link>
-        </Button>
-        <Button asChild variant="ghost" size="sm" className="gap-1.5">
-          <Link href={APP_ROUTES.businessSettings}>
-            <ArrowLeft className="size-3.5" aria-hidden />
-            Settings
-          </Link>
-        </Button>
-      </div>
-    </div>
+    <DashboardPageHero
+      compact
+      icon={LayoutTemplate}
+      title="How your shop looks online"
+      description="Tap a look. The phone shows your shop in that layout."
+    >
+      <Button
+        asChild
+        variant="outline"
+        size="sm"
+        className="rounded-none shadow-none"
+      >
+        <Link href={APP_ROUTES.businessDesign}>
+          <Brush className="size-3.5" aria-hidden />
+          Design
+        </Link>
+      </Button>
+      <Button
+        asChild
+        variant="outline"
+        size="sm"
+        className="rounded-none shadow-none"
+      >
+        <Link href={APP_ROUTES.businessBranding}>
+          <Palette className="size-3.5" aria-hidden />
+          Branding
+        </Link>
+      </Button>
+      <Button asChild variant="ghost" size="sm" className="rounded-none">
+        <Link href={APP_ROUTES.businessSettings}>
+          <ArrowLeft className="size-3.5" aria-hidden />
+          Settings
+        </Link>
+      </Button>
+    </DashboardPageHero>
   );
 }
 
 function ThemesStudioSkeleton() {
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading shop looks">
-      <div className="grid items-start gap-5 xl:grid-cols-[188px_minmax(0,1fr)_300px] xl:gap-6">
+    <div className="space-y-3" aria-busy="true" aria-label="Loading shop looks">
+      <div className="grid items-start gap-4 xl:grid-cols-[10.75rem_minmax(0,1fr)_17.5rem] xl:gap-5">
         <div className="hidden space-y-3 xl:block">
-          <div className="h-3 w-16 animate-pulse rounded bg-muted" />
-          <div className="h-16 animate-pulse rounded-none bg-muted" />
-          <div className="h-16 animate-pulse rounded-none bg-muted/70" />
+          <div className="h-3 w-16 animate-pulse bg-muted" />
+          <div className="h-14 animate-pulse bg-muted" />
+          <div className="h-14 animate-pulse bg-muted/70" />
           <div className="mt-4 space-y-1.5">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-7 animate-pulse rounded-none bg-muted/60"
-              />
+              <div key={i} className="h-7 animate-pulse bg-muted/60" />
             ))}
           </div>
         </div>
         <div className="min-w-0 space-y-3">
-          <div className="space-y-2">
-            <div className="h-5 w-48 animate-pulse rounded bg-muted" />
-            <div className="h-4 w-72 animate-pulse rounded bg-muted/70" />
+          <div className="space-y-1.5">
+            <div className="h-4 w-48 animate-pulse bg-muted" />
+            <div className="h-3 w-72 animate-pulse bg-muted/70" />
           </div>
-          <div className="grid gap-2.5 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="flex gap-3 overflow-hidden rounded-none border border-border/70 p-2.5"
+                className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
               >
-                <div className="h-24 w-[4.75rem] shrink-0 animate-pulse rounded-none bg-muted" />
-                <div className="flex flex-1 flex-col gap-2 py-1">
-                  <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
-                  <div className="h-3 w-full animate-pulse rounded bg-muted/70" />
-                  <div className="h-3 w-2/3 animate-pulse rounded bg-muted/50" />
+                <div className="h-40 animate-pulse bg-muted/50" />
+                <div className="space-y-1.5 border-t p-2.5">
+                  <div className="h-3.5 w-1/2 animate-pulse bg-muted" />
+                  <div className="h-3 w-16 animate-pulse bg-muted/70" />
                 </div>
               </div>
             ))}
           </div>
         </div>
-        <div className="overflow-hidden rounded-none border border-border/70">
-          <div className="space-y-3 bg-muted/25 p-4">
-            <div className="mx-auto h-48 w-28 animate-pulse rounded-[1.4rem] bg-muted" />
-            <div className="mx-auto h-4 w-28 animate-pulse rounded bg-muted" />
+        <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
+          <div className="space-y-3 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3.5%,white)] p-4">
+            <div className="mx-auto h-52 w-28 animate-pulse rounded-[1.4rem] bg-muted" />
+            <div className="mx-auto h-4 w-28 animate-pulse bg-muted" />
           </div>
-          <div className="divide-y divide-border/60">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-10 animate-pulse bg-muted/40" />
-            ))}
+          <div className="space-y-2 p-3">
+            <div className="h-3 w-full animate-pulse bg-muted/60" />
+            <div className="h-3 w-4/5 animate-pulse bg-muted/40" />
           </div>
         </div>
       </div>
