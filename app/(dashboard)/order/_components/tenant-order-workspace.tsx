@@ -179,6 +179,13 @@ function lineTotal(
   return packUnitPrice(link, pack, priceOverride) * qty;
 }
 
+/** Nearest 10 for a line amount. Skip tiny lines so they never snap to 0. */
+function nearestTen(amount: number): number | null {
+  if (!(amount >= 5)) return null;
+  const rounded = Math.round(amount / 10) * 10;
+  return rounded > 0 ? rounded : null;
+}
+
 /** Stock units for a Path A PO line (packs × size when packed). */
 function stockQtyOrdered(
   qty: number,
@@ -1197,6 +1204,9 @@ export function TenantOrderWorkspace({
           const price = packUnitPrice(link, pack, priceOverride);
           const amount = lineTotal(link, qty, pack, priceOverride);
           const packs = linkPacks(link);
+          const snapped = nearestTen(amount);
+          const lineOnTen =
+            snapped != null && Math.abs(snapped - amount) < 0.009;
           const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
           return (
             <div
@@ -1236,6 +1246,43 @@ export function TenantOrderWorkspace({
                       ×{formatPackSize(pack.size)} / {pack.unit}
                     </p>
                   ) : null}
+                </div>
+                <div className="flex shrink-0 items-start gap-1">
+                  {snapped != null ? (
+                    <button
+                      type="button"
+                      disabled={lineOnTen}
+                      onClick={() => setLineTotal(link.itemId, snapped, qty)}
+                      className={cn(
+                        "inline-flex h-8 min-w-8 items-center justify-center rounded-none border px-1.5 font-mono text-[11px] font-bold tabular-nums transition-colors",
+                        lineOnTen
+                          ? "cursor-default border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                          : "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] active:scale-[0.97]",
+                      )}
+                      aria-label={
+                        lineOnTen
+                          ? `${link.itemName} already rounded to ${formatMoney(snapped, ORDER_CURRENCY)}`
+                          : `Round ${link.itemName} to ${formatMoney(snapped, ORDER_CURRENCY)}`
+                      }
+                      aria-pressed={lineOnTen}
+                      title={
+                        lineOnTen
+                          ? "On a ten"
+                          : `Snap this line to ${formatMoney(snapped, ORDER_CURRENCY)}`
+                      }
+                    >
+                      {lineOnTen ? "10" : snapped}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setQty(link.itemId, 0)}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] transition-colors hover:border-destructive/40 hover:bg-[color-mix(in_srgb,var(--destructive)_8%,transparent)] hover:text-destructive active:scale-[0.97]"
+                    aria-label={`Remove ${link.itemName}`}
+                    title="Remove from order"
+                  >
+                    <X className="size-3.5" strokeWidth={2.25} aria-hidden />
+                  </button>
                 </div>
               </div>
 
