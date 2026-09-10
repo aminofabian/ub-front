@@ -2,10 +2,11 @@
 
 import {
   API_ROUTES,
-  APP_BASE_URL,
   APP_ROUTES,
   apiUrl,
   isPlatformApexHost,
+  PLATFORM_DOMAIN,
+  slugDerivedShopUrl,
   SESSION_PRESENCE_COOKIE,
   SESSION_PRESENCE_MAX_AGE_SEC,
   STORAGE_KEYS,
@@ -758,8 +759,9 @@ export function persistSessionTenantHost(hostname: string): void {
 }
 
 /**
- * After login, map tenant slug to the hostname the API expects ({slug}.{NEXT_PUBLIC_APP_BASE_URL host}).
- * Safe while staying on localhost in the browser — tokens remain on this origin.
+ * After login, map tenant slug to `{slug}.kiosk.ke` (or `{slug}.localhost` in
+ * local dev). Never derive the parent from APP_BASE_URL — that origin may be a
+ * tenant custom domain such as palmart.co.ke.
  */
 export function persistTenantHostFromSlug(
   slug: string | null | undefined,
@@ -773,14 +775,23 @@ export function persistTenantHostFromSlug(
     window.localStorage.removeItem(STORAGE_KEYS.tenantHost);
     return;
   }
-  const parent = new URL(APP_BASE_URL).hostname.toLowerCase();
-  persistTenantHostToStorage(`${s}.${parent}`);
+  const shopUrl = slugDerivedShopUrl(s);
+  if (shopUrl) {
+    try {
+      persistTenantHostToStorage(new URL(shopUrl).hostname);
+      return;
+    } catch {
+      /* fall through */
+    }
+  }
+  persistTenantHostToStorage(`${s}.${PLATFORM_DOMAIN}`);
 }
 
 /**
  * After auth, persist the hostname the API should use. Prefers the browser host
  * or tenant {@code primaryDomain} (custom domains like {@code palmart.co.ke})
- * over slug-derived kiosk subdomains.
+ * over slug-derived kiosk subdomains — except on the platform apex, where the
+ * assigned `{slug}.kiosk.ke` host is stored instead.
  */
 export function persistTenantHostAfterAuth(
   slug: string | null | undefined,
@@ -816,9 +827,10 @@ export function persistTenantHostAfterAuth(
 }
 
 /**
- * When the app runs on a mapped tenant host (e.g. {@code slug.palmart.co.ke}),
- * persist it as {@code X-Tenant-Host}. Skips bare localhost, super-admin routes,
- * and the platform apex ({@code palmart.co.ke}) so login slug hosts are not overwritten.
+ * When the app runs on a mapped tenant host (e.g. {@code slug.kiosk.ke} or a
+ * custom domain), persist it as {@code X-Tenant-Host}. Skips bare localhost,
+ * super-admin routes, and the platform apex ({@code kiosk.ke}) so login slug
+ * hosts are not overwritten.
  */
 export function syncTenantHostFromBrowserHostname(): void {
   if (typeof window === "undefined") {

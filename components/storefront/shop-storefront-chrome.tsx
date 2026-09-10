@@ -18,6 +18,7 @@ import { MilkRunHeader } from "@/components/storefront/templates/store/milk-run-
 import { MilkRunCheckoutChoice } from "@/components/storefront/templates/store/milk-run-checkout-choice";
 import { milkRunFontVariables } from "@/components/storefront/templates/store/milk-run-fonts";
 import milkRunStyles from "@/components/storefront/templates/store/milk-run.module.css";
+import { resolveThemedLogoUrl, resolveStorefrontLogoSurface } from "@/lib/branding-themed-logo";
 import { OxideHeader } from "@/components/storefront/templates/store/oxide-header";
 import { oxideFontVariables } from "@/components/storefront/templates/store/oxide-fonts";
 import oxideStyles from "@/components/storefront/templates/store/oxide.module.css";
@@ -173,6 +174,7 @@ export function ShopStorefrontChrome({
   slug,
   headerTitle,
   logoUrl,
+  logoDarkUrl = null,
   primaryHex,
   accentHex,
   locationHint,
@@ -190,6 +192,7 @@ export function ShopStorefrontChrome({
   slug: string;
   headerTitle: string;
   logoUrl: string | null;
+  logoDarkUrl?: string | null;
   primaryHex: string | null;
   accentHex: string | null;
   locationHint?: string | null;
@@ -211,6 +214,10 @@ export function ShopStorefrontChrome({
 }) {
   const compactChrome = useCompactStorefrontChrome();
   const clMode = useChemLabMode();
+  const themedLogoUrl = resolveThemedLogoUrl(
+    { logoUrl, logoDarkUrl },
+    resolveStorefrontLogoSurface(storeThemeId, clMode),
+  );
   const resolvedDesign = resolveStorefrontDesign(initialDesign);
   const pairing = storefrontFontPairing(resolvedDesign.fontPairingId);
   const pairingStyle: CSSProperties | undefined =
@@ -502,17 +509,17 @@ export function ShopStorefrontChrome({
       ) : null}
       {isButcherBoard && !compactChrome ? (
         <Suspense fallback={null}>
-          <ButcherBoardHeader storeName={headerTitle} logoUrl={logoUrl} />
+          <ButcherBoardHeader storeName={headerTitle} logoUrl={themedLogoUrl} />
         </Suspense>
       ) : null}
       {isCarbonDesk && !compactChrome ? (
         <Suspense fallback={null}>
-          <CarbonDeskHeader storeName={headerTitle} logoUrl={logoUrl} />
+          <CarbonDeskHeader storeName={headerTitle} logoUrl={themedLogoUrl} />
         </Suspense>
       ) : null}
       {isBoutiqueShelf && !compactChrome ? (
         <Suspense fallback={null}>
-          <BoutiqueShelfHeader storeName={headerTitle} logoUrl={logoUrl} />
+          <BoutiqueShelfHeader storeName={headerTitle} logoUrl={themedLogoUrl} />
         </Suspense>
       ) : null}
       {isBeautyEdit && !compactChrome ? (
@@ -520,7 +527,7 @@ export function ShopStorefrontChrome({
           <BeautyEditHeader
             slug={slug}
             storeName={headerTitle}
-            logoUrl={logoUrl}
+            logoUrl={themedLogoUrl}
             whatsapp={whatsappNumber}
           />
         </Suspense>
@@ -530,7 +537,7 @@ export function ShopStorefrontChrome({
           <ScentStoryHeader
             slug={slug}
             storeName={headerTitle}
-            logoUrl={logoUrl}
+            logoUrl={themedLogoUrl}
           />
         </Suspense>
       ) : null}
@@ -539,14 +546,14 @@ export function ShopStorefrontChrome({
           <PrintAtelierHeader
             slug={slug}
             storeName={headerTitle}
-            logoUrl={logoUrl}
+            logoUrl={themedLogoUrl}
             announcement={announcement}
           />
         </Suspense>
       ) : null}
       {isBlankDrop && !compactChrome ? (
         <Suspense fallback={null}>
-          <BlankDropHeader slug={slug} storeName={headerTitle} logoUrl={logoUrl} />
+          <BlankDropHeader slug={slug} storeName={headerTitle} logoUrl={themedLogoUrl} />
         </Suspense>
       ) : null}
       {isPastryCase && !compactChrome ? (
@@ -554,7 +561,7 @@ export function ShopStorefrontChrome({
           <PastryCaseHeader
             slug={slug}
             storeName={headerTitle}
-            logoUrl={logoUrl}
+            logoUrl={themedLogoUrl}
             announcement={announcement}
             whatsapp={whatsappNumber}
           />
@@ -565,7 +572,7 @@ export function ShopStorefrontChrome({
           <ComilmartHeader
             slug={slug}
             storeName={headerTitle}
-            logoUrl={logoUrl}
+            logoUrl={themedLogoUrl}
             announcement={announcement}
             areaLabel={locationHint}
             whatsapp={whatsappNumber}
@@ -577,7 +584,7 @@ export function ShopStorefrontChrome({
         <Suspense fallback={null}>
           <ClimaxFloorHeader
             storeName={headerTitle}
-            logoUrl={logoUrl}
+            logoUrl={themedLogoUrl}
             tagline={locationHint}
             categories={categories}
           />
@@ -588,7 +595,7 @@ export function ShopStorefrontChrome({
           <DailyGazetteHeader
             slug={slug}
             storeName={headerTitle}
-            logoUrl={logoUrl}
+            logoUrl={themedLogoUrl}
             announcement={announcement}
             design={initialDesign}
           />
@@ -596,12 +603,12 @@ export function ShopStorefrontChrome({
       ) : null}
       {isChemLab && !compactChrome ? (
         <Suspense fallback={null}>
-          <ChemLabHeader storeName={headerTitle} logoUrl={logoUrl} />
+          <ChemLabHeader storeName={headerTitle} logoUrl={themedLogoUrl} />
         </Suspense>
       ) : null}
       {isSpiritsCellar && !compactChrome ? (
         <Suspense fallback={null}>
-          <SpiritsCellarHeader storeName={headerTitle} logoUrl={logoUrl} />
+          <SpiritsCellarHeader storeName={headerTitle} logoUrl={themedLogoUrl} />
         </Suspense>
       ) : null}
       {showDefaultChrome ? (
@@ -619,7 +626,7 @@ export function ShopStorefrontChrome({
           <ShopHeaderBar
             slug={slug}
             headerTitle={headerTitle}
-            logoUrl={logoUrl}
+            logoUrl={themedLogoUrl}
             primaryHex={primaryHex}
           />
         </>

@@ -82,7 +82,9 @@ export async function finalizeActiveRegistration(params: {
     /* store-session resolves role server-side when client fetch fails */
   }
 
-  await completeAuthAndNavigate(dest, params.tenantSlug);
+  await completeAuthAndNavigate(dest, params.tenantSlug, {
+    preferAssignedSubdomain: true,
+  });
 }
 
 export function redirectToEmailVerification(params: {

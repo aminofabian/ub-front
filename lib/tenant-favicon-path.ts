@@ -8,6 +8,7 @@ function brandingFromRecord(
   return {
     displayName: branding?.displayName?.trim() || businessName,
     logoUrl: branding?.logoUrl ?? null,
+    logoDarkUrl: branding?.logoDarkUrl ?? null,
     faviconUrl: branding?.faviconUrl ?? null,
     primaryColor: branding?.primaryColor ?? null,
     accentColor: branding?.accentColor ?? null,

@@ -354,6 +354,7 @@ export function OnboardingQuestionnaireProvider({
           const result = await applyOnboardingQuestionnaire(merged, {
             business,
             logoFile: extras?.logoFile ?? null,
+            logoDarkFile: extras?.logoDarkFile ?? null,
           });
           await Promise.all([
             refreshBranches(),

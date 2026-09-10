@@ -192,6 +192,7 @@ export type TenantStatus = "ACTIVE" | "SUSPENDED" | "INACTIVE";
 export type TenantBranding = {
   displayName: string;
   logoUrl: string | null;
+  logoDarkUrl: string | null;
   faviconUrl: string | null;
   primaryColor: string | null;
   accentColor: string | null;
@@ -642,6 +643,10 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
     logoUrl:
       typeof b?.logoUrl === "string" && b.logoUrl.trim()
         ? b.logoUrl.trim()
+        : null,
+    logoDarkUrl:
+      typeof b?.logoDarkUrl === "string" && b.logoDarkUrl.trim()
+        ? b.logoDarkUrl.trim()
         : null,
     faviconUrl:
       typeof b?.faviconUrl === "string" && b.faviconUrl.trim()

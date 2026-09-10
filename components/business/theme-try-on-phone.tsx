@@ -8,6 +8,7 @@ import type {
   ThemePhoneSkin,
 } from "@/lib/storefront-templates";
 import { tryOnMoneyLabel, type ThemeTryOnProduct } from "@/lib/theme-try-on";
+import { resolveLogoForTemplate } from "@/lib/branding-themed-logo";
 import { cn } from "@/lib/utils";
 
 /**
@@ -1952,6 +1953,7 @@ export function ThemeTryOnPhone({
   kind,
   storeName,
   logoUrl,
+  logoDarkUrl,
   brandPrimary,
   landingContent,
   products,
@@ -1967,6 +1969,7 @@ export function ThemeTryOnPhone({
   kind: "store" | "landing";
   storeName: string;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
   brandPrimary?: string | null;
   landingContent?: {
     hours?: string | null;
@@ -1991,6 +1994,10 @@ export function ThemeTryOnPhone({
   const isCard = frame === "card";
   const page = kind === "store" && !isCard ? (screen ?? view ?? "home") : "home";
   const cartCount = Math.max(stock.length, 1);
+  const markUrl = resolveLogoForTemplate(
+    { logoUrl, logoDarkUrl },
+    { id: item.id, kind },
+  );
 
   return (
     <div
@@ -2032,7 +2039,7 @@ export function ThemeTryOnPhone({
               <ShopHeader
                 skin={skin}
                 storeName={storeName}
-                logoUrl={logoUrl}
+                logoUrl={markUrl}
                 brand={brand}
                 cartLabel={
                   page === "cart"

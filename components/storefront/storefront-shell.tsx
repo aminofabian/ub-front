@@ -71,6 +71,7 @@ export async function StorefrontShell({
     ? {
         displayName: tenant.branding.displayName,
         logoUrl: tenant.branding.logoUrl,
+        logoDarkUrl: tenant.branding.logoDarkUrl,
         faviconUrl: tenant.branding.faviconUrl,
         primaryColor: tenant.branding.primaryColor,
         accentColor: tenant.branding.accentColor,
@@ -173,6 +174,7 @@ export async function StorefrontShell({
           slug={slug}
           headerTitle={headerTitle}
           logoUrl={logoUrl}
+          logoDarkUrl={tenant?.branding?.logoDarkUrl?.trim() || null}
           primaryHex={primary}
           accentHex={accent}
           locationHint={locationHint}

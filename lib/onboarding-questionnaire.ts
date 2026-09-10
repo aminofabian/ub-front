@@ -61,6 +61,7 @@ export type OnboardingQuestionnaireAnswers = {
 /** In-memory only (not persisted to localStorage). */
 export type OnboardingQuestionnaireFinishExtras = {
   logoFile?: File | null;
+  logoDarkFile?: File | null;
 };
 
 export type OnboardingQuestionnaireStatus =

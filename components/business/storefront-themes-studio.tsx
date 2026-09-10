@@ -261,6 +261,7 @@ export function StorefrontThemesStudio({
 
   const storeName = business?.name?.trim() || "Your shop";
   const logoUrl = business?.branding?.logoUrl ?? null;
+  const logoDarkUrl = business?.branding?.logoDarkUrl ?? null;
   const brandPrimary = business?.branding?.primaryColor ?? null;
   const landingContent = business?.storefront?.landingContent ?? null;
   const design = parseStorefrontDesignJson(business?.storefront?.designJson);
@@ -406,6 +407,7 @@ export function StorefrontThemesStudio({
   const tryOnShared = {
     storeName,
     logoUrl,
+    logoDarkUrl,
     brandPrimary,
     landingContent,
     products: tryOnProducts,

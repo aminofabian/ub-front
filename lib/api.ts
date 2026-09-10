@@ -1157,6 +1157,7 @@ export type StorefrontSettingsRecord = {
 export type BrandingRecord = {
   displayName?: string | null;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
   faviconUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
@@ -1401,13 +1402,18 @@ export async function suggestStorefrontDesign(
   });
 }
 
-export type BrandingLogoGenerateResponse = {
-  requestId: string;
+export type BrandingLogoVariant = {
+  theme: "light" | "dark";
   mimeType: string;
   imageBase64: string;
 };
 
-/** Generate a shop logo from a prompt. Returns PNG/JPEG bytes as Base64. */
+export type BrandingLogoGenerateResponse = {
+  requestId: string;
+  logos: BrandingLogoVariant[];
+};
+
+/** Generate light and dark shop logos. Returns PNG/JPEG bytes as Base64. */
 export async function generateBrandingLogo(body: {
   prompt?: string;
   shopName?: string;
@@ -1419,7 +1425,7 @@ export async function generateBrandingLogo(body: {
     method: "POST",
     requiresAuth: true,
     toast: false,
-    timeoutMs: 95_000,
+    timeoutMs: 180_000,
     body: {
       prompt: body.prompt?.trim() || undefined,
       shopName: body.shopName?.trim() || undefined,
@@ -1573,6 +1579,8 @@ export type BrandingPatchPayload = {
   displayName?: string | null;
   logoUrl?: string | null;
   logoPublicId?: string | null;
+  logoDarkUrl?: string | null;
+  logoDarkPublicId?: string | null;
   faviconUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
@@ -3314,6 +3322,42 @@ export async function uploadMyBrandingLogo(
   return updateMyBranding({
     logoUrl: result.secure_url,
     logoPublicId: result.public_id,
+  });
+}
+
+export async function uploadMyBrandingLogoDark(
+  file: File,
+  businessId: string,
+): Promise<BusinessRecord> {
+  const folder = `ub/${businessId}/branding/logo-dark`;
+  const sig = await getCloudinarySignature(folder);
+  const result = await uploadToCloudinary(file, sig);
+  return updateMyBranding({
+    logoDarkUrl: result.secure_url,
+    logoDarkPublicId: result.public_id,
+  });
+}
+
+export async function uploadMyBrandingLogoPair(
+  light: File,
+  dark: File,
+  businessId: string,
+): Promise<BusinessRecord> {
+  const lightFolder = `ub/${businessId}/branding/logo`;
+  const darkFolder = `ub/${businessId}/branding/logo-dark`;
+  const [lightSig, darkSig] = await Promise.all([
+    getCloudinarySignature(lightFolder),
+    getCloudinarySignature(darkFolder),
+  ]);
+  const [lightResult, darkResult] = await Promise.all([
+    uploadToCloudinary(light, lightSig),
+    uploadToCloudinary(dark, darkSig),
+  ]);
+  return updateMyBranding({
+    logoUrl: lightResult.secure_url,
+    logoPublicId: lightResult.public_id,
+    logoDarkUrl: darkResult.secure_url,
+    logoDarkPublicId: darkResult.public_id,
   });
 }
 

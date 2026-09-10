@@ -9,6 +9,8 @@ import {
   updateMe,
   updateMyBranding,
   uploadMyBrandingLogo,
+  uploadMyBrandingLogoDark,
+  uploadMyBrandingLogoPair,
   type BusinessRecord,
 } from "@/lib/api";
 import {
@@ -264,11 +266,26 @@ export async function applyOnboardingQuestionnaire(
       id: "logo",
       run: async () => {
         const businessId = opts.business?.id?.trim();
-        if (!opts.logoFile || !businessId) {
+        if (!businessId) {
           return { phase: "logo", status: "skipped" };
         }
-        await uploadMyBrandingLogo(opts.logoFile, businessId);
-        return { phase: "logo", status: "done" };
+        if (opts.logoFile && opts.logoDarkFile) {
+          await uploadMyBrandingLogoPair(
+            opts.logoFile,
+            opts.logoDarkFile,
+            businessId,
+          );
+          return { phase: "logo", status: "done" };
+        }
+        if (opts.logoFile) {
+          await uploadMyBrandingLogo(opts.logoFile, businessId);
+          return { phase: "logo", status: "done" };
+        }
+        if (opts.logoDarkFile) {
+          await uploadMyBrandingLogoDark(opts.logoDarkFile, businessId);
+          return { phase: "logo", status: "done" };
+        }
+        return { phase: "logo", status: "skipped" };
       },
     },
     {

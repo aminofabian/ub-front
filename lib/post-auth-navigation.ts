@@ -1,6 +1,11 @@
 import { persistTenantHostAfterAuth } from "@/lib/auth";
 import { fetchBusiness } from "@/lib/api";
-import { hostDerivedShopUrl, slugDerivedShopUrl } from "@/lib/config";
+import {
+  hostDerivedShopUrl,
+  isPlatformApexHost,
+  PLATFORM_DOMAIN,
+  slugDerivedShopUrl,
+} from "@/lib/config";
 import { isOfficeConsolePath } from "@/lib/login-audience";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
@@ -8,7 +13,14 @@ import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
 
 export type CompleteAuthNavigateOptions = {
   office?: boolean;
+  /**
+   * After claiming a shop, always land on `{slug}.kiosk.ke` — never the
+   * platform apex and never another tenant's custom domain.
+   */
+  preferAssignedSubdomain?: boolean;
 };
+
+const BARE_LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
 function navigateAfterAuth(path: string, office?: boolean): void {
   // The desktop SKU has no Next.js server route for `/api/auth/store-session`
@@ -24,11 +36,60 @@ function navigateAfterAuth(path: string, office?: boolean): void {
   });
 }
 
+function isBareLocalHost(host: string): boolean {
+  return BARE_LOCAL_HOSTS.has(stripLeadingWww(host));
+}
+
+/** Hostname the new shop is assigned until they add a custom domain. */
+export function assignedSubdomainHost(
+  slug: string,
+  currentHost: string,
+): string {
+  const s = slug.trim().toLowerCase();
+  const host = stripLeadingWww(currentHost);
+  if (isBareLocalHost(host) || host.endsWith(".localhost")) {
+    return `${s}.localhost`;
+  }
+  return `${s}.${PLATFORM_DOMAIN}`;
+}
+
+/**
+ * True when auth should 303 to the assigned `{slug}.kiosk.ke` shop.
+ *
+ * Stays put when already on that subdomain, or (unless
+ * {@code preferAssignedSubdomain}) on a tenant custom domain such as
+ * palmart.co.ke. Leaves the platform apex so onboarding never continues on
+ * kiosk.ke.
+ */
+export function shouldHandoffToAssignedSubdomain(params: {
+  currentHost: string;
+  slug: string | null | undefined;
+  preferAssignedSubdomain?: boolean;
+}): boolean {
+  const slug = params.slug?.trim().toLowerCase() || "";
+  if (!slug) {
+    return false;
+  }
+  const host = stripLeadingWww(params.currentHost);
+  const assigned = assignedSubdomainHost(slug, host);
+  if (tenantHostsMatch(host, assigned)) {
+    return false;
+  }
+  if (host.startsWith(`${slug}.`)) {
+    return false;
+  }
+  if (params.preferAssignedSubdomain) {
+    return true;
+  }
+  return isPlatformApexHost(host) || isBareLocalHost(host);
+}
+
 async function syncSlugAndNavigate(
   nextHint: string,
   knownSlug?: string | null,
-  office?: boolean,
+  opts?: CompleteAuthNavigateOptions,
 ): Promise<void> {
+  const office = opts?.office;
   if (IS_DESKTOP) {
     navigateAfterAuth(nextHint, office);
     return;
@@ -44,44 +105,39 @@ async function syncSlugAndNavigate(
     } catch {
       /* tenant id header may still work for same-origin navigation */
     }
-  } else {
-    primaryHost = stripLeadingWww(window.location.hostname);
   }
 
   const currentHost = stripLeadingWww(window.location.hostname);
-  const normalizedPrimary = primaryHost
-    ? stripLeadingWww(primaryHost.toLowerCase())
-    : null;
+  const handoff = shouldHandoffToAssignedSubdomain({
+    currentHost,
+    slug,
+    preferAssignedSubdomain: opts?.preferAssignedSubdomain,
+  });
 
-  if (normalizedPrimary && tenantHostsMatch(currentHost, normalizedPrimary)) {
-    persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateAfterAuth(nextHint, office);
-    return;
-  }
-  if (slug && currentHost.startsWith(`${slug.toLowerCase()}.`)) {
-    persistTenantHostAfterAuth(slug, normalizedPrimary);
+  if (!handoff) {
+    persistTenantHostAfterAuth(slug, primaryHost);
     navigateAfterAuth(nextHint, office);
     return;
   }
 
-  // Prefer platform subdomain for cross-host handoff (Gap G: shared refresh
-  // cookie on .kiosk.ke cannot follow a bounce onto a bought custom primary).
-  // Login already on the custom primary still stays put via the match above.
   const shopBase =
     (slug ? slugDerivedShopUrl(slug) : "") ||
     hostDerivedShopUrl(primaryHost) ||
     "";
-  const targetOrigin = shopBase
-    ? new URL(shopBase).origin
-    : window.location.origin;
+  let targetOrigin = "";
+  try {
+    targetOrigin = shopBase ? new URL(shopBase).origin : "";
+  } catch {
+    targetOrigin = "";
+  }
 
-  if (!slug || targetOrigin === window.location.origin) {
-    persistTenantHostAfterAuth(slug, normalizedPrimary);
+  if (!slug || !targetOrigin || targetOrigin === window.location.origin) {
+    persistTenantHostAfterAuth(slug, primaryHost);
     navigateAfterAuth(nextHint, office);
     return;
   }
 
-  persistTenantHostAfterAuth(slug, normalizedPrimary);
+  persistTenantHostAfterAuth(slug, assignedSubdomainHost(slug, currentHost));
 
   // Mint parent-domain cookies on this host, then 303 to the shop handoff.
   // A raw location.assign skipped store-session, so owners who verified on
@@ -99,5 +155,5 @@ export async function completeAuthAndNavigate(
   knownSlug?: string | null,
   opts?: CompleteAuthNavigateOptions,
 ): Promise<void> {
-  await syncSlugAndNavigate(dest, knownSlug, opts?.office);
+  await syncSlugAndNavigate(dest, knownSlug, opts);
 }

@@ -33,7 +33,6 @@ function isBarePlatformApex(hostname: string | null): boolean {
   if (!hostname) return false;
   const h = hostname.trim().toLowerCase();
   if (h === PLATFORM_DOMAIN || h === `www.${PLATFORM_DOMAIN}`) return true;
-  if (h === "palmart.co.ke" || h === "www.palmart.co.ke") return true;
   if (isPlatformApexHost(h)) return true;
   return false;
 }

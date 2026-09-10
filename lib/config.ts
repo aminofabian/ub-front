@@ -532,23 +532,21 @@ export function resolveRealtimeWebSocketBaseUrl(): string {
 export const APP_BASE_URL =
   process.env.NEXT_PUBLIC_APP_BASE_URL ?? "http://localhost:3000";
 
-/** Platform apex hostname from {@link APP_BASE_URL} (e.g. {@code palmart.co.ke}). */
+/**
+ * Platform marketing/onboarding apex. Assigned shops are `{slug}.kiosk.ke`.
+ * Tenant custom domains (e.g. palmart.co.ke) must never be treated as this.
+ */
 export function platformApexHostname(): string {
-  try {
-    return new URL(APP_BASE_URL).hostname.trim().toLowerCase();
-  } catch {
-    return "";
-  }
+  return PLATFORM_DOMAIN;
 }
 
 /** True when {@code host} is the platform apex or {@code www.} apex (not a tenant subdomain). */
 export function isPlatformApexHost(host: string): boolean {
   const h = host.trim().toLowerCase();
-  const apex = platformApexHostname();
-  if (!h || !apex) {
-    return false;
+  if (h.startsWith("www.")) {
+    return h.slice(4) === PLATFORM_DOMAIN;
   }
-  return h === apex || h === `www.${apex}`;
+  return h === PLATFORM_DOMAIN;
 }
 
 /** Business UUID for local dev when Host is not a mapped tenant domain. */
@@ -556,60 +554,35 @@ export const PUBLIC_TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID?.trim() ?? "";
 
 const BARE_LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
-/**
- * Resolves the effective base URL for slug/host derivation at runtime.
- *
- * <p>When {@code NEXT_PUBLIC_APP_BASE_URL} is unset or still points to localhost
- * (common when the env var was missed in a production deploy), this falls back
- * to the browser's current origin with the first subdomain stripped so that
- * tenant URLs like {@code barakia.palmart.co.ke} correctly derive from
- * {@code palmart.co.ke} rather than {@code localhost}.
- */
-function resolveAppBaseUrl(): string {
-  if (typeof window === "undefined") {
-    return APP_BASE_URL;
-  }
-  let baseHost: string;
-  try {
-    baseHost = new URL(APP_BASE_URL).hostname;
-  } catch {
-    // NEXT_PUBLIC_APP_BASE_URL is missing a protocol (e.g. "kiosk.ke" instead
-    // of "https://kiosk.ke"). Fall back to the browser's current origin.
-    return window.location.origin;
-  }
-  if (!BARE_LOCAL_HOSTS.has(baseHost)) {
-    return APP_BASE_URL; // already configured for production
-  }
-  // APP_BASE_URL is localhost — derive from the browser's current hostname
-  const hostname = window.location.hostname.toLowerCase();
-  if (BARE_LOCAL_HOSTS.has(hostname)) {
-    return APP_BASE_URL; // still localhost, can't derive
-  }
-  // Strip the leftmost subdomain to get the platform base (e.g. barakia.palmart.co.ke → palmart.co.ke)
-  const parts = hostname.split(".");
-  // Common second-level ccTLDs where the effective TLD is 2 parts (e.g. .co.ke, .co.uk, .com.au)
-  const ccSLDs = new Set([
-    "co",
-    "com",
-    "org",
-    "net",
-    "gov",
-    "edu",
-    "ac",
-    "or",
-    "ne",
-    "go",
-  ]);
-  const minParts = ccSLDs.has(parts[parts.length - 2]) ? 4 : 3;
-  if (parts.length >= minParts) {
-    const baseHostname = parts.slice(1).join(".");
-    return `${window.location.protocol}//${baseHostname}`;
-  }
-  // Hostname is already the base (e.g. palmart.co.ke or palmart.com)
-  return window.location.origin;
+function isLocalHostname(hostname: string): boolean {
+  const h = hostname.trim().toLowerCase();
+  return BARE_LOCAL_HOSTS.has(h) || h.endsWith(".localhost");
 }
 
-/** Browser origin for slug.{base hostname} — keep in sync with backend app.tenancy.slug-domain-suffix (hostname only, no port). */
+/**
+ * Parent origin for `{slug}.{parent}` shop URLs.
+ *
+ * Production always uses {@link PLATFORM_DOMAIN} ({@code kiosk.ke}).
+ * {@link APP_BASE_URL} may be a tenant custom domain (palmart.co.ke) and must
+ * not become the slug suffix. Localhost keeps `{slug}.localhost:{port}`.
+ */
+function resolveAppBaseUrl(): string {
+  if (typeof window !== "undefined" && isLocalHostname(window.location.hostname)) {
+    const port = window.location.port ? `:${window.location.port}` : "";
+    return `${window.location.protocol}//localhost${port}`;
+  }
+  try {
+    const env = new URL(APP_BASE_URL);
+    if (isLocalHostname(env.hostname) && typeof window === "undefined") {
+      return APP_BASE_URL;
+    }
+  } catch {
+    /* APP_BASE_URL missing a protocol */
+  }
+  return `https://${PLATFORM_DOMAIN}`;
+}
+
+/** Browser origin for `{slug}.kiosk.ke` (or `{slug}.localhost` in local dev). */
 export function slugDerivedShopUrl(slug: string): string {
   const s = slug.trim().toLowerCase();
   if (!s) {
@@ -621,17 +594,15 @@ export function slugDerivedShopUrl(slug: string): string {
     const port = base.port ? `:${base.port}` : "";
     return `${base.protocol}//${host}${port}`;
   } catch {
-    // resolveAppBaseUrl returned something that isn't a valid URL.
-    // Last resort: derive from the browser's current origin.
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && isLocalHostname(window.location.hostname)) {
       try {
         const origin = new URL(window.location.origin);
-        return `${origin.protocol}//${s}.${origin.hostname}${origin.port ? `:${origin.port}` : ""}`;
+        return `${origin.protocol}//${s}.localhost${origin.port ? `:${origin.port}` : ""}`;
       } catch {
         /* give up */
       }
     }
-    return "";
+    return s ? `https://${s}.${PLATFORM_DOMAIN}` : "";
   }
 }
 

@@ -25,6 +25,7 @@ export function CurrentLookLink({
   landingTemplateId,
   storeName,
   logoUrl,
+  logoDarkUrl,
   brandPrimary,
   hours,
   address,
@@ -36,6 +37,7 @@ export function CurrentLookLink({
   landingTemplateId?: string | null;
   storeName: string;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
   brandPrimary?: string | null;
   hours?: string | null;
   address?: string | null;
@@ -66,6 +68,7 @@ export function CurrentLookLink({
           kind={enabled ? "store" : "landing"}
           storeName={storeName}
           logoUrl={logoUrl}
+          logoDarkUrl={logoDarkUrl}
           brandPrimary={brandPrimary}
           landingContent={{ hours, address }}
           products={products}
@@ -94,11 +97,13 @@ export function BrandingTemplateSection({
   business,
   storeName,
   logoUrl,
+  logoDarkUrl,
   brandPrimary,
 }: {
   business: BusinessRecord | null;
   storeName?: string;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
   brandPrimary?: string | null;
 }) {
   const enabled = Boolean(business?.storefront?.enabled);
@@ -109,6 +114,7 @@ export function BrandingTemplateSection({
       landingTemplateId={business?.storefront?.landingTemplateId}
       storeName={storeName?.trim() || business?.name?.trim() || "Your shop"}
       logoUrl={logoUrl ?? business?.branding?.logoUrl}
+      logoDarkUrl={logoDarkUrl ?? business?.branding?.logoDarkUrl}
       brandPrimary={brandPrimary ?? business?.branding?.primaryColor}
       hours={business?.storefront?.landingContent?.hours}
       address={business?.storefront?.landingContent?.address}

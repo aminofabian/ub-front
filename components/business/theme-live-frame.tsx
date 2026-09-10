@@ -31,6 +31,7 @@ import type {
 } from "@/lib/storefront-templates";
 import type { ThemeTryOnProduct } from "@/lib/theme-try-on";
 import { cn } from "@/lib/utils";
+import { resolveLogoForTemplate } from "@/lib/branding-themed-logo";
 
 const VIEW_W = 390;
 const VIEW_H = 844;
@@ -103,6 +104,7 @@ export function ThemeLiveFrame({
   kind,
   storeName,
   logoUrl,
+  logoDarkUrl,
   brandPrimary,
   landingContent,
   products,
@@ -118,6 +120,7 @@ export function ThemeLiveFrame({
   kind: "store" | "landing";
   storeName: string;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
   brandPrimary?: string | null;
   landingContent?: LandingContent | null;
   products?: readonly ThemeTryOnProduct[];
@@ -137,12 +140,17 @@ export function ThemeLiveFrame({
   const money = currency?.trim() || "KES";
   const catalog = toCatalogCards(products ?? []).slice(0, isCard ? 4 : 8);
   const featured = catalog.slice(0, 3);
+  const markUrl = resolveLogoForTemplate(
+    { logoUrl, logoDarkUrl },
+    { id: item.id, kind },
+  );
   const fallback = (
     <ThemeTryOnPhone
       item={item}
       kind={kind}
       storeName={storeName}
       logoUrl={logoUrl}
+      logoDarkUrl={logoDarkUrl}
       brandPrimary={brandPrimary}
       landingContent={landingContent}
       products={products}
@@ -169,6 +177,7 @@ export function ThemeLiveFrame({
           featured={featured}
           storeName={storeName}
           logoUrl={logoUrl ?? null}
+          logoDarkUrl={logoDarkUrl ?? null}
           brandPrimary={brandPrimary ?? null}
           heroUrl={heroUrl ?? null}
           landingContent={landingContent}
@@ -178,7 +187,7 @@ export function ThemeLiveFrame({
         <LandingPreview
           templateId={item.id as LandingTemplateId}
           storeName={storeName}
-          logoUrl={logoUrl}
+          logoUrl={markUrl}
           brandPrimary={brandPrimary}
           landingContent={landingContent}
           catalog={catalog}
@@ -252,6 +261,7 @@ function StoreHomePreview({
   featured,
   storeName,
   logoUrl,
+  logoDarkUrl,
   brandPrimary,
   heroUrl,
   landingContent,
@@ -264,6 +274,7 @@ function StoreHomePreview({
   featured: PublicCatalogItemCard[];
   storeName: string;
   logoUrl: string | null;
+  logoDarkUrl?: string | null;
   brandPrimary: string | null;
   heroUrl: string | null;
   landingContent?: StoreHomeTemplateProps["landingContent"];
@@ -306,6 +317,7 @@ function StoreHomePreview({
       slug={slug}
       headerTitle={storeName}
       logoUrl={logoUrl}
+      logoDarkUrl={logoDarkUrl ?? null}
       primaryHex={brandPrimary}
       accentHex={brandPrimary}
       categories={[]}

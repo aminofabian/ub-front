@@ -423,6 +423,19 @@ export function TenantLogo({
 
   if (variant === "upload") {
     if (logo) {
+      const localPreview = logo.startsWith("blob:") || logo.startsWith("data:");
+      if (localPreview) {
+        return (
+          // eslint-disable-next-line @next/next/no-img-element -- object URLs from a just-picked file
+          <img
+            src={logo}
+            alt="Current logo"
+            width={96}
+            height={96}
+            className={cn("size-20 object-contain", className)}
+          />
+        );
+      }
       return (
         <Image
           src={logo}

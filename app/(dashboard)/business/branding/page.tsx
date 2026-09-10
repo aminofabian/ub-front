@@ -27,6 +27,9 @@ import {
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { AiLogoGenerator } from "@/components/brand/ai-logo-generator";
+import { useLogoObjectUrl } from "@/components/onboarding/onboarding-branding-preview";
+import type { GeneratedLogoPair } from "@/components/brand/ai-logo-generator";
+import { darkStorefrontThemeNames } from "@/lib/branding-themed-logo";
 import { BrandingTemplateSection } from "@/components/business/branding-template-section";
 import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
 import { HubSettingsSectionNav } from "@/components/business-hub/hub-settings-section-nav";
@@ -76,6 +79,8 @@ import {
   uploadMyBrandingBanner,
   uploadMyBrandingFavicon,
   uploadMyBrandingLogo,
+  uploadMyBrandingLogoDark,
+  uploadMyBrandingLogoPair,
   uploadMyBrandingOgImage,
   type BrandingPatchPayload,
   type BrandingRecord,
@@ -639,63 +644,127 @@ function BrandingPreview({
 
 function LogoSection({
   logoUrl,
+  logoDarkUrl,
   primaryColor,
   accentColor,
   shopName,
   busy,
   onUpload,
+  onUploadDark,
+  onUploadPair,
   onClear,
+  onClearDark,
 }: {
   logoUrl: string | null | undefined;
+  logoDarkUrl: string | null | undefined;
   primaryColor?: string | null;
   accentColor?: string | null;
   shopName?: string;
   busy: boolean;
   onUpload: (file: File) => Promise<void>;
+  onUploadDark: (file: File) => Promise<void>;
+  onUploadPair: (pair: GeneratedLogoPair) => Promise<void>;
   onClear: () => Promise<void>;
+  onClearDark: () => Promise<void>;
 }) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const onPick = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      void onUpload(file);
-    }
-    event.target.value = "";
-  };
+  const lightInputRef = useRef<HTMLInputElement | null>(null);
+  const darkInputRef = useRef<HTMLInputElement | null>(null);
+  const [draftPair, setDraftPair] = useState<GeneratedLogoPair | null>(null);
+  const draftLightUrl = useLogoObjectUrl(draftPair?.light ?? null);
+  const draftDarkUrl = useLogoObjectUrl(draftPair?.dark ?? null);
+  const lightUrl = draftLightUrl ?? logoUrl;
+  const darkUrl = draftDarkUrl ?? logoDarkUrl;
+  const darkUses = darkStorefrontThemeNames().join(", ");
+  const onPick =
+    (slot: "light" | "dark") =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        setDraftPair(null);
+        void (slot === "light" ? onUpload(file) : onUploadDark(file)).catch(
+          () => {},
+        );
+      }
+      event.target.value = "";
+    };
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <TenantLogo
-          brand="Your logo"
-          logoUrl={logoUrl}
-          primaryColor={primaryColor}
-          variant="upload"
-        />
-        <div className="flex flex-wrap gap-2">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <p className={labelClass()}>Light theme</p>
+          <TenantLogo
+            brand="Your logo"
+            logoUrl={lightUrl}
+            primaryColor={primaryColor}
+            variant="upload"
+          />
+          <p className={hintClass()}>
+            Dashboard, receipts, emails, and light storefronts.
+          </p>
           <input
-            ref={inputRef}
+            ref={lightInputRef}
             type="file"
             accept={ACCEPTED_LOGO_TYPES}
             className="hidden"
-            onChange={onPick}
+            onChange={onPick("light")}
           />
-          <Button
-            type="button"
-            disabled={busy}
-            onClick={() => inputRef.current?.click()}
-          >
-            {logoUrl ? "Replace logo" : "Upload logo"}
-          </Button>
-          {logoUrl ? (
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              variant="outline"
               disabled={busy}
-              onClick={() => void onClear()}
+              onClick={() => lightInputRef.current?.click()}
             >
-              Remove
+              {lightUrl ? "Replace light" : "Upload light"}
             </Button>
-          ) : null}
+            {logoUrl && !draftPair ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => void onClear()}
+              >
+                Remove
+              </Button>
+            ) : null}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className={labelClass()}>Dark theme</p>
+          <div className="rounded-none border border-neutral-800 bg-neutral-950 p-3">
+            <TenantLogo
+              brand="Your logo"
+              logoUrl={darkUrl}
+              primaryColor={primaryColor}
+              variant="upload"
+            />
+          </div>
+          <p className={hintClass()}>Used on {darkUses}.</p>
+          <input
+            ref={darkInputRef}
+            type="file"
+            accept={ACCEPTED_LOGO_TYPES}
+            className="hidden"
+            onChange={onPick("dark")}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              disabled={busy}
+              onClick={() => darkInputRef.current?.click()}
+            >
+              {darkUrl ? "Replace dark" : "Upload dark"}
+            </Button>
+            {logoDarkUrl && !draftPair ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => void onClearDark()}
+              >
+                Remove
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
       <AiLogoGenerator
@@ -704,9 +773,19 @@ function LogoSection({
         primaryColor={primaryColor ?? undefined}
         accentColor={accentColor ?? undefined}
         disabled={busy}
-        onGenerated={(file) => onUpload(file)}
+        onDraftPair={setDraftPair}
+        onGenerated={async (pair) => {
+          await onUploadPair(pair);
+          setDraftPair(null);
+        }}
       />
-      <p className={hintClass()}>PNG, JPEG, WEBP, or SVG · max 4&nbsp;MB</p>
+      {draftPair ? (
+        <p className={hintClass()}>
+          Preview only — tap Save and use both to apply the pair.
+        </p>
+      ) : (
+        <p className={hintClass()}>PNG, JPEG, WEBP, or SVG · max 4&nbsp;MB</p>
+      )}
     </div>
   );
 }
@@ -1106,12 +1185,14 @@ export default function BrandingPage() {
 
   const onLogoUpload = async (file: File) => {
     if (!snapshot?.id) {
-      setFeedback({ kind: "error", text: "Business not loaded yet." });
-      return;
+      const text = "Business not loaded yet.";
+      setFeedback({ kind: "error", text });
+      throw new Error(text);
     }
     if (file.size > MAX_LOGO_BYTES) {
-      setFeedback({ kind: "error", text: "Logo exceeds the 4 MB limit." });
-      return;
+      const text = "Logo exceeds the 4 MB limit.";
+      setFeedback({ kind: "error", text });
+      throw new Error(text);
     }
     setLogoBusy(true);
     setFeedback(null);
@@ -1120,7 +1201,9 @@ export default function BrandingPage() {
       applyAssetSnapshot(next);
       setFeedback({ kind: "success", text: "Logo updated." });
     } catch (error) {
-      setFeedback({ kind: "error", text: messageFor(error, "Upload failed.") });
+      const text = messageFor(error, "Upload failed.");
+      setFeedback({ kind: "error", text });
+      throw error instanceof Error ? error : new Error(text);
     } finally {
       setLogoBusy(false);
     }
@@ -1137,6 +1220,82 @@ export default function BrandingPage() {
       setFeedback({
         kind: "error",
         text: messageFor(error, "Could not remove logo."),
+      });
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const onLogoUploadDark = async (file: File) => {
+    if (!snapshot?.id) {
+      const text = "Business not loaded yet.";
+      setFeedback({ kind: "error", text });
+      throw new Error(text);
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      const text = "Logo exceeds the 4 MB limit.";
+      setFeedback({ kind: "error", text });
+      throw new Error(text);
+    }
+    setLogoBusy(true);
+    setFeedback(null);
+    try {
+      const next = await uploadMyBrandingLogoDark(file, snapshot.id);
+      applyAssetSnapshot(next);
+      setFeedback({ kind: "success", text: "Dark logo updated." });
+    } catch (error) {
+      const text = messageFor(error, "Upload failed.");
+      setFeedback({ kind: "error", text });
+      throw error instanceof Error ? error : new Error(text);
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const onLogoUploadPair = async (pair: GeneratedLogoPair) => {
+    if (!snapshot?.id) {
+      const text = "Business not loaded yet.";
+      setFeedback({ kind: "error", text });
+      throw new Error(text);
+    }
+    if (pair.light.size > MAX_LOGO_BYTES || pair.dark.size > MAX_LOGO_BYTES) {
+      const text = "Logo exceeds the 4 MB limit.";
+      setFeedback({ kind: "error", text });
+      throw new Error(text);
+    }
+    setLogoBusy(true);
+    setFeedback(null);
+    try {
+      const next = await uploadMyBrandingLogoPair(
+        pair.light,
+        pair.dark,
+        snapshot.id,
+      );
+      applyAssetSnapshot(next);
+      setFeedback({ kind: "success", text: "Light and dark logos updated." });
+    } catch (error) {
+      const text = messageFor(error, "Upload failed.");
+      setFeedback({ kind: "error", text });
+      throw error instanceof Error ? error : new Error(text);
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const onLogoClearDark = async () => {
+    setLogoBusy(true);
+    setFeedback(null);
+    try {
+      const next = await updateMyBranding({
+        logoDarkUrl: "",
+        logoDarkPublicId: "",
+      });
+      applyAssetSnapshot(next);
+      setFeedback({ kind: "success", text: "Dark logo removed." });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text: messageFor(error, "Could not remove dark logo."),
       });
     } finally {
       setLogoBusy(false);
@@ -1295,6 +1454,7 @@ export default function BrandingPage() {
   };
 
   const logoUrl = snapshot?.branding?.logoUrl ?? null;
+  const logoDarkUrl = snapshot?.branding?.logoDarkUrl ?? null;
   const faviconUrl = snapshot?.branding?.faviconUrl ?? form.faviconUrl;
   const ogImageUrl = snapshot?.branding?.ogImage ?? form.ogImage;
   const bannerUrls = snapshot?.branding?.heroBannerUrls ?? [];
@@ -1485,12 +1645,16 @@ export default function BrandingPage() {
               </div>
               <LogoSection
                 logoUrl={logoUrl}
+                logoDarkUrl={logoDarkUrl}
                 primaryColor={form.primaryColor}
                 accentColor={form.accentColor}
                 shopName={form.displayName || snapshot?.name}
                 busy={logoBusy}
                 onUpload={onLogoUpload}
+                onUploadDark={onLogoUploadDark}
+                onUploadPair={onLogoUploadPair}
                 onClear={onLogoClear}
+                onClearDark={onLogoClearDark}
               />
             </BrandingSection>
 
@@ -1704,6 +1868,7 @@ export default function BrandingPage() {
               business={snapshot}
               storeName={form.displayName}
               logoUrl={logoUrl}
+              logoDarkUrl={logoDarkUrl}
               brandPrimary={form.primaryColor}
             />
             <BrandingPreview

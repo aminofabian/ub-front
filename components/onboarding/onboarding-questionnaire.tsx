@@ -28,7 +28,7 @@ import {
 } from "@/lib/branding-color-presets";
 import { KioskLogoMark } from "@/components/brand/kiosk-logo-mark";
 import { TenantLogo } from "@/components/brand/tenant-logo";
-import { AiLogoGenerator } from "@/components/brand/ai-logo-generator";
+import { AiLogoGenerator, type GeneratedLogoPair } from "@/components/brand/ai-logo-generator";
 import { ThemeTryOnPhone } from "@/components/business/theme-try-on-phone";
 import {
   MilkRunWhatsAppDialog,
@@ -453,8 +453,13 @@ export function OnboardingQuestionnaire({
     initialAnswers.accentColor ?? defaultPreset?.accent ?? "#5EEAD4",
   );
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoDarkFile, setLogoDarkFile] = useState<File | null>(null);
+  const [logoDraftPair, setLogoDraftPair] = useState<GeneratedLogoPair | null>(
+    null,
+  );
   const [logoError, setLogoError] = useState("");
   const [logoGenerating, setLogoGenerating] = useState(false);
+  const [logoGeneratorKey, setLogoGeneratorKey] = useState(0);
   const [productSource, setProductSource] = useState<ProductSourceChoice | "">(
     initialAnswers.productSource ?? "",
   );
@@ -464,6 +469,11 @@ export function OnboardingQuestionnaire({
   /** One-shot note after changing shop types: department picks were reset. */
   const [departmentsResetNote, setDepartmentsResetNote] = useState(false);
   const uploadedLogoUrl = useLogoObjectUrl(logoFile);
+  const uploadedLogoDarkUrl = useLogoObjectUrl(logoDarkFile);
+  const logoDraftUrl = useLogoObjectUrl(logoDraftPair?.light ?? null);
+  const logoDraftDarkUrl = useLogoObjectUrl(logoDraftPair?.dark ?? null);
+  const logoPreviewUrl = logoDraftUrl ?? uploadedLogoUrl;
+  const logoDarkPreviewUrl = logoDraftDarkUrl ?? uploadedLogoDarkUrl;
 
   const suggestedDisplayName = useMemo(
     () =>
@@ -691,6 +701,7 @@ export function OnboardingQuestionnaire({
       return;
     }
     setLogoFile(file);
+    setLogoDraftPair(null);
   };
 
   const handleContinue = () => {
@@ -748,7 +759,10 @@ export function OnboardingQuestionnaire({
             primaryColor: primaryColor.trim(),
             accentColor: accentColor.trim(),
           },
-          { logoFile },
+          {
+            logoFile: logoFile ?? logoDraftPair?.light ?? null,
+            logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
+          },
         );
         break;
       case QUESTIONNAIRE_PHONE_STEP:
@@ -759,7 +773,10 @@ export function OnboardingQuestionnaire({
             landingWhatsapp:
               landingWhatsapp.trim() || ownerPhone.trim() || undefined,
           },
-          { logoFile },
+          {
+            logoFile: logoFile ?? logoDraftPair?.light ?? null,
+            logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
+          },
         );
         break;
     }
@@ -1338,6 +1355,8 @@ export function OnboardingQuestionnaire({
                     item={selectedThemeMeta}
                     kind={themeKind}
                     storeName={displayName || businessName || "Your shop"}
+                    logoUrl={logoPreviewUrl}
+                    logoDarkUrl={logoDarkPreviewUrl}
                     brandPrimary={primaryColor}
                     size="sm"
                     frame="card"
@@ -1384,6 +1403,8 @@ export function OnboardingQuestionnaire({
                           item={item}
                           kind={themeKind}
                           storeName={displayName || businessName || "Your shop"}
+                          logoUrl={logoPreviewUrl}
+                          logoDarkUrl={logoDarkPreviewUrl}
                           brandPrimary={primaryColor}
                           size="sm"
                           frame="card"
@@ -1479,7 +1500,7 @@ export function OnboardingQuestionnaire({
                         displayName={displayName}
                         primaryColor={primaryColor}
                         accentColor={accentColor}
-                        logoPreviewUrl={uploadedLogoUrl}
+                        logoPreviewUrl={logoPreviewUrl}
                       />
                     </div>
                     {!meetsBrandingContrast(primaryColor, accentColor) ? (
@@ -1507,7 +1528,7 @@ export function OnboardingQuestionnaire({
                           brand={
                             displayName.trim() || businessName || "Your shop"
                           }
-                          logoUrl={uploadedLogoUrl}
+                          logoUrl={logoPreviewUrl}
                           primaryColor={primaryColor}
                           variant="upload"
                         />
@@ -1535,11 +1556,12 @@ export function OnboardingQuestionnaire({
                           onClick={() => logoInputRef.current?.click()}
                           className="h-11 rounded-2xl border border-[#E5E7EB] bg-white px-3 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-auto sm:rounded-xl sm:py-2"
                         >
-                          {logoFile
+                          {logoFile || logoDraftPair
                             ? "Replace logo"
                             : "Upload logo (optional)"}
                         </button>
                         <AiLogoGenerator
+                          key={logoGeneratorKey}
                           variant="onboarding"
                           shopName={displayName.trim() || businessName || ""}
                           shopType={storeTypesLabel}
@@ -1547,22 +1569,31 @@ export function OnboardingQuestionnaire({
                           accentColor={accentColor}
                           disabled={submitting}
                           onBusyChange={setLogoGenerating}
-                          onGenerated={(file) => {
-                            if (file.size > MAX_LOGO_BYTES) {
+                          onDraftPair={setLogoDraftPair}
+                          onGenerated={(pair) => {
+                            if (
+                              pair.light.size > MAX_LOGO_BYTES ||
+                              pair.dark.size > MAX_LOGO_BYTES
+                            ) {
                               setLogoError("Logo must be 4 MB or smaller.");
-                              return;
+                              throw new Error("Logo must be 4 MB or smaller.");
                             }
                             setLogoError("");
-                            setLogoFile(file);
+                            setLogoFile(pair.light);
+                            setLogoDarkFile(pair.dark);
+                            setLogoDraftPair(null);
                             hapticTap();
                           }}
                         />
-                        {logoFile ? (
+                        {logoFile || logoDarkFile || logoDraftPair ? (
                           <button
                             type="button"
                             onClick={() => {
                               setLogoFile(null);
+                              setLogoDarkFile(null);
+                              setLogoDraftPair(null);
                               setLogoError("");
+                              setLogoGeneratorKey((key) => key + 1);
                             }}
                             className="min-h-10 text-xs text-[#6B7280] active:opacity-70"
                           >

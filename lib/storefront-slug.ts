@@ -93,6 +93,7 @@ function localTenantFallback(hostname: string): TenantContext | null {
     branding: {
       displayName: display,
       logoUrl: null,
+      logoDarkUrl: null,
       faviconUrl: null,
       primaryColor: null,
       accentColor: null,
