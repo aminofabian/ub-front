@@ -8,6 +8,7 @@ import {
   Package,
   ShoppingCart,
   Store,
+  Truck,
   Users,
 } from "lucide-react";
 
@@ -59,6 +60,13 @@ export function PostSetupChecklist({
         : "Name them, set a price, say how many you have.",
       icon: Package,
       done: stocked,
+    },
+    {
+      href: `${APP_ROUTES.suppliers}?onboarding=create-supplier`,
+      label: "Add a supplier",
+      desc: "Name and phone are enough. Receive stock from them later.",
+      icon: Truck,
+      done: false,
     },
     {
       href: APP_ROUTES.businessSettings,
@@ -115,7 +123,7 @@ export function PostSetupChecklist({
             key={item.href + item.label}
             href={item.href}
             className={cn(
-              "flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-[#ffffff]",
+              "flex min-h-12 items-center gap-2.5 px-3 py-3 transition-colors hover:bg-[#ffffff] sm:min-h-0 sm:py-2.5",
               item.done && "opacity-60",
             )}
           >

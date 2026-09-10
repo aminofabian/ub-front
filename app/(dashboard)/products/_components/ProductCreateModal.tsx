@@ -136,7 +136,7 @@ function matchCategoryIdByName(
 }
 
 const fieldClass = cn(
-  "h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-3 text-[14px] text-[var(--catalog-ink,#15231f)] shadow-none",
+  "h-12 w-full rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-3 text-base text-[var(--catalog-ink,#15231f)] shadow-none sm:h-10 sm:rounded-none sm:text-[14px]",
   "placeholder:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)]",
   "focus-visible:border-[var(--catalog-ink,#15231f)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_28%,transparent)]",
   "disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_80%,transparent)]",
@@ -183,12 +183,12 @@ function QtyStepper({
   const safe = Number.isFinite(qty) && qty >= 0 ? qty : 0;
 
   return (
-    <div className="flex h-10 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white">
+    <div className="flex h-12 overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white sm:h-10 sm:rounded-none">
       <button
         type="button"
         disabled={disabled || safe <= 0}
         onClick={() => onChange(safe <= 1 ? "" : String(safe - 1))}
-        className="flex w-11 shrink-0 items-center justify-center text-[var(--catalog-ink,#15231f)] transition-transform duration-150 ease-out enabled:active:scale-[0.97] disabled:opacity-30"
+        className="flex w-12 shrink-0 items-center justify-center text-[var(--catalog-ink,#15231f)] transition-transform duration-150 ease-out enabled:active:scale-[0.97] disabled:opacity-30 sm:w-11"
         aria-label="Fewer items"
       >
         <Minus className="size-4" aria-hidden />
@@ -209,7 +209,7 @@ function QtyStepper({
         type="button"
         disabled={disabled}
         onClick={() => onChange(String(safe + 1))}
-        className="flex w-11 shrink-0 items-center justify-center text-[var(--catalog-ink,#15231f)] transition-transform duration-150 ease-out enabled:active:scale-[0.97] disabled:opacity-30"
+        className="flex w-12 shrink-0 items-center justify-center text-[var(--catalog-ink,#15231f)] transition-transform duration-150 ease-out enabled:active:scale-[0.97] disabled:opacity-30 sm:w-11"
         aria-label="More items"
       >
         <Plus className="size-4" aria-hidden />
@@ -244,6 +244,11 @@ export function ProductCreateModal({
   const [keepOpen, setKeepOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [desktop, setDesktop] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(min-width: 640px)").matches
+      : true,
+  );
   const [photoOver, setPhotoOver] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [stamp, setStamp] = useState(0);
@@ -259,6 +264,13 @@ export function ProductCreateModal({
   const categoryCreate = useInlineCategoryCreate(catalog.upsertCategory);
   const departmentCreate = useInlineItemTypeCreate(catalog.upsertItemType);
   const aisleCreate = useInlineAisleCreate(catalog.upsertAisle);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const sync = () => setDesktop(mq.matches);
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -592,16 +604,24 @@ export function ProductCreateModal({
       }}
     >
       <DialogContent
-        side="right"
+        side={desktop ? "right" : "bottom"}
+        showCloseButton={desktop}
         data-onboarding-target={ONBOARDING_TARGETS.productsDrawer}
         style={PRODUCTS_CATALOG_VARS}
         overlayClassName="bg-black/40 supports-[backdrop-filter]:backdrop-blur-[2px]"
         className={cn(
           styles.root,
-          "gap-0 overflow-hidden p-0 sm:rounded-none",
-          "w-[min(100%,60rem)] max-w-[60rem]",
+          "gap-0 overflow-hidden p-0",
+          desktop
+            ? "w-[min(100%,60rem)] max-w-[60rem] sm:rounded-none"
+            : "max-h-[min(92dvh,44rem)] rounded-t-[1.25rem] bg-[#FBF9F5]",
         )}
       >
+        {!desktop ? (
+          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-[#D1D5DB]" />
+          </div>
+        ) : null}
         <form
           id="create-parent-form"
           className="flex h-full min-h-0 flex-col overflow-hidden"
@@ -882,7 +902,7 @@ export function ProductCreateModal({
 
               {!isGroup ? (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <FieldLabel htmlFor="create-selling-price">
                         Selling price
@@ -975,10 +995,10 @@ export function ProductCreateModal({
                       <FieldLabel htmlFor="create-barcode" hint="Optional">
                         Barcode
                       </FieldLabel>
-                      <div className="flex overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white">
+                      <div className="flex overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white sm:rounded-none">
                         <input
                           id="create-barcode"
-                          className="h-10 min-w-0 flex-1 border-0 bg-transparent px-3 font-mono text-[13px] text-[var(--catalog-ink,#15231f)] outline-none placeholder:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)]"
+                          className="h-12 min-w-0 flex-1 border-0 bg-transparent px-3 font-mono text-base text-[var(--catalog-ink,#15231f)] outline-none placeholder:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)] sm:h-10 sm:text-[13px]"
                           placeholder="Type or scan"
                           value={m.parentDraft.barcode}
                           onChange={(e) =>
@@ -991,7 +1011,7 @@ export function ProductCreateModal({
                         <button
                           type="button"
                           onClick={() => setScannerOpen(true)}
-                          className="flex w-11 shrink-0 items-center justify-center border-l border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)] hover:text-[var(--catalog-ink,#15231f)]"
+                          className="flex w-12 shrink-0 items-center justify-center border-l border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)] hover:text-[var(--catalog-ink,#15231f)] sm:w-11"
                           aria-label="Scan barcode with camera"
                         >
                           <ScanBarcode className="size-4" aria-hidden />
@@ -1365,7 +1385,7 @@ export function ProductCreateModal({
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 gap-2 border-t border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-white px-4 py-3 sm:justify-between">
+          <DialogFooter className="shrink-0 flex-col-reverse gap-2 border-t border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-between sm:pb-3">
             <button
               type="button"
               role="switch"
@@ -1378,11 +1398,11 @@ export function ProductCreateModal({
               <span className={styles.keepDot} aria-hidden />
               Keep adding
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <Button
                 type="button"
                 variant="ghost"
-                className="h-9 px-3 text-[13px]"
+                className="h-12 px-3 text-[13px] sm:h-9"
                 onClick={onClose}
                 disabled={m.parentCreateBusy}
               >
@@ -1398,7 +1418,7 @@ export function ProductCreateModal({
                 data-armed={canArm ? "true" : "false"}
                 data-busy={m.parentCreateBusy ? "true" : undefined}
                 data-stamp={canArm && stamp > 0 ? stamp : undefined}
-                className={styles.create}
+                className={cn(styles.create, "flex-1 sm:w-auto sm:flex-none")}
               >
                 {m.parentCreateBusy
                   ? "Saving…"

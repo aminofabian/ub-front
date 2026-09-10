@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Store } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -280,34 +280,36 @@ function SignupPageContent() {
 
       {/* Always-visible onboarding CTA — no need to fail first */}
       {!showOnboarding ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--auth-accent)_33%,transparent)] bg-[color-mix(in_srgb,var(--auth-accent)_4%,white)] p-4 backdrop-blur-sm dark:bg-[color-mix(in_srgb,var(--auth-accent)_7%,#18181b)]">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-              style={{
-                backgroundColor: "var(--auth-accent)",
-                color: "var(--auth-accent-ink)",
-              }}
-            >
-              🏪
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-foreground">
-                Don&apos;t have a business yet?
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                Create your shop now and get a free subdomain to start selling.
-              </p>
+        <div className="mt-6 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--auth-accent)_33%,transparent)] bg-[color-mix(in_srgb,var(--auth-accent)_4%,white)] p-4 dark:bg-[color-mix(in_srgb,var(--auth-accent)_7%,#18181b)]">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <div
+                className="flex size-10 shrink-0 items-center justify-center rounded-2xl"
+                style={{
+                  backgroundColor: "var(--auth-accent)",
+                  color: "var(--auth-accent-ink)",
+                }}
+              >
+                <Store className="size-5" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  Don&apos;t have a business yet?
+                </p>
+                <p className="text-[13px] text-muted-foreground">
+                  Create your shop now and get a free subdomain to start selling.
+                </p>
+              </div>
             </div>
             <button
               type="button"
-              className="shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--auth-accent)_35%,transparent)] px-3 py-2 text-xs font-semibold text-[var(--auth-accent)] transition hover:bg-[color-mix(in_srgb,var(--auth-accent)_10%,transparent)]"
+              className="h-11 w-full shrink-0 rounded-2xl border border-[color-mix(in_srgb,var(--auth-accent)_35%,transparent)] px-4 text-sm font-semibold text-[var(--auth-accent)] transition hover:bg-[color-mix(in_srgb,var(--auth-accent)_10%,transparent)] sm:h-10 sm:w-auto sm:rounded-xl sm:px-3 sm:text-xs"
               onClick={() => {
                 setShowOnboarding(true);
                 setErrorMessage("");
               }}
             >
-              Create your shop →
+              Create your shop
             </button>
           </div>
         </div>

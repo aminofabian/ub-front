@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 /** Shared input chrome for auth split + simple auth pages. */
 export const authInputClassName = cn(
-  "w-full rounded-lg border px-4 py-3 text-[15px] outline-none",
+  "w-full min-h-12 rounded-2xl border px-4 py-3 text-base outline-none sm:min-h-11 sm:rounded-lg sm:text-[15px]",
   "transition-[border-color,box-shadow] duration-200 ease-out",
   "border-black/[0.1] bg-white text-foreground placeholder:text-muted-foreground/60",
   "focus-visible:border-[var(--auth-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--auth-primary)_18%,transparent)]",
@@ -306,7 +306,7 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
 
   return (
     <div
-      className="relative flex min-h-[100dvh] min-h-screen items-start justify-center overflow-x-hidden overflow-y-auto px-4 py-8 sm:items-center sm:px-6 sm:py-12"
+      className="relative flex min-h-[100dvh] items-start justify-center overflow-x-hidden overflow-y-auto px-0 py-0 sm:items-center sm:px-6 sm:py-12"
       style={style}
     >
       {/* Ambient brand field — soft, not decorative grid noise */}
@@ -323,15 +323,16 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
 
       <div
         className={cn(
-          "relative z-10 my-auto grid w-full max-w-[980px] overflow-hidden rounded-2xl border",
-          "border-black/[0.08] bg-white dark:border-white/12 dark:bg-zinc-900",
-          "min-h-0 sm:min-h-[min(100dvh-3rem,720px)] lg:min-h-[620px] lg:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)]",
-          "shadow-[0_24px_48px_-20px_rgba(15,23,42,0.18)]",
+          "relative z-10 my-auto grid w-full overflow-hidden",
+          "min-h-[100dvh] rounded-none border-0 bg-transparent shadow-none",
+          "sm:min-h-[min(100dvh-3rem,720px)] sm:max-w-[980px] sm:rounded-2xl sm:border sm:border-black/[0.08] sm:bg-white sm:shadow-[0_24px_48px_-20px_rgba(15,23,42,0.18)]",
+          "dark:sm:border-white/12 dark:sm:bg-zinc-900",
+          "lg:min-h-[620px] lg:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)]",
         )}
         style={style}
       >
         {/* Left — form rail */}
-        <div className="relative flex min-h-0 flex-col justify-start px-7 py-10 sm:justify-center sm:px-10 sm:py-12 lg:px-11">
+        <div className="relative flex min-h-0 flex-col justify-start px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] sm:justify-center sm:px-10 sm:py-12 lg:px-11">
           <AuthMasthead
             brand={brand}
             logoUrl={logoUrl}

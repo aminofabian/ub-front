@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -11,7 +12,6 @@ import {
   Tag,
   Warehouse,
 } from "lucide-react";
-import type { ReactNode } from "react";
 
 import {
   Dialog,
@@ -32,19 +32,39 @@ import { cn } from "@/lib/utils";
  */
 export function ProductGuideDrawer({ trigger }: { trigger?: ReactNode }) {
   const guideUrl = helpHostUrl(APP_ROUTES.helpAddProducts);
+  const [desktop, setDesktop] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(min-width: 640px)").matches
+      : false,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const sync = () => setDesktop(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent side="right" className="gap-0 p-0">
-        <div className="flex flex-col overflow-y-auto p-5 pb-6">
-          <DialogHeader className="pr-10">
-            <p className="font-mono text-[10px] font-semibold tracking-[-0.02em] text-primary/70">
-              Two-minute summary
-            </p>
-            <DialogTitle className="pt-1 text-lg">
-              How to add products
-            </DialogTitle>
+      <DialogContent
+        side={desktop ? "right" : "bottom"}
+        showCloseButton={desktop}
+        className={cn(
+          "gap-0 p-0",
+          !desktop && "max-h-[min(92dvh,40rem)] rounded-t-[1.25rem] bg-[#FBF9F5]",
+        )}
+      >
+        {!desktop ? (
+          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-[#D1D5DB]" />
+          </div>
+        ) : null}
+        <div className="flex min-h-0 flex-col overflow-y-auto p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <DialogHeader className={desktop ? "pr-10" : undefined}>
+            <DialogTitle className="text-lg">How to add products</DialogTitle>
             <DialogDescription>
               Pick the right product type, fill the essentials, and you are
               selling. The full guide with screenshots is one tap away.
@@ -120,7 +140,7 @@ export function ProductGuideDrawer({ trigger }: { trigger?: ReactNode }) {
             href={guideUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="group mt-6 inline-flex items-center justify-center gap-2 rounded-none bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="group mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:h-auto sm:rounded-none sm:py-2.5"
           >
             <BookOpen className="size-4" aria-hidden />
             Read the full step-by-step guide

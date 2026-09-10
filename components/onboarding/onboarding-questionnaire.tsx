@@ -1,6 +1,20 @@
 "use client";
 
-import { Check, ChevronLeft, MessageCircle, Package, Smartphone } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  Drumstick,
+  LayoutGrid,
+  Leaf,
+  MessageCircle,
+  Package,
+  ShoppingCart,
+  Sparkles,
+  Store,
+  Shapes,
+  Smartphone,
+  Wine,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { OnboardingBrandingColorPicker } from "@/components/onboarding/onboarding-branding-color-picker";
@@ -56,6 +70,48 @@ import { findSelfServeCountry } from "@/lib/selfserve-countries";
 
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 const ACCEPTED_LOGO_TYPES = "image/png,image/jpeg,image/webp,image/svg+xml";
+
+const STORE_TYPE_ICONS: Record<
+  StoreTypeChoice,
+  typeof Store
+> = {
+  butchery: Drumstick,
+  "mini-mart": Store,
+  "full-grocery": ShoppingCart,
+  "fresh-market": Leaf,
+  "mixed-shop": LayoutGrid,
+  cosmetics: Sparkles,
+  "wines-spirits": Wine,
+  other: Shapes,
+};
+
+const FIELD_CLASS =
+  "h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-base text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:rounded-xl sm:text-[15px]";
+
+function useKeyboardInset() {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      return;
+    }
+    const update = () => {
+      const overlap = Math.max(
+        0,
+        window.innerHeight - viewport.height - viewport.offsetTop,
+      );
+      setInset(overlap > 48 ? overlap : 0);
+    };
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, []);
+  return inset;
+}
 
 type Props = {
   step: number;
@@ -158,14 +214,14 @@ function OptionButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full rounded-none border text-left transition-[border-color,background-color,transform,box-shadow]",
+        "w-full rounded-2xl border text-left transition-[border-color,background-color,transform,box-shadow] sm:rounded-xl",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]/40",
         "active:scale-[0.985] touch-manipulation",
         compact
           ? "min-h-14 px-3 py-3 text-[14px] sm:min-h-[3.25rem] sm:px-4 sm:text-[15px]"
           : "min-h-[3.25rem] px-4 py-3.5 text-[15px]",
         selected
-          ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A] shadow-[0_1px_0_0_rgba(13,148,136,0.12)]"
+          ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A] shadow-[0_8px_20px_-16px_rgba(13,148,136,0.7)]"
           : "border-[#E5E7EB] bg-white text-[#4B5563] hover:border-[#D1D5DB] hover:bg-[#FAFAFA]",
       )}
     >
@@ -183,8 +239,8 @@ function ShopLinePreview({
 }) {
   const who = shopName.trim() || "the shop";
   return (
-    <div className="mx-auto w-full max-w-[280px]">
-      <div className="overflow-hidden rounded-[2rem] border border-[#1F2937] bg-[#111827] shadow-[0_24px_48px_-28px_rgba(17,24,39,0.85)]">
+    <div className="mx-auto w-full max-w-[240px] sm:max-w-[280px]">
+      <div className="overflow-hidden rounded-[1.75rem] border border-[#1F2937] bg-[#111827] shadow-[0_24px_48px_-28px_rgba(17,24,39,0.85)] sm:rounded-[2rem]">
         <div className="flex items-center justify-center pt-2">
           <span className="h-1.5 w-16 rounded-full bg-[#374151]" />
         </div>
@@ -243,7 +299,7 @@ function DepartmentChip({
       type="button"
       onClick={onToggle}
       className={cn(
-        "inline-flex min-h-10 items-center gap-1.5 rounded-none border px-3.5 py-2 text-sm transition-[border-color,background-color,transform] touch-manipulation active:scale-[0.97]",
+        "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition-[border-color,background-color,transform] touch-manipulation active:scale-[0.97]",
         selected
           ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A]"
           : "border-[#E5E7EB] bg-white text-[#4B5563] hover:border-[#D1D5DB]",
@@ -263,11 +319,11 @@ function StepHeading({
   description: ReactNode;
 }) {
   return (
-    <div className="space-y-2 text-left">
-      <h1 className="text-[1.375rem] font-semibold tracking-tight text-[#1F2937] sm:text-2xl sm:text-center">
+    <div className="space-y-1.5 text-left sm:space-y-2">
+      <h1 className="text-[1.5rem] font-semibold leading-[1.15] tracking-tight text-[#1F2937] sm:text-center sm:text-2xl">
         {title}
       </h1>
-      <p className="text-[15px] leading-relaxed text-[#6B7280] sm:text-center sm:text-sm">
+      <p className="max-w-[36ch] text-[15px] leading-relaxed text-[#6B7280] sm:mx-auto sm:text-center sm:text-sm">
         {description}
       </p>
     </div>
@@ -698,17 +754,44 @@ export function OnboardingQuestionnaire({
         );
 
   const scrollRef = useRef<HTMLElement | null>(null);
+  const themeStripRef = useRef<HTMLDivElement | null>(null);
+  const keyboardInset = useKeyboardInset();
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
 
+  useEffect(() => {
+    if (step !== 5) {
+      return;
+    }
+    const selectedEl = themeStripRef.current?.querySelector(
+      `[data-theme-id="${selectedThemeId}"]`,
+    );
+    selectedEl?.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+      behavior: "smooth",
+    });
+  }, [step, selectedThemeId]);
+
   const primaryCtaClass = cn(
     "flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold transition touch-manipulation active:scale-[0.985] sm:rounded-xl",
   );
 
+  const shellStyle =
+    keyboardInset > 0
+      ? {
+          height: `calc(100dvh - ${keyboardInset}px)`,
+          maxHeight: `calc(100dvh - ${keyboardInset}px)`,
+        }
+      : undefined;
+
   return (
-    <div className="relative flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#FBF9F5] text-[#1F2937]">
+    <div
+      className="relative flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#FBF9F5] text-[#1F2937]"
+      style={shellStyle}
+    >
       <div
         className="pointer-events-none absolute inset-0 overflow-hidden"
         aria-hidden
@@ -719,46 +802,46 @@ export function OnboardingQuestionnaire({
       </div>
 
       <header className="relative z-20 shrink-0 border-b border-[#E8E4DC]/80 bg-[#FBF9F5]/92 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md sm:px-6">
-        <div className="mx-auto flex w-full max-w-lg items-center gap-3">
-          {step > 1 && step < QUESTIONNAIRE_STEP_COUNT ? (
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={submitting}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-none border border-[#E5E7EB] bg-white text-[#374151] shadow-sm transition active:scale-95 disabled:opacity-50 sm:hidden"
-              aria-label="Back"
-            >
-              <ChevronLeft className="size-5" aria-hidden />
-            </button>
-          ) : (
-            <span className="size-10 shrink-0 sm:hidden" aria-hidden />
-          )}
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-2 sm:items-stretch">
-            <div className="flex w-full items-center justify-center gap-2.5 sm:justify-between">
-              <KioskLogoMark size={36} variant="auth" className="sm:hidden" />
+        <div className="mx-auto w-full max-w-lg space-y-2.5">
+          <div className="flex items-center gap-2 sm:justify-between">
+            {step > 1 && step < QUESTIONNAIRE_STEP_COUNT ? (
+              <button
+                type="button"
+                onClick={onBack}
+                disabled={submitting}
+                className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#374151] shadow-sm transition active:scale-95 disabled:opacity-50 sm:hidden"
+                aria-label="Back"
+              >
+                <ChevronLeft className="size-5" aria-hidden />
+              </button>
+            ) : (
+              <span className="size-11 shrink-0 sm:hidden" aria-hidden />
+            )}
+            <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-between">
+              <KioskLogoMark size={32} variant="auth" className="sm:hidden" />
               <KioskLogoMark size={40} variant="auth" className="hidden sm:block" />
               {countryCode || currency ? (
-                <p className="hidden border border-[#E5E7EB] bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[#6B7280] sm:inline-flex">
+                <p className="hidden rounded-full border border-[#E5E7EB] bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[#6B7280] sm:inline-flex">
                   {[countryCode?.toUpperCase(), currency?.toUpperCase()]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
               ) : null}
             </div>
-            <QuestionnaireProgress step={step} />
+            {step === QUESTIONNAIRE_PHONE_STEP ? (
+              <span className="inline-flex size-11 shrink-0 sm:hidden" aria-hidden />
+            ) : (
+              <button
+                type="button"
+                onClick={step === QUESTIONNAIRE_STEP_COUNT ? onFinishLater : onSkip}
+                disabled={submitting}
+                className="inline-flex h-11 shrink-0 items-center justify-center rounded-2xl px-2 text-xs font-medium text-[#6B7280] transition active:scale-95 disabled:opacity-40 sm:hidden"
+              >
+                Skip
+              </button>
+            )}
           </div>
-          {step === QUESTIONNAIRE_PHONE_STEP ? (
-            <span className="inline-flex h-10 w-[3.25rem] shrink-0 sm:hidden" aria-hidden />
-          ) : (
-            <button
-              type="button"
-              onClick={step === QUESTIONNAIRE_STEP_COUNT ? onFinishLater : onSkip}
-              disabled={submitting}
-              className="inline-flex h-10 shrink-0 items-center justify-center px-2 text-xs font-medium text-[#6B7280] transition active:scale-95 disabled:opacity-40 sm:hidden"
-            >
-              Skip
-            </button>
-          )}
+          <QuestionnaireProgress step={step} />
         </div>
       </header>
 
@@ -775,9 +858,42 @@ export function OnboardingQuestionnaire({
               <>
                 <StepHeading
                   title="Your shop locations"
-                  description="How many branches do you have, and what do you call each one?"
+                  description="Each location gets its own stock and sales. You can rename them anytime."
                 />
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-1 sm:gap-2.5">
+                <div className="grid grid-cols-5 gap-1.5 sm:hidden">
+                  {BRANCH_COUNT_OPTIONS.map((opt) => {
+                    const countLabel =
+                      opt.value === "5plus" ? "5+" : opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setBranchCount(opt.value)}
+                        className={cn(
+                          "flex h-16 flex-col items-center justify-center rounded-2xl border transition touch-manipulation active:scale-[0.97]",
+                          branchCount === opt.value
+                            ? "border-[#0D9488] bg-[#0D9488] text-white shadow-[0_8px_18px_-12px_rgba(13,148,136,0.8)]"
+                            : "border-[#E5E7EB] bg-white text-[#4B5563]",
+                        )}
+                      >
+                        <span className="text-lg font-semibold tabular-nums leading-none">
+                          {countLabel}
+                        </span>
+                        <span
+                          className={cn(
+                            "mt-1 text-[10px]",
+                            branchCount === opt.value
+                              ? "text-white/80"
+                              : "text-[#9CA3AF]",
+                          )}
+                        >
+                          {opt.value === "1" ? "shop" : "shops"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="hidden grid-cols-1 gap-2.5 sm:grid">
                   {BRANCH_COUNT_OPTIONS.map((opt) => (
                     <OptionButton
                       key={opt.value}
@@ -785,14 +901,12 @@ export function OnboardingQuestionnaire({
                       selected={branchCount === opt.value}
                       onClick={() => setBranchCount(opt.value)}
                     >
-                      <span className="block text-center font-medium sm:text-left">
-                        {opt.label}
-                      </span>
+                      <span className="block font-medium">{opt.label}</span>
                     </OptionButton>
                   ))}
                 </div>
                 {branchSlots > 0 ? (
-                  <div className="space-y-3 border border-[#E8E4DC] bg-white/80 p-3.5 sm:border-0 sm:bg-transparent sm:p-0 sm:pt-2">
+                  <div className="space-y-3 rounded-2xl border border-[#E8E4DC] bg-white/80 p-3.5 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:pt-2">
                     <p className="text-xs font-medium text-[#6B7280]">
                       Name each branch (area or suburb)
                     </p>
@@ -806,10 +920,10 @@ export function OnboardingQuestionnaire({
                           <span className="mb-1.5 flex items-baseline justify-between gap-2 text-xs font-medium text-[#6B7280]">
                             <span>Branch {index + 1}</span>
                             <span className="truncate font-normal text-[#9CA3AF]">
-                              → {preview}
+                              {preview}
                             </span>
                           </span>
-                          <div className="flex h-12 items-center overflow-hidden rounded-none border border-[#E5E7EB] bg-white focus-within:border-[#0D9488] focus-within:ring-2 focus-within:ring-[#0D9488]/20">
+                          <div className="flex h-12 items-center overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white focus-within:border-[#0D9488] focus-within:ring-2 focus-within:ring-[#0D9488]/20 sm:rounded-xl">
                             <input
                               type="text"
                               value={locality}
@@ -830,7 +944,7 @@ export function OnboardingQuestionnaire({
                               autoComplete="address-level2"
                               enterKeyHint="next"
                             />
-                            <span className="shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#6B7280]">
+                            <span className="hidden shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#6B7280] sm:inline">
                               branch
                             </span>
                           </div>
@@ -863,7 +977,40 @@ export function OnboardingQuestionnaire({
                     </>
                   }
                 />
-                <div className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-2.5 sm:hidden">
+                  {STORE_TYPE_OPTIONS.map((opt) => {
+                    const Icon = STORE_TYPE_ICONS[opt.value];
+                    const selected = storeTypes.includes(opt.value);
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => toggleStoreType(opt.value)}
+                        className={cn(
+                          "flex min-h-[5.5rem] flex-col items-start gap-2 rounded-2xl border p-3 text-left transition touch-manipulation active:scale-[0.98]",
+                          selected
+                            ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A]"
+                            : "border-[#E5E7EB] bg-white text-[#4B5563]",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "flex size-9 items-center justify-center rounded-xl",
+                            selected
+                              ? "bg-[#0D9488] text-white"
+                              : "bg-[#F3F4F6] text-[#0D9488]",
+                          )}
+                        >
+                          <Icon className="size-4" aria-hidden />
+                        </span>
+                        <span className="text-sm font-semibold leading-tight">
+                          {opt.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="hidden space-y-2.5 sm:block">
                   {STORE_TYPE_OPTIONS.map((opt) => (
                     <OptionButton
                       key={opt.value}
@@ -879,7 +1026,7 @@ export function OnboardingQuestionnaire({
                         </span>
                         <span
                           className={cn(
-                            "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-none border transition",
+                            "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition",
                             storeTypes.includes(opt.value)
                               ? "border-[#0D9488] bg-[#0D9488] text-white"
                               : "border-[#D1D5DB] bg-white",
@@ -977,14 +1124,14 @@ export function OnboardingQuestionnaire({
                           addCustomDepartment();
                         }
                       }}
-                      className="h-12 min-w-0 flex-1 rounded-none border border-[#E5E7EB] bg-white px-3 text-base text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:h-10 sm:text-sm"
+                      className={cn(FIELD_CLASS, "min-w-0 flex-1")}
                       placeholder="e.g. Deli, Frozen Foods"
                       enterKeyHint="done"
                     />
                     <button
                       type="button"
                       onClick={addCustomDepartment}
-                      className="h-12 shrink-0 rounded-none border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-10"
+                      className="h-12 shrink-0 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-12 sm:rounded-xl"
                     >
                       Add
                     </button>
@@ -1039,7 +1186,7 @@ export function OnboardingQuestionnaire({
                       : "Pick a public page for your shop link. You can change it later."
                   }
                 />
-                <div className="mx-auto w-40">
+                <div className="mx-auto hidden w-40 sm:block">
                   <ThemeTryOnPhone
                     item={selectedThemeMeta}
                     kind={themeKind}
@@ -1049,13 +1196,15 @@ export function OnboardingQuestionnaire({
                     frame="card"
                   />
                 </div>
-                <p className="text-center text-sm font-semibold text-[#1F2937]">
+                <p className="hidden text-center text-sm font-semibold text-[#1F2937] sm:block">
                   {selectedThemeMeta.name}
                 </p>
                 <div
+                  ref={themeStripRef}
                   className={cn(
-                    "grid gap-2",
-                    seeAllThemes ? "grid-cols-2" : "grid-cols-3",
+                    "-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                    "sm:mx-0 sm:grid sm:overflow-visible sm:px-0 sm:pb-0",
+                    seeAllThemes ? "sm:grid-cols-2" : "sm:grid-cols-3",
                   )}
                 >
                   {onboardingVisibleThemes.map((item) => {
@@ -1064,6 +1213,7 @@ export function OnboardingQuestionnaire({
                       <button
                         key={item.id}
                         type="button"
+                        data-theme-id={item.id}
                         onClick={() => {
                           if (themeKind === "store") {
                             setStoreThemeId(item.id);
@@ -1075,9 +1225,9 @@ export function OnboardingQuestionnaire({
                           }
                         }}
                         className={cn(
-                          "overflow-hidden rounded-xl border text-left transition",
+                          "w-[42vw] max-w-[11.5rem] shrink-0 snap-center overflow-hidden rounded-2xl border text-left transition sm:w-auto sm:max-w-none sm:rounded-xl",
                           selected
-                            ? "border-[#1F2937] ring-1 ring-[#1F2937]"
+                            ? "border-[#0D9488] ring-2 ring-[#0D9488]/30 sm:border-[#1F2937] sm:ring-1 sm:ring-[#1F2937]"
                             : "border-[#E5E7EB] hover:border-[#9CA3AF]",
                         )}
                       >
@@ -1089,23 +1239,26 @@ export function OnboardingQuestionnaire({
                           size="sm"
                           frame="card"
                         />
-                        <span className="flex items-center justify-between gap-1 px-2 py-1.5">
-                          <span className="truncate text-[11px] font-semibold text-[#1F2937]">
+                        <span className="flex items-center justify-between gap-1 px-2 py-2">
+                          <span className="truncate text-[12px] font-semibold text-[#1F2937] sm:text-[11px]">
                             {item.name}
                           </span>
                           {selected ? (
-                            <Check className="size-3 shrink-0" aria-hidden />
+                            <Check className="size-3.5 shrink-0 text-[#0D9488] sm:size-3" aria-hidden />
                           ) : null}
                         </span>
                       </button>
                     );
                   })}
                 </div>
+                <p className="text-center text-sm font-semibold text-[#1F2937] sm:hidden">
+                  {selectedThemeMeta.name}
+                </p>
                 {!seeAllThemes ? (
                   <button
                     type="button"
                     onClick={() => setSeeAllThemes(true)}
-                    className="text-sm font-medium text-[#1F2937] underline underline-offset-2"
+                    className="min-h-11 text-sm font-medium text-[#1F2937] underline underline-offset-2"
                   >
                     See all {onboardingThemeItems.length} looks
                   </button>
@@ -1135,7 +1288,7 @@ export function OnboardingQuestionnaire({
                       type="text"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      className="h-12 w-full rounded-none border border-[#E5E7EB] bg-white px-4 text-base text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:text-[15px]"
+                      className={FIELD_CLASS}
                       placeholder={suggestedDisplayName || "Your shop name"}
                       autoComplete="organization"
                       enterKeyHint="done"
@@ -1187,7 +1340,7 @@ export function OnboardingQuestionnaire({
                     ) : null}
                   </div>
 
-                  <div className="rounded-none border border-dashed border-[#E5E7EB] bg-white/70 p-4">
+                  <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white/70 p-4 sm:rounded-xl">
                     <p className="mb-1 text-xs font-medium text-[#6B7280]">
                       Logo{" "}
                       <span className="font-normal text-[#9CA3AF]">
@@ -1219,7 +1372,7 @@ export function OnboardingQuestionnaire({
                           type="button"
                           disabled={submitting}
                           onClick={() => logoInputRef.current?.click()}
-                          className="h-11 rounded-none border border-[#E5E7EB] bg-white px-3 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-auto sm:py-2"
+                          className="h-11 rounded-2xl border border-[#E5E7EB] bg-white px-3 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-auto sm:rounded-xl sm:py-2"
                         >
                           {logoFile
                             ? "Replace logo"
@@ -1258,42 +1411,46 @@ export function OnboardingQuestionnaire({
                   title="This number is the shop"
                   description="Customers WhatsApp it. We text it when stock is low. M-Pesa and till alerts land here. Not a personal line you never check — the one that sits next to the till."
                 />
-                <ShopLinePreview
-                  shopName={displayName || businessName || ""}
-                  phoneLabel={ownerPhone.trim()}
-                />
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-medium text-[#6B7280]">
-                    Shop line
-                  </span>
-                  <div className="flex h-12 items-center overflow-hidden rounded-none border border-[#E5E7EB] bg-white focus-within:border-[#0D9488] focus-within:ring-2 focus-within:ring-[#0D9488]/20">
-                    <span className="shrink-0 border-r border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm font-medium tabular-nums text-[#374151]">
-                      {dialCode}
+                <div className="flex flex-col gap-5">
+                  <label className="order-1 block sm:order-2">
+                    <span className="mb-1.5 block text-xs font-medium text-[#6B7280]">
+                      Shop line
                     </span>
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      value={ownerPhone}
-                      onChange={(e) => setOwnerPhone(e.target.value)}
-                      className="min-w-0 flex-1 bg-transparent px-4 text-base tabular-nums text-[#1F2937] outline-none sm:text-[15px]"
-                      placeholder={
-                        countryCode?.toUpperCase() === "KE"
-                          ? "07XX XXX XXX"
-                          : "Your mobile number"
-                      }
-                      aria-label="Shop phone number"
-                      enterKeyHint="done"
+                    <div className="flex h-12 items-center overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white focus-within:border-[#0D9488] focus-within:ring-2 focus-within:ring-[#0D9488]/20 sm:rounded-xl">
+                      <span className="shrink-0 border-r border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm font-medium tabular-nums text-[#374151]">
+                        {dialCode}
+                      </span>
+                      <input
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        value={ownerPhone}
+                        onChange={(e) => setOwnerPhone(e.target.value)}
+                        className="min-w-0 flex-1 bg-transparent px-4 text-base tabular-nums text-[#1F2937] outline-none sm:text-[15px]"
+                        placeholder={
+                          countryCode?.toUpperCase() === "KE"
+                            ? "07XX XXX XXX"
+                            : "Your mobile number"
+                        }
+                        aria-label="Shop phone number"
+                        enterKeyHint="done"
+                      />
+                    </div>
+                  </label>
+                  <div className="order-2 sm:order-1">
+                    <ShopLinePreview
+                      shopName={displayName || businessName || ""}
+                      phoneLabel={ownerPhone.trim()}
                     />
                   </div>
-                </label>
-                <p className="text-xs text-[#9CA3AF]">
-                  {looksLikeOwnerPhone(ownerPhone, countryCode)
-                    ? "We’ll save this on your account and on the online shop’s WhatsApp button."
-                    : countryCode?.toUpperCase() === "KE"
-                      ? "Use a Kenyan mobile — 07… or 2547…"
-                      : "Enter a mobile number we can actually reach."}
-                </p>
+                  <p className="order-3 text-xs text-[#9CA3AF]">
+                    {looksLikeOwnerPhone(ownerPhone, countryCode)
+                      ? "We'll save this on your account and on the online shop's WhatsApp button."
+                      : countryCode?.toUpperCase() === "KE"
+                        ? "Use a Kenyan mobile — 07… or 2547…"
+                        : "Enter a mobile number we can actually reach."}
+                  </p>
+                </div>
               </>
             ) : null}
 
@@ -1328,7 +1485,7 @@ export function OnboardingQuestionnaire({
                             onProductSourceChange?.(opt.value);
                           }}
                           className={cn(
-                            "flex w-full flex-col items-start gap-0.5 rounded-none border px-4 py-3 text-left transition",
+                            "flex w-full flex-col items-start gap-0.5 rounded-2xl border px-4 py-3.5 text-left transition touch-manipulation active:scale-[0.99] sm:rounded-xl sm:py-3",
                             selected
                               ? "border-[#0D9488] bg-[#F0FDFA]"
                               : "border-[#E8E4DC] bg-white/90 hover:border-[#99F6E4]",
@@ -1344,8 +1501,8 @@ export function OnboardingQuestionnaire({
                   </div>
                 ) : null}
                 {catalogShellEmpty ? (
-                  <div className="space-y-3 rounded-none border border-[#E8E4DC] bg-white/90 p-4">
-                    <div className="flex size-12 items-center justify-center rounded-none bg-[#F3F4F6] text-[#9CA3AF]">
+                  <div className="space-y-3 rounded-2xl border border-[#E8E4DC] bg-white/90 p-4 sm:rounded-xl">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[#F3F4F6] text-[#9CA3AF]">
                       <Package className="size-6" aria-hidden />
                     </div>
                     <ul className="space-y-2.5 text-sm text-[#4B5563]">
@@ -1367,8 +1524,8 @@ export function OnboardingQuestionnaire({
                   </div>
                 ) : productSource === "spreadsheet" ||
                   productSource === "other_pos" ? (
-                  <div className="flex flex-col items-start gap-3 rounded-none border border-[#E8E4DC] bg-white/90 p-4">
-                    <div className="flex size-12 items-center justify-center rounded-none bg-[#F0FDFA] text-[#0D9488]">
+                  <div className="flex flex-col items-start gap-3 rounded-2xl border border-[#E8E4DC] bg-white/90 p-4 sm:rounded-xl">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[#F0FDFA] text-[#0D9488]">
                       <Package className="size-6" aria-hidden />
                     </div>
                     <p className="text-sm text-[#6B7280]">
@@ -1378,14 +1535,14 @@ export function OnboardingQuestionnaire({
                     </p>
                   </div>
                 ) : packLoading ? (
-                  <div className="rounded-none border border-[#E5E7EB] bg-white/90 px-4 py-10 text-center text-sm text-[#6B7280]">
+                  <div className="rounded-2xl border border-[#E5E7EB] bg-white/90 px-4 py-10 text-center text-sm text-[#6B7280] sm:rounded-xl">
                     Finding a pack for your shop…
                   </div>
                 ) : suggestedPack ? (
-                  <div className="overflow-hidden rounded-none border border-[#99F6E4]/80 bg-white shadow-[0_12px_40px_-28px_rgba(13,148,136,0.45)]">
+                  <div className="overflow-hidden rounded-2xl border border-[#99F6E4]/80 bg-white shadow-[0_12px_40px_-28px_rgba(13,148,136,0.45)] sm:rounded-xl">
                     <div className="bg-gradient-to-br from-[#F0FDFA] to-white px-4 pb-3 pt-4">
                       <div className="flex items-start gap-3">
-                        <div className="flex size-12 shrink-0 items-center justify-center rounded-none bg-[#0D9488] text-white shadow-sm">
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#0D9488] text-white shadow-sm">
                           <Package className="size-5" aria-hidden />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -1396,7 +1553,7 @@ export function OnboardingQuestionnaire({
                             Matched to your shop type
                           </p>
                         </div>
-                        <span className="shrink-0 rounded-none bg-[#CCFBF1] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[#0F766E]">
+                        <span className="shrink-0 rounded-full bg-[#CCFBF1] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[#0F766E]">
                           {suggestedPack.productCount} items
                         </span>
                       </div>
@@ -1410,14 +1567,14 @@ export function OnboardingQuestionnaire({
                           {suggestedPack.sampleNames.slice(0, 4).map((name) => (
                             <span
                               key={name}
-                              className="max-w-full truncate rounded-none bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#4B5563]"
+                              className="max-w-full truncate rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#4B5563]"
                             >
                               {name}
                             </span>
                           ))}
                           {suggestedPack.productCount >
                           suggestedPack.sampleNames.length ? (
-                            <span className="rounded-none bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#9CA3AF]">
+                            <span className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#9CA3AF]">
                               +
                               {suggestedPack.productCount -
                                 Math.min(4, suggestedPack.sampleNames.length)}{" "}
@@ -1454,8 +1611,8 @@ export function OnboardingQuestionnaire({
                     </div>
                   </div>
                 ) : productSource === "new" || !productSource ? (
-                  <div className="flex flex-col items-start gap-3 rounded-none border border-[#E8E4DC] bg-white/90 p-4">
-                    <div className="flex size-12 items-center justify-center rounded-none bg-[#F0FDFA] text-[#0D9488]">
+                  <div className="flex flex-col items-start gap-3 rounded-2xl border border-[#E8E4DC] bg-white/90 p-4 sm:rounded-xl">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[#F0FDFA] text-[#0D9488]">
                       <Package className="size-6" aria-hidden />
                     </div>
                     <p className="text-sm text-[#6B7280]">
@@ -1469,7 +1626,7 @@ export function OnboardingQuestionnaire({
 
           {errorMessage ? (
             <p
-              className="mt-4 rounded-none border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+              className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
               role="alert"
             >
               {errorMessage}

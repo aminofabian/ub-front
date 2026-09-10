@@ -442,7 +442,7 @@ function LoginPageContent() {
       {!tenant && !showOnboarding && !isOffice && !IS_DESKTOP ? (
         <button
           type="button"
-          className="mt-5 flex w-full items-center gap-3 rounded-lg border border-[var(--auth-accent)]/35 bg-[color-mix(in_srgb,var(--auth-accent)_6%,white)] px-4 py-3.5 text-left transition-[background-color,border-color] duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--auth-accent)_11%,white)] dark:bg-[color-mix(in_srgb,var(--auth-accent)_10%,#18181b)] dark:hover:bg-[color-mix(in_srgb,var(--auth-accent)_16%,#18181b)]"
+          className="mt-5 flex w-full items-center gap-3 rounded-2xl border border-[var(--auth-accent)]/35 bg-[color-mix(in_srgb,var(--auth-accent)_6%,white)] px-4 py-3.5 text-left transition-[background-color,border-color] duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--auth-accent)_11%,white)] dark:bg-[color-mix(in_srgb,var(--auth-accent)_10%,#18181b)] dark:hover:bg-[color-mix(in_srgb,var(--auth-accent)_16%,#18181b)]"
           onClick={() => {
             setShowOnboarding(true);
             setErrorMessage("");

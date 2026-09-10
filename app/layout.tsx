@@ -31,6 +31,9 @@ export async function generateViewport(): Promise<Viewport> {
   const fromBrand = themeColorFromTenant(tenant);
   return {
     themeColor: fromBrand ?? BRAND_THEME_COLOR,
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
   };
 }
 

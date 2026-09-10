@@ -180,7 +180,7 @@ export function SupDrawerFooter({
       <Button
         type="button"
         variant="outline"
-        className="h-9 rounded-none px-3"
+        className="h-12 w-full rounded-2xl px-3 sm:h-9 sm:w-auto sm:rounded-none"
         onClick={onCancel}
       >
         {cancelLabel}
@@ -191,7 +191,7 @@ export function SupDrawerFooter({
         <Button
           type="submit"
           form={submitForm}
-          className="h-9 gap-2 rounded-none px-4 font-semibold"
+          className="h-12 w-full gap-2 rounded-2xl px-4 font-semibold sm:h-9 sm:w-auto sm:rounded-none"
           disabled={submitDisabled}
         >
           {submitLabel}
@@ -257,10 +257,11 @@ export function SupFormTable({
     <table
       className={cn(
         "w-full border-collapse border-0 text-left text-xs",
+        "max-sm:block",
         className,
       )}
     >
-      <tbody>{children}</tbody>
+      <tbody className="max-sm:block">{children}</tbody>
     </table>
   );
 }
@@ -279,10 +280,14 @@ export function SupFormRow({
   labelClassName?: string;
 }) {
   return (
-    <tr>
+    <tr className="max-sm:flex max-sm:flex-col">
       <th
         scope="row"
-        className={cn(supKvLabel, "w-[38%] align-top", labelClassName)}
+        className={cn(
+          supKvLabel,
+          "w-[38%] align-top max-sm:w-full max-sm:px-3 max-sm:pb-0 max-sm:pt-3",
+          labelClassName,
+        )}
       >
         <span className={supKicker}>
           {label}
@@ -294,7 +299,9 @@ export function SupFormRow({
           </p>
         ) : null}
       </th>
-      <td className={cn(supKvValue, "p-0 align-top")}>{children}</td>
+      <td className={cn(supKvValue, "p-0 align-top max-sm:w-full max-sm:px-3 max-sm:pb-3")}>
+        {children}
+      </td>
     </tr>
   );
 }

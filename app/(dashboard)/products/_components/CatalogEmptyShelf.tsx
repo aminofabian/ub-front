@@ -38,7 +38,7 @@ export function CatalogEmptyShelf({
             onClick={onCreateNew}
             className={cn(
               "group relative w-full overflow-hidden text-left",
-              "rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-white",
+              "rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-white sm:rounded-none",
               "shadow-[0_1px_0_color-mix(in_srgb,var(--catalog-ink,#15231f)_6%,transparent),0_14px_36px_-20px_color-mix(in_srgb,var(--catalog-ink,#15231f)_28%,transparent)]",
               "transition-[transform,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
               "hover:-translate-y-px hover:shadow-[0_1px_0_color-mix(in_srgb,var(--catalog-ink,#15231f)_6%,transparent),0_18px_40px_-18px_color-mix(in_srgb,var(--catalog-ink,#15231f)_32%,transparent)]",
@@ -47,7 +47,7 @@ export function CatalogEmptyShelf({
             )}
           >
             <span className="block p-4 pb-3.5">
-              <span className="flex aspect-[16/9] w-full flex-col items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_18%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_88%,white)]">
+              <span className="flex aspect-[16/9] w-full flex-col items-center justify-center rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_18%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_88%,white)] sm:rounded-none">
                 <ImagePlus
                   className="size-6 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]"
                   aria-hidden
@@ -61,17 +61,17 @@ export function CatalogEmptyShelf({
                 <span className="block text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
                   Product name
                 </span>
-                <span className="mt-1 block h-10 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-3 text-[14px] leading-10 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
+                <span className="mt-1 block h-12 rounded-2xl bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-3 text-[14px] leading-[3rem] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)] sm:h-10 sm:rounded-none sm:leading-10">
                   e.g. Brookside 500ml
                 </span>
               </span>
 
-              <span className="mt-2.5 grid grid-cols-2 gap-2">
+              <span className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <span>
                   <span className="block text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
                     Buying price
                   </span>
-                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 text-[12px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
+                  <span className="mt-1 block h-12 rounded-2xl bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 text-[13px] leading-[3rem] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)] sm:h-9 sm:rounded-none sm:text-[12px] sm:leading-9">
                     What you paid
                   </span>
                 </span>
@@ -79,18 +79,18 @@ export function CatalogEmptyShelf({
                   <span className="block text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
                     Selling price
                   </span>
-                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 text-[12px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
+                  <span className="mt-1 block h-12 rounded-2xl bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 text-[13px] leading-[3rem] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)] sm:h-9 sm:rounded-none sm:text-[12px] sm:leading-9">
                     What you charge
                   </span>
                 </span>
               </span>
 
-              <span className="mt-2.5 grid grid-cols-2 gap-2">
+              <span className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <span>
                   <span className="block text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
                     Barcode
                   </span>
-                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 font-mono text-[11px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
+                  <span className="mt-1 block h-12 rounded-2xl bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 font-mono text-[13px] leading-[3rem] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)] sm:h-9 sm:rounded-none sm:text-[11px] sm:leading-9">
                     Scan or type
                   </span>
                 </span>
@@ -98,14 +98,14 @@ export function CatalogEmptyShelf({
                   <span className="block text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
                     Number of items
                   </span>
-                  <span className="mt-1 block h-9 rounded-none bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 text-[12px] leading-9 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)]">
+                  <span className="mt-1 block h-12 rounded-2xl bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_92%,white)] px-2.5 text-[13px] leading-[3rem] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_36%,transparent)] sm:h-9 sm:rounded-none sm:text-[12px] sm:leading-9">
                     On the shelf
                   </span>
                 </span>
               </span>
             </span>
 
-            <span className="flex items-center justify-center gap-1.5 border-t border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-[var(--catalog-ink,#15231f)] px-4 py-3 text-[14px] font-medium text-white">
+            <span className="flex min-h-12 items-center justify-center gap-1.5 border-t border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-[var(--catalog-ink,#15231f)] px-4 py-3.5 text-[15px] font-medium text-white sm:min-h-0 sm:py-3 sm:text-[14px]">
               <Plus className="size-4" aria-hidden />
               Add your first product
             </span>

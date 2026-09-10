@@ -23,6 +23,8 @@ const APP_PATH_PREFIXES = [
   "/auth",
   "/login",
   "/signup",
+  "/dev",
+  "/verify-email",
   // Ops / install
   "/_status",
   "/setup",

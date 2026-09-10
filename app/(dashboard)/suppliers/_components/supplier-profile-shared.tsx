@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -121,6 +121,9 @@ export function SupplierProfileFields({
   mode?: "full" | "create";
   slotAfterIdentity?: ReactNode;
 }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const showRest = mode !== "create" || moreOpen;
+
   return (
     <div>
       <SupFormSection
@@ -163,19 +166,23 @@ export function SupplierProfileFields({
                   maxLength={255}
                 />
               </SupFormRow>
-              <SupFormRow label="Contact person">
-                <input
-                  className={supFormCellInput}
-                  value={draft.contactName}
-                  onChange={(e) =>
-                    onDraftChange({ contactName: e.target.value })
-                  }
-                  placeholder="Optional — saved as primary contact after create"
-                  maxLength={255}
-                />
-              </SupFormRow>
             </>
           ) : null}
+          {showRest ? (
+            <>
+              {mode === "create" ? (
+                <SupFormRow label="Contact person">
+                  <input
+                    className={supFormCellInput}
+                    value={draft.contactName}
+                    onChange={(e) =>
+                      onDraftChange({ contactName: e.target.value })
+                    }
+                    placeholder="Optional — saved as primary contact after create"
+                    maxLength={255}
+                  />
+                </SupFormRow>
+              ) : null}
           <SupFormRow label="Vendor code">
             <input
               className={supFormCellInput}
@@ -220,11 +227,27 @@ export function SupplierProfileFields({
               maxLength={5000}
             />
           </SupFormRow>
+            </>
+          ) : null}
         </SupFormTable>
       </SupFormSection>
 
       {slotAfterIdentity}
 
+      {mode === "create" ? (
+        <button
+          type="button"
+          onClick={() => setMoreOpen((value) => !value)}
+          className="flex min-h-11 w-full items-center justify-between rounded-2xl border border-[#E8E4DC] bg-white px-3.5 text-sm font-medium text-[#0D9488] sm:min-h-9 sm:rounded-none"
+        >
+          {moreOpen ? "Hide extra details" : "More details"}
+          <span className="text-xs font-normal text-[#6B7280]">
+            VAT, credit, payout
+          </span>
+        </button>
+      ) : null}
+
+      {showRest ? (
       <SupFormSection
         title="Commercial & payments"
         hint="Credit, tax, and how you settle invoices with this supplier."
@@ -406,6 +429,7 @@ export function SupplierProfileFields({
           ) : null}
         </SupFormTable>
       </SupFormSection>
+      ) : null}
     </div>
   );
 }

@@ -113,8 +113,8 @@ export function catalogMessageBannerTone(text: string): "danger" | "notice" {
 }
 
 /**
- * Right-edge drawer shell for forms. Built on Radix Dialog for focus trap,
- * scroll lock, and accessibility. Reuse this for every slide-over form in the app.
+ * Form sheet: right-edge on desktop, bottom sheet on phones. Built on Radix
+ * Dialog for focus trap, scroll lock, and accessibility.
  */
 export function FormDrawer({
   open,
@@ -139,6 +139,18 @@ export function FormDrawer({
   const fillBody = bodyLayout === "fill";
   const isFull = width === "full";
   const inColumn = docked && !!dockRoot;
+  const [phone, setPhone] = React.useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 639px)").matches
+      : false,
+  );
+  React.useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setPhone(mq.matches);
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  const sheetBottom = !inColumn && !isFull && phone;
   const dash = useOptionalDashboard();
   const brandStops = React.useMemo(
     () => dashboardBrandingAccentStops(dash?.business?.branding ?? null),
@@ -203,7 +215,14 @@ export function FormDrawer({
                     "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                     "data-[state=closed]:zoom-out-[0.99] data-[state=open]:zoom-in-[0.99]",
                   )
-                : cn(
+                : sheetBottom
+                  ? cn(
+                      "inset-x-0 bottom-0 top-auto h-auto max-h-[min(92dvh,44rem)] w-full",
+                      "rounded-t-[1.25rem] border border-border/60 border-b-0 bg-background",
+                      "shadow-[0_-16px_48px_-20px_rgba(0,0,0,0.18)]",
+                      "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+                    )
+                  : cn(
                     sharp
                       ? "border-l border-border bg-background shadow-none dark:bg-background"
                       : cn(
@@ -229,15 +248,19 @@ export function FormDrawer({
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
             !inColumn &&
-              "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
+              (sheetBottom
+                ? "pb-[env(safe-area-inset-bottom)]"
+                : "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"),
             !inColumn &&
               (isFull
                 ? "pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
-                : "pr-[env(safe-area-inset-right)]"),
+                : sheetBottom
+                  ? null
+                  : "pr-[env(safe-area-inset-right)]"),
           )}
         >
           {/* Accent rail — thin when sharp, soft brand bar otherwise */}
-          {!inColumn && brandStops ? (
+          {!inColumn && !sheetBottom && brandStops ? (
             <div
               className={cn(
                 "pointer-events-none absolute inset-y-0 left-0 opacity-[0.92]",
@@ -250,7 +273,7 @@ export function FormDrawer({
               }}
               aria-hidden
             />
-          ) : !inColumn ? (
+          ) : !inColumn && !sheetBottom ? (
             <div
               className={cn(
                 "pointer-events-none absolute inset-y-0 left-0",
@@ -261,7 +284,7 @@ export function FormDrawer({
               aria-hidden
             />
           ) : null}
-          {!inColumn && !sharp ? (
+          {!inColumn && !sharp && !sheetBottom ? (
             <div
               className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-primary-foreground/25 via-transparent to-primary-foreground/15 dark:from-primary-foreground/20 dark:to-transparent"
               aria-hidden
@@ -271,9 +294,14 @@ export function FormDrawer({
           <div
             className={cn(
               "relative flex min-h-0 flex-1 flex-col",
-              !inColumn && (sharp ? "pl-0.5" : "pl-[5px]"),
+              !inColumn && !sheetBottom && (sharp ? "pl-0.5" : "pl-[5px]"),
             )}
           >
+            {sheetBottom ? (
+              <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+                <span className="h-1 w-10 rounded-full bg-border" />
+              </div>
+            ) : null}
             <header
               className={cn(
                 "relative shrink-0 overflow-hidden border-b border-border",

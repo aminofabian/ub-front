@@ -10,7 +10,18 @@ import {
   type DragEvent,
   type KeyboardEvent,
 } from "react";
-import { Check, ImagePlus, Layers, PackagePlus, Plus, Trash2, X } from "lucide-react";
+import {
+  Check,
+  ImagePlus,
+  Layers,
+  Loader2,
+  PackagePlus,
+  Plus,
+  Search,
+  Trash2,
+  Truck,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { SearchableSelect } from "@/app/(dashboard)/products/_components/SearchableSelect";
@@ -29,13 +40,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  addItemSupplierLink,
   fetchItemById,
   fetchItems,
+  fetchSuppliersPage,
   createPosQuickItem,
   uploadItemImageFile,
   type ItemSummaryRecord,
   type ItemTypeRecord,
+  type SupplierRecord,
 } from "@/lib/api";
+import { usePhoneLayout } from "@/lib/use-phone-layout";
 import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
 import {
   clearCashierCreateProductDraft,
@@ -71,6 +86,8 @@ type CashierCreateProductModalProps = {
   onCreated: (item: ItemSummaryRecord, unitPrice: string) => void;
   /** Defaults to cart copy. Use receive for supply/receive-stock flows. */
   purpose?: "cart" | "receive";
+  /** Link the new SKU to a vendor from this sheet. */
+  canLinkSupplier?: boolean;
 };
 
 function relatedLinkHint(related: ItemSummaryRecord): string {
@@ -107,6 +124,113 @@ function parseNonNegMoney(raw: string): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
+function CashierSupplierPick({
+  disabled,
+  selected,
+  onClear,
+  onPick,
+}: {
+  disabled?: boolean;
+  selected: Pick<SupplierRecord, "id" | "name"> | null;
+  onClear: () => void;
+  onPick: (row: Pick<SupplierRecord, "id" | "name">) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [hits, setHits] = useState<SupplierRecord[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (selected) {
+      setHits([]);
+      setBusy(false);
+      return;
+    }
+    let cancelled = false;
+    const t = window.setTimeout(
+      () => {
+        setBusy(true);
+        void fetchSuppliersPage({
+          ...(query.trim() ? { search: query.trim() } : {}),
+          size: 8,
+          status: "active",
+        })
+          .then((page) => {
+            if (!cancelled) setHits(page.content);
+          })
+          .catch(() => {
+            if (!cancelled) setHits([]);
+          })
+          .finally(() => {
+            if (!cancelled) setBusy(false);
+          });
+      },
+      query.trim() ? 180 : 0,
+    );
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [query, selected]);
+
+  if (selected) {
+    return (
+      <div className="flex min-h-12 items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-3 sm:min-h-10 sm:rounded-md">
+        <Truck className="size-4 shrink-0 text-[var(--pos-primary)]" aria-hidden />
+        <p className="min-w-0 flex-1 truncate text-[15px] font-medium sm:text-sm">
+          {selected.name}
+        </p>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onClear}
+          className="shrink-0 text-[13px] font-medium text-[var(--pos-primary)]"
+        >
+          Change
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+        <input
+          className="h-12 w-full rounded-2xl border border-zinc-300 bg-white pl-10 pr-10 text-base sm:h-10 sm:rounded-md sm:text-sm"
+          value={query}
+          disabled={disabled}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search who supplies this…"
+          autoComplete="off"
+        />
+        {busy ? (
+          <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-zinc-400" />
+        ) : null}
+      </div>
+      {hits.length > 0 ? (
+        <ul className="overflow-hidden rounded-2xl border border-zinc-200 bg-white sm:rounded-md">
+          {hits.map((row) => (
+            <li key={row.id} className="border-t border-zinc-100 first:border-t-0">
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  onPick({ id: row.id, name: row.name });
+                  setQuery("");
+                }}
+                className="flex min-h-12 w-full items-center gap-2 px-3 text-left text-[15px] sm:min-h-10 sm:text-sm"
+              >
+                <Truck className="size-3.5 shrink-0 text-[var(--pos-primary)]" aria-hidden />
+                <span className="min-w-0 truncate font-medium">{row.name}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 function parsePosQty(raw: string, allowZero = false): number | null {
   const t = raw.trim();
   if (!t) return null;
@@ -126,7 +250,10 @@ export function CashierCreateProductModal({
   preferredItemTypeId,
   onCreated,
   purpose = "cart",
+  canLinkSupplier = false,
 }: CashierCreateProductModalProps) {
+  const phone = usePhoneLayout();
+  const desktop = !phone;
   const modeId = useId();
   const pendingOptionFocus = useRef<string | null>(null);
   const skipEnter = useRef<Set<string>>(new Set());
@@ -160,6 +287,10 @@ export function CashierCreateProductModal({
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [photoOver, setPhotoOver] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [supplier, setSupplier] = useState<Pick<SupplierRecord, "id" | "name"> | null>(
+    null,
+  );
   const fileRef = useRef<HTMLInputElement>(null);
   const optionFileRef = useRef<HTMLInputElement>(null);
   const pendingOptionPhotoKey = useRef<string | null>(null);
@@ -253,6 +384,8 @@ export function CashierCreateProductModal({
     setImageFile(null);
     setImageDataUrl(null);
     setPhotoOver(false);
+    setSupplier(null);
+    setMoreOpen(false);
     prevReady.current = 0;
     prevArmed.current = false;
     setInviteOn(false);
@@ -666,6 +799,20 @@ export function CashierCreateProductModal({
             ? "Group created with 1 option"
             : `Group created with ${readyGroupVariants.length} options`,
         );
+        if (canLinkSupplier && supplier) {
+          try {
+            await addItemSupplierLink(created.id, {
+              supplierId: supplier.id,
+              setPrimary: true,
+              defaultCostPrice:
+                first.buyingPrice != null && first.buyingPrice > 0
+                  ? first.buyingPrice
+                  : undefined,
+            });
+          } catch {
+            toast.error("Group created, but the supplier did not link");
+          }
+        }
         clearCashierCreateProductDraft(branchId, purpose);
         suppressDraftSave.current = true;
         draftHydrated.current = false;
@@ -714,6 +861,17 @@ export function CashierCreateProductModal({
         priceStr,
       );
       toast.success(linkAsVariant ? "Variant created" : "Product created");
+      if (canLinkSupplier && supplier) {
+        try {
+          await addItemSupplierLink(created.id, {
+            supplierId: supplier.id,
+            setPrimary: true,
+            defaultCostPrice: buyingNum ?? undefined,
+          });
+        } catch {
+          toast.error("Product created, but the supplier did not link");
+        }
+      }
       clearCashierCreateProductDraft(branchId, purpose);
       suppressDraftSave.current = true;
       draftHydrated.current = false;
@@ -729,11 +887,11 @@ export function CashierCreateProductModal({
 
   const labelClass = "block text-[12px] font-medium text-zinc-600";
   const fieldClass = cn(
-    "h-10 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm",
+    "h-12 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-base sm:h-10 sm:rounded-md sm:text-sm",
     "focus:outline-none focus-visible:border-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
   );
   const cellClass = cn(
-    "h-9 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm",
+    "h-12 w-full rounded-2xl border border-zinc-300 bg-white px-2 text-base sm:h-9 sm:rounded-md sm:text-sm",
     "focus:outline-none focus-visible:border-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
   );
   const currencySuffix = currency ? ` (${currency})` : "";
@@ -813,15 +971,23 @@ export function CashierCreateProductModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side="right"
+        side={desktop ? "right" : "bottom"}
+        showCloseButton={desktop}
         overlayClassName="bg-black/40 supports-[backdrop-filter]:backdrop-blur-[2px]"
         className={cn(
           styles.root,
-          "gap-0 overflow-hidden p-0 sm:rounded-l-2xl",
-          "w-[min(100%,60rem)] max-w-[60rem]",
+          "gap-0 overflow-hidden p-0",
+          desktop
+            ? "w-[min(100%,60rem)] max-w-[60rem] sm:rounded-l-2xl"
+            : "max-h-[min(92dvh,44rem)] rounded-t-[1.25rem]",
         )}
         style={brandTheme}
       >
+        {!desktop ? (
+          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-zinc-300" />
+          </div>
+        ) : null}
         <div className={styles.header}>
           <DialogHeader className="space-y-1 text-left">
             <DialogTitle className="flex items-center gap-2 text-lg">
@@ -1424,11 +1590,12 @@ export function CashierCreateProductModal({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 gap-2 border-t border-zinc-200 px-4 py-3 sm:justify-between">
+        <DialogFooter className="shrink-0 flex-col-reverse gap-2 border-t border-zinc-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-between sm:pb-3">
           <Button
             type="button"
             variant="ghost"
             disabled={busy}
+            className="h-12 rounded-2xl sm:h-9 sm:rounded-md"
             onClick={() => onOpenChange(false)}
           >
             Cancel

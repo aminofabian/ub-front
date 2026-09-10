@@ -624,6 +624,31 @@
   }
 }
 
+@media (max-width: 639px) {
+  .header {
+    padding-top: 0.35rem;
+    box-shadow: none;
+  }
+
+  .photo,
+  .modeTrack,
+  .modeThumb,
+  .iconMark {
+    border-radius: 0.85rem;
+  }
+
+  .modeBtn {
+    min-height: 2.75rem;
+  }
+
+  .create {
+    height: 3rem;
+    min-width: 0;
+    width: 100%;
+    border-radius: 1rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .modeThumb,
   .check,

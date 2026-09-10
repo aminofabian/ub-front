@@ -2220,7 +2220,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   trigger={
                     <button
                       type="button"
-                      className="group flex w-full items-center justify-center gap-2 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] bg-[color-mix(in_srgb,var(--card)_60%,transparent)] px-4 py-3 text-center text-xs font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)] transition hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] hover:text-[var(--pos-primary,#0f766e)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] bg-[color-mix(in_srgb,var(--card)_60%,transparent)] px-4 py-3 text-center text-sm font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)] transition hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] hover:text-[var(--pos-primary,#0f766e)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0 sm:rounded-none sm:text-xs"
                       title="How to take your first sale — summary + full guide"
                     >
                       How to take your first sale

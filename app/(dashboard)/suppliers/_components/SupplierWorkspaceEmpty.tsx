@@ -76,9 +76,6 @@ export function SupplierWorkspaceEmpty({
         )}
       >
         <div className="space-y-2">
-          <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-            Workspace
-          </p>
           <h2 className="font-heading text-xl font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)] sm:text-2xl">
             {totalCount > 0 ? "Select a supplier" : "Start with a supplier"}
           </h2>
@@ -98,7 +95,7 @@ export function SupplierWorkspaceEmpty({
           {canWrite ? (
             <Button
               type="button"
-              className="h-9 justify-start gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 font-semibold hover:bg-[#0d6b63]"
+              className="h-12 justify-start gap-2 rounded-2xl bg-[var(--pos-primary,#0f766e)] px-3 font-semibold hover:bg-[#0d6b63] sm:h-9 sm:rounded-none"
               onClick={onNewSupplier}
             >
               <Plus className="size-3.5" aria-hidden />
@@ -109,7 +106,7 @@ export function SupplierWorkspaceEmpty({
             <Button
               type="button"
               variant="outline"
-              className="h-9 justify-start gap-2 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
+              className="h-12 justify-start gap-2 rounded-2xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9 sm:rounded-none"
               onClick={onNewSupply}
             >
               <PackagePlus className="size-3.5" aria-hidden />
@@ -119,7 +116,7 @@ export function SupplierWorkspaceEmpty({
           <Button
             type="button"
             variant="outline"
-            className="h-9 justify-start gap-2 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
+            className="h-12 justify-start gap-2 rounded-2xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9 sm:rounded-none"
             onClick={() =>
               document.getElementById("supplier-directory-search")?.focus()
             }
@@ -133,8 +130,8 @@ export function SupplierWorkspaceEmpty({
           <Button
             type="button"
             variant="outline"
-            className="h-9 justify-start gap-2 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
             asChild
+            className="h-12 justify-start gap-2 rounded-2xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9 sm:rounded-none"
           >
             <Link href={APP_ROUTES.supplierDirectory}>
               <Truck className="size-3.5" aria-hidden />
@@ -144,7 +141,7 @@ export function SupplierWorkspaceEmpty({
         </div>
 
         {picks.length > 0 ? (
-          <section className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+          <section className="overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white sm:rounded-none">
             <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
               <div className="flex items-center gap-1.5">
                 <BookUser
@@ -166,7 +163,7 @@ export function SupplierWorkspaceEmpty({
                     type="button"
                     onClick={() => onSelectSupplier(row.id)}
                     className={cn(
-                      "flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors",
+                      "flex min-h-12 w-full items-center gap-2 px-3 py-2.5 text-left transition-colors sm:min-h-0",
                       "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]",
                     )}
@@ -210,7 +207,7 @@ export function SupplierWorkspaceEmpty({
           {STEPS.map((step) => (
             <li
               key={step.n}
-              className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3"
+              className="rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3 sm:rounded-none"
             >
               <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
                 <span className="flex size-5 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] text-[10px] font-bold text-[var(--pos-primary,#0f766e)]">

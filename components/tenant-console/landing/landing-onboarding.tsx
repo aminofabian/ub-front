@@ -158,7 +158,7 @@ export function LandingOnboarding({
               aria-describedby="landing-shop-slug-help"
               required
             />
-            <span className="flex items-center border-l border-[rgba(20,20,18,0.08)] bg-[#F6F5F2] px-3 font-mono text-[13px] text-[#6B6863]">
+            <span className="hidden items-center border-l border-[rgba(20,20,18,0.08)] bg-[#F6F5F2] px-3 font-mono text-[13px] text-[#6B6863] min-[380px]:flex">
               {suffix}
             </span>
           </div>

@@ -41,7 +41,7 @@ function ParentButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden border px-1",
+        "relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden rounded-xl border px-1",
         "text-center text-[10px] font-semibold leading-tight transition touch-manipulation",
         active
           ? "border-[#0D9488] bg-[#0D9488] text-white"
@@ -79,7 +79,7 @@ function ProductTile({
       onClick={onToggle}
       style={{ animationDelay: `${Math.min(index, 24) * 18}ms` }}
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden border bg-[#ffffff] text-left",
+        "group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-[#ffffff] text-left sm:rounded-none",
         "transition-[border-color,background-color,box-shadow,transform] duration-150",
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1",
         "hover:z-[1] hover:border-[#CBD5E1] hover:bg-white hover:shadow-[2px_2px_0_0_rgba(15,23,42,0.08)]",
@@ -255,10 +255,7 @@ export function OnboardingCatalogShelf({
   const manifestBody = (
     <>
       <div className="border-b border-[#E8E4DC] px-4 py-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0D9488]">
-          Manifest
-        </p>
-        <p className="mt-1 text-sm font-semibold text-[#1F2937]">
+        <p className="text-sm font-semibold text-[#1F2937]">
           {selectedCount === 0
             ? "Nothing selected yet"
             : storefrontVisible
@@ -293,10 +290,10 @@ export function OnboardingCatalogShelf({
                 <button
                   type="button"
                   onClick={() => onRemoveSelected(product.id)}
-                  className="mt-0.5 shrink-0 text-[#9CA3AF] hover:text-[#374151]"
+                  className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-[#9CA3AF] active:bg-[#F3F4F6] active:text-[#374151]"
                   aria-label={`Remove ${product.name}`}
                 >
-                  <X className="size-3.5" aria-hidden />
+                  <X className="size-4" aria-hidden />
                 </button>
               </li>
             ))}
@@ -365,7 +362,7 @@ export function OnboardingCatalogShelf({
 
   const chipClass = (active: boolean) =>
     cn(
-      "shrink-0 rounded-none px-3.5 py-2 text-xs font-medium touch-manipulation active:scale-[0.97]",
+      "shrink-0 rounded-full px-3.5 py-2.5 text-xs font-medium touch-manipulation active:scale-[0.97]",
       active
         ? "bg-[#0D9488] text-white"
         : "bg-white text-[#374151] ring-1 ring-[#E5E7EB]",
@@ -379,20 +376,22 @@ export function OnboardingCatalogShelf({
             type="button"
             onClick={onClose}
             disabled={importing}
-            className="inline-flex size-10 shrink-0 items-center justify-center rounded-none border border-[#E5E7EB] bg-white text-[#374151] active:scale-95 disabled:opacity-50 lg:hidden"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#374151] active:scale-95 disabled:opacity-50 lg:hidden"
             aria-label="Close catalogue"
           >
             <ChevronLeft className="size-5" aria-hidden />
           </button>
           <div className="min-w-0 flex-1 lg:pl-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0D9488]">
-              Starter catalogue
-            </p>
             <h2 className="truncate text-base font-semibold tracking-tight">
               {importing && importProgress
                 ? `Importing ${importProgress.processed.toLocaleString()} of ${importProgress.total.toLocaleString()}`
                 : "Stock your shelves"}
             </h2>
+            {importing ? null : (
+              <p className="truncate text-[12px] text-[#6B7280]">
+                Tap products to add them to your shop
+              </p>
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {importing && importProgress ? (
@@ -405,7 +404,7 @@ export function OnboardingCatalogShelf({
               type="button"
               onClick={onClose}
               disabled={importing}
-              className="hidden h-10 rounded-none border border-[#E5E7EB] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50 lg:inline-flex lg:items-center"
+              className="hidden h-10 rounded-xl border border-[#E5E7EB] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50 lg:inline-flex lg:items-center"
             >
               Close
             </button>
@@ -495,7 +494,7 @@ export function OnboardingCatalogShelf({
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Find a product or scan barcode…"
-                className="h-11 w-full rounded-none border border-[#E5E7EB] bg-[#ffffff] pl-10 pr-3 text-base outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/15 sm:h-10 sm:text-sm"
+                className="h-12 w-full rounded-2xl border border-[#E5E7EB] bg-[#ffffff] pl-10 pr-3 text-base outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/15 sm:h-10 sm:rounded-xl sm:text-sm"
                 enterKeyHint="search"
                 autoCapitalize="off"
                 autoCorrect="off"
@@ -548,7 +547,7 @@ export function OnboardingCatalogShelf({
                 No products in this view.
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
+              <div className="grid grid-cols-2 gap-2 min-[400px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 sm:gap-px sm:bg-[#E8E4DC]">
                 {products.map((product, index) => (
                   <ProductTile
                     key={product.id}
@@ -581,21 +580,32 @@ export function OnboardingCatalogShelf({
       </div>
 
       {mobileManifestOpen ? (
-        <div className="fixed inset-0 z-20 flex flex-col bg-white motion-safe:animate-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-250 lg:hidden">
-          <div className="flex items-center justify-between border-b border-[#E8E4DC] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-            <button
-              type="button"
-              onClick={() => onMobileManifestOpenChange(false)}
-              className="inline-flex size-10 items-center justify-center rounded-none border border-[#E5E7EB] text-[#374151] active:scale-95"
-              aria-label="Back to shelf"
-            >
-              <ChevronLeft className="size-5" aria-hidden />
-            </button>
-            <p className="text-sm font-semibold">Manifest</p>
-            <span className="size-10" aria-hidden />
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
-            {manifestBody}
+        <div className="fixed inset-0 z-20 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/35"
+            aria-label="Close selection"
+            onClick={() => onMobileManifestOpenChange(false)}
+          />
+          <div className="absolute inset-x-0 bottom-0 flex max-h-[min(92dvh,40rem)] flex-col rounded-t-[1.5rem] bg-white shadow-[0_-16px_48px_-20px_rgba(0,0,0,0.18)] motion-safe:animate-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-250">
+            <div className="flex shrink-0 flex-col items-center pt-2">
+              <span className="h-1 w-10 rounded-full bg-[#D1D5DB]" aria-hidden />
+            </div>
+            <div className="flex items-center justify-between px-4 pb-2 pt-1">
+              <button
+                type="button"
+                onClick={() => onMobileManifestOpenChange(false)}
+                className="inline-flex size-11 items-center justify-center rounded-2xl border border-[#E5E7EB] text-[#374151] active:scale-95"
+                aria-label="Back to shelf"
+              >
+                <ChevronLeft className="size-5" aria-hidden />
+              </button>
+              <p className="text-sm font-semibold">Your selection</p>
+              <span className="size-11" aria-hidden />
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
+              {manifestBody}
+            </div>
           </div>
         </div>
       ) : null}

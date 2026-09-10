@@ -41,7 +41,7 @@ export const supTextarea = cn(
 
 /** Borderless controls for label|value form tables */
 export const supFormCellInput = cn(
-  "h-8 w-full rounded-none border-0 bg-transparent px-2 py-1 text-sm",
+  "h-12 w-full rounded-2xl border-0 bg-transparent px-2 py-1 text-base sm:h-8 sm:rounded-none sm:text-sm",
   "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
   "disabled:cursor-not-allowed disabled:opacity-50",
@@ -193,7 +193,7 @@ export const supChipIdle = cn(
 );
 
 export const supDrawerFooter = cn(
-  "flex flex-wrap items-center justify-end gap-2",
+  "flex w-full flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end",
 );
 
 export const supBtnPrimary = cn("h-8 gap-1.5 rounded-none px-3 font-semibold");

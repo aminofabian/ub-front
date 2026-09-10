@@ -229,7 +229,7 @@ function PayMethodChip({
       onClick={onClick}
       title={label}
       className={cn(
-        "inline-flex min-h-9 items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-left transition-all duration-150",
+        "inline-flex min-h-11 items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-left transition-all duration-150 sm:min-h-9",
         "disabled:cursor-not-allowed disabled:opacity-40",
         active
           ? "border-transparent text-[var(--pos-primary-ink)] shadow-sm"
@@ -353,6 +353,19 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
   } = props;
 
   const [linesOpen, setLinesOpen] = useState(false);
+  const [desktop, setDesktop] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(min-width: 640px)").matches
+      : false,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const sync = () => setDesktop(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   const saleComplete = lastSale != null && lastReceipt != null;
 
   const walletBalance = selectedCustomer
@@ -548,15 +561,23 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side="right"
+        side={desktop ? "right" : "bottom"}
         overlayClassName="bg-black/45 backdrop-blur-[3px] dark:bg-black/55"
         className={cn(
-          "max-w-[min(100%,26rem)] gap-0 border-border/40 p-0 shadow-2xl sm:max-w-[26rem]",
+          "gap-0 border-border/40 p-0 shadow-2xl",
           "flex flex-col overflow-hidden bg-[color-mix(in_srgb,var(--background)_92%,var(--pos-primary)_3%)]",
+          desktop
+            ? "max-w-[min(100%,26rem)] sm:max-w-[26rem]"
+            : "max-h-[min(92dvh,44rem)] rounded-t-[1.25rem]",
         )}
         style={brandTheme}
-        showCloseButton
+        showCloseButton={desktop}
       >
+        {!desktop ? (
+          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-border" />
+          </div>
+        ) : null}
         {saleComplete ? (
           <>
             <div className="shrink-0 border-b border-border/50 px-4 py-3 print:hidden">
@@ -597,7 +618,13 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
             >
               <DialogHeader className="relative min-w-0 pr-7">
                 <div className="flex items-center justify-between gap-2">
-                  <DialogTitle className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  <DialogTitle
+                    className={
+                      desktop
+                        ? "text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+                        : "text-base font-semibold tracking-tight text-foreground"
+                    }
+                  >
                     Checkout
                   </DialogTitle>
                   {lines.length > 0 ? (
@@ -668,7 +695,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         </span>
                         <button
                           type="button"
-                          className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+                          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive sm:size-6"
                           aria-label={`Remove ${full}`}
                           onClick={() => removeLine(line.key)}
                         >
@@ -1513,7 +1540,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
               <Button
                 type="button"
                 className={cn(
-                  "h-12 w-full rounded-xl text-sm font-bold tracking-tight shadow-md transition-all duration-200",
+                  "h-12 w-full rounded-2xl text-sm font-bold tracking-tight shadow-md transition-all duration-200 sm:rounded-xl",
                   "disabled:opacity-35 disabled:shadow-none",
                   canCompleteSale && "hover:scale-[1.01] active:scale-[0.99]",
                 )}
