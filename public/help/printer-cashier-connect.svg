@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
   <rect width="960" height="640" fill="#0c1110"/>
-  <!-- Cashier chrome -->
   <rect x="24" y="20" width="912" height="600" rx="16" fill="#141a18" stroke="#1f2a26"/>
   <rect x="24" y="20" width="912" height="52" rx="16" fill="#1a2220"/>
   <rect x="24" y="56" width="912" height="16" fill="#1a2220"/>
@@ -8,7 +7,6 @@
   <rect x="780" y="34" width="132" height="24" rx="12" fill="#28a745"/>
   <text x="846" y="51" font-size="10" font-weight="800" fill="#ffffff" text-anchor="middle">SHIFT OPEN</text>
 
-  <!-- Cart column -->
   <rect x="48" y="92" width="420" height="500" rx="14" fill="#1c2422" stroke="#2a3632"/>
   <text x="68" y="124" font-size="12" font-weight="700" letter-spacing="1" fill="#86a396">CART</text>
   <rect x="68" y="144" width="380" height="44" rx="8" fill="#222c29"/>
@@ -16,26 +14,24 @@
   <text x="412" y="171" font-size="13" font-weight="700" fill="#e7ece9" text-anchor="end">KSh 85</text>
   <rect x="68" y="200" width="380" height="44" rx="8" fill="#222c29"/>
   <text x="84" y="227" font-size="13" fill="#e7ece9">White loaf</text>
-  <text x="412" y="227" font-size="13" font-weight="700" fill="#e7ece9" text-anchor="end">KSh 70</text>
+  <text x="412" y="227" font-size="13" fill="#e7ece9" text-anchor="end">KSh 70</text>
   <text x="84" y="520" font-size="12" fill="#86a396">Total</text>
   <text x="412" y="520" font-size="22" font-weight="700" fill="#ffffff" text-anchor="end">KSh 155</text>
   <rect x="68" y="540" width="380" height="36" rx="8" fill="#28a745"/>
   <text x="258" y="563" font-size="13" font-weight="800" fill="#ffffff" text-anchor="middle">CHARGE · M-PESA OR CASH</text>
 
-  <!-- Printer chip + panel -->
   <rect x="492" y="92" width="420" height="500" rx="14" fill="#f7f8f6" stroke="#d6ddd8"/>
   <text x="512" y="124" font-size="11" font-weight="700" letter-spacing="1.2" fill="#A8842C">TILL STRIP</text>
-  <text x="512" y="148" font-size="16" font-weight="700" fill="#111827">Paper is optional  until you connect it</text>
-  <text x="512" y="170" font-size="12" fill="#6b7280">Tap the quiet chip. Setup stays behind that tap.</text>
+  <text x="512" y="148" font-size="15" font-weight="700" fill="#111827">Download the bridge here. Only here.</text>
+  <text x="512" y="170" font-size="12" fill="#6b7280">The helper lives on this Cashier chip, not in Settings.</text>
 
   <rect x="512" y="192" width="220" height="32" rx="8" fill="#ffffff" stroke="#d1d5db"/>
-  <text x="528" y="213" font-size="12" font-weight="600" fill="#4b5563">Receipts on screen  ¾</text>
+  <text x="528" y="213" font-size="12" font-weight="600" fill="#4b5563">Receipts on screen</text>
 
-  <!-- Expanded panel -->
   <rect x="512" y="240" width="376" height="316" rx="12" fill="#ffffff" stroke="#28a745" stroke-width="2"/>
-  <text x="532" y="270" font-size="14" font-weight="700" fill="#111827">You can sell without a printer.</text>
-  <text x="532" y="294" font-size="12" fill="#6b7280">After checkout, the receipt stays on this</text>
-  <text x="532" y="312" font-size="12" fill="#6b7280">screen. Show the customer, or print later.</text>
+  <text x="532" y="270" font-size="14" font-weight="700" fill="#111827">The only doorway for the helper</text>
+  <text x="532" y="294" font-size="12" fill="#6b7280">Open Cashier on THIS till PC. Tap the chip.</text>
+  <text x="532" y="312" font-size="12" fill="#6b7280">Skip WhatsApp zips and the office laptop.</text>
 
   <text x="532" y="348" font-size="13" font-weight="700" fill="#111827" text-decoration="underline">Connect a printer</text>
 
@@ -45,6 +41,6 @@
 
   <rect x="532" y="448" width="200" height="36" rx="8" fill="#e5e7eb"/>
   <text x="632" y="471" font-size="12" font-weight="700" fill="#111827" text-anchor="middle">Detect printers</text>
-  <text x="532" y="512" font-size="11" fill="#15803d">Unzip the helper, run it once on THIS till PC,</text>
-  <text x="532" y="528" font-size="11" fill="#15803d">then Detect. The browser cannot talk to USB alone.</text>
+  <text x="532" y="512" font-size="11" fill="#15803d">Run Install-Palmart-Print-Bridge.cmd here.</text>
+  <text x="532" y="528" font-size="11" fill="#15803d">Then Detect. Device Manager is not a queue.</text>
 </svg>

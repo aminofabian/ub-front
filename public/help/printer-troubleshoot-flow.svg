@@ -42,16 +42,16 @@
     <rect x="48" y="260" width="400" height="72" rx="12" fill="#ffffff" stroke="#d1d5db"/>
     <circle cx="76" cy="296" r="14" fill="#111827"/>
     <text x="76" y="300" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">3</text>
-    <text x="100" y="290" font-size="13" font-weight="700" fill="#111827">Does the system list the printer?</text>
-    <text x="100" y="310" font-size="11" fill="#6b7280">Windows, macOS Printers &amp; Scanners, or CUPS.</text>
+    <text x="100" y="290" font-size="13" font-weight="700" fill="#111827">Is it a print queue, not Device Manager?</text>
+    <text x="100" y="310" font-size="11" fill="#6b7280">Printers &amp; scanners must list it. USB Printing Support is not enough.</text>
     <text x="502" y="296" font-size="9" font-weight="700" fill="#9ca3af" text-anchor="middle">IF NOT</text>
     <line x1="456" y1="296" x2="544" y2="296" stroke="#9ca3af" stroke-width="2"/>
     <polygon points="552,296 540,290 540,302" fill="#9ca3af"/>
     <rect x="560" y="260" width="352" height="72" rx="12" fill="#f7fdf9" stroke="rgba(40,167,69,0.35)"/>
     <rect x="576" y="270" width="34" height="16" rx="8" fill="#28a745"/>
     <text x="593" y="282" font-size="8" font-weight="800" fill="#ffffff" text-anchor="middle">FIX</text>
-    <text x="576" y="304" font-size="11" fill="#374151">Swap any charger lead for the square data USB-B</text>
-    <text x="576" y="322" font-size="11" fill="#374151">cable, and keep the Print Spooler service running.</text>
+    <text x="576" y="304" font-size="11" fill="#374151">Add the queue by hand: isn’t listed → USB001</text>
+    <text x="576" y="322" font-size="11" fill="#374151">or COM, Generic / Text Only, name it Xprinter.</text>
   </g>
 
   <!-- Row 4 -->
@@ -59,16 +59,16 @@
     <rect x="48" y="342" width="400" height="72" rx="12" fill="#ffffff" stroke="#d1d5db"/>
     <circle cx="76" cy="378" r="14" fill="#111827"/>
     <text x="76" y="382" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">4</text>
-    <text x="100" y="372" font-size="13" font-weight="700" fill="#111827">Does Detect printers find it?</text>
-    <text x="100" y="392" font-size="11" fill="#6b7280">Cashier → Receipts chip → Connect a printer.</text>
+    <text x="100" y="372" font-size="13" font-weight="700" fill="#111827">Which Detect toast do you get?</text>
+    <text x="100" y="392" font-size="11" fill="#6b7280">Helper not running vs no print queues found.</text>
     <text x="502" y="378" font-size="9" font-weight="700" fill="#9ca3af" text-anchor="middle">IF NOT</text>
     <line x1="456" y1="378" x2="544" y2="378" stroke="#9ca3af" stroke-width="2"/>
     <polygon points="552,378 540,372 540,384" fill="#9ca3af"/>
     <rect x="560" y="342" width="352" height="72" rx="12" fill="#f7fdf9" stroke="rgba(40,167,69,0.35)"/>
     <rect x="576" y="352" width="34" height="16" rx="8" fill="#28a745"/>
     <text x="593" y="364" font-size="8" font-weight="800" fill="#ffffff" text-anchor="middle">FIX</text>
-    <text x="576" y="386" font-size="11" fill="#374151">Run the Print Bridge installer once on THIS till PC —</text>
-    <text x="576" y="404" font-size="11" fill="#374151">not a phone, not the back office — then Detect again.</text>
+    <text x="576" y="386" font-size="11" fill="#374151">Helper toast: download from Cashier, then health</text>
+    <text x="576" y="404" font-size="11" fill="#374151">on 127.0.0.1:19500. Empty toast: add the queue.</text>
   </g>
 
   <!-- Row 5 -->

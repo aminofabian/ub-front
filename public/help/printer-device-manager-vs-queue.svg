@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, Segoe UI, sans-serif">
+  <rect width="960" height="640" fill="#FBF9F5"/>
+  <text x="48" y="42" font-size="18" font-weight="700" fill="#111827">Device Manager is a peephole. Detect never looks there.</text>
+  <text x="48" y="64" font-size="12" fill="#6b7280">USB Printing Support, POS-80, or a COM port only proves the cable woke the printer. The Print Bridge lists queues  Settings ’ Printers &amp; scanners.</text>
+
+  <!-- Left: Device Manager -->
+  <rect x="48" y="92" width="420" height="420" rx="16" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="48" y="92" width="420" height="48" rx="16" fill="#6b7280"/>
+  <rect x="48" y="124" width="420" height="16" fill="#6b7280"/>
+  <text x="68" y="124" font-size="13" font-weight="700" fill="#ffffff">Device Manager</text>
+  <rect x="340" y="104" width="108" height="22" rx="11" fill="#ffffff"/>
+  <text x="394" y="119" font-size="9" font-weight="800" fill="#6b7280" text-anchor="middle">CABLE CHECK</text>
+
+  <text x="68" y="172" font-size="11" font-weight="700" letter-spacing="0.8" fill="#9ca3af">PRINT QUEUES</text>
+  <text x="68" y="196" font-size="13" fill="#9ca3af">Universal Serial Bus controllers</text>
+  <rect x="68" y="210" width="380" height="44" rx="8" fill="#f3f4f6"/>
+  <text x="84" y="238" font-size="13" fill="#374151">USB Printing Support</text>
+  <rect x="68" y="262" width="380" height="44" rx="8" fill="#f3f4f6"/>
+  <text x="84" y="290" font-size="13" fill="#374151">POS-80</text>
+  <text x="68" y="334" font-size="13" fill="#9ca3af">Ports (COM &amp; LPT)</text>
+  <rect x="68" y="348" width="380" height="44" rx="8" fill="#f3f4f6"/>
+  <text x="84" y="376" font-size="13" fill="#374151">USB Serial Device (COM3)</text>
+
+  <rect x="68" y="412" width="380" height="76" rx="10" fill="#f3f4f6"/>
+  <text x="84" y="440" font-size="12" font-weight="700" fill="#4b5563">This is a rumour, not a till.</text>
+  <text x="84" y="460" font-size="11.5" fill="#6b7280">Xprinters love this trick: they show here</text>
+  <text x="84" y="476" font-size="11.5" fill="#6b7280">and never become a print queue.</text>
+
+  <!-- Right: Printers & scanners -->
+  <rect x="492" y="92" width="420" height="420" rx="16" fill="#ffffff" stroke="#28a745" stroke-width="2"/>
+  <rect x="492" y="92" width="420" height="48" rx="16" fill="#28a745"/>
+  <rect x="492" y="124" width="420" height="16" fill="#28a745"/>
+  <text x="512" y="124" font-size="13" font-weight="700" fill="#ffffff">Printers &amp; scanners</text>
+  <rect x="784" y="104" width="108" height="22" rx="11" fill="#ffffff"/>
+  <text x="838" y="119" font-size="9" font-weight="800" fill="#15803d" text-anchor="middle">DETECT READS THIS</text>
+
+  <rect x="512" y="164" width="380" height="56" rx="10" fill="#f0fdf4" stroke="#28a745"/>
+  <text x="528" y="188" font-size="14" font-weight="700" fill="#111827">Xprinter</text>
+  <text x="528" y="206" font-size="11" fill="#15803d">Ready · Online · a real queue</text>
+
+  <rect x="512" y="232" width="380" height="48" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="528" y="262" font-size="13" fill="#9ca3af">Microsoft Print to PDF  skip</text>
+  <rect x="512" y="292" width="380" height="48" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="528" y="322" font-size="13" fill="#9ca3af">Fax  skip</text>
+
+  <rect x="512" y="360" width="380" height="128" rx="10" fill="#111827"/>
+  <text x="528" y="392" font-size="13" font-weight="700" fill="#ffffff">Until a name sits in this list,</text>
+  <text x="528" y="414" font-size="13" fill="#d1d5db">Detect cannot see the printer </text>
+  <text x="528" y="436" font-size="13" fill="#d1d5db">even if Device Manager is full</text>
+  <text x="528" y="458" font-size="13" fill="#86efac">and the Print Bridge is running.</text>
+
+  <rect x="48" y="532" width="864" height="76" rx="14" fill="#111827"/>
+  <text x="72" y="564" font-size="14" font-weight="700" fill="#ffffff">The till only hires names on the roster.</text>
+  <text x="72" y="586" font-size="13" fill="#d1d5db">Device Manager = cable alive. Printers &amp; scanners = the queue Detect can actually pick.</text>
+</svg>

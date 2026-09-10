@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, Segoe UI, sans-serif">
+  <rect width="960" height="640" fill="#f3f4f6"/>
+  <rect x="36" y="24" width="888" height="592" rx="12" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="36" y="24" width="888" height="40" rx="12" fill="#f9fafb"/>
+  <rect x="36" y="48" width="888" height="16" fill="#f9fafb"/>
+  <circle cx="58" cy="44" r="6" fill="#f87171"/>
+  <circle cx="78" cy="44" r="6" fill="#fbbf24"/>
+  <circle cx="98" cy="44" r="6" fill="#34d399"/>
+  <text x="124" y="49" font-size="12" font-weight="600" fill="#4b5563">Add printer  The printer that I want isnt listed</text>
+
+  <text x="64" y="100" font-size="20" font-weight="700" fill="#111827">Hire the Xprinter as a Windows queue</text>
+  <text x="64" y="124" font-size="12" fill="#6b7280">Do this when Detect says No print queues found, or you only see Fax and Print to PDF.</text>
+
+  <!-- Steps as wizard cards -->
+  <rect x="64" y="148" width="400" height="200" rx="14" fill="#f8fafc" stroke="#e5e7eb"/>
+  <rect x="80" y="164" width="28" height="28" rx="14" fill="#111827"/>
+  <text x="94" y="183" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="120" y="183" font-size="13" font-weight="700" fill="#111827">Settings ’ Printers &amp; scanners</text>
+  <text x="80" y="216" font-size="12.5" fill="#374151">Add a printer or scanner</text>
+  <rect x="80" y="232" width="352" height="40" rx="8" fill="#2563eb"/>
+  <text x="256" y="257" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">The printer that I want isnt listed</text>
+  <text x="80" y="300" font-size="12" fill="#6b7280">Windows will not find many Xprinters on its own.</text>
+  <text x="80" y="318" font-size="12" fill="#6b7280">You add them as a local printer, by hand.</text>
+
+  <rect x="496" y="148" width="400" height="200" rx="14" fill="#f8fafc" stroke="#e5e7eb"/>
+  <rect x="512" y="164" width="28" height="28" rx="14" fill="#111827"/>
+  <text x="526" y="183" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="552" y="183" font-size="13" font-weight="700" fill="#111827">Local printer · pick the port</text>
+  <rect x="512" y="208" width="368" height="44" rx="8" fill="#f0fdf4" stroke="#28a745"/>
+  <text x="528" y="236" font-size="13" font-weight="700" fill="#111827">USB001 (Virtual printer port for USB)</text>
+  <text x="512" y="276" font-size="12.5" fill="#374151">Or the COM port from Device Manager</text>
+  <text x="512" y="296" font-size="12.5" fill="#374151">(example: COM3). That is the only time</text>
+  <text x="512" y="316" font-size="12.5" fill="#374151">Device Manager is useful here.</text>
+
+  <rect x="64" y="368" width="400" height="200" rx="14" fill="#f8fafc" stroke="#e5e7eb"/>
+  <rect x="80" y="384" width="28" height="28" rx="14" fill="#111827"/>
+  <text x="94" y="403" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="120" y="403" font-size="13" font-weight="700" fill="#111827">Driver: Generic / Text Only</text>
+  <rect x="80" y="428" width="168" height="36" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="164" y="451" font-size="12" fill="#4b5563" text-anchor="middle">Manufacturer</text>
+  <text x="164" y="480" font-size="13" font-weight="700" fill="#111827" text-anchor="middle">Generic</text>
+  <rect x="264" y="428" width="168" height="36" rx="8" fill="#ffffff" stroke="#28a745"/>
+  <text x="348" y="451" font-size="12" fill="#15803d" text-anchor="middle">Printers</text>
+  <text x="348" y="480" font-size="13" font-weight="700" fill="#111827" text-anchor="middle">Generic / Text Only</text>
+  <text x="80" y="532" font-size="12" fill="#6b7280">Kiosk sends raw ESC/POS. This driver is enough</text>
+  <text x="80" y="548" font-size="12" fill="#6b7280">to give Windows a named queue Detect can see.</text>
+
+  <rect x="496" y="368" width="400" height="200" rx="14" fill="#111827"/>
+  <rect x="512" y="384" width="28" height="28" rx="14" fill="#28a745"/>
+  <text x="526" y="403" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">4</text>
+  <text x="552" y="403" font-size="13" font-weight="700" fill="#ffffff">Name it Xprinter · set Online</text>
+  <rect x="512" y="428" width="368" height="40" rx="8" fill="#1f2937" stroke="#374151"/>
+  <text x="528" y="454" font-size="14" fill="#e5e7eb">Printer name: Xprinter</text>
+  <text x="512" y="496" font-size="12.5" fill="#d1d5db">Leave it Online. Then open Cashier on this PC,</text>
+  <text x="512" y="516" font-size="12.5" fill="#d1d5db">tap Detect printers again.</text>
+  <text x="512" y="544" font-size="12.5" fill="#86efac">The row must exist here before Detect can pick it.</text>
+</svg>

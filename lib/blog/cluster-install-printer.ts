@@ -28,6 +28,8 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
     "58mm 80mm receipt printer",
     "connect receipt printer to POS",
     "ESC/POS printer Kenya",
+    "Xprinter Windows print queue",
+    "no print queues found POS",
   ],
   author: "Kiosk",
   relatedSlugs: [
@@ -61,7 +63,7 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
       },
       {
         name: "Step 2 — Add the printer in Windows",
-        text: "Open Settings → Bluetooth & devices → Printers & scanners. Confirm the thermal unit appears. Skip Microsoft Print to PDF and Fax.",
+        text: "Open Settings → Printers & scanners. Device Manager only proves the USB cable is alive — Detect never looks there. If the Xprinter is missing, add a Generic / Text Only queue on USB001 (or the COM port) and name it Xprinter.",
         image: "/help/printer-windows-add.svg",
       },
       {
@@ -75,8 +77,8 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
         image: "/help/printer-linux-cups.svg",
       },
       {
-        name: "Step 5 — Open Cashier and connect a printer",
-        text: "On the till PC, open Cashier, tap Receipts on screen, then Connect a printer. Download the Print Bridge for this operating system.",
+        name: "Step 5 — Open Cashier and download the bridge",
+        text: "On the till PC, open Cashier — that page is the only place to download the Print Bridge. Tap Receipts on screen, then Connect a printer, and download for this OS.",
         image: "/help/printer-cashier-connect.svg",
       },
       {
@@ -110,7 +112,17 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
     {
       question: "Why does Detect printers say the helper is not running?",
       answer:
-        "The Print Bridge must run on the computer the printer is plugged into — not a phone, and not a different office PC. Unzip the installer for your OS, run it once, then Detect again.",
+        "The Print Bridge must run on the computer the printer is plugged into. Open Cashier on that PC, tap Receipts on screen → Connect a printer, and download the helper from that chip. Then open http://127.0.0.1:19500/health. If the page fails, run Install-Palmart-Print-Bridge.cmd on this machine and Detect again.",
+    },
+    {
+      question: "Device Manager shows the Xprinter. Why is Detect empty?",
+      answer:
+        "Device Manager only proves the USB cable and printer are fine. The bridge never looks there. It only lists printers from Settings → Printers & scanners. An Xprinter often shows as USB Printing Support, POS-80, or a COM port and never becomes a print queue. Add a Generic / Text Only queue named Xprinter, set it Online, then Detect again.",
+    },
+    {
+      question: "Detect says no print queues found, or I only see Fax and PDF. What now?",
+      answer:
+        "The bridge is fine. Add the queue: Printers & scanners → Add a printer → The printer that I want isn’t listed → Local printer → port USB001 (or the COM port from Device Manager) → driver Generic / Text Only → name it Xprinter, set Online → Detect again. Until it appears under Printers & scanners, Detect cannot see it.",
     },
     {
       question: "The printer is on but nothing prints. What should I check?",
@@ -257,22 +269,53 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Most Kenyan tills are Windows 10 or 11. Plug the USB in, switch the printer on, then open Settings → Bluetooth & devices → Printers & scanners. A thermal unit named XP-80, Caysn, Epson TM, or similar should appear. Some Xprinters hide until Kiosk Detect runs — that is normal, not a fault.",
+      text: "Most Kenyan tills are Windows 10 or 11. Plug USB in, switch the printer on, then open Settings → Bluetooth & devices → Printers & scanners. Detect only reads that list. Skip Microsoft Print to PDF and Fax — those are ghosts, not tills.",
+    },
+    {
+      type: "callout",
+      tone: "warning",
+      text: "Device Manager only proves the USB cable and printer are fine. The Print Bridge never looks there. An Xprinter often shows as USB Printing Support, POS-80, or a COM port and never becomes a print queue. Detect then looks empty even when the helper is working.",
+    },
+    {
+      type: "image",
+      src: "/help/printer-device-manager-vs-queue.svg",
+      alt: "Side by side: Device Manager showing USB Printing Support, POS-80, and COM3 as a cable check, versus Printers and scanners listing Xprinter as the queue Detect actually reads",
+      caption:
+        "Two rooms, one roster. Device Manager is a peephole. Printers & scanners is the name Detect can hire.",
+    },
+    {
+      type: "paragraph",
+      text: "If Printers & scanners is empty of a real thermal name, hire the printer by hand. Windows will not find many Xprinters on its own:",
+    },
+    {
+      type: "list",
+      items: [
+        "Printers & scanners → Add a printer → The printer that I want isn’t listed.",
+        "Add a local printer. Port: USB001, or the COM port Device Manager showed.",
+        "Driver: Generic / Text Only. Name it Xprinter. Set it Online.",
+        "Only then go back to Cashier and Detect. Until that name sits under Printers & scanners, Detect cannot see it.",
+      ],
     },
     {
       type: "image",
       src: "/help/printer-windows-add.svg",
       alt: "Windows Printers and scanners settings showing XP-80C marked as the receipt printer to use, with Microsoft Print to PDF and Fax listed as printers to skip",
       caption:
-        "Windows 10/11 — pick the thermal row. Never install Microsoft Print to PDF or Fax as the till printer.",
+        "This is the list that matters. A thermal row here — not a Device Manager entry — is what Detect reads.",
+    },
+    {
+      type: "image",
+      src: "/help/printer-windows-add-queue.svg",
+      alt: "Windows Add printer wizard: the printer that I want isn’t listed, local USB001 or COM port, Generic Text Only driver, named Xprinter and set Online",
+      caption:
+        "The four taps that turn a shy Xprinter into a queue. Device Manager’s COM port is useful only as the port you pick here.",
     },
     {
       type: "list",
       items: [
         "Printer ON, lid closed, paper seated shiny-side to the head.",
         "Data USB cable into the till PC — not a charger-only lead.",
-        "If the row is missing: Device Manager should show a USB printing support or COM device; keep Print Spooler running.",
-        "Windows 7 tills use the separate Kiosk Windows 7 Print Bridge package.",
+        "Windows 7 tills use the separate Kiosk Windows 7 Print Bridge package, still downloaded from Cashier.",
       ],
     },
     {
@@ -307,23 +350,23 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
     },
     {
       type: "heading",
-      text: "Step 5 — Open Cashier and connect a printer",
+      text: "Step 5 — Open Cashier and download the bridge",
     },
     {
       type: "paragraph",
-      text: "Kiosk in the browser cannot see USB — that is a browser rule, not a bug. On the till computer, open Cashier. The strip shows a quiet chip: Receipts on screen. Tap it, then Connect a printer, and download the helper for this OS.",
+      text: "The Print Bridge is not an app you hunt in Settings, on the Desktop, or in a WhatsApp zip from last month. It is a till tool. It lives on the Cashier page — the same screen you sell from — behind the quiet chip. Open Cashier on this computer (the one with the printer plugged in). Tap Receipts on screen. Tap Connect a printer. Download from that chip. That is the only doorway we keep.",
     },
     {
       type: "image",
       src: "/help/printer-cashier-connect.svg",
-      alt: "Kiosk Cashier till strip expanded to Connect a printer, with Download for Windows and Detect printers, explaining the helper must run on this till PC",
+      alt: "Kiosk Cashier till strip expanded to Connect a printer, with Download for Windows on the Cashier page as the only place to get the Print Bridge",
       caption:
-        "Paper stays optional until you connect. Setup lives behind one tap so a busy shift is never a settings maze.",
+        "Download on the till you are standing at. A helper on the office PC, or a zip on your phone, will never see this USB port.",
     },
     {
       type: "callout",
       tone: "warning",
-      text: "Install the zip on THIS computer — the one with the printer. A download on your phone, or a helper running in the back office, will never see the USB port at the counter.",
+      text: "If you downloaded the helper anywhere else, Detect will keep saying the helper is not running — because that helper is on the wrong machine. Come back to Cashier on this PC and download again.",
     },
     {
       type: "heading",
@@ -380,14 +423,39 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Work down the flow below and stop at the first row that fails. It is almost never the software — it is paper, power, or the cable.",
+      text: "Work down the flow below and stop at the first row that fails. Then read the Detect toast — it tells you which room is empty.",
     },
     {
       type: "image",
       src: "/help/printer-troubleshoot-flow.svg",
-      alt: "Five-step troubleshooting flowchart from power and self-test to system queue, Print Bridge detection, and picking the thermal receipt queue",
+      alt: "Five-step troubleshooting flowchart from power and self-test to print queue, Detect toast, and picking the thermal receipt queue",
       caption:
-        "Five checks, in order. Each one rules out a whole category of problems before you touch settings again.",
+        "Five checks, in order. Device Manager is not one of them.",
+    },
+    {
+      type: "heading",
+      text: "Which Detect toast do you get?",
+    },
+    {
+      type: "paragraph",
+      text: "Tap Detect printers once. The toast is the diagnosis. Do not keep tapping.",
+    },
+    {
+      type: "image",
+      src: "/help/printer-detect-toasts.svg",
+      alt: "Two Cashier toasts: Printer helper is not running meaning download the Print Bridge from Cashier and check localhost 19500 health, versus No print queues found meaning add a Windows queue named Xprinter",
+      caption:
+        "Toast A is the bridge. Toast B is the queue. Mixing them up wastes an afternoon.",
+    },
+    {
+      type: "callout",
+      tone: "info",
+      text: "“Printer helper is not running” → it is the bridge. On that PC open http://127.0.0.1:19500/health. If that fails, open Cashier → Receipts on screen → Connect a printer, download the Print Bridge, run Install-Palmart-Print-Bridge.cmd on this machine, then Detect again.",
+    },
+    {
+      type: "callout",
+      tone: "tip",
+      text: "“No print queues found” (or only Fax / Print to PDF) → the bridge is fine. Add the queue: Printers & scanners → Add a printer → The printer that I want isn’t listed → Local printer → port USB001 (or the COM port from Device Manager) → Generic / Text Only → name it Xprinter, set Online → Detect again. Until it appears under Printers & scanners, Detect cannot see it.",
     },
     {
       type: "table",
@@ -400,8 +468,13 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
         ],
         [
           "Detect: helper not running",
-          "Installer never ran on this PC",
-          "Unzip and run the OS installer, then Detect again.",
+          "Bridge never started on this PC",
+          "Cashier → Connect a printer → download. Then http://127.0.0.1:19500/health. Run Install-Palmart-Print-Bridge.cmd.",
+        ],
+        [
+          "Detect: no print queues found",
+          "Xprinter never became a Windows queue",
+          "Add printer isn’t listed → USB001 or COM → Generic / Text Only → name Xprinter, Online. Detect again.",
         ],
         [
           "PDF or Fax selected",
@@ -443,10 +516,10 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
       type: "list",
       items: [
         "Thermal printer ON, paper seated shiny-side to the head, data cable in the till PC.",
-        "Self-test with FEED + power. Confirm it exists in Windows / macOS / CUPS. Skip PDF and Fax.",
-        "Cashier → Receipts on screen → Connect a printer → download the helper.",
-        "Run the installer once on this computer.",
-        "Detect printers → pick the thermal name → Save on the branch.",
+        "Self-test with FEED + power. Confirm a real name under Printers & scanners — not only Device Manager. Skip PDF and Fax.",
+        "Cashier on this PC → Receipts on screen → Connect a printer → download the helper from that chip.",
+        "Run Install-Palmart-Print-Bridge.cmd once on this computer. Confirm http://127.0.0.1:19500/health.",
+        "Detect printers. Read the toast. Empty queues: add Generic / Text Only as Xprinter, then Detect again.",
         "One test sale. Paper in the customer's hand.",
       ],
     },

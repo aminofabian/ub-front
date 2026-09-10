@@ -16,6 +16,8 @@ export const APP_ROUTES = {
   /** Merchant guide: opening the cashier / taking the first sale. */
   helpOpenCashier:
     "/help/merchants/getting-started/open-the-cashier-for-the-first-time",
+  /** Merchant guide: USB / Bluetooth receipt printer on the till. */
+  helpInstallPrinter: "/help/merchants/point-of-sale/install-a-receipt-printer",
   /** Merchant guide: turning on the online store / first web orders. */
   helpSetUpStorefront: "/help/merchants/storefront/set-up-your-online-store",
   /** Storefront customer password sign-in. */

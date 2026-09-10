@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <rect width="960" height="640" fill="#0c1110"/>
+  <text x="48" y="44" font-size="18" font-weight="700" fill="#e7ece9">Read the Detect toast. It is the diagnosis.</text>
+  <text x="48" y="66" font-size="12" fill="#86a396">Two messages, two rooms. Do not mix them up.</text>
+
+  <!-- Toast 1 -->
+  <rect x="48" y="96" width="864" height="232" rx="16" fill="#1c2422" stroke="#2a3632"/>
+  <rect x="68" y="116" width="280" height="36" rx="8" fill="#7f1d1d"/>
+  <text x="208" y="139" font-size="12" font-weight="800" fill="#fecaca" text-anchor="middle">TOAST A · THE BRIDGE</text>
+  <rect x="368" y="116" width="524" height="52" rx="10" fill="#111827" stroke="#ef4444"/>
+  <text x="388" y="138" font-size="13" font-weight="700" fill="#fecaca">Printer helper is not running on this PC.</text>
+  <text x="388" y="156" font-size="11" fill="#fca5a5">Download it first, then detect.</text>
+
+  <text x="68" y="188" font-size="14" font-weight="700" fill="#e7ece9">The helper never clocked in.</text>
+  <text x="68" y="214" font-size="13" fill="#c5d0cb">On this till PC, open http://127.0.0.1:19500/health</text>
+  <text x="68" y="236" font-size="13" fill="#c5d0cb">If that page fails: open Cashier ’ Receipts on screen ’ Connect a printer.</text>
+  <text x="68" y="258" font-size="13" fill="#c5d0cb">Download the Print Bridge from that chip  not from Settings, not from WhatsApp.</text>
+  <text x="68" y="280" font-size="13" fill="#86efac">Unzip, run Install-Palmart-Print-Bridge.cmd, then Detect again.</text>
+  <text x="68" y="304" font-size="12" fill="#86a396">Windows 7 uses the Win7 installer. macOS and Linux have their own files on the same chip.</text>
+
+  <!-- Toast 2 -->
+  <rect x="48" y="348" width="864" height="256" rx="16" fill="#1c2422" stroke="#2a3632"/>
+  <rect x="68" y="368" width="280" height="36" rx="8" fill="#A8842C"/>
+  <text x="208" y="391" font-size="12" font-weight="800" fill="#111827" text-anchor="middle">TOAST B · THE QUEUE</text>
+  <rect x="368" y="368" width="524" height="52" rx="10" fill="#111827" stroke="#A8842C"/>
+  <text x="388" y="390" font-size="13" font-weight="700" fill="#fde68a">No print queues found.</text>
+  <text x="388" y="408" font-size="11" fill="#fcd34d">Or you only see Fax / Microsoft Print to PDF.</text>
+
+  <text x="68" y="448" font-size="14" font-weight="700" fill="#e7ece9">The bridge is fine. Windows never hired the printer.</text>
+  <text x="68" y="474" font-size="13" fill="#c5d0cb">Printers &amp; scanners ’ Add a printer ’ The printer that I want isnt listed</text>
+  <text x="68" y="496" font-size="13" fill="#c5d0cb">Local printer ’ port USB001 (or the COM port from Device Manager)</text>
+  <text x="68" y="518" font-size="13" fill="#c5d0cb">Driver Generic / Text Only · name it Xprinter · set Online</text>
+  <text x="68" y="544" font-size="13" fill="#86efac">Then Detect again. Until that name sits under Printers &amp; scanners, Detect is blind.</text>
+  <text x="68" y="572" font-size="12" fill="#86a396">Device Manager showing USB Printing Support is not a queue. Do not keep tapping Detect.</text>
+</svg>

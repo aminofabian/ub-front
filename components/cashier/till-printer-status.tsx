@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, ChevronDown, Printer } from "lucide-react";
+import { BookOpen, CheckCircle2, ChevronDown, Printer } from "lucide-react";
 import { toast } from "sonner";
 
+import { CashierPrinterGuideDrawer } from "@/components/cashier/cashier-printer-guide-drawer";
 import { TillBridgeDownloadButton } from "@/components/cashier/till-bridge-download-button";
 import { CupsPrinterPicker } from "@/components/cups-printer-picker";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -42,7 +43,9 @@ export function TillPrinterStatus({
   compact = false,
   onCupsNameChosen,
 }: TillPrinterStatusProps) {
-  const { canManageBusinessSettings, refreshBranches } = useDashboard();
+  const { canManageBusinessSettings, me, refreshBranches } = useDashboard();
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const isOwnerOrAdmin = roleKey === "owner" || roleKey === "admin";
   const branchName = cupsName?.trim() || null;
   const [localName, setLocalName] = useState<string | null>(null);
   const [bridgeUp, setBridgeUp] = useState<boolean | null>(null);
@@ -50,6 +53,7 @@ export function TillPrinterStatus({
   const [saving, setSaving] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
     setLocalName(getLocalTillCupsName());
@@ -79,10 +83,18 @@ export function TillPrinterStatus({
   }, []);
 
   const effectiveName = branchName || localName;
+  const printerConfigured = Boolean(effectiveName);
+  const showInstallGuide = isOwnerOrAdmin && !printerConfigured;
   const winEngineStale =
     health?.platform === "win32" &&
     health.printEngine !== REQUIRED_WIN_PRINT_ENGINE;
   const printerReady = Boolean(bridgeUp && effectiveName && !winEngineStale);
+
+  const openSetupFromGuide = useCallback(() => {
+    setGuideOpen(false);
+    setPanelOpen(true);
+    setSetupOpen(true);
+  }, []);
 
   const handleSelect = useCallback(
     async (name: string) => {
@@ -200,33 +212,57 @@ export function TillPrinterStatus({
 
   return (
     <div className={cn("inline-flex max-w-full flex-col gap-1", className)}>
-      <Button
-        type="button"
-        variant="ghost"
-        size={compact ? "xs" : "sm"}
-        className={cn(
-          chipClass,
-          "text-muted-foreground hover:text-foreground",
-        )}
-        aria-expanded={panelOpen}
-        aria-controls="till-printer-panel"
-        onClick={() => {
-          setPanelOpen((open) => {
-            if (open) setSetupOpen(false);
-            return !open;
-          });
-        }}
-      >
-        <Printer className={cn("shrink-0", compact ? "size-3" : "size-3.5")} aria-hidden />
-        <span className="min-w-0 truncate font-medium">Receipts on screen</span>
-        <ChevronDown
+      <div className="flex max-w-full flex-wrap items-center gap-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size={compact ? "xs" : "sm"}
           className={cn(
-            "size-3 shrink-0 text-muted-foreground/70 transition-transform",
-            panelOpen && "rotate-180",
+            chipClass,
+            "text-muted-foreground hover:text-foreground",
           )}
-          aria-hidden
+          aria-expanded={panelOpen}
+          aria-controls="till-printer-panel"
+          onClick={() => {
+            setPanelOpen((open) => {
+              if (open) setSetupOpen(false);
+              return !open;
+            });
+          }}
+        >
+          <Printer className={cn("shrink-0", compact ? "size-3" : "size-3.5")} aria-hidden />
+          <span className="min-w-0 truncate font-medium">Receipts on screen</span>
+          <ChevronDown
+            className={cn(
+              "size-3 shrink-0 text-muted-foreground/70 transition-transform",
+              panelOpen && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </Button>
+        {showInstallGuide ? (
+          <Button
+            type="button"
+            variant="outline"
+            size={compact ? "xs" : "sm"}
+            className={cn(chipClass, "font-medium text-foreground")}
+            onClick={() => setGuideOpen(true)}
+          >
+            <BookOpen
+              className={cn("shrink-0", compact ? "size-3" : "size-3.5")}
+              aria-hidden
+            />
+            <span className="min-w-0 truncate">Install printer</span>
+          </Button>
+        ) : null}
+      </div>
+      {showInstallGuide ? (
+        <CashierPrinterGuideDrawer
+          open={guideOpen}
+          onOpenChange={setGuideOpen}
+          onStartSetup={openSetupFromGuide}
         />
-      </Button>
+      ) : null}
       {panelOpen ? (
         <div
           id="till-printer-panel"
@@ -240,13 +276,24 @@ export function TillPrinterStatus({
             or print later if you connect a printer.
           </p>
           {!setupOpen ? (
-            <button
-              type="button"
-              className="self-start text-left font-medium text-foreground underline-offset-2 hover:underline"
-              onClick={() => setSetupOpen(true)}
-            >
-              Connect a printer
-            </button>
+            <div className="flex flex-col items-start gap-1">
+              <button
+                type="button"
+                className="self-start text-left font-medium text-foreground underline-offset-2 hover:underline"
+                onClick={() => setSetupOpen(true)}
+              >
+                Connect a printer
+              </button>
+              {showInstallGuide ? (
+                <button
+                  type="button"
+                  className="self-start text-left text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  onClick={() => setGuideOpen(true)}
+                >
+                  How to install — screenshots
+                </button>
+              ) : null}
+            </div>
           ) : (
             setupTools
           )}
