@@ -21,6 +21,7 @@ import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import { formatShelfPriceLabel } from "@/lib/cashier-shelf-price";
 import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
 import { cn } from "@/lib/utils";
+import { usePhoneLayout } from "@/lib/use-phone-layout";
 
 import { PosVariantTable } from "./pos-variant-table";
 
@@ -63,6 +64,7 @@ export function PosVariantPicker({
   onPick,
   brandTheme,
 }: PosVariantPickerProps) {
+  const phone = usePhoneLayout();
   const [variants, setVariants] = useState<ItemSummaryRecord[]>([]);
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
@@ -159,15 +161,22 @@ export function PosVariantPicker({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side="center"
-        // Opaque scrim — Win7 Chrome 109 washes out translucent overlays.
+        side={phone ? "bottom" : "center"}
+        showCloseButton={!phone}
         overlayClassName="bg-[rgba(0,0,0,0.55)] supports-[backdrop-filter]:bg-[rgba(0,0,0,0.45)]"
         className={cn(
           "gap-0 overflow-hidden border border-border bg-background p-0 shadow-2xl",
-          "w-[calc(100vw-1.25rem)] max-w-[min(26rem,calc(100vw-1.25rem))] sm:max-w-lg",
+          phone
+            ? "max-h-[min(92dvh,44rem)] w-full max-w-none rounded-t-[1.25rem]"
+            : "w-[calc(100vw-1.25rem)] max-w-[min(26rem,calc(100vw-1.25rem))] sm:max-w-lg",
         )}
         style={brandTheme}
       >
+        {phone ? (
+          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-border" />
+          </div>
+        ) : null}
         <DialogHeader className="border-b border-border bg-muted px-4 pb-3 pt-4 text-left">
           <DialogTitle className="truncate text-base font-semibold">
             {title || (parent ? cashierItemPrimaryLabel(parent) : "")}
@@ -175,9 +184,7 @@ export function PosVariantPicker({
           <DialogDescription className="sr-only">
             Pick a size to add to cart
           </DialogDescription>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            {headerCount}
-          </p>
+          <p className="text-[13px] text-muted-foreground">{headerCount}</p>
         </DialogHeader>
         <div className="max-h-[min(60vh,28rem)] overflow-y-auto overscroll-contain">
           {loading ? (

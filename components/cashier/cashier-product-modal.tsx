@@ -34,6 +34,7 @@ import {
   shelfPriceToInputString,
 } from "@/lib/cashier-shelf-price";
 import { cn } from "@/lib/utils";
+import { usePhoneLayout } from "@/lib/use-phone-layout";
 
 import { CashierCurrencySuffix } from "./cashier-currency-inline";
 
@@ -111,6 +112,7 @@ export function CashierProductModal({
   allowNegativeStock = false,
   allowPriceEdit = false,
 }: CashierProductModalProps) {
+  const phone = usePhoneLayout();
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState("");
   /** Caption under product image: loading (…), offline hint, or formatted shelf price. */
@@ -206,19 +208,25 @@ export function CashierProductModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side="center"
-        // Opaque scrim — Win7 Chrome 109 washes out translucent overlays.
+        side={phone ? "bottom" : "center"}
+        showCloseButton={!phone}
         overlayClassName="bg-[rgba(0,0,0,0.55)] supports-[backdrop-filter]:bg-[rgba(0,0,0,0.45)]"
         className={cn(
           "gap-0 overflow-hidden border border-border bg-background p-0 shadow-2xl",
-          "w-[calc(100vw-1.25rem)] max-w-[min(26rem,calc(100vw-1.25rem))] sm:max-w-lg",
-          // Close sits on the photo — solid chip so it stays readable.
+          phone
+            ? "max-h-[min(92dvh,44rem)] w-full max-w-none rounded-t-[1.25rem]"
+            : "w-[calc(100vw-1.25rem)] max-w-[min(26rem,calc(100vw-1.25rem))] sm:max-w-lg",
           "[&>button]:right-3 [&>button]:top-3 [&>button]:size-9 [&>button]:border [&>button]:border-border [&>button]:bg-background [&>button]:text-foreground [&>button]:shadow-md",
         )}
         style={brandTheme}
       >
+        {phone ? (
+          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-border" />
+          </div>
+        ) : null}
         <DialogHeader className="space-y-0 p-0 pr-0 text-left">
-          <div className="relative aspect-[5/4] w-full overflow-hidden bg-muted sm:aspect-[16/11]">
+          <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted sm:aspect-[16/11]">
             {thumb ? (
               <Image
                 src={thumb}
@@ -272,7 +280,7 @@ export function CashierProductModal({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-11 w-11 shrink-0 rounded-xl border-border bg-background"
+                  className="h-12 w-12 shrink-0 rounded-xl border-border bg-background sm:h-11 sm:w-11"
                   aria-label="Decrease quantity"
                   disabled={quantity <= 1}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -302,7 +310,7 @@ export function CashierProductModal({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-11 w-11 shrink-0 rounded-xl border-border bg-background"
+                  className="h-12 w-12 shrink-0 rounded-xl border-border bg-background sm:h-11 sm:w-11"
                   aria-label="Increase quantity"
                   disabled={maxPackages != null && quantity >= maxPackages}
                   onClick={() =>

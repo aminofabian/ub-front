@@ -50,6 +50,7 @@ import {
   type ReceiveTillDraftSummary,
 } from "@/lib/supply-draft-storage";
 import { cn } from "@/lib/utils";
+import { usePhoneLayout } from "@/lib/use-phone-layout";
 
 type PanelId = "find" | "create" | "link";
 
@@ -66,14 +67,15 @@ type CashierSuppliersModalProps = {
   ) => void;
 };
 
-/** Classic sharp fields — readable on Win7 / Chrome 109 without soft radii. */
+/** Classic sharp fields on desktop; thumb-sized on phone. */
 const fieldClass = cn(
-  "w-full rounded-none border border-[#8a8a8a] bg-[#ffffff] px-2.5 py-2 text-sm text-[#1a1a1a]",
+  "w-full border bg-[#ffffff] px-3 text-[#1a1a1a]",
   "placeholder:text-[#888]",
-  "shadow-[inset_1px_1px_0_#d4d4d4]",
   "focus-visible:border-[var(--pos-primary)] focus-visible:outline-none",
   "focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)]",
   "disabled:bg-[#f0f0f0] disabled:text-[#888]",
+  "h-12 rounded-2xl border-[#E8E4DC] text-base shadow-none",
+  "sm:h-auto sm:rounded-none sm:border-[#8a8a8a] sm:px-2.5 sm:py-2 sm:text-sm sm:shadow-[inset_1px_1px_0_#d4d4d4]",
   "dark:border-border dark:bg-background dark:text-foreground dark:shadow-none",
 );
 
@@ -116,6 +118,7 @@ export function CashierSuppliersModal({
   onReceiveSupply,
 }: CashierSuppliersModalProps) {
   const { me, business, canConnectMarketplace } = useDashboard();
+  const phone = usePhoneLayout();
   const draftBusinessId =
     business?.id?.trim() || getSessionTenantId()?.trim() || "";
   const draftUserId = me?.id?.trim() || "";
@@ -613,6 +616,7 @@ export function CashierSuppliersModal({
               type="button"
               className={cn(
                 "flex w-full items-center gap-2 px-2.5 py-2 text-left text-sm",
+                phone && "min-h-12 px-3",
                 active
                   ? "bg-[color-mix(in_srgb,var(--pos-primary)_18%,#fff)] dark:bg-primary/20"
                   : "hover:bg-[#e8f0fc] dark:hover:bg-muted/50",
@@ -644,18 +648,37 @@ export function CashierSuppliersModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side="center"
-        showCloseButton
+        side={phone ? "bottom" : "center"}
+        showCloseButton={!phone}
         className={cn(
-          "max-h-[min(92dvh,44rem)] max-w-lg gap-0 overflow-hidden rounded-none border-2 border-[#6d6d6d] p-0",
-          "bg-[#f0f0f0] shadow-[4px_4px_0_rgba(0,0,0,0.18)]",
-          "dark:border-border dark:bg-background dark:shadow-none",
-          "sm:rounded-none",
+          "gap-0 overflow-hidden p-0",
+          phone
+            ? "max-h-[min(92dvh,44rem)] rounded-t-[1.25rem] border-0 bg-[#FBF9F5] shadow-[0_-16px_48px_-20px_rgba(0,0,0,0.18)]"
+            : cn(
+                "max-h-[min(92dvh,44rem)] max-w-lg rounded-none border-2 border-[#6d6d6d]",
+                "bg-[#f0f0f0] shadow-[4px_4px_0_rgba(0,0,0,0.18)]",
+                "dark:border-border dark:bg-background dark:shadow-none",
+                "sm:rounded-none",
+              ),
         )}
         style={brandTheme}
         overlayClassName="bg-[rgba(0,0,0,0.45)] supports-[backdrop-filter]:backdrop-blur-none"
       >
-        {/* Classic title bar */}
+        {phone ? (
+          <>
+            <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+              <span className="h-1 w-10 rounded-full bg-[#D1D5DB]" />
+            </div>
+            <DialogHeader className="space-y-1 px-5 pb-3 pt-3 text-left">
+              <DialogTitle className="text-lg font-semibold tracking-tight">
+                {title}
+              </DialogTitle>
+              <DialogDescription className="text-[13px] leading-relaxed text-[#6B7280]">
+                Find who delivers, add a vendor, or link products from this till.
+              </DialogDescription>
+            </DialogHeader>
+          </>
+        ) : (
         <div
           className={cn(
             "flex items-center gap-2 border-b border-[#707070] px-3 py-2",
@@ -674,28 +697,45 @@ export function CashierSuppliersModal({
             </DialogDescription>
           </DialogHeader>
         </div>
+        )}
 
-        {/* Immediate actions — find first, new supplier always visible */}
-        <div className="grid grid-cols-2 gap-px border-b border-[#a0a0a0] bg-[#a0a0a0] dark:border-border dark:bg-border">
+        <div
+          className={cn(
+            phone
+              ? "grid gap-1 px-3 pb-2"
+              : "grid grid-cols-2 gap-px border-b border-[#a0a0a0] bg-[#a0a0a0] dark:border-border dark:bg-border",
+            phone && (canLink && canWrite ? "grid-cols-3" : "grid-cols-2"),
+          )}
+        >
           <button
             type="button"
             className={cn(
               panelBtn,
               "border-0 bg-[#f3f3f3] dark:bg-muted/30",
               panel === "find" && panelBtnActive,
+              phone &&
+                "min-h-12 items-center justify-center rounded-2xl border border-[#E8E4DC] bg-white px-2 py-2 shadow-none",
+              phone && panel === "find" && "border-[#0D9488] bg-[#F0FDFA]",
             )}
             onClick={() => {
               setPanel("find");
               window.requestAnimationFrame(() => searchInputRef.current?.focus());
             }}
           >
-            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide">
+            <span
+              className={cn(
+                "flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide",
+                phone && "text-[13px] font-semibold normal-case tracking-tight",
+              )}
+            >
               <Search className="size-3.5" aria-hidden />
-              Find supplier
+              {phone ? "Find" : "Find supplier"}
             </span>
-            <span className="text-[11px] text-[#555] dark:text-muted-foreground">
-              Search who delivers today
-            </span>
+            {phone ? null : (
+              <span className="text-[11px] text-[#555] dark:text-muted-foreground">
+                Search who delivers today
+              </span>
+            )}
           </button>
           {canWrite ? (
             <button
@@ -704,43 +744,65 @@ export function CashierSuppliersModal({
                 panelBtn,
                 "border-0 bg-[#f3f3f3] dark:bg-muted/30",
                 panel === "create" && panelBtnActive,
+                phone &&
+                  "min-h-12 items-center justify-center rounded-2xl border border-[#E8E4DC] bg-white px-2 py-2 shadow-none",
+                phone && panel === "create" && "border-[#0D9488] bg-[#F0FDFA]",
               )}
               onClick={() => setPanel("create")}
             >
-              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide">
+              <span
+                className={cn(
+                  "flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide",
+                  phone && "text-[13px] font-semibold normal-case tracking-tight",
+                )}
+              >
                 <UserPlus className="size-3.5" aria-hidden />
-                New supplier
+                {phone ? "New" : "New supplier"}
               </span>
-              <span className="text-[11px] text-[#555] dark:text-muted-foreground">
-                First time? Add them here
-              </span>
+              {phone ? null : (
+                <span className="text-[11px] text-[#555] dark:text-muted-foreground">
+                  First time? Add them here
+                </span>
+              )}
             </button>
           ) : (
             <div className="flex items-center bg-[#ebebeb] px-3 text-[11px] text-[#666] dark:bg-muted/20 dark:text-muted-foreground">
               Ask an admin to enable supplier create
             </div>
           )}
-        </div>
-
-        {canLink ? (
-          <div className="border-b border-[#c0c0c0] bg-[#e8e8e8] px-3 py-1.5 dark:border-border dark:bg-muted/20">
+          {canLink ? (
             <button
               type="button"
               className={cn(
-                "inline-flex items-center gap-1.5 border border-transparent px-2 py-1 text-[11px] font-semibold uppercase tracking-wide",
-                panel === "link"
-                  ? "border-[#707070] bg-[#fff] text-[#1a1a1a] dark:border-border dark:bg-background dark:text-foreground"
-                  : "text-[#555] hover:border-[#a0a0a0] hover:bg-[#f5f5f5] dark:text-muted-foreground",
+                panelBtn,
+                "border-0 bg-[#f3f3f3] dark:bg-muted/30",
+                panel === "link" && panelBtnActive,
+                phone &&
+                  "min-h-12 items-center justify-center rounded-2xl border border-[#E8E4DC] bg-white px-2 py-2 shadow-none",
+                phone && panel === "link" && "border-[#0D9488] bg-[#F0FDFA]",
+                !phone && "col-span-2",
               )}
               onClick={() => setPanel("link")}
             >
-              <Link2 className="size-3" aria-hidden />
-              Link products to a supplier
+              <span
+                className={cn(
+                  "flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide",
+                  phone && "text-[13px] font-semibold normal-case tracking-tight",
+                )}
+              >
+                <Link2 className="size-3.5" aria-hidden />
+                {phone ? "Link" : "Link products to a supplier"}
+              </span>
             </button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
-        <div className="max-h-[min(52dvh,28rem)] space-y-3 overflow-y-auto bg-[#f7f7f7] px-3 py-3 dark:bg-background">
+        <div
+          className={cn(
+            "max-h-[min(52dvh,28rem)] space-y-3 overflow-y-auto px-3 py-3",
+            phone ? "bg-[#FBF9F5]" : "bg-[#f7f7f7] dark:bg-background",
+          )}
+        >
           {canReceive && onReceiveSupply && unfinishedTills.length > 0 ? (
             <section className="space-y-1.5">
               <p className={labelClass}>Resume unfinished</p>
@@ -1207,12 +1269,14 @@ export function CashierSuppliersModal({
           className={cn(
             "flex-row justify-end gap-2 border-t border-[#a0a0a0] bg-[#e8e8e8] px-3 py-2.5",
             "dark:border-border dark:bg-muted/30",
+            phone &&
+              "flex-col-reverse gap-2 border-[#E8E4DC] bg-white px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3",
           )}
         >
           <Button
             type="button"
             variant="outline"
-            className={cn(classicBtn, "h-9")}
+            className={cn(classicBtn, "h-9", phone && "h-12 w-full rounded-2xl shadow-none")}
             onClick={() => onOpenChange(false)}
             disabled={createBusy || linkBusy}
           >
@@ -1221,7 +1285,11 @@ export function CashierSuppliersModal({
           {panel === "create" && canWrite ? (
             <Button
               type="button"
-              className={cn(classicPrimary, "h-9 gap-1.5")}
+              className={cn(
+                classicPrimary,
+                "h-9 gap-1.5",
+                phone && "h-12 w-full rounded-2xl shadow-none",
+              )}
               onClick={() => void onCreate()}
               disabled={createBusy || !lookup.trim()}
             >
@@ -1236,7 +1304,11 @@ export function CashierSuppliersModal({
           {panel === "link" && canLink ? (
             <Button
               type="button"
-              className={cn(classicPrimary, "h-9 gap-1.5")}
+              className={cn(
+                classicPrimary,
+                "h-9 gap-1.5",
+                phone && "h-12 w-full rounded-2xl shadow-none",
+              )}
               onClick={() => void onLink()}
               disabled={linkBusy || !supplier || linkCount === 0}
             >
@@ -1253,7 +1325,11 @@ export function CashierSuppliersModal({
           {panel === "find" && canReceive && onReceiveSupply && supplier ? (
             <Button
               type="button"
-              className={cn(classicPrimary, "h-9 gap-1.5")}
+              className={cn(
+                classicPrimary,
+                "h-9 gap-1.5",
+                phone && "h-12 w-full rounded-2xl shadow-none",
+              )}
               onClick={openTill}
             >
               <ShoppingCart className="size-3.5" />

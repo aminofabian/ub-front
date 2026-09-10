@@ -2057,6 +2057,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           <div
             className={cn(
               "group flex items-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card pl-3.5 pr-1.5 transition-colors",
+              "rounded-2xl sm:rounded-none",
               "focus-within:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)]",
               "dark:border-border/40 dark:bg-card/80",
             )}
@@ -2068,7 +2069,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             <button
               type="button"
               onClick={() => setShowScanner(true)}
-              className="shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:text-foreground dark:text-muted-foreground"
+              className="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:text-foreground dark:text-muted-foreground"
               aria-label="Scan barcode with phone camera"
               title="Scan barcode with camera"
             >
@@ -2713,6 +2714,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         branchId={branchId}
         itemTypes={itemTypes}
         preferredItemTypeId={preferredItemTypeId}
+        canLinkSupplier={allowLinkSupplierProducts}
         onCreated={(item, unitPrice) => {
           const added = addLine(item, 1, unitPrice);
           if (added) markAdded(item.id);

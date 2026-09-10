@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { postSellingPrice } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { usePhoneLayout } from "@/lib/use-phone-layout";
 
 function localYmd(): string {
   const d = new Date();
@@ -55,6 +56,7 @@ export function CashierEditPriceModal({
   onSave,
   onCatalogPriceSaved,
 }: CashierEditPriceModalProps) {
+  const phone = usePhoneLayout();
   const [unitPrice, setUnitPrice] = useState(currentPrice);
   const [persistCatalog, setPersistCatalog] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -76,7 +78,7 @@ export function CashierEditPriceModal({
   const canSave = Number.isFinite(priceNum) && priceNum > 0 && !busy;
 
   const fieldClass = cn(
-    "h-11 w-full rounded-xl border border-border/55 bg-background px-3 text-right text-lg font-semibold tabular-nums shadow-sm",
+    "h-12 w-full rounded-2xl border border-border/55 bg-background px-3 text-right text-lg font-semibold tabular-nums shadow-sm sm:h-11 sm:rounded-xl",
     "focus:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_40%,var(--border))] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)]",
   );
 
@@ -116,10 +118,21 @@ export function CashierEditPriceModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side="center"
-        className="max-w-sm gap-0 overflow-hidden p-0"
+        side={phone ? "bottom" : "center"}
+        showCloseButton={!phone}
+        className={cn(
+          "gap-0 overflow-hidden p-0",
+          phone
+            ? "max-h-[min(92dvh,32rem)] w-full rounded-t-[1.25rem]"
+            : "max-w-sm",
+        )}
         style={brandTheme}
       >
+        {phone ? (
+          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-border" />
+          </div>
+        ) : null}
         <div className="border-b border-border/40 px-4 py-4">
           <DialogHeader className="space-y-1 text-left">
             <DialogTitle className="flex items-center gap-2 text-lg">
@@ -134,7 +147,7 @@ export function CashierEditPriceModal({
 
         <div className="space-y-3 px-4 py-4">
           <label className="block space-y-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-[12px] font-medium text-muted-foreground">
               Unit price{currency ? ` (${currency})` : ""}
             </span>
             <input
@@ -183,11 +196,12 @@ export function CashierEditPriceModal({
           ) : null}
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border/40 px-4 py-3">
+        <DialogFooter className="flex-col-reverse gap-2 border-t border-border/40 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:pb-3">
           <Button
             type="button"
             variant="ghost"
             disabled={busy}
+            className="h-12 rounded-2xl sm:h-9 sm:rounded-md"
             onClick={() => onOpenChange(false)}
           >
             Cancel
@@ -195,7 +209,7 @@ export function CashierEditPriceModal({
           <Button
             type="button"
             disabled={!canSave}
-            className="bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90"
+            className="h-12 rounded-2xl bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90 sm:h-9 sm:rounded-md"
             onClick={() => void submit()}
           >
             {busy ? "Saving…" : "Update price"}

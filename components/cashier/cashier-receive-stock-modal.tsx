@@ -41,6 +41,7 @@ import {
 } from "@/lib/supply-draft-storage";
 import { getSessionTenantId } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { usePhoneLayout } from "@/lib/use-phone-layout";
 
 type LineDraft = {
   itemId: string;
@@ -130,6 +131,7 @@ export function CashierReceiveStockModal({
   initialSupplier = null,
   onPosted,
 }: CashierReceiveStockModalProps) {
+  const phone = usePhoneLayout();
   const code = currency.trim().toUpperCase() || "KES";
   const { me, business } = useDashboard();
   const draftBusinessId =
@@ -523,10 +525,21 @@ export function CashierReceiveStockModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side="center"
-        className="flex max-h-[min(94dvh,44rem)] max-w-lg flex-col gap-0 overflow-hidden p-0"
+        side={phone ? "bottom" : "center"}
+        showCloseButton={!phone}
+        className={cn(
+          "flex flex-col gap-0 overflow-hidden p-0",
+          phone
+            ? "max-h-[min(92dvh,44rem)] w-full rounded-t-[1.25rem]"
+            : "max-h-[min(94dvh,44rem)] max-w-lg",
+        )}
         style={brandTheme}
       >
+        {phone ? (
+          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-border" />
+          </div>
+        ) : null}
         <div className="relative overflow-hidden border-b border-border/40 px-4 pb-3 pt-4">
           <div
             className="pointer-events-none absolute inset-0 opacity-90"

@@ -38,6 +38,7 @@ import {
   type LocalReceiptPrinterTarget,
 } from "@/lib/desktop-print";
 import { cn } from "@/lib/utils";
+import { usePhoneLayout } from "@/lib/use-phone-layout";
 import { CustomerPhoneFlag } from "@/components/credits/customer-phone-flag";
 import {
   LoyaltyCardLink,
@@ -96,6 +97,7 @@ export function CashierCreditTabsModal({
   currency,
   receiptPrinter,
 }: CashierCreditTabsModalProps) {
+  const phone = usePhoneLayout();
   const [rows, setRows] = useState<OutstandingTabRowRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
@@ -244,9 +246,21 @@ export function CashierCreditTabsModal({
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        side={phone ? "bottom" : "center"}
+        showCloseButton={false}
         style={brandTheme}
-        className="flex max-h-[min(92vh,720px)] w-[min(96vw,34rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
+        className={cn(
+          "flex flex-col gap-0 overflow-hidden p-0",
+          phone
+            ? "max-h-[min(92dvh,44rem)] w-full rounded-t-[1.25rem]"
+            : "max-h-[min(92vh,720px)] w-[min(96vw,34rem)] sm:max-w-lg",
+        )}
       >
+        {phone ? (
+          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-border" />
+          </div>
+        ) : null}
         <DialogHeader className="relative shrink-0 space-y-0 border-b border-border/50 bg-[radial-gradient(120%_80%_at_0%_0%,color-mix(in_srgb,var(--pos-primary)_18%,transparent),transparent_55%)] px-4 pb-3 pt-4 text-left">
           <button
             type="button"

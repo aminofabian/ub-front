@@ -1519,6 +1519,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
         branchId={branchId}
         itemTypes={itemTypes}
         preferredItemTypeId={preferredItemTypeId}
+        canLinkSupplier={allowLinkSupplierProducts}
         onCreated={(item, unitPrice) => {
           const added = addLine(item, 1, unitPrice);
           if (added) markAdded();

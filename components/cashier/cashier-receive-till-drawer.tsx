@@ -62,9 +62,6 @@ export function CashierReceiveTillDrawer({
               <Truck className="size-4" aria-hidden />
             </span>
             <DialogHeader className="min-w-0 flex-1 space-y-0.5 text-left">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Open till · stays on cashier
-              </p>
               <DialogTitle className="truncate text-base font-semibold leading-tight">
                 {title}
               </DialogTitle>

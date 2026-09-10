@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 /** Full-width command row. Pass to AirtimeQuickAction as triggerClassName. */
 export const MORE_ROW = cn(
-  "flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-[13px] font-medium text-zinc-800",
+  "flex min-h-12 w-full items-center gap-2.5 px-3 py-2.5 text-left text-[15px] font-medium text-zinc-800 sm:min-h-0 sm:px-2.5 sm:py-2 sm:text-[13px]",
   "hover:bg-zinc-50 active:bg-zinc-100",
   "focus-visible:outline-none focus-visible:bg-[color-mix(in_srgb,var(--pos-primary)_8%,white)]",
   "disabled:opacity-40",

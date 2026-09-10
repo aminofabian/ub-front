@@ -1160,9 +1160,24 @@ export function CashierCreateProductModal({
             ) : null}
           </div>
 
+          {canLinkSupplier ? (
+            <div className="space-y-1.5">
+              <span className={labelClass}>Supplier</span>
+              <CashierSupplierPick
+                disabled={busy}
+                selected={supplier}
+                onClear={() => setSupplier(null)}
+                onPick={setSupplier}
+              />
+              <span className="text-[11px] text-zinc-500">
+                Optional. Links this SKU so you can receive from them later.
+              </span>
+            </div>
+          ) : null}
+
           {mode === "single" ? (
             <div className={cn("flex flex-col gap-3", styles.enter)}>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block space-y-1.5">
                   <span className={labelClass}>
                     Sell price{currencySuffix}
@@ -1197,6 +1212,21 @@ export function CashierCreateProductModal({
                 </label>
               </div>
 
+              {phone ? (
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen((value) => !value)}
+                  className="flex min-h-11 w-full items-center justify-between rounded-2xl border border-zinc-200 bg-white px-3.5 text-sm font-medium text-[var(--pos-primary)]"
+                >
+                  {moreOpen ? "Hide extra details" : "Barcode, buy price, variants"}
+                  <span className="text-xs font-normal text-zinc-500">
+                    Optional
+                  </span>
+                </button>
+              ) : null}
+
+              {desktop || moreOpen ? (
+                <>
               <label className="block space-y-1.5">
                 <span className={labelClass}>Barcode (optional)</span>
                 <input
@@ -1222,7 +1252,7 @@ export function CashierCreateProductModal({
                 />
               </label>
 
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2.5">
+              <label className="flex min-h-12 cursor-pointer items-start gap-2.5 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 sm:min-h-0 sm:rounded-md sm:py-2.5">
                 <input
                   type="checkbox"
                   className="mt-0.5 size-4 accent-[var(--pos-primary)]"
@@ -1331,6 +1361,8 @@ export function CashierCreateProductModal({
                     />
                   </label>
                 </div>
+              ) : null}
+                </>
               ) : null}
             </div>
           ) : (

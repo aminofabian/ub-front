@@ -435,6 +435,22 @@ function PreviewProductCreateSheet({
               autoComplete="off"
             />
           </label>
+          <div className="space-y-1">
+            <span className="text-[12px] font-medium text-[#6B7280]">
+              Supplier
+            </span>
+            <div className="flex min-h-12 items-center gap-2 rounded-2xl border border-[#E8E4DC] bg-white px-3">
+              <span className="min-w-0 flex-1 truncate text-[15px] font-medium">
+                Brookside Dairies
+              </span>
+              <span className="text-[13px] font-medium text-[#0D9488]">
+                Change
+              </span>
+            </div>
+            <p className="text-[11px] text-[#6B7280]">
+              Optional. Links this SKU so you can receive from them later.
+            </p>
+          </div>
         </div>
         <div className="border-t border-[#E8E4DC] bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button
