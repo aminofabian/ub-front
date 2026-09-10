@@ -285,7 +285,6 @@ function ModeTab({
       className={cn(
         "flex flex-1 flex-col items-start gap-0.5 rounded-none px-3 py-2 text-left transition-colors",
         active
-        active
           ? "border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
           : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
       )}
