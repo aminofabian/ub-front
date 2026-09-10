@@ -668,14 +668,6 @@ export function BusinessHubWorkspace() {
     },
   });
 
-  const realtime = useOptionalRealtime();
-  const pulseLive =
-    business?.active !== false && realtime?.connectionState === "connected";
-
-  const realtime = useOptionalRealtime();
-  const pulseLive =
-    business?.active !== false && realtime?.connectionState === "connected";
-
   const isToday = period === "today";
 
   const revenue = isToday ? toNum(pulse?.revenue) : toNum(weekPl?.revenue);
@@ -1150,6 +1142,11 @@ export function BusinessHubWorkspace() {
       setupHome={shopNotReady}
       headerActions={
         <>
+          <HubLiveStatus
+            businessActive={business?.active !== false}
+            lastLiveUpdateAt={lastLiveUpdateAt}
+            justUpdated={justUpdated}
+          />
           <button
             type="button"
             onClick={() => void load()}
@@ -1192,7 +1189,6 @@ export function BusinessHubWorkspace() {
               cashiers={cashierNames}
               selected={selectedCashiers}
               onChange={setSelectedCashiers}
-              live={pulseLive}
             />
           ) : null}
 
@@ -1251,7 +1247,7 @@ export function BusinessHubWorkspace() {
               ) : null}
 
               {shopNotReady ? null : (
-                <div className="flex flex-col gap-3 sm:gap-3.5">
+                <div className="flex flex-col gap-4 sm:gap-5">
                   {/* 1 — Summary */}
                   {salesEmpty ? null : (
                     <PulseHero
@@ -1265,7 +1261,6 @@ export function BusinessHubWorkspace() {
                       trend={revenueTrend}
                       trendTone={revenueFooterTone}
                       metrics={pulseMetrics}
-                      live={pulseLive}
                       justUpdated={justUpdated}
                     />
                   )}
@@ -1294,7 +1289,6 @@ export function BusinessHubWorkspace() {
                           <SupplyBillsRail
                             bills={todaySupplies}
                             currency={currency}
-                            live={pulseLive}
                             justUpdated={supplyJustUpdated}
                             onPayBill={
                               canOpenSupplyPay ? openSupplyPay : undefined
@@ -1308,7 +1302,6 @@ export function BusinessHubWorkspace() {
                           <CreditTabsRail
                             tabs={openCreditTabs}
                             currency={currency}
-                            live={pulseLive}
                             justUpdated={creditJustUpdated}
                             onPayTab={
                               canOpenCreditPay ? openCreditPay : undefined
@@ -1325,7 +1318,6 @@ export function BusinessHubWorkspace() {
                           <WebOrdersRail
                             orders={openWebOrders}
                             currency={currency}
-                            live={pulseLive}
                             justUpdated={webOrdersJustUpdated}
                             onInspect={openShopperHistory}
                             className="sm:col-span-2 xl:col-span-1"
@@ -1355,7 +1347,6 @@ export function BusinessHubWorkspace() {
                             ticks={lane.ticks}
                             drawouts={lane.drawouts}
                             currency={currency}
-                            live={pulseLive}
                             justUpdated={justUpdated && index === 0}
                             title={lane.title}
                             subtitle={lane.subtitle}
@@ -1373,17 +1364,11 @@ export function BusinessHubWorkspace() {
                   {/* 5 — Trend */}
                   {salesEmpty ? null : (
                     <section className="space-y-1.5">
-                      <HubSectionLabel
-                        title="Trend"
-                        meta={isToday ? "12 days" : "7 days"}
-                      />
+                      <HubSectionLabel title="Trend" />
                       <RevenueBarChart
                         points={chartPoints}
                         ariaLabel={chartAriaLabel}
                         caption={chartCaption}
-                        title={
-                          isToday ? "Twelve-day runway" : "Seven-day runway"
-                        }
                       />
                     </section>
                   )}
@@ -1431,7 +1416,6 @@ export function BusinessHubWorkspace() {
                       ticks={lane.ticks}
                       drawouts={lane.drawouts}
                       currency={currency}
-                      live={pulseLive}
                       justUpdated={justUpdated && index === 0}
                       title={lane.title}
                       subtitle={lane.subtitle}
@@ -1455,7 +1439,6 @@ export function BusinessHubWorkspace() {
           ticks={recentTicks}
           drawouts={recentDrawouts}
           currency={currency}
-          live={pulseLive}
           justUpdated={justUpdated}
           onClose={() => setSelectedCashiers((prev) => prev.slice(0, 2))}
           onRemoveCashier={(name) =>
