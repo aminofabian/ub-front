@@ -52,7 +52,9 @@ import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
 import {
   cashierItemPrimaryLabel,
   cashierItemTitleParts,
+  isPosFamilyParent,
   isPosPackageSellRow,
+  isPosSellableSku,
   posAvailablePackages,
 } from "@/lib/cashier-item-display";
 import {
@@ -1147,7 +1149,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               softAuth: true,
               branchId: bid,
             });
-            const sellable = items.filter((row) => !row.groupLabelOnly);
+            const sellable = items.filter(isPosSellableSku);
 
             if (sellable.length === 1) {
               const item = sellable[0]!;
@@ -1325,9 +1327,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const parentCheckCache = useRef(new Map<string, boolean>());
 
   const handlePickItem = (item: ItemSummaryRecord, presetShelfLine?: string) => {
-    if (item.groupLabelOnly) {
-      // Non-sellable family header — open the size picker instead of a dead tap.
+    if (isPosFamilyParent(item)) {
+      // Family header — open the size picker instead of adding a non-sellable row.
       setVariantPicker({ parent: item });
+      return;
+    }
+    if (!isPosSellableSku(item)) {
+      toast.error("This product is not for sale. Choose a size or flavour.");
       return;
     }
     const shelfLine = presetShelfLine ?? tileShelfPrices[item.id];
@@ -1350,7 +1356,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   /**
    * Pick from a top-product chip/tile. Chips never carry `groupLabelOnly`
    * (`TopProductRecord` has no such field), so for rows without a variant
-   * parent we lazily check the catalog once per session: a group-label parent
+   * parent we lazily check the catalog once per session: a family parent
    * opens the size picker instead of adding a non-sellable family header.
    */
   const handleTopProductPick = (product: TopProductRecord) => {
@@ -1389,19 +1395,18 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     }
     void fetchItemById(product.id, { branchId: branchId.trim(), toast: false })
       .then((detail) => {
-        const isParent = detail.groupLabelOnly === true;
+        const isParent = isPosFamilyParent(detail);
         parentCheckCache.current.set(product.id, isParent);
         if (isParent) {
           setVariantPicker({ parent: item, preloaded: detail });
         } else {
-          handlePickItem(item);
+          handlePickItem({ ...item, isSellable: detail.isSellable });
         }
       })
       .catch(() => {
-        // Lookup failed (offline / stale row). Fall back to today's direct add
-        // and don't re-check this item again this session.
-        parentCheckCache.current.set(product.id, false);
-        handlePickItem(item);
+        // Don't add a maybe-family parent to the cart when we couldn't verify.
+        parentCheckCache.current.delete(product.id);
+        toast.error("Could not load this product. Search for a size to sell.");
       });
   };
 

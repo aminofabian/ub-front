@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   cashierItemPrimaryLabel,
   cashierItemTitleParts,
+  isPosFamilyParent,
   isPosPackageSellRow,
+  isPosSellableSku,
   mergePosItemStockFromDetail,
   posAvailablePackages,
   posCartLineSuffix,
@@ -118,6 +120,29 @@ describe("pos package stock", () => {
 });
 
 describe("cashier labels", () => {
+  it("treats family parents as not sellable on the till", () => {
+    expect(
+      isPosSellableSku({ groupLabelOnly: true }),
+    ).toBe(false);
+    expect(
+      isPosSellableSku({ isSellable: false }),
+    ).toBe(false);
+    expect(
+      isPosFamilyParent({ id: "p", name: "Coke", sku: "C", isSellable: false }),
+    ).toBe(true);
+    expect(
+      isPosFamilyParent({
+        id: "v",
+        name: "Coke",
+        sku: "C-500",
+        variantOfItemId: "p",
+        isSellable: true,
+      }),
+    ).toBe(false);
+    expect(isPosSellableSku({ isSellable: true })).toBe(true);
+    expect(isPosSellableSku({})).toBe(true);
+  });
+
   it("uses live parentName when variant row still has stale family copy", () => {
     expect(
       cashierItemPrimaryLabel({

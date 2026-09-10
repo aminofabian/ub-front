@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Plus } from "lucide-react";
 
 import type { ItemSummaryRecord } from "@/lib/api";
-import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
+import { cashierItemPrimaryLabel, isPosSellableSku } from "@/lib/cashier-item-display";
 import {
   formatPosStockQty,
   groupPosCatalogHits,
@@ -66,7 +66,7 @@ function HitRow({
       ref={rowRef}
       type="button"
       onClick={onPick}
-      disabled={Boolean(item.groupLabelOnly)}
+      disabled={!isPosSellableSku(item)}
       className={cn(
         "flex w-full items-center gap-3 border-b border-zinc-100 px-3 py-2 text-left",
         "hover:bg-zinc-50",
@@ -161,7 +161,7 @@ export function LedgerSearchHits({
       }
       if (e.key === "Enter") {
         const item = flat[active];
-        if (!item || item.groupLabelOnly) return;
+        if (!item || !isPosSellableSku(item)) return;
         e.preventDefault();
         onPick(item);
       }

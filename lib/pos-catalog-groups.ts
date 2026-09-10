@@ -2,6 +2,7 @@ import type { ItemSummaryRecord } from "@/lib/api";
 import {
   cashierItemPrimaryLabel,
   cashierItemTitleParts,
+  isPosFamilyParent,
 } from "@/lib/cashier-item-display";
 
 export type PosCatalogStandaloneHit = {
@@ -54,8 +55,8 @@ function groupTitle(variants: ItemSummaryRecord[]): string {
 
 /**
  * Collapse linked variant siblings into one family block for hybrid POS lists.
- * Unlinked lookalikes stay standalone. `groupLabelOnly` parents are omitted when
- * any children for that parent are present in the hit set.
+ * Unlinked lookalikes stay standalone. Family/group parents are never sellable
+ * tiles — they only title a size group when children are in the hit set.
  */
 export function groupPosCatalogHits(
   hits: ItemSummaryRecord[],
@@ -74,7 +75,7 @@ export function groupPosCatalogHits(
       byParent.set(parentId, list);
       continue;
     }
-    if (hit.groupLabelOnly) {
+    if (isPosFamilyParent(hit)) {
       parentsSeen.add(hit.id);
       continue;
     }
@@ -107,7 +108,7 @@ export function groupPosCatalogHits(
       continue;
     }
 
-    if (hit.groupLabelOnly) {
+    if (isPosFamilyParent(hit)) {
       if (emittedParents.has(hit.id)) continue;
       const children = byParent.get(hit.id);
       if (children && children.length > 0) {
@@ -119,7 +120,7 @@ export function groupPosCatalogHits(
           variants: sortVariants(children),
         });
       }
-      // Parent with no children in this page: skip (not sellable alone).
+      // Family parent with no children in this page: skip (not sellable alone).
       continue;
     }
 

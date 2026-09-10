@@ -11,6 +11,26 @@ import {
 /** Import / legacy rows sometimes store placeholder text instead of a real option label. */
 const GENERIC_VARIANT_LABELS = new Set(["variant", "option", "variation", "default"]);
 
+/**
+ * Till lines must be real SKUs. Family/group parents (`isSellable: false` or
+ * `groupLabelOnly`) are labels for sizes — they cannot be sold.
+ */
+export function isPosSellableSku(
+  row: Pick<ItemSummaryRecord, "groupLabelOnly" | "isSellable">,
+): boolean {
+  if (row.groupLabelOnly === true) return false;
+  if (row.isSellable === false) return false;
+  return true;
+}
+
+/** Root family row: open the size picker instead of adding it to the cart. */
+export function isPosFamilyParent(
+  row: Pick<ItemSummaryRecord, "variantOfItemId" | "groupLabelOnly" | "isSellable">,
+): boolean {
+  if (row.variantOfItemId?.trim()) return false;
+  return row.groupLabelOnly === true || row.isSellable === false;
+}
+
 export function isGenericVariantLabel(raw: string | undefined): boolean {
   const t = raw?.trim().toLowerCase();
   if (!t) {

@@ -108,6 +108,7 @@ import {
 } from "@/lib/top-products";
 import {
   cashierItemPrimaryLabel,
+  isPosSellableSku,
   posAvailablePackages,
   posCartLineSuffix,
 } from "@/lib/cashier-item-display";
@@ -2255,7 +2256,7 @@ export function QuickSaleWorkspace({
           return;
         }
         const cached = readCachedItemsSearch(q);
-        setHits(cached?.items ?? []);
+        setHits((cached?.items ?? []).filter(isPosSellableSku));
         if (!cached) {
           setSearchBanner("Offline — no cached search for this query yet.");
         } else if (cached.stale) {
@@ -2279,7 +2280,7 @@ export function QuickSaleWorkspace({
           if (controller.signal.aborted) {
             return;
           }
-          const sellable = items.filter((row) => row.groupLabelOnly !== true);
+          const sellable = items.filter(isPosSellableSku);
           setHits(sellable);
           if (q) {
             writeCachedItemsSearch(q, sellable);
@@ -2305,7 +2306,7 @@ export function QuickSaleWorkspace({
             return;
           }
           const cached = readCachedItemsSearch(q);
-          setHits(cached?.items ?? []);
+          setHits((cached?.items ?? []).filter(isPosSellableSku));
           setSearchBanner(
             cached
               ? "Could not reach API — showing cached catalog results."
@@ -2474,8 +2475,8 @@ export function QuickSaleWorkspace({
         toast.error(blockedMsg);
         return false;
       }
-      if (item.groupLabelOnly) {
-        toast.error("Choose a specific product, not the group label.");
+      if (!isPosSellableSku(item)) {
+        toast.error("Choose a specific size or flavour — this is a product family.");
         return false;
       }
       const addQty = Number.isFinite(qty) && qty > 0 ? qty : 1;

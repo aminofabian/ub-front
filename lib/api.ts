@@ -889,6 +889,8 @@ export type ItemSummaryRecord = {
   active?: boolean;
   /** When true, non-sellable parent that only groups option SKUs. Sellable/stocked bases with children (e.g. Eggs) are false. Omitted when listing with catalogScope SKUS_ONLY. */
   groupLabelOnly?: boolean;
+  /** False for family/group parents and any SKU with sellable turned off. */
+  isSellable?: boolean;
   /** True when sold by weight (kg/g/lb); fractional cart qty is allowed. */
   isWeighed?: boolean;
   /** Unit of measure from catalog list (each, kg, …). */

@@ -71,7 +71,11 @@ import {
   shelfPriceToInputString,
   splitShelfPriceDisplay,
 } from "@/lib/cashier-shelf-price";
-import { isPosPackageSellRow } from "@/lib/cashier-item-display";
+import {
+  isPosFamilyParent,
+  isPosPackageSellRow,
+  isPosSellableSku,
+} from "@/lib/cashier-item-display";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import { tillDeviceDisplayName } from "@/lib/till-device";
 import { isBranchLockedRole } from "@/lib/branch-access";
@@ -326,8 +330,12 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
 
   const pickItem = useCallback(
     (item: ItemSummaryRecord, presetShelf?: string) => {
-      if (item.groupLabelOnly) {
+      if (isPosFamilyParent(item)) {
         setVariantPicker({ parent: item });
+        return;
+      }
+      if (!isPosSellableSku(item)) {
+        toast.error("This product is not for sale. Choose a size or flavour.");
         return;
       }
       const shelfLine = presetShelf ?? shelfPrices[item.id];
@@ -376,14 +384,14 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
       }
       void fetchItemById(product.id, { branchId: branchId.trim(), toast: false })
         .then((detail) => {
-          const isParent = detail.groupLabelOnly === true;
+          const isParent = isPosFamilyParent(detail);
           parentCheckCache.current.set(product.id, isParent);
           if (isParent) setVariantPicker({ parent: item });
-          else pickItem(item);
+          else pickItem({ ...item, isSellable: detail.isSellable });
         })
         .catch(() => {
-          parentCheckCache.current.set(product.id, false);
-          pickItem(item);
+          parentCheckCache.current.delete(product.id);
+          toast.error("Could not load this product. Search for a size to sell.");
         });
     },
     [pickItem, online, branchId],
@@ -440,7 +448,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               softAuth: true,
               branchId: bid,
             });
-            const sellable = items.filter((row) => !row.groupLabelOnly);
+            const sellable = items.filter(isPosSellableSku);
             if (sellable.length === 1) {
               const item = sellable[0]!;
               const sp = await fetchPosShelfPrice(item.id, bid, {
@@ -495,7 +503,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
       applyBarcodeSearch(q);
       return;
     }
-    const sellable = flattenLedgerSearchHits(hits).find((h) => !h.groupLabelOnly);
+    const sellable = flattenLedgerSearchHits(hits).find(isPosSellableSku);
     if (sellable) {
       pickItem(sellable);
       return;

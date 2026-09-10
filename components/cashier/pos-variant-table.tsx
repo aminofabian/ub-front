@@ -6,6 +6,7 @@ import type { ItemSummaryRecord } from "@/lib/api";
 import {
   cashierItemPrimaryLabel,
   cashierItemTitleParts,
+  isPosSellableSku,
 } from "@/lib/cashier-item-display";
 import {
   formatPosStockQty,
@@ -55,7 +56,7 @@ export function PosVariantRow({
     <button
       type="button"
       onClick={onPick}
-      disabled={Boolean(item.groupLabelOnly)}
+      disabled={!isPosSellableSku(item)}
       className={cn(
         "grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(5.5rem,8.5rem)_auto] items-start gap-x-2.5 gap-y-0.5 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-2.5 py-2 text-left transition-colors",
         "hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,var(--card))]",

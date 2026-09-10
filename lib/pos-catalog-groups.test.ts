@@ -84,6 +84,21 @@ describe("groupPosCatalogHits", () => {
     }
   });
 
+  it("skips a non-sellable family parent with no children in the page", () => {
+    const hits = [
+      item({
+        id: "parent",
+        name: "Coca-Cola",
+        sku: "COKE",
+        isSellable: false,
+      }),
+      item({ id: "milk", name: "Milk", sku: "MILK" }),
+    ];
+    const blocks = groupPosCatalogHits(hits);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({ kind: "standalone", item: { id: "milk" } });
+  });
+
   it("leaves a single linked child as standalone", () => {
     const hits = [
       item({
