@@ -44,6 +44,7 @@ const COPY_LABELS: { key: keyof StorefrontAiCopySuggestion; label: string }[] = 
 const PROVIDER_LABELS: Record<string, string> = {
   openai: "OpenAI",
   anthropic: "Anthropic",
+  openrouter: "OpenRouter (GLM)",
   deepseek: "DeepSeek (direct)",
   rapidapi_deepseek: "DeepSeek via RapidAPI",
 };

@@ -21,7 +21,8 @@ type Props = {
 
 /**
  * Prompt + generate for a shop logo. Hidden when the platform has no OpenAI
- * image key. The result is a File so onboarding and branding share one upload path.
+ * or OpenRouter image key. The result is a File so onboarding and branding
+ * share one upload path.
  */
 export function AiLogoGenerator({
   variant,

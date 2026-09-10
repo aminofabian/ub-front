@@ -59,6 +59,12 @@ export default function SuperAdminSokoMindSettingsPage() {
   const [anthropicMiniModel, setAnthropicMiniModel] = useState("claude-haiku-4-5-20251001");
   const [anthropicSmartModel, setAnthropicSmartModel] = useState("claude-sonnet-4-5-20250929");
 
+  const [openrouterApiKey, setOpenrouterApiKey] = useState("");
+  const [openrouterBaseUrl, setOpenrouterBaseUrl] = useState("https://openrouter.ai/api/v1");
+  const [openrouterMiniModel, setOpenrouterMiniModel] = useState("z-ai/glm-5.3-flash");
+  const [openrouterSmartModel, setOpenrouterSmartModel] = useState("z-ai/glm-4.6");
+  const [openrouterImageModel, setOpenrouterImageModel] = useState("google/gemini-2.5-flash-image");
+
   const [deepseekApiKey, setDeepseekApiKey] = useState("");
   const [deepseekBaseUrl, setDeepseekBaseUrl] = useState("https://api.deepseek.com/chat/completions");
   const [deepseekHost, setDeepseekHost] = useState("deepseek-v31.p.rapidapi.com");
@@ -86,6 +92,10 @@ export default function SuperAdminSokoMindSettingsPage() {
     setAnthropicBaseUrl(row.anthropicBaseUrl ?? "");
     setAnthropicMiniModel(row.anthropicMiniModel || "claude-haiku-4-5-20251001");
     setAnthropicSmartModel(row.anthropicSmartModel || "claude-sonnet-4-5-20250929");
+    setOpenrouterBaseUrl(row.openrouterBaseUrl || "https://openrouter.ai/api/v1");
+    setOpenrouterMiniModel(row.openrouterMiniModel || "z-ai/glm-5.3-flash");
+    setOpenrouterSmartModel(row.openrouterSmartModel || "z-ai/glm-4.6");
+    setOpenrouterImageModel(row.openrouterImageModel || "google/gemini-2.5-flash-image");
     setDeepseekBaseUrl(row.deepseekBaseUrl || "https://api.deepseek.com/chat/completions");
     setDeepseekHost(row.deepseekHost || "deepseek-v31.p.rapidapi.com");
     setDeepseekModel(row.deepseekModel || "DeepSeek-V3-0324");
@@ -98,6 +108,7 @@ export default function SuperAdminSokoMindSettingsPage() {
     setSystemPromptExtra(row.systemPromptExtra ?? "");
     setOpenaiApiKey("");
     setAnthropicApiKey("");
+    setOpenrouterApiKey("");
     setDeepseekApiKey("");
     setRapidapiDeepseekApiKey("");
   }, []);
@@ -137,6 +148,10 @@ export default function SuperAdminSokoMindSettingsPage() {
         anthropicBaseUrl: anthropicBaseUrl.trim(),
         anthropicMiniModel: anthropicMiniModel.trim(),
         anthropicSmartModel: anthropicSmartModel.trim(),
+        openrouterBaseUrl: openrouterBaseUrl.trim(),
+        openrouterMiniModel: openrouterMiniModel.trim(),
+        openrouterSmartModel: openrouterSmartModel.trim(),
+        openrouterImageModel: openrouterImageModel.trim(),
         deepseekBaseUrl: deepseekBaseUrl.trim(),
         deepseekHost: deepseekHost.trim(),
         deepseekModel: deepseekModel.trim(),
@@ -156,6 +171,7 @@ export default function SuperAdminSokoMindSettingsPage() {
       }
       if (openaiApiKey.trim()) body.openaiApiKey = openaiApiKey.trim();
       if (anthropicApiKey.trim()) body.anthropicApiKey = anthropicApiKey.trim();
+      if (openrouterApiKey.trim()) body.openrouterApiKey = openrouterApiKey.trim();
       if (deepseekApiKey.trim()) body.deepseekApiKey = deepseekApiKey.trim();
       if (rapidapiDeepseekApiKey.trim()) {
         body.rapidapiDeepseekApiKey = rapidapiDeepseekApiKey.trim();
@@ -172,7 +188,7 @@ export default function SuperAdminSokoMindSettingsPage() {
   };
 
   const clearKey = (
-    field: "openaiApiKey" | "anthropicApiKey" | "deepseekApiKey" | "rapidapiDeepseekApiKey",
+    field: "openaiApiKey" | "anthropicApiKey" | "openrouterApiKey" | "deepseekApiKey" | "rapidapiDeepseekApiKey",
     label: string,
   ) => {
     showThemedConfirmToast({
@@ -211,6 +227,12 @@ export default function SuperAdminSokoMindSettingsPage() {
       ready: Boolean(settings?.hasAnthropicApiKey || settings?.envAnthropicConfigured),
     },
     {
+      id: "openrouter",
+      name: "OpenRouter · GLM",
+      description: "GLM chat + logos via openrouter.ai — one key",
+      ready: Boolean(settings?.hasOpenrouterApiKey || settings?.envOpenrouterConfigured),
+    },
+    {
       id: "deepseek",
       name: "DeepSeek · direct",
       description: "api.deepseek.com — your platform.deepseek.com key",
@@ -228,7 +250,7 @@ export default function SuperAdminSokoMindSettingsPage() {
     <div className="space-y-6">
       <SuperAdminPageHeader
         title="SokoMind"
-        description="Platform AI co-pilot — Guide (help), Brain (analytics / pricing), Eye (vision / images). Keys are encrypted at rest and never returned after save. DeepSeek direct and DeepSeek via RapidAPI are separate setups with separate keys."
+        description="Platform AI co-pilot — Guide (help), Brain (analytics / pricing), Eye (vision / images). Keys are encrypted at rest and never returned after save. OpenRouter (GLM) is a single key for chat and logos. DeepSeek direct and DeepSeek via RapidAPI are separate setups with separate keys."
       />
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
@@ -253,7 +275,8 @@ export default function SuperAdminSokoMindSettingsPage() {
               Master off disables all SokoMind traffic. Face toggles gate Guide / Brain / Eye. Env fallbacks:{" "}
               <code className="rounded bg-muted px-1 font-mono text-xs">SOKOMIND_ENABLED</code>,{" "}
               <code className="rounded bg-muted px-1 font-mono text-xs">OPENAI_API_KEY</code>,{" "}
-              <code className="rounded bg-muted px-1 font-mono text-xs">ANTHROPIC_API_KEY</code>.
+              <code className="rounded bg-muted px-1 font-mono text-xs">ANTHROPIC_API_KEY</code>,{" "}
+              <code className="rounded bg-muted px-1 font-mono text-xs">OPENROUTER_API_KEY</code>.
             </>
           }
         >
@@ -465,6 +488,87 @@ export default function SuperAdminSokoMindSettingsPage() {
                 <Input id="sa-anthropic-smart" value={anthropicSmartModel} onChange={(e) => setAnthropicSmartModel(e.target.value)} />
               </Field>
             </div>
+          </div>
+        </SaSection>
+
+        <SaSection
+          title="OpenRouter (GLM)"
+          description={
+            <>
+              One key for Guide/Brain chat (GLM) and logo generation. Stored key:{" "}
+              {settings?.hasOpenrouterApiKey ? "yes" : "no"}
+              {settings?.envOpenrouterConfigured ? " · env fallback configured" : ""}
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <Field label="API key" id="sa-openrouter-key">
+              <div className="flex gap-2">
+                <Input
+                  id="sa-openrouter-key"
+                  type="password"
+                  autoComplete="off"
+                  placeholder={
+                    settings?.hasOpenrouterApiKey
+                      ? "•••••••• (leave blank to keep)"
+                      : "sk-or-v1-…"
+                  }
+                  value={openrouterApiKey}
+                  onChange={(e) => setOpenrouterApiKey(e.target.value)}
+                />
+                {settings?.hasOpenrouterApiKey ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => clearKey("openrouterApiKey", "OpenRouter API key")}
+                  >
+                    Clear
+                  </Button>
+                ) : null}
+              </div>
+            </Field>
+            <Field label="Base URL (optional)" id="sa-openrouter-base">
+              <Input
+                id="sa-openrouter-base"
+                value={openrouterBaseUrl}
+                onChange={(e) => setOpenrouterBaseUrl(e.target.value)}
+                placeholder="https://openrouter.ai/api/v1"
+              />
+            </Field>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Mini model (GLM)" id="sa-openrouter-mini">
+                <Input
+                  id="sa-openrouter-mini"
+                  value={openrouterMiniModel}
+                  onChange={(e) => setOpenrouterMiniModel(e.target.value)}
+                  placeholder="z-ai/glm-5.3-flash"
+                />
+              </Field>
+              <Field label="Smart model (GLM)" id="sa-openrouter-smart">
+                <Input
+                  id="sa-openrouter-smart"
+                  value={openrouterSmartModel}
+                  onChange={(e) => setOpenrouterSmartModel(e.target.value)}
+                  placeholder="z-ai/glm-4.6"
+                />
+              </Field>
+              <Field label="Image model (logos)" id="sa-openrouter-image">
+                <Input
+                  id="sa-openrouter-image"
+                  value={openrouterImageModel}
+                  onChange={(e) => setOpenrouterImageModel(e.target.value)}
+                  placeholder="google/gemini-2.5-flash-image"
+                />
+              </Field>
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              GLM chat slugs are OpenRouter model IDs (for example{" "}
+              <code className="rounded bg-muted px-1 font-mono text-[11px]">z-ai/glm-4.6</code>
+              ). Logos use OpenRouter’s Image API — Gemini Flash Image is the default. Paste{" "}
+              <code className="rounded bg-muted px-1 font-mono text-[11px]">z-ai/glm-image</code>{" "}
+              if it appears in the catalog, or any other image slug.
+            </p>
           </div>
         </SaSection>
 

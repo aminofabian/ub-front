@@ -1209,6 +1209,11 @@ export type SokoMindSettingsRecord = {
   deepseekBaseUrl: string;
   deepseekHost: string;
   deepseekModel: string;
+  hasOpenrouterApiKey: boolean;
+  openrouterBaseUrl: string;
+  openrouterMiniModel: string;
+  openrouterSmartModel: string;
+  openrouterImageModel: string;
   industryCompareEnabled: boolean;
   industryCompareMinTwins: number;
   dailyTokenBudgetPerTenant: number | null;
@@ -1217,6 +1222,7 @@ export type SokoMindSettingsRecord = {
   envOpenaiConfigured: boolean;
   envAnthropicConfigured: boolean;
   envDeepseekConfigured: boolean;
+  envOpenrouterConfigured: boolean;
   secretsReadable: boolean;
   secretsError: string | null;
   encryptionEphemeral: boolean;
@@ -1244,6 +1250,11 @@ export type UpdateSokoMindSettingsPayload = Partial<{
   deepseekHost: string | null;
   deepseekModel: string | null;
   rapidapiDeepseekApiKey: string | null;
+  openrouterApiKey: string | null;
+  openrouterBaseUrl: string | null;
+  openrouterMiniModel: string | null;
+  openrouterSmartModel: string | null;
+  openrouterImageModel: string | null;
   industryCompareEnabled: boolean;
   industryCompareMinTwins: number;
   dailyTokenBudgetPerTenant: number | null;
