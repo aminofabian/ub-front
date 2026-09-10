@@ -397,6 +397,53 @@ export function ShopCartProvider({
   );
 }
 
+const PREVIEW_CART_NOOP = () => {};
+const PREVIEW_CART_ASYNC = async () => {};
+
+/**
+ * Empty cart context for scaled storefront previews. Skips network and
+ * drawers so theme miniatures can mount real templates safely.
+ */
+export function ShopCartPreviewProvider({ children }: { children: ReactNode }) {
+  const value = useMemo<ShopCartContextValue>(
+    () => ({
+      slug: "",
+      cart: null,
+      loading: false,
+      error: null,
+      lineCount: 0,
+      itemCount: 0,
+      drawerOpen: false,
+      checkoutOpen: false,
+      checkoutChoiceOpen: false,
+      whatsappCheckout: null,
+      whatsAppSheetOpen: false,
+      openWhatsAppCheckout: PREVIEW_CART_NOOP,
+      closeWhatsAppCheckout: PREVIEW_CART_NOOP,
+      focusItemId: null,
+      cartViewMode: "all",
+      openDrawer: PREVIEW_CART_NOOP,
+      closeDrawer: PREVIEW_CART_NOOP,
+      toggleDrawer: PREVIEW_CART_NOOP,
+      openCheckout: PREVIEW_CART_NOOP,
+      closeCheckout: PREVIEW_CART_NOOP,
+      requestCheckout: PREVIEW_CART_NOOP,
+      closeCheckoutChoice: PREVIEW_CART_NOOP,
+      beginOrdinaryCheckout: PREVIEW_CART_NOOP,
+      showAllCartItems: PREVIEW_CART_NOOP,
+      refresh: PREVIEW_CART_ASYNC,
+      setLineQty: PREVIEW_CART_ASYNC,
+      changeQty: PREVIEW_CART_ASYNC,
+      removeLine: PREVIEW_CART_ASYNC,
+      notifyAdded: PREVIEW_CART_NOOP,
+    }),
+    [],
+  );
+  return (
+    <ShopCartContext.Provider value={value}>{children}</ShopCartContext.Provider>
+  );
+}
+
 export function useShopCart(): ShopCartContextValue {
   const ctx = useContext(ShopCartContext);
   if (!ctx) {

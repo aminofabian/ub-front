@@ -141,11 +141,16 @@ export function useCatalogList(
       barcode: barcodeExact.trim() || undefined,
       branchId: branchIdForStock,
       // Typed search should find the product even if it was created under a
-      // different department than the header scope (common for POS quick-create).
+      // different department / aisle than the header scope.
       itemTypeId: debouncedSearch.trim() ? undefined : itemTypeIdForList,
-      aisleUnset: aisleIdForList === "__unset__" ? true : undefined,
-      aisleId:
-        aisleIdForList && aisleIdForList !== "__unset__"
+      aisleUnset: debouncedSearch.trim()
+        ? undefined
+        : aisleIdForList === "__unset__"
+          ? true
+          : undefined,
+      aisleId: debouncedSearch.trim()
+        ? undefined
+        : aisleIdForList && aisleIdForList !== "__unset__"
           ? aisleIdForList
           : undefined,
     }),

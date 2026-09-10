@@ -99,7 +99,7 @@ function ThemesPageHeader() {
       compact
       icon={LayoutTemplate}
       title="How your shop looks online"
-      description="Tap a look. The phone shows your shop in that layout."
+      description="Tap a look. Save it when you want customers to see it."
     >
       <Button
         asChild

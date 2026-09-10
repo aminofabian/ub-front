@@ -184,6 +184,7 @@ export function ShopStorefrontChrome({
   whatsappNumber,
   initialDesign = null,
   announcement = null,
+  preview = false,
   children,
 }: {
   slug: string;
@@ -204,6 +205,8 @@ export function ShopStorefrontChrome({
   initialDesign?: StorefrontDesign | null;
   /** Storefront announcement for theme chrome that owns the top bar. */
   announcement?: string | null;
+  /** Header + page only. No cart session, drawers, or live fetches. */
+  preview?: boolean;
   children: ReactNode;
 }) {
   const compactChrome = useCompactStorefrontChrome();
@@ -239,6 +242,7 @@ export function ShopStorefrontChrome({
 
   const restoreAttemptedRef = useRef(false);
   useEffect(() => {
+    if (preview) return;
     if (restoreAttemptedRef.current) return;
     restoreAttemptedRef.current = true;
 
@@ -249,7 +253,7 @@ export function ShopStorefrontChrome({
     if (hasAccessSession()) return;
 
     void restoreClientSessionFromCookie().catch(() => {});
-  }, []);
+  }, [preview]);
 
   // WhatsApp checkout capability comes from checkout-options (scope D7), not the
   // theme — so every theme can offer it. Fetched once on mount; the sheet
@@ -257,6 +261,7 @@ export function ShopStorefrontChrome({
   const [checkoutOptions, setCheckoutOptions] =
     useState<PublicCheckoutPaymentOptions | null>(null);
   useEffect(() => {
+    if (preview) return;
     let cancelled = false;
     const s = slug.trim();
     if (!s) return;
@@ -270,7 +275,7 @@ export function ShopStorefrontChrome({
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [preview, slug]);
   const wa = checkoutOptions?.whatsappCheckout;
   const whatsappCheckout: WhatsAppCheckoutConfig | null =
     wa?.enabled && wa.digits
@@ -354,17 +359,7 @@ export function ShopStorefrontChrome({
                               } as CSSProperties)
         : undefined;
 
-  return (
-    <ShopCartProvider slug={slug} whatsappCheckout={whatsappCheckout}>
-      <StorefrontSignInProvider
-        surface="storefront"
-        storeName={headerTitle}
-        hasPresence={hasPresence}
-      >
-      <StorefrontStaffEditProvider
-        initialDesign={initialDesign}
-        categories={categories}
-      >
+  const shell = (
       <ChemLabCopyProvider enabled={isChemLab}>
       <div
         data-store-theme-id={storeThemeId ?? undefined}
@@ -638,35 +633,57 @@ export function ShopStorefrontChrome({
           />
         </Suspense>
       ) : null}
-      {!compactChrome ? (
+      {!preview && !compactChrome ? (
         <ShopAirtimeLauncher slug={slug} accentHex={accentHex} />
       ) : null}
       <div
         className={cn(
           "flex min-h-0 flex-1 flex-col",
-          compactChrome ? "overflow-hidden" : "overflow-y-auto overscroll-y-contain",
+          compactChrome || preview
+            ? "overflow-hidden"
+            : "overflow-y-auto overscroll-y-contain",
         )}
       >
         {children}
       </div>
-      {isPrintAtelier ? <PrintAtelierFlyLayer /> : null}
-      <ShopCartDrawer />
-      <ShopCheckoutDrawer />
-      <WhatsAppCheckoutSheet />
-      {isMilkRun ? <MilkRunCheckoutChoice /> : null}
-      {!isCustomChrome ? (
-        <ShopLeadCaptureCard
-          slug={slug}
-          storeName={headerTitle}
-          deliveryAreas={deliveryAreas}
-          primaryHex={primaryHex}
-          accentHex={accentHex}
-        />
+      {!preview && isPrintAtelier ? <PrintAtelierFlyLayer /> : null}
+      {!preview ? (
+        <>
+          <ShopCartDrawer />
+          <ShopCheckoutDrawer />
+          <WhatsAppCheckoutSheet />
+          {isMilkRun ? <MilkRunCheckoutChoice /> : null}
+          {!isCustomChrome ? (
+            <ShopLeadCaptureCard
+              slug={slug}
+              storeName={headerTitle}
+              deliveryAreas={deliveryAreas}
+              primaryHex={primaryHex}
+              accentHex={accentHex}
+            />
+          ) : null}
+          {!isCustomChrome ? <FloatingCartButton accentHex={accentHex} /> : null}
+          <DashboardToaster />
+        </>
       ) : null}
-      {!isCustomChrome ? <FloatingCartButton accentHex={accentHex} /> : null}
-      <DashboardToaster />
       </div>
       </ChemLabCopyProvider>
+  );
+
+  if (preview) return shell;
+
+  return (
+    <ShopCartProvider slug={slug} whatsappCheckout={whatsappCheckout}>
+      <StorefrontSignInProvider
+        surface="storefront"
+        storeName={headerTitle}
+        hasPresence={hasPresence}
+      >
+      <StorefrontStaffEditProvider
+        initialDesign={initialDesign}
+        categories={categories}
+      >
+        {shell}
       </StorefrontStaffEditProvider>
       </StorefrontSignInProvider>
     </ShopCartProvider>

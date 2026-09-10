@@ -22,7 +22,6 @@ import {
   Save,
   Sparkles,
   Store,
-  Undo2,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -32,15 +31,13 @@ import {
   dashboardHintClass,
   dashboardLabelClass,
 } from "@/components/dashboard-page-ui";
-import {
-  ThemeTryOnPhone,
-  type ThemeTryOnScreen,
-} from "@/components/business/theme-try-on-phone";
+import { ThemeLiveFrame } from "@/components/business/theme-live-frame";
 import {
   MilkRunWhatsAppDialog,
   milkRunNeedsWhatsApp,
 } from "@/components/storefront/milk-run-whatsapp-dialog";
 import { Button } from "@/components/ui/button";
+import { ShopCartPreviewProvider } from "@/hooks/use-shop-cart";
 import {
   fetchBusiness,
   fetchItemsPage,
@@ -119,7 +116,6 @@ export function StorefrontThemesStudio({
   );
   const [tryOnProducts, setTryOnProducts] = useState<ThemeTryOnProduct[]>([]);
   const [catalogTokens, setCatalogTokens] = useState<string[]>([]);
-  const [tryOnScreen, setTryOnScreen] = useState<ThemeTryOnScreen>("home");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const openedAtRef = useRef(Date.now());
   const shortlistCandidateRef = useRef<string | null>(null);
@@ -266,13 +262,10 @@ export function StorefrontThemesStudio({
   const storeName = business?.name?.trim() || "Your shop";
   const logoUrl = business?.branding?.logoUrl ?? null;
   const brandPrimary = business?.branding?.primaryColor ?? null;
-  const landingContent = {
-    hours: business?.storefront?.landingContent?.hours ?? null,
-    address: business?.storefront?.landingContent?.address ?? null,
-  };
-  const heroUrl =
-    parseStorefrontDesignJson(business?.storefront?.designJson)?.photos?.hero
-      ?.url ?? null;
+  const landingContent = business?.storefront?.landingContent ?? null;
+  const design = parseStorefrontDesignJson(business?.storefront?.designJson);
+  const heroUrl = design?.photos?.hero?.url ?? null;
+  const liveMeta = items.find((item) => item.id === liveId) ?? selected;
   const designHref =
     mode === "store"
       ? `${APP_ROUTES.businessDesign}?tryTheme=${encodeURIComponent(selectedId)}`
@@ -407,7 +400,6 @@ export function StorefrontThemesStudio({
     setMode(next);
     setSeeAllLooks(false);
     setActiveVibe("All");
-    if (next === "landing") setTryOnScreen("home");
     setFiltersOpen(false);
   };
 
@@ -419,6 +411,8 @@ export function StorefrontThemesStudio({
     products: tryOnProducts,
     heroUrl,
     currency: business?.currency ?? "KES",
+    slug: business?.slug ?? null,
+    design,
   };
 
   const vibeFilters = (
@@ -434,6 +428,7 @@ export function StorefrontThemesStudio({
     mode === "store" && selected.id === "milk-run" && !landingWhatsapp;
 
   return (
+    <ShopCartPreviewProvider>
     <div className="space-y-3">
       {!storefrontOn ? (
         <div
@@ -549,9 +544,9 @@ export function StorefrontThemesStudio({
               </h2>
               <p className={cn("mt-0.5 text-[13px]", MUTED)}>
                 {showShortlist
-                  ? "Tap a look. The phone shows your shop in that layout."
+                  ? "Tap a look. The phone is your shop in that layout."
                   : currentModeDirty
-                    ? `${selected.name} is only on this screen until you save.`
+                    ? `${selected.name} is not live yet.`
                     : mode === "store"
                       ? `Customers see ${selected.name} when they open your shop.`
                       : `Visitors see ${selected.name} until the shop is open for buying.`}
@@ -669,12 +664,12 @@ export function StorefrontThemesStudio({
                       )}
                     >
                       <div className="pointer-events-none w-[8.25rem]">
-                        <ThemeTryOnPhone
+                        <ThemeLiveFrame
                           item={item}
                           kind={mode}
                           {...tryOnShared}
                           size="tile"
-                          frame="card"
+                          lazy
                         />
                       </div>
                     </div>
@@ -769,26 +764,24 @@ export function StorefrontThemesStudio({
             <div className={cn("border-b px-3 pb-3 pt-3 sm:px-4", LINE, STAGE)}>
               <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-start gap-3 xl:block">
                 <div
-                  key={`${mode}-${selected.id}-${tryOnScreen}-m`}
+                  key={`${mode}-${selected.id}-m`}
                   className="w-[7.5rem] shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200 xl:mx-auto xl:hidden"
                 >
-                  <ThemeTryOnPhone
+                  <ThemeLiveFrame
                     item={selected}
                     kind={mode}
                     {...tryOnShared}
-                    screen={tryOnScreen}
                     size="sm"
                   />
                 </div>
                 <div
-                  key={`${mode}-${selected.id}-${tryOnScreen}`}
+                  key={`${mode}-${selected.id}`}
                   className="mx-auto hidden w-full max-w-[11.25rem] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200 xl:block"
                 >
-                  <ThemeTryOnPhone
+                  <ThemeLiveFrame
                     item={selected}
                     kind={mode}
                     {...tryOnShared}
-                    screen={tryOnScreen}
                   />
                 </div>
                 <div className="min-w-0 xl:mt-3 xl:text-center">
@@ -807,13 +800,15 @@ export function StorefrontThemesStudio({
                       <LookMark selected />
                     )}
                   </div>
-                  {mode === "store" ? (
-                    <div className="mt-2.5">
-                      <TryOnPageSegment
-                        value={tryOnScreen}
-                        onChange={setTryOnScreen}
-                      />
-                    </div>
+                  {dirty ? (
+                    <LookCommit
+                      currentModeDirty={currentModeDirty}
+                      selectedName={selected.name}
+                      liveName={liveMeta.name}
+                      saving={saving}
+                      onCancel={revert}
+                      onSave={() => void save()}
+                    />
                   ) : null}
                 </div>
               </div>
@@ -873,12 +868,12 @@ export function StorefrontThemesStudio({
                               isThis ? TEAL_BORDER : LINE,
                             )}
                           >
-                            <ThemeTryOnPhone
+                            <ThemeLiveFrame
                               item={meta}
                               kind={mode}
                               {...tryOnShared}
                               size="tile"
-                              frame="card"
+                              lazy
                             />
                           </div>
                           <span
@@ -970,60 +965,6 @@ export function StorefrontThemesStudio({
         </aside>
       </div>
 
-      {dirty ? (
-        <div
-          className={cn(
-            "sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-20 flex flex-col gap-3 border bg-white p-3 sm:flex-row sm:items-center sm:justify-between",
-            LINE,
-          )}
-        >
-          <p className={cn("min-w-0 text-sm", INK)}>
-            {currentModeDirty ? (
-              <>
-                <span className="font-semibold">{selected.name}</span> is only
-                on this screen until you save. Layout and typeface will change.
-                Your logo, colours, and words stay.
-              </>
-            ) : (
-              <>
-                You started a look on the other page. Save so customers can see
-                it.
-              </>
-            )}
-          </p>
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className={cn(SQUARE_BTN, "gap-1.5")}
-              disabled={saving}
-              onClick={revert}
-            >
-              <Undo2 className="size-3.5" aria-hidden />
-              Keep the old look
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              disabled={saving}
-              onClick={() => void save()}
-              className={cn(
-                SQUARE_BTN,
-                "gap-1.5 bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
-              )}
-            >
-              {saving ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <Save className="size-4" aria-hidden />
-              )}
-              {saving ? "Putting it on the website…" : "Show this to customers"}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
       <MilkRunWhatsAppDialog
         open={waPromptOpen}
         onOpenChange={setWaPromptOpen}
@@ -1035,6 +976,65 @@ export function StorefrontThemesStudio({
           setFeedback("WhatsApp is now on the Milk Run customer website.");
         }}
       />
+    </div>
+    </ShopCartPreviewProvider>
+  );
+}
+
+function LookCommit({
+  currentModeDirty,
+  selectedName,
+  liveName,
+  saving,
+  onCancel,
+  onSave,
+}: {
+  currentModeDirty: boolean;
+  selectedName: string;
+  liveName: string;
+  saving: boolean;
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <div className="mt-3 space-y-2 xl:text-center">
+      <p className={cn("text-[13px] font-semibold", INK)}>
+        {currentModeDirty ? `Save ${selectedName}?` : "Save the other page too?"}
+      </p>
+      <p className={cn("text-[12px] leading-relaxed", MUTED)}>
+        {currentModeDirty
+          ? `Customers still see ${liveName}.`
+          : "A look on the other page is not saved yet."}
+      </p>
+      <div className="flex flex-wrap gap-2 xl:justify-center">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className={cn(SQUARE_BTN, "gap-1.5")}
+          disabled={saving}
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          disabled={saving}
+          onClick={onSave}
+          className={cn(
+            SQUARE_BTN,
+            "gap-1.5 bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
+          )}
+        >
+          {saving ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <Save className="size-4" aria-hidden />
+          )}
+          {saving ? "Saving…" : "Save this look"}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -1070,7 +1070,7 @@ function LookMark({
           MUTED,
         )}
       >
-        Trying on
+        Not live
       </span>
     );
   }
@@ -1313,47 +1313,6 @@ function StudioDrawer({
       >
         {open ? children : null}
       </div>
-    </div>
-  );
-}
-
-const TRY_ON_PAGES: { id: ThemeTryOnScreen; label: string }[] = [
-  { id: "home", label: "Home" },
-  { id: "product", label: "Product" },
-  { id: "cart", label: "Cart" },
-];
-
-function TryOnPageSegment({
-  value,
-  onChange,
-}: {
-  value: ThemeTryOnScreen;
-  onChange: (screen: ThemeTryOnScreen) => void;
-}) {
-  return (
-    <div
-      role="group"
-      aria-label="Which page to try on"
-      className={cn("flex border bg-white p-0.5", LINE)}
-    >
-      {TRY_ON_PAGES.map((page) => {
-        const active = value === page.id;
-        return (
-          <button
-            key={page.id}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onChange(page.id)}
-            className={cn(
-              "flex-1 px-2 py-1.5 text-[12px] font-medium transition-colors",
-              FOCUS,
-              active ? cn(TEAL, "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]") : cn(MUTED, "hover:text-[var(--order-ink,#15231f)]"),
-            )}
-          >
-            {page.label}
-          </button>
-        );
-      })}
     </div>
   );
 }

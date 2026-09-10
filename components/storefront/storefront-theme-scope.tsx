@@ -16,6 +16,7 @@ export function StorefrontThemeScope({
   accentHex,
   design,
   logoScale,
+  applyToDocument = true,
   className,
   children,
 }: {
@@ -25,6 +26,8 @@ export function StorefrontThemeScope({
   design?: StorefrontDesign | null;
   /** Header logo size vs theme default (0.5–2.5). */
   logoScale?: number | null;
+  /** Write tenant vars onto `document`. Off for scaled theme miniatures. */
+  applyToDocument?: boolean;
   className?: string;
   children: ReactNode;
 }) {
@@ -34,9 +37,10 @@ export function StorefrontThemeScope({
   const themeStyle = buildStorefrontThemeVars(primary, accent, design, logoScale);
 
   useEffect(() => {
+    if (!applyToDocument) return undefined;
     if (!primary && !design && logoScale == null) return undefined;
     return applyStorefrontThemeToDocument(primary, accent, design, logoScale);
-  }, [primary, accent, design, logoScale]);
+  }, [applyToDocument, primary, accent, design, logoScale]);
 
   const surfaceStyle: CSSProperties | undefined = resolved.surfaceHex
     ? { backgroundColor: resolved.surfaceHex }
