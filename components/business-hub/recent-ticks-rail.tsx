@@ -58,7 +58,6 @@ export function RecentTicksRail({
   ticks,
   drawouts = [],
   currency,
-  live = false,
   justUpdated = false,
   title = "Till tape",
   subtitle,
@@ -71,7 +70,6 @@ export function RecentTicksRail({
   ticks: RecentTick[];
   drawouts?: HubDrawout[];
   currency?: string | null;
-  live?: boolean;
   justUpdated?: boolean;
   title?: string;
   subtitle?: string;
@@ -105,7 +103,7 @@ export function RecentTicksRail({
       aria-label={title}
     >
       <header className="shrink-0 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-3.5 py-2.5">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               {laneIndex != null ? (
@@ -132,19 +130,6 @@ export function RecentTicksRail({
                   : `Last ${ticks.length || 3} sales`)}
             </p>
           </div>
-          {live ? (
-            <span className="inline-flex shrink-0 items-center gap-1.5 border border-emerald-200 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-[-0.02em] text-emerald-800">
-              <span
-                className="size-1.5 bg-emerald-500 hub-live-beacon"
-                aria-hidden
-              />
-              Live
-            </span>
-          ) : (
-            <span className="shrink-0 text-[9px] font-semibold tracking-[-0.02em] text-[#AAAAAA]">
-              Feed
-            </span>
-          )}
         </div>
       </header>
 

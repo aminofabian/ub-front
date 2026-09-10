@@ -47,14 +47,12 @@ const VIEWPORT_CLASS = "max-h-[7.5rem]";
 export function WebOrdersRail({
   orders,
   currency,
-  live = false,
   justUpdated = false,
   className,
   onInspect,
 }: {
   orders: WebOrderSummary[];
   currency?: string | null;
-  live?: boolean;
   justUpdated?: boolean;
   className?: string;
   onInspect?: (order: WebOrderSummary) => void;
@@ -83,15 +81,6 @@ export function WebOrdersRail({
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {live ? (
-            <span className="inline-flex items-center gap-1 text-[9px] font-semibold tracking-[-0.02em] text-emerald-800">
-              <span
-                className="size-1.5 bg-emerald-500 hub-live-beacon"
-                aria-hidden
-              />
-              Live
-            </span>
-          ) : null}
           <Link
             href={APP_ROUTES.storefrontWebOrders}
             className="text-[10px] font-medium text-[#0f766e] transition-colors hover:text-[#141414]"

@@ -22,7 +22,6 @@ const CREDIT_VIEWPORT_CLASS = "max-h-[5.5rem]";
 export function CreditTabsRail({
   tabs,
   currency,
-  live = false,
   justUpdated = false,
   className,
   onPayTab,
@@ -33,7 +32,6 @@ export function CreditTabsRail({
 }: {
   tabs: OutstandingTabRowRecord[];
   currency?: string | null;
-  live?: boolean;
   justUpdated?: boolean;
   className?: string;
   /** Opens the mark-paid dialog for this customer tab. */
@@ -87,15 +85,6 @@ export function CreditTabsRail({
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {live ? (
-            <span className="inline-flex items-center gap-1 text-[9px] font-semibold tracking-[-0.02em] text-emerald-800">
-              <span
-                className="size-1.5 bg-emerald-500 hub-live-beacon"
-                aria-hidden
-              />
-              Live
-            </span>
-          ) : null}
           <Link
             href={APP_ROUTES.creditsOnTab}
             className="text-[10px] font-medium text-[#0f766e] transition-colors hover:text-[#141414]"

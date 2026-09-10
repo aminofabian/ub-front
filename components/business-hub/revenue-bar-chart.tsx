@@ -26,12 +26,10 @@ function weekdayInitial(isoDay: string): string {
 export function RevenueBarChart({
   points,
   ariaLabel,
-  title = "Revenue runway",
 }: {
   points: DailyRevenuePoint[];
   ariaLabel: string;
   caption?: string;
-  title?: string;
 }) {
   const { formatMoneyCompact } = useFormatMoney();
   const max = Math.max(...points.map((p) => p.value), 1);
@@ -68,29 +66,17 @@ export function RevenueBarChart({
 
   return (
     <section className={cn(HUB_SURFACE, "overflow-hidden")}>
-      <div className="flex flex-col gap-1 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-        <div className="flex min-w-0 items-baseline gap-2">
-          <h2 className="inline-flex items-center gap-1.5 text-[12px] font-medium tracking-[-0.015em] text-[#141414] before:block before:h-px before:w-2.5 before:bg-[#0f766e] before:content-['']">
-            {title}
-          </h2>
-          <p className={cn("text-[11px] tabular-nums", HUB_MUTED)}>
-            {stats.activeDays > 0
-              ? `${stats.activeDays} of ${points.length}`
-              : "Waiting"}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-1.5 sm:justify-end">
+        {summary.map((item) => (
+          <p
+            key={item.id}
+            className="flex items-baseline gap-1 text-[10px] tabular-nums sm:text-[11px]"
+            title={`${item.label}: ${item.value} · ${item.hint}`}
+          >
+            <span className={HUB_MUTED}>{item.label}</span>
+            <span className="font-semibold text-[#141414]">{item.value}</span>
           </p>
-        </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5">
-          {summary.map((item) => (
-            <p
-              key={item.id}
-              className="flex items-baseline gap-1 text-[10px] tabular-nums sm:text-[11px]"
-              title={`${item.label}: ${item.value} · ${item.hint}`}
-            >
-              <span className={HUB_MUTED}>{item.label}</span>
-              <span className="font-semibold text-[#141414]">{item.value}</span>
-            </p>
-          ))}
-        </div>
+        ))}
       </div>
 
       <div className="px-2.5 py-2 sm:px-3" role="img" aria-label={ariaLabel}>

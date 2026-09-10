@@ -22,13 +22,11 @@ export function CashierStageTabs({
   cashiers,
   selected,
   onChange,
-  live = false,
   className,
 }: {
   cashiers: string[];
   selected: string[];
   onChange: (next: string[]) => void;
-  live?: boolean;
   className?: string;
 }) {
   const viewingAll = selected.length === 0;
@@ -59,15 +57,6 @@ export function CashierStageTabs({
           Stage
         </p>
         <span className="text-[11px] text-[#8A8A8A]">{modeCopy(selected)}</span>
-        {live ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-800">
-            <span
-              className="size-1.5 rounded-none bg-emerald-500 hub-live-beacon"
-              aria-hidden
-            />
-            Live
-          </span>
-        ) : null}
       </div>
 
       <div

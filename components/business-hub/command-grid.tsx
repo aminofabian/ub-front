@@ -3,11 +3,8 @@
 import Link from "next/link";
 import { ArrowUpRight, ChevronRight } from "lucide-react";
 
-import {
-  HUB_BTN,
-  HUB_SECTION,
-  HUB_SURFACE,
-} from "@/lib/business-hub/constants";
+import { HUB_BTN, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { cn } from "@/lib/utils";
 
 export type CommandLink = {
@@ -22,7 +19,7 @@ export function CommandGrid({ links }: { links: CommandLink[] }) {
 
   return (
     <section className="space-y-1.5 border-t border-[color-mix(in_srgb,#141414_7%,transparent)] pt-2.5">
-      <h2 className={cn(HUB_SECTION, "px-0.5")}>Jump in</h2>
+      <HubSectionLabel title="Jump in" className="px-0.5" />
 
       {/* Phone: settings-style list. Desktop: compact chip row. */}
       <div

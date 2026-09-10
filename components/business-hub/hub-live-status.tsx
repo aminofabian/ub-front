@@ -145,6 +145,7 @@ export function HubLiveStatus({
       <span
         className={cn(
           "border-l pl-2 font-medium normal-case tracking-normal",
+          "max-sm:hidden",
           view.tone === "live"
             ? "border-emerald-400/30 text-emerald-200/90"
             : "border-current/20 text-current/70",

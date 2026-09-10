@@ -31,7 +31,6 @@ export function CashierTillDrawer({
   ticks,
   drawouts = [],
   currency,
-  live = false,
   justUpdated = false,
   onClose,
   onRemoveCashier,
@@ -41,7 +40,6 @@ export function CashierTillDrawer({
   ticks: RecentTick[];
   drawouts?: HubDrawout[];
   currency?: string | null;
-  live?: boolean;
   justUpdated?: boolean;
   onClose: () => void;
   onRemoveCashier?: (name: string) => void;
@@ -187,7 +185,6 @@ export function CashierTillDrawer({
             ticks={activeTicks}
             drawouts={activeDrawouts}
             currency={currency}
-            live={live}
             justUpdated={justUpdated}
             title={activeCashier}
             subtitle={

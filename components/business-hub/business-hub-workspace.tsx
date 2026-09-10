@@ -31,6 +31,7 @@ import {
   type CommandLink,
 } from "@/components/business-hub/command-grid";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
+import { HubLiveStatus } from "@/components/business-hub/hub-live-status";
 import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
@@ -48,7 +49,6 @@ import { StockHealthPanel } from "@/components/business-hub/stock-health-panel";
 import { TopMoversPanel } from "@/components/business-hub/top-movers-panel";
 import { MarkPaidDialog } from "@/components/credits/mark-paid-dialog";
 import { useBusinessHubRealtime } from "@/hooks/use-business-hub-realtime";
-import { useOptionalRealtime } from "@/components/realtime-provider";
 import { playCashierChime } from "@/lib/cashier-chime";
 import { hubAlertsFromBusiness } from "@/lib/hub-alert-settings";
 import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
@@ -278,6 +278,7 @@ export function BusinessHubWorkspace() {
     typeof setTimeout
   > | null>(null);
   const [webOrdersJustUpdated, setWebOrdersJustUpdated] = useState(false);
+  const [lastLiveUpdateAt, setLastLiveUpdateAt] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     // Wait until header branch/department seed finishes. An early fetch with
@@ -561,6 +562,7 @@ export function BusinessHubWorkspace() {
 
   const markLiveEvent = useCallback(() => {
     setJustUpdated(true);
+    setLastLiveUpdateAt(Date.now());
     if (justUpdatedTimer.current) clearTimeout(justUpdatedTimer.current);
     justUpdatedTimer.current = setTimeout(() => {
       setJustUpdated(false);
@@ -642,6 +644,7 @@ export function BusinessHubWorkspace() {
     branchId,
     enabled: headerScopeReady,
     onInvalidate: () => {
+      setLastLiveUpdateAt(Date.now());
       void load();
     },
     onLiveEvent: markLiveEvent,
@@ -664,6 +667,10 @@ export function BusinessHubWorkspace() {
       markWebOrdersLiveEvent();
     },
   });
+
+  const realtime = useOptionalRealtime();
+  const pulseLive =
+    business?.active !== false && realtime?.connectionState === "connected";
 
   const realtime = useOptionalRealtime();
   const pulseLive =

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { ArrowRight, AlertTriangle, Info } from "lucide-react";
 
-import { HUB_SECTION, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { cn } from "@/lib/utils";
 
 export type ActionItem = {
@@ -20,13 +21,12 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   }
 
   return (
-    <section className="space-y-1">
-      <div className="flex items-baseline justify-between gap-2 px-0.5">
-        <h2 className={HUB_SECTION}>Needs attention</h2>
-        <p className="text-[11px] tabular-nums text-[#AAAAAA]">
-          {items.length}
-        </p>
-      </div>
+    <section className="space-y-1.5">
+      <HubSectionLabel
+        title="Needs attention"
+        meta={String(items.length)}
+        className="px-0.5"
+      />
       <div
         className={cn(
           HUB_SURFACE,

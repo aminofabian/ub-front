@@ -2,11 +2,8 @@
 
 import Link from "next/link";
 
-import {
-  HUB_MUTED,
-  HUB_SECTION,
-  HUB_SURFACE,
-} from "@/lib/business-hub/constants";
+import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { cn } from "@/lib/utils";
 
 export type PulseMetric = {
@@ -30,7 +27,6 @@ export function PulseHero({
   trend,
   trendTone = "muted",
   metrics,
-  live = false,
   justUpdated = false,
 }: {
   eyebrow?: string;
@@ -41,7 +37,6 @@ export function PulseHero({
   trend?: string | null;
   trendTone?: "muted" | "positive" | "warning" | "negative";
   metrics: PulseMetric[];
-  live?: boolean;
   justUpdated?: boolean;
 }) {
   void _eyebrow;
@@ -49,21 +44,7 @@ export function PulseHero({
 
   return (
     <section className="space-y-2" aria-label={a11y}>
-      <div className="flex items-baseline justify-between gap-2 px-0.5">
-        <h2 className={HUB_SECTION}>Summary</h2>
-        {live ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium tracking-wide text-emerald-800">
-            <span
-              className={cn(
-                "size-1.5 bg-emerald-500 hub-live-beacon",
-                justUpdated && "animate-pulse",
-              )}
-              aria-hidden
-            />
-            Live
-          </span>
-        ) : null}
-      </div>
+      <HubSectionLabel title="Summary" className="px-0.5" />
 
       <div
         className={cn(HUB_SURFACE, "relative", justUpdated && "hub-scan-sweep")}
