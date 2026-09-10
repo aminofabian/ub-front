@@ -73,6 +73,7 @@ export const BLOG_CLUSTER_DEFS: BlogClusterDef[] = [
       "the-real-cost-of-free-software",
       "from-stall-to-store-a-retailers-journey",
       "what-hardware-do-you-actually-need",
+      "how-to-install-receipt-printer-kenya",
       "online-physical-one-inventory",
       "why-kiosk-beats-odoo-for-kenyan-shops",
     ],

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <rect width="960" height="640" fill="#FBF9F5"/>
+  <text x="48" y="42" font-size="18" font-weight="700" fill="#111827">Step 1  Pick the printer, then plug it in</text>
+  <text x="48" y="64" font-size="12" fill="#6b7280">Thermal 58mm or 80mm. USB is the shop-floor default. Bluetooth if the till moves. Ethernet if several tills share one printer.</text>
+
+  <!-- Printer body -->
+  <rect x="48" y="96" width="280" height="420" rx="20" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="48" y="96" width="280" height="48" rx="20" fill="#111827"/>
+  <rect x="48" y="128" width="280" height="16" fill="#111827"/>
+  <text x="68" y="126" font-size="13" font-weight="700" fill="#ffffff">Thermal receipt printer</text>
+  <rect x="88" y="168" width="200" height="150" rx="12" fill="#f3f4f6" stroke="#e5e7eb"/>
+  <rect x="108" y="188" width="160" height="88" rx="6" fill="#ffffff"/>
+  <g stroke="#111827" stroke-width="1.6">
+    <line x1="122" y1="204" x2="122" y2="256"/>
+    <line x1="128" y1="204" x2="128" y2="256"/>
+    <line x1="134" y1="204" x2="134" y2="256"/>
+    <line x1="144" y1="204" x2="144" y2="256"/>
+    <line x1="150" y1="204" x2="150" y2="256"/>
+    <line x1="160" y1="204" x2="160" y2="256"/>
+    <line x1="166" y1="204" x2="166" y2="256"/>
+    <line x1="176" y1="204" x2="176" y2="256"/>
+    <line x1="186" y1="204" x2="186" y2="256"/>
+    <line x1="192" y1="204" x2="192" y2="256"/>
+    <line x1="202" y1="204" x2="202" y2="256"/>
+    <line x1="214" y1="204" x2="214" y2="256"/>
+    <line x1="220" y1="204" x2="220" y2="256"/>
+    <line x1="230" y1="204" x2="230" y2="256"/>
+  </g>
+  <rect x="148" y="288" width="80" height="18" rx="9" fill="#28a745"/>
+  <text x="188" y="301" font-size="9" font-weight="700" fill="#ffffff" text-anchor="middle">POWER ON</text>
+  <text x="188" y="340" font-size="11" font-weight="700" fill="#111827" text-anchor="middle">Paper roll seated</text>
+  <text x="188" y="358" font-size="10" fill="#6b7280" text-anchor="middle">Lid closed · feed button ready</text>
+  <rect x="88" y="384" width="200" height="96" rx="10" fill="#f7fdf9" stroke="rgba(40,167,69,0.35)"/>
+  <text x="188" y="412" font-size="11" font-weight="700" fill="#15803d" text-anchor="middle">Buy thermal, not inkjet</text>
+  <text x="188" y="432" font-size="10" fill="#374151" text-anchor="middle">No cartridges. Fast. Quiet.</text>
+  <text x="188" y="450" font-size="10" fill="#374151" text-anchor="middle">58mm for dukas · 80mm for busy tills</text>
+
+  <!-- Cable cards -->
+  <g>
+    <rect x="360" y="96" width="552" height="128" rx="16" fill="#ffffff" stroke="#28a745" stroke-width="2"/>
+    <rect x="360" y="96" width="8" height="128" rx="4" fill="#28a745"/>
+    <rect x="384" y="114" width="72" height="28" rx="14" fill="#28a745"/>
+    <text x="420" y="133" font-size="11" font-weight="800" fill="#ffffff" text-anchor="middle">USB</text>
+    <text x="472" y="128" font-size="15" font-weight="700" fill="#111827">The shop-floor default</text>
+    <text x="472" y="152" font-size="12" fill="#4b5563">Use the square (USB-B) data cable that came in the box  not a phone charger.</text>
+    <text x="472" y="174" font-size="12" fill="#4b5563">Plug into the till PC or tablet dock. Power brick in the wall. Printer ON.</text>
+    <text x="472" y="196" font-size="11" font-weight="700" fill="#15803d">Start here unless you already have Wi-Fi or Bluetooth.</text>
+  </g>
+  <g>
+    <rect x="360" y="240" width="268" height="180" rx="16" fill="#ffffff" stroke="#d1d5db"/>
+    <rect x="376" y="256" width="88" height="24" rx="12" fill="#111827"/>
+    <text x="420" y="273" font-size="10" font-weight="800" fill="#ffffff" text-anchor="middle">BLUETOOTH</text>
+    <text x="376" y="308" font-size="14" font-weight="700" fill="#111827">Till that moves</text>
+    <text x="376" y="332" font-size="11.5" fill="#4b5563">Pair in system Bluetooth</text>
+    <text x="376" y="352" font-size="11.5" fill="#4b5563">settings, then Detect in</text>
+    <text x="376" y="372" font-size="11.5" fill="#4b5563">Cashier. Keep the printer</text>
+    <text x="376" y="392" font-size="11.5" fill="#4b5563">within a few metres.</text>
+  </g>
+  <g>
+    <rect x="644" y="240" width="268" height="180" rx="16" fill="#ffffff" stroke="#d1d5db"/>
+    <rect x="660" y="256" width="96" height="24" rx="12" fill="#A8842C"/>
+    <text x="708" y="273" font-size="10" font-weight="800" fill="#ffffff" text-anchor="middle">ETHERNET</text>
+    <text x="660" y="308" font-size="14" font-weight="700" fill="#111827">Shared counter printer</text>
+    <text x="660" y="332" font-size="11.5" fill="#4b5563">LAN cable into the router.</text>
+    <text x="660" y="352" font-size="11.5" fill="#4b5563">Note the IP (often on a</text>
+    <text x="660" y="372" font-size="11.5" fill="#4b5563">self-test slip). Port 9100.</text>
+  </g>
+
+  <rect x="360" y="440" width="552" height="76" rx="14" fill="#111827"/>
+  <text x="384" y="470" font-size="13" font-weight="700" fill="#ffffff">Self-test before software: hold FEED while powering on.</text>
+  <text x="384" y="492" font-size="12" fill="#d1d5db">A test slip means the hardware is alive. If nothing prints, stop  paper, power, or lid  not Kiosk.</text>
+
+  <text x="48" y="556" font-size="11" fill="#6b7280">Illustrated walkthrough · Kiosk Help · Kenya shop counters</text>
+  <text x="48" y="578" font-size="11" fill="#9ca3af">Skip Microsoft Print to PDF, Fax, and OneNote  those are not receipt printers.</text>
+</svg>

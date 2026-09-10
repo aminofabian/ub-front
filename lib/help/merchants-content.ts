@@ -159,6 +159,11 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
             href: "/help/merchants/point-of-sale/apply-discounts-and-split-payments",
           },
           {
+            label: "Install a receipt printer",
+            description: "USB, Bluetooth, or Ethernet — screenshots from box to first slip.",
+            href: "/help/merchants/point-of-sale/install-a-receipt-printer",
+          },
+          {
             label: "Print or share receipts",
             description: "Paper or digital — get the receipt out fast.",
             href: "/help/merchants/point-of-sale/print-or-share-receipts",
@@ -886,7 +891,11 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
     updatedAt: "2026-07-01",
     tags: ["barcode", "scanner", "cashier"],
     popular: true,
-    relatedSlugs: ["add-your-first-products", "apply-discounts-and-split-payments"],
+    relatedSlugs: [
+      "add-your-first-products",
+      "apply-discounts-and-split-payments",
+      "install-a-receipt-printer",
+    ],
     body: [
       {
         type: "paragraph",
@@ -941,13 +950,316 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
   {
     audience: "merchants",
     categorySlug: "point-of-sale",
+    slug: "install-a-receipt-printer",
+    title: "Install a receipt printer",
+    description:
+      "Connect a thermal receipt printer to Kiosk in about 15 minutes — USB, Bluetooth, or Ethernet — with screenshots for Windows, macOS, Linux, and Cashier, plus the blank-slip fix.",
+    updatedAt: "2026-09-10",
+    tags: [
+      "receipt printer",
+      "thermal printer",
+      "hardware",
+      "USB",
+      "Bluetooth",
+      "cashier",
+      "print bridge",
+    ],
+    popular: true,
+    relatedSlugs: [
+      "print-or-share-receipts",
+      "scan-barcodes-at-the-till",
+      "open-the-cashier-for-the-first-time",
+    ],
+    body: [
+      {
+        type: "paragraph",
+        text: "A receipt printer is the last handshake of the sale — the slip a customer folds into a pocket while they still trust you. Kiosk already shows receipts on screen and sends them on WhatsApp, so paper is an upgrade, not a requirement. When the queue starts asking for a slip, this walkthrough takes you from box to cut slip in about 15 minutes.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "The browser cannot talk to a USB printer on its own — that is a browser rule, not a Kiosk bug. Install the Print Bridge on the computer the printer is plugged into, then Detect printers in Cashier.",
+      },
+      {
+        type: "heading",
+        text: "What you need",
+      },
+      {
+        type: "list",
+        items: [
+          "A thermal 58mm or 80mm receipt printer (not inkjet) — no ink, no ribbons, heat does the printing.",
+          "The data USB cable from the box — charger leads light the printer and print nothing.",
+          "A thermal paper roll, shiny side toward the print head.",
+          "The till PC, laptop, or tablet dock — the Print Bridge must run on that machine.",
+          "About 15 minutes. Do it before the Friday rush, not during it.",
+        ],
+      },
+      {
+        type: "heading",
+        text: "USB, Bluetooth, or Ethernet?",
+      },
+      {
+        type: "paragraph",
+        text: "Pick the connection before you touch any settings — it decides everything downstream. One till, one printer: USB. A tablet that walks the aisle: Bluetooth. Several tills sharing one counter printer: Ethernet.",
+      },
+      {
+        type: "image",
+        src: "/help/printer-connection-map.svg",
+        alt: "Decision map of three printer connections: USB for one till with a square data cable, Bluetooth for a roaming tablet till, Ethernet for several tills sharing one printer on port 9100",
+        caption:
+          "USB is the shop-floor default. Bluetooth and Ethernet are special cases — reach for them when the counter demands it.",
+      },
+      {
+        type: "heading",
+        text: "Step 1 — Pick the printer and plug it in",
+      },
+      {
+        type: "steps",
+        items: [
+          "USB is the shop-floor default. Bluetooth if the till moves. Ethernet if several tills share one printer (port 9100).",
+          "Seat the roll shiny-side to the print head, close the lid, switch POWER ON.",
+          "Hold FEED while powering on for a self-test. A printed slip means the hardware is alive — before any software gets a vote.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/printer-pick-and-connect.svg",
+        alt: "Thermal receipt printer with USB as the default connection, Bluetooth for a moving till, Ethernet for a shared counter, and a FEED plus power self-test",
+        caption:
+          "Power, paper, data cable — in that order. Skip Microsoft Print to PDF and Fax later; those are not receipt printers.",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "The self-test slip usually lists the printer's IP address and settings. Keep it — it is the cheat sheet you will want when a network printer goes quiet.",
+      },
+      {
+        type: "heading",
+        text: "Seat the paper roll (the 10-second version)",
+      },
+      {
+        type: "paragraph",
+        text: "Most printers returned to the shop in anger were never broken — the roll was simply loaded backwards. The shiny, thermal-coated side must face the print head. Not sure which side is shiny? Scratch the paper hard with a fingernail: the side that greys is the one that prints.",
+      },
+      {
+        type: "image",
+        src: "/help/printer-paper-roll.svg",
+        alt: "Printer with open compartment showing the paper roll loaded shiny side toward the print head, plus the fingernail scratch test, roll sizes, and heat storage warning",
+        caption:
+          "Shiny side to the head. A blank grey slip almost always means the roll is backwards — flip it, don't reinstall anything.",
+      },
+      {
+        type: "heading",
+        text: "Step 2 — Add it in Windows",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open Settings → Bluetooth & devices → Printers & scanners.",
+          "Confirm the thermal unit (XP-80, Caysn, Epson TM, and similar) appears in the list.",
+          "If the row is missing: printer ON, data USB cable (not a charger lead), Print Spooler running. Some Xprinters only show up after Detect — that is normal.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/printer-windows-add.svg",
+        alt: "Windows Printers and scanners with XP-80C marked as the receipt printer to use, and Microsoft Print to PDF and Fax listed as printers to skip",
+        caption:
+          "Windows 10/11 — pick the thermal row and ignore the virtual printers. Windows 7 tills use the separate Win7 Print Bridge zip.",
+      },
+      {
+        type: "heading",
+        text: "Step 3 — Add it on macOS",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open System Settings → Printers & Scanners → Add Printer.",
+          "Keep the factory name so Detect can read it. Use a generic ESC/POS or the maker's thermal driver — not AirPrint.",
+          "Set it as default if this Mac is only a till.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/printer-macos-add.svg",
+        alt: "macOS Printers and Scanners showing a Caysn CN811 USB receipt printer as default with an Add Printer button",
+        caption:
+          "Add the thermal printer on the Mac first, then come back to Cashier. AirPrint is for office documents — it will not cut a 58mm slip.",
+      },
+      {
+        type: "heading",
+        text: "Step 4 — Add it on Linux",
+      },
+      {
+        type: "steps",
+        items: [
+          "Install CUPS if needed, then add a raw ESC/POS queue (http://localhost:631 or your Printers app).",
+          "Confirm lpstat lists the printer idle.",
+          "Run bash install-palmart-print-bridge.sh from the Linux zip.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/printer-linux-cups.svg",
+        alt: "Linux terminal showing CUPS, lpstat with XP-80C as default, and the Palmart print bridge listening on 127.0.0.1 port 19500",
+        caption: "CUPS queue first, helper second, Detect third — the same Cashier button as on Windows.",
+      },
+      {
+        type: "heading",
+        text: "Step 5 — Connect from Cashier",
+      },
+      {
+        type: "steps",
+        items: [
+          "On the till computer, open Cashier.",
+          "Tap the quiet chip Receipts on screen, then Connect a printer.",
+          "Download the Print Bridge for this OS (Windows, Windows 7, macOS, or Linux).",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/printer-cashier-connect.svg",
+        alt: "Kiosk Cashier till strip expanded to Connect a printer with Download for Windows and Detect printers",
+        caption:
+          "Paper stays optional until you connect. Setup lives behind one tap so a busy shift never becomes a settings maze.",
+      },
+      {
+        type: "callout",
+        tone: "warning",
+        text: "The zip must run on THIS computer — the one with the printer. A download on your phone, or a helper running in the back office, will never see the USB port at the counter.",
+      },
+      {
+        type: "heading",
+        text: "Step 6 — Detect printers and save",
+      },
+      {
+        type: "steps",
+        items: [
+          "Unzip and run the installer once. Windows 10/11: Install-Palmart-Print-Bridge.cmd (no Node.js needed). It can start hidden at sign-in.",
+          "Click Detect printers. Pick the row marked (receipt). Skip Fax and PDF — every time.",
+          "If you manage the shop, Detect can save the name on the branch so every cashier on that till inherits it. You can also set it under Branches → Receipt details, then Save.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/printer-detect-queues.svg",
+        alt: "Branches receipt details with Detect printers listing XP-80C as a receipt printer, and Print to PDF and Fax as skip",
+        caption:
+          "Detect talks to the helper on this PC (localhost port 19500) and auto-picks a thermal printer when there is only one.",
+      },
+      {
+        type: "heading",
+        text: "Step 7 — Print a test receipt",
+      },
+      {
+        type: "steps",
+        items: [
+          "The chip should now show the printer name, not Receipts on screen.",
+          "Complete a small test sale. Paper should feed and cut cleanly.",
+          "Shop name, M-Pesa till, and footer come from Branches → Receipt details — fix wording there, never on the printer.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/printer-first-receipt.svg",
+        alt: "Thermal printer with a Kiosk test receipt hanging and a first-shift checklist covering printer name, test sale, and blank-paper fix",
+        caption:
+          "A cut slip is the only proof. Blank paper usually means the roll is seated backwards — flip it and reprint from Sales history.",
+      },
+      {
+        type: "image",
+        src: "/help/printer-receipt-anatomy.svg",
+        alt: "Anatomy of a receipt slip showing which lines you set in Branches receipt details, which come from the sale, and the REPRINT mark",
+        caption:
+          "Everything on the slip has one source: your words from Branches → Receipt details, the numbers from the sale.",
+      },
+      {
+        type: "heading",
+        text: "If nothing prints",
+      },
+      {
+        type: "paragraph",
+        text: "Work down the checklist below and stop at the first row that fails. It is almost never the software — it is paper, power, or the cable.",
+      },
+      {
+        type: "image",
+        src: "/help/printer-troubleshoot-flow.svg",
+        alt: "Five-step troubleshooting flowchart from power and self-test to system queue, Print Bridge detection, and picking the thermal receipt queue",
+        caption:
+          "Five checks, in order. Each one rules out a whole category of problems before you touch settings again.",
+      },
+      {
+        type: "list",
+        items: [
+          "Lights on, no paper — charger cable, or roll seated backwards.",
+          "Detect says the helper is not running — run the installer on this till PC, then Detect again.",
+          "PDF or Fax selected — pick the thermal (receipt) queue and Save.",
+          "Job timed out — look at the printer before tapping print again. The bytes may already be spooled.",
+          "Slip is blank grey — flip the roll and reprint from Sales history.",
+        ],
+      },
+      {
+        type: "faq",
+        items: [
+          {
+            question: "Do I need a printer to start selling?",
+            answer:
+              "No. Show the on-screen receipt or send it on WhatsApp. Add paper when the queue starts asking for it.",
+          },
+          {
+            question: "USB, Bluetooth, or Ethernet?",
+            answer:
+              "USB for a fixed till. Bluetooth for a tablet that moves. Ethernet (port 9100) when several tills share one printer.",
+          },
+          {
+            question: "Will Epson, Xprinter, or Caysn work?",
+            answer:
+              "Yes. Kiosk sends ESC/POS, which those common 58mm and 80mm till printers speak. Use the data USB cable from the box, not a phone charger.",
+          },
+          {
+            question: "The slip came out blank and grey. Is the printer broken?",
+            answer:
+              "Almost never. The roll is loaded backwards — the blank side is facing the print head. Flip the roll, close the lid, and reprint from Sales history.",
+          },
+          {
+            question: "How do I change my shop name or M-Pesa till on the receipt?",
+            answer:
+              "In Branches → Receipt details, then Save. The printer only draws what Kiosk sends — wording never lives on the printer itself.",
+          },
+        ],
+      },
+      {
+        type: "links",
+        title: "Next",
+        items: [
+          {
+            label: "Print or share receipts",
+            description: "Paper, screen, or WhatsApp after checkout.",
+            href: "/help/merchants/point-of-sale/print-or-share-receipts",
+          },
+          {
+            label: "How to install a receipt printer (Blog)",
+            description: "The long SEO guide with the same screenshots.",
+            href: "/blog/how-to-install-receipt-printer-kenya",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    audience: "merchants",
+    categorySlug: "point-of-sale",
     slug: "print-or-share-receipts",
     title: "Print or share receipts",
     description:
       "Issue a paper receipt or share a digital copy after checkout.",
     updatedAt: "2026-07-01",
     tags: ["receipt", "print", "cashier"],
-    relatedSlugs: ["scan-barcodes-at-the-till", "sell-when-offline"],
+    relatedSlugs: [
+      "install-a-receipt-printer",
+      "scan-barcodes-at-the-till",
+      "sell-when-offline",
+    ],
     body: [
       {
         type: "paragraph",
@@ -959,6 +1271,21 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
           "Complete the sale on the cashier screen.",
           "Choose print if a thermal printer is connected.",
           "Or open the sale from Sales history to reprint later.",
+        ],
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "No paper yet? Follow Install a receipt printer — USB, Bluetooth, or Ethernet, with screenshots.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Install a receipt printer",
+            description: "From the box to the first cut slip, in about 15 minutes.",
+            href: "/help/merchants/point-of-sale/install-a-receipt-printer",
+          },
         ],
       },
     ],

@@ -44,6 +44,17 @@ export type BlogArticle = {
   listedOnly?: boolean;
   /** FAQPage JSON-LD + optional FAQ section at end of article. */
   faqs?: BlogFaq[];
+  /** HowTo JSON-LD for step-by-step guides (rich results). */
+  howto?: {
+    name: string;
+    description?: string;
+    /** ISO 8601 duration, e.g. PT15M */
+    totalTime?: string;
+    estimatedCost?: { currency: string; value: string };
+    supply?: string[];
+    tool?: string[];
+    steps: { name: string; text: string; image?: string }[];
+  };
   /** Ranked ItemList for comparison / top-N articles. */
   ranking?: { name: string; position: number; url?: string }[];
   body: BlogBlock[];

@@ -932,7 +932,9 @@ export interface components {
             status?: string;
         };
         VerifyEmailRequest: {
+            /** Long URL token, or the 6-digit inbox code (email required for the code). */
             token: string;
+            email?: string;
         };
         CreateApiKeyRequest: {
             label: string;

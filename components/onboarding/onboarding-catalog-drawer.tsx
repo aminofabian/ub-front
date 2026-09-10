@@ -31,6 +31,11 @@ import { cn } from "@/lib/utils";
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Mobile selection sheet state, owned by the provider so the back button can close it. */
+  manifestOpen: boolean;
+  onManifestOpenChange: (open: boolean) => void;
+  /** Mirrors `importing` upward so the provider can block back-navigation mid-import. */
+  importingRef?: { current: boolean };
   suggestedPackId?: string | null;
   storeTypes: readonly string[];
   openingBranchId: string;
@@ -68,6 +73,9 @@ function buildAdoptLines(
 export function OnboardingCatalogDrawer({
   open,
   onOpenChange,
+  manifestOpen,
+  onManifestOpenChange,
+  importingRef,
   suggestedPackId = null,
   storeTypes,
   openingBranchId,
@@ -102,9 +110,14 @@ export function OnboardingCatalogDrawer({
     useState<GlobalCatalogAdoptProgress | null>(null);
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [mobileManifestOpen, setMobileManifestOpen] = useState(false);
   const seededPackIdRef = useRef<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (importingRef) {
+      importingRef.current = importing;
+    }
+  }, [importing, importingRef]);
 
   // Reset / load when opened
   useEffect(() => {
@@ -119,7 +132,7 @@ export function OnboardingCatalogDrawer({
     setErrorMessage(null);
     setImportProgress(null);
     setImportNotice(null);
-    setMobileManifestOpen(false);
+    onManifestOpenChange(false);
     setLoadingMeta(true);
 
     void (async () => {
@@ -178,7 +191,7 @@ export function OnboardingCatalogDrawer({
     return () => {
       cancelled = true;
     };
-  }, [open, suggestedPackId, storeTypes]);
+  }, [open, suggestedPackId, storeTypes, onManifestOpenChange]);
 
   // Browse products for All / category (+ search overrides pack view)
   useEffect(() => {
@@ -579,8 +592,8 @@ export function OnboardingCatalogDrawer({
             onOpenChange(false);
           }
         }}
-        mobileManifestOpen={mobileManifestOpen}
-        onMobileManifestOpenChange={setMobileManifestOpen}
+        mobileManifestOpen={manifestOpen}
+        onMobileManifestOpenChange={onManifestOpenChange}
       />
     </div>
   );

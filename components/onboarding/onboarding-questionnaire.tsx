@@ -3,6 +3,7 @@
 import {
   Check,
   ChevronLeft,
+  ChevronRight,
   Drumstick,
   LayoutGrid,
   Leaf,
@@ -40,6 +41,7 @@ import {
   branchCountToNumber,
   branchLocalityPlaceholder,
   formatBranchDisplayName,
+  localityPlaceholdersForCountry,
   looksLikeOwnerPhone,
   storeTypesSectionLabels,
   formatStoreTypesLabel,
@@ -64,6 +66,8 @@ import {
   storeThemeMeta,
 } from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
+import { hapticTap } from "@/lib/haptics";
+import { claimBackNavigation } from "@/lib/onboarding-back";
 import type { OnboardingSuggestedPackPreview } from "@/lib/onboarding-suggested-pack";
 import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
 import { findSelfServeCountry } from "@/lib/selfserve-countries";
@@ -146,44 +150,44 @@ type Props = {
   catalogLabel?: string | null;
   suggestedPack?: OnboardingSuggestedPackPreview | null;
   packLoading?: boolean;
+  /** True right after the shop setup applied — shows a one-time success note on the stock step. */
+  celebrate?: boolean;
 };
+
+const STEP_LABELS = [
+  "Locations",
+  "Shop type",
+  "Sections",
+  "Selling online",
+  "Look",
+  "Branding",
+  "Shop line",
+] as const;
 
 function QuestionnaireProgress({ step }: { step: number }) {
   const answerSteps = QUESTIONNAIRE_STEP_COUNT - 1;
   const clamped = Math.min(step, answerSteps);
-  const percent =
-    step >= QUESTIONNAIRE_STEP_COUNT
-      ? 100
-      : Math.round((clamped / answerSteps) * 100);
+  const isFinal = step >= QUESTIONNAIRE_STEP_COUNT;
+  const percent = isFinal ? 100 : Math.round((clamped / answerSteps) * 100);
+  const stepLabel = isFinal ? "Stock" : (STEP_LABELS[clamped - 1] ?? "");
 
   return (
     <div className="w-full space-y-1.5">
-      <div className="flex items-center justify-between gap-3 text-[11px] sm:text-xs">
-        <span className="font-medium text-[#374151]">
-          {step >= QUESTIONNAIRE_STEP_COUNT
-            ? "Last step — stock your shelves"
-            : `${percent}% done`}
+      {/* Mobile: named steps + dots — position at a glance, no duplicate bar. */}
+      <div className="flex items-center justify-between gap-3 text-[11px] sm:hidden">
+        <span className="font-semibold text-[#374151]">
+          {isFinal ? "Last step" : `Step ${clamped} of ${answerSteps}`}
         </span>
-        <span className="tabular-nums text-[#9CA3AF]">
-          {step >= QUESTIONNAIRE_STEP_COUNT
-            ? "Final"
-            : `${step} / ${answerSteps}`}
-        </span>
+        <span className="truncate text-[#9CA3AF]">{stepLabel}</span>
       </div>
       <div
-        className="h-1 overflow-hidden rounded-full bg-[#E5E7EB] sm:h-1.5"
+        className="flex gap-1 sm:hidden"
         role="progressbar"
         aria-valuenow={percent}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={`Setup progress: ${percent} percent`}
       >
-        <div
-          className="h-full rounded-full bg-[#0D9488] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-      <div className="flex gap-1 pt-0.5 sm:hidden" aria-hidden>
         {Array.from({ length: answerSteps }, (_, i) => (
           <span
             key={i}
@@ -193,6 +197,32 @@ function QuestionnaireProgress({ step }: { step: number }) {
             )}
           />
         ))}
+      </div>
+      {/* Desktop: percent bar. */}
+      <div className="hidden space-y-1.5 sm:block">
+        <div className="flex items-center justify-between gap-3 text-xs">
+          <span className="font-medium text-[#374151]">
+            {isFinal
+              ? "Last step — stock your shelves"
+              : `${percent}% done`}
+          </span>
+          <span className="tabular-nums text-[#9CA3AF]">
+            {isFinal ? "Final" : `${step} / ${answerSteps}`}
+          </span>
+        </div>
+        <div
+          className="h-1.5 overflow-hidden rounded-full bg-[#E5E7EB]"
+          role="progressbar"
+          aria-valuenow={percent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Setup progress: ${percent} percent`}
+        >
+          <div
+            className="h-full rounded-full bg-[#0D9488] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -212,7 +242,10 @@ function OptionButton({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        hapticTap(8);
+        onClick();
+      }}
       className={cn(
         "w-full rounded-2xl border text-left transition-[border-color,background-color,transform,box-shadow] sm:rounded-xl",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]/40",
@@ -297,7 +330,10 @@ function DepartmentChip({
   return (
     <button
       type="button"
-      onClick={onToggle}
+      onClick={() => {
+        hapticTap(6);
+        onToggle();
+      }}
       className={cn(
         "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition-[border-color,background-color,transform] touch-manipulation active:scale-[0.97]",
         selected
@@ -354,6 +390,7 @@ export function OnboardingQuestionnaire({
   catalogLabel = null,
   suggestedPack = null,
   packLoading = false,
+  celebrate = false,
 }: Props) {
   const [branchCount, setBranchCount] = useState<BranchCountChoice | "">(
     initialAnswers.branchCount ?? "",
@@ -654,6 +691,7 @@ export function OnboardingQuestionnaire({
   };
 
   const handleContinue = () => {
+    clearAutoAdvance();
     switch (step) {
       case 1:
         if (!branchCount) return;
@@ -757,6 +795,85 @@ export function OnboardingQuestionnaire({
   const themeStripRef = useRef<HTMLDivElement | null>(null);
   const keyboardInset = useKeyboardInset();
 
+  /** Slide direction for the step transition — forward enters from the right, back from the left. */
+  const [stepDirection, setStepDirection] = useState<"forward" | "back">(
+    "forward",
+  );
+  const prevStepRef = useRef(step);
+  useEffect(() => {
+    if (step === prevStepRef.current) {
+      return;
+    }
+    setStepDirection(step > prevStepRef.current ? "forward" : "back");
+    prevStepRef.current = step;
+  }, [step]);
+
+  /** Step 4 is a single binary question — auto-continue shortly after a pick. */
+  const autoAdvanceRef = useRef<number | null>(null);
+  const clearAutoAdvance = () => {
+    if (autoAdvanceRef.current !== null) {
+      window.clearTimeout(autoAdvanceRef.current);
+      autoAdvanceRef.current = null;
+    }
+  };
+  useEffect(() => clearAutoAdvance, []);
+  useEffect(() => {
+    clearAutoAdvance();
+  }, [step]);
+
+  const scheduleAutoAdvance = (choice: OnlineStoreChoice) => {
+    clearAutoAdvance();
+    autoAdvanceRef.current = window.setTimeout(() => {
+      autoAdvanceRef.current = null;
+      hapticTap([8, 40, 8]);
+      onContinue({ onlineStore: choice });
+    }, 450);
+  };
+
+  /** Swipe right anywhere on the content goes back a step (native mobile pattern). */
+  const swipeStartRef = useRef<{
+    x: number;
+    y: number;
+    at: number;
+    target: EventTarget | null;
+  } | null>(null);
+  const onTouchStart = (event: React.TouchEvent) => {
+    const touch = event.touches[0];
+    swipeStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      at: Date.now(),
+      target: event.target,
+    };
+  };
+  const onTouchEnd = (event: React.TouchEvent) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start || submitting || step <= 1 || step >= QUESTIONNAIRE_STEP_COUNT) {
+      return;
+    }
+    const from = start.target as HTMLElement | null;
+    if (
+      from?.closest(
+        "input, textarea, select, button, a, [role='button'], [data-no-swipe-back]",
+      )
+    ) {
+      return;
+    }
+    const end = event.changedTouches[0];
+    const dx = end.clientX - start.x;
+    const dy = end.clientY - start.y;
+    if (dx > 72 && Math.abs(dy) < 48 && Date.now() - start.at < 650) {
+      // The system edge gesture can also fire popstate for this same swipe —
+      // claim so only one channel steps back.
+      if (!claimBackNavigation()) {
+        return;
+      }
+      hapticTap(6);
+      onBack();
+    }
+  };
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
@@ -791,6 +908,8 @@ export function OnboardingQuestionnaire({
     <div
       className="relative flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#FBF9F5] text-[#1F2937]"
       style={shellStyle}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
     >
       <div
         className="pointer-events-none absolute inset-0 overflow-hidden"
@@ -852,7 +971,12 @@ export function OnboardingQuestionnaire({
         <div className="mx-auto w-full max-w-lg">
           <div
             key={step}
-            className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300 sm:space-y-6"
+            className={cn(
+              "space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 sm:space-y-6",
+              stepDirection === "back"
+                ? "motion-safe:slide-in-from-left-2"
+                : "motion-safe:slide-in-from-right-2",
+            )}
           >
             {step === 1 ? (
               <>
@@ -908,8 +1032,17 @@ export function OnboardingQuestionnaire({
                 {branchSlots > 0 ? (
                   <div className="space-y-3 rounded-2xl border border-[#E8E4DC] bg-white/80 p-3.5 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:pt-2">
                     <p className="text-xs font-medium text-[#6B7280]">
-                      Name each branch (area or suburb)
+                      {branchSlots === 1
+                        ? "Which area is your shop in?"
+                        : "Name each branch (area or suburb)"}
                     </p>
+                    <datalist id="onboarding-locality-suggestions">
+                      {localityPlaceholdersForCountry(countryCode).map(
+                        (place) => (
+                          <option key={place} value={place} />
+                        ),
+                      )}
+                    </datalist>
                     {branchLocalities.map((locality, index) => {
                       const preview = formatBranchDisplayName(
                         locality ||
@@ -918,7 +1051,9 @@ export function OnboardingQuestionnaire({
                       return (
                         <label key={index} className="block">
                           <span className="mb-1.5 flex items-baseline justify-between gap-2 text-xs font-medium text-[#6B7280]">
-                            <span>Branch {index + 1}</span>
+                            <span>
+                              {branchSlots === 1 ? "Area" : `Branch ${index + 1}`}
+                            </span>
                             <span className="truncate font-normal text-[#9CA3AF]">
                               {preview}
                             </span>
@@ -943,6 +1078,7 @@ export function OnboardingQuestionnaire({
                               aria-label={`Branch ${index + 1} area name`}
                               autoComplete="address-level2"
                               enterKeyHint="next"
+                              list="onboarding-locality-suggestions"
                             />
                             <span className="hidden shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#6B7280] sm:inline">
                               branch
@@ -957,9 +1093,6 @@ export function OnboardingQuestionnaire({
                         later from Branches.
                       </p>
                     ) : null}
-                    <p className="text-xs text-[#9CA3AF]">
-                      You can rename these anytime.
-                    </p>
                   </div>
                 ) : null}
               </>
@@ -985,7 +1118,10 @@ export function OnboardingQuestionnaire({
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => toggleStoreType(opt.value)}
+                        onClick={() => {
+                          hapticTap(8);
+                          toggleStoreType(opt.value);
+                        }}
                         className={cn(
                           "flex min-h-[5.5rem] flex-col items-start gap-2 rounded-2xl border p-3 text-left transition touch-manipulation active:scale-[0.98]",
                           selected
@@ -1156,7 +1292,12 @@ export function OnboardingQuestionnaire({
                     <OptionButton
                       key={opt.value}
                       selected={onlineStore === opt.value}
-                      onClick={() => setOnlineStore(opt.value)}
+                      onClick={() => {
+                        setOnlineStore(opt.value);
+                        if (opt.value !== onlineStore) {
+                          scheduleAutoAdvance(opt.value);
+                        }
+                      }}
                     >
                       <span className="block font-medium">{opt.label}</span>
                       <span className="mt-0.5 block text-xs leading-snug text-[#9CA3AF]">
@@ -1201,6 +1342,7 @@ export function OnboardingQuestionnaire({
                 </p>
                 <div
                   ref={themeStripRef}
+                  data-no-swipe-back
                   className={cn(
                     "-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
                     "sm:mx-0 sm:grid sm:overflow-visible sm:px-0 sm:pb-0",
@@ -1215,6 +1357,7 @@ export function OnboardingQuestionnaire({
                         type="button"
                         data-theme-id={item.id}
                         onClick={() => {
+                          hapticTap(8);
                           if (themeKind === "store") {
                             setStoreThemeId(item.id);
                             if (milkRunNeedsWhatsApp(item.id, landingWhatsapp)) {
@@ -1472,6 +1615,19 @@ export function OnboardingQuestionnaire({
                     )
                   }
                 />
+                {celebrate ? (
+                  <div
+                    className="flex items-center gap-2.5 rounded-2xl border border-[#99F6E4] bg-[#F0FDFA] px-3.5 py-2.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-300"
+                    role="status"
+                  >
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#0D9488] text-white">
+                      <Check className="size-3" aria-hidden />
+                    </span>
+                    <p className="text-sm font-medium text-[#0F766E]">
+                      Your shop is set up — now fill the shelves.
+                    </p>
+                  </div>
+                ) : null}
                 {!catalogShellEmpty ? (
                   <div className="space-y-2">
                     {PRODUCT_SOURCE_OPTIONS.map((opt) => {
@@ -1481,6 +1637,7 @@ export function OnboardingQuestionnaire({
                           key={opt.value}
                           type="button"
                           onClick={() => {
+                            hapticTap(8);
                             setProductSource(opt.value);
                             onProductSourceChange?.(opt.value);
                           }}
@@ -1539,7 +1696,17 @@ export function OnboardingQuestionnaire({
                     Finding a pack for your shop…
                   </div>
                 ) : suggestedPack ? (
-                  <div className="overflow-hidden rounded-2xl border border-[#99F6E4]/80 bg-white shadow-[0_12px_40px_-28px_rgba(13,148,136,0.45)] sm:rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hapticTap(8);
+                      if (!productSource) {
+                        onProductSourceChange?.("new");
+                      }
+                      onOpenCatalogDrawer?.();
+                    }}
+                    className="block w-full overflow-hidden rounded-2xl border border-[#99F6E4]/80 bg-white text-left shadow-[0_12px_40px_-28px_rgba(13,148,136,0.45)] transition-[transform,box-shadow] touch-manipulation active:scale-[0.99] sm:rounded-xl"
+                  >
                     <div className="bg-gradient-to-br from-[#F0FDFA] to-white px-4 pb-3 pt-4">
                       <div className="flex items-start gap-3">
                         <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#0D9488] text-white shadow-sm">
@@ -1550,7 +1717,7 @@ export function OnboardingQuestionnaire({
                             {suggestedPack.name}
                           </p>
                           <p className="mt-0.5 text-xs text-[#0F766E]/90">
-                            Matched to your shop type
+                            Most shops start here — matched to your shop type
                           </p>
                         </div>
                         <span className="shrink-0 rounded-full bg-[#CCFBF1] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[#0F766E]">
@@ -1609,7 +1776,11 @@ export function OnboardingQuestionnaire({
                         </li>
                       </ul>
                     </div>
-                  </div>
+                    <div className="flex items-center justify-between gap-2 border-t border-[#E0F2F1] bg-white px-4 py-2.5 text-xs font-semibold text-[#0F766E]">
+                      <span>Tap to open and pick your products</span>
+                      <ChevronRight className="size-4 shrink-0" aria-hidden />
+                    </div>
+                  </button>
                 ) : productSource === "new" || !productSource ? (
                   <div className="flex flex-col items-start gap-3 rounded-2xl border border-[#E8E4DC] bg-white/90 p-4 sm:rounded-xl">
                     <div className="flex size-12 items-center justify-center rounded-2xl bg-[#F0FDFA] text-[#0D9488]">
@@ -1734,7 +1905,9 @@ export function OnboardingQuestionnaire({
                 ? "Setting up your shop…"
                 : step === QUESTIONNAIRE_PHONE_STEP
                   ? "That’s my number"
-                  : "Continue"}
+                  : step === 5
+                    ? "Use this look"
+                    : "Continue"}
             </button>
           )}
 

@@ -9,6 +9,7 @@ import type {
   GlobalCategoryRecord,
   GlobalProductRecord,
 } from "@/lib/api";
+import { hapticTap } from "@/lib/haptics";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +77,12 @@ function ProductTile({
   return (
     <button
       type="button"
-      onClick={onToggle}
+      onClick={() => {
+        if (!product.alreadyImported) {
+          hapticTap(8);
+        }
+        onToggle();
+      }}
       style={{ animationDelay: `${Math.min(index, 24) * 18}ms` }}
       className={cn(
         "group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-[#ffffff] text-left sm:rounded-none",
@@ -84,6 +90,7 @@ function ProductTile({
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1",
         "hover:z-[1] hover:border-[#CBD5E1] hover:bg-white hover:shadow-[2px_2px_0_0_rgba(15,23,42,0.08)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]/40",
+        "active:scale-[0.97] touch-manipulation",
         selected
           ? "border-[#0D9488] bg-[#F0FDFA] shadow-[inset_0_0_0_1px_#0D9488]"
           : "border-[#E8E4DC]",
@@ -493,7 +500,7 @@ export function OnboardingCatalogShelf({
                 type="search"
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Find a product or scan barcode…"
+                placeholder="Search products or type a barcode…"
                 className="h-12 w-full rounded-2xl border border-[#E5E7EB] bg-[#ffffff] pl-10 pr-3 text-base outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/15 sm:h-10 sm:rounded-xl sm:text-sm"
                 enterKeyHint="search"
                 autoCapitalize="off"
@@ -571,11 +578,26 @@ export function OnboardingCatalogShelf({
       <div className="fixed inset-x-0 bottom-0 z-10 border-t border-[#E8E4DC] bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden">
         <button
           type="button"
-          onClick={() => onMobileManifestOpenChange(true)}
-          className="flex h-12 w-full items-center justify-between rounded-2xl bg-[#0D9488] px-4 text-sm font-semibold text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] active:scale-[0.99] touch-manipulation"
+          onClick={() => {
+            if (selectedCount === 0) {
+              return;
+            }
+            hapticTap(8);
+            onMobileManifestOpenChange(true);
+          }}
+          className={cn(
+            "flex h-12 w-full items-center justify-between rounded-2xl px-4 text-sm font-semibold transition touch-manipulation active:scale-[0.99]",
+            selectedCount > 0
+              ? "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)]"
+              : "border border-[#E5E7EB] bg-white text-[#6B7280]",
+          )}
         >
-          <span>Review selection</span>
-          <span className="tabular-nums">{selectedCount} selected</span>
+          <span>
+            {selectedCount > 0 ? "Review selection" : "Tap products to add them"}
+          </span>
+          {selectedCount > 0 ? (
+            <span className="tabular-nums">{selectedCount} selected</span>
+          ) : null}
         </button>
       </div>
 

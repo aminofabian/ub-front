@@ -3,6 +3,7 @@ import { KIOSK_BEATS_ODOO_ARTICLE } from "./cluster-kiosk-beats-odoo";
 import { MPESA_INTEGRATION_ARTICLE } from "./cluster-mpesa-payments";
 import { ONE_INVENTORY_ARTICLE } from "./cluster-one-inventory";
 import { OUTGROWN_POS_ARTICLE } from "./cluster-outgrown-pos";
+import { INSTALL_PRINTER_ARTICLE } from "./cluster-install-printer";
 import { POS_HARDWARE_ARTICLE } from "./cluster-pos-hardware";
 import { REAL_COST_ARTICLE } from "./cluster-real-cost";
 import { SETUP_POS_ARTICLE } from "./cluster-set-up-pos";
@@ -38,6 +39,7 @@ const PILLAR_ARTICLE: BlogArticle = {
     "the-real-cost-of-free-software",
     "from-stall-to-store-a-retailers-journey",
     "what-hardware-do-you-actually-need",
+    "how-to-install-receipt-printer-kenya",
     "online-physical-one-inventory",
     "why-kiosk-beats-odoo-for-kenyan-shops",
   ],
@@ -175,6 +177,7 @@ export const KIOSK_VS_ODOO_ARTICLES: BlogArticle[] = [
   SETUP_POS_ARTICLE,
   MPESA_INTEGRATION_ARTICLE,
   POS_HARDWARE_ARTICLE,
+  INSTALL_PRINTER_ARTICLE,
   ONE_INVENTORY_ARTICLE,
   ERP_VS_POS_ARTICLE,
   OUTGROWN_POS_ARTICLE,

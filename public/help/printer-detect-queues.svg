@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <rect width="960" height="640" fill="#FBF9F5"/>
+  <text x="48" y="44" font-size="18" font-weight="700" fill="#111827">Step 6  Detect printers, then pick the thermal one</text>
+  <text x="48" y="66" font-size="12" fill="#6b7280">Kiosk labels likely receipt printers. Skip Fax, PDF, and the office A4 unit.</text>
+
+  <!-- Branches card mock -->
+  <rect x="48" y="92" width="864" height="500" rx="18" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="48" y="92" width="864" height="56" rx="18" fill="#111827"/>
+  <rect x="48" y="132" width="864" height="16" fill="#111827"/>
+  <text x="72" y="128" font-size="15" font-weight="700" fill="#ffffff">Branches · Receipt details</text>
+  <text x="780" y="128" font-size="12" fill="#86efac">Sunrise · Main</text>
+
+  <text x="72" y="184" font-size="11" font-weight="700" letter-spacing="1" fill="#6b7280">RECEIPT PRINTER NAME</text>
+  <rect x="72" y="196" width="520" height="44" rx="10" fill="#f9fafb" stroke="#28a745"/>
+  <text x="88" y="224" font-size="14" fill="#111827">XP-80C</text>
+
+  <rect x="608" y="196" width="168" height="44" rx="10" fill="#111827"/>
+  <text x="692" y="224" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">Detect printers</text>
+  <rect x="788" y="196" width="88" height="44" rx="10" fill="#28a745"/>
+  <text x="832" y="224" font-size="13" font-weight="800" fill="#ffffff" text-anchor="middle">Save</text>
+
+  <!-- Dropdown -->
+  <rect x="72" y="260" width="520" height="200" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="72" y="260" width="520" height="48" rx="12" fill="#f0fdf4"/>
+  <rect x="72" y="292" width="520" height="16" fill="#f0fdf4"/>
+  <text x="92" y="290" font-size="14" font-weight="700" fill="#111827">XP-80C (receipt)  default</text>
+  <text x="500" y="290" font-size="11" font-weight="800" fill="#15803d">PICK</text>
+
+  <text x="92" y="336" font-size="14" fill="#4b5563">Caysn_CN811_UB (receipt)</text>
+  <text x="92" y="372" font-size="14" fill="#9ca3af">Microsoft Print to PDF</text>
+  <text x="92" y="408" font-size="14" fill="#9ca3af">Fax</text>
+  <text x="92" y="440" font-size="12" fill="#6b7280">Choose printer& · skip Fax / PDF printers</text>
+
+  <rect x="616" y="260" width="260" height="200" rx="12" fill="#111827"/>
+  <text x="636" y="292" font-size="13" font-weight="700" fill="#ffffff">What Detect is doing</text>
+  <text x="636" y="320" font-size="12" fill="#d1d5db">Talks to the helper on this PC</text>
+  <text x="636" y="342" font-size="12" fill="#d1d5db">(localhost, port 19500).</text>
+  <text x="636" y="368" font-size="12" fill="#d1d5db">Reads Windows / CUPS queues.</text>
+  <text x="636" y="394" font-size="12" fill="#86efac">Auto-picks a thermal printer</text>
+  <text x="636" y="416" font-size="12" fill="#86efac">when there is only one.</text>
+  <text x="636" y="442" font-size="12" fill="#d1d5db">Saves the name on the branch.</text>
+
+  <rect x="72" y="488" width="804" height="76" rx="12" fill="#f7fdf9" stroke="rgba(40,167,69,0.3)"/>
+  <text x="92" y="518" font-size="13" font-weight="700" fill="#15803d">If Detect says the helper is not running</text>
+  <text x="92" y="542" font-size="12" fill="#374151">The zip must be installed on the computer with the printer plugged in  not your phone, and not a different office PC.</text>
+</svg>

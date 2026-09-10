@@ -1170,6 +1170,24 @@ export async function updatePlatformIntegrations(
   });
 }
 
+export type PlatformAuthSettingsRecord = {
+  emailVerificationRequired: boolean;
+  updatedAt: string | null;
+};
+
+export async function fetchPlatformAuthSettings(): Promise<PlatformAuthSettingsRecord> {
+  return saRequest<PlatformAuthSettingsRecord>(API_ROUTES.superAdminPlatformAuth);
+}
+
+export async function updatePlatformAuthSettings(
+  body: { emailVerificationRequired: boolean },
+): Promise<PlatformAuthSettingsRecord> {
+  return saRequest<PlatformAuthSettingsRecord>(API_ROUTES.superAdminPlatformAuth, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
 export type SokoMindSettingsRecord = {
   sokomindEnabled: boolean;
   guideEnabled: boolean;

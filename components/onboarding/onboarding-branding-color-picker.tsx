@@ -21,6 +21,7 @@ import {
   normalizeHexColor,
   type BrandingColorPreset,
 } from "@/lib/branding-color-presets";
+import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/;
@@ -313,7 +314,10 @@ export function OnboardingBrandingColorPicker({
                         primaryColor,
                         accentColor,
                       )}
-                      onSelect={() => applyPreset(preset)}
+                      onSelect={() => {
+                        hapticTap(8);
+                        applyPreset(preset);
+                      }}
                     />
                   ))}
                 </div>

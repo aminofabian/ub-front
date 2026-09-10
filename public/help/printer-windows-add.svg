@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, Segoe UI, sans-serif">
+  <rect width="960" height="640" fill="#f3f4f6"/>
+  <!-- Window chrome -->
+  <rect x="40" y="28" width="880" height="584" rx="12" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="40" y="28" width="880" height="40" fill="#f9fafb" rx="12"/>
+  <rect x="40" y="52" width="880" height="16" fill="#f9fafb"/>
+  <circle cx="62" cy="48" r="6" fill="#f87171"/>
+  <circle cx="82" cy="48" r="6" fill="#fbbf24"/>
+  <circle cx="102" cy="48" r="6" fill="#34d399"/>
+  <text x="128" y="53" font-size="12" font-weight="600" fill="#4b5563">Settings  Printers &amp; scanners</text>
+
+  <!-- Sidebar -->
+  <rect x="40" y="68" width="220" height="544" fill="#f8fafc"/>
+  <text x="60" y="100" font-size="11" font-weight="700" fill="#9ca3af" letter-spacing="1">SETTINGS</text>
+  <text x="60" y="132" font-size="13" fill="#6b7280">System</text>
+  <text x="60" y="160" font-size="13" fill="#6b7280">Bluetooth &amp; devices</text>
+  <rect x="52" y="176" width="196" height="32" rx="6" fill="#e5e7eb"/>
+  <text x="68" y="197" font-size="13" font-weight="700" fill="#111827">Printers &amp; scanners</text>
+  <text x="60" y="236" font-size="13" fill="#6b7280">Network &amp; internet</text>
+  <text x="60" y="264" font-size="13" fill="#6b7280">Personalisation</text>
+
+  <!-- Main -->
+  <text x="288" y="108" font-size="22" font-weight="700" fill="#111827">Printers &amp; scanners</text>
+  <text x="288" y="134" font-size="12" fill="#6b7280">Windows 10 / 11 · USB thermal printers usually appear automatically</text>
+
+  <rect x="288" y="156" width="200" height="36" rx="8" fill="#2563eb"/>
+  <text x="388" y="179" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">Add device</text>
+  <rect x="500" y="156" width="168" height="36" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="584" y="179" font-size="13" font-weight="600" fill="#111827" text-anchor="middle">Add manually</text>
+
+  <!-- Printer rows -->
+  <rect x="288" y="212" width="596" height="72" rx="12" fill="#f0fdf4" stroke="#28a745"/>
+  <rect x="304" y="228" width="40" height="40" rx="8" fill="#28a745"/>
+  <path d="M314 248 h20 M318 242 h12 M318 254 h12" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <text x="360" y="244" font-size="14" font-weight="700" fill="#111827">XP-80C (receipt)</text>
+  <text x="360" y="264" font-size="12" fill="#15803d">Ready · USB · likely thermal  pick this one</text>
+  <rect x="780" y="234" width="80" height="28" rx="14" fill="#28a745"/>
+  <text x="820" y="253" font-size="11" font-weight="800" fill="#ffffff" text-anchor="middle">USE THIS</text>
+
+  <rect x="288" y="300" width="596" height="64" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="312" y="328" font-size="14" font-weight="600" fill="#111827">Microsoft Print to PDF</text>
+  <text x="312" y="348" font-size="12" fill="#9ca3af">Skip  this is not a receipt printer</text>
+
+  <rect x="288" y="376" width="596" height="64" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="312" y="404" font-size="14" font-weight="600" fill="#111827">Fax</text>
+  <text x="312" y="424" font-size="12" fill="#9ca3af">Skip  leave it in the list, never Detect this in Kiosk</text>
+
+  <rect x="288" y="460" width="596" height="112" rx="12" fill="#111827"/>
+  <text x="312" y="492" font-size="13" font-weight="700" fill="#ffffff">If the row never appears</text>
+  <text x="312" y="516" font-size="12" fill="#d1d5db">1. Printer ON · 2. Data USB cable (not charger) · 3. Print Spooler running</text>
+  <text x="312" y="538" font-size="12" fill="#d1d5db">Xprinter / Epson USB devices can hide in Device Manager until Kiosk Detect runs.</text>
+  <text x="312" y="556" font-size="12" fill="#86efac">Then open Cashier in the browser  do not stop at Windows.</text>
+</svg>

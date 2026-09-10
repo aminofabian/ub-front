@@ -116,7 +116,7 @@ function SignupPageContent() {
         );
         setVerificationLink(link);
       } else {
-        const base = `You're almost done. We sent a link to ${result.email}. Open it to verify — we'll take you straight to your account.`;
+        const base = `You're almost done. We sent a link and a 6-digit code to ${result.email}. Open the link, or enter the code on the next page — we'll take you straight to your account.`;
         const localHint =
           process.env.NODE_ENV === "development"
             ? " Locally, if the API has no SMTP, the link is only in the backend terminal (yellow WARN + INFO with the verify URL), not in your inbox."
@@ -232,7 +232,7 @@ function SignupPageContent() {
             setVerificationLink(link);
           } else {
             setSuccessMessage(
-              `You're almost done. We sent a link to ${registerResult.email}. Open it to verify — we'll take you straight to your account.`,
+              `You're almost done. We sent a link and a 6-digit code to ${registerResult.email}. Open the link, or enter the code, to verify.`,
             );
           }
         }

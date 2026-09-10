@@ -87,6 +87,9 @@ function crumbsFor(pathname: string): Crumb[] {
   if (pathname === APP_ROUTES.superAdminPlatformIntegrations) {
     return [{ label: "Platform" }, { label: "Integrations" }];
   }
+  if (pathname === APP_ROUTES.superAdminPlatformSignup) {
+    return [{ label: "Platform" }, { label: "Signup" }];
+  }
   if (pathname === APP_ROUTES.superAdminPlatformSmsCredits) {
     return [{ label: "Platform" }, { label: "SMS credits & limits" }];
   }
@@ -343,6 +346,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               <NavItem href={APP_ROUTES.superAdminPlatformMarketplaceSuppliers} label="Marketplace" />
               <NavItem href={APP_ROUTES.superAdminPlatformSupplierPortal} label="Supplier portal" />
               <NavGroupLabel>Connect</NavGroupLabel>
+              <NavItem href={APP_ROUTES.superAdminPlatformSignup} label="Signup" />
               <NavItem href={APP_ROUTES.superAdminPlatformIntegrations} label="Integrations" />
               <NavItem href={APP_ROUTES.superAdminPlatformSmsCredits} label="SMS credits & limits" />
               <NavItem href={APP_ROUTES.superAdminPlatformSokoMind} label="SokoMind" />

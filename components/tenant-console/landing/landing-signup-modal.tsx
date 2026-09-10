@@ -164,7 +164,7 @@ export function LandingSignupModal({
       }
 
       setErrorMessage(
-        "Account created. Check your email to verify — we'll open your business hub from there.",
+        "Account created. Check your email for the link and 6-digit code — we'll open your business hub from there.",
       );
     } catch (error) {
       setErrorMessage(

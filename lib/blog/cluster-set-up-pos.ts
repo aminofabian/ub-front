@@ -26,6 +26,7 @@ export const SETUP_POS_ARTICLE: BlogArticle = {
   relatedSlugs: [
     "choosing-the-right-pos-kiosk-vs-odoo",
     "what-hardware-do-you-actually-need",
+    "how-to-install-receipt-printer-kenya",
     "why-m-pesa-integration-matters",
     "online-physical-one-inventory",
     "why-kiosk-beats-odoo-for-kenyan-shops",

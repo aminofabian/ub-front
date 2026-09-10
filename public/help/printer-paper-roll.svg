@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <rect width="960" height="640" fill="#FBF9F5"/>
+  <text x="48" y="42" font-size="18" font-weight="700" fill="#111827">Load the paper roll the right way</text>
+  <text x="48" y="64" font-size="12" fill="#6b7280">The shiny, thermal-coated side must face the print head — a backwards roll prints blank grey slips.</text>
+
+  <!-- Printer with open compartment -->
+  <rect x="60" y="110" width="280" height="340" rx="20" fill="#ffffff" stroke="#d1d5db"/>
+  <!-- paper strip exiting the top -->
+  <rect x="150" y="78" width="120" height="50" fill="#ffffff" stroke="#d1d5db"/>
+  <polyline points="150,78 162,70 174,78 186,70 198,78 210,70 222,78 234,70 246,78 258,70 270,78" fill="none" stroke="#d1d5db"/>
+  <line x1="164" y1="94" x2="258" y2="94" stroke="#111827" stroke-width="1.4"/>
+  <line x1="162" y1="106" x2="258" y2="106" stroke="#111827" stroke-width="1.4"/>
+  <line x1="170" y1="118" x2="258" y2="118" stroke="#111827" stroke-width="1.4"/>
+  <!-- exit slot -->
+  <rect x="100" y="128" width="200" height="16" rx="8" fill="#111827"/>
+  <!-- compartment -->
+  <rect x="90" y="196" width="220" height="170" rx="12" fill="#f3f4f6" stroke="#e5e7eb"/>
+  <!-- print head -->
+  <rect x="110" y="208" width="180" height="12" rx="6" fill="#111827"/>
+  <text x="110" y="238" font-size="10" font-weight="700" fill="#111827">Print head</text>
+  <!-- roll -->
+  <circle cx="200" cy="290" r="50" fill="#ffffff" stroke="#111827" stroke-width="2"/>
+  <circle cx="200" cy="290" r="16" fill="#f3f4f6" stroke="#d1d5db"/>
+  <path d="M 156 290 A 44 44 0 0 1 244 290" fill="none" stroke="#28a745" stroke-width="5"/>
+  <polygon points="250,290 236,282 238,298" fill="#28a745"/>
+  <text x="200" y="384" font-size="11" font-weight="700" fill="#15803d" text-anchor="middle">Shiny side faces the print head</text>
+  <text x="200" y="402" font-size="10" fill="#6b7280" text-anchor="middle">Blank slip? Flip the roll — don't reinstall anything.</text>
+  <rect x="90" y="412" width="220" height="30" rx="8" fill="#f7fdf9" stroke="rgba(40,167,69,0.35)"/>
+  <text x="200" y="431" font-size="10" font-weight="700" fill="#15803d" text-anchor="middle">No ink · no ribbon · heat prints the slip</text>
+
+  <!-- Card 1: scratch test -->
+  <g>
+    <rect x="400" y="96" width="512" height="104" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+    <rect x="400" y="96" width="8" height="104" rx="4" fill="#28a745"/>
+    <rect x="424" y="112" width="104" height="22" rx="11" fill="#28a745"/>
+    <text x="476" y="127" font-size="9" font-weight="800" fill="#ffffff" text-anchor="middle">SCRATCH TEST</text>
+    <text x="424" y="158" font-size="14" font-weight="700" fill="#111827">Find the thermal side in 5 seconds</text>
+    <text x="424" y="178" font-size="11.5" fill="#4b5563">Scratch the paper hard with a fingernail — a grey mark means</text>
+    <text x="424" y="196" font-size="11.5" fill="#4b5563">that is the thermal side. Load it facing the print head.</text>
+  </g>
+
+  <!-- Card 2: blank slip -->
+  <g>
+    <rect x="400" y="212" width="512" height="104" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+    <rect x="400" y="212" width="8" height="104" rx="4" fill="#111827"/>
+    <rect x="424" y="228" width="100" height="22" rx="12" fill="#111827"/>
+    <text x="474" y="243" font-size="9" font-weight="800" fill="#ffffff" text-anchor="middle">BLANK SLIP?</text>
+    <text x="424" y="274" font-size="14" font-weight="700" fill="#111827">The roll is backwards, not broken</text>
+    <text x="424" y="294" font-size="11.5" fill="#4b5563">Flip the roll, close the lid, then reprint from Sales history.</text>
+    <text x="424" y="312" font-size="11.5" fill="#4b5563">The first job may already be spooled — don't tap print twice.</text>
+  </g>
+
+  <!-- Card 3: buying rolls -->
+  <g>
+    <rect x="400" y="328" width="512" height="104" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+    <rect x="400" y="328" width="8" height="104" rx="4" fill="#A8842C"/>
+    <rect x="424" y="344" width="110" height="22" rx="11" fill="#A8842C"/>
+    <text x="479" y="359" font-size="9" font-weight="800" fill="#ffffff" text-anchor="middle">BUYING ROLLS</text>
+    <text x="424" y="390" font-size="14" font-weight="700" fill="#111827">Paper is cheap — keep a spare by the till</text>
+    <text x="424" y="410" font-size="11.5" fill="#4b5563">57×30 mm rolls fit 58mm printers · 80×60 or 80×80 mm fit 80mm.</text>
+    <text x="424" y="428" font-size="11.5" fill="#4b5563">Running out mid-queue is the only paper mistake that costs sales.</text>
+  </g>
+
+  <!-- Card 4: storage -->
+  <g>
+    <rect x="400" y="444" width="512" height="104" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+    <rect x="400" y="444" width="8" height="104" rx="4" fill="#111827"/>
+    <rect x="424" y="460" width="110" height="22" rx="12" fill="#111827"/>
+    <text x="479" y="475" font-size="9" font-weight="800" fill="#ffffff" text-anchor="middle">STORAGE</text>
+    <text x="424" y="490" font-size="14" font-weight="700" fill="#111827">Heat darkens thermal paper</text>
+    <text x="424" y="510" font-size="11.5" fill="#4b5563">A roll that baked in a car or boda box prints grey from end to end.</text>
+    <text x="424" y="528" font-size="11.5" fill="#4b5563">Store spare rolls indoors — cool, dry, and out of the sun.</text>
+  </g>
+
+  <rect x="48" y="560" width="912" height="56" rx="14" fill="#111827"/>
+  <text x="504" y="584" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">Most “dead” printers are just paper loaded backwards. Flip the roll before you blame the software.</text>
+  <text x="504" y="604" font-size="11" fill="#d1d5db" text-anchor="middle">Illustrated walkthrough · Kiosk Help · Kenya shop counters</text>
+</svg>

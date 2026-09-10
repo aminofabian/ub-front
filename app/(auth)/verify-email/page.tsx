@@ -169,10 +169,17 @@ function VerifyEmailContent() {
   const onVerifyManual = async (event: React.FormEvent) => {
     event.preventDefault();
     const token = manualToken.trim();
-    if (token.length < 16) {
+    const otp = /^\d{6}$/.test(token);
+    if (!otp && token.length < 16) {
       setErrorMessage(
-        "That code looks too short. Paste the full token from your email.",
+        token.length === 0
+          ? "Enter the 6-digit code from your email, or open the link we sent."
+          : "Use the 6-digit code from the email, or open the Confirm your email link.",
       );
+      return;
+    }
+    if (otp && !resendEmail.trim()) {
+      setErrorMessage("Enter the email this code was sent to.");
       return;
     }
     setBusy(true);
@@ -187,7 +194,10 @@ function VerifyEmailContent() {
         return;
       }
       persistTenantId(id);
-      const signedIn = await verifyEmailAddress(token, { toast: false });
+      const signedIn = await verifyEmailAddress(token, {
+        toast: false,
+        email: otp ? resendEmail.trim() : undefined,
+      });
       onVerifySuccess(signedIn);
     } catch (error) {
       setVerifyPhase("failed");
@@ -252,7 +262,7 @@ function VerifyEmailContent() {
     if (hasAutoToken && verifyPhase === "failed") {
       return "This link is invalid or has expired. Request a new one below.";
     }
-    return `A verification link is on its way${emailFromQuery ? "" : " to your inbox"}. Open it to activate ${shopName}.`;
+    return `A verification email is on its way${emailFromQuery ? "" : " to your inbox"}. Open the link — or enter the 6-digit code — to activate ${shopName}.`;
   })();
 
   return (
@@ -268,7 +278,7 @@ function VerifyEmailContent() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-foreground">
-                  We sent you a link
+                  We sent you a link and a code
                 </p>
                 {emailFromQuery ? (
                   <p className="mt-1 break-all text-sm font-medium text-foreground">
@@ -280,13 +290,12 @@ function VerifyEmailContent() {
                   </p>
                 )}
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  Open the message from{" "}
-                  <span className="font-medium text-foreground">UB</span>, then
-                  tap{" "}
+                  Open the message, then tap{" "}
                   <span className="font-medium text-foreground">
                     Confirm your email
                   </span>
-                  . Prefer not to leave this page? Paste the code below instead.
+                  . You do not have to type the code — the link is enough. The
+                  6-digit code is there if you would rather stay on this page.
                 </p>
               </div>
             </div>
@@ -295,30 +304,60 @@ function VerifyEmailContent() {
           <form className="mt-6 space-y-3" onSubmit={onVerifyManual}>
             <div>
               <label className={fieldLabelClass} htmlFor="verify-token">
-                Verification code
+                6-digit code{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
               </label>
               <input
                 id="verify-token"
                 type="text"
-                inputMode="text"
+                inputMode="numeric"
                 autoComplete="one-time-code"
                 spellCheck={false}
-                className={cn(authInputClassName, "font-mono text-sm")}
+                maxLength={6}
+                className={cn(
+                  authInputClassName,
+                  "font-mono text-center text-lg tracking-[0.35em]",
+                )}
                 value={manualToken}
-                onChange={(event) => setManualToken(event.target.value)}
-                placeholder="Paste the code from your email"
+                onChange={(event) =>
+                  setManualToken(event.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="000000"
               />
               <p className="mt-1.5 text-[11px] text-muted-foreground">
-                From the verification email — or open the link there to finish
-                automatically.
+                From the verification email. Skip this if you already tapped the
+                link.
               </p>
             </div>
+            {!emailFromQuery ? (
+              <div>
+                <label className={fieldLabelClass} htmlFor="verify-email-for-code">
+                  Email for this code
+                </label>
+                <input
+                  id="verify-email-for-code"
+                  type="email"
+                  className={authInputClassName}
+                  value={resendEmail}
+                  onChange={(event) => setResendEmail(event.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+            ) : null}
             <button
               type="submit"
               className={primaryCtaClass}
-              disabled={busy || verifyPhase === "verifying"}
+              disabled={
+                busy ||
+                verifyPhase === "verifying" ||
+                manualToken.trim().length !== 6
+              }
             >
-              {busy && verifyPhase === "verifying" ? "Verifying…" : "Verify email"}
+              {busy && verifyPhase === "verifying"
+                ? "Verifying…"
+                : "Verify with code"}
             </button>
           </form>
         </>

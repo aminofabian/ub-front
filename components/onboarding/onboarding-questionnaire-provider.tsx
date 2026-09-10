@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -45,10 +46,12 @@ import {
   shouldStartOnboardingQuestionnaire,
   QUESTIONNAIRE_PHONE_STEP,
   QUESTIONNAIRE_STOCK_STEP,
+  QUESTIONNAIRE_STEP_COUNT,
   type OnboardingQuestionnaireAnswers,
   type OnboardingQuestionnaireFinishExtras,
   type ProductSourceChoice,
 } from "@/lib/onboarding-questionnaire";
+import { claimBackNavigation } from "@/lib/onboarding-back";
 
 type OnboardingQuestionnaireContextValue = {
   active: boolean;
@@ -147,6 +150,16 @@ export function OnboardingQuestionnaireProvider({
     useState<OnboardingSuggestedPackPreview | null>(null);
   const [packLoading, setPackLoading] = useState(false);
   const [catalogDrawerOpen, setCatalogDrawerOpen] = useState(false);
+  /** Mobile selection sheet inside the catalogue drawer — lifted so back can close it. */
+  const [catalogManifestOpen, setCatalogManifestOpen] = useState(false);
+  /** One-time success note on the stock step after the shop setup applied. */
+  const [celebrate, setCelebrate] = useState(false);
+  /** Mirrors the drawer's importing flag so back never abandons an import. */
+  const drawerImportingRef = useRef(false);
+  const activeRef = useRef(false);
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
 
   useEffect(() => {
     setMounted(true);
@@ -226,6 +239,7 @@ export function OnboardingQuestionnaireProvider({
     setAnswers(stored.answers);
     setActive(true);
     setErrorMessage("");
+    setCelebrate(false);
   }, []);
 
   useEffect(() => {
@@ -246,12 +260,14 @@ export function OnboardingQuestionnaireProvider({
 
   const finish = useCallback(() => {
     setActive(false);
+    setCelebrate(false);
     router.replace(
       isButcheryOnlyBusiness(business) ? APP_ROUTES.butcher : APP_ROUTES.business,
     );
   }, [router, business]);
 
   const handleOpenCatalogDrawer = useCallback(() => {
+    setCatalogManifestOpen(false);
     setCatalogDrawerOpen(true);
   }, []);
 
@@ -292,10 +308,19 @@ export function OnboardingQuestionnaireProvider({
     finish();
   }, [finish]);
 
-  const handleSkip = useCallback(() => {
+  const dismissLayer = useCallback(() => {
     dismissOnboardingQuestionnaire();
     setActive(false);
   }, []);
+
+  const handleSkip = useCallback(() => {
+    dismissLayer();
+    // A button skip leaves the guard entry current in history — pop it so the
+    // next hardware back doesn't dead-end on a no-op entry.
+    if (window.history.state?.__kioskOnboardingGuard) {
+      window.history.back();
+    }
+  }, [dismissLayer]);
 
   const handleBack = useCallback(() => {
     setStep((s) => Math.max(1, s - 1));
@@ -345,6 +370,7 @@ export function OnboardingQuestionnaireProvider({
           completeOnboardingQuestionnaire(merged);
           if (isCatalogEligibleStoreTypes(merged.storeTypes)) {
             saveQuestionnaireProgress(QUESTIONNAIRE_STOCK_STEP, merged);
+            setCelebrate(true);
             setStep(QUESTIONNAIRE_STOCK_STEP);
           } else {
             setActive(false);
@@ -381,6 +407,77 @@ export function OnboardingQuestionnaireProvider({
     ],
   );
 
+  /**
+   * Hardware/browser back-button guard. While onboarding covers the screen,
+   * back walks the flow instead of the dashboard route behind the layer:
+   * selection sheet → catalogue drawer → previous step → exit.
+   * The latest-ref pattern keeps the effect stable across step changes so the
+   * history entry is armed exactly once per activation.
+   */
+  const popActionRef = useRef<() => boolean>(() => true);
+  useEffect(() => {
+    popActionRef.current = () => {
+      if (submitting) {
+        return true; // never abandon an in-flight apply
+      }
+      if (catalogDrawerOpen) {
+        if (drawerImportingRef.current) {
+          return true; // never abandon an in-flight import
+        }
+        if (catalogManifestOpen) {
+          setCatalogManifestOpen(false);
+        } else {
+          setCatalogDrawerOpen(false);
+        }
+        return true;
+      }
+      if (step > 1 && step < QUESTIONNAIRE_STEP_COUNT) {
+        handleBack();
+        return true;
+      }
+      if (step >= QUESTIONNAIRE_STEP_COUNT) {
+        finish();
+        return false;
+      }
+      dismissLayer();
+      return false;
+    };
+  });
+
+  useEffect(() => {
+    if (!active || !mounted) {
+      return;
+    }
+    const pushGuardState = () => {
+      // Carry the current route state (Next.js reads it on popstate) plus our
+      // marker so we can recognise the entry later.
+      window.history.pushState(
+        { ...(window.history.state ?? {}), __kioskOnboardingGuard: true },
+        "",
+      );
+    };
+    if (!window.history.state?.__kioskOnboardingGuard) {
+      pushGuardState();
+    }
+    const onPopState = () => {
+      if (!activeRef.current) {
+        return;
+      }
+      // The system edge gesture can fire popstate and the in-page swipe
+      // handler for one physical gesture — claim so only one acts, but always
+      // re-arm so the guard stays between the user and the route behind.
+      const claimed = claimBackNavigation();
+      const keepGuard = claimed ? popActionRef.current() : true;
+      if (keepGuard) {
+        pushGuardState();
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, [active, mounted]);
+
   const contextValue = useMemo(
     () => ({ active, reopen: startQuestionnaire }),
     [active, startQuestionnaire],
@@ -409,6 +506,7 @@ export function OnboardingQuestionnaireProvider({
               catalogLabel={catalogLabel}
               suggestedPack={suggestedPack}
               packLoading={packLoading}
+              celebrate={celebrate}
               submitting={submitting}
               errorMessage={errorMessage}
               onContinue={(patch, extras) => {
@@ -426,6 +524,9 @@ export function OnboardingQuestionnaireProvider({
             <OnboardingCatalogDrawer
               open={catalogDrawerOpen}
               onOpenChange={setCatalogDrawerOpen}
+              manifestOpen={catalogManifestOpen}
+              onManifestOpenChange={setCatalogManifestOpen}
+              importingRef={drawerImportingRef}
               suggestedPackId={suggestedPack?.id ?? null}
               storeTypes={answers.storeTypes ?? []}
               openingBranchId={openingBranchId}

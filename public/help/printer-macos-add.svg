@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <rect width="960" height="640" fill="#ececec"/>
+  <rect x="36" y="24" width="888" height="592" rx="18" fill="#f5f5f7" stroke="#d4d4d8"/>
+  <!-- Title bar -->
+  <rect x="36" y="24" width="888" height="44" rx="18" fill="#e8e8ed"/>
+  <rect x="36" y="52" width="888" height="16" fill="#e8e8ed"/>
+  <circle cx="60" cy="46" r="6" fill="#ff5f57"/>
+  <circle cx="80" cy="46" r="6" fill="#febc2e"/>
+  <circle cx="100" cy="46" r="6" fill="#28c840"/>
+  <text x="480" y="52" font-size="13" font-weight="600" fill="#3f3f46" text-anchor="middle">System Settings</text>
+
+  <!-- Sidebar -->
+  <rect x="36" y="68" width="240" height="548" fill="#e5e5ea"/>
+  <rect x="52" y="88" width="208" height="28" rx="8" fill="#d4d4d8"/>
+  <text x="68" y="107" font-size="12" fill="#52525b">Search</text>
+  <text x="60" y="148" font-size="12" fill="#3f3f46">Wi-Fi</text>
+  <text x="60" y="176" font-size="12" fill="#3f3f46">Bluetooth</text>
+  <rect x="48" y="190" width="216" height="32" rx="8" fill="#0071e3"/>
+  <text x="64" y="211" font-size="12" font-weight="700" fill="#ffffff">Printers &amp; Scanners</text>
+  <text x="60" y="248" font-size="12" fill="#3f3f46">Displays</text>
+  <text x="60" y="276" font-size="12" fill="#3f3f46">Sound</text>
+
+  <text x="308" y="108" font-size="22" font-weight="700" fill="#1d1d1f">Printers &amp; Scanners</text>
+  <text x="308" y="132" font-size="12" fill="#6b7280">macOS · Add the receipt printer here before Detect in Cashier</text>
+
+  <rect x="308" y="156" width="580" height="88" rx="14" fill="#ffffff" stroke="#28a745" stroke-width="2"/>
+  <rect x="324" y="172" width="56" height="56" rx="12" fill="#111827"/>
+  <rect x="336" y="184" width="32" height="20" rx="3" fill="#f9fafb"/>
+  <rect x="340" y="210" width="24" height="8" rx="2" fill="#28a745"/>
+  <text x="400" y="194" font-size="15" font-weight="700" fill="#1d1d1f">Caysn CN811</text>
+  <text x="400" y="216" font-size="12" fill="#15803d">Idle · USB · Default</text>
+  <rect x="756" y="180" width="108" height="28" rx="14" fill="#28a745"/>
+  <text x="810" y="199" font-size="11" font-weight="800" fill="#ffffff" text-anchor="middle">RECEIPT</text>
+
+  <rect x="308" y="260" width="580" height="72" rx="14" fill="#ffffff"/>
+  <text x="328" y="292" font-size="14" font-weight="600" fill="#1d1d1f">AirPrint · Office HP</text>
+  <text x="328" y="312" font-size="12" fill="#9ca3af">A4 office printer  do not use for till receipts</text>
+
+  <rect x="308" y="352" width="180" height="40" rx="12" fill="#0071e3"/>
+  <text x="398" y="377" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">Add Printer&</text>
+  <text x="504" y="377" font-size="12" fill="#6b7280">If the thermal unit is missing, add it here, then return to Kiosk.</text>
+
+  <rect x="308" y="420" width="580" height="148" rx="14" fill="#1d1d1f"/>
+  <text x="328" y="452" font-size="13" font-weight="700" fill="#ffffff">Add Printer sheet (typical)</text>
+  <text x="328" y="478" font-size="12" fill="#d4d4d8">Name: keep the factory name (Kiosk Detect reads this).</text>
+  <text x="328" y="500" font-size="12" fill="#d4d4d8">Use: Generic ESC/POS or the makers thermal driver  not AirPrint.</text>
+  <text x="328" y="522" font-size="12" fill="#d4d4d8">Kind: USB (or IP for Ethernet, port 9100).</text>
+  <text x="328" y="544" font-size="12" fill="#86efac">Then open Cashier ’ Receipts on screen ’ Connect a printer.</text>
+</svg>

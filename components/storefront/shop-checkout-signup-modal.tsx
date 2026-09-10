@@ -132,7 +132,7 @@ export function ShopCheckoutSignupModal({
     const link = result.verificationUrl?.trim();
     if (link) {
       setVerifyMessage(
-        `We sent a verification link to ${result.email}. Open it to activate your account, then sign in to track this order.`,
+        `We sent a verification link and a 6-digit code to ${result.email}. Open the link (or enter the code) to activate your account, then sign in to track this order.`,
       );
       setVerificationLink(link);
     } else {

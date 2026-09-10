@@ -1,5 +1,7 @@
 import {
   extractFaqPairs,
+  extractHowToSteps,
+  headingId,
   type HelpArticle,
   type HelpAudience,
   type HelpCategory,
@@ -129,6 +131,31 @@ export function HelpArticleJsonLd({
           "@type": "Answer",
           text: item.answer,
         },
+      })),
+    });
+  }
+
+  const howto = extractHowToSteps(article);
+  if (howto.length > 0) {
+    graphs.push({
+      "@type": "HowTo",
+      name: article.title,
+      description: article.description,
+      inLanguage: "en-KE",
+      step: howto.map((step, index) => ({
+        "@type": "HowToStep",
+        position: index + 1,
+        name: step.name,
+        text: step.text,
+        url: `${url}#${headingId(step.name)}`,
+        ...(step.image
+          ? {
+              image: {
+                "@type": "ImageObject",
+                url: `${base}${step.image.startsWith("/") ? step.image : `/${step.image}`}`,
+              },
+            }
+          : {}),
       })),
     });
   }

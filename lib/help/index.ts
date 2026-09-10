@@ -243,6 +243,32 @@ export function extractFaqPairs(article: HelpArticle) {
   return pairs;
 }
 
+/** HowTo steps from "Step N" headings plus the following copy and screenshot. */
+export function extractHowToSteps(article: HelpArticle): {
+  name: string;
+  text: string;
+  image?: string;
+}[] {
+  const out: { name: string; text: string; image?: string }[] = [];
+  for (let i = 0; i < article.body.length; i++) {
+    const block = article.body[i];
+    if (block.type !== "heading") continue;
+    if (!/^step\s+\d/i.test(block.text)) continue;
+    let text = "";
+    let image: string | undefined;
+    for (let j = i + 1; j < article.body.length; j++) {
+      const next = article.body[j];
+      if (next.type === "heading") break;
+      if (next.type === "steps") text = next.items.join(" ");
+      else if (next.type === "paragraph" && !text) text = next.text;
+      else if (next.type === "list" && !text) text = next.items.join(" ");
+      else if (next.type === "image" && !image) image = next.src;
+    }
+    if (text) out.push({ name: block.text, text, image });
+  }
+  return out;
+}
+
 /** Stable URL-safe id for a heading (used by the on-this-page rail). */
 export function headingId(text: string): string {
   const id = text

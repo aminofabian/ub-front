@@ -115,6 +115,7 @@ export function helpArticleMetadata(opts: {
   title: string;
   description: string;
   updatedAt: string;
+  tags?: string[];
 }): Metadata {
   const title = `${opts.title} | ${PLATFORM_SITE_NAME} Help`;
   const url = helpAbsoluteUrl(
@@ -124,6 +125,7 @@ export function helpArticleMetadata(opts: {
   return {
     title,
     description: opts.description,
+    keywords: opts.tags,
     alternates: { canonical: url },
     openGraph: {
       title,

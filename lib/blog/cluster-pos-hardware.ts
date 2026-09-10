@@ -26,6 +26,7 @@ export const POS_HARDWARE_ARTICLE: BlogArticle = {
   relatedSlugs: [
     "choosing-the-right-pos-kiosk-vs-odoo",
     "set-up-a-pos-in-30-minutes",
+    "how-to-install-receipt-printer-kenya",
     "why-m-pesa-integration-matters",
     "why-kiosk-beats-odoo-for-kenyan-shops",
     "top-10-pos-systems-kenya-2026",
@@ -227,6 +228,11 @@ export const POS_HARDWARE_ARTICLE: BlogArticle = {
     {
       type: "links",
       items: [
+        {
+          label: "How to Install a Receipt Printer (Kenya)",
+          href: "/blog/how-to-install-receipt-printer-kenya",
+          blurb: "USB, Bluetooth, or Ethernet — screenshots from box to first slip.",
+        },
         {
           label: "Set Up a POS in Kenya in 30 Minutes",
           href: "/blog/set-up-a-pos-in-30-minutes",

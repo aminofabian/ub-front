@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <rect width="960" height="640" fill="#FBF9F5"/>
+  <text x="48" y="42" font-size="18" font-weight="700" fill="#111827">Which connection fits your counter?</text>
+  <text x="48" y="64" font-size="12" fill="#6b7280">One till, one cable, zero mysteries. Choose USB unless you have a specific reason not to.</text>
+
+  <!-- USB column -->
+  <g>
+    <rect x="48" y="96" width="272" height="400" rx="16" fill="#ffffff" stroke="#28a745" stroke-width="2"/>
+    <rect x="236" y="104" width="76" height="22" rx="11" fill="#28a745"/>
+    <text x="274" y="119" font-size="9" font-weight="800" fill="#ffffff" text-anchor="middle">START HERE</text>
+    <rect x="64" y="112" width="88" height="24" rx="12" fill="#28a745"/>
+    <text x="108" y="129" font-size="11" font-weight="800" fill="#ffffff" text-anchor="middle">USB</text>
+    <!-- scene: till PC + printer + cable -->
+    <rect x="68" y="160" width="104" height="72" rx="8" fill="#f3f4f6" stroke="#d1d5db"/>
+    <rect x="76" y="168" width="88" height="48" rx="4" fill="#ffffff" stroke="#e5e7eb"/>
+    <rect x="112" y="232" width="16" height="10" fill="#d1d5db"/>
+    <rect x="100" y="240" width="40" height="6" rx="3" fill="#d1d5db"/>
+    <rect x="216" y="176" width="76" height="56" rx="8" fill="#ffffff" stroke="#111827" stroke-width="1.5"/>
+    <rect x="228" y="184" width="52" height="6" rx="3" fill="#111827"/>
+    <circle cx="254" cy="210" r="6" fill="#28a745"/>
+    <path d="M 172 208 C 190 208 196 204 216 204" fill="none" stroke="#111827" stroke-width="3"/>
+    <rect x="206" y="198" width="10" height="12" rx="2" fill="#111827"/>
+    <text x="64" y="296" font-size="15" font-weight="700" fill="#111827">One till, one cable</text>
+    <text x="64" y="320" font-size="11.5" fill="#4b5563">The square USB-B data cable from</text>
+    <text x="64" y="338" font-size="11.5" fill="#4b5563">the box. Nothing to pair, nothing</text>
+    <text x="64" y="356" font-size="11.5" fill="#4b5563">to drop, and it works when the</text>
+    <text x="64" y="374" font-size="11.5" fill="#4b5563">internet doesn't.</text>
+    <text x="64" y="404" font-size="11" font-weight="700" fill="#15803d">Best for: dukas, pharmacies, salons</text>
+    <text x="64" y="424" font-size="11" font-weight="700" fill="#15803d">and most fixed counters.</text>
+  </g>
+
+  <!-- Bluetooth column -->
+  <g>
+    <rect x="344" y="96" width="272" height="400" rx="16" fill="#ffffff" stroke="#d1d5db"/>
+    <rect x="360" y="112" width="104" height="24" rx="12" fill="#111827"/>
+    <text x="412" y="129" font-size="10" font-weight="800" fill="#ffffff" text-anchor="middle">BLUETOOTH</text>
+    <!-- scene: tablet + printer + waves -->
+    <rect x="372" y="156" width="76" height="104" rx="10" fill="#ffffff" stroke="#111827" stroke-width="1.5"/>
+    <rect x="380" y="164" width="60" height="88" rx="4" fill="#f3f4f6"/>
+    <line x1="388" y1="184" x2="432" y2="184" stroke="#9ca3af" stroke-width="2"/>
+    <line x1="388" y1="196" x2="424" y2="196" stroke="#9ca3af" stroke-width="2"/>
+    <line x1="388" y1="208" x2="432" y2="208" stroke="#9ca3af" stroke-width="2"/>
+    <rect x="508" y="176" width="76" height="56" rx="8" fill="#ffffff" stroke="#111827" stroke-width="1.5"/>
+    <rect x="520" y="184" width="52" height="6" rx="3" fill="#111827"/>
+    <circle cx="546" cy="210" r="6" fill="#28a745"/>
+    <path d="M 462 196 Q 484 184 506 196" fill="none" stroke="#28a745" stroke-width="2.5"/>
+    <path d="M 468 210 Q 484 200 500 210" fill="none" stroke="#28a745" stroke-width="2.5"/>
+    <path d="M 474 224 Q 484 216 494 224" fill="none" stroke="#28a745" stroke-width="2.5"/>
+    <text x="360" y="296" font-size="15" font-weight="700" fill="#111827">The till that roams</text>
+    <text x="360" y="320" font-size="11.5" fill="#4b5563">Pair once in system Bluetooth</text>
+    <text x="360" y="338" font-size="11.5" fill="#4b5563">settings, then Detect in Cashier.</text>
+    <text x="360" y="356" font-size="11.5" fill="#4b5563">Keep the printer within a few</text>
+    <text x="360" y="374" font-size="11.5" fill="#4b5563">metres of the tablet.</text>
+    <text x="360" y="404" font-size="11" font-weight="700" fill="#111827">Best for: table service, market</text>
+    <text x="360" y="424" font-size="11" font-weight="700" fill="#111827">stalls, tills that walk the aisle.</text>
+  </g>
+
+  <!-- Ethernet column -->
+  <g>
+    <rect x="640" y="96" width="272" height="400" rx="16" fill="#ffffff" stroke="#d1d5db"/>
+    <rect x="656" y="112" width="96" height="24" rx="12" fill="#A8842C"/>
+    <text x="704" y="129" font-size="10" font-weight="800" fill="#ffffff" text-anchor="middle">ETHERNET</text>
+    <!-- scene: two tills + printer + router -->
+    <rect x="660" y="152" width="72" height="40" rx="6" fill="#f3f4f6" stroke="#d1d5db"/>
+    <text x="696" y="176" font-size="9" font-weight="700" fill="#4b5563" text-anchor="middle">TILL 1</text>
+    <rect x="740" y="152" width="72" height="40" rx="6" fill="#ffffff" stroke="#111827" stroke-width="1.5"/>
+    <text x="776" y="176" font-size="8" font-weight="700" fill="#111827" text-anchor="middle">PRINTER</text>
+    <rect x="820" y="152" width="72" height="40" rx="6" fill="#f3f4f6" stroke="#d1d5db"/>
+    <text x="856" y="176" font-size="9" font-weight="700" fill="#4b5563" text-anchor="middle">TILL 2</text>
+    <rect x="740" y="228" width="72" height="32" rx="6" fill="#ffffff" stroke="#A8842C" stroke-width="1.5"/>
+    <text x="776" y="248" font-size="8" font-weight="700" fill="#A8842C" text-anchor="middle">ROUTER</text>
+    <line x1="756" y1="228" x2="750" y2="214" stroke="#111827" stroke-width="2"/>
+    <line x1="796" y1="228" x2="802" y2="214" stroke="#111827" stroke-width="2"/>
+    <path d="M 696 192 L 696 214 L 760 214 L 760 228" fill="none" stroke="#A8842C" stroke-width="2"/>
+    <path d="M 856 192 L 856 214 L 792 214 L 792 228" fill="none" stroke="#A8842C" stroke-width="2"/>
+    <line x1="776" y1="192" x2="776" y2="228" stroke="#A8842C" stroke-width="2"/>
+    <text x="656" y="296" font-size="15" font-weight="700" fill="#111827">One printer, many tills</text>
+    <text x="656" y="320" font-size="11.5" fill="#4b5563">LAN cable into the router. Note the</text>
+    <text x="656" y="338" font-size="11.5" fill="#4b5563">IP from the self-test slip. Every till</text>
+    <text x="656" y="356" font-size="11.5" fill="#4b5563">on the LAN reaches it on raw</text>
+    <text x="656" y="374" font-size="11.5" fill="#4b5563">port 9100.</text>
+    <text x="656" y="404" font-size="11" font-weight="700" fill="#A8842C">Best for: mini-marts and busy</text>
+    <text x="656" y="424" font-size="11" font-weight="700" fill="#A8842C">counters running 2+ tills.</text>
+  </g>
+
+  <rect x="48" y="520" width="912" height="60" rx="14" fill="#111827"/>
+  <text x="504" y="546" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">One till? Take USB and never think about it again.</text>
+  <text x="504" y="566" font-size="11" fill="#d1d5db" text-anchor="middle">Bluetooth and Ethernet are special cases — reach for them when the counter demands it, not before.</text>
+  <text x="48" y="606" font-size="11" fill="#9ca3af">Illustrated walkthrough · Kiosk Help · Kenya shop counters</text>
+</svg>

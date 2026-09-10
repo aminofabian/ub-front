@@ -88,4 +88,9 @@ export const PLATFORM_GUIDES = [
     href: "/blog/best-pos-for-mini-marts-kenya",
     blurb: "What neighborhood shops should prioritize before buying.",
   },
+  {
+    title: "Install a receipt printer",
+    href: "/blog/how-to-install-receipt-printer-kenya",
+    blurb: "Thermal USB, Bluetooth, or Ethernet — 15 minutes with screenshots.",
+  },
 ] as const;

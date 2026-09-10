@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, ui-monospace, sans-serif">
+  <rect width="960" height="560" fill="#111827"/>
+  <rect x="40" y="28" width="880" height="504" rx="12" fill="#0b1220" stroke="#1f2937"/>
+  <rect x="40" y="28" width="880" height="40" rx="12" fill="#030712"/>
+  <rect x="40" y="52" width="880" height="16" fill="#030712"/>
+  <text x="60" y="54" font-size="12" fill="#86efac">till@kiosk:~</text>
+  <text x="880" y="54" font-size="11" fill="#6b7280" text-anchor="end">CUPS · localhost:631</text>
+
+  <text x="60" y="108" font-size="13" fill="#6b7280">$ sudo apt install cups</text>
+  <text x="60" y="132" font-size="13" fill="#86efac">cups is already the newest version.</text>
+  <text x="60" y="164" font-size="13" fill="#6b7280">$ lpstat -p -d</text>
+  <text x="60" y="188" font-size="13" fill="#e5e7eb">printer XP-80C is idle. enabled since Thu 10 Sep</text>
+  <text x="60" y="212" font-size="13" fill="#86efac">system default destination: XP-80C</text>
+  <text x="60" y="244" font-size="13" fill="#6b7280">$ bash install-palmart-print-bridge.sh</text>
+  <text x="60" y="268" font-size="13" fill="#e5e7eb">Installing Palmart Print Bridge (systemd user unit)&</text>
+  <text x="60" y="292" font-size="13" fill="#86efac">listening on 127.0.0.1:19500</text>
+
+  <rect x="60" y="328" width="800" height="160" rx="10" fill="#111827" stroke="#28a745"/>
+  <text x="80" y="364" font-size="14" font-weight="700" fill="#ffffff">Linux till notes</text>
+  <text x="80" y="392" font-size="13" fill="#d1d5db">1. Add the printer in CUPS (http://localhost:631) or your desktops Printers app.</text>
+  <text x="80" y="416" font-size="13" fill="#d1d5db">2. Use the raw / ESC/POS queue  not a PDF virtual printer.</text>
+  <text x="80" y="440" font-size="13" fill="#d1d5db">3. Run the Kiosk Linux installer once, then Detect printers in Cashier.</text>
+  <text x="80" y="464" font-size="13" fill="#86efac">Same Detect button as Windows and macOS. The helper is what changes.</text>
+</svg>

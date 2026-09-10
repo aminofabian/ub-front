@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <rect width="960" height="640" fill="#FBF9F5"/>
+  <text x="48" y="42" font-size="18" font-weight="700" fill="#111827">What goes on the slip — and where it comes from</text>
+  <text x="48" y="64" font-size="12" fill="#6b7280">Wording lives in Branches → Receipt details. The sale fills in the rest. The printer only draws what Kiosk sends.</text>
+
+  <!-- Receipt -->
+  <polygon points="372,96 378,88 384,96 390,88 396,96 402,88 408,96 414,88 420,96 426,88 432,96 438,88 444,96 450,88 456,96 462,88 468,96 474,88 480,96 486,88 492,96 498,88 504,96 510,88 516,96 522,88 528,96 534,88 540,96 546,88 552,96 558,88 564,96 570,88 576,96 582,88 588,96" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="372" y="96" width="216" height="350" fill="#ffffff" stroke="#d1d5db"/>
+  <polygon points="372,446 378,454 384,446 390,454 396,446 402,454 408,446 414,454 420,446 426,454 432,446 438,454 444,446 450,454 456,446 462,454 468,446 474,454 480,446 486,454 492,446 498,454 504,446 510,454 516,446 522,454 528,446 534,454 540,446 546,454 552,446 558,454 564,446 570,454 576,446 582,454 588,446" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="480" y="126" font-size="13" font-weight="800" fill="#111827" text-anchor="middle">SUNRISE GROCERIES</text>
+  <text x="480" y="142" font-size="8.5" fill="#6b7280" text-anchor="middle">Nairobi West · Tel 0712 345 678</text>
+  <line x1="388" y1="156" x2="572" y2="156" stroke="#d1d5db" stroke-dasharray="3 3"/>
+  <text x="388" y="176" font-size="10.5" fill="#374151">Brookside Milk 500ml</text>
+  <text x="572" y="176" font-size="10.5" fill="#374151" text-anchor="end">85</text>
+  <text x="388" y="192" font-size="10.5" fill="#374151">White loaf 400g</text>
+  <text x="572" y="192" font-size="10.5" fill="#374151" text-anchor="end">70</text>
+  <text x="388" y="208" font-size="10.5" fill="#374151">Cooking oil 1L</text>
+  <text x="572" y="208" font-size="10.5" fill="#374151" text-anchor="end">50</text>
+  <line x1="388" y1="222" x2="572" y2="222" stroke="#d1d5db" stroke-dasharray="3 3"/>
+  <text x="388" y="240" font-size="12" font-weight="800" fill="#111827">TOTAL</text>
+  <text x="572" y="240" font-size="12" font-weight="800" fill="#111827" text-anchor="end">KSh 205</text>
+  <text x="388" y="260" font-size="10" font-weight="700" fill="#111827">M-PESA TILL 123456</text>
+  <text x="388" y="276" font-size="9.5" fill="#6b7280">Paid · M-Pesa</text>
+  <line x1="388" y1="290" x2="572" y2="290" stroke="#d1d5db" stroke-dasharray="3 3"/>
+  <text x="480" y="306" font-size="9.5" fill="#374151" text-anchor="middle">Karibu tena — see you soon!</text>
+  <rect x="438" y="318" width="84" height="20" rx="4" fill="none" stroke="#A8842C" stroke-width="1.5"/>
+  <text x="480" y="332" font-size="9" font-weight="800" fill="#A8842C" text-anchor="middle">REPRINT</text>
+  <g fill="#111827">
+    <rect x="404" y="348" width="2" height="34"/>
+    <rect x="410" y="348" width="4" height="34"/>
+    <rect x="412" y="348" width="1.5" height="34"/>
+    <rect x="418" y="348" width="3" height="34"/>
+    <rect x="426" y="348" width="2" height="34"/>
+    <rect x="432" y="348" width="1.5" height="34"/>
+    <rect x="438" y="348" width="4" height="34"/>
+    <rect x="440" y="348" width="1.5" height="34"/>
+    <rect x="446" y="348" width="2" height="34"/>
+    <rect x="452" y="348" width="3" height="34"/>
+    <rect x="458" y="348" width="1.5" height="34"/>
+    <rect x="466" y="348" width="2" height="34"/>
+    <rect x="472" y="348" width="4" height="34"/>
+    <rect x="480" y="348" width="1.5" height="34"/>
+    <rect x="486" y="348" width="2" height="34"/>
+    <rect x="494" y="348" width="3" height="34"/>
+    <rect x="502" y="348" width="1.5" height="34"/>
+    <rect x="508" y="348" width="2" height="34"/>
+    <rect x="516" y="348" width="4" height="34"/>
+    <rect x="524" y="348" width="1.5" height="34"/>
+    <rect x="532" y="348" width="2" height="34"/>
+    <rect x="540" y="348" width="3" height="34"/>
+    <rect x="548" y="348" width="1.5" height="34"/>
+    <rect x="554" y="348" width="2" height="34"/>
+  </g>
+  <text x="480" y="424" font-size="8" fill="#9ca3af" text-anchor="middle">Kiosk · thank you for shopping with us</text>
+
+  <!-- Left callouts: you set this -->
+  <g>
+    <rect x="48" y="110" width="280" height="96" rx="12" fill="#ffffff" stroke="rgba(40,167,69,0.45)" stroke-width="1.5"/>
+    <rect x="64" y="122" width="96" height="18" rx="9" fill="#28a745"/>
+    <text x="112" y="135" font-size="8" font-weight="800" fill="#ffffff" text-anchor="middle">YOU SET THIS</text>
+    <text x="64" y="160" font-size="13" font-weight="700" fill="#111827">Shop name &amp; branch line</text>
+    <text x="64" y="178" font-size="10.5" fill="#4b5563">The header customers read first.</text>
+    <text x="64" y="194" font-size="10.5" fill="#4b5563">Use the name they already know.</text>
+  </g>
+  <g>
+    <rect x="48" y="226" width="280" height="96" rx="12" fill="#ffffff" stroke="rgba(40,167,69,0.45)" stroke-width="1.5"/>
+    <rect x="64" y="238" width="96" height="18" rx="9" fill="#28a745"/>
+    <text x="112" y="251" font-size="8" font-weight="800" fill="#ffffff" text-anchor="middle">YOU SET THIS</text>
+    <text x="64" y="276" font-size="13" font-weight="700" fill="#111827">M-Pesa till / paybill number</text>
+    <text x="64" y="294" font-size="10.5" fill="#4b5563">Customers copy it straight off</text>
+    <text x="64" y="310" font-size="10.5" fill="#4b5563">the slip when they pay.</text>
+  </g>
+  <g>
+    <rect x="48" y="342" width="280" height="96" rx="12" fill="#ffffff" stroke="rgba(40,167,69,0.45)" stroke-width="1.5"/>
+    <rect x="64" y="354" width="96" height="18" rx="9" fill="#28a745"/>
+    <text x="112" y="367" font-size="8" font-weight="800" fill="#ffffff" text-anchor="middle">YOU SET THIS</text>
+    <text x="64" y="392" font-size="13" font-weight="700" fill="#111827">Footer message</text>
+    <text x="64" y="410" font-size="10.5" fill="#4b5563">“Karibu tena!” — your words,</text>
+    <text x="64" y="426" font-size="10.5" fill="#4b5563">your shop, not ours.</text>
+  </g>
+  <line x1="328" y1="158" x2="372" y2="134" stroke="#28a745" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <line x1="328" y1="274" x2="372" y2="260" stroke="#28a745" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <line x1="328" y1="390" x2="372" y2="306" stroke="#28a745" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+  <!-- Right callouts: from the sale -->
+  <g>
+    <rect x="640" y="110" width="272" height="96" rx="12" fill="#ffffff" stroke="#d1d5db"/>
+    <rect x="656" y="122" width="112" height="18" rx="9" fill="#111827"/>
+    <text x="718" y="135" font-size="8" font-weight="800" fill="#ffffff" text-anchor="middle">FROM THE SALE</text>
+    <text x="656" y="160" font-size="13" font-weight="700" fill="#111827">Items &amp; prices</text>
+    <text x="656" y="178" font-size="10.5" fill="#4b5563">Pulled from your catalog</text>
+    <text x="656" y="194" font-size="10.5" fill="#4b5563">at checkout.</text>
+  </g>
+  <g>
+    <rect x="640" y="226" width="272" height="96" rx="12" fill="#ffffff" stroke="#d1d5db"/>
+    <rect x="656" y="238" width="112" height="18" rx="9" fill="#111827"/>
+    <text x="718" y="251" font-size="8" font-weight="800" fill="#ffffff" text-anchor="middle">FROM THE SALE</text>
+    <text x="656" y="276" font-size="13" font-weight="700" fill="#111827">Totals &amp; payment</text>
+    <text x="656" y="294" font-size="10.5" fill="#4b5563">Computed from the cart —</text>
+    <text x="656" y="310" font-size="10.5" fill="#4b5563">never typed by hand.</text>
+  </g>
+  <g>
+    <rect x="640" y="342" width="272" height="96" rx="12" fill="#ffffff" stroke="#d1d5db"/>
+    <rect x="656" y="354" width="112" height="18" rx="9" fill="#111827"/>
+    <text x="718" y="367" font-size="8" font-weight="800" fill="#ffffff" text-anchor="middle">FROM THE SALE</text>
+    <text x="656" y="392" font-size="13" font-weight="700" fill="#111827">REPRINT mark</text>
+    <text x="656" y="410" font-size="10.5" fill="#4b5563">Stamped on slips reprinted</text>
+    <text x="656" y="426" font-size="10.5" fill="#4b5563">from Sales history.</text>
+  </g>
+  <line x1="588" y1="192" x2="640" y2="158" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <line x1="588" y1="240" x2="640" y2="274" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <line x1="588" y1="328" x2="640" y2="390" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+  <rect x="48" y="520" width="912" height="60" rx="14" fill="#111827"/>
+  <text x="504" y="546" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">Change the wording in Branches → Receipt details, then Save — the printer only draws what Kiosk sends.</text>
+  <text x="504" y="566" font-size="11" fill="#d1d5db" text-anchor="middle">Reprints from Sales history carry a REPRINT mark, so cashiers can spot duplicates at a glance.</text>
+  <text x="48" y="606" font-size="11" fill="#9ca3af">Illustrated walkthrough · Kiosk Help · Kenya shop counters</text>
+</svg>

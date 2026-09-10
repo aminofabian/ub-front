@@ -2801,11 +2801,16 @@ export async function lookupAuthEmail(
 
 export async function verifyEmailAddress(
   token: string,
-  options?: { toast?: boolean },
+  options?: { toast?: boolean; email?: string },
 ): Promise<boolean> {
+  const body: { token: string; email?: string } = { token };
+  const email = options?.email?.trim();
+  if (email) {
+    body.email = email;
+  }
   const payload = await request<LoginResponse>(API_ROUTES.verifyEmail, {
     method: "POST",
-    body: { token },
+    body,
     requiresAuth: false,
     toast: options?.toast,
   });

@@ -135,6 +135,65 @@ export function BlogArticleJsonLd({
     });
   }
 
+  if (article.howto && article.howto.steps.length > 0) {
+    const abs = (src?: string) =>
+      src ? `${base}${src.startsWith("/") ? src : `/${src}`}` : undefined;
+    graph.push({
+      "@type": "HowTo",
+      "@id": `${url}#howto`,
+      name: article.howto.name,
+      description: article.howto.description ?? article.description,
+      inLanguage: "en-KE",
+      ...(article.howto.totalTime
+        ? { totalTime: article.howto.totalTime }
+        : {}),
+      ...(article.howto.estimatedCost
+        ? {
+            estimatedCost: {
+              "@type": "MonetaryAmount",
+              currency: article.howto.estimatedCost.currency,
+              value: article.howto.estimatedCost.value,
+            },
+          }
+        : {}),
+      ...(article.howto.supply?.length
+        ? {
+            supply: article.howto.supply.map((name) => ({
+              "@type": "HowToSupply",
+              name,
+            })),
+          }
+        : {}),
+      ...(article.howto.tool?.length
+        ? {
+            tool: article.howto.tool.map((name) => ({
+              "@type": "HowToTool",
+              name,
+            })),
+          }
+        : {}),
+      step: article.howto.steps.map((step, index) => ({
+        "@type": "HowToStep",
+        position: index + 1,
+        name: step.name,
+        text: step.text,
+        url: `${url}#${step.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "")
+          .slice(0, 80)}`,
+        ...(step.image
+          ? {
+              image: {
+                "@type": "ImageObject",
+                url: abs(step.image),
+              },
+            }
+          : {}),
+      })),
+    });
+  }
+
   return (
     <JsonLd
       data={{
