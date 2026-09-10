@@ -1,4 +1,10 @@
 import { PLATFORM_DOMAIN } from "@/lib/config";
+import {
+  PRINTER_INSTALL_CTA,
+  PRINTER_INSTALL_EMAIL_BODY,
+  PRINTER_INSTALL_EMAIL_PREVIEW,
+  PRINTER_INSTALL_EMAIL_SUBJECT,
+} from "@/lib/outreach-printer-install";
 
 export type WorkspaceMode =
   | "overview"
@@ -298,10 +304,21 @@ After a few shifts, check Frequently sold — it gets faster the more the till i
 
 Scan if you can. Search if you know part of the name or code. Tap Frequently sold for repeats. Browse only when you're exploring.
 
-That's the whole Hybrid workflow for {{businessName}}.
+    That's the whole Hybrid workflow for {{businessName}}.
 `,
     cta: "Turn on Hybrid POS",
     openRate: 0.48,
+  },
+  {
+    id: "install-receipt-printer",
+    family: "Feature guides",
+    name: "Install a receipt printer",
+    type: "educational",
+    subject: PRINTER_INSTALL_EMAIL_SUBJECT,
+    previewText: PRINTER_INSTALL_EMAIL_PREVIEW,
+    body: PRINTER_INSTALL_EMAIL_BODY,
+    cta: PRINTER_INSTALL_CTA,
+    openRate: 0.51,
   },
   { id: "upgrade", family: "Growth", name: "Upgrade your plan", type: "promotional", subject: "{{businessName}} is outgrowing the free catalog", previewText: "{{productCount}} products on a starter limit.", body: "Hi {{name}},\n\n{{businessName}} already carries a serious catalog. A paid plan lifts product and cashier limits so the till doesn't stall as you grow.\n", cta: "Review plans", openRate: 0.33 },
   { id: "we-miss-you", family: "Re-engagement", name: "We haven't seen you in a while", type: "re-engagement", subject: "{{businessName}} is waiting on Kiosk", previewText: "Your catalog and till are still here.", body: "Hi {{name}},\n\nIt's been a while since anyone signed into {{businessName}}. Your products, branches, and storefront are still on Kiosk — pick up where you left off.\n", cta: "Open dashboard", openRate: 0.29 },
@@ -415,6 +432,16 @@ export function generateCampaign(prompt: string, intent: IntentId): GeneratedCam
   const catalog = /product|catalog/.test(p) || intent === "catalog";
   const idle = /inactive|login|haven't seen|re-engage/.test(p) || intent === "reengage";
   const upgrade = /upgrade|paid|plan/.test(p) || intent === "upgrade";
+  const printer = /printer|receipt printer|thermal|print bridge/.test(p);
+
+  if (printer) {
+    return {
+      subject: PRINTER_INSTALL_EMAIL_SUBJECT,
+      previewText: PRINTER_INSTALL_EMAIL_PREVIEW,
+      body: PRINTER_INSTALL_EMAIL_BODY,
+      cta: PRINTER_INSTALL_CTA,
+    };
+  }
 
   if (setup) {
     return {

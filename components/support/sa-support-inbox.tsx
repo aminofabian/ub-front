@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ExternalLink,
   Inbox,
+  Printer,
   RotateCw,
   Search,
   Sparkles,
@@ -58,6 +59,10 @@ import {
   sendSaSupportMessage,
 } from "@/lib/super-admin-api";
 import { playSupportMessageSound, unlockSupportAudio } from "@/lib/support-sound";
+import {
+  PRINTER_INSTALL_CANNED_REPLY,
+  printerInstallChatBody,
+} from "@/lib/outreach-printer-install";
 import { cn } from "@/lib/utils";
 
 type Filter = "OPEN" | "RESOLVED" | "ALL";
@@ -1569,6 +1574,26 @@ export function SaSupportInbox() {
       </div>
 
       <div className="min-w-0 shrink-0 overflow-hidden">
+      {!resolved ? (
+        <div className="flex flex-wrap gap-1.5 border-t border-border/50 px-3 pb-0 pt-2">
+          <button
+            type="button"
+            disabled={sending}
+            title={PRINTER_INSTALL_CANNED_REPLY.hint}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/30 px-2.5 py-1 text-[11px] font-medium text-foreground transition hover:bg-muted disabled:opacity-50"
+            onClick={() => {
+              const first =
+                activeConversation?.createdByName?.trim().split(/\s+/)[0] ||
+                activeConversation?.guestName?.trim().split(/\s+/)[0] ||
+                "";
+              void send(printerInstallChatBody(first));
+            }}
+          >
+            <Printer className="size-3" aria-hidden />
+            {PRINTER_INSTALL_CANNED_REPLY.label}
+          </button>
+        </div>
+      ) : null}
       <Composer
         value={draft}
         onChange={setDraft}
