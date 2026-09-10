@@ -2821,6 +2821,54 @@ html:has([data-store-theme-id="comilmart"]) ::selection {
     color: #0e1b2b;
 }
 
+/* Daily gazette — kraft pulp + ink on portaled drawers and sign-in. */
+html:has([data-store-theme-id="daily-gazette"]) {
+    background-color: #d2c19a;
+    color-scheme: light;
+    --primary: #e24e04;
+    --primary-hover: #c44304;
+    --primary-foreground: #fff8ee;
+    --ring: #e24e04;
+    --background: #d2c19a;
+    --foreground: #1c1610;
+    --muted: #c4ae82;
+    --muted-foreground: #5a4a38;
+    --border: #1c1610;
+    --input: #1c1610;
+    --card: #d2c19a;
+    --card-foreground: #1c1610;
+}
+
+html:has([data-store-theme-id="daily-gazette"]) .dg-slide-over > aside[role="dialog"] {
+    border-radius: 0;
+    border: 2px solid #1c1610;
+    background: #d2c19a;
+    box-shadow: 8px 16px 40px rgb(28 22 16 / 0.32);
+    backdrop-filter: none;
+}
+
+html:has([data-store-theme-id="daily-gazette"]) .dg-slide-over > aside[role="dialog"]::before {
+    display: none;
+}
+
+html:has([data-store-theme-id="daily-gazette"]) [data-slot="dialog-content"],
+html:has([data-store-theme-id="daily-gazette"]) [role="dialog"].max-w-md {
+    border-color: #1c1610;
+    border-radius: 0;
+}
+
+html:has([data-store-theme-id="daily-gazette"]) [data-slot="dialog-content"] button[type="submit"],
+html:has([data-store-theme-id="daily-gazette"]) .storefront-browse button.bg-primary {
+    background-color: #e24e04;
+    color: #fff8ee;
+    border-radius: 0;
+}
+
+html:has([data-store-theme-id="daily-gazette"]) ::selection {
+    background: #e24e04;
+    color: #fff8ee;
+}
+
 .landing-page {
     overflow: clip;
 }

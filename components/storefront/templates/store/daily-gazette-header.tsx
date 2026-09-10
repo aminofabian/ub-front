@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type MouseEvent } from "react";
 
-import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
+import { useStorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import { StorefrontEditableLogoMark } from "@/components/storefront/storefront-editable-logo";
 import { filterShopperTypes } from "@/components/storefront/shop-type-filters";
 import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
@@ -14,6 +14,8 @@ import {
 } from "@/components/storefront/templates/store/daily-gazette-copy";
 import styles from "@/components/storefront/templates/store/daily-gazette.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
+import { logoutRemote } from "@/lib/api";
+import { clearSessionTokens } from "@/lib/auth";
 import { APP_ROUTES, apiUrl } from "@/lib/config";
 import type { PublicCatalogType } from "@/lib/public-storefront";
 import { shopListPath } from "@/lib/shop-url";
@@ -95,6 +97,102 @@ function NavLinks({
         );
       })}
     </nav>
+  );
+}
+
+function GazetteClock() {
+  const [time, setTime] = useState("");
+
+  useEffect(() => {
+    const tick = () => {
+      setTime(
+        new Date().toLocaleTimeString(undefined, {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+      );
+    };
+    tick();
+    const id = window.setInterval(tick, 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return <span className={styles.deskClock}>{time || "\u00a0"}</span>;
+}
+
+function GazetteDesk({
+  compact,
+  onNavigate,
+}: {
+  compact?: boolean;
+  onNavigate?: () => void;
+}) {
+  const { signedIn, href, signUpHref, onActivate } = useStorefrontAccountLink();
+
+  const onSignOut = async () => {
+    onNavigate?.();
+    await logoutRemote().catch(() => {});
+    clearSessionTokens();
+    window.location.reload();
+  };
+
+  const handleActivate = (event: MouseEvent<HTMLAnchorElement>) => {
+    onNavigate?.();
+    onActivate(event);
+  };
+
+  return (
+    <div className={compact ? styles.navAuth : styles.desk}>
+      {compact ? null : (
+        <div
+          className={styles.deskStatus}
+          aria-label={signedIn ? "Signed in as subscriber" : "Browsing as visitor"}
+        >
+          <span className={styles.liveDot} aria-hidden />
+          <span className={styles.deskRole}>
+            {signedIn ? "Subscriber" : "Visitor"}
+          </span>
+          <GazetteClock />
+        </div>
+      )}
+      <div className={styles.deskActions}>
+        {signedIn ? (
+          <>
+            <Link
+              href={APP_ROUTES.shopAccount}
+              className={styles.deskBtn}
+              onClick={() => onNavigate?.()}
+            >
+              Your desk
+            </Link>
+            <button
+              type="button"
+              className={styles.deskBtn}
+              onClick={() => void onSignOut()}
+            >
+              Sign out
+            </button>
+          </>
+        ) : (
+          <>
+            <Link
+              href={href}
+              className={styles.deskBtn}
+              onClick={handleActivate}
+            >
+              Sign in
+            </Link>
+            <Link
+              href={signUpHref}
+              className={cn(styles.deskBtn, styles.deskBtnFill)}
+              onClick={handleActivate}
+            >
+              Get a pass
+            </Link>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -196,23 +294,12 @@ export function DailyGazetteHeader({
                 />
               </svg>
             </button>
-            <StorefrontAccountLink className={styles.iconBtn}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <circle cx="12" cy="8" r="3.25" stroke="currentColor" strokeWidth="1.6" />
-                <path
-                  d="M5.5 19.5c1.6-3.2 4-4.8 6.5-4.8s4.9 1.6 6.5 4.8"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </StorefrontAccountLink>
             <div className={styles.bagWrap}>
               <button
                 type="button"
                 className={styles.iconBtn}
                 onClick={openDrawer}
-                aria-label="Open cart"
+                aria-label="Open hold slip"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path
@@ -247,6 +334,7 @@ export function DailyGazetteHeader({
           </span>
           <span className={styles.folioDate}>{edition.date}</span>
         </div>
+        <GazetteDesk />
         <hr className={styles.rule} />
       </div>
 
@@ -256,6 +344,7 @@ export function DailyGazetteHeader({
       <hr className={styles.ruleThin} />
 
       <div className={cn(styles.navMobile, menuOpen && styles.navMobileOpen)}>
+        <GazetteDesk compact onNavigate={() => setMenuOpen(false)} />
         <Suspense fallback={null}>
           <NavLinks types={types} />
         </Suspense>

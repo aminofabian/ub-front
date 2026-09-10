@@ -103,8 +103,7 @@ export function RecentTicksRail({
       aria-label={title}
     >
       <header className="shrink-0 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-3.5 py-2.5">
-        <div className="flex items-center gap-2">
-          <div className="min-w-0">
+        <div className="min-w-0">
             <div className="flex items-center gap-2">
               {laneIndex != null ? (
                 <span
@@ -129,7 +128,6 @@ export function RecentTicksRail({
                   ? `${ticks.length || 3} sales · open-shift drawouts`
                   : `Last ${ticks.length || 3} sales`)}
             </p>
-          </div>
         </div>
       </header>
 

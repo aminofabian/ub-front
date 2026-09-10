@@ -13,3 +13,7 @@ export function isComilmartStoreTheme(): boolean {
 export function isBlankDropStoreTheme(): boolean {
   return isActiveStoreTheme("blank-drop");
 }
+
+export function isDailyGazetteStoreTheme(): boolean {
+  return isActiveStoreTheme("daily-gazette");
+}

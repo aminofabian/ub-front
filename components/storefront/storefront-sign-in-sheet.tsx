@@ -17,6 +17,8 @@ import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { comilmartFontVariables } from "@/components/storefront/templates/store/comilmart-fonts";
 import { comilmartPaletteVars } from "@/components/storefront/templates/store/comilmart-palette";
 import cmStyles from "@/components/storefront/templates/store/comilmart.module.css";
+import { dailyGazetteFontVariables } from "@/components/storefront/templates/store/daily-gazette-fonts";
+import dgStyles from "@/components/storefront/templates/store/daily-gazette.module.css";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useShopCartOptional } from "@/hooks/use-shop-cart";
-import { isComilmartStoreTheme } from "@/lib/storefront-theme-detect";
+import { isComilmartStoreTheme, isDailyGazetteStoreTheme } from "@/lib/storefront-theme-detect";
 import {
   completeShopperPhoneSession,
   fetchBusiness,
@@ -267,6 +269,7 @@ function StorefrontSignInSheet({
   const cart = useShopCartOptional();
   const tenant = useOptionalTenant();
   const comilmart = isComilmartStoreTheme();
+  const gazette = isDailyGazetteStoreTheme();
 
   const displayName =
     storeName?.trim() ||
@@ -376,71 +379,90 @@ function StorefrontSignInSheet({
   ]);
 
   const shopLabel = displayName.split("|")[0]?.trim() || displayName;
+  const themed = comilmart || gazette;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side={comilmart ? "center" : "bottom"}
+        side={themed ? "center" : "bottom"}
         className={
-          comilmart
+          gazette
             ? cn(
-                cmStyles.signInSheet,
-                comilmartFontVariables,
+                dgStyles.signInSheet,
+                dailyGazetteFontVariables,
                 "z-[90] max-h-[min(88dvh,36rem)] gap-0 overflow-hidden p-0 sm:max-w-[400px]",
               )
-            : cn(
-                "z-[90] gap-0 overflow-hidden !rounded-none p-0",
-                "sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:max-h-none",
-                "sm:w-full sm:max-w-[420px] sm:-translate-x-1/2 sm:-translate-y-1/2",
-                "sm:rounded-none sm:border-b sm:pb-0",
-              )
+            : comilmart
+              ? cn(
+                  cmStyles.signInSheet,
+                  comilmartFontVariables,
+                  "z-[90] max-h-[min(88dvh,36rem)] gap-0 overflow-hidden p-0 sm:max-w-[400px]",
+                )
+              : cn(
+                  "z-[90] gap-0 overflow-hidden !rounded-none p-0",
+                  "sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:max-h-none",
+                  "sm:w-full sm:max-w-[420px] sm:-translate-x-1/2 sm:-translate-y-1/2",
+                  "sm:rounded-none sm:border-b sm:pb-0",
+                )
         }
         style={comilmart ? comilmartPaletteVars() : undefined}
         overlayClassName="z-[89]"
       >
         <div
           className={
-            comilmart
-              ? cmStyles.signInHead
-              : "border-b border-border/60 px-5 pb-4 pt-5 sm:px-6"
+            gazette
+              ? dgStyles.signInHead
+              : comilmart
+                ? cmStyles.signInHead
+                : "border-b border-border/60 px-5 pb-4 pt-5 sm:px-6"
           }
         >
           <DialogHeader className="space-y-1.5 text-left">
-            {displayName && !comilmart ? (
+            {displayName && !themed ? (
               <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                 {shopLabel}
               </p>
             ) : null}
             <DialogTitle
               className={
-                comilmart
-                  ? cmStyles.signInTitle
-                  : "font-heading text-xl tracking-tight"
+                gazette
+                  ? dgStyles.signInTitle
+                  : comilmart
+                    ? cmStyles.signInTitle
+                    : "font-heading text-xl tracking-tight"
               }
             >
-              {comilmart ? "Welcome back" : "Sign in"}
+              {gazette ? "Press pass" : comilmart ? "Welcome back" : "Sign in"}
             </DialogTitle>
             <DialogDescription
               className={
-                comilmart
-                  ? cmStyles.signInLead
-                  : "text-[14px] leading-relaxed"
+                gazette
+                  ? dgStyles.signInLead
+                  : comilmart
+                    ? cmStyles.signInLead
+                    : "text-[14px] leading-relaxed"
               }
             >
-              {comilmart
+              {gazette
                 ? shopLabel
-                  ? `Log in to your ${shopLabel} account.`
-                  : "Log in to your account."
-                : "Email or phone, then your PIN or password. That's it."}
+                  ? `Sign the register at ${shopLabel} to hold orders.`
+                  : "Sign the register to hold orders and track them."
+                : comilmart
+                  ? shopLabel
+                    ? `Log in to your ${shopLabel} account.`
+                    : "Log in to your account."
+                  : "Email or phone, then your PIN or password. That's it."}
             </DialogDescription>
           </DialogHeader>
         </div>
 
         <div
           className={
-            comilmart
-              ? cmStyles.signInBody
-              : "overflow-y-auto px-5 py-5 sm:px-6"
+            gazette
+              ? dgStyles.signInBody
+              : comilmart
+                ? cmStyles.signInBody
+                : "overflow-y-auto px-5 py-5 sm:px-6"
           }
         >
           {open ? (

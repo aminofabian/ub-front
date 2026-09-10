@@ -8,12 +8,14 @@ import { ShopCheckoutDrawerChrome } from "@/components/storefront/shop-checkout-
 import { ShopSlideOver } from "@/components/storefront/shop-slide-over";
 import { BlankDropCheckout } from "@/components/storefront/templates/store/blank-drop-checkout";
 import { ComilmartCheckoutChrome } from "@/components/storefront/templates/store/comilmart-checkout-chrome";
+import { DailyGazetteCheckoutChrome } from "@/components/storefront/templates/store/daily-gazette-checkout-chrome";
 import { useShopCartOptional } from "@/hooks/use-shop-cart";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { APP_ROUTES } from "@/lib/config";
 import {
   isBlankDropStoreTheme,
   isComilmartStoreTheme,
+  isDailyGazetteStoreTheme,
 } from "@/lib/storefront-theme-detect";
 
 type Props = {
@@ -30,6 +32,7 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
   const [thankYou, setThankYou] = useState(false);
   const blankDrop = isBlankDropStoreTheme();
   const comilmart = isComilmartStoreTheme();
+  const gazette = isDailyGazetteStoreTheme();
 
   const onClose = () => {
     if (mode === "drawer") {
@@ -73,6 +76,17 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
   }
 
   if (!isMd) {
+    if (gazette) {
+      return (
+        <DailyGazetteCheckoutChrome
+          onClose={onClose}
+          orderPlaced={orderPlaced}
+          thankYou={thankYou}
+        >
+          {form}
+        </DailyGazetteCheckoutChrome>
+      );
+    }
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{form}</div>
     );
@@ -84,18 +98,22 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
     return null;
   }
 
-  const CheckoutChrome = comilmart
-    ? ComilmartCheckoutChrome
-    : ShopCheckoutDrawerChrome;
+  const CheckoutChrome = gazette
+    ? DailyGazetteCheckoutChrome
+    : comilmart
+      ? ComilmartCheckoutChrome
+      : ShopCheckoutDrawerChrome;
 
   return (
     <ShopSlideOver
       variant="panel"
       open={open}
       onClose={onClose}
-      ariaLabel="Checkout"
+      ariaLabel={gazette ? "File this order" : "Checkout"}
       zIndex={74}
-      className={comilmart ? "cm-slide-over" : undefined}
+      className={
+        gazette ? "dg-slide-over" : comilmart ? "cm-slide-over" : undefined
+      }
     >
       <CheckoutChrome
         onClose={onClose}

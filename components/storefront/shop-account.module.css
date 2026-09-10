@@ -37,6 +37,22 @@
   --sa-sans: var(--font-cm-sans), system-ui, sans-serif;
 }
 
+:global(html:has([data-store-theme-id="daily-gazette"])) .page {
+  --sa-green: #1c1610;
+  --sa-green-dark: #1c1610;
+  --sa-cream: #d2c19a;
+  --sa-ink: #1c1610;
+  --sa-muted: #5a4a38;
+  --sa-line: #1c1610;
+  --sa-accent: #e24e04;
+  --sa-paper: #d2c19a;
+  --sa-mint: #1c1610;
+  --sa-cta: #e24e04;
+  --sa-cta-ink: #fff8ee;
+  --sa-display: var(--font-dg-serif), Georgia, serif;
+  --sa-sans: var(--font-dg-sans), system-ui, sans-serif;
+}
+
 .page :focus-visible {
   outline: 3px solid var(--sa-accent);
   outline-offset: 2px;

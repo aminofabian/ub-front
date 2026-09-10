@@ -487,6 +487,13 @@ function StoreBody({
           >
             {(storeName || "Gazette").toUpperCase()}
           </p>
+          <p
+            className="mt-[0.12em] flex items-center justify-between text-[0.38em] font-bold uppercase tracking-[0.14em]"
+            style={{ color: skin.ink }}
+          >
+            <span>Visitor</span>
+            <span style={{ color: skin.accent }}>Sign in</span>
+          </p>
         </div>
         <p
           className="mt-[0.35em] text-center text-[0.72em] font-black uppercase leading-[0.9]"
