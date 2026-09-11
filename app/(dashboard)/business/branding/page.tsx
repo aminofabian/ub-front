@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { AiAppIconGenerator } from "@/components/brand/ai-app-icon-generator";
 import { AiLogoGenerator } from "@/components/brand/ai-logo-generator";
 import { useLogoObjectUrl } from "@/components/onboarding/onboarding-branding-preview";
 import type { GeneratedBrandKit } from "@/components/brand/ai-logo-generator";
@@ -57,7 +58,7 @@ import {
   brandingPresetMatches,
   type BrandingColorPreset,
 } from "@/lib/branding-color-presets";
-import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
+import { prepareAppIconFile } from "@/lib/branding-asset-prepare";
 import { setDocumentFavicon } from "@/lib/document-favicon";
 import {
   defaultStorefrontMetaDescription,
@@ -70,6 +71,7 @@ import {
 import { resolveBusinessFaviconHref } from "@/lib/tenant-favicon-path";
 import { cn } from "@/lib/utils";
 import {
+  clearMyBrandingAppIcon,
   clearMyBrandingFavicon,
   clearMyBrandingLogo,
   clearMyBrandingOgImage,
@@ -78,6 +80,7 @@ import {
   fetchBusiness,
   reorderMyBrandingBanners,
   updateMyBranding,
+  uploadMyBrandingAppIcon,
   uploadMyBrandingBanner,
   uploadMyBrandingFavicon,
   uploadMyBrandingLogo,
@@ -98,6 +101,8 @@ const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 const ACCEPTED_FAVICON_TYPES =
   "image/png,image/x-icon,image/vnd.microsoft.icon,image/webp,.ico";
 const MAX_FAVICON_BYTES = 512 * 1024;
+const ACCEPTED_APP_ICON_TYPES = "image/png,image/jpeg,image/webp";
+const MAX_APP_ICON_BYTES = 1024 * 1024;
 const ACCEPTED_OG_IMAGE_TYPES = "image/png,image/jpeg,image/webp";
 const MAX_OG_IMAGE_BYTES = 4 * 1024 * 1024;
 const ACCEPTED_BANNER_TYPES = "image/png,image/jpeg,image/webp";
@@ -826,7 +831,7 @@ function LogoSection({
             />
           </div>
           <p className={hintClass()}>
-            The navy banner at the top of the shop. Also {darkUses}.
+            Same logo as on white, in light ink. Navy hero and {darkUses}.
           </p>
           <input
             ref={darkInputRef}
@@ -860,6 +865,94 @@ function LogoSection({
         {draftPair
           ? "Preview only. Tap Save and use to apply the kit."
           : "PNG, JPEG, WEBP, or SVG. 4 MB max. Uploads go live immediately."}
+      </p>
+    </div>
+  );
+}
+
+function AppIconSection({
+  appIconUrl,
+  logoUrl,
+  primaryColor,
+  accentColor,
+  shopName,
+  busy,
+  onUpload,
+  onClear,
+}: {
+  appIconUrl: string | null | undefined;
+  logoUrl: string | null | undefined;
+  primaryColor?: string | null;
+  accentColor?: string | null;
+  shopName?: string;
+  busy: boolean;
+  onUpload: (file: File) => Promise<void>;
+  onClear: () => Promise<void>;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const onPick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      void onUpload(file);
+    }
+    event.target.value = "";
+  };
+  const trimmed = appIconUrl?.trim() ?? "";
+  const hasLogo = Boolean(logoUrl?.trim());
+  return (
+    <div className="space-y-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-5">
+      <p className={labelClass()}>Home screen</p>
+      <div className="flex flex-wrap items-center gap-3">
+        {trimmed ? (
+          <Image
+            src={trimmed}
+            alt="Current app icon"
+            width={64}
+            height={64}
+            className="size-16 rounded-[22%] bg-[#171c19] object-cover"
+            unoptimized
+          />
+        ) : (
+          <div className="flex size-16 items-center justify-center rounded-[22%] bg-[#171c19] text-[10px] font-medium tracking-tight text-white/55">
+            App
+          </div>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPTED_APP_ICON_TYPES}
+          className="hidden"
+          onChange={onPick}
+        />
+        <Button
+          type="button"
+          disabled={busy}
+          onClick={() => inputRef.current?.click()}
+        >
+          {trimmed ? "Replace" : "Upload"}
+        </Button>
+        {trimmed ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={() => void onClear()}
+          >
+            Remove
+          </Button>
+        ) : null}
+      </div>
+      <AiAppIconGenerator
+        shopName={shopName ?? ""}
+        primaryColor={primaryColor ?? undefined}
+        accentColor={accentColor ?? undefined}
+        hasLogo={hasLogo}
+        disabled={busy}
+        onGenerated={onUpload}
+      />
+      <p className={hintClass()}>
+        Square PNG, 512px. Generate a kit to stamp this from the logo, or
+        upload / remake it here. Shoppers see this when they install the shop.
       </p>
     </div>
   );
@@ -928,7 +1021,9 @@ function FaviconSection({
           </Button>
         ) : null}
       </div>
-      <p className={hintClass()}>PNG or ICO. 32px is enough. Applies now.</p>
+      <p className={hintClass()}>
+        PNG or ICO. 32px is enough. Generate a kit to stamp this from the logo.
+      </p>
     </div>
   );
 }
@@ -1159,6 +1254,7 @@ export default function BrandingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const [faviconBusy, setFaviconBusy] = useState(false);
+  const [appIconBusy, setAppIconBusy] = useState(false);
   const [ogImageBusy, setOgImageBusy] = useState(false);
   const [bannerBusy, setBannerBusy] = useState(false);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
@@ -1349,6 +1445,11 @@ export default function BrandingPage() {
       setFeedback({ kind: "error", text });
       throw new Error(text);
     }
+    if (kit.appIcon.size > MAX_APP_ICON_BYTES) {
+      const text = "App icon exceeds the 1 MB limit.";
+      setFeedback({ kind: "error", text });
+      throw new Error(text);
+    }
     setLogoBusy(true);
     setFeedback(null);
     try {
@@ -1477,6 +1578,55 @@ export default function BrandingPage() {
     }
   };
 
+  const onAppIconUpload = async (file: File) => {
+    if (!snapshot?.id) {
+      const text = "Business not loaded yet.";
+      setFeedback({ kind: "error", text });
+      throw new Error(text);
+    }
+    let prepared = file;
+    try {
+      prepared = await prepareAppIconFile(file);
+    } catch {
+      prepared = file;
+    }
+    if (prepared.size > MAX_APP_ICON_BYTES) {
+      const text = "App icon exceeds the 1 MB limit.";
+      setFeedback({ kind: "error", text });
+      throw new Error(text);
+    }
+    setAppIconBusy(true);
+    setFeedback(null);
+    try {
+      const next = await uploadMyBrandingAppIcon(prepared, snapshot.id);
+      applyAssetSnapshot(next);
+      setFeedback({ kind: "success", text: "Home-screen icon updated." });
+    } catch (error) {
+      const text = messageFor(error, "App icon upload failed.");
+      setFeedback({ kind: "error", text });
+      throw error instanceof Error ? error : new Error(text);
+    } finally {
+      setAppIconBusy(false);
+    }
+  };
+
+  const onAppIconClear = async () => {
+    setAppIconBusy(true);
+    setFeedback(null);
+    try {
+      const next = await clearMyBrandingAppIcon();
+      applyAssetSnapshot(next);
+      setFeedback({ kind: "success", text: "Home-screen icon removed." });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text: messageFor(error, "Could not remove the app icon."),
+      });
+    } finally {
+      setAppIconBusy(false);
+    }
+  };
+
   const onBannerUpload = async (file: File) => {
     if (!snapshot?.id) {
       setFeedback({ kind: "error", text: "Business not loaded yet." });
@@ -1538,6 +1688,7 @@ export default function BrandingPage() {
 
   const logoUrl = snapshot?.branding?.logoUrl ?? null;
   const logoDarkUrl = snapshot?.branding?.logoDarkUrl ?? null;
+  const appIconUrl = snapshot?.branding?.appIconUrl ?? null;
   const faviconUrl = snapshot?.branding?.faviconUrl ?? form.faviconUrl;
   const ogImageUrl = snapshot?.branding?.ogImage ?? form.ogImage;
   const bannerUrls = snapshot?.branding?.heroBannerUrls ?? [];
@@ -1594,7 +1745,7 @@ export default function BrandingPage() {
     );
   }
 
-  const assetBusy = logoBusy || faviconBusy || ogImageBusy || bannerBusy;
+  const assetBusy = logoBusy || faviconBusy || appIconBusy || ogImageBusy || bannerBusy;
   const dirty = isFormDirty(form, formFromBranding(snapshot?.branding));
 
   const onboardingLocalitiesRaw =
@@ -1717,7 +1868,7 @@ export default function BrandingPage() {
               id="branding-identity"
               title="Shop look"
               apply="mixed"
-              hint="The name, logos, tab icon, and colours shoppers see in the header, receipts, and emails."
+              hint="The name, logos, home-screen icon, tab icon, and colours shoppers see."
             >
               <div className="space-y-2">
                 <label className={labelClass()} htmlFor="branding-name">
@@ -1750,6 +1901,16 @@ export default function BrandingPage() {
                 onUploadPair={onLogoUploadPair}
                 onClear={onLogoClear}
                 onClearDark={onLogoClearDark}
+              />
+              <AppIconSection
+                appIconUrl={appIconUrl}
+                logoUrl={logoUrl}
+                primaryColor={form.primaryColor}
+                accentColor={form.accentColor}
+                shopName={form.displayName || snapshot?.name}
+                busy={appIconBusy}
+                onUpload={onAppIconUpload}
+                onClear={onAppIconClear}
               />
               <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-5">
                 <FaviconSection

@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 import { ShopperPwaScreenshot } from "@/lib/shopper-pwa-mark";
 import { resolveShopperPwaProfile } from "@/lib/shopper-pwa-resolve";
-import { sanitizeStorefrontSlug } from "@/lib/public-storefront";
+import { sanitizeShopperPwaSlug } from "@/lib/shopper-pwa";
 import { monogramInitials } from "@/lib/tenant-favicon-mark";
 
 export const runtime = "nodejs";
@@ -26,7 +26,7 @@ const SIZES = {
 
 export async function GET(_req: Request, ctx: RouteContext) {
   const { slug: raw, kind: kindRaw } = await ctx.params;
-  const slug = sanitizeStorefrontSlug(decodeURIComponent(raw));
+  const slug = sanitizeShopperPwaSlug(decodeURIComponent(raw));
   const kind = kindRaw === "wide" ? "wide" : kindRaw === "narrow" ? "narrow" : null;
   if (!slug || !kind) {
     return new Response("Not found", { status: 404 });

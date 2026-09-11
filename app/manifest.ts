@@ -1,16 +1,22 @@
 import type { MetadataRoute } from "next";
 
 import { PLATFORM_APP_ICON_SRC } from "@/lib/platform-brand-assets";
+import { IS_DESKTOP } from "@/lib/runtime";
+import {
+  SHOPPER_PWA_START_UTM,
+  shopperPwaIconPath,
+  shopperPwaId,
+  shopperPwaShortName,
+} from "@/lib/shopper-pwa";
+import { resolveTenantContext } from "@/lib/storefront-slug";
+import { parseStorefrontHex } from "@/lib/storefront-theme";
 
 const THEME_COLOR = "#28A745";
 const BACKGROUND_COLOR = "#fafafa";
 
-// The manifest body is a pure constant — no `headers()`, no fetches — so
-// telling Next to treat it as a static asset both unlocks `output: 'export'`
-// for the desktop SKU and lets cloud CDNs cache it.
-export const dynamic = "force-static";
+export const dynamic = IS_DESKTOP ? "force-static" : "force-dynamic";
 
-export default function manifest(): MetadataRoute.Manifest {
+function platformManifest(): MetadataRoute.Manifest {
   return {
     name: "Kiosk POS — Point of Sale & Storefront",
     short_name: "Kiosk",
@@ -33,6 +39,58 @@ export default function manifest(): MetadataRoute.Manifest {
       },
       {
         src: PLATFORM_APP_ICON_SRC,
+        type: "image/png",
+        sizes: "512x512",
+        purpose: "maskable",
+      },
+    ],
+  };
+}
+
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  if (IS_DESKTOP) {
+    return platformManifest();
+  }
+
+  const tenant = await resolveTenantContext();
+  const slug = tenant?.slug?.trim();
+  if (!slug) {
+    return platformManifest();
+  }
+
+  const name =
+    tenant.branding.displayName?.trim() ||
+    tenant.tenantName.trim() ||
+    slug;
+  const theme = parseStorefrontHex(tenant.branding.primaryColor) || THEME_COLOR;
+
+  return {
+    name,
+    short_name: shopperPwaShortName(name),
+    description: `Browse and order from ${name}.`,
+    start_url: SHOPPER_PWA_START_UTM,
+    scope: "/",
+    display: "standalone",
+    orientation: "portrait-primary",
+    background_color: "#f4f5f4",
+    theme_color: theme,
+    categories: ["shopping"],
+    id: shopperPwaId(slug),
+    icons: [
+      {
+        src: shopperPwaIconPath(slug, 192),
+        type: "image/png",
+        sizes: "192x192",
+        purpose: "any",
+      },
+      {
+        src: shopperPwaIconPath(slug, 512),
+        type: "image/png",
+        sizes: "512x512",
+        purpose: "any",
+      },
+      {
+        src: shopperPwaIconPath(slug, 512, "maskable"),
         type: "image/png",
         sizes: "512x512",
         purpose: "maskable",

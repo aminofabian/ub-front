@@ -82,19 +82,43 @@ export function subscribePwaInstall(listener: Listener): () => void {
   };
 }
 
+type WindowShopperPwa = {
+  prompt?: BeforeInstallPromptEvent | null;
+  installed?: boolean;
+};
+
+function windowBag(): WindowShopperPwa {
+  if (typeof window === "undefined") return {};
+  const w = window as Window & { __kioskShopperPwa?: WindowShopperPwa };
+  if (!w.__kioskShopperPwa) w.__kioskShopperPwa = {};
+  return w.__kioskShopperPwa;
+}
+
 export function captureStorefrontInstallPrompt(): void {
   if (typeof window === "undefined" || captureBound) return;
   captureBound = true;
 
+  const bag = windowBag();
+  if (bag.prompt) {
+    deferredPrompt = bag.prompt;
+  }
+  if (bag.installed) {
+    installedThisSession = true;
+  }
+
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferredPrompt = event as BeforeInstallPromptEvent;
+    windowBag().prompt = deferredPrompt;
     notify();
   });
 
   window.addEventListener("appinstalled", () => {
     deferredPrompt = null;
     installedThisSession = true;
+    const next = windowBag();
+    next.prompt = null;
+    next.installed = true;
     notify();
   });
 }

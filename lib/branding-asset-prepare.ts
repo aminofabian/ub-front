@@ -51,3 +51,9 @@ export async function resizePngToSquare(
 export async function prepareFaviconFile(file: File): Promise<File> {
   return resizePngToSquare(file, FAVICON_PX);
 }
+
+const APP_ICON_PX = 512;
+
+export async function prepareAppIconFile(file: File): Promise<File> {
+  return resizePngToSquare(file, APP_ICON_PX);
+}

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 
+import { ShopperPwaInvite } from "@/components/storefront/shopper-pwa-invite";
 import {
   STOREFRONT_MANIFEST_HREF,
   captureStorefrontInstallPrompt,
@@ -17,7 +18,17 @@ import {
  * as soon as the storefront mounts — the event fires once, often before
  * the visitor opens Get the app.
  */
-export function StorefrontPwaRuntime({ slug }: { slug?: string | null }) {
+export function StorefrontPwaRuntime({
+  slug,
+  name,
+  primary,
+  invite = true,
+}: {
+  slug?: string | null;
+  name?: string | null;
+  primary?: string | null;
+  invite?: boolean;
+}) {
   useEffect(() => {
     captureStorefrontInstallPrompt();
     void registerStorefrontServiceWorker();
@@ -29,13 +40,17 @@ export function StorefrontPwaRuntime({ slug }: { slug?: string | null }) {
     const links = Array.from(
       document.querySelectorAll('link[rel="manifest"]'),
     );
-    if (links.length > 0) {
-      for (const node of links) {
-        if (node instanceof HTMLLinkElement) {
-          node.href = manifestHref;
-        }
+    let kept = false;
+    for (const node of links) {
+      if (!(node instanceof HTMLLinkElement)) continue;
+      if (!kept) {
+        node.href = manifestHref;
+        kept = true;
+      } else {
+        node.remove();
       }
-    } else {
+    }
+    if (!kept) {
       const link = document.createElement("link");
       link.rel = "manifest";
       link.href = manifestHref;
@@ -59,5 +74,13 @@ export function StorefrontPwaRuntime({ slug }: { slug?: string | null }) {
     }
   }, [slug]);
 
-  return null;
+  if (!invite || !slug) return null;
+
+  return (
+    <ShopperPwaInvite
+      slug={slug}
+      name={name?.trim() || "Shop"}
+      primary={primary || "#0D9488"}
+    />
+  );
 }

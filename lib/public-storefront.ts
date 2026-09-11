@@ -194,6 +194,7 @@ export type TenantBranding = {
   logoUrl: string | null;
   logoDarkUrl: string | null;
   faviconUrl: string | null;
+  appIconUrl: string | null;
   primaryColor: string | null;
   accentColor: string | null;
   /** Custom SEO title override for the storefront */
@@ -651,6 +652,10 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
     faviconUrl:
       typeof b?.faviconUrl === "string" && b.faviconUrl.trim()
         ? b.faviconUrl.trim()
+        : null,
+    appIconUrl:
+      typeof b?.appIconUrl === "string" && b.appIconUrl.trim()
+        ? b.appIconUrl.trim()
         : null,
     primaryColor:
       typeof b?.primaryColor === "string" && b.primaryColor.trim()

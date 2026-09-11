@@ -15,7 +15,9 @@ const FALLBACK_THEME_COLOR = "#28A745";
 
 const STOREFRONT_SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-function sanitizeSlug(raw: string | null | undefined): string | null {
+export function sanitizeShopperPwaSlug(
+  raw: string | null | undefined,
+): string | null {
   const s = (raw ?? "").trim().toLowerCase();
   if (!s || s === "/" || s === "." || s === "..") return null;
   return STOREFRONT_SLUG_RE.test(s) ? s : null;
@@ -123,7 +125,7 @@ export function isShopperPwaHost(input: {
   tenantHost?: string | null;
   currentHost: string;
 }): boolean {
-  const slug = sanitizeSlug(input.slug);
+  const slug = sanitizeShopperPwaSlug(input.slug);
   if (!slug) return false;
   const host = stripLeadingWww(input.currentHost);
   if (tenantHostsMatch(host, `${slug}.localhost`)) return true;
@@ -143,7 +145,7 @@ export function shopperPwaHandoffUrl(input: {
   currentHost: string;
   path?: string;
 }): string | null {
-  const slug = sanitizeSlug(input.slug);
+  const slug = sanitizeShopperPwaSlug(input.slug);
   if (!slug) return null;
   if (isShopperPwaHost({ ...input, slug })) return null;
 
@@ -207,7 +209,7 @@ export function buildShopperPwaManifest(input: {
   themeColor?: string | null;
   onTenantHost: boolean;
 }): ShopperPwaManifest {
-  const slug = sanitizeSlug(input.slug) ?? "shop";
+  const slug = sanitizeShopperPwaSlug(input.slug) ?? "shop";
   const name = input.name.trim() || "Shop";
   const theme = input.themeColor?.trim() || FALLBACK_THEME_COLOR;
   const icons = iconEntries(slug);

@@ -1,0 +1,263 @@
+.chip {
+  --pwa-primary: #0d9488;
+  --pwa-ink: #141816;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  position: fixed;
+  z-index: 50;
+  left: 1rem;
+  bottom: calc(1.15rem + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: calc(100vw - 5.5rem);
+  padding: 0.35rem 0.4rem 0.35rem 0.35rem;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--pwa-primary);
+  box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--pwa-primary) 80%, #141816);
+  animation: settle 280ms var(--ease-out) backwards;
+  transition: transform 180ms var(--ease-out);
+}
+
+.chip:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.glyph {
+  width: 2.35rem;
+  height: 2.35rem;
+  flex: none;
+  overflow: hidden;
+  border-radius: 22%;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.glyph img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.glyphLetter {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+
+.mark .glyphLetter {
+  font-size: 2.15rem;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding-right: 0.15rem;
+  text-align: left;
+}
+
+.label {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.hint {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  opacity: 0.84;
+}
+
+.dismiss {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  margin-left: 0.05rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: inherit;
+  cursor: pointer;
+}
+
+.dismiss:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.sheet {
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: #f4f5f4;
+  color: var(--pwa-ink, #141816);
+}
+
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.1rem 1.4rem 1.15rem;
+  background:
+    radial-gradient(120% 90% at 50% -20%, color-mix(in srgb, var(--pwa-primary) 55%, transparent), transparent 62%),
+    #171c19;
+  color: #f4f5f4;
+}
+
+.mark {
+  width: 5.4rem;
+  height: 5.4rem;
+  overflow: hidden;
+  border-radius: 22%;
+  background: var(--pwa-primary);
+  box-shadow: 0 18px 36px -16px rgba(0, 0, 0, 0.55);
+}
+
+.mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.markFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.title {
+  margin: 0.95rem 0 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.lede {
+  margin: 0.45rem 0 0;
+  max-width: 28ch;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  text-align: center;
+  color: rgba(244, 245, 244, 0.78);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.15rem 1.2rem 1.3rem;
+}
+
+.cta {
+  height: 2.85rem;
+  width: 100%;
+}
+
+.guide {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+}
+
+.stepIndex {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #141816;
+  color: #f4f5f4;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.stepTitle {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.stepBody {
+  margin: 0.12rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #5c6560;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #5c6560;
+  text-align: center;
+}
+
+@keyframes settle {
+  from {
+    transform: translateY(10px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (min-width: 768px) {
+  .chip {
+    bottom: calc(5.4rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover {
+    transform: translateY(-1px);
+  }
+
+  .chip:hover .dismiss,
+  .dismiss:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    animation: none;
+  }
+
+  .chip:hover {
+    transform: none;
+  }
+}

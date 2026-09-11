@@ -9,6 +9,7 @@ export type PublicMobileBranding = {
   displayName: string | null;
   logoUrl: string | null;
   faviconUrl: string | null;
+  appIconUrl: string | null;
   primaryColor: string | null;
   accentColor: string | null;
   metaTitle: string | null;

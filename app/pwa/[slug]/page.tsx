@@ -104,7 +104,7 @@ export default async function ShopperPwaPage({ params }: PageProps) {
 
   return (
     <>
-      <StorefrontPwaRuntime slug={profile.slug} />
+      <StorefrontPwaRuntime slug={profile.slug} invite={false} />
       <ShopperPwaInstall
         slug={profile.slug}
         name={profile.name}

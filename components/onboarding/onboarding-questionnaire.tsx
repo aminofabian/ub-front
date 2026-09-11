@@ -770,6 +770,7 @@ export function OnboardingQuestionnaire({
             logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
             faviconFile: faviconFile ?? logoDraftPair?.favicon ?? null,
             ogImageFile: ogImageFile ?? logoDraftPair?.og ?? null,
+            appIconFile: logoDraftPair?.appIcon ?? null,
           },
         );
         break;
@@ -786,6 +787,7 @@ export function OnboardingQuestionnaire({
             logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
             faviconFile: faviconFile ?? logoDraftPair?.favicon ?? null,
             ogImageFile: ogImageFile ?? logoDraftPair?.og ?? null,
+            appIconFile: logoDraftPair?.appIcon ?? null,
           },
         );
         break;

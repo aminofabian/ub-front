@@ -323,6 +323,7 @@ export const API_ROUTES = {
   aiPriceRadar: "/api/v1/ai/price-radar",
   aiProductPolish: "/api/v1/ai/product-polish",
   aiBrandingLogoGenerate: "/api/v1/ai/branding/logo/generate",
+  aiBrandingAppIconGenerate: "/api/v1/ai/branding/app-icon/generate",
   supplierPortalAiStatus: "/api/v1/supplier-portal/ai/status",
   supplierPortalAiChat: "/api/v1/supplier-portal/ai/chat",
   supplierPortalAiFeedback: "/api/v1/supplier-portal/ai/feedback",
@@ -363,6 +364,8 @@ export const STORAGE_KEYS = {
   impersonationSession: "ub.impersonation",
   /** Billing-suspended login gate — cleared after successful renewal. */
   billingGate: "ub.billingGate",
+  /** Per-shop PWA invite: hide the floating install chip after install or dismiss. */
+  shopperPwaInvite: (slug: string) => `ub.shopperPwa.${slug}`,
   /** Client-side ops errors (API unreachable / proxy config) — admin logs page. */
   opsClientLog: "ub.opsClientLog",
 } as const;

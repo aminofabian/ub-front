@@ -32,6 +32,8 @@ export type ShopperPwaMarkProps = {
   primary: string;
   markSrc: string | null;
   maskable?: boolean;
+  /** Saved home-screen icon already fills the tile — don't wrap it again. */
+  fillFrame?: boolean;
 };
 
 export function ShopperPwaMark({
@@ -41,12 +43,14 @@ export function ShopperPwaMark({
   primary,
   markSrc,
   maskable = false,
+  fillFrame = false,
 }: ShopperPwaMarkProps) {
   const deep = mixHex(primary, "#000000", 0.22);
   const ink = inkOn(primary);
   const pad = maskable ? Math.round(size * 0.18) : 0;
   const inner = size - pad * 2;
-  const radius = Math.round(inner * 0.22);
+  const fill = Boolean(fillFrame && markSrc);
+  const radius = fill ? 0 : Math.round(inner * 0.22);
   const glyph = monogram.slice(0, 2);
 
   return (
@@ -69,7 +73,9 @@ export function ShopperPwaMark({
           justifyContent: "center",
           borderRadius: radius,
           overflow: "hidden",
-          background: `linear-gradient(145deg, ${primary} 0%, ${deep} 100%)`,
+          background: fill
+            ? "transparent"
+            : `linear-gradient(145deg, ${primary} 0%, ${deep} 100%)`,
         }}
       >
         {markSrc ? (

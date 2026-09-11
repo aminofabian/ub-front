@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { fileFromImageBase64, logoPromptChips } from "@/lib/ai-logo";
 import { fetchAiStatus, generateBrandingLogo } from "@/lib/api";
-import { prepareFaviconFile } from "@/lib/branding-asset-prepare";
+import { prepareAppIconFile, prepareFaviconFile } from "@/lib/branding-asset-prepare";
 import {
   darkStorefrontThemeNames,
   type BrandingLogoSurface,
@@ -21,6 +21,7 @@ export type GeneratedLogoPair = {
 
 export type GeneratedBrandKit = GeneratedLogoPair & {
   favicon: File;
+  appIcon: File;
   og: File;
 };
 
@@ -38,18 +39,19 @@ type Props = {
 
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 const MAX_FAVICON_BYTES = 512 * 1024;
+const MAX_APP_ICON_BYTES = 1024 * 1024;
 
 type PreviewKit = {
   light: string;
   dark: string;
   favicon: string;
+  appIcon: string;
   og: string;
 };
 
 /**
- * Prompt + generate a brand kit: light and dark marks, favicon, and a
- * social share image. After a result, the merchant previews, downloads,
- * and saves — each surface then picks the matching file.
+ * Prompt + generate a brand kit: one mark, then dark ink, tab icon,
+ * home-screen icon, and share image stamped from that file.
  */
 export function AiLogoGenerator({
   variant,
@@ -91,14 +93,20 @@ export function AiLogoGenerator({
     return `${slug || "shop"}-brand-kit.zip`;
   }, [shopName]);
 
-  const revokePreviews = () => {
-    if (previewRef.current) {
-      URL.revokeObjectURL(previewRef.current.light);
-      URL.revokeObjectURL(previewRef.current.dark);
-      URL.revokeObjectURL(previewRef.current.favicon);
-      URL.revokeObjectURL(previewRef.current.og);
-      previewRef.current = null;
+  const revokePreviewUrls = (urls: PreviewKit | null) => {
+    if (!urls) {
+      return;
     }
+    URL.revokeObjectURL(urls.light);
+    URL.revokeObjectURL(urls.dark);
+    URL.revokeObjectURL(urls.favicon);
+    URL.revokeObjectURL(urls.appIcon);
+    URL.revokeObjectURL(urls.og);
+  };
+
+  const revokePreviews = () => {
+    revokePreviewUrls(previewRef.current);
+    previewRef.current = null;
     setPreviews(null);
   };
 
@@ -113,6 +121,7 @@ export function AiLogoGenerator({
       light: URL.createObjectURL(next.light),
       dark: URL.createObjectURL(next.dark),
       favicon: URL.createObjectURL(next.favicon),
+      appIcon: URL.createObjectURL(next.appIcon),
       og: URL.createObjectURL(next.og),
     };
     previewRef.current = urls;
@@ -122,12 +131,7 @@ export function AiLogoGenerator({
 
   useEffect(() => {
     return () => {
-      if (previewRef.current) {
-        URL.revokeObjectURL(previewRef.current.light);
-        URL.revokeObjectURL(previewRef.current.dark);
-        URL.revokeObjectURL(previewRef.current.favicon);
-        URL.revokeObjectURL(previewRef.current.og);
-      }
+      revokePreviewUrls(previewRef.current);
     };
   }, []);
 
@@ -196,8 +200,9 @@ export function AiLogoGenerator({
       const lightDto = result.logos.find((logo) => logo.theme === "light");
       const darkDto = result.logos.find((logo) => logo.theme === "dark");
       const faviconDto = result.logos.find((logo) => logo.theme === "favicon");
+      const appIconDto = result.logos.find((logo) => logo.theme === "appIcon");
       const ogDto = result.logos.find((logo) => logo.theme === "og");
-      if (!lightDto || !darkDto || !faviconDto || !ogDto) {
+      if (!lightDto || !darkDto || !faviconDto || !appIconDto || !ogDto) {
         setError("The kit did not come back complete. Try again.");
         return;
       }
@@ -206,16 +211,28 @@ export function AiLogoGenerator({
         faviconDto.imageBase64,
         "favicon",
       );
+      const appIconRaw = fileFromResult(
+        appIconDto.mimeType,
+        appIconDto.imageBase64,
+        "app-icon",
+      );
       let favicon = faviconRaw;
+      let appIcon = appIconRaw;
       try {
         favicon = await prepareFaviconFile(faviconRaw);
       } catch {
         favicon = faviconRaw;
       }
+      try {
+        appIcon = await prepareAppIconFile(appIconRaw);
+      } catch {
+        appIcon = appIconRaw;
+      }
       const next: GeneratedBrandKit = {
         light: fileFromResult(lightDto.mimeType, lightDto.imageBase64, "logo-light"),
         dark: fileFromResult(darkDto.mimeType, darkDto.imageBase64, "logo-dark"),
         favicon,
+        appIcon,
         og: fileFromResult(ogDto.mimeType, ogDto.imageBase64, "og-image"),
       };
       if (
@@ -228,6 +245,10 @@ export function AiLogoGenerator({
       }
       if (next.favicon.size > MAX_FAVICON_BYTES) {
         setError("The favicon is too large to save. Try again.");
+        return;
+      }
+      if (next.appIcon.size > MAX_APP_ICON_BYTES) {
+        setError("The home-screen icon is too large to save. Try again.");
         return;
       }
       showKit(next);
@@ -273,7 +294,7 @@ export function AiLogoGenerator({
     setError("");
     try {
       await downloadFilesAsZip(
-        [kit.light, kit.dark, kit.favicon, kit.og],
+        [kit.light, kit.dark, kit.favicon, kit.appIcon, kit.og],
         zipName,
       );
     } catch {
@@ -346,19 +367,27 @@ export function AiLogoGenerator({
   };
 
   const webCard = (
-    kind: "favicon" | "og",
+    kind: "favicon" | "appIcon" | "og",
     src: string,
     file: File,
     uses: string,
   ) => {
     const favicon = kind === "favicon";
+    const appIcon = kind === "appIcon";
     const frame = onboarding
       ? "overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] sm:rounded-xl"
       : "overflow-hidden rounded-none border border-border bg-muted/40";
+    const title = favicon ? "Favicon" : appIcon ? "Home screen" : "Share image";
     return (
-      <div className="min-w-0 space-y-2 text-left">
-        <p className={fieldLabel}>{favicon ? "Favicon" : "Share image"}</p>
-        <div className={cn(frame, "flex aspect-square items-center justify-center")}>
+      <div className={cn("min-w-0 space-y-2 text-left", kind === "og" && "col-span-2")}>
+        <p className={fieldLabel}>{title}</p>
+        <div
+          className={cn(
+            frame,
+            "flex items-center justify-center",
+            kind === "og" ? "aspect-[2/1]" : "aspect-square",
+          )}
+        >
           {favicon ? (
             <div className="flex w-[min(100%,11rem)] flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm">
               <div className="flex items-center gap-1.5 border-b border-black/8 bg-[#F3F4F6] px-2 py-1.5">
@@ -382,13 +411,25 @@ export function AiLogoGenerator({
                 />
               </div>
             </div>
+          ) : appIcon ? (
+            <div className="flex w-[min(100%,11rem)] flex-col items-center gap-2 bg-[#171c19] px-4 py-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt="Home-screen app icon"
+                className="size-16 rounded-[22%] object-cover shadow-md"
+              />
+              <p className="max-w-full truncate text-[10px] font-medium text-white/80">
+                {shopName.trim() || "Your shop"}
+              </p>
+            </div>
           ) : (
-            <div className="w-[min(100%,12rem)] overflow-hidden rounded-lg bg-[#0F172A] shadow-sm ring-1 ring-black/10">
+            <div className="w-[min(100%,22rem)] overflow-hidden rounded-lg bg-[#0F172A] shadow-sm ring-1 ring-black/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={src}
                 alt="Social share image"
-                className="aspect-square w-full object-cover"
+                className="aspect-square w-full max-h-40 object-cover sm:max-h-48"
               />
               <div className="space-y-0.5 px-2.5 py-2">
                 <p className="truncate text-[10px] font-semibold text-white">
@@ -448,7 +489,7 @@ export function AiLogoGenerator({
                 Generate a kit
               </span>
               <span className="mt-0.5 block text-xs leading-relaxed text-[#7A7A7A]">
-                Logos, tab icon, and a share image. About 30 seconds.
+                One mark. Tab, home screen, and share images follow.
               </span>
             </span>
           </button>
@@ -468,13 +509,19 @@ export function AiLogoGenerator({
                   "dark",
                   previews.dark,
                   kit.dark,
-                  `Hero banner and dark storefronts: ${darkThemeLabel}.`,
+                  `Same mark, light ink. Hero and dark storefronts: ${darkThemeLabel}.`,
                 )}
                 {webCard(
                   "favicon",
                   previews.favicon,
                   kit.favicon,
-                  "Browser tab and home-screen icon.",
+                  "Browser tab. Same glyph, stamped on a brand tile.",
+                )}
+                {webCard(
+                  "appIcon",
+                  previews.appIcon,
+                  kit.appIcon,
+                  "Home screen and installed shop app.",
                 )}
                 {webCard(
                   "og",
@@ -576,8 +623,8 @@ export function AiLogoGenerator({
                 )}
               </div>
               <p className={hintClass}>
-                Light marks stay on pale chrome. Dark marks sit on the navy
-                hero. Favicon and share image apply with the same save.
+                Same logo in two inks, then a tab icon, home-screen icon,
+                and share image — all stamped from that mark.
               </p>
             </div>
           ) : (
@@ -662,9 +709,8 @@ export function AiLogoGenerator({
                 )}
               </div>
               <p className={hintClass}>
-                Four files: light logo, dark logo, favicon, and a share
-                image. About 30 seconds. Dark versions never sit on a white
-                plate.
+                One mark in two inks, plus tab, home screen, and share
+                images. Dark ink on white, light ink on navy. About a minute.
               </p>
             </>
           )}

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { isShopperPwaHost, buildShopperPwaManifest } from "@/lib/shopper-pwa";
+import { isShopperPwaHost, buildShopperPwaManifest, sanitizeShopperPwaSlug } from "@/lib/shopper-pwa";
 import { resolveShopperPwaProfile } from "@/lib/shopper-pwa-resolve";
 import { getRequestHostname } from "@/lib/storefront-slug";
-import { sanitizeStorefrontSlug } from "@/lib/public-storefront";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +18,7 @@ const CACHE =
 
 export async function GET(_req: Request, ctx: RouteContext) {
   const { slug: raw } = await ctx.params;
-  const slug = sanitizeStorefrontSlug(decodeURIComponent(raw));
+  const slug = sanitizeShopperPwaSlug(decodeURIComponent(raw));
   if (!slug) {
     return NextResponse.json({ error: "Unknown shop" }, { status: 404 });
   }

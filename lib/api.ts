@@ -1159,6 +1159,7 @@ export type BrandingRecord = {
   logoUrl?: string | null;
   logoDarkUrl?: string | null;
   faviconUrl?: string | null;
+  appIconUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
   /** Custom SEO title override for the storefront */
@@ -1404,7 +1405,7 @@ export async function suggestStorefrontDesign(
 }
 
 export type BrandingLogoVariant = {
-  theme: "light" | "dark" | "favicon" | "og";
+  theme: "light" | "dark" | "favicon" | "appIcon" | "og";
   mimeType: string;
   imageBase64: string;
 };
@@ -1414,7 +1415,7 @@ export type BrandingLogoGenerateResponse = {
   logos: BrandingLogoVariant[];
 };
 
-/** Generate light/dark logos, favicon, and a social share image. */
+/** Generate one mark, then stamp dark ink, favicon, app icon, and share image. */
 export async function generateBrandingLogo(body: {
   prompt?: string;
   shopName?: string;
@@ -1426,7 +1427,7 @@ export async function generateBrandingLogo(body: {
     method: "POST",
     requiresAuth: true,
     toast: false,
-    timeoutMs: 240_000,
+    timeoutMs: 300_000,
     body: {
       prompt: body.prompt?.trim() || undefined,
       shopName: body.shopName?.trim() || undefined,
@@ -1435,6 +1436,38 @@ export async function generateBrandingLogo(body: {
       accentColor: body.accentColor?.trim() || undefined,
     },
   });
+}
+
+export type BrandingAppIconGenerateResponse = {
+  requestId: string;
+  mimeType: string;
+  imageBase64: string;
+};
+
+/** Rebuild the saved shop logo as a home-screen / PWA icon. */
+export async function generateBrandingAppIcon(body: {
+  prompt?: string;
+  shopName?: string;
+  shopType?: string;
+  primaryColor?: string;
+  accentColor?: string;
+}): Promise<BrandingAppIconGenerateResponse> {
+  return request<BrandingAppIconGenerateResponse>(
+    API_ROUTES.aiBrandingAppIconGenerate,
+    {
+      method: "POST",
+      requiresAuth: true,
+      toast: false,
+      timeoutMs: 180_000,
+      body: {
+        prompt: body.prompt?.trim() || undefined,
+        shopName: body.shopName?.trim() || undefined,
+        shopType: body.shopType?.trim() || undefined,
+        primaryColor: body.primaryColor?.trim() || undefined,
+        accentColor: body.accentColor?.trim() || undefined,
+      },
+    },
+  );
 }
 
 export type AiStatusRecord = {
@@ -1583,6 +1616,8 @@ export type BrandingPatchPayload = {
   logoDarkUrl?: string | null;
   logoDarkPublicId?: string | null;
   faviconUrl?: string | null;
+  appIconUrl?: string | null;
+  appIconPublicId?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
   metaTitle?: string | null;
@@ -3367,25 +3402,31 @@ export async function uploadMyBrandingLogoPair(
 }
 
 export async function uploadMyBrandingAssetKit(
-  kit: { light: File; dark: File; favicon: File; og: File },
+  kit: { light: File; dark: File; favicon: File; og: File; appIcon?: File },
   businessId: string,
 ): Promise<BusinessRecord> {
   const lightFolder = `ub/${businessId}/branding/logo`;
   const darkFolder = `ub/${businessId}/branding/logo-dark`;
   const faviconFolder = `ub/${businessId}/branding/favicon`;
   const ogFolder = `ub/${businessId}/branding/og-image`;
-  const [lightSig, darkSig, faviconSig, ogSig] = await Promise.all([
+  const appIconFolder = `ub/${businessId}/branding/app-icon`;
+  const [lightSig, darkSig, faviconSig, ogSig, appIconSig] = await Promise.all([
     getCloudinarySignature(lightFolder),
     getCloudinarySignature(darkFolder),
     getCloudinarySignature(faviconFolder),
     getCloudinarySignature(ogFolder),
+    kit.appIcon ? getCloudinarySignature(appIconFolder) : Promise.resolve(null),
   ]);
-  const [lightResult, darkResult, faviconResult, ogResult] = await Promise.all([
-    uploadToCloudinary(kit.light, lightSig),
-    uploadToCloudinary(kit.dark, darkSig),
-    uploadToCloudinary(kit.favicon, faviconSig),
-    uploadToCloudinary(kit.og, ogSig),
-  ]);
+  const [lightResult, darkResult, faviconResult, ogResult, appIconResult] =
+    await Promise.all([
+      uploadToCloudinary(kit.light, lightSig),
+      uploadToCloudinary(kit.dark, darkSig),
+      uploadToCloudinary(kit.favicon, faviconSig),
+      uploadToCloudinary(kit.og, ogSig),
+      kit.appIcon && appIconSig
+        ? uploadToCloudinary(kit.appIcon, appIconSig)
+        : Promise.resolve(null),
+    ]);
   return updateMyBranding({
     logoUrl: lightResult.secure_url,
     logoPublicId: lightResult.public_id,
@@ -3394,6 +3435,12 @@ export async function uploadMyBrandingAssetKit(
     faviconUrl: faviconResult.secure_url,
     ogImage: ogResult.secure_url,
     ogImagePublicId: ogResult.public_id,
+    ...(appIconResult
+      ? {
+          appIconUrl: appIconResult.secure_url,
+          appIconPublicId: appIconResult.public_id,
+        }
+      : {}),
   });
 }
 
@@ -3417,6 +3464,25 @@ export async function uploadMyBrandingFavicon(
 
 export async function clearMyBrandingFavicon(): Promise<BusinessRecord> {
   return request<BusinessRecord>(`${MY_BRANDING_PATH}/favicon`, {
+    method: "DELETE",
+  });
+}
+
+export async function uploadMyBrandingAppIcon(
+  file: File,
+  businessId: string,
+): Promise<BusinessRecord> {
+  const folder = `ub/${businessId}/branding/app-icon`;
+  const sig = await getCloudinarySignature(folder);
+  const result = await uploadToCloudinary(file, sig);
+  return updateMyBranding({
+    appIconUrl: result.secure_url,
+    appIconPublicId: result.public_id,
+  });
+}
+
+export async function clearMyBrandingAppIcon(): Promise<BusinessRecord> {
+  return request<BusinessRecord>(`${MY_BRANDING_PATH}/app-icon`, {
     method: "DELETE",
   });
 }

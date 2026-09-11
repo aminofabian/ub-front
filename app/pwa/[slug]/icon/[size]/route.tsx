@@ -5,8 +5,7 @@ import {
   loadShopperPwaMarkSrc,
   resolveShopperPwaProfile,
 } from "@/lib/shopper-pwa-resolve";
-import { parseShopperPwaIconSize } from "@/lib/shopper-pwa";
-import { sanitizeStorefrontSlug } from "@/lib/public-storefront";
+import { parseShopperPwaIconSize, sanitizeShopperPwaSlug } from "@/lib/shopper-pwa";
 import { monogramInitials } from "@/lib/tenant-favicon-mark";
 
 export const runtime = "nodejs";
@@ -25,7 +24,7 @@ const CACHE =
 
 export async function GET(req: Request, ctx: RouteContext) {
   const { slug: raw, size: sizeRaw } = await ctx.params;
-  const slug = sanitizeStorefrontSlug(decodeURIComponent(raw));
+  const slug = sanitizeShopperPwaSlug(decodeURIComponent(raw));
   const size = parseShopperPwaIconSize(sizeRaw);
   if (!slug || !size) {
     return new Response("Not found", { status: 404 });
@@ -38,7 +37,7 @@ export async function GET(req: Request, ctx: RouteContext) {
 
   const purpose = new URL(req.url).searchParams.get("purpose");
   const maskable = purpose === "maskable";
-  const markSrc = await loadShopperPwaMarkSrc(profile);
+  const mark = await loadShopperPwaMarkSrc(profile);
   const primary = profile.themeColor || "#0D9488";
 
   const image = new ImageResponse(
@@ -48,8 +47,9 @@ export async function GET(req: Request, ctx: RouteContext) {
         name={profile.name}
         monogram={monogramInitials(profile.name)}
         primary={primary}
-        markSrc={markSrc}
+        markSrc={mark.src}
         maskable={maskable}
+        fillFrame={mark.fillFrame}
       />
     ),
     {

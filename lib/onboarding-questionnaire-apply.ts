@@ -14,6 +14,7 @@ import {
   uploadMyBrandingFavicon,
   uploadMyBrandingOgImage,
   uploadMyBrandingAssetKit,
+  uploadMyBrandingAppIcon,
   type BusinessRecord,
 } from "@/lib/api";
 import {
@@ -284,6 +285,7 @@ export async function applyOnboardingQuestionnaire(
               dark: opts.logoDarkFile,
               favicon: opts.faviconFile,
               og: opts.ogImageFile,
+              appIcon: opts.appIconFile ?? undefined,
             },
             businessId,
           );
@@ -303,6 +305,9 @@ export async function applyOnboardingQuestionnaire(
         if (opts.faviconFile) {
           await uploadMyBrandingFavicon(opts.faviconFile, businessId);
         }
+        if (opts.appIconFile) {
+          await uploadMyBrandingAppIcon(opts.appIconFile, businessId);
+        }
         if (opts.ogImageFile) {
           await uploadMyBrandingOgImage(opts.ogImageFile, businessId);
         }
@@ -310,6 +315,7 @@ export async function applyOnboardingQuestionnaire(
           opts.logoFile ||
           opts.logoDarkFile ||
           opts.faviconFile ||
+          opts.appIconFile ||
           opts.ogImageFile
         ) {
           return { phase: "logo", status: "done" };
