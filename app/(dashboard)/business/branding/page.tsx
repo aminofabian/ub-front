@@ -16,13 +16,15 @@ import {
   AlertCircle,
   ArrowRight,
   Brush,
+  ChevronLeft,
+  ChevronRight,
   Globe,
   Loader2,
   Minus,
   Plus,
   RefreshCw,
   Save,
-  Sparkles,
+  X,
 } from "lucide-react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
@@ -210,25 +212,72 @@ function BrandingSection({
   id,
   title,
   hint,
+  apply,
   children,
 }: {
   id: string;
   title: string;
   hint: string;
+  apply?: "now" | "save" | "mixed";
   children: React.ReactNode;
 }) {
+  const applyLabel =
+    apply === "now"
+      ? "Applies as you upload"
+      : apply === "save"
+        ? "Saves with the button below"
+        : apply === "mixed"
+          ? "Uploads apply now. Other fields save below"
+          : null;
   return (
     <section id={id} className={cn(HUB_SURFACE, "scroll-mt-24 p-4 sm:p-5")}>
       <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pb-3">
-        <h2 className="font-heading text-sm font-semibold tracking-tight text-[#141414]">
-          {title}
-        </h2>
-        <p className="mt-1 text-[12px] leading-relaxed text-[#7A7A7A]">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h2 className="font-heading text-sm font-semibold tracking-tight text-[#141414]">
+            {title}
+          </h2>
+          {applyLabel ? (
+            <p className="text-[11px] font-medium text-[#0f766e]">{applyLabel}</p>
+          ) : null}
+        </div>
+        <p className="mt-1 max-w-prose text-[12px] leading-relaxed text-[#7A7A7A]">
           {hint}
         </p>
       </div>
-      <div className="mt-4 space-y-4">{children}</div>
+      <div className="mt-4 space-y-5">{children}</div>
     </section>
+  );
+}
+
+function PasteUrlField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  maxLength,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  maxLength: number;
+}) {
+  return (
+    <details>
+      <summary className="cursor-pointer text-xs text-[#7A7A7A] underline-offset-2 hover:text-[#141414] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+        {label}
+      </summary>
+      <input
+        id={id}
+        className={cn(inputClass(), "mt-2")}
+        value={value}
+        maxLength={maxLength}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    </details>
   );
 }
 
@@ -315,11 +364,11 @@ function BrandingColorPresetPicker({
   return (
     <div className="space-y-3">
       <div>
-        <p className={labelClass()}>Color themes</p>
+        <p className={labelClass()}>Colours</p>
         <p className={cn(hintClass(), "mt-1")}>
           {activePreset
-            ? `Using ${activePreset.name}. Click another pair, or edit the hex values above.`
-            : "Pick a ready-made pair, or set your own hex values above."}
+            ? `Using ${activePreset.name}. Pick another pair, or set hex below.`
+            : "Pick a pair for headers and highlights, or set hex below."}
         </p>
       </div>
 
@@ -403,12 +452,10 @@ function SerpPreview({
   form,
   business,
   location,
-  compact = false,
 }: {
   form: FormState;
   business: BusinessRecord | null;
   location: StorefrontSeoLocation;
-  compact?: boolean;
 }) {
   const display =
     form.displayName.trim() || business?.name?.trim() || "Your storefront";
@@ -423,44 +470,25 @@ function SerpPreview({
   const areaHint = location.areas?.[0]?.trim();
 
   return (
-    <div
-      className={cn(
-        "rounded-none border border-border/80 bg-gradient-to-b from-card to-muted/20 shadow-none",
-        compact ? "p-4" : "p-5 sm:p-6",
-      )}
-    >
-      <div className="flex items-center gap-2 text-primary">
-        <Globe className="size-4" aria-hidden />
-        <h2 className="text-xs font-semibold tracking-[-0.02em] text-primary/90">
-          Search preview
-        </h2>
-      </div>
-      <p className="mt-1 text-sm text-muted-foreground">
-        How your storefront can appear in Google. Area is taken from your
-        branches
-        {areaHint ? (
-          <>
-            {" "}
-            (now <span className="font-medium text-foreground">{areaHint}</span>
-            )
-          </>
-        ) : null}
-        . Use <span className="font-mono text-xs">[Area]</span> in custom copy
-        to keep it dynamic.
+    <div>
+      <h3 className="text-sm font-medium text-[#141414]">Google</h3>
+      <p className={cn(hintClass(), "mt-0.5")}>
+        {areaHint
+          ? `Uses ${areaHint} from your branches unless you write your own.`
+          : "Empty fields use a grocery default with your branch area."}
       </p>
-      <div className="mt-4 rounded-none border border-border/70 bg-background p-4 shadow-inner">
-        <p className="truncate text-xs text-muted-foreground">{host}</p>
-        <p className="mt-1 line-clamp-2 text-lg font-medium leading-snug text-[#8ab4f8]">
+      <div className="mt-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3">
+        <p className="truncate text-[11px] text-[#7A7A7A]">{host}</p>
+        <p className="mt-1 line-clamp-2 text-base font-medium leading-snug text-[#1a0dab]">
           {title}
         </p>
-        <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+        <p className="mt-0.5 line-clamp-2 text-[13px] leading-relaxed text-[#4d5156]">
           {description}
         </p>
       </div>
       {usingDefaults ? (
         <p className={cn(hintClass(), "mt-2")}>
-          Empty fields use groceries defaults with your branch area until you
-          save custom copy.
+          Custom title and description save with the button below.
         </p>
       ) : null}
     </div>
@@ -479,17 +507,19 @@ function LogoSizeControls({
   scale,
   accent,
   onChange,
+  inputId = "branding-logo-scale",
 }: {
   scale: number;
   accent: string;
   onChange: (next: number) => void;
+  inputId?: string;
 }) {
   const clamped = clampBrandingLogoScale(scale);
   const pct = Math.round(clamped * 100);
   return (
     <div className="mt-3 space-y-2">
       <div className="flex items-baseline justify-between gap-2">
-        <label htmlFor="branding-logo-scale" className={labelClass()}>
+        <label htmlFor={inputId} className={labelClass()}>
           Logo size
         </label>
         <span className="text-xs tabular-nums text-muted-foreground">
@@ -511,7 +541,7 @@ function LogoSizeControls({
           <Minus className="size-3.5" aria-hidden />
         </Button>
         <input
-          id="branding-logo-scale"
+          id={inputId}
           type="range"
           min={BRANDING_LOGO_SCALE_MIN}
           max={BRANDING_LOGO_SCALE_MAX}
@@ -539,17 +569,8 @@ function LogoSizeControls({
         </Button>
       </div>
       <p className={hintClass()}>
-        Drag until the mark sits right in the header. A white box around it
-        fights the bar — cut the background at{" "}
-        <a
-          href="https://www.remove.bg/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"
-        >
-          remove.bg
-        </a>
-        , then upload the PNG.
+        Drag until the mark sits in the header. Cut a white box off the file
+        before you upload.
       </p>
     </div>
   );
@@ -561,12 +582,14 @@ function BrandingPreview({
   business,
   location,
   onLogoScaleChange,
+  compact = false,
 }: {
   form: FormState;
   logoUrl: string | null | undefined;
   business: BusinessRecord | null;
   location: StorefrontSeoLocation;
   onLogoScaleChange: (next: number) => void;
+  compact?: boolean;
 }) {
   const display = form.displayName.trim() || "Your storefront";
   const primary = HEX_REGEX.test(form.primaryColor)
@@ -578,28 +601,49 @@ function BrandingPreview({
   const faviconPreview = form.faviconUrl.trim() || null;
   const hasLogo = Boolean(logoUrl?.trim());
   return (
-    <div className="space-y-4">
-      <div className="rounded-none border border-border/80 bg-gradient-to-b from-card to-muted/20 p-5 shadow-none sm:p-6">
-        <div className="flex items-center gap-2 text-primary">
-          <Sparkles className="size-4" aria-hidden />
-          <h2 className="text-xs font-semibold tracking-[-0.02em] text-primary/90">
-            Live preview
-          </h2>
+    <div className={cn(HUB_SURFACE, compact ? "space-y-3 p-3" : "space-y-4 p-4 sm:p-5")}>
+      <div>
+        <h2 className="font-heading text-sm font-semibold tracking-tight text-[#141414]">
+          Preview
+        </h2>
+        {compact ? null : (
+          <p className="mt-1 text-[12px] leading-relaxed text-[#7A7A7A]">
+            Header and Google as shoppers see them. Uploads are already live.
+          </p>
+        )}
+      </div>
+      <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[#F4F4F5]">
+        <div className="flex items-center gap-1.5 border-b border-black/8 px-2 py-1.5">
+          <span className="size-1.5 rounded-full bg-[#D4D4D8]" aria-hidden />
+          <span className="size-1.5 rounded-full bg-[#D4D4D8]" aria-hidden />
+          <span className="size-1.5 rounded-full bg-[#D4D4D8]" aria-hidden />
+          <span className="ml-1 flex min-w-0 flex-1 items-center gap-1.5 bg-white px-1.5 py-0.5">
+            {faviconPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={faviconPreview}
+                alt=""
+                className="size-3.5 object-contain"
+              />
+            ) : (
+              <Globe className="size-3 text-[#A1A1AA]" aria-hidden />
+            )}
+            <span className="truncate text-[10px] text-[#52525B]">
+              {display}
+            </span>
+          </span>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Approximates your public shop header.
-        </p>
         <div
-          className="mt-4 overflow-visible rounded-none border-2 bg-background/80 p-4 shadow-inner backdrop-blur-sm"
+          className="bg-white p-3"
           style={{
-            borderColor: `${primary}55`,
+            borderTop: `2px solid ${primary}`,
             ...storefrontLogoScaleVarStyle(form.logoScale),
           }}
         >
           <div className="flex flex-wrap items-center gap-3">
             {hasLogo ? (
               <div
-                className="inline-flex max-w-full items-center justify-center rounded-md px-2 py-1.5"
+                className="inline-flex max-w-full items-center justify-center px-2 py-1.5"
                 style={LOGO_CHECKERBOARD}
               >
                 <TenantLogo
@@ -617,12 +661,12 @@ function BrandingPreview({
                 faviconUrl={faviconPreview}
                 primaryColor={primary}
                 variant="preview"
-                tagline="Header + favicon as shoppers see them"
+                tagline="Header as shoppers see it"
                 className="min-w-0 flex-1"
               />
             )}
             <span
-              className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-none"
+              className="shrink-0 px-2.5 py-1 text-[11px] font-semibold text-white"
               style={{ backgroundColor: accent }}
             >
               Sale
@@ -633,11 +677,18 @@ function BrandingPreview({
               scale={form.logoScale}
               accent={accent}
               onChange={onLogoScaleChange}
+              inputId={
+                compact
+                  ? "branding-logo-scale-compact"
+                  : "branding-logo-scale"
+              }
             />
           ) : null}
         </div>
       </div>
-      <SerpPreview form={form} business={business} location={location} />
+      {compact ? null : (
+        <SerpPreview form={form} business={business} location={location} />
+      )}
     </div>
   );
 }
@@ -688,18 +739,33 @@ function LogoSection({
       event.target.value = "";
     };
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <AiLogoGenerator
+        variant="dashboard"
+        shopName={shopName ?? ""}
+        primaryColor={primaryColor ?? undefined}
+        accentColor={accentColor ?? undefined}
+        disabled={busy}
+        onDraftPair={setDraftPair}
+        onGenerated={async (pair) => {
+          await onUploadPair(pair);
+          setDraftPair(null);
+        }}
+      />
+      <p className={labelClass()}>Logos</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <p className={labelClass()}>Light theme</p>
-          <TenantLogo
-            brand="Your logo"
-            logoUrl={lightUrl}
-            primaryColor={primaryColor}
-            variant="upload"
-          />
+          <p className={labelClass()}>On white</p>
+          <div className="flex min-h-[7.5rem] items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3">
+            <TenantLogo
+              brand="Your logo"
+              logoUrl={lightUrl}
+              primaryColor={primaryColor}
+              variant="upload"
+            />
+          </div>
           <p className={hintClass()}>
-            Dashboard, receipts, emails, and light storefronts.
+            Receipts, emails, and light shop headers.
           </p>
           <input
             ref={lightInputRef}
@@ -714,7 +780,7 @@ function LogoSection({
               disabled={busy}
               onClick={() => lightInputRef.current?.click()}
             >
-              {lightUrl ? "Replace light" : "Upload light"}
+              {lightUrl ? "Replace" : "Upload"}
             </Button>
             {logoUrl && !draftPair ? (
               <Button
@@ -729,8 +795,8 @@ function LogoSection({
           </div>
         </div>
         <div className="space-y-2">
-          <p className={labelClass()}>Dark theme</p>
-          <div className="rounded-none border border-neutral-800 bg-neutral-950 p-3">
+          <p className={labelClass()}>On the hero</p>
+          <div className="flex min-h-[7.5rem] items-center justify-center border border-neutral-800 bg-[#0f172a] p-3">
             <TenantLogo
               brand="Your logo"
               logoUrl={darkUrl}
@@ -738,7 +804,9 @@ function LogoSection({
               variant="upload"
             />
           </div>
-          <p className={hintClass()}>Used on {darkUses}.</p>
+          <p className={hintClass()}>
+            The navy banner at the top of the shop. Also {darkUses}.
+          </p>
           <input
             ref={darkInputRef}
             type="file"
@@ -752,7 +820,7 @@ function LogoSection({
               disabled={busy}
               onClick={() => darkInputRef.current?.click()}
             >
-              {darkUrl ? "Replace dark" : "Upload dark"}
+              {darkUrl ? "Replace" : "Upload"}
             </Button>
             {logoDarkUrl && !draftPair ? (
               <Button
@@ -767,25 +835,11 @@ function LogoSection({
           </div>
         </div>
       </div>
-      <AiLogoGenerator
-        variant="dashboard"
-        shopName={shopName ?? ""}
-        primaryColor={primaryColor ?? undefined}
-        accentColor={accentColor ?? undefined}
-        disabled={busy}
-        onDraftPair={setDraftPair}
-        onGenerated={async (pair) => {
-          await onUploadPair(pair);
-          setDraftPair(null);
-        }}
-      />
-      {draftPair ? (
-        <p className={hintClass()}>
-          Preview only — tap Save and use to apply the kit.
-        </p>
-      ) : (
-        <p className={hintClass()}>PNG, JPEG, WEBP, or SVG · max 4&nbsp;MB</p>
-      )}
+      <p className={hintClass()}>
+        {draftPair
+          ? "Preview only. Tap Save and use to apply the kit."
+          : "PNG, JPEG, WEBP, or SVG. 4 MB max. Uploads go live immediately."}
+      </p>
     </div>
   );
 }
@@ -811,50 +865,49 @@ function FaviconSection({
   };
   const trimmed = faviconUrl?.trim() ?? "";
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div className="space-y-2">
+      <p className={labelClass()}>Browser tab</p>
+      <div className="flex flex-wrap items-center gap-3">
         {trimmed ? (
           <Image
             src={trimmed}
             alt="Current favicon"
-            width={56}
-            height={56}
-            className="size-14 rounded-none border border-border/60 bg-muted/30 object-contain shadow-none"
+            width={32}
+            height={32}
+            className="size-8 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white object-contain"
             unoptimized
           />
         ) : (
-          <div className="flex size-14 items-center justify-center rounded-none border border-dashed border-muted-foreground/30 bg-muted/20 text-xs text-muted-foreground">
-            None
+          <div className="flex size-8 items-center justify-center border border-dashed border-[#D4D4D8] text-[10px] text-[#A1A1AA]">
+            Tab
           </div>
         )}
-        <div className="flex flex-wrap gap-2">
-          <input
-            ref={inputRef}
-            type="file"
-            accept={ACCEPTED_FAVICON_TYPES}
-            className="hidden"
-            onChange={onPick}
-          />
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPTED_FAVICON_TYPES}
+          className="hidden"
+          onChange={onPick}
+        />
+        <Button
+          type="button"
+          disabled={busy}
+          onClick={() => inputRef.current?.click()}
+        >
+          {trimmed ? "Replace" : "Upload"}
+        </Button>
+        {trimmed ? (
           <Button
             type="button"
+            variant="outline"
             disabled={busy}
-            onClick={() => inputRef.current?.click()}
+            onClick={() => void onClear()}
           >
-            {trimmed ? "Replace favicon" : "Upload favicon"}
+            Remove
           </Button>
-          {trimmed ? (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() => void onClear()}
-            >
-              Remove
-            </Button>
-          ) : null}
-        </div>
+        ) : null}
       </div>
-      <p className={hintClass()}>PNG, ICO, or WEBP · max 512&nbsp;KB</p>
+      <p className={hintClass()}>PNG or ICO. 32px is enough. Applies now.</p>
     </div>
   );
 }
@@ -924,7 +977,8 @@ function OgImageSection({
         </div>
       </div>
       <p className={hintClass()}>
-        PNG, JPEG, or WEBP · max 4&nbsp;MB · 1200×630&nbsp;px recommended
+        WhatsApp and Facebook preview. PNG, JPEG, or WEBP. 1200×630 works best.
+        Applies now.
       </p>
     </div>
   );
@@ -956,60 +1010,63 @@ function BannerSection({
     <div className="space-y-3">
       <div className="flex flex-wrap gap-3">
         {banners.map((url, i) => (
-          <div key={`${url}-${i}`} className="relative group">
-            <Image
-              src={url}
-              alt={`Banner ${i + 1}`}
-              width={200}
-              height={80}
-              className="h-20 w-40 rounded-none border object-cover shadow-none"
-              unoptimized
-            />
-            <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition bg-black/40 rounded-none">
-              {i > 0 && (
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="secondary"
-                  className="size-7"
-                  onClick={() => {
-                    const next = [...banners];
-                    [next[i], next[i - 1]] = [next[i - 1], next[i]];
-                    void onReorder(next);
-                  }}
-                >
-                  ←
-                </Button>
-              )}
+          <div key={`${url}-${i}`} className="space-y-1">
+            <div className="relative">
+              <Image
+                src={url}
+                alt={`Banner ${i + 1}`}
+                width={200}
+                height={80}
+                className="h-20 w-40 rounded-none border object-cover shadow-none"
+                unoptimized
+              />
+              <span className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
+                {i + 1}
+              </span>
+            </div>
+            <div className="flex w-40 items-center justify-center gap-0.5">
               <Button
                 type="button"
                 size="icon"
-                variant="destructive"
+                variant="outline"
                 className="size-7"
+                disabled={i === 0 || busy}
+                aria-label="Move left"
+                onClick={() => {
+                  const next = [...banners];
+                  [next[i], next[i - 1]] = [next[i - 1], next[i]];
+                  void onReorder(next);
+                }}
+              >
+                <ChevronLeft className="size-3.5" aria-hidden />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="size-7 text-destructive hover:text-destructive"
                 disabled={busy}
+                aria-label="Remove banner"
                 onClick={() => void onDelete(i)}
               >
-                ✕
+                <X className="size-3.5" aria-hidden />
               </Button>
-              {i < banners.length - 1 && (
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="secondary"
-                  className="size-7"
-                  onClick={() => {
-                    const next = [...banners];
-                    [next[i], next[i + 1]] = [next[i + 1], next[i]];
-                    void onReorder(next);
-                  }}
-                >
-                  →
-                </Button>
-              )}
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="size-7"
+                disabled={i === banners.length - 1 || busy}
+                aria-label="Move right"
+                onClick={() => {
+                  const next = [...banners];
+                  [next[i], next[i + 1]] = [next[i + 1], next[i]];
+                  void onReorder(next);
+                }}
+              >
+                <ChevronRight className="size-3.5" aria-hidden />
+              </Button>
             </div>
-            <span className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
-              {i + 1}
-            </span>
           </div>
         ))}
         <input
@@ -1029,8 +1086,7 @@ function BannerSection({
         </button>
       </div>
       <p className={hintClass()}>
-        PNG, JPEG, or WEBP · max 5 MB each. Banners slide automatically on your
-        storefront.
+        Wide photos that rotate on the shop. PNG, JPEG, or WEBP. 5 MB each.
       </p>
     </div>
   );
@@ -1469,7 +1525,7 @@ export default function BrandingPage() {
     return (
       <BusinessPageLayout
         title="Branding"
-        description="Logo, colours, and the name shoppers see on your storefront."
+        description="Logo, colours, and the name shoppers see."
       >
         <div className="flex flex-col items-center justify-center gap-4 py-24">
           <Loader2
@@ -1486,7 +1542,7 @@ export default function BrandingPage() {
     return (
       <BusinessPageLayout
         title="Branding"
-        description="Logo, colours, and the name shoppers see on your storefront."
+        description="Logo, colours, and the name shoppers see."
       >
         <div className="mx-auto max-w-lg py-8">
           <div className="rounded-none border border-destructive/30 bg-destructive/5 p-8 text-center shadow-none">
@@ -1537,8 +1593,7 @@ export default function BrandingPage() {
   const saveBar = (
     <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-10 -mx-1 flex flex-wrap items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-2.5 shadow-none lg:static lg:bottom-auto lg:mx-0 lg:justify-end lg:shadow-none">
       <p className="hidden text-[11px] text-[#7A7A7A] sm:block lg:mr-auto">
-        Logo, favicon, and banners apply immediately. Name, colours, and search
-        fields save here.
+        Unsaved name, colours, and search text. Uploads are already live.
       </p>
       <div className="flex flex-wrap justify-end gap-2">
         <Button
@@ -1566,7 +1621,7 @@ export default function BrandingPage() {
           ) : (
             <>
               <Save className="size-4" aria-hidden />
-              Save branding
+              Save changes
             </>
           )}
         </Button>
@@ -1577,7 +1632,7 @@ export default function BrandingPage() {
   return (
     <BusinessPageLayout
       title="Branding"
-      description="Upload a logo, pick colours, and set the name shoppers see. Generate a kit (logos, favicon, share image) to save and download. Logo and favicon apply immediately; name, colours, and search fields save with the button below."
+      description="Name, logos, colours, photos, and how the shop looks in Google."
       headerActions={
         dirty ? (
           <Button
@@ -1607,11 +1662,10 @@ export default function BrandingPage() {
         data-onboarding-target={ONBOARDING_TARGETS.brandingDrawer}
       >
         <HubSettingsSectionNav
+          ariaLabel="Branding sections"
           items={[
-            { id: "branding-identity", label: "Name & logo" },
-            { id: "branding-colors", label: "Colours" },
-            { id: "branding-favicon", label: "Favicon" },
-            { id: "branding-banners", label: "Banners" },
+            { id: "branding-identity", label: "Shop look" },
+            { id: "branding-banners", label: "Photos" },
             { id: "branding-search", label: "Search" },
           ]}
         />
@@ -1623,12 +1677,26 @@ export default function BrandingPage() {
           />
         ) : null}
 
+        <div className="lg:hidden">
+          <BrandingPreview
+            compact
+            form={form}
+            logoUrl={logoUrl}
+            business={snapshot}
+            location={seoLocation}
+            onLogoScaleChange={(logoScale) =>
+              setForm((s) => ({ ...s, logoScale }))
+            }
+          />
+        </div>
+
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_22rem]">
           <form id="branding-edit-form" className="space-y-4" onSubmit={onSave}>
             <BrandingSection
               id="branding-identity"
-              title="Name & logo"
-              hint="The name and mark shoppers see in the shop header, login, and emails. Square logos look sharpest."
+              title="Shop look"
+              apply="mixed"
+              hint="The name, logos, tab icon, and colours shoppers see in the header, receipts, and emails."
             >
               <div className="space-y-2">
                 <label className={labelClass()} htmlFor="branding-name">
@@ -1662,75 +1730,62 @@ export default function BrandingPage() {
                 onClear={onLogoClear}
                 onClearDark={onLogoClearDark}
               />
-            </BrandingSection>
-
-            <BrandingSection
-              id="branding-colors"
-              title="Colours"
-              hint="Primary is headers and navigation. Accent is badges and highlights. Pick a theme or set hex values."
-            >
-              <div className="grid gap-6 sm:grid-cols-2">
-                <ColorField
-                  label="Primary color"
-                  htmlId="branding-primary"
-                  value={form.primaryColor}
-                  onChange={(v) => setForm((s) => ({ ...s, primaryColor: v }))}
+              <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-5">
+                <FaviconSection
+                  faviconUrl={faviconUrl}
+                  busy={faviconBusy}
+                  onUpload={onFaviconUpload}
+                  onClear={onFaviconClear}
                 />
-                <ColorField
-                  label="Accent color"
-                  htmlId="branding-accent"
-                  value={form.accentColor}
-                  onChange={(v) => setForm((s) => ({ ...s, accentColor: v }))}
-                />
-              </div>
-              <BrandingColorPresetPicker
-                primaryColor={form.primaryColor}
-                accentColor={form.accentColor}
-                onSelect={(preset) =>
-                  setForm((s) => ({
-                    ...s,
-                    primaryColor: preset.primary.toUpperCase(),
-                    accentColor: preset.accent.toUpperCase(),
-                  }))
-                }
-              />
-            </BrandingSection>
-
-            <BrandingSection
-              id="branding-favicon"
-              title="Favicon"
-              hint="Browser tab icon. Prefer 32×32 or 48×48. Upload applies immediately, or paste an HTTPS URL and save."
-            >
-              <FaviconSection
-                faviconUrl={faviconUrl}
-                busy={faviconBusy}
-                onUpload={onFaviconUpload}
-                onClear={onFaviconClear}
-              />
-              <div className="space-y-2">
-                <label className={labelClass()} htmlFor="branding-favicon-url">
-                  Favicon URL{" "}
-                  <span className="font-normal text-muted-foreground">
-                    (optional)
-                  </span>
-                </label>
-                <input
+                <PasteUrlField
                   id="branding-favicon-url"
-                  className={inputClass()}
+                  label="Paste a favicon URL"
                   value={form.faviconUrl}
                   maxLength={1024}
-                  onChange={(e) =>
-                    setForm((s) => ({ ...s, faviconUrl: e.target.value }))
-                  }
                   placeholder="https://cdn.example.com/favicon.png"
+                  onChange={(faviconUrl) =>
+                    setForm((s) => ({ ...s, faviconUrl }))
+                  }
                 />
+              </div>
+              <div className="space-y-4 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-5">
+                <BrandingColorPresetPicker
+                  primaryColor={form.primaryColor}
+                  accentColor={form.accentColor}
+                  onSelect={(preset) =>
+                    setForm((s) => ({
+                      ...s,
+                      primaryColor: preset.primary.toUpperCase(),
+                      accentColor: preset.accent.toUpperCase(),
+                    }))
+                  }
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <ColorField
+                    label="Shop colour"
+                    htmlId="branding-primary"
+                    value={form.primaryColor}
+                    onChange={(v) =>
+                      setForm((s) => ({ ...s, primaryColor: v }))
+                    }
+                  />
+                  <ColorField
+                    label="Highlight"
+                    htmlId="branding-accent"
+                    value={form.accentColor}
+                    onChange={(v) =>
+                      setForm((s) => ({ ...s, accentColor: v }))
+                    }
+                  />
+                </div>
               </div>
             </BrandingSection>
 
             <BrandingSection
               id="branding-banners"
-              title="Hero banners"
-              hint="Images that rotate on the storefront. Use the arrows to reorder. Uploads apply immediately."
+              title="Photos"
+              apply="now"
+              hint="Wide photos that rotate across the shop home. Number 1 shows first."
             >
               <BannerSection
                 banners={bannerUrls}
@@ -1743,16 +1798,14 @@ export default function BrandingPage() {
 
             <BrandingSection
               id="branding-search"
-              title="Search & social"
-              hint="How Google and social apps see your shop. Empty fields use groceries defaults with your branch area. Use [Area] and [Country] to keep location dynamic."
+              title="Search"
+              apply="mixed"
+              hint="How Google and chat apps show your shop. Empty title and description use your branch area."
             >
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between gap-3">
                   <label className={labelClass()} htmlFor="branding-meta-title">
-                    Search title{" "}
-                    <span className="font-normal text-muted-foreground">
-                      (optional)
-                    </span>
+                    Google title
                   </label>
                   <span className="text-xs tabular-nums text-muted-foreground">
                     {form.metaTitle.length}/255
@@ -1772,8 +1825,7 @@ export default function BrandingPage() {
                   )}
                 />
                 <p className={hintClass()}>
-                  Blue link text in search results. Aim for about 50–60
-                  characters.
+                  Blue link in search results. About 50 to 60 characters.
                 </p>
               </div>
 
@@ -1783,10 +1835,7 @@ export default function BrandingPage() {
                     className={labelClass()}
                     htmlFor="branding-meta-description"
                   >
-                    Search description{" "}
-                    <span className="font-normal text-muted-foreground">
-                      (optional)
-                    </span>
+                    Google snippet
                   </label>
                   <span className="text-xs tabular-nums text-muted-foreground">
                     {form.metaDescription.length}/320
@@ -1806,64 +1855,54 @@ export default function BrandingPage() {
                   )}
                 />
                 <p className={hintClass()}>
-                  Grey snippet under the title. Placeholders:{" "}
+                  Grey text under the title. Placeholders stay dynamic:{" "}
                   <span className="font-mono text-[11px]">[Area]</span>,{" "}
                   <span className="font-mono text-[11px]">[Country]</span>,{" "}
                   <span className="font-mono text-[11px]">[Name]</span>.
                 </p>
               </div>
 
-              <div className="space-y-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5">
-                <p className="text-xs font-semibold tracking-[-0.02em] text-[#8A8A8A]">
-                  Social preview image
-                </p>
+              <div className="space-y-2">
+                <p className={labelClass()}>Share image</p>
                 <OgImageSection
                   ogImageUrl={ogImageUrl}
                   busy={ogImageBusy}
                   onUpload={onOgImageUpload}
                   onClear={onOgImageClear}
                 />
-                <div className="space-y-2">
-                  <label className={labelClass()} htmlFor="branding-og-image">
-                    Or paste an image URL{" "}
-                    <span className="font-normal text-muted-foreground">
-                      (optional)
-                    </span>
-                  </label>
-                  <input
-                    id="branding-og-image"
-                    className={inputClass()}
-                    value={form.ogImage}
-                    maxLength={1024}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, ogImage: e.target.value }))
-                    }
-                    placeholder="https://cdn.example.com/social-preview.png"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  className={labelClass()}
-                  htmlFor="branding-meta-keywords"
-                >
-                  Meta keywords{" "}
-                  <span className="font-normal text-muted-foreground">
-                    (optional)
-                  </span>
-                </label>
-                <input
-                  id="branding-meta-keywords"
-                  className={inputClass()}
-                  value={form.metaKeywords}
-                  maxLength={500}
-                  onChange={(e) =>
-                    setForm((s) => ({ ...s, metaKeywords: e.target.value }))
-                  }
-                  placeholder="grocery, fresh produce, delivery, Nairobi"
+                <PasteUrlField
+                  id="branding-og-image"
+                  label="Paste a share image URL"
+                  value={form.ogImage}
+                  maxLength={1024}
+                  placeholder="https://cdn.example.com/social-preview.png"
+                  onChange={(ogImage) => setForm((s) => ({ ...s, ogImage }))}
                 />
               </div>
+
+              <details defaultOpen={Boolean(form.metaKeywords.trim())}>
+                <summary className="cursor-pointer text-xs text-[#7A7A7A] underline-offset-2 hover:text-[#141414] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+                  Keywords
+                </summary>
+                <div className="mt-2 space-y-2">
+                  <label className="sr-only" htmlFor="branding-meta-keywords">
+                    Meta keywords
+                  </label>
+                  <input
+                    id="branding-meta-keywords"
+                    className={inputClass()}
+                    value={form.metaKeywords}
+                    maxLength={500}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, metaKeywords: e.target.value }))
+                    }
+                    placeholder="grocery, fresh produce, delivery, Nairobi"
+                  />
+                  <p className={hintClass()}>
+                    Optional. Most search engines ignore this.
+                  </p>
+                </div>
+              </details>
             </BrandingSection>
 
             {saveBar}
@@ -1877,15 +1916,17 @@ export default function BrandingPage() {
               logoDarkUrl={logoDarkUrl}
               brandPrimary={form.primaryColor}
             />
-            <BrandingPreview
-              form={form}
-              logoUrl={logoUrl}
-              business={snapshot}
-              location={seoLocation}
-              onLogoScaleChange={(logoScale) =>
-                setForm((s) => ({ ...s, logoScale }))
-              }
-            />
+            <div className="hidden lg:block">
+              <BrandingPreview
+                form={form}
+                logoUrl={logoUrl}
+                business={snapshot}
+                location={seoLocation}
+                onLogoScaleChange={(logoScale) =>
+                  setForm((s) => ({ ...s, logoScale }))
+                }
+              />
+            </div>
             <RelatedLinks />
           </aside>
         </div>

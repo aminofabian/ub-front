@@ -53,9 +53,9 @@ export function CurrentLookLink({
     <Link
       href={APP_ROUTES.businessThemes}
       className={cn(
-        "group flex items-start gap-3 rounded-xl border border-border/70 bg-background px-3 py-2.5 text-left transition",
-        "hover:border-foreground/25 hover:bg-muted/40",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2",
+        "group flex items-start gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 text-left transition",
+        "hover:border-[#0f766e] hover:bg-white",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/30",
         className,
       )}
     >

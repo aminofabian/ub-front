@@ -322,7 +322,7 @@ export function AiLogoGenerator({
     return (
       <div className="min-w-0 space-y-2 text-left">
         <p className={fieldLabel}>
-          {dark ? "Dark — heroes & night themes" : "Light — dashboard & receipts"}
+          {dark ? "On the hero" : "On white"}
         </p>
         <div className={frame}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -428,18 +428,30 @@ export function AiLogoGenerator({
             Generate with AI
           </button>
         ) : (
-          <Button
+          <button
             type="button"
-            variant="outline"
             disabled={disabled || busy}
             onClick={() => {
               setError("");
               setOpen(true);
             }}
+            className={cn(
+              "flex w-full items-start gap-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3 text-left",
+              "transition-colors hover:border-[#0f766e] hover:bg-[color-mix(in_srgb,#0f766e_4%,white)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+            )}
           >
-            <Sparkles className="size-4" aria-hidden />
-            Generate with AI
-          </Button>
+            <Sparkles className="mt-0.5 size-4 shrink-0 text-[#0f766e]" aria-hidden />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-[#141414]">
+                Generate a kit
+              </span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-[#7A7A7A]">
+                Logos, tab icon, and a share image. About 30 seconds.
+              </span>
+            </span>
+          </button>
         )
       ) : (
         <div ref={panelRef} className="space-y-3 scroll-mb-32">
@@ -578,7 +590,7 @@ export function AiLogoGenerator({
                   disabled={blocked}
                   rows={2}
                   maxLength={600}
-                  placeholder="Optional — leave blank for a full brand kit"
+                  placeholder="Optional. Leave blank for a full brand kit"
                   className={textareaClass}
                 />
               </label>
@@ -650,7 +662,7 @@ export function AiLogoGenerator({
                 )}
               </div>
               <p className={hintClass}>
-                Four files — light logo, dark logo, favicon, and a share
+                Four files: light logo, dark logo, favicon, and a share
                 image. About 30 seconds. Dark versions never sit on a white
                 plate.
               </p>
