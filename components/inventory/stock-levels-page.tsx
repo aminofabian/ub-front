@@ -41,6 +41,7 @@ import {
   inventoryQuickLinksForUser,
 } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
+import { textMatchesQuery } from "@/lib/text-search";
 
 import {
   supFieldLabel,
@@ -70,6 +71,9 @@ type StockSort =
 type StockRow = {
   id: string;
   name: string;
+  sku: string;
+  barcode: string;
+  brand: string;
   stock: number;
   reorderLevel: number | null;
   categoryId: string | null;
@@ -630,6 +634,9 @@ export function StockLevelsPage() {
           collected.push({
             id: item.id,
             name: displayItemName(item),
+            sku: item.sku?.trim() || "",
+            barcode: item.barcode?.trim() || "",
+            brand: item.brand?.trim() || "",
             stock,
             reorderLevel: reorderByItemId.get(item.id) ?? null,
             categoryId: item.categoryId ?? null,
@@ -665,7 +672,12 @@ export function StockLevelsPage() {
     const q = search.trim().toLowerCase();
     const filtered = rows.filter((r) => {
       if (!matchesStockStatus(r, statusFilter)) return false;
-      if (q && !r.name.toLowerCase().includes(q)) return false;
+      if (
+        q &&
+        !textMatchesQuery(q, r.name, r.sku, r.barcode, r.brand, r.categoryName)
+      ) {
+        return false;
+      }
       return true;
     });
     return sortStockRows(filtered, sortBy);
@@ -794,7 +806,7 @@ export function StockLevelsPage() {
                   type="search"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Product name…"
+                  placeholder="Name, SKU, barcode…"
                   className={cn(supInput, "h-8 bg-background py-0 pl-8 text-xs")}
                   aria-label="Search stock"
                 />

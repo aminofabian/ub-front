@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { cn } from "@/lib/utils";
+import { textMatchesQuery } from "@/lib/text-search";
 import { formatDateRangeLabel, presetRange } from "@/lib/analytics-date-range";
 import {
   fetchBranches,
@@ -655,14 +656,15 @@ export function TransactionsPage() {
         return false;
       }
       if (!q) return true;
-      return (
-        (tx.receiptNo != null && String(tx.receiptNo).includes(q)) ||
-        tx.saleId.toLowerCase().includes(q) ||
-        tx.cashierName.toLowerCase().includes(q) ||
-        tx.customerName.toLowerCase().includes(q) ||
-        tx.paymentMethod.toLowerCase().includes(q) ||
-        (tx.paymentMethods ?? "").toLowerCase().includes(q) ||
-        tx.lines.some((l) => l.itemName.toLowerCase().includes(q))
+      return textMatchesQuery(
+        q,
+        tx.receiptNo,
+        tx.saleId,
+        tx.cashierName,
+        tx.customerName,
+        tx.paymentMethod,
+        tx.paymentMethods,
+        ...tx.lines.flatMap((l) => [l.itemName, l.itemSku, l.itemBarcode]),
       );
     });
   }, [transactions, search, statusFilter, paymentFilter, channelFilter]);
@@ -889,7 +891,7 @@ export function TransactionsPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search receipt, product, cashier…"
+              placeholder="Receipt, product, SKU, barcode…"
               className={cn(dashboardInputClass(), "h-9 py-2 pl-9 text-sm")}
               aria-label="Search transactions"
             />

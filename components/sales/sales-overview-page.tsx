@@ -38,6 +38,7 @@ import {
   type StatusFilter,
 } from "@/components/sales/sales-feed-filters";
 import { cn } from "@/lib/utils";
+import { textMatchesQuery } from "@/lib/text-search";
 import {
   groupLinesIntoTransactions,
   txDisplayNo,
@@ -632,14 +633,17 @@ export function SalesOverviewPage() {
         return false;
       }
       if (!q) return true;
-      return (
-        row.itemName.toLowerCase().includes(q) ||
-        row.cashierName.toLowerCase().includes(q) ||
-        row.customerName?.toLowerCase().includes(q) ||
-        row.paymentMethod.toLowerCase().includes(q) ||
-        (row.paymentMethods ?? "").toLowerCase().includes(q) ||
-        row.saleId.toLowerCase().includes(q) ||
-        (row.receiptNo != null && String(row.receiptNo).includes(q))
+      return textMatchesQuery(
+        q,
+        row.itemName,
+        row.itemSku,
+        row.itemBarcode,
+        row.cashierName,
+        row.customerName,
+        row.paymentMethod,
+        row.paymentMethods,
+        row.saleId,
+        row.receiptNo,
       );
     });
   }, [lines, search, statusFilter, paymentFilter, channelFilter]);
@@ -940,7 +944,7 @@ export function SalesOverviewPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search receipt, product, cashier…"
+              placeholder="Receipt, product, SKU, barcode…"
               className={cn(dashboardInputClass(), "h-9 py-2 pl-9 text-sm")}
               aria-label="Search sales"
             />

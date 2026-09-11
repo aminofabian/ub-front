@@ -32,6 +32,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { cn } from "@/lib/utils";
+import { textMatchesQuery } from "@/lib/text-search";
 import {
   ANALYTICS_PRESET_LABELS,
   type DatePreset,
@@ -378,12 +379,17 @@ export default function AnalyticsActivityPage() {
     }
     const q = saleSearch.trim().toLowerCase();
     if (!q) return rows;
-    return rows.filter(
-      (s) =>
-        s.itemName.toLowerCase().includes(q) ||
-        s.cashierName.toLowerCase().includes(q) ||
-        s.paymentMethod.toLowerCase().includes(q) ||
-        s.saleId.toLowerCase().includes(q),
+    return rows.filter((s) =>
+      textMatchesQuery(
+        q,
+        s.itemName,
+        s.itemSku,
+        s.itemBarcode,
+        s.cashierName,
+        s.paymentMethod,
+        s.saleId,
+        s.receiptNo,
+      ),
     );
   }, [recentSales, saleSearch, view, selectedItemId]);
 

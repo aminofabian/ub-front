@@ -6406,6 +6406,8 @@ export type RecentSaleRow = {
   channel?: string | null;
   itemId: string;
   itemName: string;
+  itemSku?: string | null;
+  itemBarcode?: string | null;
   quantity: number | string;
   unitPrice: number | string;
   lineTotal: number | string;

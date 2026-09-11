@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { textMatchesQuery } from "@/lib/text-search";
 import {
   patchItem,
   fetchItemById,
@@ -613,11 +614,7 @@ export function ActivityVelocityBoard({
   const filtered = (() => {
     const q = search.trim().toLowerCase();
     if (!q) return rows;
-    return rows.filter(
-      (r) =>
-        r.itemName.toLowerCase().includes(q) ||
-        (r.sku ?? "").toLowerCase().includes(q),
-    );
+    return rows.filter((r) => textMatchesQuery(q, r.itemName, r.sku));
   })();
 
   const sorted = [...filtered].sort((a, b) => {

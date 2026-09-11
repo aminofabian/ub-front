@@ -1638,7 +1638,7 @@ export default function GlobalCatalogPage() {
                 />
                 <Input
                   ref={searchInputRef}
-                  placeholder="Search by name, brand, or barcode..."
+                  placeholder="Search by name, SKU, brand, or barcode..."
                   className="pl-9"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
