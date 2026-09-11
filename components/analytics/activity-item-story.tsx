@@ -17,12 +17,16 @@ import {
 
 import { cn } from "@/lib/utils";
 import {
+  fetchItemSeasonality,
   fetchItemsPage,
   patchItem,
   uploadItemImageFile,
   type ItemActivityResponse,
+  type ItemSeasonalityResponse,
   type ItemSummaryRecord,
 } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
+import { ItemSeasonalityChart } from "@/components/analytics/item-seasonality-chart";
 import { useDashboard } from "@/components/dashboard-provider";
 import { canEditStockLevels } from "@/lib/inventory-access";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -395,6 +399,10 @@ export function ActivityItemStory({
   const [suggestions, setSuggestions] = useState<ItemSummaryRecord[]>([]);
   const [searching, setSearching] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [seasonView, setSeasonView] = useState<
+    "rolling12" | "thisYear" | "lastYear"
+  >("rolling12");
+  const [season, setSeason] = useState<ItemSeasonalityResponse | null>(null);
 
   useEffect(() => {
     const q = query.trim();
@@ -410,6 +418,27 @@ export function ActivityItemStory({
     }, 250);
     return () => { cancelled = true; window.clearTimeout(t); };
   }, [query, itemTypeId]);
+
+  useEffect(() => {
+    if (!itemId) {
+      setSeason(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchItemSeasonality(itemId, {
+      branchId: branchId?.trim() || undefined,
+      view: seasonView,
+    })
+      .then((res) => {
+        if (!cancelled) setSeason(res);
+      })
+      .catch(() => {
+        if (!cancelled) setSeason(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [itemId, branchId, seasonView]);
 
   const chartMax = useMemo(() => {
     if (!activity?.daily?.length) return 1;
@@ -583,6 +612,22 @@ export function ActivityItemStory({
               })}
             </div>
           </div>
+
+          {season ? (
+            <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/10 px-3 py-2.5">
+              <ItemSeasonalityChart
+                data={season}
+                view={seasonView}
+                onViewChange={setSeasonView}
+              />
+              <Link
+                href={`${APP_ROUTES.customerSegments}?itemId=${encodeURIComponent(itemId)}&mode=similar`}
+                className="mt-2 inline-block text-[11px] font-semibold text-foreground underline-offset-2 hover:underline"
+              >
+                Likely buyers of similar products
+              </Link>
+            </div>
+          ) : null}
 
           {/* Stock-ins + Recent sales */}
           <div className="grid gap-4 lg:grid-cols-2">

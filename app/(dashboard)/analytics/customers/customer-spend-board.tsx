@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { RefreshCw, Search, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Mail, MessageSquare, RefreshCw, Search, Users } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
@@ -17,6 +18,7 @@ import {
   NavySidebarSection,
   WhiteCard,
 } from "@/components/credits/customer-board-theme";
+import { CustomerBulkSmsDrawer } from "@/components/credits/customer-bulk-sms-drawer";
 import {
   DirectoryColumn,
   DirectoryToolbar,
@@ -25,6 +27,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
+import { captureCustomerForCashAndMpesa } from "@/lib/checkout-access";
+import {
+  captureLinkedPct,
+  directoryCustomerId,
+  isWholesaleShaped,
+  medianNumber,
+} from "@/lib/customer-spend-lists";
 import {
   ANALYTICS_PRESET_LABELS,
   type DatePreset,
@@ -34,15 +43,17 @@ import {
 } from "@/lib/analytics-date-range";
 import {
   fetchBranches,
+  fetchCaptureHealth,
   fetchCustomerSpend,
   type BranchRecord,
+  type CaptureHealthResponse,
   type CustomerSpendCohort,
   type CustomerSpendResponse,
   type CustomerSpendRow,
 } from "@/lib/api";
 
 type SortKey = "spend" | "visits" | "streak" | "recency" | "basket";
-type CohortFilter = "all" | CustomerSpendCohort;
+type CohortFilter = "all" | CustomerSpendCohort | "wholesale_shaped";
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "spend", label: "Biggest spenders" },
@@ -60,6 +71,7 @@ const COHORTS: { key: CohortFilter; label: string }[] = [
   { key: "at_risk", label: "Been away" },
   { key: "dormant", label: "Quiet" },
   { key: "one_off", label: "Once" },
+  { key: "wholesale_shaped", label: "Wholesale-shaped" },
 ];
 
 function toNum(n: number | string | null | undefined): number {
@@ -131,7 +143,7 @@ function lastSeenLabel(
 
 function cohortLabel(cohort: string): string {
   const found = COHORTS.find((c) => c.key === cohort);
-  return found && found.key !== "all" ? found.label : cohort;
+  return found && found.key !== "all" ? found.label : cohort.replace(/_/g, " ");
 }
 
 function sortRows(rows: CustomerSpendRow[], key: SortKey): CustomerSpendRow[] {
@@ -207,8 +219,11 @@ function StreakTicks({ count }: { count: number }) {
 }
 
 export function CustomerSpendBoard() {
-  const { business, setBranchId: setHeaderBranchId } = useDashboard();
+  const { business, setBranchId: setHeaderBranchId, canManageCustomers } =
+    useDashboard();
+  const router = useRouter();
   const currency = business?.currency?.trim() || "KES";
+  const captureOn = captureCustomerForCashAndMpesa(business);
   const money = useCallback(
     (n: number | string | null | undefined) => compactMoney(n, currency),
     [currency],
@@ -227,9 +242,11 @@ export function CustomerSpendBoard() {
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<CustomerSpendResponse | null>(null);
+  const [capture, setCapture] = useState<CaptureHealthResponse | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("spend");
   const [cohort, setCohort] = useState<CohortFilter>("all");
   const [query, setQuery] = useState("");
+  const [smsOpen, setSmsOpen] = useState(false);
   const hasLoadedRef = useRef(false);
 
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
@@ -276,14 +293,23 @@ export function CustomerSpendBoard() {
     try {
       if (!dateRange) {
         setData(null);
+        setCapture(null);
         return;
       }
-      const res = await fetchCustomerSpend(
-        dateRange.from,
-        dateRange.to,
-        branchId || undefined,
-      );
+      const [res, health] = await Promise.all([
+        fetchCustomerSpend(
+          dateRange.from,
+          dateRange.to,
+          branchId || undefined,
+        ),
+        fetchCaptureHealth(
+          dateRange.from,
+          dateRange.to,
+          branchId || undefined,
+        ).catch(() => null),
+      ]);
       setData(res);
+      setCapture(health);
       hasLoadedRef.current = true;
     } catch (err) {
       setError(
@@ -302,8 +328,19 @@ export function CustomerSpendBoard() {
   const filtered = useMemo(() => {
     const rows = data?.rows ?? [];
     const q = query.trim().toLowerCase();
+    const medianBasket = medianNumber(rows.map((row) => toNum(row.avgBasket)));
     const matched = rows.filter((row) => {
-      if (cohort !== "all" && row.cohort !== cohort) return false;
+      if (cohort === "wholesale_shaped") {
+        // Pinned wholesale tag or the large-basket heuristic (warehouse §8.4).
+        if (
+          !row.wholesalePinned &&
+          !isWholesaleShaped(toNum(row.avgBasket), row.saleCount, medianBasket)
+        ) {
+          return false;
+        }
+      } else if (cohort !== "all" && row.cohort !== cohort) {
+        return false;
+      }
       if (!q) return true;
       const no = customerNoLabel(row.customerNo)?.toLowerCase() ?? "";
       return (
@@ -316,6 +353,16 @@ export function CustomerSpendBoard() {
     return sortRows(matched, sortKey);
   }, [data, query, cohort, sortKey]);
 
+  const messageableIds = useMemo(() => {
+    const ids: string[] = [];
+    for (const row of filtered) {
+      const id = directoryCustomerId(row.customerId);
+      if (id) ids.push(id);
+      if (ids.length >= 500) break;
+    }
+    return ids;
+  }, [filtered]);
+
   const maxSpend = useMemo(() => {
     return Math.max(...filtered.map((r) => toNum(r.spend)), 1);
   }, [filtered]);
@@ -324,6 +371,34 @@ export function CustomerSpendBoard() {
   const rangeLabel = dateRange
     ? formatDateRangeLabel(dateRange.from, dateRange.to)
     : "";
+
+  const linkedPct = capture
+    ? Math.round(toNum(capture.identifiedPct))
+    : data
+      ? captureLinkedPct(data.identifiedSaleCount, data.walkInSaleCount)
+      : 0;
+  const namedTills = capture
+    ? capture.identifiedSales
+    : (data?.identifiedSaleCount ?? 0);
+  const walkInTills = data?.walkInSaleCount ?? 0;
+  const tillTotal = capture
+    ? capture.totalSales
+    : namedTills + walkInTills;
+  const tenderSplits = capture?.tenders ?? [];
+  // Scope §8.5: sell the toggle where it matters — shops mostly on cash/M-Pesa.
+  const cashMpesaShare = (() => {
+    if (!capture || capture.totalSales <= 0) return null;
+    const cashMpesa = tenderSplits
+      .filter((s) => s.tender === "cash" || s.tender === "mpesa")
+      .reduce((sum, s) => sum + s.totalSales, 0);
+    return cashMpesa / capture.totalSales;
+  })();
+  const showCaptureCta =
+    !captureOn && (cashMpesaShare == null || cashMpesaShare >= 0.5);
+  const listLabel =
+    cohort === "all"
+      ? "these shoppers"
+      : cohortLabel(cohort).toLowerCase();
 
   const summary = data ? (
     data.identifiedCustomerCount === 0 ? (
@@ -373,23 +448,53 @@ export function CustomerSpendBoard() {
           { href: APP_ROUTES.analyticsActivity, label: "Activity" },
         ]}
         actions={
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            className="size-8"
-            onClick={() => {
-              setRefreshing(true);
-              void load();
-            }}
-            disabled={refreshing}
-            aria-label="Refresh"
-          >
-            <RefreshCw
-              className={cn("size-3.5", refreshing && "animate-spin")}
-              aria-hidden
-            />
-          </Button>
+          <div className="flex items-center gap-1">
+            {canManageCustomers && messageableIds.length > 0 ? (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1 rounded-none text-xs"
+                  onClick={() => setSmsOpen(true)}
+                >
+                  <MessageSquare className="size-3.5" />
+                  Message
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1 rounded-none text-xs"
+                  onClick={() => {
+                    router.push(
+                      `${APP_ROUTES.customerEmailCampaignNew}?customerIds=${messageableIds.map(encodeURIComponent).join(",")}`,
+                    );
+                  }}
+                >
+                  <Mail className="size-3.5" />
+                  Email
+                </Button>
+              </>
+            ) : null}
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="size-8"
+              onClick={() => {
+                setRefreshing(true);
+                void load();
+              }}
+              disabled={refreshing}
+              aria-label="Refresh"
+            >
+              <RefreshCw
+                className={cn("size-3.5", refreshing && "animate-spin")}
+                aria-hidden
+              />
+            </Button>
+          </div>
         }
       />
 
@@ -647,6 +752,58 @@ export function CustomerSpendBoard() {
             className="lg:order-2"
           >
             <div className="flex flex-col gap-2">
+              {data && tillTotal > 0 ? (
+                <WhiteCard className="space-y-1.5 p-3">
+                  <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                    Named tills
+                  </p>
+                  <p className="text-lg font-bold tabular-nums tracking-tight text-foreground">
+                    {linkedPct}%
+                  </p>
+                  <CrmBar pct={linkedPct} warn={linkedPct < 40} />
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    {namedTills.toLocaleString("en-KE")} of{" "}
+                    {tillTotal.toLocaleString("en-KE")} completed sales in this
+                    window have a name. Walk-ins stay anonymous on purpose.
+                  </p>
+                  {tenderSplits.length > 0 ? (
+                    <ul className="space-y-1 border-t border-border/50 pt-1.5">
+                      {tenderSplits.map((split) => {
+                        const pct = Math.round(toNum(split.identifiedPct));
+                        const label =
+                          split.tender === "cash"
+                            ? "Cash"
+                            : split.tender === "mpesa"
+                              ? "M-Pesa"
+                              : split.tender === "tab"
+                                ? "Tab"
+                                : "Other";
+                        return (
+                          <li
+                            key={split.tender}
+                            className="flex items-center justify-between gap-2 text-[11px] tabular-nums"
+                          >
+                            <span className="text-muted-foreground">{label}</span>
+                            <span className="text-foreground">
+                              {pct}% named · {split.identifiedSales.toLocaleString("en-KE")}
+                              /{split.totalSales.toLocaleString("en-KE")}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                  {showCaptureCta ? (
+                    <Link
+                      href={`${APP_ROUTES.businessSettings}#settings-checkout`}
+                      className="block text-[11px] font-semibold text-foreground underline-offset-2 hover:underline"
+                    >
+                      Offer customer on cash & M-Pesa
+                    </Link>
+                  ) : null}
+                </WhiteCard>
+              ) : null}
+
               <NavySidebarSection title="Period">
                 {ANALYTICS_PRESET_LABELS.map((item) => (
                   <NavyRadioOption
@@ -705,6 +862,15 @@ export function CustomerSpendBoard() {
           </DirectoryColumn>
         </div>
       </div>
+
+      {canManageCustomers ? (
+        <CustomerBulkSmsDrawer
+          open={smsOpen}
+          onOpenChange={setSmsOpen}
+          customerIds={messageableIds}
+          recipientLabel={listLabel}
+        />
+      ) : null}
     </div>
   );
 }

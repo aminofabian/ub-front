@@ -6752,6 +6752,7 @@ export type CustomerSpendRow = {
   cadence: string;
   favoriteWeekday: string | null;
   cohort: CustomerSpendCohort | string;
+  wholesalePinned: boolean;
 };
 
 export type CustomerSpendResponse = {
@@ -6779,6 +6780,37 @@ export async function fetchCustomerSpend(
   const qs = params.toString();
   return request<CustomerSpendResponse>(
     `/api/v1/sales/intelligence/customer-spend${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type CaptureHealthTenderSplit = {
+  tender: string;
+  totalSales: number;
+  identifiedSales: number;
+  identifiedPct: number | string;
+};
+
+export type CaptureHealthResponse = {
+  from: string;
+  to: string;
+  totalSales: number;
+  identifiedSales: number;
+  identifiedPct: number | string;
+  tenders: CaptureHealthTenderSplit[];
+};
+
+export async function fetchCaptureHealth(
+  from?: string,
+  to?: string,
+  branchId?: string,
+): Promise<CaptureHealthResponse> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  const qs = params.toString();
+  return request<CaptureHealthResponse>(
+    `/api/v1/sales/intelligence/capture-health${qs ? `?${qs}` : ""}`,
   );
 }
 
@@ -11039,6 +11071,7 @@ export type CustomerRecord = {
   origin?: string | null;
   email: string | null;
   notes: string | null;
+  tags?: string[] | null;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -11319,6 +11352,7 @@ export type OutstandingTabRowRecord = {
 export type TabPurchaseLineRecord = {
   itemName: string;
   itemSku?: string | null;
+  itemBarcode?: string | null;
   quantity: number | string;
   unitPrice: number | string;
   lineTotal: number | string;
@@ -11382,14 +11416,38 @@ export type TabPurchasesPageRecord = {
 
 export async function fetchCustomerTabPurchases(
   customerId: string,
-  opts?: { offset?: number; limit?: number },
+  opts?: { offset?: number; limit?: number; q?: string },
 ): Promise<TabPurchasesPageRecord> {
   const params = new URLSearchParams();
   if (opts?.offset != null) params.set("offset", String(opts.offset));
   if (opts?.limit != null) params.set("limit", String(opts.limit));
+  if (opts?.q?.trim()) params.set("q", opts.q.trim());
   const qs = params.toString();
   return request<TabPurchasesPageRecord>(
     `/api/v1/customers/${encodeURIComponent(customerId)}/tab-purchases${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type LastSaleSummaryRecord = {
+  soldAt: string | null;
+  itemNames: string[];
+  itemCount: number;
+  hint: string | null;
+};
+
+/** Till last-basket line. Fail-open: keep timeout short and suppress toasts. */
+export async function fetchCustomerLastSaleSummary(
+  customerId: string,
+  opts?: { signal?: AbortSignal },
+): Promise<LastSaleSummaryRecord> {
+  return request<LastSaleSummaryRecord>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/last-sale-summary`,
+    {
+      timeoutMs: 900,
+      toast: false,
+      softAuth: true,
+      signal: opts?.signal,
+    },
   );
 }
 
@@ -11659,6 +11717,7 @@ export type PatchCustomerPayload = {
   name?: string;
   email?: string | null;
   notes?: string | null;
+  tags?: string[];
   creditLimit?: number | string | null;
   creditSuspended?: boolean;
   version?: number;
@@ -11722,6 +11781,99 @@ export async function fetchCustomersByProduct(params: {
   );
 }
 
+export type CustomerItemRhythmRow = {
+  itemId: string;
+  itemName: string;
+  itemSku: string | null;
+  purchaseCount: number;
+  medianGapDays: number | null;
+  lastPurchaseAt: string | null;
+  daysSinceLast: number;
+  dueish: boolean;
+  summary: string;
+};
+
+export type CustomerItemRhythmResponse = {
+  customerId: string;
+  linkedSaleCount: number;
+  rows: CustomerItemRhythmRow[];
+};
+
+export async function fetchCustomerItemRhythm(
+  customerId: string,
+  itemId?: string,
+): Promise<CustomerItemRhythmResponse> {
+  const qs = new URLSearchParams({ customerId });
+  if (itemId?.trim()) qs.set("itemId", itemId.trim());
+  return request<CustomerItemRhythmResponse>(
+    `/api/v1/sales/intelligence/customer-item-rhythm?${qs}`,
+  );
+}
+
+export type ItemMonthBucket = {
+  year: number;
+  month: number;
+  label: string;
+  qty: number | string;
+  peak: boolean;
+};
+
+export type CompanionSkuRow = {
+  itemId: string;
+  itemName: string;
+  itemSku: string | null;
+  togetherCount: number;
+};
+
+export type ItemSeasonalityResponse = {
+  itemId: string;
+  itemName: string;
+  itemSku: string | null;
+  view: "rolling12" | "thisYear" | "lastYear" | string;
+  months: ItemMonthBucket[];
+  peakMonths: number[];
+  peakLabel: string | null;
+  linkedSaleCount: number;
+  companions: CompanionSkuRow[];
+};
+
+export async function fetchItemSeasonality(
+  itemId: string,
+  opts?: { branchId?: string; view?: "rolling12" | "thisYear" | "lastYear" },
+): Promise<ItemSeasonalityResponse> {
+  const qs = new URLSearchParams({ itemId });
+  if (opts?.branchId?.trim()) qs.set("branchId", opts.branchId.trim());
+  if (opts?.view) qs.set("view", opts.view);
+  return request<ItemSeasonalityResponse>(
+    `/api/v1/sales/intelligence/item-seasonality?${qs}`,
+  );
+}
+
+export type SimilarBuyersResponse = {
+  itemId: string;
+  matchBasis: "category" | "aisle" | "brand" | "none" | string;
+  matchLabel: string | null;
+  hint: string | null;
+  rows: CustomerProductSegmentRow[];
+};
+
+export async function fetchSimilarBuyers(params: {
+  itemId: string;
+  from?: string;
+  to?: string;
+  branchId?: string;
+  limit?: number;
+}): Promise<SimilarBuyersResponse> {
+  const qs = new URLSearchParams({ itemId: params.itemId });
+  if (params.from) qs.set("from", params.from);
+  if (params.to) qs.set("to", params.to);
+  if (params.branchId) qs.set("branchId", params.branchId);
+  if (params.limit != null) qs.set("limit", String(params.limit));
+  return request<SimilarBuyersResponse>(
+    `/api/v1/sales/intelligence/similar-buyers?${qs}`,
+  );
+}
+
 export async function bulkSendCustomerSms(body: {
   customerIds: string[];
   body: string;
@@ -11769,6 +11921,7 @@ export type CustomerEmailAudiencePreview = {
   finalRecipients: number;
   sample: CustomerEmailAudienceRecipient[];
   excludedSample: CustomerEmailAudienceRecipient[];
+  smsCustomerIds?: string[];
 };
 
 export type CustomerEmailCampaignSummary = {
@@ -13596,6 +13749,8 @@ export type RestockSuggestionRecord = {
   purchaseOrderId: string | null;
   orderPadItemId: string | null;
   createdAt: string;
+  identifiedDueQty?: number | string | null;
+  identifiedExplain?: string | null;
 };
 
 export type RestockRunStatus =
@@ -13696,6 +13851,8 @@ export type RestockPrepItemRecord = {
   reasonCode: string;
   evidence: string;
   confidence: "high" | "medium" | "low";
+  identifiedDueQty?: number | string | null;
+  identifiedExplain?: string | null;
 };
 
 export type RestockPrepRecord = {

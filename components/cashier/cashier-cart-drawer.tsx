@@ -36,6 +36,7 @@ import {
 } from "@/lib/cashier-item-display";
 import { CashierCurrencySuffix } from "./cashier-currency-inline";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
+import { TillLastBasketHint } from "@/components/cashier/till-last-basket-hint";
 import { isValidCustomerPhone, customerPhoneValidationMessage, storedCustomerPhoneIssue } from "@/lib/customer-phone";
 import {
   customerPrimaryPhone,
@@ -353,6 +354,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
   } = props;
 
   const [linesOpen, setLinesOpen] = useState(false);
+  const [optionalFinderOpen, setOptionalFinderOpen] = useState(false);
   const [desktop, setDesktop] = useState(() =>
     typeof window !== "undefined"
       ? window.matchMedia("(min-width: 640px)").matches
@@ -408,6 +410,21 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
         splitPay)) ||
     payMethod === "remote_bill" ||
     captureCustomerSimple;
+  const optionalBusy =
+    captureCustomerSimple &&
+    (Boolean(selectedCustomer) ||
+      customerPhoneQuery.trim().length > 0 ||
+      customerHits.length > 0);
+  const showCollapsedOptional =
+    captureCustomerSimple && !optionalFinderOpen && !selectedCustomer;
+
+  useEffect(() => {
+    if (optionalBusy) setOptionalFinderOpen(true);
+  }, [optionalBusy]);
+
+  useEffect(() => {
+    if (!captureCustomerSimple) setOptionalFinderOpen(false);
+  }, [captureCustomerSimple]);
 
   const tenderNum = Number(cashTenderStr.trim());
   const cashChange =
@@ -846,7 +863,27 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                     </div>
                   ) : null}
 
-                  {showCustomerPicker ? (
+                  {showCustomerPicker && showCollapsedOptional ? (
+                    <div className="space-y-1">
+                      <button
+                        type="button"
+                        disabled={!online}
+                        onClick={() => setOptionalFinderOpen(true)}
+                        className="flex h-9 w-full items-center justify-between rounded-xl border border-dashed border-border/70 bg-card/80 px-3 text-left text-[12px] font-medium text-muted-foreground hover:bg-muted/40 disabled:opacity-40"
+                      >
+                        <span>Link customer</span>
+                        <span className="font-normal text-muted-foreground/70">
+                          Optional
+                        </span>
+                      </button>
+                      <p className="px-0.5 text-[10px] text-muted-foreground">
+                        Walk-ins stay quick. Repeat sales build who-buys-what
+                        history.
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {showCustomerPicker && !showCollapsedOptional ? (
                     <div className="space-y-2 rounded-xl border border-border/45 bg-card/80 p-2.5">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                         {creditChangeToWallet
@@ -897,6 +934,18 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         >
                           {customerSearchBusy ? "…" : "Find"}
                         </Button>
+                        {captureCustomerSimple && !selectedCustomer ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomerPhoneQuery("");
+                              setOptionalFinderOpen(false);
+                            }}
+                            className="h-9 shrink-0 px-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                          >
+                            Skip
+                          </button>
+                        ) : null}
                       </div>
                       {(payMethod === "customer_credit" ||
                         creditChangeToWallet) &&
@@ -1048,25 +1097,31 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         </div>
                       ) : null}
                       {selectedCustomer ? (
-                        <div className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-2.5 py-1.5 text-[12px]">
-                          <p className="min-w-0 truncate font-semibold">
-                            {selectedCustomer.name}
-                            {selectedPhone ? (
-                              <span className="font-normal text-muted-foreground">
-                                {" "}
-                                · {selectedPhone}
-                              </span>
+                        <div className="rounded-lg bg-muted/40 px-2.5 py-1.5 text-[12px]">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="min-w-0 truncate font-semibold">
+                              {selectedCustomer.name}
+                              {selectedPhone ? (
+                                <span className="font-normal text-muted-foreground">
+                                  {" "}
+                                  · {selectedPhone}
+                                </span>
+                              ) : null}
+                            </p>
+                            {captureCustomerSimple ? (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedCustomer(null)}
+                                className="shrink-0 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                              >
+                                Clear
+                              </button>
                             ) : null}
-                          </p>
-                          {captureCustomerSimple ? (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedCustomer(null)}
-                              className="shrink-0 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
-                            >
-                              Clear
-                            </button>
-                          ) : null}
+                          </div>
+                          <TillLastBasketHint
+                            customerId={selectedCustomer.id}
+                            className="mt-0.5 truncate text-[11px] text-muted-foreground"
+                          />
                         </div>
                       ) : null}
                     </div>

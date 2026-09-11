@@ -1738,7 +1738,8 @@ export function QuickSaleWorkspace({
     if (
       captureCustomerAtCheckout &&
       !tabOrWalletLookup &&
-      !isValidCustomerPhone(q)
+      !isValidCustomerPhone(q) &&
+      !useNameSearch
     ) {
       setCustomerHits([]);
       updateActiveCart({

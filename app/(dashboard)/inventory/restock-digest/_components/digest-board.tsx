@@ -652,6 +652,11 @@ function SupplierStall({
                       size="sm"
                       className="line-clamp-2 min-h-[2.4rem] text-[12.5px] leading-snug"
                     />
+                    {s.identifiedExplain ? (
+                      <p className="line-clamp-2 text-[10px] leading-snug text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]">
+                        {s.identifiedExplain}
+                      </p>
+                    ) : null}
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="text-[14px] font-semibold tabular-nums tracking-tight text-[var(--pos-ink,#1c1915)]">
                         {s.unitCost != null

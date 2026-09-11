@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Download,
@@ -40,31 +41,64 @@ import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import {
   fetchCustomersByProduct,
+  fetchItemById,
   fetchItemsPage,
+  fetchSimilarBuyers,
   type CustomerProductSegmentRow,
   type ItemSummaryRecord,
 } from "@/lib/api";
 import {
+  addDays,
   formatDateRangeLabel,
   presetRange,
+  toISODate,
   type DatePreset,
 } from "@/lib/analytics-date-range";
 
-type SegmentDatePreset = Extract<
-  DatePreset,
-  "last7" | "last30" | "thisMonth" | "lastMonth"
->;
+type Audience = "bought" | "similar";
+type SegmentDatePreset =
+  | Extract<DatePreset, "last7" | "last30" | "thisMonth" | "lastMonth">
+  | "sameMonthLastYear"
+  | "last90"
+  | "last180";
 
-const DATE_OPTIONS: { id: SegmentDatePreset; label: string }[] = [
+const BOUGHT_DATES: { id: SegmentDatePreset; label: string }[] = [
   { id: "last7", label: "7 days" },
   { id: "last30", label: "30 days" },
   { id: "thisMonth", label: "This month" },
   { id: "lastMonth", label: "Last month" },
+  { id: "sameMonthLastYear", label: "Same month last year" },
 ];
+
+const SIMILAR_DATES: { id: SegmentDatePreset; label: string }[] = [
+  { id: "last90", label: "90 days" },
+  { id: "last180", label: "180 days" },
+];
+
+function sameMonthLastYearRange(): { from: string; to: string } {
+  const now = new Date();
+  const from = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+  const to = new Date(now.getFullYear() - 1, now.getMonth() + 1, 0);
+  return { from: toISODate(from), to: toISODate(to) };
+}
+
+function segmentRange(preset: SegmentDatePreset): { from: string; to: string } {
+  if (preset === "sameMonthLastYear") return sameMonthLastYearRange();
+  if (preset === "last90") {
+    const today = new Date();
+    return { from: toISODate(addDays(today, -89)), to: toISODate(today) };
+  }
+  if (preset === "last180") {
+    const today = new Date();
+    return { from: toISODate(addDays(today, -179)), to: toISODate(today) };
+  }
+  return presetRange(preset) ?? presetRange("last30")!;
+}
 
 export function CustomerSegmentsWorkspace() {
   const { loading, canViewAnalytics, canManageCustomers } = useDashboard();
   const { formatMoneyCompact: formatKes } = useFormatMoney();
+  const searchParams = useSearchParams();
 
   const [productQuery, setProductQuery] = useState("");
   const [productHits, setProductHits] = useState<ItemSummaryRecord[]>([]);
@@ -73,6 +107,8 @@ export function CustomerSegmentsWorkspace() {
     null,
   );
   const [datePreset, setDatePreset] = useState<SegmentDatePreset>("last30");
+  const [audience, setAudience] = useState<Audience>("bought");
+  const [similarHint, setSimilarHint] = useState<string | null>(null);
   const [rows, setRows] = useState<CustomerProductSegmentRow[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -82,11 +118,9 @@ export function CustomerSegmentsWorkspace() {
     kind: "error" | "success";
   } | null>(null);
 
-  const dateRange = useMemo(
-    () => presetRange(datePreset) ?? presetRange("last30")!,
-    [datePreset],
-  );
+  const dateRange = useMemo(() => segmentRange(datePreset), [datePreset]);
   const periodLabel = formatDateRangeLabel(dateRange.from, dateRange.to);
+  const dateOptions = audience === "similar" ? SIMILAR_DATES : BOUGHT_DATES;
 
   const onSearchProducts = useCallback(async () => {
     const q = productQuery.trim();
@@ -111,14 +145,26 @@ export function CustomerSegmentsWorkspace() {
     setMessage(null);
     setSelectedIds(new Set());
     try {
-      const data = await fetchCustomersByProduct({
-        itemId: selectedItem.id,
-        from: dateRange.from,
-        to: dateRange.to,
-      });
-      setRows(data);
+      if (audience === "similar") {
+        const data = await fetchSimilarBuyers({
+          itemId: selectedItem.id,
+          from: dateRange.from,
+          to: dateRange.to,
+        });
+        setRows(data.rows);
+        setSimilarHint(data.hint);
+      } else {
+        const data = await fetchCustomersByProduct({
+          itemId: selectedItem.id,
+          from: dateRange.from,
+          to: dateRange.to,
+        });
+        setRows(data);
+        setSimilarHint(null);
+      }
     } catch (e) {
       setRows([]);
+      setSimilarHint(null);
       setMessage({
         kind: "error",
         text:
@@ -127,12 +173,39 @@ export function CustomerSegmentsWorkspace() {
     } finally {
       setListLoading(false);
     }
-  }, [selectedItem, dateRange.from, dateRange.to]);
+  }, [selectedItem, dateRange.from, dateRange.to, audience]);
 
   useEffect(() => {
     if (!selectedItem) return;
     void loadSegment();
   }, [selectedItem, loadSegment]);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("itemId")?.trim();
+    const mode = searchParams.get("mode");
+    if (!fromUrl) return;
+    if (mode === "similar") {
+      setAudience("similar");
+      setDatePreset("last90");
+    }
+    let cancelled = false;
+    void fetchItemById(fromUrl)
+      .then((row) => {
+        if (cancelled) return;
+        setSelectedItem({
+          id: row.id,
+          name: row.name,
+          sku: row.sku,
+          categoryId: row.categoryId,
+          brand: row.brand,
+        });
+        setProductQuery(row.name);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
 
   const toggleRow = (id: string) => {
     setSelectedIds((prev) => {
@@ -210,7 +283,7 @@ export function CustomerSegmentsWorkspace() {
         compact
         icon={Filter}
         title="Segments"
-        description="Pick a product in the left column, read buyers in the center, message from the drawer."
+        description="Who bought this SKU, or who already buys the same category — then message them."
       >
         <Link
           href={APP_ROUTES.customers}
@@ -317,10 +390,44 @@ export function CustomerSegmentsWorkspace() {
 
               <div>
                 <p className="mb-2 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                  Audience
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAudience("bought");
+                      setDatePreset("last30");
+                    }}
+                    className={cn(
+                      "rounded-none px-2.5 py-1 text-[11px] font-medium transition-colors",
+                      audience === "bought" ? CRM_PILL_ACTIVE : CRM_PILL_IDLE,
+                    )}
+                  >
+                    Bought this
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAudience("similar");
+                      setDatePreset("last90");
+                    }}
+                    className={cn(
+                      "rounded-none px-2.5 py-1 text-[11px] font-medium transition-colors",
+                      audience === "similar" ? CRM_PILL_ACTIVE : CRM_PILL_IDLE,
+                    )}
+                  >
+                    Likely buyers
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                   Period
                 </p>
                 <div className="flex flex-wrap gap-1">
-                  {DATE_OPTIONS.map((opt) => (
+                  {dateOptions.map((opt) => (
                     <button
                       key={opt.id}
                       type="button"
@@ -346,12 +453,12 @@ export function CustomerSegmentsWorkspace() {
               <div>
                 <h2 className="text-sm font-semibold">
                   {selectedItem
-                    ? `${rows.length} buyer${rows.length === 1 ? "" : "s"}`
+                    ? `${rows.length} ${audience === "similar" ? "likely buyer" : "buyer"}${rows.length === 1 ? "" : "s"}`
                     : "Results"}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Linked sales only — walk-ins without a customer record are
-                  excluded
+                  {similarHint ??
+                    "Linked sales only — walk-ins without a customer record are excluded"}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -420,15 +527,19 @@ export function CustomerSegmentsWorkspace() {
                   Choose a product
                 </p>
                 <p className="max-w-xs text-xs leading-relaxed">
-                  Search the catalog on the left to see who bought it in the
-                  selected period.
+                  Search the catalog on the left. Bought this lists who took
+                  the SKU. Likely buyers lists people who already buy the same
+                  category, aisle, or brand.
                 </p>
               </div>
             ) : listLoading ? (
               <DashboardLoading label="Loading segment…" />
             ) : rows.length === 0 ? (
               <p className="px-5 py-12 text-center text-sm text-muted-foreground">
-                No customers bought this product in the selected period.
+                {audience === "similar"
+                  ? (similarHint ??
+                    "No likely buyers in this window. Set a category on the product, or widen the period.")
+                  : "No customers bought this product in the selected period."}
               </p>
             ) : (
               <div className="min-h-0 flex-1 overflow-auto">

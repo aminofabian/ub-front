@@ -239,6 +239,11 @@ export default function RestockPrepPage() {
             {skuHint ? `${skuHint} · ` : ""}
             {item.evidence}
           </p>
+          {item.identifiedExplain ? (
+            <p className="mt-0.5 text-[10px] leading-snug text-foreground/70">
+              {item.identifiedExplain}
+            </p>
+          ) : null}
           <div className="mt-1.5 flex flex-wrap items-center gap-1">
             <span className="rounded-none bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
               {item.reasonCode

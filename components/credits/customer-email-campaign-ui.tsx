@@ -121,7 +121,17 @@ export const MAIL_FILTER_FIELDS: Array<{
   field: string;
   label: string;
   ops: Array<{ value: string; label: string }>;
-  valueKind: "text" | "bool" | "enum" | "date" | "number" | "none";
+  valueKind:
+    | "text"
+    | "bool"
+    | "enum"
+    | "date"
+    | "number"
+    | "none"
+    | "item"
+    | "itemOptional"
+    | "itemType"
+    | "branch";
   enumValues?: Array<{ value: string; label: string }>;
 }> = [
   {
@@ -271,5 +281,63 @@ export const MAIL_FILTER_FIELDS: Array<{
       { value: "eligible", label: "Eligible" },
       { value: "not_eligible", label: "Not eligible" },
     ],
+  },
+  {
+    field: "cohort",
+    label: "Cohort",
+    ops: [{ value: "eq", label: "Is" }],
+    valueKind: "enum",
+    enumValues: [
+      { value: "champion", label: "Champion" },
+      { value: "regular", label: "Regular" },
+      { value: "at_risk", label: "At risk" },
+      { value: "dormant", label: "Dormant" },
+      { value: "new_face", label: "New face" },
+      { value: "one_off", label: "One-off" },
+    ],
+  },
+  {
+    field: "bought_product",
+    label: "Bought SKU",
+    ops: [{ value: "eq", label: "Is" }],
+    valueKind: "item",
+  },
+  {
+    field: "bought_category",
+    label: "Bought category",
+    ops: [{ value: "eq", label: "Is" }],
+    valueKind: "itemType",
+  },
+  {
+    field: "same_month_last_year",
+    label: "Same month last year",
+    ops: [{ value: "eq", label: "Bought" }],
+    valueKind: "itemOptional",
+  },
+  {
+    field: "wholesale_shaped",
+    label: "Wholesale-shaped",
+    ops: [{ value: "eq", label: "Is" }],
+    valueKind: "enum",
+    enumValues: [
+      { value: "true", label: "Yes" },
+      { value: "false", label: "No" },
+    ],
+  },
+  {
+    field: "wholesale",
+    label: "Wholesale (pinned or shaped)",
+    ops: [{ value: "eq", label: "Is" }],
+    valueKind: "enum",
+    enumValues: [
+      { value: "true", label: "Yes" },
+      { value: "false", label: "No" },
+    ],
+  },
+  {
+    field: "branch",
+    label: "Shopped at branch",
+    ops: [{ value: "eq", label: "Is" }],
+    valueKind: "branch",
   },
 ];

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, PackageOpen, Receipt } from "lucide-react";
+import { ChevronDown, ChevronRight, PackageOpen, Receipt, Search } from "lucide-react";
 
 import { DashboardLoading } from "@/components/dashboard-page-ui";
 import {
@@ -36,11 +36,18 @@ export function CustomerPurchasesSection({
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState("");
   const [openSaleId, setOpenSaleId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
 
   const fmtMoney = useCallback(
     (value: number | string | null | undefined) => boardMoney(value, currency),
     [currency],
   );
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedQuery(query.trim()), 280);
+    return () => window.clearTimeout(handle);
+  }, [query]);
 
   const loadInitial = useCallback(async () => {
     setLoading(true);
@@ -49,9 +56,11 @@ export function CustomerPurchasesSection({
       const page = await fetchCustomerTabPurchases(customerId, {
         offset: 0,
         limit: PAGE_SIZE,
+        q: debouncedQuery || undefined,
       });
       setRows(page.rows);
       setHasMore(page.hasMore);
+      setOpenSaleId(null);
     } catch (e) {
       setRows([]);
       setHasMore(false);
@@ -61,7 +70,7 @@ export function CustomerPurchasesSection({
     } finally {
       setLoading(false);
     }
-  }, [customerId]);
+  }, [customerId, debouncedQuery]);
 
   useEffect(() => {
     void loadInitial();
@@ -73,6 +82,7 @@ export function CustomerPurchasesSection({
       const page = await fetchCustomerTabPurchases(customerId, {
         offset: rows.length,
         limit: PAGE_SIZE,
+        q: debouncedQuery || undefined,
       });
       setRows((prev) => [...prev, ...page.rows]);
       setHasMore(page.hasMore);
@@ -87,6 +97,8 @@ export function CustomerPurchasesSection({
 
   const isBoard = variant === "board";
   const dense = isBoard && compact;
+  const searching = debouncedQuery.length > 0;
+  const showCodes = !dense || searching;
 
   const header = (
     <div
@@ -131,6 +143,28 @@ export function CustomerPurchasesSection({
     </div>
   );
 
+  const searchField = (
+    <div className={cn(dense ? "px-2 pt-1.5" : "px-4 pt-3 sm:px-5")}>
+      <label className="relative block">
+        <Search
+          className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+          aria-hidden
+        />
+        <span className="sr-only">Search purchases by name, SKU, or barcode</span>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Name, SKU, barcode…"
+          className={cn(
+            "w-full rounded-none border border-border/60 bg-background pl-8 text-foreground placeholder:text-muted-foreground",
+            dense ? "h-7 text-[11px]" : "h-9 text-sm",
+          )}
+        />
+      </label>
+    </div>
+  );
+
   const body = loading ? (
     <DashboardLoading label="Loading purchases…" />
   ) : error ? (
@@ -152,11 +186,13 @@ export function CustomerPurchasesSection({
           dense ? "text-xs" : "text-sm",
         )}
       >
-        No purchases yet
+        {searching ? "Nothing matches that search" : "No purchases yet"}
       </p>
       {!dense ? (
         <p className="max-w-sm text-xs text-muted-foreground">
-          Sales appear here when the till attaches this customer at checkout.
+          {searching
+            ? "Try the product name, SKU, or barcode from the packet."
+            : "Sales appear here when the till attaches this customer at checkout."}
         </p>
       ) : null}
     </div>
@@ -315,9 +351,11 @@ export function CustomerPurchasesSection({
                             )}
                           >
                             {line.itemName}
-                            {line.itemSku && !dense ? (
+                            {showCodes && (line.itemSku || line.itemBarcode) ? (
                               <span className="mt-0.5 block font-mono text-[11px] text-muted-foreground">
-                                {line.itemSku}
+                                {[line.itemSku, line.itemBarcode]
+                                  .filter(Boolean)
+                                  .join(" · ")}
                               </span>
                             ) : null}
                           </td>
@@ -373,6 +411,7 @@ export function CustomerPurchasesSection({
     return (
       <WhiteCard className="overflow-hidden">
         {header}
+        {searchField}
         {body}
       </WhiteCard>
     );
@@ -381,6 +420,7 @@ export function CustomerPurchasesSection({
   return (
     <section className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
       {header}
+      {searchField}
       {body}
     </section>
   );

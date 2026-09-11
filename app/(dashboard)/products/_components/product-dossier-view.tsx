@@ -7,17 +7,20 @@ import { ArrowLeft, PencilLine } from "lucide-react";
 
 import { ProductsHubNav } from "@/components/products/products-hub-nav";
 import { useDashboard } from "@/components/dashboard-provider";
+import { ItemSeasonalityChart } from "@/components/analytics/item-seasonality-chart";
 import {
   ApiRequestError,
   fetchCurrentSellingPrice,
   fetchItemById,
   fetchItemEconomics,
+  fetchItemSeasonality,
   itemListThumbnailUrl,
   type ItemCustomerBuyRow,
   type ItemDetailRecord,
   type ItemEconomicsRecord,
   type ItemPurchaseHistoryRow,
   type ItemSaleHistoryRow,
+  type ItemSeasonalityResponse,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { resolveCatalogItemName } from "@/lib/catalog-display";
@@ -59,7 +62,7 @@ function initials(name: string): string {
 }
 
 export function ProductDossierView({ slug }: { slug: string }) {
-  const { business, branchId } = useDashboard();
+  const { business, branchId, canViewAnalytics } = useDashboard();
   const currency = business?.currency?.trim() || "KES";
   const itemId = parseProductDossierSlug(slug);
   const [detail, setDetail] = useState<ItemDetailRecord | null>(null);
@@ -67,6 +70,10 @@ export function ProductDossierView({ slug }: { slug: string }) {
   const [sellPrice, setSellPrice] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [seasonView, setSeasonView] = useState<
+    "rolling12" | "thisYear" | "lastYear"
+  >("rolling12");
+  const [season, setSeason] = useState<ItemSeasonalityResponse | null>(null);
 
   useEffect(() => {
     if (!itemId) {
@@ -107,6 +114,24 @@ export function ProductDossierView({ slug }: { slug: string }) {
       cancelled = true;
     };
   }, [itemId, branchId]);
+
+  useEffect(() => {
+    if (!itemId || !canViewAnalytics) {
+      setSeason(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchItemSeasonality(itemId, { view: seasonView })
+      .then((res) => {
+        if (!cancelled) setSeason(res);
+      })
+      .catch(() => {
+        if (!cancelled) setSeason(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [itemId, canViewAnalytics, seasonView]);
 
   const thumb = detail
     ? (coverImageUrl(detail) ?? itemListThumbnailUrl(detail))
@@ -279,6 +304,22 @@ export function ProductDossierView({ slug }: { slug: string }) {
                   {`, ${formatQty(econ.unitsSold7d)} this week`}
                 </p>
               </div>
+              {season && itemId ? (
+                <div className="mt-5">
+                  <ItemSeasonalityChart
+                    data={season}
+                    view={seasonView}
+                    onViewChange={setSeasonView}
+                    compact
+                  />
+                  <Link
+                    href={`${APP_ROUTES.customerSegments}?itemId=${encodeURIComponent(itemId)}&mode=similar`}
+                    className="mt-2 inline-block text-[12px] font-semibold text-[var(--catalog-ink)] underline-offset-2 hover:underline"
+                  >
+                    Likely buyers of similar products
+                  </Link>
+                </div>
+              ) : null}
             </aside>
 
             <section className={styles.people}>

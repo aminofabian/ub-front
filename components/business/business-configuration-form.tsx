@@ -831,7 +831,7 @@ export function BusinessConfigurationForm({
         <PolicyPanel
           id="settings-checkout"
           title="Checkout"
-          hint="Optional customer capture on cash and M-Pesa sales, so purchases build customer history."
+          hint="Attach repeat cash and M-Pesa sales to the customer directory."
           accent="teal"
         >
           <PolicySwitch
@@ -843,8 +843,8 @@ export function BusinessConfigurationForm({
               }))
             }
             icon={<UserRound className="size-4" aria-hidden />}
-            title="Capture customer at checkout"
-            description="Show an optional add/select customer step on cash and M-Pesa sales so purchases build customer history. Off until a shop turns it on."
+            title="Offer customer on cash & M-Pesa"
+            description="Optional at the till — walk-ins stay one tap. Repeat sales link to the directory so you can see who buys what, how often, and restock from that history. Turn off if the till should never ask."
           />
         </PolicyPanel>
       ) : null}

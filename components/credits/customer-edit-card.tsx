@@ -33,10 +33,14 @@ export function CustomerEditCard({
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [tagBusy, setTagBusy] = useState(false);
   const [name, setName] = useState(customer.name);
   const [email, setEmail] = useState(customer.email ?? "");
   const [notes, setNotes] = useState(customer.notes ?? "");
   const [newPhone, setNewPhone] = useState("");
+
+  const tags = customer.tags ?? [];
+  const wholesalePinned = tags.some((tag) => tag.toLowerCase() === "wholesale");
 
   const resetForm = () => {
     setName(customer.name);
@@ -94,6 +98,31 @@ export function CustomerEditCard({
       );
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onToggleWholesale = async () => {
+    const nextTags = wholesalePinned
+      ? tags.filter((tag) => tag.toLowerCase() !== "wholesale")
+      : [...tags, "wholesale"];
+    setTagBusy(true);
+    try {
+      const next = await patchCustomer(customer.id, {
+        tags: nextTags,
+        version: customer.version,
+      });
+      onUpdated(next);
+      onFeedback(
+        "success",
+        wholesalePinned ? "Wholesale unpinned." : "Pinned as wholesale.",
+      );
+    } catch (e) {
+      onFeedback(
+        "error",
+        e instanceof Error ? e.message : "Could not update tags.",
+      );
+    } finally {
+      setTagBusy(false);
     }
   };
 
@@ -224,6 +253,42 @@ export function CustomerEditCard({
             </div>
           </dl>
         )}
+
+        <div className="space-y-2 border-t border-border/50 pt-4">
+          <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+            Tags
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {tags.length > 0 ? (
+              tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tracking-[-0.02em] text-foreground ring-1 ring-border/60"
+                >
+                  {tag}
+                </span>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No tags yet.</p>
+            )}
+            {canEdit ? (
+              <Button
+                type="button"
+                variant={wholesalePinned ? "secondary" : "outline"}
+                size="sm"
+                className="h-8 rounded-none px-2 text-xs"
+                disabled={tagBusy}
+                onClick={() => void onToggleWholesale()}
+              >
+                {wholesalePinned ? "Unpin wholesale" : "Pin wholesale"}
+              </Button>
+            ) : null}
+          </div>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Wholesale customers stay in the Shoppers wholesale list even in
+            small-basket weeks.
+          </p>
+        </div>
 
         <div className="space-y-2 border-t border-border/50 pt-4">
           <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">

@@ -736,6 +736,13 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   }, [newSale, holdSale, voidLine, focusSearch, focusPay, recallSale, moreOpen]);
 
   const tabSuspended = Boolean(cart.selectedCustomer?.credit.creditSuspended);
+  const captureCustomerSimple =
+    Boolean(cart.captureCustomerForCashAndMpesa) &&
+    Boolean(cart.canLookupCustomers) &&
+    !cart.splitPay &&
+    (cart.payMethod === "cash" || cart.payMethod === "mpesa_manual");
+  const showCustomerPicker =
+    cart.payMethod === "customer_credit" || captureCustomerSimple;
   const payMethods = [
     { id: "cash" as const, label: "Cash", icon: Banknote, disabled: false },
     { id: "mpesa_manual" as const, label: "M-Pesa", icon: Smartphone, disabled: false },
@@ -1087,7 +1094,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
             })}
           </div>
 
-          {cart.payMethod === "customer_credit" ? (
+          {showCustomerPicker ? (
             <LedgerTabCustomer
               online={online}
               currency={currency}
@@ -1099,6 +1106,8 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               customerNoPhoneMatch={cart.customerNoPhoneMatch}
               customerRegisterName={cart.customerRegisterName}
               setCustomerRegisterName={cart.setCustomerRegisterName}
+              customerRegisterPhone={cart.customerRegisterPhone}
+              setCustomerRegisterPhone={cart.setCustomerRegisterPhone}
               customerSearchBusy={cart.customerSearchBusy}
               customerRegisterBusy={cart.customerRegisterBusy}
               phoneVerificationSent={cart.phoneVerificationSent}
@@ -1109,6 +1118,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 cart.requirePhoneVerificationForNewTabCustomers
               }
               allowSearchCustomersByName={cart.allowSearchCustomersByName}
+              optional={captureCustomerSimple}
               onSearchCustomers={cart.onSearchCustomers}
               onSendPhoneVerification={cart.onSendPhoneVerification}
               onRegisterCustomer={cart.onRegisterCustomer}

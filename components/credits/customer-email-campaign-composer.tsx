@@ -17,6 +17,7 @@ import {
   Check,
   Loader2,
   Maximize2,
+  MessageSquare,
   Minimize2,
   Monitor,
   Plus,
@@ -42,17 +43,22 @@ import {
   mailSkipLabel,
 } from "@/components/credits/customer-email-campaign-ui";
 import { customerInitials } from "@/components/credits/customer-crm-ui";
+import { CustomerBulkSmsDrawer } from "@/components/credits/customer-bulk-sms-drawer";
 import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   createCustomerEmailCampaign,
+  fetchBranches,
   fetchCustomerById,
   fetchCustomers,
+  fetchItems,
+  fetchItemTypes,
   previewCustomerEmail,
   previewCustomerEmailAudience,
   sendCustomerEmailCampaign,
   updateCustomerEmailCampaign,
+  type BranchRecord,
   type CustomerEmailAudienceFilter,
   type CustomerEmailAudiencePreview,
   type CustomerEmailCampaignDetail,
@@ -60,6 +66,8 @@ import {
   type CustomerEmailPreview,
   type CustomerEmailRecipientMethod,
   type CustomerRecord,
+  type ItemSummaryRecord,
+  type ItemTypeRecord,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -137,6 +145,7 @@ export function CustomerEmailCampaignComposer({
   const [status, setStatus] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [previewPulse, setPreviewPulse] = useState(false);
+  const [smsOpen, setSmsOpen] = useState(false);
 
   const filterPayload: CustomerEmailAudienceFilter = useMemo(
     () => ({ matchMode, conditions }),
@@ -543,7 +552,24 @@ export function CustomerEmailCampaignComposer({
               <section className="space-y-3">
                 <div className="flex flex-wrap items-end justify-between gap-2">
                   <SectionLabel>Who receives it</SectionLabel>
-                  <AudienceMeter audience={audience} pending={pending} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AudienceMeter audience={audience} pending={pending} />
+                    {(audience?.smsCustomerIds?.length ?? 0) > 0 ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 rounded-none text-xs"
+                        onClick={() => setSmsOpen(true)}
+                      >
+                        <MessageSquare className="mr-1 size-3.5" />
+                        SMS
+                        {audience?.smsCustomerIds
+                          ? ` (${audience.smsCustomerIds.length})`
+                          : ""}
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div
@@ -815,6 +841,17 @@ export function CustomerEmailCampaignComposer({
           onSend={() => void confirmSend()}
         />
       ) : null}
+
+      <CustomerBulkSmsDrawer
+        open={smsOpen}
+        onOpenChange={setSmsOpen}
+        customerIds={audience?.smsCustomerIds ?? []}
+        recipientLabel={`${audience?.smsCustomerIds?.length ?? 0} with a phone`}
+        onSent={(message, kind) => {
+          if (kind === "error") setError(message);
+          else setStatus(message);
+        }}
+      />
     </div>
   );
 }
@@ -1062,6 +1099,24 @@ function FilterBuilder({
         ) => CustomerEmailFilterCondition[]),
   ) => void;
 }) {
+  const [branches, setBranches] = useState<BranchRecord[]>([]);
+  const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([
+      fetchBranches().catch(() => [] as BranchRecord[]),
+      fetchItemTypes().catch(() => [] as ItemTypeRecord[]),
+    ]).then(([nextBranches, nextTypes]) => {
+      if (cancelled) return;
+      setBranches(nextBranches.filter((b) => b.active));
+      setItemTypes(nextTypes.filter((t) => t.active));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-1.5 text-xs">
@@ -1115,6 +1170,7 @@ function FilterBuilder({
                             value: nextMeta.enumValues?.[0]?.value ?? "",
                             valueTo: "",
                             days: null,
+                            itemId: null,
                           }
                         : row,
                     ),
@@ -1169,6 +1225,60 @@ function FilterBuilder({
                   }
                   placeholder="Days"
                 />
+              ) : meta.valueKind === "item" ||
+                meta.valueKind === "itemOptional" ? (
+                <AudienceItemPick
+                  optional={meta.valueKind === "itemOptional"}
+                  itemId={condition.itemId ?? null}
+                  label={condition.value ?? ""}
+                  onPick={(itemId, label) =>
+                    onConditions((prev) =>
+                      prev.map((row, i) =>
+                        i === index
+                          ? { ...row, itemId, value: label }
+                          : row,
+                      ),
+                    )
+                  }
+                />
+              ) : meta.valueKind === "itemType" ? (
+                <select
+                  className={MAIL_FIELD}
+                  value={condition.value ?? ""}
+                  onChange={(e) =>
+                    onConditions((prev) =>
+                      prev.map((row, i) =>
+                        i === index ? { ...row, value: e.target.value } : row,
+                      ),
+                    )
+                  }
+                >
+                  <option value="">Select category</option>
+                  {itemTypes.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              ) : meta.valueKind === "branch" ? (
+                <select
+                  className={MAIL_FIELD}
+                  value={condition.value ?? ""}
+                  onChange={(e) =>
+                    onConditions((prev) =>
+                      prev.map((row, i) =>
+                        i === index ? { ...row, value: e.target.value } : row,
+                      ),
+                    )
+                  }
+                >
+                  <option value="">Select branch</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
               ) : meta.valueKind === "enum" ? (
                 <select
                   className={MAIL_FIELD}
@@ -1261,13 +1371,124 @@ function FilterBuilder({
         onClick={() =>
           onConditions((prev) => [
             ...prev,
-            { field: "origin", op: "eq", value: "staff" },
+            { field: "cohort", op: "eq", value: "regular" },
           ])
         }
       >
         <Plus className="mr-1 size-3.5" />
         Add condition
       </Button>
+    </div>
+  );
+}
+
+function AudienceItemPick({
+  optional,
+  itemId,
+  label,
+  onPick,
+}: {
+  optional: boolean;
+  itemId: string | null;
+  label: string;
+  onPick: (itemId: string | null, label: string) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [hits, setHits] = useState<ItemSummaryRecord[]>([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const term = q.trim();
+    if (term.length < 2) {
+      setHits([]);
+      return;
+    }
+    let cancelled = false;
+    const t = window.setTimeout(() => {
+      void fetchItems(term, { size: 12 })
+        .then((rows) => {
+          if (!cancelled) setHits(rows);
+        })
+        .catch(() => {
+          if (!cancelled) setHits([]);
+        });
+    }, 180);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [q]);
+
+  const chosen = itemId ? label || "Selected SKU" : optional ? "Any SKU" : "";
+
+  return (
+    <div className="relative min-w-0">
+      {itemId || (optional && !open) ? (
+        <div className="flex items-center gap-1">
+          <p className="min-w-0 flex-1 truncate text-sm">{chosen}</p>
+          <button
+            type="button"
+            className="shrink-0 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              onPick(null, "");
+              setQ("");
+              setOpen(true);
+            }}
+          >
+            Change
+          </button>
+        </div>
+      ) : (
+        <input
+          className={MAIL_FIELD}
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={optional ? "Any SKU, or search" : "Search SKU"}
+        />
+      )}
+      {open && hits.length > 0 ? (
+        <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto border bg-background text-sm shadow-sm">
+          {optional ? (
+            <li>
+              <button
+                type="button"
+                className="w-full px-2 py-1.5 text-left text-muted-foreground hover:bg-muted"
+                onClick={() => {
+                  onPick(null, "");
+                  setOpen(false);
+                  setQ("");
+                }}
+              >
+                Any SKU that month
+              </button>
+            </li>
+          ) : null}
+          {hits.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                className="w-full px-2 py-1.5 text-left hover:bg-muted"
+                onClick={() => {
+                  onPick(item.id, item.name);
+                  setOpen(false);
+                  setQ("");
+                }}
+              >
+                <span className="block truncate">{item.name}</span>
+                {item.sku ? (
+                  <span className="block truncate text-[10px] text-muted-foreground">
+                    {item.sku}
+                  </span>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
