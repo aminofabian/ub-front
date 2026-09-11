@@ -247,7 +247,7 @@ function StartOpenDetails({
   );
 }
 
-function PasteUrlField({
+type BrandingPanel =
   | "logos"
   | "appIcon"
   | "favicon"
@@ -274,6 +274,7 @@ function BrandingDrawer({
   description,
   applyNow,
   wide,
+  footer,
   children,
 }: {
   open: boolean;
@@ -282,6 +283,7 @@ function BrandingDrawer({
   description: string;
   applyNow?: boolean;
   wide?: boolean;
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   const desktop = useDesktopDrawer();
@@ -311,10 +313,15 @@ function BrandingDrawer({
             </p>
           ) : (
             <p className="mt-2 text-[11px] font-medium text-[#0f766e]">
-              Saves with the button on the page
+              Saves with the button below
             </p>
           )}
           <div className="mt-4 space-y-5">{children}</div>
+          {footer ? (
+            <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-4">
+              {footer}
+            </div>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
@@ -2243,8 +2250,26 @@ export default function BrandingPage() {
           open={panel === "favicon"}
           onOpenChange={(open) => setPanel(open ? "favicon" : null)}
           title="Browser tab"
-          description="The tiny icon next to the shop name in a browser tab."
+          description="The tiny icon next to the shop name in a browser tab. Uploads apply now. A pasted URL saves with the button."
           applyNow
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPanel(null)}
+              >
+                Close
+              </Button>
+              <Button
+                type="submit"
+                form="branding-edit-form"
+                disabled={isSaving || !dirty}
+              >
+                {isSaving ? "Saving…" : "Save URL"}
+              </Button>
+            </>
+          }
         >
           <FaviconSection
             faviconUrl={faviconUrl}
@@ -2266,8 +2291,26 @@ export default function BrandingPage() {
           open={panel === "og"}
           onOpenChange={(open) => setPanel(open ? "og" : null)}
           title="Share image"
-          description="What WhatsApp and Facebook show when someone shares your shop."
+          description="What WhatsApp and Facebook show when someone shares your shop. Uploads apply now. A pasted URL saves with the button."
           applyNow
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPanel(null)}
+              >
+                Close
+              </Button>
+              <Button
+                type="submit"
+                form="branding-edit-form"
+                disabled={isSaving || !dirty}
+              >
+                {isSaving ? "Saving…" : "Save URL"}
+              </Button>
+            </>
+          }
         >
           <OgImageSection
             ogImageUrl={ogImageUrl}
@@ -2307,6 +2350,24 @@ export default function BrandingPage() {
           onOpenChange={(open) => setPanel(open ? "search" : null)}
           title="Search"
           description="How Google shows your shop. Empty title and description use your branch area."
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPanel(null)}
+              >
+                Close
+              </Button>
+              <Button
+                type="submit"
+                form="branding-edit-form"
+                disabled={isSaving || !dirty}
+              >
+                {isSaving ? "Saving…" : "Save"}
+              </Button>
+            </>
+          }
         >
           <div className="space-y-2">
             <div className="flex items-baseline justify-between gap-3">

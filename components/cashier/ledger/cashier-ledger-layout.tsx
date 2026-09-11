@@ -31,6 +31,7 @@ import {
   Smartphone,
   Store,
   Truck,
+  UserRound,
   Users,
   Wallet,
   Wifi,
@@ -87,6 +88,7 @@ import type { CashierPosLayoutProps } from "../cashier-pos-layout";
 import { LedgerBestSellers } from "./ledger-best-sellers";
 import { LedgerFunctionBar } from "./ledger-function-bar";
 import { LedgerKeypad } from "./ledger-keypad";
+import { LedgerTabCustomer } from "./ledger-tab-customer";
 import { MORE_ROW, MoreRow, MoreSection } from "./ledger-more-menu";
 import { flattenLedgerSearchHits, LedgerSearchHits } from "./ledger-search-hits";
 import {
@@ -594,7 +596,8 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     if (
       cart.payMethod !== "cash" &&
       cart.payMethod !== "mpesa_manual" &&
-      cart.payMethod !== "card"
+      cart.payMethod !== "card" &&
+      cart.payMethod !== "customer_credit"
     ) {
       cart.setPayMethod("cash");
     }
@@ -732,10 +735,21 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [newSale, holdSale, voidLine, focusSearch, focusPay, recallSale, moreOpen]);
 
+  const tabSuspended = Boolean(cart.selectedCustomer?.credit.creditSuspended);
   const payMethods = [
-    { id: "cash" as const, label: "Cash", icon: Banknote },
-    { id: "mpesa_manual" as const, label: "M-Pesa", icon: Smartphone },
-    { id: "card" as const, label: "Card", icon: CreditCard },
+    { id: "cash" as const, label: "Cash", icon: Banknote, disabled: false },
+    { id: "mpesa_manual" as const, label: "M-Pesa", icon: Smartphone, disabled: false },
+    { id: "card" as const, label: "Card", icon: CreditCard, disabled: false },
+    ...(cart.canLookupCustomers
+      ? [
+          {
+            id: "customer_credit" as const,
+            label: "Tab",
+            icon: UserRound,
+            disabled: tabSuspended,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -1028,7 +1042,12 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           </div>
 
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
-          <div className="grid grid-cols-3 gap-1">
+          <div
+            className={cn(
+              "grid gap-1",
+              cart.canLookupCustomers ? "grid-cols-4" : "grid-cols-3",
+            )}
+          >
             {payMethods.map((m) => {
               const Icon = m.icon;
               const active = cart.payMethod === m.id;
@@ -1036,7 +1055,20 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 <button
                   key={m.id}
                   type="button"
+                  disabled={m.disabled}
+                  title={
+                    m.id === "customer_credit" && tabSuspended
+                      ? "Tab suspended"
+                      : undefined
+                  }
                   onClick={() => {
+                    if (m.id === "customer_credit") {
+                      cart.setSplitPay(false);
+                      cart.setCreditChangeToWallet(false);
+                      cart.setPayMethod("customer_credit");
+                      setKeyTarget("sheet");
+                      return;
+                    }
                     cart.setPayMethod(m.id);
                     if (m.id === "cash") focusPay();
                   }}
@@ -1045,6 +1077,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                     active
                       ? "border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_16%,white)] text-zinc-900"
                       : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50",
+                    m.disabled && "cursor-not-allowed opacity-40",
                   )}
                 >
                   <Icon className="size-4" aria-hidden />
@@ -1053,6 +1086,36 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               );
             })}
           </div>
+
+          {cart.payMethod === "customer_credit" ? (
+            <LedgerTabCustomer
+              online={online}
+              currency={currency}
+              payableTotal={cart.payableTotal}
+              canManageCustomers={cart.canManageCustomers}
+              customerPhoneQuery={cart.customerPhoneQuery}
+              setCustomerPhoneQuery={cart.setCustomerPhoneQuery}
+              customerHits={cart.customerHits}
+              customerNoPhoneMatch={cart.customerNoPhoneMatch}
+              customerRegisterName={cart.customerRegisterName}
+              setCustomerRegisterName={cart.setCustomerRegisterName}
+              customerSearchBusy={cart.customerSearchBusy}
+              customerRegisterBusy={cart.customerRegisterBusy}
+              phoneVerificationSent={cart.phoneVerificationSent}
+              phoneVerificationCode={cart.phoneVerificationCode}
+              setPhoneVerificationCode={cart.setPhoneVerificationCode}
+              phoneVerificationCooldownUntil={cart.phoneVerificationCooldownUntil}
+              requirePhoneVerificationForNewTabCustomers={
+                cart.requirePhoneVerificationForNewTabCustomers
+              }
+              allowSearchCustomersByName={cart.allowSearchCustomersByName}
+              onSearchCustomers={cart.onSearchCustomers}
+              onSendPhoneVerification={cart.onSendPhoneVerification}
+              onRegisterCustomer={cart.onRegisterCustomer}
+              selectedCustomer={cart.selectedCustomer}
+              setSelectedCustomer={cart.setSelectedCustomer}
+            />
+          ) : null}
 
           {cart.payMethod === "cash" ||
           cart.payMethod === "mpesa_manual" ||
