@@ -49,6 +49,7 @@ export async function registerTillDevice(opts: {
   deviceKey?: string;
   label?: string;
   cashierTemplate?: CashierTemplateId;
+  toast?: boolean;
 }): Promise<TillDeviceRecord> {
   const deviceKey =
     opts.deviceKey?.trim() || getOrCreateTillDeviceId() || undefined;
@@ -60,6 +61,7 @@ export async function registerTillDevice(opts: {
       label: opts.label?.trim() || undefined,
       cashierTemplate: opts.cashierTemplate,
     },
+    toast: opts.toast,
   });
   return normalizeTillDevice(row);
 }

@@ -260,7 +260,7 @@ describe("getPosGuidanceKind", () => {
   it("matches trusted-till registration copy", () => {
     expect(
       getPosGuidanceKind(
-        "This till is not registered for this branch. Ask a manager to register it under Business Settings → Trusted tills.",
+        "This till is not registered for this branch. Register this computer so sales, shifts, and receipts stay on this counter.",
       ),
     ).toBe("register-till");
   });

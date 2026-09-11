@@ -15,6 +15,7 @@ import {
 import { createPortal } from "react-dom";
 import { Lock } from "lucide-react";
 
+import { PosTillSetupPanel } from "@/components/auth/pos-till-setup-panel";
 import { TillUnlockButton } from "@/components/auth/till-unlock-button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -22,6 +23,7 @@ import {
   fetchMe,
   loginWithPassword,
   loginWithPin,
+  setOwnPin,
   unlockWithPinSession,
   logoutRemoteAndRedirectToLogin,
 } from "@/lib/api";
@@ -33,12 +35,28 @@ import { POS_TILL_IDLE_LOCK_MS } from "@/lib/pos-till-lock-constants";
 import { createPosTillIdleController } from "@/lib/pos-till-idle";
 import { POS_SESSION_EXPIRED_EVENT } from "@/lib/pos-soft-auth";
 import {
+  formatTillSetupPinError,
+  isTillPinSetupNeeded,
+  tillSetupNeedsPassword,
+  validateNewTillPin,
+} from "@/lib/pos-till-setup";
+import {
   assertTillUnlockUserAllowed,
   formatTillUnlockError,
   resolveTillUnlockEmail,
   type PosTillUnlockMethod,
   type PosTillUnlockMode,
 } from "@/lib/pos-till-unlock";
+import { notifyPosGuidanceResolved } from "@/lib/pos-guidance";
+import {
+  humanTillLabel,
+  setTillDeviceLabel,
+} from "@/lib/till-device";
+import {
+  fetchTillDeviceMe,
+  registerTillDevice,
+  tillDeviceErrorMessage,
+} from "@/lib/till-devices-api";
 import {
   broadcastTillLock,
   broadcastTillUnlock,
@@ -59,7 +77,15 @@ import {
 } from "@/lib/till-unlock-context";
 import { cn } from "@/lib/utils";
 
-export type PosTillLockReason = "manual" | "idle" | "session";
+export type PosTillLockReason = "manual" | "idle" | "session" | "setup";
+
+export type CompleteTillSetupInput = {
+  pin: string;
+  confirmPin: string;
+  password?: string;
+  tillLabel?: string;
+  registerTill?: boolean;
+};
 
 export type UnlockWithPinInput = {
   /** PIN when method is pin (default). */
@@ -83,6 +109,7 @@ type PosTillLockContextValue = {
   lockReason: PosTillLockReason | null;
   lock: (opts?: LockOptions) => void;
   unlockWithPin: (input: UnlockWithPinInput | string) => Promise<void>;
+  completeTillSetup: (input: CompleteTillSetupInput) => Promise<void>;
 };
 
 const PosTillLockContext = createContext<PosTillLockContextValue | null>(null);
@@ -181,6 +208,9 @@ export function PosTillLockProvider({ children }: PosTillLockProviderProps) {
     }
     setLocked(true);
     setLockReason(reason);
+    if (reason === "setup") {
+      return;
+    }
     writePersistedTillLock(reason);
     if (!opts?.remote) {
       broadcastTillLock(reason);
@@ -198,6 +228,16 @@ export function PosTillLockProvider({ children }: PosTillLockProviderProps) {
     lockRef.current = lock;
   }, [lock]);
 
+  // First visit to the till with no PIN: ask before they can sell.
+  useEffect(() => {
+    if (loading || lockedRef.current) {
+      return;
+    }
+    if (isTillPinSetupNeeded(me?.hasPin)) {
+      lock({ reason: "setup" });
+    }
+  }, [loading, me?.hasPin, lock]);
+
   // Sibling tabs: lock/unlock together on the same device.
   useEffect(() => {
     return subscribeToTillLockBroadcasts((msg) => {
@@ -205,9 +245,13 @@ export function PosTillLockProvider({ children }: PosTillLockProviderProps) {
         lock({ reason: msg.reason, remote: true });
         return;
       }
-      unlockLocal();
+      void refreshSession()
+        .catch(() => undefined)
+        .finally(() => {
+          unlockLocal();
+        });
     });
-  }, [lock, unlockLocal]);
+  }, [lock, unlockLocal, refreshSession]);
 
   useEffect(() => {
     if (locked) {
@@ -361,9 +405,64 @@ export function PosTillLockProvider({ children }: PosTillLockProviderProps) {
     ],
   );
 
+  const completeTillSetup = useCallback(
+    async (input: CompleteTillSetupInput) => {
+      const pinError = validateNewTillPin(input.pin, input.confirmPin);
+      if (pinError) {
+        throw new Error(formatTillSetupPinError(pinError));
+      }
+      if (typeof navigator !== "undefined" && !isApiReachable()) {
+        throw new Error("Reconnect to save your PIN.");
+      }
+      const ctx = readTillUnlockContext();
+      const email = resolveTillUnlockEmail({
+        mode: "same",
+        context: ctx,
+        email: me?.email,
+      });
+      if (tillSetupNeedsPassword(lockReason)) {
+        const password = input.password?.trim() ?? "";
+        if (!password) {
+          throw new Error("Enter your password to confirm it is you.");
+        }
+        await loginWithPassword(email, password, { toast: false });
+      }
+      await setOwnPin(input.pin.trim(), { toast: false });
+      if (input.registerTill) {
+        const bid =
+          me?.branchId?.trim() || ctx?.branchId?.trim() || branchId.trim();
+        if (bid) {
+          try {
+            const row = await registerTillDevice({
+              branchId: bid,
+              label: input.tillLabel?.trim() || undefined,
+              toast: false,
+            });
+            const friendly = humanTillLabel(row.label);
+            setTillDeviceLabel(friendly ?? "");
+            notifyPosGuidanceResolved("register-till");
+          } catch (err) {
+            throw new Error(tillDeviceErrorMessage(err));
+          }
+        }
+      }
+      await refreshSession();
+      unlockLocal();
+      broadcastTillUnlock();
+    },
+    [
+      lockReason,
+      me?.email,
+      me?.branchId,
+      branchId,
+      refreshSession,
+      unlockLocal,
+    ],
+  );
+
   const value = useMemo(
-    () => ({ locked, lockReason, lock, unlockWithPin }),
-    [locked, lockReason, lock, unlockWithPin],
+    () => ({ locked, lockReason, lock, unlockWithPin, completeTillSetup }),
+    [locked, lockReason, lock, unlockWithPin, completeTillSetup],
   );
 
   return (
@@ -381,19 +480,31 @@ export function PosTillLockProvider({ children }: PosTillLockProviderProps) {
 }
 
 function PosTillLockOverlay() {
-  const { locked, lockReason, unlockWithPin } = usePosTillLock();
+  const { locked, lockReason, unlockWithPin, completeTillSetup } =
+    usePosTillLock();
+  const { me, branchId, branches } = useDashboard();
   const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const [password, setPassword] = useState("");
+  const [tillLabel, setTillLabel] = useState("");
+  const [tillUnregistered, setTillUnregistered] = useState(false);
   const [switchEmail, setSwitchEmail] = useState("");
   const [mode, setMode] = useState<PosTillUnlockMode>("same");
   const [method, setMethod] = useState<PosTillUnlockMethod>("pin");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [setupHeld, setSetupHeld] = useState(false);
   const [ctx, setCtx] = useState<TillUnlockContext | null>(null);
   const pinInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
+  const setupMode =
+    mode === "same" &&
+    (setupHeld || isTillPinSetupNeeded(me?.hasPin));
+  const needsPassword = tillSetupNeedsPassword(lockReason);
+  const branchName =
+    branches.find((row) => row.id === branchId)?.name?.trim() || "Front counter";
 
   // Radix dialogs portal to body with a focus trap and pointer-events:none on
   // body. Inert every other body child so PIN input works without closing them.
@@ -407,16 +518,27 @@ function PosTillLockOverlay() {
   useEffect(() => {
     if (!locked) {
       setPin("");
+      setConfirmPin("");
       setPassword("");
+      setTillLabel("");
+      setTillUnregistered(false);
       setSwitchEmail("");
       setMode("same");
       setMethod("pin");
       setError("");
       setBusy(false);
+      setSetupHeld(false);
       return;
     }
     setCtx(readTillUnlockContext());
+    if (isTillPinSetupNeeded(me?.hasPin) && mode === "same") {
+      setSetupHeld(true);
+    }
     const focusUnlockField = () => {
+      if (setupMode) {
+        passwordInputRef.current?.focus({ preventScroll: true });
+        return;
+      }
       const el =
         mode === "switch"
           ? emailInputRef.current
@@ -434,7 +556,34 @@ function PosTillLockOverlay() {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
-  }, [locked, mode, method]);
+  }, [locked, mode, method, setupMode, me?.hasPin]);
+
+  useEffect(() => {
+    if (!locked || !setupMode) {
+      return;
+    }
+    const bid = me?.branchId?.trim() || branchId.trim();
+    if (!bid) {
+      setTillUnregistered(false);
+      return;
+    }
+    let cancelled = false;
+    void fetchTillDeviceMe({ branchId: bid, toast: false })
+      .then(() => {
+        if (!cancelled) setTillUnregistered(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        const status = err instanceof ApiRequestError ? err.status : 0;
+        // 404 = not registered. 401 = session expired; still offer register
+        // because first-run PIN setup is when this computer is usually new.
+        setTillUnregistered(status === 404 || status === 401 || status === 0);
+        setTillLabel((current) => current.trim() || branchName);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [locked, setupMode, me?.branchId, branchId, branchName]);
 
   // Block underlying keyboard shortcuts / search focus while locked (capture).
   useEffect(() => {
@@ -445,7 +594,8 @@ function PosTillLockOverlay() {
       target instanceof HTMLInputElement &&
       (target.dataset.tillUnlockPin === "1" ||
         target.dataset.tillUnlockPassword === "1" ||
-        target.dataset.tillUnlockEmail === "1");
+        target.dataset.tillUnlockEmail === "1" ||
+        target.dataset.tillOverlayField === "1");
 
     const block = (e: KeyboardEvent) => {
       if (isUnlockField(e.target)) {
@@ -454,6 +604,17 @@ function PosTillLockOverlay() {
       // Digits / enter were landing in the POS search under the dimmer.
       e.preventDefault();
       e.stopPropagation();
+      if (setupMode) {
+        const setupPin = hostRef.current?.querySelector<HTMLInputElement>(
+          "#till-setup-pin",
+        );
+        if (needsPassword) {
+          passwordInputRef.current?.focus({ preventScroll: true });
+        } else {
+          setupPin?.focus({ preventScroll: true });
+        }
+        return;
+      }
       const el =
         mode === "switch"
           ? emailInputRef.current
@@ -477,7 +638,7 @@ function PosTillLockOverlay() {
     };
     window.addEventListener("keydown", block, true);
     return () => window.removeEventListener("keydown", block, true);
-  }, [locked, mode, method]);
+  }, [locked, mode, method, setupMode, needsPassword]);
 
   if (!locked) {
     return null;
@@ -497,6 +658,33 @@ function PosTillLockOverlay() {
         : lockReason === "session"
           ? "Enter your PIN to keep selling — your cart is saved on this device."
           : "Enter your PIN to unlock.";
+
+  const onSubmitSetup = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      await completeTillSetup({
+        pin,
+        confirmPin,
+        password: needsPassword ? password : undefined,
+        tillLabel,
+        registerTill: tillUnregistered,
+      });
+    } catch (err) {
+      const raw =
+        err instanceof ApiRequestError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Could not save your PIN.";
+      setError(raw);
+      if (needsPassword) {
+        passwordInputRef.current?.focus();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -556,11 +744,46 @@ function PosTillLockOverlay() {
     >
       <div className="fixed inset-0 z-[500] bg-black/50" aria-hidden />
       <div
-        className="pointer-events-auto fixed top-1/2 left-1/2 z-[510] w-[min(24rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card p-5 shadow-xl"
+        className={cn(
+          "pointer-events-auto fixed top-1/2 left-1/2 z-[510] w-[min(26rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card p-5 shadow-xl",
+        )}
         role="dialog"
         aria-modal="true"
         aria-labelledby="pos-till-lock-title"
       >
+        {setupMode ? (
+          <PosTillSetupPanel
+            displayName={ctx?.displayName || me?.name || ""}
+            needsPassword={needsPassword}
+            showTillRegister={tillUnregistered}
+            tillLabelPlaceholder={branchName}
+            pin={pin}
+            confirmPin={confirmPin}
+            password={password}
+            tillLabel={tillLabel}
+            error={error}
+            busy={busy}
+            onPinChange={(next) => {
+              setPin(next);
+              setError("");
+            }}
+            onConfirmPinChange={(next) => {
+              setConfirmPin(next);
+              setError("");
+            }}
+            onPasswordChange={(next) => {
+              setPassword(next);
+              setError("");
+            }}
+            onTillLabelChange={(next) => {
+              setTillLabel(next);
+              setError("");
+            }}
+            onSubmit={() => void onSubmitSetup()}
+            passwordInputRef={passwordInputRef}
+          />
+        ) : (
+          <>
         <div className="mb-3 flex items-center gap-2 text-foreground">
           <Lock className="size-5 shrink-0" aria-hidden />
           <h2
@@ -681,6 +904,8 @@ function PosTillLockOverlay() {
             busyLabel={mode === "switch" ? "Switching" : "Unlocking"}
           />
         </form>
+          </>
+        )}
 
         <button
           type="button"
@@ -690,6 +915,7 @@ function PosTillLockOverlay() {
             setMode((m) => (m === "same" ? "switch" : "same"));
             setError("");
             setPin("");
+            setConfirmPin("");
             setPassword("");
           }}
         >

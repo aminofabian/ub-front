@@ -174,39 +174,35 @@ export function CashierShell({ children }: CashierShellProps) {
 
   const shellMore = (
     <>
-      {canManageCashierCapabilities || roleKey !== "cashier" ? (
-        <MoreSection label="This till">
-          {canManageCashierCapabilities ? (
-            <>
-              <MoreRow
-                icon={Settings2}
-                onClick={() => {
-                  setCapsOpen(true);
-                }}
-              >
-                Till settings
-              </MoreRow>
-              <MoreRow
-                icon={MonitorSmartphone}
-                disabled={tillLocked || !branchId}
-                onClick={() => {
-                  window.dispatchEvent(new Event(OPEN_REGISTER_TILL_EVENT));
-                }}
-              >
-                Register till
-              </MoreRow>
-            </>
-          ) : null}
-          {roleKey !== "cashier" ? (
-            <MoreRow
-              icon={Receipt}
-              onClick={() => setReceiptShopOpen(true)}
-            >
-              Receipt details
-            </MoreRow>
-          ) : null}
-        </MoreSection>
-      ) : null}
+      <MoreSection label="This till">
+        {canManageCashierCapabilities ? (
+          <MoreRow
+            icon={Settings2}
+            onClick={() => {
+              setCapsOpen(true);
+            }}
+          >
+            Till settings
+          </MoreRow>
+        ) : null}
+        <MoreRow
+          icon={MonitorSmartphone}
+          disabled={tillLocked || !branchId}
+          onClick={() => {
+            window.dispatchEvent(new Event(OPEN_REGISTER_TILL_EVENT));
+          }}
+        >
+          Register till
+        </MoreRow>
+        {roleKey !== "cashier" ? (
+          <MoreRow
+            icon={Receipt}
+            onClick={() => setReceiptShopOpen(true)}
+          >
+            Receipt details
+          </MoreRow>
+        ) : null}
+      </MoreSection>
       {roleKey !== "cashier" ? (
         <MoreSection label="Pages">
           <MoreRow icon={BookOpen} href={APP_ROUTES.paymentsDayLedger}>
@@ -382,24 +378,22 @@ export function CashierShell({ children }: CashierShellProps) {
 
             <div className="ml-auto hidden shrink-0 flex-wrap items-center justify-end gap-x-1 gap-y-1 lg:flex">
               {canManageCashierCapabilities ? (
-                <>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => setCapsOpen(true)}
-                  >
-                    <Settings2 className="size-3.5" aria-hidden />
-                    Till settings
-                  </Button>
-                  <RegisterTillControl
-                    branchId={branchId}
-                    disabled={tillLocked}
-                    onRegistered={(label) => setTillLabel(label)}
-                  />
-                </>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setCapsOpen(true)}
+                >
+                  <Settings2 className="size-3.5" aria-hidden />
+                  Till settings
+                </Button>
               ) : null}
+              <RegisterTillControl
+                branchId={branchId}
+                disabled={tillLocked}
+                onRegistered={(label) => setTillLabel(label)}
+              />
               {roleKey !== "cashier" ? (
                 <>
                   <div
@@ -492,17 +486,6 @@ export function CashierShell({ children }: CashierShellProps) {
         </main>
 
         {!isLedger ? <CashierBottomNav /> : null}
-
-        {/* Keep RegisterTillControl mounted so the event listener works on mobile. */}
-        {canManageCashierCapabilities ? (
-          <div className="hidden">
-            <RegisterTillControl
-              branchId={branchId}
-              disabled={tillLocked}
-              onRegistered={(label) => setTillLabel(label)}
-            />
-          </div>
-        ) : null}
 
         {canManageCashierCapabilities ? (
           <CashierAdminCapabilitiesModal

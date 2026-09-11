@@ -27,7 +27,7 @@ const COPY: Record<
 > = {
   "register-till": {
     icon: MonitorSmartphone,
-    message: "This browser isn’t a registered till yet — sales won’t stick.",
+    message: "This computer is not a registered till yet. Sales, shifts, and receipts need a named till.",
   },
   "open-shift": {
     icon: Banknote,
@@ -47,10 +47,6 @@ export function PosReadinessBanner() {
   const [active, setActive] = useState<Set<PosGuidanceKind>>(() => new Set());
 
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
-  const canRegisterTill =
-    hasPermission(me?.permissions, Permission.BusinessManageSettings) ||
-    roleKey === "owner" ||
-    roleKey === "admin";
   const canOpenShift =
     hasPermission(me?.permissions, Permission.ShiftsOpen) ||
     roleKey === "owner" ||
@@ -170,7 +166,6 @@ export function PosReadinessBanner() {
                 {message}
               </p>
               {kind === "register-till" ? (
-                canRegisterTill ? (
                   <button
                     type="button"
                     className={cn(
@@ -179,19 +174,8 @@ export function PosReadinessBanner() {
                     )}
                     onClick={requestOpenRegisterTill}
                   >
-                    Register this till →
+                    Register this till
                   </button>
-                ) : (
-                  <Link
-                    href={APP_ROUTES.helpOpenCashier}
-                    className={cn(
-                      "shrink-0 text-[11px] font-semibold underline underline-offset-2",
-                      "decoration-amber-700/50 hover:decoration-amber-900 dark:decoration-amber-200/50",
-                    )}
-                  >
-                    How to register →
-                  </Link>
-                )
               ) : canOpenShift ? (
                 <button
                   type="button"

@@ -1,0 +1,91 @@
+/* Four-cell till PIN. One real input; cells are the visible face. */
+
+.root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  position: relative;
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: text;
+}
+
+.input:disabled {
+  cursor: not-allowed;
+}
+
+.cells {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.cell {
+  display: flex;
+  height: 3rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--input, hsl(var(--border)));
+  border-radius: 0.5rem;
+  background: var(--background, hsl(var(--background)));
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--foreground, hsl(var(--foreground)));
+  transition:
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    background-color 160ms var(--ease-out);
+}
+
+.dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.cell[data-active] {
+  border-color: var(--ring, hsl(var(--ring)));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring, hsl(var(--ring))) 45%, transparent);
+}
+
+.caret {
+  width: 1.5px;
+  height: 1.15rem;
+  border-radius: 1px;
+  background: currentColor;
+  animation: till-pin-caret 1.1s steps(1) infinite;
+}
+
+.root:has(.input:disabled) .cell {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell {
+    transition: none;
+  }
+
+  .caret {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+@keyframes till-pin-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}

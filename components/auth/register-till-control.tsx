@@ -111,8 +111,10 @@ export function RegisterTillControl({
           <DialogHeader>
             <DialogTitle>Register this till</DialogTitle>
             <DialogDescription>
-              Bind this browser to the current branch so managers can see and
-              revoke it from Business Settings → Trusted tills.
+              Name this computer so every sale, shift, and receipt stays on this
+              counter. If the shop already has a till, your PIN will not unlock
+              here until this one is registered. Managers can revoke it from
+              Business Settings, Trusted tills.
             </DialogDescription>
           </DialogHeader>
           <label className="space-y-1.5 text-sm">

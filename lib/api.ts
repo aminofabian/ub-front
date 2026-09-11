@@ -2953,10 +2953,14 @@ export async function updateMe(body: {
 }
 
 /** Self-service: set the current user's till PIN (first-login onboarding / change). */
-export async function setOwnPin(pin: string): Promise<void> {
+export async function setOwnPin(
+  pin: string,
+  options?: { toast?: boolean },
+): Promise<void> {
   return request<void>(`${API_ROUTES.me}/pin`, {
     method: "POST",
     body: { pin: pin.trim() },
+    toast: options?.toast,
   });
 }
 
