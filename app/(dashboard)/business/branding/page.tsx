@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -19,11 +20,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Globe,
+  ImageIcon,
+  Images,
   Loader2,
   Minus,
   Plus,
   RefreshCw,
   Save,
+  Search,
+  Share2,
+  Smartphone,
   X,
 } from "lucide-react";
 
@@ -35,7 +41,6 @@ import type { GeneratedBrandKit } from "@/components/brand/ai-logo-generator";
 import { darkStorefrontThemeNames } from "@/lib/branding-themed-logo";
 import { BrandingTemplateSection } from "@/components/business/branding-template-section";
 import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
-import { HubSettingsSectionNav } from "@/components/business-hub/hub-settings-section-nav";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -43,6 +48,13 @@ import {
   DashboardFeedback,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { BRAND_ACCENT, BRAND_PRIMARY } from "@/lib/brand-colors";
 import {
@@ -273,6 +285,129 @@ function BrandingSection({
       <div className="mt-4 space-y-5">{children}</div>
     </section>
   );
+}
+
+type BrandingPanel =
+  | "logos"
+  | "appIcon"
+  | "favicon"
+  | "og"
+  | "photos"
+  | "search";
+
+function useDesktopDrawer() {
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const sync = () => setDesktop(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return desktop;
+}
+
+function BrandingDrawer({
+  open,
+  onOpenChange,
+  title,
+  description,
+  applyNow,
+  wide,
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  applyNow?: boolean;
+  wide?: boolean;
+  children: ReactNode;
+}) {
+  const desktop = useDesktopDrawer();
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        side={desktop ? "right" : "bottom"}
+        showCloseButton={desktop}
+        className={cn(
+          "gap-0 p-0",
+          desktop && (wide ? "w-[min(100%,36rem)]" : "w-[min(100%,28rem)]"),
+        )}
+      >
+        {desktop ? null : (
+          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-[#D1D5DB]" />
+          </div>
+        )}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <DialogHeader className={desktop ? "pr-10" : undefined}>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+          {applyNow ? (
+            <p className="mt-2 text-[11px] font-medium text-[#0f766e]">
+              Applies as you upload
+            </p>
+          ) : (
+            <p className="mt-2 text-[11px] font-medium text-[#0f766e]">
+              Saves with the button on the page
+            </p>
+          )}
+          <div className="mt-4 space-y-5">{children}</div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AssetTile({
+  id,
+  title,
+  hint,
+  status,
+  thumb,
+  onOpen,
+}: {
+  id?: string;
+  title: string;
+  hint: string;
+  status: string;
+  thumb: ReactNode;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      id={id}
+      onClick={onOpen}
+      className={cn(
+        HUB_SURFACE,
+        "flex w-full scroll-mt-24 items-center gap-3 p-3 text-left",
+        "transition-colors hover:border-[#0f766e]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+      )}
+    >
+      <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[#F7F7F7]">
+        {thumb}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-[#141414]">{title}</span>
+        <span className="mt-0.5 block text-[12px] leading-snug text-[#7A7A7A]">
+          {hint}
+        </span>
+        <span className="mt-1 block text-[11px] font-medium text-[#0f766e]">
+          {status}
+        </span>
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-[#C4C4C4]" aria-hidden />
+    </button>
+  );
+}
+
+function TileThumbFallback({ icon: Icon }: { icon: typeof Globe }) {
+  return <Icon className="size-5 text-[#A1A1AA]" aria-hidden />;
+}
 }
 
 function PasteUrlField({
@@ -1257,6 +1392,7 @@ export default function BrandingPage() {
   const [appIconBusy, setAppIconBusy] = useState(false);
   const [ogImageBusy, setOgImageBusy] = useState(false);
   const [bannerBusy, setBannerBusy] = useState(false);
+  const [panel, setPanel] = useState<BrandingPanel | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   const load = useCallback(() => {
@@ -1295,6 +1431,13 @@ export default function BrandingPage() {
       block: "start",
     });
   }, [searchParams, snapshot]);
+
+  useEffect(() => {
+    if (!snapshot) return;
+    const id = window.location.hash.replace("#", "");
+    if (id === "branding-banners") setPanel("photos");
+    if (id === "branding-search") setPanel("search");
+  }, [snapshot]);
 
   const resetFormFromSnapshot = useCallback(() => {
     if (!snapshot) {
@@ -1804,7 +1947,7 @@ export default function BrandingPage() {
   return (
     <BusinessPageLayout
       title="Branding"
-      description="Name, logos, colours, photos, and how the shop looks in Google."
+      description="Name and colours stay on this page. Tap a tile to edit logos, icons, photos, and search."
       headerActions={
         dirty ? (
           <Button
