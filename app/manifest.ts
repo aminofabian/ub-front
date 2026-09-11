@@ -14,7 +14,13 @@ import { parseStorefrontHex } from "@/lib/storefront-theme";
 const THEME_COLOR = "#28A745";
 const BACKGROUND_COLOR = "#fafafa";
 
-export const dynamic = IS_DESKTOP ? "force-static" : "force-dynamic";
+/**
+ * Do not export `dynamic` here. Next.js requires that value to be a string
+ * literal, so `IS_DESKTOP ? "force-static" : "force-dynamic"` fails the build.
+ * Cloud requests call `headers()` via {@link resolveTenantContext} and render
+ * dynamically; desktop builds inline `IS_DESKTOP` and return the platform
+ * manifest without touching headers, which keeps `output: "export"` static.
+ */
 
 function platformManifest(): MetadataRoute.Manifest {
   return {
