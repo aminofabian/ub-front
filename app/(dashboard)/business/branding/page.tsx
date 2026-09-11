@@ -20,7 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Globe,
-  ImageIcon,
+  Image as ImageIcon,
   Images,
   Loader2,
   Minus,
@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/dialog";
 import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { BRAND_ACCENT, BRAND_PRIMARY } from "@/lib/brand-colors";
+import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
 import {
   BRANDING_LOGO_SCALE_DEFAULT,
   BRANDING_LOGO_SCALE_MAX,
@@ -246,48 +247,7 @@ function StartOpenDetails({
   );
 }
 
-function BrandingSection({
-  id,
-  title,
-  hint,
-  apply,
-  children,
-}: {
-  id: string;
-  title: string;
-  hint: string;
-  apply?: "now" | "save" | "mixed";
-  children: React.ReactNode;
-}) {
-  const applyLabel =
-    apply === "now"
-      ? "Applies as you upload"
-      : apply === "save"
-        ? "Saves with the button below"
-        : apply === "mixed"
-          ? "Uploads apply now. Other fields save below"
-          : null;
-  return (
-    <section id={id} className={cn(HUB_SURFACE, "scroll-mt-24 p-4 sm:p-5")}>
-      <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pb-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h2 className="font-heading text-sm font-semibold tracking-tight text-[#141414]">
-            {title}
-          </h2>
-          {applyLabel ? (
-            <p className="text-[11px] font-medium text-[#0f766e]">{applyLabel}</p>
-          ) : null}
-        </div>
-        <p className="mt-1 max-w-prose text-[12px] leading-relaxed text-[#7A7A7A]">
-          {hint}
-        </p>
-      </div>
-      <div className="mt-4 space-y-5">{children}</div>
-    </section>
-  );
-}
-
-type BrandingPanel =
+function PasteUrlField({
   | "logos"
   | "appIcon"
   | "favicon"
@@ -407,7 +367,6 @@ function AssetTile({
 
 function TileThumbFallback({ icon: Icon }: { icon: typeof Globe }) {
   return <Icon className="size-5 text-[#A1A1AA]" aria-hidden />;
-}
 }
 
 function PasteUrlField({
@@ -913,7 +872,6 @@ function LogoSection({
           setDraftPair(null);
         }}
       />
-      <p className={labelClass()}>Logos</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <p className={labelClass()}>On white</p>
@@ -1035,8 +993,7 @@ function AppIconSection({
   const trimmed = appIconUrl?.trim() ?? "";
   const hasLogo = Boolean(logoUrl?.trim());
   return (
-    <div className="space-y-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-5">
-      <p className={labelClass()}>Home screen</p>
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
         {trimmed ? (
           <Image
@@ -1115,7 +1072,6 @@ function FaviconSection({
   const trimmed = faviconUrl?.trim() ?? "";
   return (
     <div className="space-y-2">
-      <p className={labelClass()}>Browser tab</p>
       <div className="flex flex-wrap items-center gap-3">
         {trimmed ? (
           <Image
@@ -1976,15 +1932,6 @@ export default function BrandingPage() {
         className="space-y-4 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-2"
         data-onboarding-target={ONBOARDING_TARGETS.brandingDrawer}
       >
-        <HubSettingsSectionNav
-          ariaLabel="Branding sections"
-          items={[
-            { id: "branding-identity", label: "Shop look" },
-            { id: "branding-banners", label: "Photos" },
-            { id: "branding-search", label: "Search" },
-          ]}
-        />
-
         {feedback ? (
           <DashboardFeedback
             kind={feedback.kind === "error" ? "error" : "success"}
@@ -2007,85 +1954,44 @@ export default function BrandingPage() {
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_22rem]">
           <form id="branding-edit-form" className="space-y-4" onSubmit={onSave}>
-            <BrandingSection
+            <section
               id="branding-identity"
-              title="Shop look"
-              apply="mixed"
-              hint="The name, logos, home-screen icon, tab icon, and colours shoppers see."
+              className={cn(HUB_SURFACE, "scroll-mt-24 p-4 sm:p-5")}
             >
-              <div className="space-y-2">
-                <label className={labelClass()} htmlFor="branding-name">
-                  Display name
-                </label>
-                <input
-                  ref={nameInputRef}
-                  id="branding-name"
-                  className={inputClass()}
-                  value={form.displayName}
-                  maxLength={255}
-                  onChange={(e) =>
-                    setForm((s) => ({ ...s, displayName: e.target.value }))
-                  }
-                  placeholder={snapshot?.name ?? "Your storefront name"}
-                />
-                <p className={hintClass()}>
-                  Falls back to your legal business name when empty.
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h2 className="font-heading text-sm font-semibold tracking-tight text-[#141414]">
+                  Shop look
+                </h2>
+                <p className="text-[11px] font-medium text-[#0f766e]">
+                  Saves with the button below
                 </p>
               </div>
-              <LogoSection
-                logoUrl={logoUrl}
-                logoDarkUrl={logoDarkUrl}
-                primaryColor={form.primaryColor}
-                accentColor={form.accentColor}
-                shopName={form.displayName || snapshot?.name}
-                busy={logoBusy}
-                onUpload={onLogoUpload}
-                onUploadDark={onLogoUploadDark}
-                onUploadPair={onLogoUploadPair}
-                onClear={onLogoClear}
-                onClearDark={onLogoClearDark}
-              />
-              <AppIconSection
-                appIconUrl={appIconUrl}
-                logoUrl={logoUrl}
-                primaryColor={form.primaryColor}
-                accentColor={form.accentColor}
-                shopName={form.displayName || snapshot?.name}
-                busy={appIconBusy}
-                onUpload={onAppIconUpload}
-                onClear={onAppIconClear}
-              />
-              <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-5">
-                <FaviconSection
-                  faviconUrl={faviconUrl}
-                  busy={faviconBusy}
-                  onUpload={onFaviconUpload}
-                  onClear={onFaviconClear}
-                />
-                <PasteUrlField
-                  id="branding-favicon-url"
-                  label="Paste a favicon URL"
-                  value={form.faviconUrl}
-                  maxLength={1024}
-                  placeholder="https://cdn.example.com/favicon.png"
-                  onChange={(faviconUrl) =>
-                    setForm((s) => ({ ...s, faviconUrl }))
-                  }
-                />
-              </div>
-              <div className="space-y-4 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-5">
-                <BrandingColorPresetPicker
-                  primaryColor={form.primaryColor}
-                  accentColor={form.accentColor}
-                  onSelect={(preset) =>
-                    setForm((s) => ({
-                      ...s,
-                      primaryColor: preset.primary.toUpperCase(),
-                      accentColor: preset.accent.toUpperCase(),
-                    }))
-                  }
-                />
-                <div className="grid gap-4 sm:grid-cols-2">
+              <p className="mt-1 max-w-prose text-[12px] leading-relaxed text-[#7A7A7A]">
+                The name and colours shoppers see. Logos and icons sit in the
+                tiles underneath.
+              </p>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className={labelClass()} htmlFor="branding-name">
+                    Display name
+                  </label>
+                  <input
+                    ref={nameInputRef}
+                    id="branding-name"
+                    className={inputClass()}
+                    value={form.displayName}
+                    maxLength={255}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, displayName: e.target.value }))
+                    }
+                    placeholder={snapshot?.name ?? "Your storefront name"}
+                  />
+                  <p className={hintClass()}>
+                    Falls back to your legal business name when empty.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <ColorField
                     label="Shop colour"
                     htmlId="branding-primary"
@@ -2104,131 +2010,166 @@ export default function BrandingPage() {
                   />
                 </div>
               </div>
-            </BrandingSection>
 
-            <BrandingSection
-              id="branding-banners"
-              title="Photos"
-              apply="now"
-              hint="Wide photos that rotate across the shop home. Number 1 shows first."
-            >
-              <BannerSection
-                banners={bannerUrls}
-                busy={bannerBusy}
-                onUpload={onBannerUpload}
-                onDelete={onBannerDelete}
-                onReorder={onBannerReorder}
-              />
-            </BrandingSection>
-
-            <BrandingSection
-              id="branding-search"
-              title="Search"
-              apply="mixed"
-              hint="How Google and chat apps show your shop. Empty title and description use your branch area."
-            >
-              <div className="space-y-2">
-                <div className="flex items-baseline justify-between gap-3">
-                  <label className={labelClass()} htmlFor="branding-meta-title">
-                    Google title
-                  </label>
-                  <span className="text-xs tabular-nums text-muted-foreground">
-                    {form.metaTitle.length}/255
-                  </span>
-                </div>
-                <input
-                  id="branding-meta-title"
-                  className={inputClass()}
-                  value={form.metaTitle}
-                  maxLength={255}
-                  onChange={(e) =>
-                    setForm((s) => ({ ...s, metaTitle: e.target.value }))
+              <div className="mt-4">
+                <BrandingColorPresetPicker
+                  primaryColor={form.primaryColor}
+                  accentColor={form.accentColor}
+                  onSelect={(preset) =>
+                    setForm((s) => ({
+                      ...s,
+                      primaryColor: preset.primary.toUpperCase(),
+                      accentColor: preset.accent.toUpperCase(),
+                    }))
                   }
-                  placeholder={defaultStorefrontMetaTitle(
-                    seoDisplayName,
-                    seoLocation,
-                  )}
-                />
-                <p className={hintClass()}>
-                  Blue link in search results. About 50 to 60 characters.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-baseline justify-between gap-3">
-                  <label
-                    className={labelClass()}
-                    htmlFor="branding-meta-description"
-                  >
-                    Google snippet
-                  </label>
-                  <span className="text-xs tabular-nums text-muted-foreground">
-                    {form.metaDescription.length}/320
-                  </span>
-                </div>
-                <textarea
-                  id="branding-meta-description"
-                  className={cn(inputClass(), "min-h-[96px] resize-y")}
-                  value={form.metaDescription}
-                  maxLength={320}
-                  onChange={(e) =>
-                    setForm((s) => ({ ...s, metaDescription: e.target.value }))
-                  }
-                  placeholder={defaultStorefrontMetaDescription(
-                    seoDisplayName,
-                    seoLocation,
-                  )}
-                />
-                <p className={hintClass()}>
-                  Grey text under the title. Placeholders stay dynamic:{" "}
-                  <span className="font-mono text-[11px]">[Area]</span>,{" "}
-                  <span className="font-mono text-[11px]">[Country]</span>,{" "}
-                  <span className="font-mono text-[11px]">[Name]</span>.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <p className={labelClass()}>Share image</p>
-                <OgImageSection
-                  ogImageUrl={ogImageUrl}
-                  busy={ogImageBusy}
-                  onUpload={onOgImageUpload}
-                  onClear={onOgImageClear}
-                />
-                <PasteUrlField
-                  id="branding-og-image"
-                  label="Paste a share image URL"
-                  value={form.ogImage}
-                  maxLength={1024}
-                  placeholder="https://cdn.example.com/social-preview.png"
-                  onChange={(ogImage) => setForm((s) => ({ ...s, ogImage }))}
                 />
               </div>
 
-              <StartOpenDetails startOpen={Boolean(form.metaKeywords.trim())}>
-                <summary className="cursor-pointer text-xs text-[#7A7A7A] underline-offset-2 hover:text-[#141414] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
-                  Keywords
-                </summary>
-                <div className="mt-2 space-y-2">
-                  <label className="sr-only" htmlFor="branding-meta-keywords">
-                    Meta keywords
-                  </label>
-                  <input
-                    id="branding-meta-keywords"
-                    className={inputClass()}
-                    value={form.metaKeywords}
-                    maxLength={500}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, metaKeywords: e.target.value }))
-                    }
-                    placeholder="grocery, fresh produce, delivery, Nairobi"
+              <button
+                type="button"
+                onClick={() => setPanel("logos")}
+                className="mt-4 grid w-full grid-cols-2 gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+              >
+                <span className="flex min-h-[5.5rem] items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-2">
+                  <TenantLogo
+                    brand="Your logo"
+                    logoUrl={logoUrl}
+                    primaryColor={form.primaryColor}
+                    variant="upload"
                   />
-                  <p className={hintClass()}>
-                    Optional. Most search engines ignore this.
-                  </p>
-                </div>
-              </StartOpenDetails>
-            </BrandingSection>
+                </span>
+                <span className="flex min-h-[5.5rem] items-center justify-center border border-neutral-800 bg-[#0f172a] p-2">
+                  <TenantLogo
+                    brand="Your logo"
+                    logoUrl={logoDarkUrl}
+                    primaryColor={form.primaryColor}
+                    variant="upload"
+                  />
+                </span>
+                <span className="col-span-2 flex items-center justify-between text-[12px] text-[#7A7A7A]">
+                  Light and dark mark
+                  <span className="font-medium text-[#0f766e]">Edit logos</span>
+                </span>
+              </button>
+            </section>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <AssetTile
+                title="Logos"
+                hint="Receipts, emails, and the shop header."
+                status={logoUrl?.trim() ? "Ready" : "Add a logo"}
+                onOpen={() => setPanel("logos")}
+                thumb={
+                  logoUrl?.trim() ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={logoUrl}
+                      alt=""
+                      className="max-h-10 max-w-10 object-contain"
+                    />
+                  ) : (
+                    <TileThumbFallback icon={ImageIcon} />
+                  )
+                }
+              />
+              <AssetTile
+                title="Home screen"
+                hint="What shoppers install on their phone."
+                status={appIconUrl?.trim() ? "Ready" : "Add an icon"}
+                onOpen={() => setPanel("appIcon")}
+                thumb={
+                  appIconUrl?.trim() ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={appIconUrl}
+                      alt=""
+                      className="size-10 rounded-[22%] object-cover"
+                    />
+                  ) : (
+                    <TileThumbFallback icon={Smartphone} />
+                  )
+                }
+              />
+              <AssetTile
+                title="Browser tab"
+                hint="The tiny icon next to your shop name."
+                status={
+                  String(faviconUrl ?? form.faviconUrl).trim()
+                    ? "Ready"
+                    : "Add a tab icon"
+                }
+                onOpen={() => setPanel("favicon")}
+                thumb={
+                  String(faviconUrl ?? form.faviconUrl).trim() ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={String(faviconUrl ?? form.faviconUrl).trim()}
+                      alt=""
+                      className="size-7 object-contain"
+                    />
+                  ) : (
+                    <TileThumbFallback icon={Globe} />
+                  )
+                }
+              />
+              <AssetTile
+                title="Share image"
+                hint="WhatsApp and Facebook link preview."
+                status={
+                  String(ogImageUrl ?? form.ogImage).trim()
+                    ? "Ready"
+                    : "Add a preview"
+                }
+                onOpen={() => setPanel("og")}
+                thumb={
+                  String(ogImageUrl ?? form.ogImage).trim() ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={String(ogImageUrl ?? form.ogImage).trim()}
+                      alt=""
+                      className="h-10 w-14 object-cover"
+                    />
+                  ) : (
+                    <TileThumbFallback icon={Share2} />
+                  )
+                }
+              />
+              <AssetTile
+                id="branding-banners"
+                title="Photos"
+                hint="Wide shots that rotate on the home page."
+                status={
+                  bannerUrls.length
+                    ? `${bannerUrls.length} photo${bannerUrls.length === 1 ? "" : "s"}`
+                    : "Add photos"
+                }
+                onOpen={() => setPanel("photos")}
+                thumb={
+                  bannerUrls[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={bannerUrls[0]}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <TileThumbFallback icon={Images} />
+                  )
+                }
+              />
+              <AssetTile
+                id="branding-search"
+                title="Search"
+                hint="How Google shows the shop."
+                status={
+                  form.metaTitle.trim() || form.metaDescription.trim()
+                    ? "Custom"
+                    : "Using defaults"
+                }
+                onOpen={() => setPanel("search")}
+                thumb={<TileThumbFallback icon={Search} />}
+              />
+            </div>
 
             {saveBar}
           </form>
@@ -2255,6 +2196,200 @@ export default function BrandingPage() {
             <RelatedLinks />
           </aside>
         </div>
+
+        <BrandingDrawer
+          open={panel === "logos"}
+          onOpenChange={(open) => setPanel(open ? "logos" : null)}
+          title="Logos"
+          description="One mark in two inks. Generate a kit to stamp tab, home screen, and share images from it."
+          applyNow
+          wide
+        >
+          <LogoSection
+            logoUrl={logoUrl}
+            logoDarkUrl={logoDarkUrl}
+            primaryColor={form.primaryColor}
+            accentColor={form.accentColor}
+            shopName={form.displayName || snapshot?.name}
+            busy={logoBusy}
+            onUpload={onLogoUpload}
+            onUploadDark={onLogoUploadDark}
+            onUploadPair={onLogoUploadPair}
+            onClear={onLogoClear}
+            onClearDark={onLogoClearDark}
+          />
+        </BrandingDrawer>
+
+        <BrandingDrawer
+          open={panel === "appIcon"}
+          onOpenChange={(open) => setPanel(open ? "appIcon" : null)}
+          title="Home screen"
+          description="The icon shoppers get when they install the shop. Stamp it from the logo with a kit, or remake it here."
+          applyNow
+        >
+          <AppIconSection
+            appIconUrl={appIconUrl}
+            logoUrl={logoUrl}
+            primaryColor={form.primaryColor}
+            accentColor={form.accentColor}
+            shopName={form.displayName || snapshot?.name}
+            busy={appIconBusy}
+            onUpload={onAppIconUpload}
+            onClear={onAppIconClear}
+          />
+        </BrandingDrawer>
+
+        <BrandingDrawer
+          open={panel === "favicon"}
+          onOpenChange={(open) => setPanel(open ? "favicon" : null)}
+          title="Browser tab"
+          description="The tiny icon next to the shop name in a browser tab."
+          applyNow
+        >
+          <FaviconSection
+            faviconUrl={faviconUrl}
+            busy={faviconBusy}
+            onUpload={onFaviconUpload}
+            onClear={onFaviconClear}
+          />
+          <PasteUrlField
+            id="branding-favicon-url"
+            label="Paste a favicon URL"
+            value={form.faviconUrl}
+            maxLength={1024}
+            placeholder="https://cdn.example.com/favicon.png"
+            onChange={(next) => setForm((s) => ({ ...s, faviconUrl: next }))}
+          />
+        </BrandingDrawer>
+
+        <BrandingDrawer
+          open={panel === "og"}
+          onOpenChange={(open) => setPanel(open ? "og" : null)}
+          title="Share image"
+          description="What WhatsApp and Facebook show when someone shares your shop."
+          applyNow
+        >
+          <OgImageSection
+            ogImageUrl={ogImageUrl}
+            busy={ogImageBusy}
+            onUpload={onOgImageUpload}
+            onClear={onOgImageClear}
+          />
+          <PasteUrlField
+            id="branding-og-image"
+            label="Paste a share image URL"
+            value={form.ogImage}
+            maxLength={1024}
+            placeholder="https://cdn.example.com/social-preview.png"
+            onChange={(ogImage) => setForm((s) => ({ ...s, ogImage }))}
+          />
+        </BrandingDrawer>
+
+        <BrandingDrawer
+          open={panel === "photos"}
+          onOpenChange={(open) => setPanel(open ? "photos" : null)}
+          title="Photos"
+          description="Wide photos that rotate across the shop home. Number 1 shows first."
+          applyNow
+          wide
+        >
+          <BannerSection
+            banners={bannerUrls}
+            busy={bannerBusy}
+            onUpload={onBannerUpload}
+            onDelete={onBannerDelete}
+            onReorder={onBannerReorder}
+          />
+        </BrandingDrawer>
+
+        <BrandingDrawer
+          open={panel === "search"}
+          onOpenChange={(open) => setPanel(open ? "search" : null)}
+          title="Search"
+          description="How Google shows your shop. Empty title and description use your branch area."
+        >
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <label className={labelClass()} htmlFor="branding-meta-title">
+                Google title
+              </label>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {form.metaTitle.length}/255
+              </span>
+            </div>
+            <input
+              id="branding-meta-title"
+              className={inputClass()}
+              value={form.metaTitle}
+              maxLength={255}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, metaTitle: e.target.value }))
+              }
+              placeholder={defaultStorefrontMetaTitle(
+                seoDisplayName,
+                seoLocation,
+              )}
+            />
+            <p className={hintClass()}>
+              Blue link in search results. About 50 to 60 characters.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <label
+                className={labelClass()}
+                htmlFor="branding-meta-description"
+              >
+                Google snippet
+              </label>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {form.metaDescription.length}/320
+              </span>
+            </div>
+            <textarea
+              id="branding-meta-description"
+              className={cn(inputClass(), "min-h-[96px] resize-y")}
+              value={form.metaDescription}
+              maxLength={320}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, metaDescription: e.target.value }))
+              }
+              placeholder={defaultStorefrontMetaDescription(
+                seoDisplayName,
+                seoLocation,
+              )}
+            />
+            <p className={hintClass()}>
+              Grey text under the title. Placeholders stay dynamic:{" "}
+              <span className="font-mono text-[11px]">[Area]</span>,{" "}
+              <span className="font-mono text-[11px]">[Country]</span>,{" "}
+              <span className="font-mono text-[11px]">[Name]</span>.
+            </p>
+          </div>
+          <StartOpenDetails startOpen={Boolean(form.metaKeywords.trim())}>
+            <summary className="cursor-pointer text-xs text-[#7A7A7A] underline-offset-2 hover:text-[#141414] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+              Keywords
+            </summary>
+            <div className="mt-2 space-y-2">
+              <label className="sr-only" htmlFor="branding-meta-keywords">
+                Meta keywords
+              </label>
+              <input
+                id="branding-meta-keywords"
+                className={inputClass()}
+                value={form.metaKeywords}
+                maxLength={500}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, metaKeywords: e.target.value }))
+                }
+                placeholder="grocery, fresh produce, delivery, Nairobi"
+              />
+              <p className={hintClass()}>
+                Optional. Most search engines ignore this.
+              </p>
+            </div>
+          </StartOpenDetails>
+        </BrandingDrawer>
       </div>
     </BusinessPageLayout>
   );

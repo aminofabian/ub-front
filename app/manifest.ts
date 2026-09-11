@@ -54,7 +54,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
 
   const tenant = await resolveTenantContext();
   const slug = tenant?.slug?.trim();
-  if (!slug) {
+  if (!tenant || !slug) {
     return platformManifest();
   }
 

@@ -10,6 +10,7 @@ function brandingFromRecord(
     logoUrl: branding?.logoUrl ?? null,
     logoDarkUrl: branding?.logoDarkUrl ?? null,
     faviconUrl: branding?.faviconUrl ?? null,
+    appIconUrl: branding?.appIconUrl ?? null,
     primaryColor: branding?.primaryColor ?? null,
     accentColor: branding?.accentColor ?? null,
     metaTitle: branding?.metaTitle ?? null,

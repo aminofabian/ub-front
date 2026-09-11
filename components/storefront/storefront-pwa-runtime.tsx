@@ -60,15 +60,17 @@ export function StorefrontPwaRuntime({
 
     if (slug) {
       const appleHref = shopperPwaIconPath(slug, 180);
-      let apple = document.querySelector(
+      const existing = document.querySelector(
         'link[rel="apple-touch-icon"][data-storefront-pwa]',
       );
-      if (!(apple instanceof HTMLLinkElement)) {
-        const created = document.createElement("link");
-        created.rel = "apple-touch-icon";
-        created.setAttribute("data-storefront-pwa", "1");
-        document.head.appendChild(created);
-        apple = created;
+      const apple =
+        existing instanceof HTMLLinkElement
+          ? existing
+          : document.createElement("link");
+      if (!(existing instanceof HTMLLinkElement)) {
+        apple.rel = "apple-touch-icon";
+        apple.setAttribute("data-storefront-pwa", "1");
+        document.head.appendChild(apple);
       }
       apple.href = appleHref;
     }
