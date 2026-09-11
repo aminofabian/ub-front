@@ -18,6 +18,7 @@ import {
   requestOpenRegisterTill,
   type PosGuidanceDetail,
 } from "@/lib/pos-guidance";
+import { isOpenShiftStatus } from "@/lib/pos-till-shift-gate";
 import { fetchTillDeviceMe } from "@/lib/till-devices-api";
 import { cn } from "@/lib/utils";
 
@@ -110,7 +111,7 @@ export function PosReadinessBanner() {
     void fetchCurrentShift(bid, { toast: false })
       .then((shift) => {
         if (!cancelled) {
-          if (shift.status === "open") {
+          if (isOpenShiftStatus(shift.status)) {
             markResolved("open-shift");
           } else {
             markActive("open-shift");

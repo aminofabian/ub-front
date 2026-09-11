@@ -226,7 +226,8 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   allowOrderPadForGroceryClerk: true,
   /** Match backend: grocery Confirm orders defaults on. */
   allowOrderConfirmForGroceryClerk: true,
-  allowNegativeStock: false,
+  /** Match backend: selling when out of stock defaults on. */
+  allowNegativeStock: true,
   /** Match backend: Activity + Stock pages default on for stock managers. */
   allowActivityForStockManager: true,
   allowStockPageForStockManager: true,
@@ -457,9 +458,8 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
       b?.inventory?.stockLevels?.allowOrderPadForGroceryClerk !== false,
     allowOrderConfirmForGroceryClerk:
       b?.inventory?.stockLevels?.allowOrderConfirmForGroceryClerk !== false,
-    allowNegativeStock: Boolean(
-      b?.inventory?.stockLevels?.allowNegativeStock,
-    ),
+    allowNegativeStock:
+      b?.inventory?.stockLevels?.allowNegativeStock !== false,
     allowActivityForStockManager:
       b?.inventory?.stockLevels?.allowActivityForStockManager !== false,
     allowStockPageForStockManager:

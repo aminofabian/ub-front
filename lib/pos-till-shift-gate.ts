@@ -13,6 +13,10 @@ export type TillOpeningOpenShift = {
   openedAt: string;
 };
 
+export function isOpenShiftStatus(status: string | null | undefined): boolean {
+  return status?.trim().toLowerCase() === "open";
+}
+
 export function shiftOpenAgeMs(
   openedAt: string | null | undefined,
   nowMs: number,

@@ -63,6 +63,7 @@ import {
 } from "@/lib/pos-guidance";
 import {
   clearStaleShiftContinued,
+  isOpenShiftStatus,
   isStaleShiftContinued,
   markStaleShiftContinued,
   resolveTillOpeningPrompt,
@@ -4420,12 +4421,15 @@ export function QuickSaleWorkspace({
     null,
   );
   const [branchShiftLoading, setBranchShiftLoading] = useState(isCashier);
+  const [branchShiftSettled, setBranchShiftSettled] = useState(false);
   const [openShiftModal, setOpenShiftModal] = useState(false);
   const [closeShiftModal, setCloseShiftModal] = useState(false);
   const [openShiftGate, setOpenShiftGate] = useState(false);
   const [staleClosePrompt, setStaleClosePrompt] = useState(false);
   const [drawoutModal, setDrawoutModal] = useState(false);
   const openingPromptSessionRef = useRef<string | null>(null);
+  const branchOpenShiftRef = useRef<ShiftRecord | null>(null);
+  branchOpenShiftRef.current = branchOpenShift;
 
   const canCloseThisShift = canCloseShiftPerm;
   const canDrawout =
@@ -4439,13 +4443,17 @@ export function QuickSaleWorkspace({
     if (!branchId?.trim() || !online) {
       setBranchOpenShift(null);
       setBranchShiftLoading(false);
+      setBranchShiftSettled(false);
       return;
     }
+    const bid = branchId.trim();
     setBranchShiftLoading(true);
-    void fetchCurrentShift(branchId.trim(), { toast: false })
+    setBranchShiftSettled(false);
+    void fetchCurrentShift(bid, { toast: false })
       .then((s) => {
-        setBranchOpenShift(s.status === "open" ? s : null);
-        if (s.status === "open") {
+        const open = isOpenShiftStatus(s.status);
+        setBranchOpenShift(open ? s : null);
+        if (open) {
           notifyPosGuidanceResolved("open-shift");
         }
       })
@@ -4454,6 +4462,7 @@ export function QuickSaleWorkspace({
       })
       .finally(() => {
         setBranchShiftLoading(false);
+        setBranchShiftSettled(true);
       });
   }, [branchId, online]);
 
@@ -4461,10 +4470,12 @@ export function QuickSaleWorkspace({
     if (!shouldFetchOpenShift || !branchId?.trim()) {
       setBranchOpenShift(null);
       setBranchShiftLoading(false);
+      setBranchShiftSettled(false);
       return;
     }
     if (!online) {
       setBranchShiftLoading(false);
+      setBranchShiftSettled(false);
       return;
     }
     refetchBranchOpenShift();
@@ -4472,6 +4483,9 @@ export function QuickSaleWorkspace({
 
   useEffect(() => {
     const onOpenShiftRequest = () => {
+      if (branchOpenShiftRef.current) {
+        return;
+      }
       setError("");
       setStaleClosePrompt(false);
       setCloseShiftModal(false);
@@ -4495,10 +4509,22 @@ export function QuickSaleWorkspace({
       setStaleClosePrompt(false);
       return;
     }
-    if (!online || branchShiftLoading || !branchId?.trim()) {
+    if (
+      !online ||
+      branchShiftLoading ||
+      !branchShiftSettled ||
+      !branchId?.trim()
+    ) {
       return;
     }
-    const sessionKey = `unlocked:${branchId.trim()}`;
+
+    // A live shift on this till must never keep the open-shift gate up.
+    if (branchOpenShift && openShiftGate) {
+      setOpenShiftModal(false);
+      setOpenShiftGate(false);
+    }
+
+    const sessionKey = `unlocked:${branchId.trim()}:${branchOpenShift?.id ?? "none"}`;
     if (openingPromptSessionRef.current === sessionKey) {
       return;
     }
@@ -4539,14 +4565,21 @@ export function QuickSaleWorkspace({
       setOpenShiftModal(false);
       setStaleClosePrompt(true);
       setCloseShiftModal(true);
+      return;
+    }
+    if (openShiftGate) {
+      setOpenShiftModal(false);
+      setOpenShiftGate(false);
     }
   }, [
     isCashier,
     tillLocked,
     online,
     branchShiftLoading,
+    branchShiftSettled,
     branchId,
     branchOpenShift,
+    openShiftGate,
     canOpenShift,
     canCloseThisShift,
     business?.id,
@@ -4562,6 +4595,9 @@ export function QuickSaleWorkspace({
     (action: "new-drawout" | "open-shift" | "close-shift") => {
       setError("");
       if (action === "open-shift") {
+        if (branchOpenShift) {
+          return;
+        }
         setStaleClosePrompt(false);
         setOpenShiftGate(false);
         setOpenShiftModal(true);
@@ -4955,10 +4991,6 @@ export function QuickSaleWorkspace({
               setNotice("Shift closed successfully.");
               notifyPosGuidance("open-shift");
               refetchBranchOpenShift();
-              if (canOpenShift) {
-                setOpenShiftGate(true);
-                setOpenShiftModal(true);
-              }
             }}
           />
           {branchOpenShift ? (

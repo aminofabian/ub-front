@@ -187,7 +187,7 @@ export function groceryClerkStockAccessEnabled(
 export function allowNegativeStockForSales(
   business: BusinessRecord | null | undefined,
 ): boolean {
-  return Boolean(stockLevelsSettings(business)?.allowNegativeStock);
+  return stockLevelsSettings(business)?.allowNegativeStock !== false;
 }
 
 export function canStockManagerSeeSystemStockDuringCount(

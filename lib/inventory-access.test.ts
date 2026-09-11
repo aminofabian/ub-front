@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { APP_ROUTES } from "@/lib/config";
 import {
+  allowNegativeStockForSales,
   canEditStockLevels,
   canStockManagerSeeSystemStockDuringCount,
   canViewStockLevels,
@@ -73,6 +74,25 @@ describe("inventory-access", () => {
     const empty: BusinessRecord = { name: "Test" };
     expect(stockManagerActivityEnabled(empty)).toBe(true);
     expect(stockManagerStockPageEnabled(empty)).toBe(true);
+  });
+
+  it("allows selling when out of stock by default", () => {
+    expect(allowNegativeStockForSales({ name: "Test" })).toBe(true);
+    expect(
+      allowNegativeStockForSales({
+        name: "Test",
+        inventory: { stockLevels: { allowNegativeStock: true } },
+      }),
+    ).toBe(true);
+  });
+
+  it("blocks selling when out of stock when the admin override is off", () => {
+    expect(
+      allowNegativeStockForSales({
+        name: "Test",
+        inventory: { stockLevels: { allowNegativeStock: false } },
+      }),
+    ).toBe(false);
   });
 
   it("grants grocery clerk read and edit when the business toggle is on", () => {

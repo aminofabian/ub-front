@@ -1195,6 +1195,7 @@ export type StockLevelsSettingsRecord = {
   allowStockEditForStockManager?: boolean;
   /** Grocery counter Edit stock. Default on when absent. */
   allowStockEditForGroceryClerk?: boolean;
+  /** Sell when on-hand is zero. Default on when absent. */
   allowNegativeStock?: boolean;
   /** Activity page for stock managers. Default on when absent. */
   allowActivityForStockManager?: boolean;

@@ -5,6 +5,7 @@ import {
   STALE_SHIFT_CONTINUED_PREFIX,
   clearStaleShiftContinued,
   formatShiftOpenDuration,
+  isOpenShiftStatus,
   isStaleOpenShift,
   isStaleShiftContinued,
   markStaleShiftContinued,
@@ -45,6 +46,15 @@ describe("shiftOpenAgeMs", () => {
   it("returns null for missing or invalid timestamps", () => {
     expect(shiftOpenAgeMs(null, Date.now())).toBeNull();
     expect(shiftOpenAgeMs("not-a-date", Date.now())).toBeNull();
+  });
+});
+
+describe("isOpenShiftStatus", () => {
+  it("treats open case-insensitively", () => {
+    expect(isOpenShiftStatus("open")).toBe(true);
+    expect(isOpenShiftStatus("OPEN")).toBe(true);
+    expect(isOpenShiftStatus("closed")).toBe(false);
+    expect(isOpenShiftStatus(null)).toBe(false);
   });
 });
 
