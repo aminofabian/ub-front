@@ -51,6 +51,7 @@ import {
   saveOpenShiftDraft,
 } from "@/lib/shift-draft-storage";
 import { isPrefillOpeningFromLastCloseEnabled } from "@/lib/shift-settings";
+import { formatShiftOpenDuration } from "@/lib/pos-till-shift-gate";
 import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -522,6 +523,7 @@ export function OpenShiftModal({
   onOpened,
   preferredBranchId,
   lockBranchSelectionTo,
+  requireAction = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -531,6 +533,8 @@ export function OpenShiftModal({
   preferredBranchId?: string | null;
   /** When set (e.g. cashier), branch/register cannot be changed. */
   lockBranchSelectionTo?: string | null;
+  /** Till-opening gate: ignore overlay / Escape so a mis-tap doesn't skip the count. */
+  requireAction?: boolean;
 }) {
   const featureFlags = useFeatureFlags();
   const dashboard = useOptionalDashboard();
@@ -756,9 +760,19 @@ export function OpenShiftModal({
         if (!v) onClose();
       }}
     >
-      <DialogContent side="center" showCloseButton={false} className={SHIFT_MODAL_CONTENT}>
+      <DialogContent
+        side="center"
+        showCloseButton={false}
+        className={SHIFT_MODAL_CONTENT}
+        onPointerDownOutside={
+          requireAction ? (event) => event.preventDefault() : undefined
+        }
+        onEscapeKeyDown={
+          requireAction ? (event) => event.preventDefault() : undefined
+        }
+      >
         <div className={SHIFT_MODAL_HEADER}>
-          <ShiftModalClose />
+          {requireAction ? null : <ShiftModalClose />}
           <DialogHeader className="flex flex-row items-start gap-2.5 space-y-0 text-left sm:gap-3">
             <span className={SHIFT_MODAL_ICON} aria-hidden>
               <Building2 className="size-4 sm:size-[1.125rem]" />
@@ -768,11 +782,13 @@ export function OpenShiftModal({
                 Open New Shift
               </DialogTitle>
               <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
-                {useDenomBreakdown
-                  ? prefillFromLastClose
-                    ? "Review the opening float (pre-filled from last close). Adjust any note or coin if needed."
-                    : "Count notes, then coins."
-                  : `Enter the opening cash total in ${currency}. Note/coin breakdown is only available for KES.`}
+                {requireAction
+                  ? "No shift is open on this till. Count the float before selling."
+                  : useDenomBreakdown
+                    ? prefillFromLastClose
+                      ? "Review the opening float (pre-filled from last close). Adjust any note or coin if needed."
+                      : "Count notes, then coins."
+                    : `Enter the opening cash total in ${currency}. Note/coin breakdown is only available for KES.`}
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -861,7 +877,7 @@ export function OpenShiftModal({
           <DialogFooter className={SHIFT_MODAL_FOOTER}>
             <DialogClose asChild>
               <Button type="button" variant="outline" className={SHIFT_MODAL_BTN_OUTLINE}>
-                Cancel
+                {requireAction ? "Later" : "Cancel"}
               </Button>
             </DialogClose>
             <Button
@@ -1081,11 +1097,17 @@ export function CloseShiftModal({
   onClose,
   shift,
   onClosed,
+  onContinue,
 }: {
   open: boolean;
   onClose: () => void;
   shift: ShiftRecord | null;
   onClosed: () => void;
+  /**
+   * Overnight / 24h till gate. When set, the cashier can keep the open shift
+   * instead of counting out.
+   */
+  onContinue?: () => void;
 }) {
   const dashboard = useOptionalDashboard();
   const currency = resolveCurrencyCode(dashboard?.business?.currency);
@@ -1325,6 +1347,16 @@ export function CloseShiftModal({
     onClose,
   ]);
 
+  const handleContinue = useCallback(() => {
+    onContinue?.();
+    onClose();
+  }, [onContinue, onClose]);
+
+  const staleDuration =
+    onContinue && till?.openedAt
+      ? formatShiftOpenDuration(till.openedAt, Date.now())
+      : null;
+
   return (
     <Dialog
       open={open}
@@ -1332,19 +1364,31 @@ export function CloseShiftModal({
         if (!v) onClose();
       }}
     >
-      <DialogContent side="center" showCloseButton={false} className={SHIFT_MODAL_CONTENT}>
+      <DialogContent
+        side="center"
+        showCloseButton={false}
+        className={SHIFT_MODAL_CONTENT}
+        onPointerDownOutside={
+          onContinue ? (event) => event.preventDefault() : undefined
+        }
+        onEscapeKeyDown={
+          onContinue ? (event) => event.preventDefault() : undefined
+        }
+      >
         <div className={SHIFT_MODAL_HEADER}>
-          <ShiftModalClose />
+          {onContinue ? null : <ShiftModalClose />}
           <DialogHeader className="flex flex-row items-start gap-2.5 space-y-0 text-left sm:gap-3">
             <span className={SHIFT_MODAL_ICON} aria-hidden>
               <DoorClosed className="size-4 sm:size-[1.125rem]" />
             </span>
             <div className="min-w-0 flex-1 space-y-0.5 pr-9">
               <DialogTitle className="font-heading text-[15px] font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-base">
-                Close Shift
+                {onContinue ? "This till is still open" : "Close Shift"}
               </DialogTitle>
               <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
-                Count notes, then coins.
+                {staleDuration
+                  ? `Open for ${staleDuration} without a close. Count out, or continue this shift.`
+                  : "Count notes, then coins."}
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -1551,11 +1595,23 @@ export function CloseShiftModal({
 
 
           <DialogFooter className={SHIFT_MODAL_FOOTER}>
-            <DialogClose asChild>
-              <Button type="button" variant="outline" className={SHIFT_MODAL_BTN_OUTLINE}>
-                Cancel
+            {onContinue ? (
+              <Button
+                type="button"
+                variant="outline"
+                className={SHIFT_MODAL_BTN_OUTLINE}
+                disabled={loading}
+                onClick={handleContinue}
+              >
+                Continue this shift
               </Button>
-            </DialogClose>
+            ) : (
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className={SHIFT_MODAL_BTN_OUTLINE}>
+                  Cancel
+                </Button>
+              </DialogClose>
+            )}
             <Button type="button" disabled={loading} onClick={handleClose} className={SHIFT_MODAL_BTN_PRIMARY}>
               {loading ? "Closing..." : `Close Shift (${moneyStr(totalCash, currency)})`}
             </Button>

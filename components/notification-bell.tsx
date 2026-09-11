@@ -6,7 +6,7 @@ import { Bell, MessageCircle } from "lucide-react";
 
 import { useOptionalRealtime } from "@/components/realtime-provider";
 import { useSupportUnread } from "@/hooks/use-support-unread";
-import { getNotificationPresentation } from "@/lib/notification-display";
+import { getNotificationPresentation, toClientNavigationHref } from "@/lib/notification-display";
 import {
   isSupportChatAction,
   requestOpenSupportChat,
@@ -30,7 +30,15 @@ export function NotificationBell() {
       requestOpenSupportChat();
       return;
     }
-    if (actionUrl) router.push(actionUrl);
+    const href = toClientNavigationHref(actionUrl);
+    if (!href) {
+      return;
+    }
+    if (/^https?:\/\//i.test(href)) {
+      window.location.assign(href);
+      return;
+    }
+    router.push(href);
   }
 
   return (

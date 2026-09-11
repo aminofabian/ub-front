@@ -263,6 +263,11 @@ describe("getPosGuidanceKind", () => {
         "This till is not registered for this branch. Register this computer so sales, shifts, and receipts stay on this counter.",
       ),
     ).toBe("register-till");
+    expect(
+      getPosGuidanceKind(
+        "This till is not registered for this branch. We asked the shop owner to tap a link and register this computer. Try your PIN again after they do.",
+      ),
+    ).toBe("register-till");
   });
 
   it("matches no open shift responses", () => {

@@ -53,6 +53,8 @@ import {
   resolvePostAuthDestination,
 } from "@/lib/post-auth-destination";
 import { isOfficeLoginMode } from "@/lib/login-audience";
+import { getPosGuidanceKind } from "@/lib/problem";
+import { formatTillAccessDeniedMessage } from "@/lib/pos-till-unlock";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass = authPrimaryCtaClass;
@@ -257,11 +259,13 @@ function LoginPageContent() {
       navigatedAway = true;
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : usePin
-            ? "PIN login failed."
-            : "Login failed.",
+        formatTillAccessDeniedMessage(
+          error instanceof Error
+            ? error.message
+            : usePin
+              ? "PIN login failed."
+              : "Login failed.",
+        ),
       );
     } finally {
       if (!navigatedAway) {
@@ -287,7 +291,9 @@ function LoginPageContent() {
       setErrorMessage("Could not open that shop. Try again or contact support.");
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Could not sign in to that shop.",
+        formatTillAccessDeniedMessage(
+          error instanceof Error ? error.message : "Could not sign in to that shop.",
+        ),
       );
     } finally {
       setShopPickerBusy(false);
@@ -679,7 +685,15 @@ function LoginPageContent() {
               </p>
             </div>
             {errorMessage ? (
-              <AuthAlert variant="error">{errorMessage}</AuthAlert>
+              <AuthAlert
+                variant={
+                  getPosGuidanceKind(errorMessage) === "register-till"
+                    ? "info"
+                    : "error"
+                }
+              >
+                {errorMessage}
+              </AuthAlert>
             ) : null}
             <button
               type="submit"

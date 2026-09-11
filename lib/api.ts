@@ -9419,6 +9419,54 @@ export async function postPublicDrawoutReject(
   );
 }
 
+export type PublicTillAccessReview = {
+  requestId: string;
+  status: string;
+  shopName: string;
+  branchName: string;
+  cashierName: string;
+  cashierEmail: string;
+  suggestedLabel: string;
+  deviceShortId: string;
+  userAgent: string | null;
+  lastSeenAt: string;
+  createdAt: string;
+  canApprove: boolean;
+};
+
+export async function fetchPublicTillAccessReview(
+  token: string,
+): Promise<PublicTillAccessReview> {
+  return request<PublicTillAccessReview>(
+    `/api/v1/public/tills/review?token=${encodeURIComponent(token)}`,
+    { requiresAuth: false, toast: false },
+  );
+}
+
+export async function postPublicTillAccessApprove(
+  token: string,
+  label?: string,
+): Promise<PublicTillAccessReview> {
+  return request<PublicTillAccessReview>(
+    `/api/v1/public/tills/approve?token=${encodeURIComponent(token)}`,
+    {
+      method: "POST",
+      requiresAuth: false,
+      toast: false,
+      body: { label: label?.trim() || null },
+    },
+  );
+}
+
+export async function postPublicTillAccessDismiss(
+  token: string,
+): Promise<PublicTillAccessReview> {
+  return request<PublicTillAccessReview>(
+    `/api/v1/public/tills/dismiss?token=${encodeURIComponent(token)}`,
+    { method: "POST", requiresAuth: false, toast: false },
+  );
+}
+
 export type SalePaymentMethod =
   | "cash"
   | "mpesa_manual"

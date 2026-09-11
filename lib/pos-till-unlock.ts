@@ -1,4 +1,5 @@
 import type { TillUnlockContext } from "@/lib/till-unlock-context";
+import { getPosGuidanceKind } from "@/lib/problem";
 
 export type PosTillUnlockMode = "same" | "switch";
 export type PosTillUnlockMethod = "pin" | "password";
@@ -34,10 +35,24 @@ export function resolveTillUnlockEmail(
 }
 
 /** User-facing copy when PIN/password auth fails on the till overlay. */
+export const TILL_WAITING_FOR_OWNER_COPY =
+  "This till is not registered for this branch. We asked the shop owner to tap a link and register this computer. Try your PIN again after they do.";
+
+export function formatTillAccessDeniedMessage(raw: string): string {
+  if (getPosGuidanceKind(raw) === "register-till") {
+    return TILL_WAITING_FOR_OWNER_COPY;
+  }
+  return raw;
+}
+
 export function formatTillUnlockError(
   raw: string,
   method: PosTillUnlockMethod,
 ): string {
+  const guided = formatTillAccessDeniedMessage(raw);
+  if (guided !== raw) {
+    return guided;
+  }
   const lower = raw.toLowerCase();
   if (
     lower.includes("incorrect email or password") ||

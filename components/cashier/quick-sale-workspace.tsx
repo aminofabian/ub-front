@@ -62,6 +62,12 @@ import {
   notifyPosGuidanceResolved,
 } from "@/lib/pos-guidance";
 import {
+  clearStaleShiftContinued,
+  isStaleShiftContinued,
+  markStaleShiftContinued,
+  resolveTillOpeningPrompt,
+} from "@/lib/pos-till-shift-gate";
+import {
   cashierMayRecordDrawout,
   POS_CASHIER_CAPABILITY_FLAGS,
   posClearSaleEnabled,
@@ -150,6 +156,7 @@ import {
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import { CashierPosLayout } from "./cashier-pos-layout";
 import { CashierLedgerLayout } from "./ledger/cashier-ledger-layout";
+import { useOptionalPosTillLock } from "@/components/auth/pos-till-lock";
 import { useCashierTemplate } from "@/hooks/use-cashier-template";
 import {
   formatCartQtyValue,
@@ -4407,13 +4414,18 @@ export function QuickSaleWorkspace({
   const shouldFetchOpenShift =
     isCashier && (canOpenShift || canCloseShiftPerm || canReadShift);
 
+  const tillLock = useOptionalPosTillLock();
+  const tillLocked = tillLock?.locked ?? false;
   const [branchOpenShift, setBranchOpenShift] = useState<ShiftRecord | null>(
     null,
   );
-  const [branchShiftLoading, setBranchShiftLoading] = useState(false);
+  const [branchShiftLoading, setBranchShiftLoading] = useState(isCashier);
   const [openShiftModal, setOpenShiftModal] = useState(false);
   const [closeShiftModal, setCloseShiftModal] = useState(false);
+  const [openShiftGate, setOpenShiftGate] = useState(false);
+  const [staleClosePrompt, setStaleClosePrompt] = useState(false);
   const [drawoutModal, setDrawoutModal] = useState(false);
+  const openingPromptSessionRef = useRef<string | null>(null);
 
   const canCloseThisShift = canCloseShiftPerm;
   const canDrawout =
@@ -4461,12 +4473,85 @@ export function QuickSaleWorkspace({
   useEffect(() => {
     const onOpenShiftRequest = () => {
       setError("");
+      setStaleClosePrompt(false);
+      setCloseShiftModal(false);
+      setOpenShiftGate(true);
       setOpenShiftModal(true);
     };
     window.addEventListener(OPEN_POS_SHIFT_EVENT, onOpenShiftRequest);
     return () =>
       window.removeEventListener(OPEN_POS_SHIFT_EVENT, onOpenShiftRequest);
   }, []);
+
+  useEffect(() => {
+    if (!isCashier) {
+      return;
+    }
+    if (tillLocked) {
+      openingPromptSessionRef.current = null;
+      setOpenShiftModal(false);
+      setCloseShiftModal(false);
+      setOpenShiftGate(false);
+      setStaleClosePrompt(false);
+      return;
+    }
+    if (!online || branchShiftLoading || !branchId?.trim()) {
+      return;
+    }
+    const sessionKey = `unlocked:${branchId.trim()}`;
+    if (openingPromptSessionRef.current === sessionKey) {
+      return;
+    }
+    openingPromptSessionRef.current = sessionKey;
+
+    const businessId = business?.id?.trim() ?? "";
+    const userId = me?.id?.trim() ?? "";
+    const continued = new Set<string>();
+    if (
+      branchOpenShift &&
+      isStaleShiftContinued(businessId, userId, branchOpenShift.id)
+    ) {
+      continued.add(branchOpenShift.id);
+    }
+
+    const prompt = resolveTillOpeningPrompt({
+      ready: true,
+      canOpenShift,
+      canCloseShift: canCloseThisShift,
+      openShift: branchOpenShift
+        ? { id: branchOpenShift.id, openedAt: branchOpenShift.openedAt }
+        : null,
+      continuedShiftIds: continued,
+      nowMs: Date.now(),
+    });
+
+    if (prompt === "open-shift") {
+      setError("");
+      setStaleClosePrompt(false);
+      setCloseShiftModal(false);
+      setOpenShiftGate(true);
+      setOpenShiftModal(true);
+      return;
+    }
+    if (prompt === "close-stale-shift") {
+      setError("");
+      setOpenShiftGate(false);
+      setOpenShiftModal(false);
+      setStaleClosePrompt(true);
+      setCloseShiftModal(true);
+    }
+  }, [
+    isCashier,
+    tillLocked,
+    online,
+    branchShiftLoading,
+    branchId,
+    branchOpenShift,
+    canOpenShift,
+    canCloseThisShift,
+    business?.id,
+    me?.id,
+  ]);
 
   const dialogBrandTheme = useMemo(
     () => posBrandThemeStyle(business?.branding ?? null),
@@ -4477,6 +4562,8 @@ export function QuickSaleWorkspace({
     (action: "new-drawout" | "open-shift" | "close-shift") => {
       setError("");
       if (action === "open-shift") {
+        setStaleClosePrompt(false);
+        setOpenShiftGate(false);
         setOpenShiftModal(true);
         return;
       }
@@ -4486,6 +4573,8 @@ export function QuickSaleWorkspace({
         return;
       }
       if (action === "close-shift") {
+        setOpenShiftGate(false);
+        setStaleClosePrompt(false);
         setCloseShiftModal(true);
       } else if (canDrawout) {
         setDrawoutModal(true);
@@ -4812,7 +4901,11 @@ export function QuickSaleWorkspace({
         <>
           <OpenShiftModal
             open={openShiftModal}
-            onClose={() => setOpenShiftModal(false)}
+            onClose={() => {
+              setOpenShiftModal(false);
+              setOpenShiftGate(false);
+            }}
+            requireAction={openShiftGate}
             branches={branches.filter((b) => b.active)}
             preferredBranchId={branchId?.trim() || null}
             lockBranchSelectionTo={
@@ -4820,6 +4913,7 @@ export function QuickSaleWorkspace({
             }
             onOpened={() => {
               setOpenShiftModal(false);
+              setOpenShiftGate(false);
               setNotice("Shift opened successfully.");
               notifyPosGuidanceResolved("open-shift");
               refetchBranchOpenShift();
@@ -4827,13 +4921,44 @@ export function QuickSaleWorkspace({
           />
           <CloseShiftModal
             open={closeShiftModal}
-            onClose={() => setCloseShiftModal(false)}
-            shift={branchOpenShift}
-            onClosed={() => {
+            onClose={() => {
               setCloseShiftModal(false);
+              setStaleClosePrompt(false);
+            }}
+            shift={branchOpenShift}
+            onContinue={
+              staleClosePrompt
+                ? () => {
+                    if (branchOpenShift) {
+                      markStaleShiftContinued(
+                        business?.id ?? "",
+                        me?.id ?? "",
+                        branchOpenShift.id,
+                      );
+                    }
+                    setStaleClosePrompt(false);
+                    setCloseShiftModal(false);
+                    setNotice("Continuing the open shift.");
+                  }
+                : undefined
+            }
+            onClosed={() => {
+              if (branchOpenShift) {
+                clearStaleShiftContinued(
+                  business?.id ?? "",
+                  me?.id ?? "",
+                  branchOpenShift.id,
+                );
+              }
+              setCloseShiftModal(false);
+              setStaleClosePrompt(false);
               setNotice("Shift closed successfully.");
               notifyPosGuidance("open-shift");
               refetchBranchOpenShift();
+              if (canOpenShift) {
+                setOpenShiftGate(true);
+                setOpenShiftModal(true);
+              }
             }}
           />
           {branchOpenShift ? (

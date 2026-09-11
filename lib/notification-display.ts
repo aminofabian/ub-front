@@ -41,6 +41,7 @@ const TYPE_LABELS: Record<string, string> = {
   "onboarding.web_order": "Someone ordered online!",
   "drawout.approval_requested": "Cash drawout needs approval",
   "drawout.recorded": "Cash drawout recorded",
+  "till.access_requested": "Till waiting to be trusted",
 };
 
 function readString(value: unknown): string {
@@ -113,6 +114,8 @@ function defaultActionUrl(notificationType: string): string {
     case "drawout.approval_requested":
     case "drawout.recorded":
       return "/shifts";
+    case "till.access_requested":
+      return "/tills/review";
     case "onboarding.web_order":
       return "/storefront/web-orders";
     default:
@@ -282,6 +285,11 @@ function formatPayloadBody(
       }
       return parts.join(" · ");
     }
+    case "till.access_requested": {
+      const cashierName = readString(payload.cashierName);
+      const branchName = readString(payload.branchName);
+      return [cashierName, branchName].filter(Boolean).join(" · ");
+    }
     default: {
       const ignored = new Set([
         "id",
@@ -307,6 +315,25 @@ function formatPayloadBody(
         });
       return parts.join(" · ");
     }
+  }
+}
+
+/** Same-origin absolute URLs from email/SMS payloads become in-app paths. */
+export function toClientNavigationHref(actionUrl: string): string {
+  const raw = actionUrl.trim();
+  if (!raw || raw.startsWith("/") || raw.startsWith("kiosk:")) {
+    return raw;
+  }
+  try {
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "http://localhost";
+    const url = new URL(raw, origin);
+    if (typeof window !== "undefined" && url.origin === window.location.origin) {
+      return `${url.pathname}${url.search}${url.hash}`;
+    }
+    return url.toString();
+  } catch {
+    return raw;
   }
 }
 

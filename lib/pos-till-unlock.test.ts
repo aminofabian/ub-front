@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
   assertTillUnlockUserAllowed,
+  formatTillAccessDeniedMessage,
   formatTillUnlockError,
   resolveTillUnlockEmail,
 } from "@/lib/pos-till-unlock";
@@ -69,6 +70,16 @@ describe("assertTillUnlockUserAllowed", () => {
   });
 });
 
+describe("formatTillAccessDeniedMessage", () => {
+  it("rewrites unregistered-till copy to waiting-for-owner", () => {
+    expect(
+      formatTillAccessDeniedMessage(
+        "This till is not registered for this branch. Register this computer so sales, shifts, and receipts stay on this counter.",
+      ),
+    ).toMatch(/shop owner/i);
+  });
+});
+
 describe("formatTillUnlockError", () => {
   it("guides password-only users toward password unlock", () => {
     expect(
@@ -77,5 +88,19 @@ describe("formatTillUnlockError", () => {
     expect(
       formatTillUnlockError("Incorrect email or password", "password"),
     ).toMatch(/Wrong password/i);
+  });
+
+  it("tells cashiers the owner was asked to trust this computer", () => {
+    expect(
+      formatTillUnlockError(
+        "This till is not registered for this branch. Register this computer so sales, shifts, and receipts stay on this counter.",
+        "pin",
+      ),
+    ).toMatch(/shop owner/i);
+    expect(
+      formatTillAccessDeniedMessage(
+        "This till is not registered for this branch. We asked the shop owner to tap a link and register this computer. Try your PIN again after they do.",
+      ),
+    ).toMatch(/shop owner/i);
   });
 });
