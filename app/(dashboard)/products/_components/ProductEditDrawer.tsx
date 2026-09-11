@@ -41,6 +41,7 @@ import { useInlineCategoryCreate } from "../_hooks/useInlineCategoryCreate";
 import { useInlineAisleCreate } from "../_hooks/useInlineAisleCreate";
 import { ProductDescriptionField } from "./ProductDescriptionField";
 import { resolveGeneratedCatalogIds } from "@/lib/resolve-generated-catalog";
+import { joinProductNameParts } from "@/lib/catalog-display";
 import { ProductFormSectionToggle } from "./ProductFormSectionToggle";
 import { StockIncreaseFields } from "./StockIncreaseFields";
 import {
@@ -94,7 +95,10 @@ export function ProductEditDrawer({
   open: boolean;
   onClose: () => void;
   banner?: FormDrawerProps["banner"];
-  detail: Pick<ProductDetailApi, "detail" | "patchDraft" | "setPatchDraft">;
+  detail: Pick<
+    ProductDetailApi,
+    "detail" | "patchDraft" | "setPatchDraft" | "variantParentDisplayName"
+  >;
   cats: Cat[];
   m: Pick<
     ProductMutationsApi,
@@ -127,6 +131,14 @@ export function ProductEditDrawer({
   const sharedStock = d ? usesSharedPackageStock(d) : false;
   const isWeighed = d?.isWeighed === true;
   const isVariant = !!d?.variantOfItemId;
+  const familyName = isVariant
+    ? detail.variantParentDisplayName?.trim() ||
+      d?.parentName?.trim() ||
+      ""
+    : "";
+  const composedDisplayName = isVariant
+    ? joinProductNameParts(familyName, dr.variantName)
+    : (dr.name ?? "");
 
   const [stockQty, setStockQty] = useState("");
   const [stockBranchId, setStockBranchId] = useState("");
@@ -177,10 +189,19 @@ export function ProductEditDrawer({
     detail.setPatchDraft((p) => ({ ...p, webPublished: true }));
   }, [open, d?.id, detail.setPatchDraft]);
 
+  useEffect(() => {
+    if (!isVariant) return;
+    if ((dr.name ?? "") === composedDisplayName) return;
+    detail.setPatchDraft((p) => ({ ...p, name: composedDisplayName }));
+  }, [isVariant, composedDisplayName, dr.name, detail.setPatchDraft]);
+
   const heroTitle = useMemo(() => {
     if (!d) return "";
+    if (isVariant) {
+      return composedDisplayName || d.name?.trim() || "Product";
+    }
     return dr.name?.trim() || d.name?.trim() || "Product";
-  }, [d, dr.name]);
+  }, [d, dr.name, isVariant, composedDisplayName]);
 
   const categoryOptions = useMemo(() => categorySelectOptions(cats), [cats]);
   const aisleOptions = useMemo(
@@ -413,27 +434,83 @@ export function ProductEditDrawer({
           <ProductFormSectionToggle
             icon={FileText}
             label="Name & details"
-            hint="Name, barcode, category"
+            hint={
+              isVariant
+                ? "Family, option, barcode, category"
+                : "Name, barcode, category"
+            }
             expanded={openSections.basics}
             onToggle={() => toggleSection("basics")}
           />
           {openSections.basics ? (
             <div className={productFormSectionBodyClass}>
-              <ProductFormField
-                label={isVariant ? "Display name" : "Product name"}
-                required
-              >
-                <input
-                  className={productFormInputClass}
-                  value={dr.name ?? ""}
-                  onChange={(e) =>
-                    detail.setPatchDraft((p) => ({
-                      ...p,
-                      name: e.target.value,
-                    }))
-                  }
-                />
-              </ProductFormField>
+              {isVariant ? (
+                <>
+                  <ProductFormField
+                    label="Family"
+                    hint="From the parent product"
+                  >
+                    <input
+                      className={productFormInputClass}
+                      value={familyName}
+                      readOnly
+                      tabIndex={-1}
+                      aria-readonly="true"
+                    />
+                  </ProductFormField>
+                  <ProductFormField
+                    label={
+                      (dr.packageVariant ?? d?.packageVariant)
+                        ? "Package name"
+                        : "Variant label"
+                    }
+                    required
+                    hint="Size, pack, or flavour — family name is added for you"
+                  >
+                    <input
+                      className={productFormInputClass}
+                      value={dr.variantName ?? ""}
+                      onChange={(e) =>
+                        detail.setPatchDraft((p) => ({
+                          ...p,
+                          variantName: e.target.value,
+                        }))
+                      }
+                    />
+                  </ProductFormField>
+                  <ProductFormField
+                    label="Display name"
+                    hint="On receipts, till, and sales"
+                  >
+                    <div className="rounded-none border border-border/70 bg-muted/20 px-2.5 py-2">
+                      <p className="text-[13px] font-medium leading-snug text-foreground">
+                        {composedDisplayName || "Add a variant label"}
+                      </p>
+                      {familyName && (dr.variantName ?? "").trim() ? (
+                        <p className="mt-0.5 text-[11px] leading-snug text-foreground/45">
+                          {composedDisplayName.trim().toLowerCase() ===
+                          (dr.variantName ?? "").trim().toLowerCase()
+                            ? "Option already includes the family name"
+                            : `${familyName} + ${(dr.variantName ?? "").trim()}`}
+                        </p>
+                      ) : null}
+                    </div>
+                  </ProductFormField>
+                </>
+              ) : (
+                <ProductFormField label="Product name" required>
+                  <input
+                    className={productFormInputClass}
+                    value={dr.name ?? ""}
+                    onChange={(e) =>
+                      detail.setPatchDraft((p) => ({
+                        ...p,
+                        name: e.target.value,
+                      }))
+                    }
+                  />
+                </ProductFormField>
+              )}
               <div className={productFormGrid2Class}>
                 <ProductFormField label="SKU" required>
                   <input
@@ -533,7 +610,9 @@ export function ProductEditDrawer({
                 onError={setMessage}
                 onGenerated={handleGenerated}
                 context={{
-                  name: dr.name?.trim() || d?.name?.trim() || "",
+                  name: isVariant
+                    ? composedDisplayName || dr.name?.trim() || ""
+                    : dr.name?.trim() || d?.name?.trim() || "",
                   categoryName: descriptionCategoryName,
                   brand: d?.brand?.trim(),
                   size: d?.size?.trim(),
@@ -564,25 +643,6 @@ export function ProductEditDrawer({
               />
               {openSections.package ? (
                 <div className={productFormSectionBodyClass}>
-                  <ProductFormField
-                    label={
-                      (dr.packageVariant ?? d.packageVariant)
-                        ? "Package name"
-                        : "Variant label"
-                    }
-                    required
-                  >
-                    <input
-                      className={productFormInputClass}
-                      value={dr.variantName ?? ""}
-                      onChange={(e) =>
-                        detail.setPatchDraft((p) => ({
-                          ...p,
-                          variantName: e.target.value,
-                        }))
-                      }
-                    />
-                  </ProductFormField>
                   <ProductFormField
                     label="Base units per sale"
                     required={dr.packageVariant ?? d.packageVariant}

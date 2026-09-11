@@ -31,6 +31,7 @@ import {
   toNumber,
   usesSharedPackageStock,
 } from "../_utils";
+import { joinProductNameParts } from "@/lib/catalog-display";
 import { useEffect, useState } from "react";
 
 export { ProductEditDrawer } from "./ProductEditDrawer";
@@ -194,7 +195,7 @@ export function ProductQuickEditAllDrawer({
   open: boolean;
   onClose: () => void;
   banner?: FormDrawerProps["banner"];
-  detail: Pick<ProductDetailApi, "detail">;
+  detail: Pick<ProductDetailApi, "detail" | "variantParentDisplayName">;
   quick: Pick<
     QuickEditApi,
     | "qeaName"
@@ -223,6 +224,16 @@ export function ProductQuickEditAllDrawer({
 }) {
   const sharedStock = usesSharedPackageStock(detail.detail);
   const unitsPerPackage = packageUnitsPerSaleFromRow(detail.detail);
+  const isVariant = !!detail.detail?.variantOfItemId?.trim();
+  const familyForTitle = (
+    detail.variantParentDisplayName ||
+    detail.detail?.parentName ||
+    ""
+  ).trim();
+  const composedVariantName =
+    isVariant && familyForTitle
+      ? joinProductNameParts(familyForTitle, detail.detail?.variantName)
+      : "";
 
   return (
     <FormDrawer
@@ -284,14 +295,27 @@ export function ProductQuickEditAllDrawer({
             embedded
             index={1}
           >
-            <F label="Display name" required>
-              <input
-                className={productFormInputClass}
-                value={quick.qeaName}
-                onChange={(e) => quick.setQeaName(e.target.value)}
-                required
-              />
-            </F>
+            {isVariant ? (
+              <F label="Display name">
+                <div className="rounded-none border border-border/70 bg-muted/20 px-2.5 py-2">
+                  <p className="text-[13px] font-medium leading-snug text-foreground">
+                    {composedVariantName || quick.qeaName || "—"}
+                  </p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-foreground/45">
+                    Auto from family + option
+                  </p>
+                </div>
+              </F>
+            ) : (
+              <F label="Display name" required>
+                <input
+                  className={productFormInputClass}
+                  value={quick.qeaName}
+                  onChange={(e) => quick.setQeaName(e.target.value)}
+                  required
+                />
+              </F>
+            )}
             <div className={productFormGrid2Class}>
               <F label="SKU" required>
                 <input

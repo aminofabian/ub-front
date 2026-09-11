@@ -44,6 +44,7 @@ import {
 } from "@/lib/api";
 import {
   CATALOG_FIX_NAME_LABEL,
+  joinProductNameParts,
   resolveCatalogItemName,
 } from "@/lib/catalog-display";
 import { productDossierPath } from "@/lib/product-dossier-url";
@@ -543,7 +544,18 @@ export function ProductDetailPanel(props: Props) {
   };
 
   const thumbUrl = coverImageUrl(detail);
-  const displayName = resolveCatalogItemName(detail);
+  const resolvedName = resolveCatalogItemName(detail);
+  const familyForTitle =
+    (variantParentDisplayName || detail.parentName || "").trim();
+  const composedVariantTitle = isChildVariant
+    ? joinProductNameParts(familyForTitle, detail.variantName)
+    : "";
+  const displayName = {
+    ...resolvedName,
+    label: familyForTitle
+      ? composedVariantTitle || resolvedName.label
+      : resolvedName.label,
+  };
   const titleInitial = (
     displayName.needsNameFix && displayName.label === CATALOG_FIX_NAME_LABEL
       ? "?"
@@ -1477,14 +1489,14 @@ export function ProductDetailPanel(props: Props) {
                         <div className="border-t border-border/40 bg-white px-3 py-3">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                             <label className="flex flex-1 flex-col gap-1.5 text-[11px] font-medium text-muted-foreground">
-                              Display name
+                              Variant label
                               <input
                                 className={quickInputClass}
                                 value={variantEditName}
                                 onChange={(e) =>
                                   setVariantEditName(e.target.value)
                                 }
-                                aria-label="Variant display name"
+                                aria-label="Variant label"
                               />
                             </label>
                             <div className="flex gap-2">
@@ -1517,9 +1529,9 @@ export function ProductDetailPanel(props: Props) {
                             </div>
                           </div>
                           <p className="mt-2 text-[11px] text-muted-foreground">
-                            Display name defaults to the variant label so sizes
-                            stay identifiable in history. Variant label and SKU
-                            are set at creation — adjust from{" "}
+                            Receipts and the till show family + this label,
+                            without repeating the family name. SKU and pack
+                            settings live in{" "}
                             <button
                               type="button"
                               className="font-medium text-primary underline-offset-2 hover:underline"
@@ -1591,19 +1603,39 @@ export function ProductDetailPanel(props: Props) {
           </button>
           {detailsOpen ? (
             <div className="divide-y divide-border/40 border-t border-border/40 bg-background/50">
-              {quickEdit === "productName"
-                ? inlineEdit(
-                    "Display name",
-                    saveQuickProductName,
-                    <input
-                      autoFocus
-                      className={productFormInputClass}
-                      value={quickProductName}
-                      onChange={(e) => setQuickProductName(e.target.value)}
-                      placeholder="Customer-facing title"
-                    />,
-                  )
-                : fieldBtn("Name", displayName.label, "productName")}
+              {isChildVariant ? (
+                <button
+                  type="button"
+                  className={detailFieldRowClass}
+                  onClick={() => setActiveDrawer("edit-product")}
+                >
+                  <div className="min-w-0">
+                    <p className={detailFieldLabelClass}>Display name</p>
+                    <p className={detailFieldValueClass}>{displayName.label}</p>
+                    <p className="mt-0.5 text-[10px] leading-snug text-foreground/40">
+                      Auto from family + option
+                    </p>
+                  </div>
+                  <Pencil
+                    className="size-3 shrink-0 text-muted-foreground/30"
+                    aria-hidden
+                  />
+                </button>
+              ) : quickEdit === "productName" ? (
+                inlineEdit(
+                  "Product name",
+                  saveQuickProductName,
+                  <input
+                    autoFocus
+                    className={productFormInputClass}
+                    value={quickProductName}
+                    onChange={(e) => setQuickProductName(e.target.value)}
+                    placeholder="Customer-facing title"
+                  />,
+                )
+              ) : (
+                fieldBtn("Name", displayName.label, "productName")
+              )}
               {quickEdit === "sku"
                 ? inlineEdit(
                     "SKU",

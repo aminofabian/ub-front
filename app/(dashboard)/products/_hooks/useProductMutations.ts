@@ -928,7 +928,6 @@ export function useProductMutations(d: Dependencies) {
       }
       setMessage("");
       const body: Record<string, unknown> = {
-        name: patchDraft.name,
         sku: patchDraft.sku,
         barcode: patchDraft.barcode,
         pluCode: patchDraft.pluCode?.trim() ?? "",
@@ -939,6 +938,9 @@ export function useProductMutations(d: Dependencies) {
         categoryId: patchDraft.categoryId.trim(),
         aisleId: patchDraft.aisleId.trim(),
       };
+      if (!detail?.variantOfItemId?.trim()) {
+        body.name = patchDraft.name;
+      }
       if (detail?.variantOfItemId?.trim()) {
         const vn = patchDraft.variantName?.trim() ?? "";
         if (!vn) {
@@ -1542,7 +1544,7 @@ export function useProductMutations(d: Dependencies) {
       event?.stopPropagation();
       if (!canCatalogWrite) return;
       setVariantInlineEditId(v.id);
-      setVariantEditName(v.name ?? "");
+      setVariantEditName(v.variantName?.trim() || "");
     },
     [canCatalogWrite],
   );
@@ -1556,13 +1558,13 @@ export function useProductMutations(d: Dependencies) {
     if (!variantInlineEditId || !detail || !canCatalogWrite) return;
     const name = variantEditName.trim();
     if (!name) {
-      setMessage("Display name required.");
+      setMessage("Variant label is required.");
       return;
     }
     setQuickSavingVariant(true);
     setMessage("");
     try {
-      await patchItem(variantInlineEditId, { name });
+      await patchItem(variantInlineEditId, { variantName: name });
       const parentId = detail.variantOfItemId?.trim() || detail.id;
       const p = await fetchItemById(parentId);
       if (detail.variantOfItemId) {

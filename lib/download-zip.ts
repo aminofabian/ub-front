@@ -132,7 +132,16 @@ export async function filesToZipBlob(files: readonly File[]): Promise<Blob> {
   write(u32(offset));
   write(u16(0));
 
-  return new Blob([...locals, ...centrals, eocd], { type: "application/zip" });
+  const chunks = [...locals, ...centrals, eocd];
+  const merged = new Uint8Array(
+    chunks.reduce((n, chunk) => n + chunk.byteLength, 0),
+  );
+  let cursor = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, cursor);
+    cursor += chunk.byteLength;
+  }
+  return new Blob([merged.buffer], { type: "application/zip" });
 }
 
 export async function downloadFilesAsZip(

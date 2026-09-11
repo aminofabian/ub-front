@@ -208,6 +208,27 @@ function isFormDirty(form: FormState, saved: FormState): boolean {
   );
 }
 
+function StartOpenDetails({
+  startOpen,
+  children,
+}: {
+  startOpen: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(startOpen);
+  useEffect(() => {
+    if (startOpen) setOpen(true);
+  }, [startOpen]);
+  return (
+    <details
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      {children}
+    </details>
+  );
+}
+
 function BrandingSection({
   id,
   title,
@@ -1880,7 +1901,7 @@ export default function BrandingPage() {
                 />
               </div>
 
-              <details defaultOpen={Boolean(form.metaKeywords.trim())}>
+              <StartOpenDetails startOpen={Boolean(form.metaKeywords.trim())}>
                 <summary className="cursor-pointer text-xs text-[#7A7A7A] underline-offset-2 hover:text-[#141414] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
                   Keywords
                 </summary>
@@ -1902,7 +1923,7 @@ export default function BrandingPage() {
                     Optional. Most search engines ignore this.
                   </p>
                 </div>
-              </details>
+              </StartOpenDetails>
             </BrandingSection>
 
             {saveBar}

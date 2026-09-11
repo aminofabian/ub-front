@@ -258,6 +258,11 @@ export function useQuickEdit({
   }, [quickEdit, detail, quickStockBranchId]);
 
   const saveQuickProductName = useCallback(() => {
+    if (detail?.variantOfItemId?.trim()) {
+      setMessage("Display name is built from the family and option label.");
+      setQuickEdit(null);
+      return;
+    }
     const n = formatProductNameForCatalog(quickProductName);
     if (!n) {
       setMessage("Display name is required.");
@@ -268,7 +273,7 @@ export function useQuickEdit({
       return;
     }
     void runQuickPatch({ name: n }, "Display name updated.");
-  }, [quickProductName, runQuickPatch, setMessage]);
+  }, [detail?.variantOfItemId, quickProductName, runQuickPatch, setMessage, setQuickEdit]);
 
   const saveQuickBarcode = useCallback(
     () =>
@@ -554,21 +559,24 @@ export function useQuickEdit({
   const saveQuickEditAll = useCallback(async () => {
     if (!selectedId || !canCatalogWrite) return;
     const shared = detail ? usesSharedPackageStock(detail) : false;
-    const name = qeaName.trim();
-    if (!name) {
-      setQeaError("Display name is required.");
-      return;
-    }
+    const isVariant = !!detail?.variantOfItemId?.trim();
     const skuRaw = qeaSku.trim();
     if (!skuRaw) {
       setQeaError("SKU cannot be empty.");
       return;
     }
     const body: PatchItemPayload = {
-      name,
       sku: skuRaw,
       barcode: qeaBarcode.trim() || "",
     };
+    if (!isVariant) {
+      const name = qeaName.trim();
+      if (!name) {
+        setQeaError("Display name is required.");
+        return;
+      }
+      body.name = name;
+    }
     const num = (
       raw: string,
       label: string,

@@ -79,8 +79,10 @@ describe("joinProductNameParts", () => {
     expect(joinProductNameParts("Velvex Tissue White 8Pack", "Tissue White 8Pack")).toBe(
       "Velvex Tissue White 8Pack",
     );
-    expect(joinProductNameParts("Velvex", "Velvex Tissue 4Pack")).toBe(
-      "Velvex Tissue 4Pack",
+    expect(joinProductNameParts("molped", "molped 14's")).toBe("molped 14's");
+    expect(joinProductNameParts("Molped", "Molped 14's")).toBe("Molped 14's");
+    expect(joinProductNameParts("210", "Maize Flour 2kg")).toBe(
+      "210 Maize Flour 2kg",
     );
   });
 
