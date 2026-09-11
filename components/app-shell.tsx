@@ -97,6 +97,8 @@ type NavItem = {
   group?: string;
   /** Tenant feature flag the item depends on. Item is hidden when the flag exists and is false. */
   featureFlag?: string;
+  /** Consecutive items in this group render as a vertical step flow with arrows. */
+  flow?: boolean;
 };
 
 type NavSection = {
@@ -231,24 +233,36 @@ const NAV_SECTIONS: readonly NavSection[] = [
   },
   {
     id: "procurement",
-    title: "Suppliers & bills",
+    title: "Buying",
     shortLabel: "Buying",
-    blurb: "Suppliers, deliveries & bills",
+    blurb: "Order, confirm, then pay",
     icon: Truck,
     entryHref: APP_ROUTES.order,
     items: [
+      {
+        href: APP_ROUTES.order,
+        label: "New order",
+        group: "Buying",
+        flow: true,
+      },
+      {
+        href: APP_ROUTES.orderReceive,
+        label: "Confirm order",
+        group: "Buying",
+        flow: true,
+      },
+      {
+        href: APP_ROUTES.purchasingRecordPayment,
+        label: "Pay suppliers",
+        group: "Buying",
+        flow: true,
+      },
       {
         href: APP_ROUTES.marketplace,
         label: "Find suppliers",
         group: "Suppliers",
       },
       { href: APP_ROUTES.suppliers, label: "Suppliers", group: "Suppliers" },
-      { href: APP_ROUTES.order, label: "New order", group: "Suppliers" },
-      {
-        href: APP_ROUTES.orderReceive,
-        label: "Confirm supply",
-        group: "Suppliers",
-      },
       {
         href: APP_ROUTES.purchasingIntelligence,
         label: "Compare suppliers",
@@ -262,11 +276,6 @@ const NAV_SECTIONS: readonly NavSection[] = [
       {
         href: APP_ROUTES.purchasingApAging,
         label: "Unpaid bills",
-        group: "Bills",
-      },
-      {
-        href: APP_ROUTES.purchasingRecordPayment,
-        label: "Pay bills",
         group: "Bills",
       },
     ],
@@ -746,6 +755,9 @@ function itemIsActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   if (href === APP_ROUTES.butcher) {
     return pathname === APP_ROUTES.butcher;
+  }
+  if (href === APP_ROUTES.order) {
+    return pathname === href || pathname.startsWith(`${href}?`);
   }
   if (href === APP_ROUTES.analytics) {
     return pathname === href || pathname.startsWith(`${href}?`);

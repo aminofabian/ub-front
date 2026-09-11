@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
+  ArrowDown,
   BarChart3,
   Building2,
   ClipboardCheck,
@@ -52,6 +53,8 @@ export type DesktopNavItem = {
   label: string;
   group?: string;
   featureFlag?: string;
+  /** Consecutive items in this group render as a vertical step flow with arrows. */
+  flow?: boolean;
 };
 
 export type DesktopNavSection = {
@@ -190,6 +193,10 @@ function itemIsActive(pathname: string, href: string): boolean {
   if (href === "/") return path === "/";
   if (href === APP_ROUTES.butcher) {
     return path === APP_ROUTES.butcher;
+  }
+  // `/order/receive` must not light up "New order" (`/order`).
+  if (href === APP_ROUTES.order) {
+    return path === APP_ROUTES.order || path.startsWith(`${APP_ROUTES.order}?`);
   }
   return path === href || path.startsWith(`${href}/`) || path.startsWith(`${href}?`);
 }
@@ -370,6 +377,26 @@ function SubNavLink({
   );
 }
 
+function FlowArrow({ reached }: { reached: boolean }) {
+  return (
+    <div
+      className="ml-[1.375rem] flex h-10 w-4 -translate-x-1/2 flex-col items-center"
+      aria-hidden
+    >
+      <span
+        className={cn("w-px flex-1", reached ? "bg-primary/45" : "bg-border")}
+      />
+      <ArrowDown
+        className={cn(
+          "-mt-0.5 size-3.5 shrink-0",
+          reached ? "text-primary/70" : "text-muted-foreground/55",
+        )}
+        strokeWidth={2}
+      />
+    </div>
+  );
+}
+
 type SubNavPanelProps = {
   section: DesktopNavSection;
   pathname: string;
@@ -501,31 +528,64 @@ function SubNavPanel({
             />
           ))
         ) : (
-          groups.map((group, groupIndex) => (
-            <div
-              key={group.label ?? `ungrouped-${groupIndex}`}
-              className={cn(
-                "flex flex-col gap-1",
-                groupIndex > 0 && hasLabeledGroups ? "mt-3" : null,
-              )}
-            >
-              {group.label && hasLabeledGroups ? (
-                <p className="px-2.5 pb-1 pt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  {group.label}
-                </p>
-              ) : null}
-              {group.items.map((item) => (
-                <SubNavLink
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={iconForItem(item, section.icon)}
-                  active={itemIsActive(pathname, item.href)}
-                  badge={badgeByHref?.[item.href] ?? 0}
-                />
-              ))}
-            </div>
-          ))
+          groups.map((group, groupIndex) => {
+            const isFlow =
+              group.items.length > 1 && group.items.every((item) => item.flow);
+            const activeFlowIndex = isFlow
+              ? group.items.findIndex((item) =>
+                  itemIsActive(pathname, item.href),
+                )
+              : -1;
+
+            return (
+              <div
+                key={group.label ?? `ungrouped-${groupIndex}`}
+                className={cn(
+                  "flex flex-col",
+                  isFlow ? "gap-0" : "gap-1",
+                  groupIndex > 0 && hasLabeledGroups ? "mt-3" : null,
+                )}
+              >
+                {group.label && hasLabeledGroups && !isFlow ? (
+                  <p className="px-2.5 pb-1 pt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                    {group.label}
+                  </p>
+                ) : null}
+                {isFlow ? (
+                  <ol
+                    className="m-0 flex list-none flex-col rounded-xl bg-muted/35 p-0.5"
+                    aria-label="Buying flow"
+                  >
+                    {group.items.map((item, itemIndex) => (
+                      <li key={item.href} className="flex flex-col">
+                        <SubNavLink
+                          href={item.href}
+                          label={item.label}
+                          icon={iconForItem(item, section.icon)}
+                          active={itemIsActive(pathname, item.href)}
+                          badge={badgeByHref?.[item.href] ?? 0}
+                        />
+                        {itemIndex < group.items.length - 1 ? (
+                          <FlowArrow reached={activeFlowIndex > itemIndex} />
+                        ) : null}
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  group.items.map((item) => (
+                    <SubNavLink
+                      key={item.href}
+                      href={item.href}
+                      label={item.label}
+                      icon={iconForItem(item, section.icon)}
+                      active={itemIsActive(pathname, item.href)}
+                      badge={badgeByHref?.[item.href] ?? 0}
+                    />
+                  ))
+                )}
+              </div>
+            );
+          })
         )}
       </nav>
     </aside>
