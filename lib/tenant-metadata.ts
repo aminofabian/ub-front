@@ -21,6 +21,10 @@ import {
   resolveStorefrontMetaTitle,
 } from "@/lib/storefront-seo-defaults";
 import { resolveTenantFaviconHref } from "@/lib/tenant-favicon-path";
+import {
+  shopperPwaIconPath,
+  shopperPwaManifestPath,
+} from "@/lib/shopper-pwa";
 
 const BRAND_THEME_COLOR = PLATFORM_THEME_COLOR;
 
@@ -196,9 +200,27 @@ export function metadataFromTenantAndHost(
       : faviconHref;
 
   const icons = {
-    icon: [{ url: faviconUrl }],
+    icon: [
+      { url: faviconUrl },
+      {
+        url: shopperPwaIconPath(tenant.slug, 192),
+        type: "image/png",
+        sizes: "192x192",
+      },
+      {
+        url: shopperPwaIconPath(tenant.slug, 512),
+        type: "image/png",
+        sizes: "512x512",
+      },
+    ],
     shortcut: [{ url: faviconUrl }],
-    apple: [{ url: faviconUrl }],
+    apple: [
+      {
+        url: shopperPwaIconPath(tenant.slug, 180),
+        type: "image/png",
+        sizes: "180x180",
+      },
+    ],
   };
 
   // OG image: prefer dedicated ogImage, fall back to business logo
@@ -215,7 +237,7 @@ export function metadataFromTenantAndHost(
     },
     description,
     applicationName: displayName,
-    manifest: "/storefront-manifest.webmanifest",
+    manifest: shopperPwaManifestPath(tenant.slug),
     other: {
       keywords:
         metaKeywords || defaultStorefrontMetaKeywords(displayName, location),
@@ -223,6 +245,7 @@ export function metadataFromTenantAndHost(
     appleWebApp: {
       capable: true,
       title: displayName,
+      statusBarStyle: "black-translucent",
     },
     icons,
     openGraph: {

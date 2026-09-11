@@ -1,15 +1,11 @@
-import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
-
-export const metadata: Metadata = {
-  manifest: "/storefront-manifest.webmanifest",
-};
 
 export default async function ShopLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return <StorefrontShell>{children}</StorefrontShell>;
 }

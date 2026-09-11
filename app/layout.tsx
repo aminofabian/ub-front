@@ -107,7 +107,7 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <Script id="client-session-init" strategy="beforeInteractive">
-          {`(function(){try{var h=location.hostname.toLowerCase();var p=location.pathname;var local={"localhost":1,"127.0.0.1":1,"::1":1};var apex=${JSON.stringify(platformApexHostname())};var tenantHost=!local[h]&&p.indexOf("/super-admin")!==0&&!!apex&&h!==apex&&h!=="www."+apex;if(tenantHost){try{localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)},h);sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)},h);}catch(e){}}var keepSw=p.indexOf("/shop")===0||tenantHost;if("serviceWorker" in navigator&&!keepSw){navigator.serviceWorker.getRegistrations().then(function(r){for(var i=0;i<r.length;i++){r[i].unregister();}});}}catch(e){}})();`}
+          {`(function(){try{var h=location.hostname.toLowerCase();var p=location.pathname;var local={"localhost":1,"127.0.0.1":1,"::1":1};var apex=${JSON.stringify(platformApexHostname())};var tenantHost=!local[h]&&p.indexOf("/super-admin")!==0&&!!apex&&h!==apex&&h!=="www."+apex;if(tenantHost){try{localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)},h);sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)},h);}catch(e){}}var keepSw=p.indexOf("/shop")===0||p.indexOf("/pwa/")===0||p==="/app"||p.indexOf("/products")===0||tenantHost;if("serviceWorker" in navigator&&!keepSw){navigator.serviceWorker.getRegistrations().then(function(r){for(var i=0;i<r.length;i++){r[i].unregister();}});}}catch(e){}})();`}
         </Script>
       </head>
       <body

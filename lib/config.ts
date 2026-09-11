@@ -177,6 +177,10 @@ export const APP_ROUTES = {
   shop: "/shop",
   shopAccount: "/shop/account",
   shopCart: "/shop/cart",
+  /** Tenant-host shortcut that lands on that shop's install page. */
+  shopApp: "/app",
+  /** Per-shop ecommerce PWA — install, manifest, and generated icons. */
+  shopperPwa: (slug: string) => `/pwa/${encodeURIComponent(slug)}`,
   shopCheckout: "/shop/checkout",
   /** Guest order tracking by short code (scope §15). */
   shopOrderTrack: (code: string) => `/shop/o/${encodeURIComponent(code)}`,

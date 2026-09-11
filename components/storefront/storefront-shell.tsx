@@ -197,7 +197,7 @@ export async function StorefrontShell({
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       )}
       <ShopStorefrontRealtime currency={currency} branding={branding} />
-      <StorefrontPwaRuntime />
+      <StorefrontPwaRuntime slug={slug} />
       <StorefrontSupportLauncher
         slug={slug}
         label={headerTitle}

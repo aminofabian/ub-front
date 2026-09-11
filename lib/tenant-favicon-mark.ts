@@ -55,7 +55,7 @@ function monogramLetter(brand: string): string {
   return (match?.[0] ?? trimmed[0]).toUpperCase();
 }
 
-function monogramInitials(brand: string): string {
+export function monogramInitials(brand: string): string {
   const cleaned = brand.trim().replace(/^the\s+/i, "").trim();
   if (!cleaned) {
     return "S";

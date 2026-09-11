@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { LogIn, UserRound } from "lucide-react";
+import { LogIn, Smartphone, UserRound } from "lucide-react";
 import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-import { GetTheAppDialog } from "@/components/storefront/get-the-app-dialog";
 import ShopSearchBar from "@/components/storefront/shop-search-bar";
 import { ShopCartTrigger } from "@/components/storefront/shop-cart-trigger";
 import { useStorefrontAccountLink } from "@/components/storefront/storefront-account-link";
@@ -102,11 +101,16 @@ export function ShopHeaderBar({
 
             <div className="flex min-w-0 flex-1 items-center justify-end gap-0.5 lg:hidden">
               {slug ? (
-                <GetTheAppDialog
-                  slug={slug}
-                  storeName={headerTitle}
-                  triggerVariant="icon"
-                />
+                <Link
+                  href={APP_ROUTES.shopperPwa(slug)}
+                  className="inline-flex h-9 items-center gap-1 rounded-lg px-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                  aria-label={`Add ${headerTitle} to your phone`}
+                >
+                  <Smartphone className="size-4.5 shrink-0" aria-hidden />
+                  <span className="text-[11px] font-semibold tracking-tight">
+                    App
+                  </span>
+                </Link>
               ) : null}
               <AccountNavLink
                 className="inline-flex size-9 items-center justify-center rounded-[3px] text-[var(--storefront-ink-muted,#5c6560)] transition-colors hover:bg-[var(--storefront-paper,#f4f5f4)] hover:text-[var(--storefront-ink,#141816)]"
@@ -131,6 +135,15 @@ export function ShopHeaderBar({
           </div>
 
           <div className="hidden shrink-0 items-center justify-end gap-1.5 sm:gap-2 lg:flex">
+            {slug ? (
+              <Link
+                href={APP_ROUTES.shopperPwa(slug)}
+                className="inline-flex items-center gap-1.5 rounded-[3px] px-2 py-1.5 text-sm font-medium text-[var(--storefront-ink-muted,#5c6560)] transition-colors hover:bg-[var(--storefront-paper,#f4f5f4)] hover:text-[var(--storefront-ink,#141816)]"
+              >
+                <Smartphone className="size-4" aria-hidden />
+                Get the app
+              </Link>
+            ) : null}
             <AccountNavLink
               showLabel
               className="group inline-flex items-center gap-1.5 rounded-[3px] px-2 py-1.5 text-sm font-medium text-[var(--storefront-ink-muted,#5c6560)] transition-colors hover:bg-[var(--storefront-paper,#f4f5f4)] hover:text-[var(--storefront-ink,#141816)]"

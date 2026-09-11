@@ -5,7 +5,6 @@ import { MapPin } from "lucide-react";
 import Link from "next/link";
 
 import { TalkToUsModal } from "@/components/contact/talk-to-us-modal";
-import { GetTheAppDialog } from "@/components/storefront/get-the-app-dialog";
 import { useStorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import {
   useClientHasSession,
@@ -99,7 +98,12 @@ export function ShopUtilityBar({
           </span>
           {slug.trim() ? (
             <>
-              <GetTheAppDialog slug={slug} storeName={storeName} />
+              <Link
+                href={APP_ROUTES.shopperPwa(slug)}
+                className="rounded-md px-2 py-0.5 transition hover:bg-white/10"
+              >
+                Get the app
+              </Link>
               <span className="text-white/25 select-none" aria-hidden>
                 ·
               </span>
