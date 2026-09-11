@@ -9,7 +9,6 @@ import {
   Receipt,
   Search,
   Trash2,
-  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -56,23 +55,18 @@ import {
   supplyPaymentStatusBadge,
 } from "./_components/supplies-shared";
 import {
+  UnpaidByVendor,
+  type UnpaidSupplierGroup,
+} from "./_components/unpaid-by-vendor";
+import {
   SupEmptyState,
   SupLoadingBlock,
 } from "../suppliers/_components/supplier-layout-primitives";
 
-type SupplierGroup = {
-  supplierId: string;
-  supplierName: string;
-  total: number;
-  count: number;
-  firstUnpaidId: string;
-  bills: PathBSupplyListRowRecord[];
-};
-
 function groupRowsBySupplier(
   rows: PathBSupplyListRowRecord[],
-): SupplierGroup[] {
-  const map = new Map<string, SupplierGroup>();
+): UnpaidSupplierGroup[] {
+  const map = new Map<string, UnpaidSupplierGroup>();
   for (const r of rows) {
     const key = r.supplierId || `anon:${r.supplierName}`;
     const bal = supplyN(r.balanceOpen);
@@ -375,10 +369,10 @@ export default function SuppliesPage() {
         {listError ? <DashboardFeedback kind="error" text={listError} /> : null}
 
         <section
-          className="grid grid-cols-2 gap-1 lg:grid-cols-4"
+          className="grid grid-cols-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white lg:grid-cols-4"
           aria-label="Supply pulse"
         >
-          <PulseTile
+          <SummaryStat
             label="Open balance"
             value={formatSupplyMoney(summary.openBalance, currency)}
             hint={
@@ -389,8 +383,9 @@ export default function SuppliesPage() {
             active={isUnpaid}
             emphasize={summary.openBalance > 0.009}
             onClick={() => setBillFilter("unpaid")}
+            className="border-b border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] lg:border-b-0"
           />
-          <PulseTile
+          <SummaryStat
             label={isUnpaid ? "In view" : "Invoiced"}
             value={formatSupplyMoney(
               isUnpaid || billFilter !== "all"
@@ -405,56 +400,51 @@ export default function SuppliesPage() {
             }
             active={billFilter === "all"}
             onClick={() => setBillFilter("all")}
+            className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] lg:border-b-0 lg:border-r"
           />
-          <PulseTile
+          <SummaryStat
             label="Paid in"
             value={formatSupplyMoney(summary.totalPaid, currency)}
             hint="Settled to date"
             active={billFilter === "paid"}
             tone="ok"
             onClick={() => setBillFilter("paid")}
+            className="border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]"
           />
-          {canPay ? (
-            <button
-              type="button"
-              onClick={() => setAdvanceOpen(true)}
-              className="flex min-w-0 w-full items-center gap-1.5 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-2 py-1 text-left"
-            >
-              <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]">
-                <Wallet className="size-3" aria-hidden />
-              </span>
-              <span className="min-w-0 truncate text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
-                Deposit credit
-              </span>
-            </button>
-          ) : (
-            <PulseTile
-              label="Receipts"
-              value={String(summary.count)}
-              hint="All posted supplies"
-              active={billFilter === "all"}
-              onClick={() => setBillFilter("all")}
-            />
-          )}
+          <SummaryStat
+            label={isUnpaid ? "Vendors" : "Receipts"}
+            value={String(isUnpaid ? unpaidGroups.length : summary.count)}
+            hint={
+              isUnpaid
+                ? unpaidGroups.length === 1
+                  ? "1 supplier owing"
+                  : `${unpaidGroups.length} suppliers owing`
+                : "All posted supplies"
+            }
+            active={billFilter === "all" && !isUnpaid}
+            onClick={() => setBillFilter(isUnpaid ? "unpaid" : "all")}
+          />
         </section>
 
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-1.5 sm:px-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-2 sm:px-3.5">
             <div className="min-w-0">
-              <h2 className="truncate text-sm font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
+              <h2 className="truncate text-sm font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
                 {isUnpaid
                   ? "Open payables"
                   : billFilter === "all"
                     ? "All receipts"
                     : supplyBillFilterLabel(billFilter)}
               </h2>
-              <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+              <p className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 {isUnpaid
-                  ? "Grouped by vendor · largest balance first"
+                  ? unpaidGroups.length > 0
+                    ? `${unpaidGroups.length} vendor${unpaidGroups.length === 1 ? "" : "s"} · ${displayRows.length} bill${displayRows.length === 1 ? "" : "s"} · ${formatSupplyMoney(filteredSummary.openBalance, currency)}`
+                    : "Grouped by vendor · largest balance first"
                   : "Unpaid first · newest after"}
               </p>
             </div>
-            <label className="relative block w-full max-w-[15rem]">
+            <label className="relative block w-full max-w-[16rem]">
               <span className="sr-only">Search supplies</span>
               <Search
                 className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]"
@@ -812,7 +802,7 @@ export default function SuppliesPage() {
   );
 }
 
-function PulseTile({
+function SummaryStat({
   label,
   value,
   hint,
@@ -820,6 +810,7 @@ function PulseTile({
   emphasize,
   tone,
   onClick,
+  className,
 }: {
   label: string;
   value: string;
@@ -828,218 +819,39 @@ function PulseTile({
   emphasize?: boolean;
   tone?: "ok";
   onClick?: () => void;
+  className?: string;
 }) {
   const Comp = onClick ? "button" : "div";
   return (
     <Comp
       type={onClick ? "button" : undefined}
       onClick={onClick}
+      title={hint}
       className={cn(
-        "relative flex min-w-0 w-full items-center gap-1.5 rounded-none border bg-white px-2 py-1 text-left transition-[border-color] duration-150",
-        active
-          ? "border-[var(--pos-primary,#0f766e)]"
-          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+        "relative flex min-w-0 flex-col gap-0.5 px-3 py-2.5 text-left transition-colors sm:px-3.5",
+        active && "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
         onClick &&
           !active &&
-          "hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]",
-        emphasize && !active && "border-amber-700/40",
+          "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
+        className,
       )}
-      title={hint}
     >
-      <span className="min-w-0 truncate text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
+      <span className="truncate text-[11px] font-medium tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
         {label}
       </span>
       <span
         className={cn(
-          "ml-auto shrink-0 font-heading text-[13px] font-semibold leading-none tabular-nums tracking-[-0.03em]",
+          "truncate font-heading text-[14px] font-semibold leading-none tabular-nums tracking-[-0.03em] sm:text-[15px]",
           tone === "ok"
             ? "text-[var(--pos-primary,#0f766e)]"
             : emphasize
               ? "text-amber-800"
               : "text-[var(--order-ink,#15231f)]",
+          active && "text-[var(--pos-primary,#0f766e)]",
         )}
       >
         {value}
       </span>
     </Comp>
-  );
-}
-
-function UnpaidByVendor({
-  groups,
-  currency,
-  canEditSupplyBill,
-  canPay,
-  canOpenReceiptDrawer,
-  deletingId,
-  onEdit,
-  onDelete,
-  onPay,
-}: {
-  groups: SupplierGroup[];
-  currency: string;
-  canEditSupplyBill: boolean;
-  canPay: boolean;
-  canOpenReceiptDrawer: boolean;
-  deletingId: string | null;
-  onEdit: (r: PathBSupplyListRowRecord) => void;
-  onDelete: (r: PathBSupplyListRowRecord) => void;
-  onPay: (r: PathBSupplyListRowRecord, settleAll: boolean) => void;
-}) {
-  return (
-    <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
-      {groups.map((group) => {
-        const showPayAll = canPay && group.count >= 2 && group.total > 0.009;
-        const first = group.bills[0];
-        return (
-          <li
-            key={group.supplierId || group.firstUnpaidId}
-            className="p-3 sm:p-3.5"
-          >
-            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-[var(--order-ink,#15231f)]">
-                  <SupplierDisplayName
-                    name={group.supplierName}
-                    fallback="Supplier"
-                  />
-                </p>
-                <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-                  {group.count} open bill{group.count === 1 ? "" : "s"}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-heading text-base font-semibold tabular-nums text-amber-800">
-                  {formatSupplyMoney(group.total, currency)}
-                </p>
-                {showPayAll && first ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-8 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[11px] font-semibold hover:bg-[#0d6b63]"
-                    disabled={!canOpenReceiptDrawer}
-                    onClick={() => onPay(first, true)}
-                  >
-                    <CreditCard className="size-3" aria-hidden />
-                    Pay all
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Mobile cards */}
-            <div className="space-y-2 lg:hidden">
-              {group.bills.map((r) => (
-                <SupplyReceiptCard
-                  key={r.supplierInvoiceId}
-                  row={r}
-                  hideSupplier
-                  canEditSupplyBill={canEditSupplyBill}
-                  canPay={canPay}
-                  canOpenReceiptDrawer={canOpenReceiptDrawer}
-                  deleting={deletingId === r.supplierInvoiceId}
-                  onEdit={() => onEdit(r)}
-                  onDelete={() => onDelete(r)}
-                  onPayOrDetails={() => onPay(r, false)}
-                />
-              ))}
-            </div>
-
-            {/* Desktop nested rows */}
-            <ul className="hidden space-y-1.5 lg:block">
-              {group.bills.map((r) => {
-                const st = supplyPaymentStatusBadge(r.paymentStatus);
-                const bal = supplyN(r.balanceOpen);
-                const needsPay = bal > 0.009 && canPay;
-                return (
-                  <li
-                    key={r.supplierInvoiceId}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-mono text-sm font-medium text-[var(--order-ink,#15231f)]">
-                        {r.invoiceNumber}
-                      </p>
-                      <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-                        <span
-                          className={cn(
-                            "mr-1.5 inline-flex px-1 py-px text-[11px] font-semibold tracking-[-0.02em]",
-                            st.className,
-                          )}
-                        >
-                          {st.label}
-                        </span>
-                        {new Date(r.createdAt).toLocaleDateString("en-KE", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                        {" · "}
-                        {r.lineCount} line{r.lineCount === 1 ? "" : "s"}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="text-right">
-                        <p className="text-sm font-semibold tabular-nums text-amber-800">
-                          {formatSupplyMoney(bal, currency)}
-                        </p>
-                        <p className="text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                          of{" "}
-                          {formatSupplyMoney(supplyN(r.grandTotal), currency)} ·
-                          paid{" "}
-                          {formatSupplyMoney(supplyN(r.amountPaid), currency)}
-                        </p>
-                      </div>
-                      {canEditSupplyBill ? (
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          className="size-8 rounded-none"
-                          aria-label={`Edit ${r.invoiceNumber}`}
-                          onClick={() => onEdit(r)}
-                        >
-                          <FileEdit className="size-3.5" aria-hidden />
-                        </Button>
-                      ) : null}
-                      {canEditSupplyBill &&
-                      supplyN(r.amountPaid) < 0.005 &&
-                      r.source !== "path_a" ? (
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          className="size-8 rounded-none text-destructive hover:bg-destructive/10"
-                          aria-label={`Delete ${r.invoiceNumber}`}
-                          disabled={deletingId === r.supplierInvoiceId}
-                          onClick={() => onDelete(r)}
-                        >
-                          <Trash2 className="size-3.5" aria-hidden />
-                        </Button>
-                      ) : null}
-                      <Button
-                        type="button"
-                        size="sm"
-                        className={cn(
-                          "h-8 gap-1 rounded-none px-2.5 text-[11px] font-semibold",
-                          needsPay
-                            ? "bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]"
-                            : "",
-                        )}
-                        variant={needsPay ? "default" : "outline"}
-                        disabled={!canOpenReceiptDrawer}
-                        onClick={() => onPay(r, false)}
-                      >
-                        <CreditCard className="size-3" aria-hidden />
-                        {needsPay ? "Pay" : "Details"}
-                      </Button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </li>
-        );
-      })}
-    </ul>
   );
 }

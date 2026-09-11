@@ -25,7 +25,7 @@ export function SuppliesBillFilterBar({
 
   return (
     <div
-      className="flex flex-col gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:px-3.5"
+      className="flex flex-col gap-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:px-3.5"
       role="toolbar"
       aria-label="Filter supply receipts"
     >

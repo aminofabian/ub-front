@@ -34,12 +34,12 @@ export function SuppliesPageLayout({
       )}
       style={PROCUREMENT_VARS}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col gap-1">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-2">
         <div className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink)_12%,transparent)] bg-white">
           <ProcurementHubNav />
         </div>
 
-        <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1 sm:px-3">
+        <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1.5 sm:px-3">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
             <div className="flex min-w-0 items-center gap-2">
               <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
@@ -72,7 +72,7 @@ export function SuppliesPageLayout({
           ) : null}
         </header>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1 pb-16 sm:pb-0">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 pb-16 sm:pb-0">
           {children}
         </div>
       </div>

@@ -235,7 +235,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     id: "procurement",
     title: "Buying",
     shortLabel: "Buying",
-    blurb: "Order, confirm, then pay",
+    blurb: "Create → confirm → pay",
     icon: Truck,
     entryHref: APP_ROUTES.order,
     items: [

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
-  ArrowDown,
   BarChart3,
   Building2,
   ClipboardCheck,
@@ -43,6 +42,7 @@ import {
 } from "lucide-react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { BuyingFlowNav } from "@/components/shell/buying-flow-nav";
 import { Input } from "@/components/ui/input";
 import { APP_ROUTES } from "@/lib/config";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
@@ -377,26 +377,6 @@ function SubNavLink({
   );
 }
 
-function FlowArrow({ reached }: { reached: boolean }) {
-  return (
-    <div
-      className="ml-[1.375rem] flex h-10 w-4 -translate-x-1/2 flex-col items-center"
-      aria-hidden
-    >
-      <span
-        className={cn("w-px flex-1", reached ? "bg-primary/45" : "bg-border")}
-      />
-      <ArrowDown
-        className={cn(
-          "-mt-0.5 size-3.5 shrink-0",
-          reached ? "text-primary/70" : "text-muted-foreground/55",
-        )}
-        strokeWidth={2}
-      />
-    </div>
-  );
-}
-
 type SubNavPanelProps = {
   section: DesktopNavSection;
   pathname: string;
@@ -436,7 +416,7 @@ function SubNavPanel({
     <aside
       className={cn(
         "flex h-screen shrink-0 flex-col border-r border-border/60 bg-background transition-[width] duration-200",
-        compact ? "w-14" : section.id === "procurement" ? "w-56" : "w-52",
+        compact ? "w-14" : section.id === "procurement" ? "w-[16.5rem]" : "w-52",
       )}
     >
       <div
@@ -552,25 +532,11 @@ function SubNavPanel({
                   </p>
                 ) : null}
                 {isFlow ? (
-                  <ol
-                    className="m-0 flex list-none flex-col rounded-xl bg-muted/35 p-0.5"
-                    aria-label="Buying flow"
-                  >
-                    {group.items.map((item, itemIndex) => (
-                      <li key={item.href} className="flex flex-col">
-                        <SubNavLink
-                          href={item.href}
-                          label={item.label}
-                          icon={iconForItem(item, section.icon)}
-                          active={itemIsActive(pathname, item.href)}
-                          badge={badgeByHref?.[item.href] ?? 0}
-                        />
-                        {itemIndex < group.items.length - 1 ? (
-                          <FlowArrow reached={activeFlowIndex > itemIndex} />
-                        ) : null}
-                      </li>
-                    ))}
-                  </ol>
+                  <BuyingFlowNav
+                    items={group.items}
+                    activeIndex={activeFlowIndex}
+                    badgeByHref={badgeByHref}
+                  />
                 ) : (
                   group.items.map((item) => (
                     <SubNavLink
