@@ -28,18 +28,23 @@ import {
   fetchBatchDashboard,
   fetchBranches,
   fetchCategories,
+  fetchItemTypes,
   fetchItemsPage,
+  patchItem,
   postBatchDecrease,
   postStockIncrease,
   type BranchRecord,
   type CategoryRecord,
   type ItemSummaryRecord,
+  type ItemTypeRecord,
 } from "@/lib/api";
+import { formatProductNameForCatalog } from "@/lib/catalog-display";
 import {
   canEditStockLevels,
   canViewStockLevels,
   inventoryQuickLinksForUser,
 } from "@/lib/inventory-access";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { textMatchesQuery } from "@/lib/text-search";
 
@@ -75,6 +80,8 @@ type StockRow = {
   familyName: string | null;
   /** Option / size / variant label. */
   variantName: string | null;
+  /** Parent item id when this row is a variant SKU. */
+  variantOfItemId: string | null;
   sku: string;
   barcode: string;
   brand: string;
@@ -82,6 +89,9 @@ type StockRow = {
   reorderLevel: number | null;
   categoryId: string | null;
   categoryName: string | null;
+  /** Department / item type. */
+  itemTypeId: string | null;
+  departmentName: string | null;
   /** Catalog shelf / sell price (bundle price). */
   sellPrice: number | null;
   /** Reference buying / cost price. */
@@ -173,6 +183,26 @@ function variantNameFromItem(item: ItemSummaryRecord): string | null {
   return item.variantName?.trim() || item.size?.trim() || null;
 }
 
+function composeStockDisplayName(
+  familyName: string | null,
+  variantName: string | null,
+  fallback: string,
+): string {
+  const base = familyName?.trim() || fallback.trim() || "Unnamed item";
+  const suffix = variantName?.trim();
+  return suffix ? `${base} ${suffix}` : base;
+}
+
+const catalogCellInput = cn(
+  supFormCellInput,
+  "h-8 w-full min-w-[6rem] text-left disabled:opacity-60",
+);
+
+const catalogCellSelect = cn(
+  supSelect,
+  "h-8 w-full min-w-[6rem] border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-1",
+);
+
 function isOutOfStock(stock: number): boolean {
   return stock <= 0;
 }
@@ -249,30 +279,46 @@ type StockRowItemProps = {
   row: StockRow;
   currency: string;
   canWrite: boolean;
+  canCatalogWrite: boolean;
+  categories: CategoryRecord[];
+  itemTypes: ItemTypeRecord[];
   editing: boolean;
   editQty: string;
   editCost: string;
   saving: boolean;
+  savingCatalog: boolean;
   onEditQtyChange: (value: string) => void;
   onEditCostChange: (value: string) => void;
   onStartEdit: () => void;
   onCancelEdit: () => void;
   onSaveEdit: () => void;
+  onSaveFamily: (value: string) => void;
+  onSaveVariant: (value: string) => void;
+  onSaveCategory: (categoryId: string) => void;
+  onSaveDepartment: (itemTypeId: string) => void;
 };
 
 function StockRowItem({
   row,
   currency,
   canWrite,
+  canCatalogWrite,
+  categories,
+  itemTypes,
   editing,
   editQty,
   editCost,
   saving,
+  savingCatalog,
   onEditQtyChange,
   onEditCostChange,
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
+  onSaveFamily,
+  onSaveVariant,
+  onSaveCategory,
+  onSaveDepartment,
 }: StockRowItemProps) {
   const out = isOutOfStock(row.stock);
   const low = isLowStock(row.stock, row.reorderLevel);
@@ -298,14 +344,99 @@ function StockRowItem({
           {row.name}
         </Link>
       </td>
-      <td className={cn(supTableCell, "max-w-[10rem] truncate text-muted-foreground")}>
-        {row.familyName ?? "—"}
+      <td className={cn(supTableCell, "min-w-[8rem] p-0 align-top")}>
+        {canCatalogWrite ? (
+          <input
+            key={`family-${row.id}-${row.familyName ?? ""}`}
+            type="text"
+            defaultValue={row.familyName ?? ""}
+            disabled={savingCatalog}
+            onBlur={(e) => onSaveFamily(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") {
+                e.currentTarget.value = row.familyName ?? "";
+                e.currentTarget.blur();
+              }
+            }}
+            className={catalogCellInput}
+            placeholder="Family"
+            aria-label={`Family name for ${row.name}`}
+          />
+        ) : (
+          <span className="block max-w-[10rem] truncate px-2 py-1 text-muted-foreground">
+            {row.familyName ?? "—"}
+          </span>
+        )}
       </td>
-      <td className={cn(supTableCell, "max-w-[8rem] truncate text-muted-foreground")}>
-        {row.variantName ?? "—"}
+      <td className={cn(supTableCell, "min-w-[7rem] p-0 align-top")}>
+        {canCatalogWrite ? (
+          <input
+            key={`variant-${row.id}-${row.variantName ?? ""}`}
+            type="text"
+            defaultValue={row.variantName ?? ""}
+            disabled={savingCatalog}
+            onBlur={(e) => onSaveVariant(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") {
+                e.currentTarget.value = row.variantName ?? "";
+                e.currentTarget.blur();
+              }
+            }}
+            className={catalogCellInput}
+            placeholder="Variant"
+            aria-label={`Variant name for ${row.name}`}
+          />
+        ) : (
+          <span className="block max-w-[8rem] truncate px-2 py-1 text-muted-foreground">
+            {row.variantName ?? "—"}
+          </span>
+        )}
       </td>
-      <td className={cn(supTableCell, "max-w-[8rem] truncate text-muted-foreground")}>
-        {row.categoryName ?? "—"}
+      <td className={cn(supTableCell, "min-w-[7rem] p-0 align-top")}>
+        {canCatalogWrite ? (
+          <select
+            value={row.categoryId ?? ""}
+            disabled={savingCatalog}
+            onChange={(e) => onSaveCategory(e.target.value)}
+            className={catalogCellSelect}
+            aria-label={`Category for ${row.name}`}
+          >
+            <option value="">—</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="block max-w-[8rem] truncate px-2 py-1 text-muted-foreground">
+            {row.categoryName ?? "—"}
+          </span>
+        )}
+      </td>
+      <td className={cn(supTableCell, "min-w-[7rem] p-0 align-top")}>
+        {canCatalogWrite ? (
+          <select
+            value={row.itemTypeId ?? ""}
+            disabled={savingCatalog}
+            onChange={(e) => onSaveDepartment(e.target.value)}
+            className={catalogCellSelect}
+            aria-label={`Department for ${row.name}`}
+          >
+            <option value="">—</option>
+            {itemTypes.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="block max-w-[8rem] truncate px-2 py-1 text-muted-foreground">
+            {row.departmentName ?? "—"}
+          </span>
+        )}
       </td>
       <td className={cn(supTableCell, "w-[5.5rem] p-0 align-top")}>
         {editing ? (
@@ -447,6 +578,10 @@ export function StockLevelsPage() {
   const { itemTypeId: headerItemTypeId } = useSessionItemType();
   const allowed = canViewStockLevels(me, business);
   const canWrite = canEditStockLevels(me, business);
+  const canCatalogWrite = hasPermission(
+    me?.permissions,
+    Permission.CatalogItemsWrite,
+  );
   const currency = business?.currency?.trim() || "KES";
 
   const quickLinks = useMemo(
@@ -456,6 +591,7 @@ export function StockLevelsPage() {
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
+  const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
   const [branchId, setBranchId] = useState("");
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   // Follow the global header branch selection (pinned for locked roles).
@@ -485,6 +621,23 @@ export function StockLevelsPage() {
   const [editQty, setEditQty] = useState("");
   const [editCost, setEditCost] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [savingCatalogId, setSavingCatalogId] = useState<string | null>(null);
+
+  const departmentLabelById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of itemTypes) {
+      map.set(t.id, t.label);
+    }
+    return map;
+  }, [itemTypes]);
+
+  const categoryLabelById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of categories) {
+      map.set(c.id, c.name);
+    }
+    return map;
+  }, [categories]);
 
   const startEdit = useCallback((row: StockRow) => {
     setEditId(row.id);
@@ -497,6 +650,155 @@ export function StockLevelsPage() {
     setEditQty("");
     setEditCost("");
   }, []);
+
+  const saveFamily = useCallback(
+    async (row: StockRow, raw: string) => {
+      if (!canCatalogWrite) return;
+      const next = formatProductNameForCatalog(raw);
+      const prev = (row.familyName ?? "").trim();
+      if (next === prev) return;
+      if (!next) {
+        toast.error("Family name is required.");
+        return;
+      }
+      const targetId = row.variantOfItemId?.trim() || row.id;
+      setSavingCatalogId(row.id);
+      try {
+        await patchItem(targetId, { name: next });
+        setRows((list) =>
+          list.map((r) => {
+            if (r.id !== targetId && r.variantOfItemId !== targetId) {
+              return r;
+            }
+            return {
+              ...r,
+              familyName: next,
+              name: composeStockDisplayName(
+                next,
+                r.variantName,
+                next,
+              ),
+            };
+          }),
+        );
+        toast.success("Family name updated.");
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not update family name.",
+        );
+      } finally {
+        setSavingCatalogId(null);
+      }
+    },
+    [canCatalogWrite],
+  );
+
+  const saveVariant = useCallback(
+    async (row: StockRow, raw: string) => {
+      if (!canCatalogWrite) return;
+      const next = raw.trim().replace(/\s+/g, " ");
+      const prev = (row.variantName ?? "").trim();
+      if (next === prev) return;
+      setSavingCatalogId(row.id);
+      try {
+        await patchItem(row.id, { variantName: next });
+        const variantName = next || null;
+        setRows((list) =>
+          list.map((r) =>
+            r.id === row.id
+              ? {
+                  ...r,
+                  variantName,
+                  name: composeStockDisplayName(
+                    r.familyName,
+                    variantName,
+                    r.familyName || r.name,
+                  ),
+                }
+              : r,
+          ),
+        );
+        toast.success("Variant name updated.");
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not update variant name.",
+        );
+      } finally {
+        setSavingCatalogId(null);
+      }
+    },
+    [canCatalogWrite],
+  );
+
+  const saveCategory = useCallback(
+    async (row: StockRow, nextCategoryId: string) => {
+      if (!canCatalogWrite) return;
+      const next = nextCategoryId.trim();
+      const prev = (row.categoryId ?? "").trim();
+      if (next === prev) return;
+      setSavingCatalogId(row.id);
+      try {
+        await patchItem(row.id, { categoryId: next });
+        setRows((list) =>
+          list.map((r) =>
+            r.id === row.id
+              ? {
+                  ...r,
+                  categoryId: next || null,
+                  categoryName: next
+                    ? categoryLabelById.get(next) ?? r.categoryName
+                    : null,
+                }
+              : r,
+          ),
+        );
+        toast.success("Category updated.");
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not update category.",
+        );
+      } finally {
+        setSavingCatalogId(null);
+      }
+    },
+    [canCatalogWrite, categoryLabelById],
+  );
+
+  const saveDepartment = useCallback(
+    async (row: StockRow, nextItemTypeId: string) => {
+      if (!canCatalogWrite) return;
+      const next = nextItemTypeId.trim();
+      const prev = (row.itemTypeId ?? "").trim();
+      if (next === prev) return;
+      if (!next) {
+        toast.error("Pick a department.");
+        return;
+      }
+      setSavingCatalogId(row.id);
+      try {
+        await patchItem(row.id, { itemTypeId: next });
+        setRows((list) =>
+          list.map((r) =>
+            r.id === row.id
+              ? {
+                  ...r,
+                  itemTypeId: next,
+                  departmentName: departmentLabelById.get(next) ?? r.departmentName,
+                }
+              : r,
+          ),
+        );
+        toast.success("Department updated.");
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not update department.",
+        );
+      } finally {
+        setSavingCatalogId(null);
+      }
+    },
+    [canCatalogWrite, departmentLabelById],
+  );
 
   const saveEdit = useCallback(
     async (row: StockRow) => {
@@ -590,12 +892,18 @@ export function StockLevelsPage() {
     void Promise.all([
       fetchBranches().catch(() => [] as BranchRecord[]),
       fetchCategories().catch(() => [] as CategoryRecord[]),
-    ]).then(([branchList, categoryList]) => {
+      fetchItemTypes().catch(() => [] as ItemTypeRecord[]),
+    ]).then(([branchList, categoryList, itemTypeList]) => {
       setBranches(branchList);
       setCategories(
         [...categoryList]
           .filter((c) => c.active !== false)
           .sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      setItemTypes(
+        [...itemTypeList]
+          .filter((t) => t.active !== false)
+          .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label)),
       );
     });
   }, []);
@@ -658,6 +966,7 @@ export function StockLevelsPage() {
             name: displayItemName(item),
             familyName: familyNameFromItem(item),
             variantName: variantNameFromItem(item),
+            variantOfItemId: item.variantOfItemId?.trim() || null,
             sku: item.sku?.trim() || "",
             barcode: item.barcode?.trim() || "",
             brand: item.brand?.trim() || "",
@@ -668,6 +977,10 @@ export function StockLevelsPage() {
               item.categoryName?.trim() ||
               categoryByItemId.get(item.id) ||
               null,
+            itemTypeId: item.itemTypeId?.trim() || null,
+            departmentName: item.itemTypeId?.trim()
+              ? departmentLabelById.get(item.itemTypeId.trim()) ?? null
+              : null,
             sellPrice: toNum(item.bundlePrice),
             buyPrice: toNum(item.buyingPrice),
             editable: !item.packageVariant,
@@ -685,7 +998,7 @@ export function StockLevelsPage() {
     } finally {
       setLoading(false);
     }
-  }, [branchId, categoryId, headerItemTypeId]);
+  }, [branchId, categoryId, headerItemTypeId, departmentLabelById]);
 
   useEffect(() => {
     if (!allowed) return;
@@ -707,6 +1020,7 @@ export function StockLevelsPage() {
           r.barcode,
           r.brand,
           r.categoryName,
+          r.departmentName,
         )
       ) {
         return false;
