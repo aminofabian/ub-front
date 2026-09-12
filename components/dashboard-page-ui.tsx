@@ -178,7 +178,7 @@ export function DashboardQuickLinks({
             key={href}
             href={href}
             className={cn(
-              "inline-flex h-8 items-center gap-1 rounded-none border bg-white px-2 text-[12px] font-semibold tracking-[-0.02em]",
+              "inline-flex h-7 items-center gap-1 rounded-none border bg-white px-1.5 text-[11px] font-semibold tracking-[-0.02em]",
               HAIRLINE,
               MUTED,
               "hover:text-[var(--order-ink,#15231f)]",
