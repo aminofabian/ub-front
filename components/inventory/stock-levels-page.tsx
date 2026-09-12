@@ -71,6 +71,10 @@ type StockSort =
 type StockRow = {
   id: string;
   name: string;
+  /** Parent / family product title when this row is a variant. */
+  familyName: string | null;
+  /** Option / size / variant label. */
+  variantName: string | null;
   sku: string;
   barcode: string;
   brand: string;
@@ -155,6 +159,18 @@ function displayItemName(item: ItemSummaryRecord): string {
   const base = item.name?.trim() || item.sku?.trim() || "Unnamed item";
   const suffix = item.size?.trim() || item.variantName?.trim();
   return suffix ? `${base} ${suffix}` : base;
+}
+
+function familyNameFromItem(item: ItemSummaryRecord): string | null {
+  return (
+    item.parentName?.trim() ||
+    item.name?.trim() ||
+    null
+  );
+}
+
+function variantNameFromItem(item: ItemSummaryRecord): string | null {
+  return item.variantName?.trim() || item.size?.trim() || null;
 }
 
 function isOutOfStock(stock: number): boolean {
@@ -281,6 +297,12 @@ function StockRowItem({
         >
           {row.name}
         </Link>
+      </td>
+      <td className={cn(supTableCell, "max-w-[10rem] truncate text-muted-foreground")}>
+        {row.familyName ?? "—"}
+      </td>
+      <td className={cn(supTableCell, "max-w-[8rem] truncate text-muted-foreground")}>
+        {row.variantName ?? "—"}
       </td>
       <td className={cn(supTableCell, "max-w-[8rem] truncate text-muted-foreground")}>
         {row.categoryName ?? "—"}
@@ -634,6 +656,8 @@ export function StockLevelsPage() {
           collected.push({
             id: item.id,
             name: displayItemName(item),
+            familyName: familyNameFromItem(item),
+            variantName: variantNameFromItem(item),
             sku: item.sku?.trim() || "",
             barcode: item.barcode?.trim() || "",
             brand: item.brand?.trim() || "",
@@ -674,7 +698,16 @@ export function StockLevelsPage() {
       if (!matchesStockStatus(r, statusFilter)) return false;
       if (
         q &&
-        !textMatchesQuery(q, r.name, r.sku, r.barcode, r.brand, r.categoryName)
+        !textMatchesQuery(
+          q,
+          r.name,
+          r.familyName,
+          r.variantName,
+          r.sku,
+          r.barcode,
+          r.brand,
+          r.categoryName,
+        )
       ) {
         return false;
       }
@@ -914,10 +947,12 @@ export function StockLevelsPage() {
               ) : (
                 <>
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[52rem] border-collapse border-0 text-left text-xs">
+                    <table className="w-full min-w-[64rem] border-collapse border-0 text-left text-xs">
                       <thead>
                         <tr className={supTableHead}>
                           <th className={cn(supTableCell, "min-w-[10rem]")}>Product</th>
+                          <th className={cn(supTableCell, "min-w-[8rem]")}>Family</th>
+                          <th className={cn(supTableCell, "min-w-[7rem]")}>Variant</th>
                           <th className={cn(supTableCell, "min-w-[6rem]")}>Category</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>In store</th>
                           <th className={cn(supTableCell, "w-[5rem] text-right")}>Reorder</th>
