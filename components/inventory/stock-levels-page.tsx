@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -62,8 +62,7 @@ import {
   supWorkspaceShell,
 } from "@/app/(dashboard)/suppliers/_components/supplier-ui-tokens";
 
-const MAX_PAGES = 20;
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 50;
 
 type StockStatusFilter = "all" | "in_stock" | "low" | "out" | "loss";
 
@@ -185,6 +184,38 @@ function familyNameFromItem(item: ItemSummaryRecord): string | null {
 
 function variantNameFromItem(item: ItemSummaryRecord): string | null {
   return item.variantName?.trim() || item.size?.trim() || null;
+}
+
+function mapItemToStockRow(
+  item: ItemSummaryRecord,
+  reorderByItemId: Map<string, number>,
+  categoryByItemId: Map<string, string>,
+): StockRow {
+  const stock = toNum(item.stockQty) ?? 0;
+  return {
+    id: item.id,
+    name: displayItemName(item),
+    familyName: familyNameFromItem(item),
+    variantName: variantNameFromItem(item),
+    variantOfItemId: item.variantOfItemId?.trim() || null,
+    sku: item.sku?.trim() || "",
+    barcode: item.barcode?.trim() || "",
+    brand: item.brand?.trim() || "",
+    stock,
+    reorderLevel: reorderByItemId.get(item.id) ?? null,
+    categoryId: item.categoryId ?? null,
+    categoryName:
+      item.categoryName?.trim() ||
+      categoryByItemId.get(item.id) ||
+      null,
+    itemTypeId: item.itemTypeId?.trim() || null,
+    departmentName: null,
+    aisleId: item.aisleId?.trim() || null,
+    shelfName: item.aisleName?.trim() || item.aisleCode?.trim() || null,
+    sellPrice: toNum(item.bundlePrice),
+    buyPrice: toNum(item.buyingPrice),
+    editable: !item.packageVariant,
+  };
 }
 
 function composeStockDisplayName(
@@ -754,6 +785,9 @@ export function StockLevelsPage() {
   const [rows, setRows] = useState<StockRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalElements, setTotalElements] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const [editId, setEditId] = useState<string | null>(null);
@@ -761,6 +795,14 @@ export function StockLevelsPage() {
   const [editCost, setEditCost] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [savingCatalogId, setSavingCatalogId] = useState<string | null>(null);
+
+  const pageRef = useRef(0);
+  const hasMoreRef = useRef(false);
+  const loadingMoreRef = useRef(false);
+  const loadMoreRef = useRef<() => void>(() => {});
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const reorderByItemIdRef = useRef(new Map<string, number>());
+  const categoryByItemIdRef = useRef(new Map<string, string>());
 
   const departmentLabelById = useMemo(() => {
     const map = new Map<string, string>();
@@ -1177,38 +1219,54 @@ export function StockLevelsPage() {
     if (fallback) setBranchId(fallback);
   }, [isBranchLockedRole, branchId, branches]);
 
-  const load = useCallback(async () => {
-    const branch = branchId.trim();
-    if (!branch) {
-      setRows([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setEditId(null);
-    try {
-      const reorderByItemId = new Map<string, number>();
-      const categoryByItemId = new Map<string, string>();
-      const dashboard = await fetchBatchDashboard({ branchId: branch }).catch(
-        () => null,
-      );
-      for (const product of dashboard?.lowStockProducts ?? []) {
-        const level = toNum(product.reorderLevel);
-        if (level != null) reorderByItemId.set(product.itemId, level);
-        if (product.categoryName?.trim()) {
-          categoryByItemId.set(product.itemId, product.categoryName.trim());
-        }
+  const loadPage = useCallback(
+    async (opts: { reset: boolean }) => {
+      const branch = branchId.trim();
+      if (!branch) {
+        setRows([]);
+        setHasMore(false);
+        hasMoreRef.current = false;
+        setTotalElements(0);
+        setLoading(false);
+        setLoadingMore(false);
+        return;
       }
 
-      const selectedCategory = categoryId.trim();
+      if (opts.reset) {
+        setLoading(true);
+        setError(null);
+        setEditId(null);
+        setLoadingMore(false);
+        loadingMoreRef.current = false;
+        pageRef.current = 0;
+        hasMoreRef.current = true;
+        setHasMore(true);
+      } else {
+        if (loadingMoreRef.current || !hasMoreRef.current) return;
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+      }
 
-      const collected: StockRow[] = [];
-      let page = 0;
-      let last = false;
+      try {
+        if (opts.reset) {
+          const reorderByItemId = new Map<string, number>();
+          const categoryByItemId = new Map<string, string>();
+          const dashboard = await fetchBatchDashboard({
+            branchId: branch,
+          }).catch(() => null);
+          for (const product of dashboard?.lowStockProducts ?? []) {
+            const level = toNum(product.reorderLevel);
+            if (level != null) reorderByItemId.set(product.itemId, level);
+            if (product.categoryName?.trim()) {
+              categoryByItemId.set(product.itemId, product.categoryName.trim());
+            }
+          }
+          reorderByItemIdRef.current = reorderByItemId;
+          categoryByItemIdRef.current = categoryByItemId;
+        }
 
-      while (!last && page < MAX_PAGES) {
+        const page = opts.reset ? 0 : pageRef.current + 1;
+        const selectedCategory = categoryId.trim();
         const result = await fetchItemsPage(undefined, {
           branchId: branch,
           itemTypeId: headerItemTypeId?.trim() || undefined,
@@ -1220,50 +1278,68 @@ export function StockLevelsPage() {
           sort: [{ property: "name", direction: "asc" }],
         });
 
-        for (const item of result.content) {
-          if (item.groupLabelOnly) continue;
-          const stock = toNum(item.stockQty) ?? 0;
-          collected.push({
-            id: item.id,
-            name: displayItemName(item),
-            familyName: familyNameFromItem(item),
-            variantName: variantNameFromItem(item),
-            variantOfItemId: item.variantOfItemId?.trim() || null,
-            sku: item.sku?.trim() || "",
-            barcode: item.barcode?.trim() || "",
-            brand: item.brand?.trim() || "",
-            stock,
-            reorderLevel: reorderByItemId.get(item.id) ?? null,
-            categoryId: item.categoryId ?? null,
-            categoryName:
-              item.categoryName?.trim() ||
-              categoryByItemId.get(item.id) ||
-              null,
-            itemTypeId: item.itemTypeId?.trim() || null,
-            departmentName: null,
-            aisleId: item.aisleId?.trim() || null,
-            shelfName:
-              item.aisleName?.trim() ||
-              item.aisleCode?.trim() ||
-              null,
-            sellPrice: toNum(item.bundlePrice),
-            buyPrice: toNum(item.buyingPrice),
-            editable: !item.packageVariant,
+        const mapped = result.content
+          .filter((item) => !item.groupLabelOnly)
+          .map((item) =>
+            mapItemToStockRow(
+              item,
+              reorderByItemIdRef.current,
+              categoryByItemIdRef.current,
+            ),
+          );
+
+        if (opts.reset) {
+          setRows(mapped);
+        } else {
+          setRows((prev) => {
+            const seen = new Set(prev.map((r) => r.id));
+            const next = [...prev];
+            for (const row of mapped) {
+              if (!seen.has(row.id)) next.push(row);
+            }
+            return next;
           });
         }
 
-        last = result.last;
-        page += 1;
+        pageRef.current = page;
+        const more = !result.last;
+        hasMoreRef.current = more;
+        setHasMore(more);
+        setTotalElements(result.totalElements ?? 0);
+      } catch (e) {
+        if (opts.reset) {
+          setError(
+            e instanceof Error ? e.message : "Failed to load stock levels.",
+          );
+          setRows([]);
+          setHasMore(false);
+          hasMoreRef.current = false;
+          setTotalElements(0);
+        } else {
+          toast.error(
+            e instanceof Error ? e.message : "Failed to load more stock.",
+          );
+        }
+      } finally {
+        if (opts.reset) setLoading(false);
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
       }
+    },
+    [branchId, categoryId, headerItemTypeId],
+  );
 
-      setRows(collected);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load stock levels.");
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [branchId, categoryId, headerItemTypeId]);
+  const load = useCallback(() => {
+    void loadPage({ reset: true });
+  }, [loadPage]);
+
+  const loadMore = useCallback(() => {
+    void loadPage({ reset: false });
+  }, [loadPage]);
+
+  useEffect(() => {
+    loadMoreRef.current = loadMore;
+  }, [loadMore]);
 
   useEffect(() => {
     if (departmentLabelById.size === 0 && shelfLabelById.size === 0) return;
@@ -1300,8 +1376,8 @@ export function StockLevelsPage() {
 
   useEffect(() => {
     if (!allowed) return;
-    void load();
-  }, [load, allowed]);
+    void loadPage({ reset: true });
+  }, [loadPage, allowed]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -1328,6 +1404,42 @@ export function StockLevelsPage() {
     });
     return sortStockRows(filtered, sortBy);
   }, [rows, search, statusFilter, sortBy]);
+
+  // When filters hide the loaded page, keep fetching until matches appear or list ends.
+  useEffect(() => {
+    if (loading || loadingMore || !hasMore) return;
+    if (rows.length === 0) return;
+    const filtering = Boolean(search.trim()) || statusFilter !== "all";
+    if (!filtering) return;
+    if (filteredRows.length > 0) return;
+    loadMore();
+  }, [
+    loading,
+    loadingMore,
+    hasMore,
+    rows.length,
+    filteredRows.length,
+    search,
+    statusFilter,
+    loadMore,
+  ]);
+
+  useEffect(() => {
+    if (loading || !hasMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadMoreRef.current();
+        }
+      },
+      { root: null, rootMargin: "280px 0px", threshold: 0 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loading, hasMore, filteredRows.length, rows.length]);
 
   const stockCounts = useMemo(
     () => ({
@@ -1547,8 +1659,14 @@ export function StockLevelsPage() {
             <>
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-2.5 py-1.5">
                 <h2 className="text-xs font-medium text-muted-foreground">
-                  {filteredRows.length.toLocaleString("en-KE")} product
-                  {filteredRows.length === 1 ? "" : "s"}
+                  {filteredRows.length.toLocaleString("en-KE")} shown
+                  {hasMore || rows.length < totalElements
+                    ? ` · ${rows.length.toLocaleString("en-KE")} loaded${
+                        totalElements > 0
+                          ? ` of ${totalElements.toLocaleString("en-KE")}`
+                          : ""
+                      }`
+                    : ""}
                   {statusFilter === "loss"
                     ? " · selling below buy"
                     : statusFilter !== "all"
@@ -1565,7 +1683,10 @@ export function StockLevelsPage() {
 
               {filteredRows.length === 0 ? (
                 <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-                  {emptyMessage}
+                  {loadingMore || hasMore
+                    ? "Loading more products…"
+                    : emptyMessage}
+                  <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -1621,6 +1742,17 @@ export function StockLevelsPage() {
                         ))}
                       </tbody>
                     </table>
+                    <div ref={sentinelRef} className="h-8 w-full" aria-hidden />
+                    {loadingMore ? (
+                      <p className="border-t border-border px-2.5 py-2 text-center text-[11px] text-muted-foreground">
+                        Loading more…
+                      </p>
+                    ) : null}
+                    {!hasMore && rows.length > 0 ? (
+                      <p className="border-t border-border px-2.5 py-2 text-center text-[11px] text-muted-foreground">
+                        End of list
+                      </p>
+                    ) : null}
                 </div>
               )}
             </>
