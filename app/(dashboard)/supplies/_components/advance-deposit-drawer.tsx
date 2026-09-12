@@ -50,8 +50,13 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   onDeposited: () => void;
   currency: string;
-  /** Prefill / lock the supplier when opened from a supplier profile. */
+  /** Prefill / lock the supplier when opened from a supplier profile or order. */
   initialSupplierId?: string | null;
+  /** Prefill amount (e.g. order total or suggested deposit). */
+  initialAmount?: number | null;
+  /** Shown in notes / description when funding a specific PO. */
+  orderPoNumber?: string | null;
+  orderTotal?: number | null;
 };
 
 export function AdvanceDepositDrawer({
@@ -60,6 +65,9 @@ export function AdvanceDepositDrawer({
   onDeposited,
   currency,
   initialSupplierId = null,
+  initialAmount = null,
+  orderPoNumber = null,
+  orderTotal = null,
 }: Props) {
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
@@ -77,13 +85,24 @@ export function AdvanceDepositDrawer({
     [suppliers, supplierId],
   );
   const existingCredit = supplyN(selected?.prepaymentBalance);
+  const fundingOrder = Boolean(orderPoNumber?.trim());
 
   useEffect(() => {
     if (!open) return;
     setError(null);
-    setAmount("");
-    setReference("");
-    setNotes("");
+    const seed =
+      initialAmount != null &&
+      Number.isFinite(initialAmount) &&
+      initialAmount > 0
+        ? String(Math.round(initialAmount * 100) / 100)
+        : "";
+    setAmount(seed);
+    setReference(orderPoNumber?.trim() || "");
+    setNotes(
+      orderPoNumber?.trim()
+        ? `Deposit against order ${orderPoNumber.trim()}`
+        : "",
+    );
     setPaidAt(defaultLocalDateTime());
     setLoadingSuppliers(true);
     void fetchSuppliers()
@@ -107,7 +126,7 @@ export function AdvanceDepositDrawer({
         setError(e instanceof Error ? e.message : "Could not load suppliers.");
       })
       .finally(() => setLoadingSuppliers(false));
-  }, [open, initialSupplierId]);
+  }, [open, initialSupplierId, initialAmount, orderPoNumber]);
 
   useEffect(() => {
     if (!selected) return;
@@ -134,7 +153,11 @@ export function AdvanceDepositDrawer({
         paymentAmount: cash,
         creditApplied: 0,
         reference: reference.trim() || undefined,
-        notes: notes.trim() || "Supplier advance deposit",
+        notes:
+          notes.trim() ||
+          (orderPoNumber?.trim()
+            ? `Deposit against order ${orderPoNumber.trim()}`
+            : "Supplier advance deposit"),
         allocations: [],
         notifySupplier: false,
       });
@@ -155,8 +178,12 @@ export function AdvanceDepositDrawer({
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Deposit to supplier wallet"
-      description="Add money to this supplier’s advance balance. When they bring items, credit is applied automatically."
+      title="Advance payment / deposit"
+      description={
+        fundingOrder
+          ? "Deposit against this order. Credit sits on the supplier wallet until delivery is unpacked — then it applies to the bill automatically."
+          : "Add an advance payment to this supplier’s wallet. When goods arrive and you record the bill, credit applies automatically."
+      }
       icon={<Wallet className="size-4" aria-hidden />}
       footer={
         <div className="flex w-full items-center justify-end gap-2">
@@ -181,7 +208,7 @@ export function AdvanceDepositDrawer({
                 Depositing…
               </>
             ) : (
-              "Deposit to wallet"
+              "Record deposit"
             )}
           </Button>
         </div>
@@ -190,12 +217,25 @@ export function AdvanceDepositDrawer({
       <div className="space-y-3">
         {error ? <FormDrawerMessageBanner text={error} /> : null}
 
+        {fundingOrder && orderTotal != null && orderTotal > 0 ? (
+          <p className="border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)] px-3 py-2 text-[12px] text-[var(--order-ink,#15231f)]">
+            Order{" "}
+            <span className="font-mono font-semibold">{orderPoNumber}</span>
+            {" · "}
+            estimated{" "}
+            <span className="font-semibold tabular-nums">
+              {formatSupplyMoney(orderTotal, currency)}
+            </span>
+            . Partial deposits are fine.
+          </p>
+        ) : null}
+
         <label className="flex flex-col gap-1.5">
           <span className={supFieldLabel}>Supplier</span>
           <select
             className={supSelect}
             value={supplierId}
-            disabled={busy || loadingSuppliers}
+            disabled={busy || loadingSuppliers || Boolean(initialSupplierId)}
             onChange={(e) => setSupplierId(e.target.value)}
           >
             {loadingSuppliers ? (
@@ -282,7 +322,7 @@ export function AdvanceDepositDrawer({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               disabled={busy}
-              placeholder="e.g. Weekly float for Peter"
+              placeholder="e.g. 30% China deposit · TT ref"
             />
           </label>
         </div>

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { APP_ROUTES } from "@/lib/config";
 
-/** Supplier payments are recorded per supply receipt on the Supplies page (Pay drawer). */
+/** Money lives on Records — open unpaid + advance deposit. */
 export default function RecordSupplierPaymentPage() {
-  redirect(`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`);
+  redirect(`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid&deposit=1`);
 }

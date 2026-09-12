@@ -4,9 +4,9 @@ import Link from "next/link";
 import {
   Check,
   ClipboardCheck,
-  CreditCard,
   FilePlus,
   Flag,
+  Package,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,18 +31,18 @@ const STEP_META: Partial<
 > = {
   [APP_ROUTES.order]: {
     icon: FilePlus,
-    verb: "Create",
+    verb: "Order",
     hint: "Build the purchase order",
   },
   [APP_ROUTES.orderReceive]: {
     icon: ClipboardCheck,
-    verb: "Confirm",
-    hint: "Arrive, then unpack into stock",
+    verb: "Receive",
+    hint: "Against order or walk-in",
   },
-  [APP_ROUTES.purchasingRecordPayment]: {
-    icon: CreditCard,
-    verb: "Pay",
-    hint: "Settle the supplier",
+  [APP_ROUTES.purchasingAddSupplies]: {
+    icon: Package,
+    verb: "Records",
+    hint: "Deliveries, bills, deposits",
   },
 };
 

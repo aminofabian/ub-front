@@ -45,9 +45,14 @@ export function SuppliesPageLayout({
               <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
                 <Package className="size-3.5" aria-hidden />
               </span>
-              <h1 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-                Supplies
-              </h1>
+              <div className="min-w-0">
+                <h1 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                  Records
+                </h1>
+                <p className="hidden truncate text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] sm:block">
+                  Deliveries · bills · deposits
+                </p>
+              </div>
             </div>
 
             <span

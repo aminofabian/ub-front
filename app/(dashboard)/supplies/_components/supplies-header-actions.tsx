@@ -124,7 +124,7 @@ export function SuppliesHeaderActions({
           onClick={onPayAdvance}
         >
           <Wallet className="size-3" aria-hidden />
-          Deposit
+          Advance / deposit
         </Button>
       ) : null}
       {canOpenNewSupply ? (
@@ -135,7 +135,7 @@ export function SuppliesHeaderActions({
           onClick={onNewSupply}
         >
           <PackagePlus className="size-3" aria-hidden />
-          New supply
+          Walk-in supply
         </Button>
       ) : null}
     </>

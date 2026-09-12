@@ -1,19 +1,13 @@
 import type { Metadata } from "next";
 
-import { OrderPageLayout } from "../_components/order-page-layout";
-import { OrderReceivePanel } from "../_components/order-receive-panel";
-import { OrderReceiveStatsStrip } from "../_components/order-receive-stats-strip";
+import { OrderReceivePageClient } from "./order-receive-page-client";
 
 export const metadata: Metadata = {
-  title: "Confirm order · Procurement · Kiosk",
+  title: "Receive · Buying · Kiosk",
   description:
-    "Mark shipment arrived, then unpack quantities into stock against open purchase orders.",
+    "Goods in: unpack against an open order, or post a walk-in supply with no purchase order.",
 };
 
 export default function OrderReceivePage() {
-  return (
-    <OrderPageLayout header={<OrderReceiveStatsStrip />}>
-      <OrderReceivePanel />
-    </OrderPageLayout>
-  );
+  return <OrderReceivePageClient />;
 }

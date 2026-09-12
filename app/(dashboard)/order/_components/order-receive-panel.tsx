@@ -1097,9 +1097,9 @@ export function OrderReceivePanel({
       );
 
       toast.success(
-        embedded
+          embedded
           ? "Unpacked — stock updated"
-          : "Unpacked into stock — opening supplies",
+          : "Unpacked into stock — opening Records",
       );
       await refreshOrders();
       if (embedded) {

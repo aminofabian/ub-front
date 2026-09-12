@@ -76,7 +76,7 @@ export function SuppliesPageHeader({
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
               <span className={supKicker}>Purchasing</span>
               <h1 className="truncate text-[15px] font-semibold tracking-tight text-foreground">
-                Supplies
+                Records
               </h1>
               {scope ? (
                 <span className="truncate text-[11px] text-muted-foreground">
@@ -153,7 +153,7 @@ export function SuppliesPageHeader({
               onClick={onPayAdvance}
             >
               <Wallet className="size-3" aria-hidden />
-              Deposit
+              Advance / deposit
             </Button>
           ) : null}
           {canOpenNewSupply ? (
@@ -167,7 +167,7 @@ export function SuppliesPageHeader({
               onClick={onNewSupply}
             >
               <PackagePlus className="size-3" aria-hidden />
-              New supply
+              Walk-in supply
             </Button>
           ) : null}
         </div>

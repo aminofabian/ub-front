@@ -123,6 +123,9 @@ export default function SuppliesPage() {
 
   const [newOpen, setNewOpen] = useState(false);
   const [advanceOpen, setAdvanceOpen] = useState(false);
+  const [advanceSupplierId, setAdvanceSupplierId] = useState<string | null>(
+    null,
+  );
   const [payOpen, setPayOpen] = useState(false);
   const [payRow, setPayRow] = useState<PathBSupplyListRowRecord | null>(null);
   const [paySettleAll, setPaySettleAll] = useState(false);
@@ -194,6 +197,18 @@ export default function SuppliesPage() {
       setNewOpen(true);
     }
   }, [searchParams, canOpenNewSupply]);
+
+  useEffect(() => {
+    if (searchParams.get("deposit") !== "1" || !canPay) return;
+    const supplier = searchParams.get("supplierId")?.trim() || null;
+    setAdvanceSupplierId(supplier);
+    setAdvanceOpen(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("deposit");
+    params.delete("supplierId");
+    const q = params.toString();
+    router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+  }, [searchParams, canPay, pathname, router]);
 
   const billFilter = parseSupplyBillFilter(
     searchParams.get("filter"),
@@ -350,7 +365,10 @@ export default function SuppliesPage() {
             unpaidActive={isUnpaid}
             onRefresh={() => void refresh()}
             onNewSupply={() => setNewOpen(true)}
-            onPayAdvance={() => setAdvanceOpen(true)}
+            onPayAdvance={() => {
+              setAdvanceSupplierId(null);
+              setAdvanceOpen(true);
+            }}
             onPayOpen={() => setBillFilter("unpaid")}
           />
         }
@@ -433,16 +451,16 @@ export default function SuppliesPage() {
                   query.trim()
                     ? "No matching receipts"
                     : billFilter === "all"
-                      ? "No supplies yet"
+                      ? "No deliveries yet"
                       : `No ${supplyBillFilterLabel(billFilter).toLowerCase()} receipts`
                 }
                 description={
                   query.trim()
                     ? "Try another vendor or invoice number."
                     : billFilter === "all" && canOpenNewSupply
-                      ? "Record your first vendor delivery with New supply."
+                      ? "Start with Receive → Walk-in, or Against an order."
                       : billFilter === "all"
-                        ? "Supplies appear here after posted receipts."
+                        ? "Deliveries appear here after you Receive goods."
                         : "Try a different date range or status filter."
                 }
                 action={
@@ -474,7 +492,7 @@ export default function SuppliesPage() {
                       onClick={() => setNewOpen(true)}
                     >
                       <Package className="size-3" aria-hidden />
-                      New supply
+                      Walk-in supply
                     </Button>
                   ) : undefined
                 }
@@ -515,9 +533,13 @@ export default function SuppliesPage() {
 
       <AdvanceDepositDrawer
         open={advanceOpen}
-        onOpenChange={setAdvanceOpen}
+        onOpenChange={(open) => {
+          setAdvanceOpen(open);
+          if (!open) setAdvanceSupplierId(null);
+        }}
         onDeposited={() => void refresh()}
         currency={currency}
+        initialSupplierId={advanceSupplierId}
       />
 
       <PaySupplyDrawer
@@ -550,7 +572,7 @@ export default function SuppliesPage() {
         <button
           type="button"
           onClick={() => setNewOpen(true)}
-          aria-label="Receive new supply"
+          aria-label="Walk-in supply"
           className={cn(
             "fixed z-40 flex items-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] px-4 py-3 text-sm font-semibold text-white",
             "right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))]",

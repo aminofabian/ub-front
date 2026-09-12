@@ -18,6 +18,7 @@ import {
   Save,
   Search,
   ShoppingCart,
+  Wallet,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,7 +30,9 @@ import {
   buildMarketplaceOrderText,
   buildWhatsAppOrderUrl,
 } from "@/app/marketplace/_lib/marketplace-order-pdf";
+import { AdvanceDepositDrawer } from "@/app/(dashboard)/supplies/_components/advance-deposit-drawer";
 import { SupplyPackQtyModal } from "@/app/(dashboard)/supplies/_components/supply-pack-qty-modal";
+import { formatSupplyMoney, supplyN } from "@/app/(dashboard)/supplies/_components/supplies-shared";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { getSessionTenantId } from "@/lib/auth";
 import { Permission, hasPermission } from "@/lib/permissions";
@@ -267,6 +270,10 @@ export function TenantOrderWorkspace({
     me?.permissions,
     Permission.CatalogItemsWrite,
   );
+  const canDeposit = hasPermission(
+    me?.permissions,
+    Permission.PurchasingPaymentWrite,
+  );
   const currency = business?.currency?.trim().toUpperCase() || ORDER_CURRENCY;
   const businessId = getSessionTenantId()?.trim() ?? "";
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
@@ -290,6 +297,17 @@ export function TenantOrderWorkspace({
   const [packSheetItemId, setPackSheetItemId] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
   const [whatsapping, setWhatsapping] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [depositSeed, setDepositSeed] = useState<{
+    supplierId: string;
+    amount: number;
+    poNumber: string | null;
+  } | null>(null);
+  const [pendingDeposit, setPendingDeposit] = useState<{
+    poNumber: string;
+    supplierId: string;
+    total: number;
+  } | null>(null);
   const [supplierQuery, setSupplierQuery] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [parentFilterId, setParentFilterId] = useState<string | null>(null);
@@ -653,6 +671,21 @@ export function TenantOrderWorkspace({
   );
 
   const activeSupplier = suppliers.find((s) => s.id === supplierId) ?? null;
+  const supplierWalletCredit = supplyN(activeSupplier?.prepaymentBalance);
+
+  const refreshSuppliers = useCallback(async () => {
+    try {
+      const rows = await fetchSuppliers();
+      setSuppliers(
+        rows.filter(
+          (s) =>
+            (s.status ?? "").toLowerCase() !== "inactive" && !s.deletedAt,
+        ),
+      );
+    } catch {
+      /* keep existing list */
+    }
+  }, []);
   const linkedItemIds = useMemo(
     () => new Set(links.map((link) => link.itemId)),
     [links],
@@ -785,6 +818,28 @@ export function TenantOrderWorkspace({
   })();
   const effectiveTotal = roundTo10 ? roundedTotal : cartTotal;
   const roundingActive = roundTo10 && roundedTotal !== cartTotal;
+
+  const openDeposit = (opts?: {
+    amount?: number;
+    poNumber?: string | null;
+    afterPlace?: boolean;
+  }) => {
+    if (!canDeposit || !supplierId) {
+      toast.error(
+        !canDeposit
+          ? "You don’t have permission to record deposits"
+          : "Pick a supplier first",
+      );
+      return;
+    }
+    setDepositSeed({
+      supplierId,
+      amount: opts?.amount ?? effectiveTotal,
+      poNumber: opts?.poNumber ?? null,
+    });
+    setDepositOpen(true);
+    if (opts?.afterPlace) setPendingDeposit(null);
+  };
 
   const supplierPhone = useMemo(() => {
     const primary =
@@ -983,6 +1038,8 @@ export function TenantOrderWorkspace({
     setPlacing(true);
     if (alsoWhatsApp) setWhatsapping(true);
     try {
+      const placedTotal = effectiveTotal;
+      const placedSupplierId = supplierId;
       const poNumber = await savePurchaseOrder();
       if (!poNumber) return;
       if (alsoWhatsApp) {
@@ -995,6 +1052,13 @@ export function TenantOrderWorkspace({
         toast.success(`Order ${poNumber} placed — confirm when goods arrive`);
       }
       setMobileOrderOpen(false);
+      if (canDeposit && placedSupplierId) {
+        setPendingDeposit({
+          poNumber,
+          supplierId: placedSupplierId,
+          total: placedTotal,
+        });
+      }
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not place order",
@@ -1519,73 +1583,153 @@ export function TenantOrderWorkspace({
 
   const placeFooter = (
     <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-4">
-      <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5">
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0 space-y-1.5">
-            <p className="text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-              {cartUnits} line{cartUnits === 1 ? "" : "s"}
-            </p>
+      {pendingDeposit ? (
+        <div className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] p-3.5">
+          <p className="font-heading text-[14px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+            Order {pendingDeposit.poNumber} saved
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+            Record an advance payment / deposit now if you already paid the
+            supplier. Stock still waits until delivery is unpacked.
+          </p>
+          <button
+            type="button"
+            onClick={() =>
+              openDeposit({
+                amount: pendingDeposit.total,
+                poNumber: pendingDeposit.poNumber,
+                afterPlace: true,
+              })
+            }
+            className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63]"
+          >
+            <Wallet className="size-4" aria-hidden />
+            Advance payment / deposit
+          </button>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px]">
             <button
               type="button"
-              onClick={() => setRoundTo10((v) => !v)}
-              className={cn(
-                "inline-flex items-center gap-2 text-[12px] font-medium transition-colors",
-                roundTo10
-                  ? "text-[var(--pos-primary,#0f766e)]"
-                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] hover:text-[var(--order-ink,#15231f)]",
-              )}
-              aria-pressed={roundTo10}
-              title="Round the order total to the nearest 10"
+              onClick={() =>
+                openDeposit({
+                  amount: Math.round(pendingDeposit.total * 0.5 * 100) / 100,
+                  poNumber: pendingDeposit.poNumber,
+                  afterPlace: true,
+                })
+              }
+              className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]"
             >
-              <span
-                className={cn(
-                  "flex size-4 shrink-0 items-center justify-center rounded-none border transition-colors",
-                  roundTo10
-                    ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)] bg-white",
-                )}
-                aria-hidden
-              >
-                {roundTo10 ? (
-                  <Check className="size-3" strokeWidth={2.5} />
-                ) : null}
-              </span>
-              Round to 10
+              Half · {formatMoney(pendingDeposit.total * 0.5, currency)}
+            </button>
+            <span
+              className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]"
+              aria-hidden
+            >
+              ·
+            </span>
+            <button
+              type="button"
+              onClick={() => setPendingDeposit(null)}
+              className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]"
+            >
+              Skip for now
             </button>
           </div>
-          <div className="text-right">
-            <p className="font-heading text-[22px] font-semibold leading-none tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
-              {formatMoney(effectiveTotal, ORDER_CURRENCY)}
-            </p>
-            {roundingActive ? (
-              <p className="mt-1 text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                {effectiveTotal > cartTotal ? "up" : "down"} from{" "}
-                {formatMoney(cartTotal, ORDER_CURRENCY)}
-              </p>
-            ) : null}
-          </div>
         </div>
+      ) : (
+        <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5">
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0 space-y-1.5">
+              <p className="text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                {cartUnits} line{cartUnits === 1 ? "" : "s"}
+              </p>
+              <button
+                type="button"
+                onClick={() => setRoundTo10((v) => !v)}
+                className={cn(
+                  "inline-flex items-center gap-2 text-[12px] font-medium transition-colors",
+                  roundTo10
+                    ? "text-[var(--pos-primary,#0f766e)]"
+                    : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                )}
+                aria-pressed={roundTo10}
+                title="Round the order total to the nearest 10"
+              >
+                <span
+                  className={cn(
+                    "flex size-4 shrink-0 items-center justify-center rounded-none border transition-colors",
+                    roundTo10
+                      ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)] bg-white",
+                  )}
+                  aria-hidden
+                >
+                  {roundTo10 ? (
+                    <Check className="size-3" strokeWidth={2.5} />
+                  ) : null}
+                </span>
+                Round to 10
+              </button>
+            </div>
+            <div className="text-right">
+              <p className="font-heading text-[22px] font-semibold leading-none tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
+                {formatMoney(effectiveTotal, currency)}
+              </p>
+              {roundingActive ? (
+                <p className="mt-1 text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                  {effectiveTotal > cartTotal ? "up" : "down"} from{" "}
+                  {formatMoney(cartTotal, currency)}
+                </p>
+              ) : null}
+            </div>
+          </div>
 
-        <button
-          type="button"
-          disabled={placing || cartLines.length === 0}
-          onClick={() => void placeOrder(false)}
-          className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-40"
-        >
-          {placing ? (
-            <>
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-              Saving…
-            </>
-          ) : (
-            <>
-              <Save className="size-4" aria-hidden />
-              Save
-            </>
-          )}
-        </button>
-      </div>
+          {canDeposit && activeSupplier ? (
+            <div className="mt-3 flex items-center justify-between gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-2.5 py-2">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                  Supplier wallet
+                </p>
+                <p className="truncate text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                  {supplierWalletCredit > 0.009
+                    ? formatSupplyMoney(supplierWalletCredit, currency)
+                    : "No advance credit yet"}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={placing}
+                onClick={() => openDeposit({ amount: effectiveTotal })}
+                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-none border border-[var(--pos-primary,#0f766e)] px-2.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-40"
+              >
+                <Wallet className="size-3.5" aria-hidden />
+                Deposit
+              </button>
+            </div>
+          ) : null}
 
+          <button
+            type="button"
+            disabled={placing || cartLines.length === 0}
+            onClick={() => void placeOrder(false)}
+            className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-40"
+          >
+            {placing ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Saving…
+              </>
+            ) : (
+              <>
+                <Save className="size-4" aria-hidden />
+                Save
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {!pendingDeposit ? (
+        <>
       <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px]">
         <button
           type="button"
@@ -1663,6 +1807,8 @@ export function TenantOrderWorkspace({
             Load into this order
           </button>
         </div>
+      ) : null}
+        </>
       ) : null}
     </div>
   );
@@ -2268,6 +2414,25 @@ export function TenantOrderWorkspace({
         suppliers={suppliers}
         onReorder={async (poId) => reorderFromPo(poId)}
       />
+
+      {canDeposit ? (
+        <AdvanceDepositDrawer
+          open={depositOpen}
+          onOpenChange={(open) => {
+            setDepositOpen(open);
+            if (!open) setDepositSeed(null);
+          }}
+          onDeposited={() => {
+            setPendingDeposit(null);
+            void refreshSuppliers();
+          }}
+          currency={currency}
+          initialSupplierId={depositSeed?.supplierId ?? supplierId}
+          initialAmount={depositSeed?.amount ?? null}
+          orderPoNumber={depositSeed?.poNumber ?? null}
+          orderTotal={depositSeed?.amount ?? null}
+        />
+      ) : null}
     </div>
   );
 }
