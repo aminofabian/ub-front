@@ -1377,9 +1377,11 @@ export function PaySupplyDrawer({
                       Pay with KopoKopo
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Supplier payouts are on, but this supplier still needs a
-                      Send Money destination (M-Pesa phone, till, or paybill).
-                      Remittance notes alone are not enough.
+                      {supplier?.payoutType === "mobile_wallet" &&
+                      supplier?.payoutPhone?.trim() &&
+                      !supplier?.payoutPhoneVerifiedAt
+                        ? "This supplier has an M-Pesa payout phone, but it is not verified yet. Open the supplier → Payment and send the SMS verification code before Send Money."
+                        : "Supplier payouts are on, but this supplier still needs a Send Money destination (M-Pesa phone, till, or paybill). Remittance notes alone are not enough."}
                     </p>
                     {canWriteSupplier && !supplierDeleted ? (
                       <div className="mt-3 space-y-2">

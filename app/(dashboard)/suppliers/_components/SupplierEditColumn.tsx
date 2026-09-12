@@ -18,7 +18,11 @@ import type {
   SupplierPurchaseHistoryOrderRecord,
   SupplierRecord,
 } from "@/lib/api";
-import { inviteSupplierToPortal } from "@/lib/api";
+import {
+  inviteSupplierToPortal,
+  sendSupplierPayoutPhoneVerification,
+  verifySupplierPayoutPhone,
+} from "@/lib/api";
 import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { isSystemUnassignedSupplier } from "@/lib/supplier-display";
 import { cn } from "@/lib/utils";
@@ -57,6 +61,7 @@ export function SupplierEditColumn({
   deletingContactId = null,
   onDeposit,
   onSavePayout,
+  onPayoutPhoneVerified,
   variant = "default",
   selectedInvoiceId = null,
   onSelectInvoice,
@@ -81,6 +86,7 @@ export function SupplierEditColumn({
     payoutPaybillNumber: string | null;
     payoutPaybillAccount: string | null;
   }) => Promise<void>;
+  onPayoutPhoneVerified?: (verifiedAt: string) => void;
   variant?: "default" | "sidebar";
   selectedInvoiceId?: string | null;
   onSelectInvoice?: (order: SupplierPurchaseHistoryOrderRecord) => void;
@@ -413,6 +419,7 @@ export function SupplierEditColumn({
           detail={detail}
           canWrite={canWrite}
           onSavePayout={onSavePayout}
+          onPayoutPhoneVerified={onPayoutPhoneVerified}
         />
 
         <SupplierPurchaseHistorySection
@@ -753,6 +760,7 @@ function SupplierSidebarPaymentSection({
   detail,
   canWrite,
   onSavePayout,
+  onPayoutPhoneVerified,
 }: {
   detail: SupplierRecord;
   canWrite?: boolean;
@@ -763,6 +771,7 @@ function SupplierSidebarPaymentSection({
     payoutPaybillNumber: string | null;
     payoutPaybillAccount: string | null;
   }) => Promise<void>;
+  onPayoutPhoneVerified?: (verifiedAt: string) => void;
 }) {
   const paymentDetails = detail.paymentDetails?.trim();
   const creditTerms = formatCreditTerms(detail.creditTermsDays);
@@ -792,6 +801,10 @@ function SupplierSidebarPaymentSection({
   );
   const [savingPayout, setSavingPayout] = useState(false);
   const [payoutOpen, setPayoutOpen] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [otpMasked, setOtpMasked] = useState<string | null>(null);
 
   useEffect(() => {
     setPayoutType((detail.payoutType as PayoutType) || "manual");
@@ -799,6 +812,9 @@ function SupplierSidebarPaymentSection({
     setPayoutTillNumber(detail.payoutTillNumber?.trim() ?? "");
     setPayoutPaybillNumber(detail.payoutPaybillNumber?.trim() ?? "");
     setPayoutPaybillAccount(detail.payoutPaybillAccount?.trim() ?? "");
+    setOtpCode("");
+    setOtpSent(false);
+    setOtpMasked(null);
   }, [
     detail.id,
     detail.payoutType,
@@ -806,6 +822,7 @@ function SupplierSidebarPaymentSection({
     detail.payoutTillNumber,
     detail.payoutPaybillNumber,
     detail.payoutPaybillAccount,
+    detail.payoutPhoneVerifiedAt,
   ]);
 
   const dirty =
@@ -814,6 +831,18 @@ function SupplierSidebarPaymentSection({
     payoutTillNumber.trim() !== (detail.payoutTillNumber?.trim() ?? "") ||
     payoutPaybillNumber.trim() !== (detail.payoutPaybillNumber?.trim() ?? "") ||
     payoutPaybillAccount.trim() !== (detail.payoutPaybillAccount?.trim() ?? "");
+
+  const phoneVerified = Boolean(detail.payoutPhoneVerifiedAt);
+  const savedPhoneMatches =
+    payoutPhone.trim() === (detail.payoutPhone?.trim() ?? "") &&
+    payoutType === "mobile_wallet" &&
+    savedType === "mobile_wallet";
+  const needsPhoneVerify =
+    Boolean(canWrite) &&
+    savedPhoneMatches &&
+    Boolean(detail.payoutPhone?.trim()) &&
+    !phoneVerified &&
+    !dirty;
 
   const rows: { label: string; value: ReactNode }[] = [
     creditTerms ? { label: "Terms", value: creditTerms } : null,
@@ -877,9 +906,38 @@ function SupplierSidebarPaymentSection({
     }
   };
 
+  const sendOtp = async () => {
+    setOtpBusy(true);
+    try {
+      const res = await sendSupplierPayoutPhoneVerification(detail.id);
+      setOtpSent(true);
+      setOtpMasked(res.maskedPhone);
+      toast.success(`Code sent to ${res.maskedPhone}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not send code");
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
+  const confirmOtp = async () => {
+    setOtpBusy(true);
+    try {
+      const res = await verifySupplierPayoutPhone(detail.id, otpCode.trim());
+      onPayoutPhoneVerified?.(res.payoutPhoneVerifiedAt);
+      setOtpCode("");
+      setOtpSent(false);
+      toast.success("Payout phone verified — Send Money is enabled.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Verification failed");
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
   const destinationSummary =
     savedType === "mobile_wallet"
-      ? detail.payoutPhone?.trim() || "—"
+      ? `${detail.payoutPhone?.trim() || "—"}${phoneVerified ? " · Verified" : " · Unverified"}`
       : savedType === "till"
         ? detail.payoutTillNumber?.trim()
           ? `Till ${detail.payoutTillNumber.trim()}`
@@ -973,7 +1031,8 @@ function SupplierSidebarPaymentSection({
             </select>
             <span className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
               Supplies → Pay can Send Money to this destination (and auto-pay if
-              enabled under Payments settings).
+              enabled under Payments settings). M-Pesa phones must be verified by
+              SMS before Send Money.
             </span>
           </label>
 
@@ -981,6 +1040,11 @@ function SupplierSidebarPaymentSection({
             <label className="flex flex-col gap-1">
               <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                 M-Pesa payout phone
+                {phoneVerified && savedPhoneMatches ? (
+                  <span className="ml-1.5 font-medium text-emerald-700">
+                    Verified
+                  </span>
+                ) : null}
               </span>
               <input
                 className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
@@ -991,6 +1055,52 @@ function SupplierSidebarPaymentSection({
                 disabled={!canWrite || !onSavePayout || savingPayout}
               />
             </label>
+          ) : null}
+
+          {needsPhoneVerify ? (
+            <div className="space-y-2 rounded-none border border-amber-300/70 bg-amber-50/80 px-2.5 py-2">
+              <p className="text-[11px] leading-snug text-amber-950">
+                Verify this phone with an SMS code before KopoKopo Send Money can
+                pay the supplier.
+                {otpMasked ? ` Code sent to ${otpMasked}.` : null}
+              </p>
+              {otpSent ? (
+                <div className="flex gap-2">
+                  <input
+                    className="h-8 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs tracking-[0.2em]"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value)}
+                    placeholder="4-digit code"
+                    inputMode="numeric"
+                    maxLength={4}
+                    disabled={otpBusy}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 rounded-none text-xs"
+                    disabled={otpBusy || otpCode.trim().length !== 4}
+                    onClick={() => void confirmOtp()}
+                  >
+                    Confirm
+                  </Button>
+                </div>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 w-full rounded-none text-xs"
+                disabled={otpBusy}
+                onClick={() => void sendOtp()}
+              >
+                {otpBusy
+                  ? "Sending…"
+                  : otpSent
+                    ? "Resend code"
+                    : "Send verification code"}
+              </Button>
+            </div>
           ) : null}
 
           {payoutType === "till" ? (

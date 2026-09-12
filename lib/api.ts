@@ -10782,6 +10782,8 @@ export type SupplierRecord = {
   payoutTillNumber?: string | null;
   payoutPaybillNumber?: string | null;
   payoutPaybillAccount?: string | null;
+  /** ISO timestamp when M-Pesa payout phone was OTP-verified; null = unverified. */
+  payoutPhoneVerifiedAt?: string | null;
   marketplaceSupplierId?: string | null;
   supplierNumber?: string | null;
   version: number;
@@ -10926,6 +10928,38 @@ export async function patchSupplier(
     method: "PATCH",
     body,
   });
+}
+
+export type SendSupplierPayoutPhoneVerificationResult = {
+  phone: string;
+  expiresAt: string;
+  channel: string;
+  maskedPhone: string;
+};
+
+export async function sendSupplierPayoutPhoneVerification(
+  supplierId: string,
+): Promise<SendSupplierPayoutPhoneVerificationResult> {
+  return request<SendSupplierPayoutPhoneVerificationResult>(
+    `/api/v1/suppliers/${encodeURIComponent(supplierId.trim())}/payout-phone-verifications`,
+    { method: "POST", body: {}, toast: false },
+  );
+}
+
+export type VerifySupplierPayoutPhoneResult = {
+  phone: string;
+  maskedPhone: string;
+  payoutPhoneVerifiedAt: string;
+};
+
+export async function verifySupplierPayoutPhone(
+  supplierId: string,
+  code: string,
+): Promise<VerifySupplierPayoutPhoneResult> {
+  return request<VerifySupplierPayoutPhoneResult>(
+    `/api/v1/suppliers/${encodeURIComponent(supplierId.trim())}/payout-phone-verifications/verify`,
+    { method: "POST", body: { code }, toast: false },
+  );
 }
 
 export async function deleteSupplier(supplierId: string): Promise<void> {

@@ -1261,6 +1261,17 @@ export default function SuppliersPage() {
                         onSavePayout={
                           canWrite ? onSaveSupplierPayout : undefined
                         }
+                        onPayoutPhoneVerified={
+                          canWrite
+                            ? (verifiedAt) => {
+                                setDetail((d) =>
+                                  d
+                                    ? { ...d, payoutPhoneVerifiedAt: verifiedAt }
+                                    : null,
+                                );
+                              }
+                            : undefined
+                        }
                         onEditProfile={
                           canWrite
                             ? () => {
@@ -1409,6 +1420,15 @@ export default function SuppliersPage() {
                 onSelectInvoice={handleSelectInvoice}
                 purchaseHistoryRefreshKey={purchaseHistoryKey}
                 onSavePayout={canWrite ? onSaveSupplierPayout : undefined}
+                onPayoutPhoneVerified={
+                  canWrite
+                    ? (verifiedAt) => {
+                        setDetail((d) =>
+                          d ? { ...d, payoutPhoneVerifiedAt: verifiedAt } : null,
+                        );
+                      }
+                    : undefined
+                }
                 onEditProfile={
                   canWrite
                     ? () => {

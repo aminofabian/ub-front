@@ -25,19 +25,23 @@ import { Switch } from "@/components/ui/switch";
 import {
   type PlatformGatewayRecord,
   type PatchPlatformGatewayPayload,
+  type PlatformDarajaSettingsRecord,
   type PlatformKioskPaySettingsRecord,
   type SaKioskPayAccountRow,
   type SaKioskPayAccountSummary,
   type SaKioskPayWithdrawalRow,
   adjustSaKioskPayAccount,
+  fetchPlatformDarajaSettings,
   fetchPlatformGateways,
   fetchSaKioskPayAccountSummary,
   fetchSaKioskPayAccounts,
   fetchSaKioskPayWithdrawals,
+  patchPlatformDarajaSettings,
   patchPlatformGateway,
   fetchPlatformKioskPaySettings,
   patchPlatformKioskPaySettings,
   resumeSaKioskPayWithdrawals,
+  testPlatformDarajaConnection,
 } from "@/lib/super-admin-api";
 
 function money(n: number | null | undefined) {
@@ -64,9 +68,12 @@ function SummaryTile({ label, value }: { label: string; value: string }) {
 export default function SuperAdminPlatformPaymentsPage() {
   const [gateways, setGateways] = useState<PlatformGatewayRecord[]>([]);
   const [kioskPay, setKioskPay] = useState<PlatformKioskPaySettingsRecord | null>(null);
+  const [daraja, setDaraja] = useState<PlatformDarajaSettingsRecord | null>(null);
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
   const [kioskSaving, setKioskSaving] = useState(false);
+  const [darajaSaving, setDarajaSaving] = useState(false);
+  const [darajaTesting, setDarajaTesting] = useState(false);
 
   const [accounts, setAccounts] = useState<SaKioskPayAccountRow[]>([]);
   const [accountSummary, setAccountSummary] = useState<SaKioskPayAccountSummary | null>(null);
@@ -89,19 +96,28 @@ export default function SuperAdminPlatformPaymentsPage() {
   const [kkApiKey, setKkApiKey] = useState("");
   const [kkTill, setKkTill] = useState("");
 
+  const [darajaEnv, setDarajaEnv] = useState("sandbox");
+  const [darajaShortcodeType, setDarajaShortcodeType] = useState("paybill");
+  const [darajaShortcode, setDarajaShortcode] = useState("");
+  const [darajaConsumerKey, setDarajaConsumerKey] = useState("");
+  const [darajaConsumerSecret, setDarajaConsumerSecret] = useState("");
+  const [darajaPasskey, setDarajaPasskey] = useState("");
+
   const reload = useCallback(async () => {
     setLoadError("");
     setAccountsLoading(true);
     try {
-      const [gws, kp, accs, summ, wds] = await Promise.all([
+      const [gws, kp, dj, accs, summ, wds] = await Promise.all([
         fetchPlatformGateways(),
         fetchPlatformKioskPaySettings(),
+        fetchPlatformDarajaSettings(),
         fetchSaKioskPayAccounts(50).catch(() => []),
         fetchSaKioskPayAccountSummary().catch(() => null),
         fetchSaKioskPayWithdrawals(20).catch(() => []),
       ]);
       setGateways(gws);
       setKioskPay(kp);
+      setDaraja(dj);
       setAccounts(accs);
       setAccountSummary(summ);
       setWithdrawals(wds);
@@ -109,6 +125,9 @@ export default function SuperAdminPlatformPaymentsPage() {
       setDailyLimit(String(kp.dailyWithdrawLimit ?? 200000));
       setPaystackEnv(kp.paystackEnvironment ?? "sandbox");
       setKopokopoEnv(kp.kopokopoEnvironment ?? "sandbox");
+      setDarajaEnv(dj.environment ?? "sandbox");
+      setDarajaShortcodeType(dj.shortcodeType ?? "paybill");
+      setDarajaShortcode(dj.shortcode ?? "");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Could not load platform payments.");
     } finally {
@@ -274,6 +293,68 @@ export default function SuperAdminPlatformPaymentsPage() {
     });
   };
 
+  const saveDaraja = async (enabled?: boolean) => {
+    setDarajaSaving(true);
+    try {
+      const next = await patchPlatformDarajaSettings({
+        enabled: enabled ?? daraja?.enabled,
+        environment: darajaEnv,
+        shortcodeType: darajaShortcodeType,
+        shortcode: darajaShortcode.trim(),
+        ...(darajaConsumerKey.trim() ? { consumerKey: darajaConsumerKey.trim() } : {}),
+        ...(darajaConsumerSecret.trim() ? { consumerSecret: darajaConsumerSecret.trim() } : {}),
+        ...(darajaPasskey.trim() ? { passkey: darajaPasskey.trim() } : {}),
+      });
+      setDaraja(next);
+      setDarajaConsumerKey("");
+      setDarajaConsumerSecret("");
+      setDarajaPasskey("");
+      toast.success("Daraja settings saved.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save Daraja.");
+    } finally {
+      setDarajaSaving(false);
+    }
+  };
+
+  const testDaraja = async () => {
+    setDarajaTesting(true);
+    try {
+      await testPlatformDarajaConnection();
+      toast.success("Daraja OAuth OK — credentials are valid.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Daraja connection test failed.");
+    } finally {
+      setDarajaTesting(false);
+    }
+  };
+
+  const clearDarajaCreds = () => {
+    showThemedConfirmToast({
+      id: "clear-daraja-platform",
+      title: "Clear Daraja credentials?",
+      description:
+        "Platform Safaricom STK / Paybill collection will stop until new credentials are saved.",
+      confirmLabel: "Clear credentials",
+      onConfirm: async () => {
+        setDarajaSaving(true);
+        try {
+          const next = await patchPlatformDarajaSettings({
+            enabled: false,
+            clearCredentials: true,
+          });
+          setDaraja(next);
+          toast.success("Daraja credentials cleared.");
+          await reload();
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Could not clear credentials.");
+        } finally {
+          setDarajaSaving(false);
+        }
+      },
+    });
+  };
+
   if (loadError) {
     return (
       <div className="space-y-6">
@@ -293,7 +374,7 @@ export default function SuperAdminPlatformPaymentsPage() {
     <div className="space-y-6">
       <SuperAdminPageHeader
         title="Payment gateways"
-        description="Enable BYO providers for tenants, and configure Kiosk Pay (platform custody + withdraw) and airtime resale."
+        description="Enable BYO providers for tenants, configure Kiosk Pay, Safaricom Daraja (Paybill Party A/B), and airtime."
       />
 
       <SaSection
@@ -642,6 +723,144 @@ export default function SuperAdminPlatformPaymentsPage() {
               </div>
             </div>
           ) : null}
+        </div>
+      </SaSection>
+
+      <SaSection
+        title="Safaricom Daraja"
+        description="Lipa Na M-Pesa STK with Party A = customer phone and Party B = the shortcode below. API keys are encrypted in the database — never set in env. When enabled and no tenant BYO STK gateway is active, checkout falls back to this Paybill/Till."
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge variant={daraja?.enabled ? "success" : "secondary"}>
+              {daraja?.enabled ? "On" : "Off"}
+            </Badge>
+            <Switch
+              checked={Boolean(daraja?.enabled)}
+              disabled={darajaSaving || !daraja}
+              onCheckedChange={(on) => void saveDaraja(on)}
+            />
+          </div>
+        }
+        footer={
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={darajaSaving} onClick={() => void saveDaraja()}>
+              {darajaSaving ? "Saving…" : "Save Daraja settings"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={darajaTesting || darajaSaving || !daraja?.hasCredentials}
+              onClick={() => void testDaraja()}
+            >
+              {darajaTesting ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                  Testing…
+                </>
+              ) : (
+                "Test connection"
+              )}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Register callback URLs on the Daraja portal:{" "}
+            <span className="font-mono text-xs">/webhooks/daraja/stk</span>,{" "}
+            <span className="font-mono text-xs">/webhooks/daraja/c2b/validation</span>,{" "}
+            <span className="font-mono text-xs">/webhooks/daraja/c2b/confirmation</span>.
+            For shops that should receive money on their own shortcode, enable Daraja under BYO
+            gateways and have the tenant connect their Paybill/Till.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-daraja-env">Environment</Label>
+              <select
+                id="sa-daraja-env"
+                className={saSelectClass}
+                value={darajaEnv}
+                onChange={(e) => setDarajaEnv(e.target.value)}
+              >
+                <option value="sandbox">Sandbox</option>
+                <option value="production">Production</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-daraja-type">Shortcode type (Party B)</Label>
+              <select
+                id="sa-daraja-type"
+                className={saSelectClass}
+                value={darajaShortcodeType}
+                onChange={(e) => setDarajaShortcodeType(e.target.value)}
+              >
+                <option value="paybill">Paybill</option>
+                <option value="till">Buy Goods till</option>
+              </select>
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="sa-daraja-shortcode">Shortcode *</Label>
+              <Input
+                id="sa-daraja-shortcode"
+                value={darajaShortcode}
+                onChange={(e) => setDarajaShortcode(e.target.value)}
+                placeholder="174379"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium">
+              API credentials{" "}
+              {daraja?.hasCredentials ? (
+                <span className="font-normal text-muted-foreground">
+                  (saved{daraja.consumerKeyHint ? ` · ${daraja.consumerKeyHint}` : ""})
+                </span>
+              ) : (
+                <span className="font-normal text-muted-foreground">(not set)</span>
+              )}
+            </p>
+            {daraja?.hasCredentials ? (
+              <Button type="button" variant="ghost" size="sm" onClick={clearDarajaCreds}>
+                Clear
+              </Button>
+            ) : null}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="sa-daraja-key">Consumer key</Label>
+              <Input
+                id="sa-daraja-key"
+                type="password"
+                value={darajaConsumerKey}
+                onChange={(e) => setDarajaConsumerKey(e.target.value)}
+                placeholder={daraja?.hasCredentials ? "Leave blank to keep" : "Required"}
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="sa-daraja-secret">Consumer secret</Label>
+              <Input
+                id="sa-daraja-secret"
+                type="password"
+                value={darajaConsumerSecret}
+                onChange={(e) => setDarajaConsumerSecret(e.target.value)}
+                placeholder={daraja?.hasCredentials ? "Leave blank to keep" : "Required"}
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="sa-daraja-passkey">Lipa Na M-Pesa passkey</Label>
+              <Input
+                id="sa-daraja-passkey"
+                type="password"
+                value={darajaPasskey}
+                onChange={(e) => setDarajaPasskey(e.target.value)}
+                placeholder={daraja?.hasCredentials ? "Leave blank to keep" : "Required"}
+                autoComplete="off"
+              />
+            </div>
+          </div>
         </div>
       </SaSection>
 

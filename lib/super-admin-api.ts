@@ -566,6 +566,49 @@ export async function resumeSaKioskPayWithdrawals(): Promise<PlatformKioskPaySet
   });
 }
 
+// ── Platform Daraja (Safaricom Paybill / Till — SA credentials only) ─
+
+export type PlatformDarajaSettingsRecord = {
+  enabled: boolean;
+  environment: string;
+  shortcodeType: string;
+  shortcode: string | null;
+  hasCredentials: boolean;
+  consumerKeyHint: string | null;
+  updatedAt: string | null;
+};
+
+export type PatchPlatformDarajaSettingsPayload = {
+  enabled?: boolean;
+  environment?: string;
+  shortcodeType?: string;
+  shortcode?: string;
+  consumerKey?: string;
+  consumerSecret?: string;
+  passkey?: string;
+  clearCredentials?: boolean;
+};
+
+export async function fetchPlatformDarajaSettings(): Promise<PlatformDarajaSettingsRecord> {
+  return saRequest<PlatformDarajaSettingsRecord>(API_ROUTES.superAdminDaraja);
+}
+
+export async function patchPlatformDarajaSettings(
+  body: PatchPlatformDarajaSettingsPayload,
+): Promise<PlatformDarajaSettingsRecord> {
+  return saRequest<PlatformDarajaSettingsRecord>(API_ROUTES.superAdminDaraja, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function testPlatformDarajaConnection(): Promise<PlatformDarajaSettingsRecord> {
+  return saRequest<PlatformDarajaSettingsRecord>(`${API_ROUTES.superAdminDaraja}/test`, {
+    method: "POST",
+    body: "{}",
+  });
+}
+
 // ── Airtime (platform Instalipa) ────────────────────────────────────
 
 export type PlatformAirtimeSettingsRecord = {

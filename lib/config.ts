@@ -291,6 +291,7 @@ export const API_ROUTES = {
   superAdminPlatformPaymentGateways:
     "/api/v1/super-admin/payments/platform-gateways",
   superAdminKioskPay: "/api/v1/super-admin/payments/kiosk-pay",
+  superAdminDaraja: "/api/v1/super-admin/payments/daraja",
   superAdminAirtime: "/api/v1/super-admin/airtime",
   superAdminPlatformIntegrations: "/api/v1/super-admin/platform/integrations",
   superAdminPlatformAuth: "/api/v1/super-admin/platform/auth",
