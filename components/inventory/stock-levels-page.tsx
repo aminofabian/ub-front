@@ -978,9 +978,7 @@ export function StockLevelsPage() {
               categoryByItemId.get(item.id) ||
               null,
             itemTypeId: item.itemTypeId?.trim() || null,
-            departmentName: item.itemTypeId?.trim()
-              ? departmentLabelById.get(item.itemTypeId.trim()) ?? null
-              : null,
+            departmentName: null,
             sellPrice: toNum(item.bundlePrice),
             buyPrice: toNum(item.buyingPrice),
             editable: !item.packageVariant,
@@ -998,7 +996,26 @@ export function StockLevelsPage() {
     } finally {
       setLoading(false);
     }
-  }, [branchId, categoryId, headerItemTypeId, departmentLabelById]);
+  }, [branchId, categoryId, headerItemTypeId]);
+
+  useEffect(() => {
+    if (departmentLabelById.size === 0) return;
+    setRows((prev) => {
+      let changed = false;
+      const next = prev.map((r) => {
+        if (!r.itemTypeId) {
+          if (r.departmentName == null) return r;
+          changed = true;
+          return { ...r, departmentName: null };
+        }
+        const label = departmentLabelById.get(r.itemTypeId) ?? null;
+        if (label === r.departmentName) return r;
+        changed = true;
+        return { ...r, departmentName: label };
+      });
+      return changed ? next : prev;
+    });
+  }, [departmentLabelById]);
 
   useEffect(() => {
     if (!allowed) return;
@@ -1219,8 +1236,15 @@ export function StockLevelsPage() {
 
         {!canWrite && rows.length > 0 ? (
           <p className="border-b border-border bg-muted/10 px-3 py-1.5 text-[11px] text-muted-foreground">
-            View-only — your role cannot edit quantities here. Ask an admin to
-            enable stock editing in Business settings.
+            View-only stock quantities — your role cannot edit quantities here.
+            Ask an admin to enable stock editing in Business settings.
+          </p>
+        ) : null}
+
+        {!canCatalogWrite && rows.length > 0 ? (
+          <p className="border-b border-border bg-muted/10 px-3 py-1.5 text-[11px] text-muted-foreground">
+            Family, variant, category, and department are view-only without
+            catalog edit permission.
           </p>
         ) : null}
 
@@ -1261,13 +1285,14 @@ export function StockLevelsPage() {
               ) : (
                 <>
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[64rem] border-collapse border-0 text-left text-xs">
+                    <table className="w-full min-w-[72rem] border-collapse border-0 text-left text-xs">
                       <thead>
                         <tr className={supTableHead}>
                           <th className={cn(supTableCell, "min-w-[10rem]")}>Product</th>
                           <th className={cn(supTableCell, "min-w-[8rem]")}>Family</th>
                           <th className={cn(supTableCell, "min-w-[7rem]")}>Variant</th>
-                          <th className={cn(supTableCell, "min-w-[6rem]")}>Category</th>
+                          <th className={cn(supTableCell, "min-w-[7rem]")}>Category</th>
+                          <th className={cn(supTableCell, "min-w-[7rem]")}>Department</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>In store</th>
                           <th className={cn(supTableCell, "w-[5rem] text-right")}>Reorder</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Buy</th>
@@ -1284,15 +1309,25 @@ export function StockLevelsPage() {
                             row={row}
                             currency={currency}
                             canWrite={canWrite}
+                            canCatalogWrite={canCatalogWrite}
+                            categories={categories}
+                            itemTypes={itemTypes}
                             editing={editId === row.id}
                             editQty={editId === row.id ? editQty : ""}
                             editCost={editId === row.id ? editCost : ""}
                             saving={savingEdit && editId === row.id}
+                            savingCatalog={savingCatalogId === row.id}
                             onEditQtyChange={setEditQty}
                             onEditCostChange={setEditCost}
                             onStartEdit={() => startEdit(row)}
                             onCancelEdit={cancelEdit}
                             onSaveEdit={() => void saveEdit(row)}
+                            onSaveFamily={(value) => void saveFamily(row, value)}
+                            onSaveVariant={(value) => void saveVariant(row, value)}
+                            onSaveCategory={(value) => void saveCategory(row, value)}
+                            onSaveDepartment={(value) =>
+                              void saveDepartment(row, value)
+                            }
                           />
                         ))}
                       </tbody>
@@ -1301,7 +1336,10 @@ export function StockLevelsPage() {
                   <div className="border-t border-border bg-[#eef2f7] px-2.5 py-1.5 text-[10px] text-muted-foreground dark:bg-muted/25">
                     <span className={supKicker}>Tip</span>
                     <span className="ml-2">
-                      Sort by sell, buy, or stock value (buy × on hand). Unit cost is only needed when increasing stock.
+                      Edit family, variant, category, or department inline when
+                      you have catalog write access. Sort by sell, buy, or stock
+                      value (buy × on hand). Unit cost is only needed when
+                      increasing stock.
                     </span>
                   </div>
                 </>
