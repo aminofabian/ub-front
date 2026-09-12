@@ -53,7 +53,6 @@ import {
   supFilterRail,
   supFormCellInput,
   supInput,
-  supKicker,
   supSelect,
   supTableCell,
   supTableHead,
@@ -64,7 +63,7 @@ import {
 const MAX_PAGES = 20;
 const PAGE_SIZE = 100;
 
-type StockStatusFilter = "all" | "in_stock" | "low" | "out";
+type StockStatusFilter = "all" | "in_stock" | "low" | "out" | "loss";
 
 /** How the stock table is ordered after status/search filters. */
 type StockSort =
@@ -193,14 +192,40 @@ function composeStockDisplayName(
   return suffix ? `${base} ${suffix}` : base;
 }
 
+/** Sell below buy = margin loss (both prices set). */
+function isPriceLoss(
+  buyPrice: number | null,
+  sellPrice: number | null,
+): boolean {
+  return buyPrice != null && sellPrice != null && sellPrice < buyPrice;
+}
+
+function parseMoneyInput(raw: string): number | null | undefined {
+  const t = raw.trim().replace(/,/g, "");
+  if (t === "") return null;
+  const n = Number(t);
+  if (!Number.isFinite(n) || n < 0) return undefined;
+  return n;
+}
+
+function priceInputValue(n: number | null): string {
+  return n == null ? "" : String(n);
+}
+
 const catalogCellInput = cn(
   supFormCellInput,
-  "h-8 w-full min-w-[6rem] text-left disabled:opacity-60",
+  "h-8 w-full min-w-[5.5rem] text-left disabled:opacity-60",
+);
+
+const catalogCellMoneyInput = cn(
+  catalogCellInput,
+  "text-right tabular-nums font-mono",
 );
 
 const catalogCellSelect = cn(
-  supSelect,
-  "h-8 w-full min-w-[6rem] border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-1",
+  "h-8 w-full min-w-[6rem] cursor-pointer rounded-none border-0 bg-transparent px-2 text-xs",
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+  "disabled:cursor-not-allowed disabled:opacity-50",
 );
 
 function isOutOfStock(stock: number): boolean {
@@ -228,6 +253,8 @@ function matchesStockStatus(
       return isLowStock(row.stock, row.reorderLevel);
     case "out":
       return isOutOfStock(row.stock);
+    case "loss":
+      return isPriceLoss(row.buyPrice, row.sellPrice);
     default:
       return true;
   }
@@ -238,7 +265,7 @@ type StockStatCardProps = {
   label: string;
   value: number;
   active: boolean;
-  tone?: "default" | "success" | "warning" | "danger";
+  tone?: "default" | "success" | "warning" | "danger" | "loss";
   onClick: () => void;
 };
 
@@ -256,7 +283,9 @@ function StockStatCard({
       className={cn(
         "inline-flex h-8 items-center gap-2 px-2.5 text-left text-[11px] font-semibold transition-colors",
         active
-          ? "bg-primary text-primary-foreground"
+          ? tone === "loss"
+            ? "bg-orange-600 text-white"
+            : "bg-primary text-primary-foreground"
           : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
       )}
     >
@@ -267,6 +296,7 @@ function StockStatCard({
           !active && tone === "success" && "text-emerald-600 dark:text-emerald-400",
           !active && tone === "warning" && "text-amber-600 dark:text-amber-400",
           !active && tone === "danger" && "text-destructive",
+          !active && tone === "loss" && value > 0 && "text-orange-700 dark:text-orange-300",
         )}
       >
         {value.toLocaleString("en-KE")}
@@ -296,6 +326,8 @@ type StockRowItemProps = {
   onSaveVariant: (value: string) => void;
   onSaveCategory: (categoryId: string) => void;
   onSaveDepartment: (itemTypeId: string) => void;
+  onSaveBuyPrice: (value: string) => void;
+  onSaveSellPrice: (value: string) => void;
 };
 
 function StockRowItem({
@@ -319,9 +351,12 @@ function StockRowItem({
   onSaveVariant,
   onSaveCategory,
   onSaveDepartment,
+  onSaveBuyPrice,
+  onSaveSellPrice,
 }: StockRowItemProps) {
   const out = isOutOfStock(row.stock);
   const low = isLowStock(row.stock, row.reorderLevel);
+  const loss = isPriceLoss(row.buyPrice, row.sellPrice);
 
   const target = Number(editQty.trim());
   const showCost =
@@ -329,22 +364,28 @@ function StockRowItem({
 
   const statusLabel = out ? "Out" : low ? "Low" : "OK";
   const statusClass = out
-    ? "border-rose-600/30 bg-rose-500/10 text-rose-700 dark:text-rose-300"
+    ? "border-rose-600/25 bg-rose-500/10 text-rose-700 dark:text-rose-300"
     : low
-      ? "border-amber-600/30 bg-amber-500/10 text-amber-800 dark:text-amber-200"
-      : "border-emerald-600/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
+      ? "border-amber-600/25 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+      : "border-border bg-muted/30 text-muted-foreground";
 
   return (
-    <tr className={supTableRow}>
-      <td className={cn(supTableCell, "min-w-[10rem] align-top")}>
+    <tr
+      className={cn(
+        supTableRow,
+        loss &&
+          "bg-orange-500/[0.12] hover:bg-orange-500/[0.18] dark:bg-orange-400/15 dark:hover:bg-orange-400/22",
+      )}
+    >
+      <td className={cn(supTableCell, "min-w-[10rem] align-middle")}>
         <Link
           href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.name)}`}
-          className="block max-w-[18rem] truncate text-sm font-medium text-foreground hover:underline"
+          className="block max-w-[16rem] truncate text-[13px] font-medium text-foreground hover:underline"
         >
           {row.name}
         </Link>
       </td>
-      <td className={cn(supTableCell, "min-w-[8rem] p-0 align-top")}>
+      <td className={cn(supTableCell, "min-w-[7rem] p-0 align-middle")}>
         {canCatalogWrite ? (
           <input
             key={`family-${row.id}-${row.familyName ?? ""}`}
@@ -364,12 +405,12 @@ function StockRowItem({
             aria-label={`Family name for ${row.name}`}
           />
         ) : (
-          <span className="block max-w-[10rem] truncate px-2 py-1 text-muted-foreground">
+          <span className="block max-w-[10rem] truncate px-2.5 py-1.5 text-muted-foreground">
             {row.familyName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "min-w-[7rem] p-0 align-top")}>
+      <td className={cn(supTableCell, "min-w-[6rem] p-0 align-middle")}>
         {canCatalogWrite ? (
           <input
             key={`variant-${row.id}-${row.variantName ?? ""}`}
@@ -389,12 +430,12 @@ function StockRowItem({
             aria-label={`Variant name for ${row.name}`}
           />
         ) : (
-          <span className="block max-w-[8rem] truncate px-2 py-1 text-muted-foreground">
+          <span className="block max-w-[8rem] truncate px-2.5 py-1.5 text-muted-foreground">
             {row.variantName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "min-w-[7rem] p-0 align-top")}>
+      <td className={cn(supTableCell, "min-w-[6.5rem] p-0 align-middle")}>
         {canCatalogWrite ? (
           <select
             value={row.categoryId ?? ""}
@@ -411,12 +452,12 @@ function StockRowItem({
             ))}
           </select>
         ) : (
-          <span className="block max-w-[8rem] truncate px-2 py-1 text-muted-foreground">
+          <span className="block max-w-[8rem] truncate px-2.5 py-1.5 text-muted-foreground">
             {row.categoryName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "min-w-[7rem] p-0 align-top")}>
+      <td className={cn(supTableCell, "min-w-[6.5rem] p-0 align-middle")}>
         {canCatalogWrite ? (
           <select
             value={row.itemTypeId ?? ""}
@@ -433,12 +474,12 @@ function StockRowItem({
             ))}
           </select>
         ) : (
-          <span className="block max-w-[8rem] truncate px-2 py-1 text-muted-foreground">
+          <span className="block max-w-[8rem] truncate px-2.5 py-1.5 text-muted-foreground">
             {row.departmentName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "w-[5.5rem] p-0 align-top")}>
+      <td className={cn(supTableCell, "w-[5.5rem] p-0 align-middle")}>
         {editing ? (
           <input
             type="number"
@@ -463,7 +504,7 @@ function StockRowItem({
         ) : (
           <span
             className={cn(
-              "block px-2 py-1 text-right font-mono tabular-nums",
+              "block px-2.5 py-1.5 text-right font-mono tabular-nums",
               out || low ? "font-semibold text-destructive" : "text-foreground",
             )}
           >
@@ -471,18 +512,84 @@ function StockRowItem({
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "w-[5rem] text-right font-mono tabular-nums text-muted-foreground")}>
+      <td className={cn(supTableCell, "w-[4.5rem] text-right font-mono tabular-nums text-muted-foreground")}>
         {row.reorderLevel != null && row.reorderLevel > 0
           ? row.reorderLevel.toLocaleString("en-KE")
           : "—"}
       </td>
-      <td className={cn(supTableCell, "w-[5.5rem] text-right font-mono tabular-nums")}>
-        {fmtMoney(row.buyPrice, currency)}
+      <td className={cn(supTableCell, "w-[5.5rem] p-0 align-middle")}>
+        {canCatalogWrite ? (
+          <input
+            key={`buy-${row.id}-${row.buyPrice ?? ""}`}
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="any"
+            defaultValue={priceInputValue(row.buyPrice)}
+            disabled={savingCatalog}
+            onBlur={(e) => onSaveBuyPrice(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") {
+                e.currentTarget.value = priceInputValue(row.buyPrice);
+                e.currentTarget.blur();
+              }
+            }}
+            className={cn(
+              catalogCellMoneyInput,
+              loss && "font-semibold text-orange-700 dark:text-orange-300",
+            )}
+            placeholder="Buy"
+            aria-label={`Buy price for ${row.name}`}
+          />
+        ) : (
+          <span
+            className={cn(
+              "block px-2.5 py-1.5 text-right font-mono tabular-nums",
+              loss && "font-semibold text-orange-700 dark:text-orange-300",
+            )}
+          >
+            {fmtMoney(row.buyPrice, currency)}
+          </span>
+        )}
       </td>
-      <td className={cn(supTableCell, "w-[5.5rem] text-right font-mono tabular-nums")}>
-        {fmtMoney(row.sellPrice, currency)}
+      <td className={cn(supTableCell, "w-[5.5rem] p-0 align-middle")}>
+        {canCatalogWrite ? (
+          <input
+            key={`sell-${row.id}-${row.sellPrice ?? ""}`}
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="any"
+            defaultValue={priceInputValue(row.sellPrice)}
+            disabled={savingCatalog}
+            onBlur={(e) => onSaveSellPrice(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") {
+                e.currentTarget.value = priceInputValue(row.sellPrice);
+                e.currentTarget.blur();
+              }
+            }}
+            className={cn(
+              catalogCellMoneyInput,
+              loss && "font-semibold text-orange-700 dark:text-orange-300",
+            )}
+            placeholder="Sell"
+            aria-label={`Sell price for ${row.name}`}
+          />
+        ) : (
+          <span
+            className={cn(
+              "block px-2.5 py-1.5 text-right font-mono tabular-nums",
+              loss && "font-semibold text-orange-700 dark:text-orange-300",
+            )}
+          >
+            {fmtMoney(row.sellPrice, currency)}
+          </span>
+        )}
       </td>
-      <td className={cn(supTableCell, "w-[5.5rem] p-0 align-top")}>
+      <td className={cn(supTableCell, "w-[5rem] p-0 align-middle")}>
         {showCost ? (
           <input
             type="number"
@@ -497,17 +604,17 @@ function StockRowItem({
               if (e.key === "Escape") onCancelEdit();
             }}
             className={cn(
-              supFormCellInput,
-              "h-8 w-full text-right tabular-nums disabled:opacity-60",
+              catalogCellMoneyInput,
+              "disabled:opacity-60",
             )}
             placeholder="Cost"
             aria-label={`Unit cost for ${row.name}`}
           />
         ) : (
-          <span className="block px-2 py-1 text-right text-muted-foreground">—</span>
+          <span className="block px-2.5 py-1.5 text-right text-muted-foreground">—</span>
         )}
       </td>
-      <td className={cn(supTableCell, "w-[5rem]")}>
+      <td className={cn(supTableCell, "w-[4.25rem]")}>
         <span
           className={cn(
             "inline-flex items-center border px-1.5 py-px text-[10px] font-semibold tracking-[-0.02em]",
@@ -517,7 +624,7 @@ function StockRowItem({
           {statusLabel}
         </span>
       </td>
-      <td className={cn(supTableCell, "w-[5.5rem] p-0 text-right align-middle")}>
+      <td className={cn(supTableCell, "w-[4.5rem] p-0 text-right align-middle")}>
         {editing ? (
           <div className="flex items-center justify-end gap-0 border-l border-border">
             <button
@@ -800,6 +907,80 @@ export function StockLevelsPage() {
     [canCatalogWrite, departmentLabelById],
   );
 
+  const saveBuyPrice = useCallback(
+    async (row: StockRow, raw: string) => {
+      if (!canCatalogWrite) return;
+      const parsed = parseMoneyInput(raw);
+      if (parsed === undefined) {
+        toast.error("Enter a valid buy price of zero or more.");
+        return;
+      }
+      const prev = row.buyPrice;
+      if (parsed == null && prev == null) return;
+      if (parsed != null && prev != null && Math.abs(parsed - prev) < 0.0001) {
+        return;
+      }
+      if (parsed == null) {
+        toast.error("Buy price is required.");
+        return;
+      }
+      setSavingCatalogId(row.id);
+      try {
+        await patchItem(row.id, { buyingPrice: parsed });
+        setRows((list) =>
+          list.map((r) =>
+            r.id === row.id ? { ...r, buyPrice: parsed } : r,
+          ),
+        );
+        toast.success("Buy price updated.");
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not update buy price.",
+        );
+      } finally {
+        setSavingCatalogId(null);
+      }
+    },
+    [canCatalogWrite],
+  );
+
+  const saveSellPrice = useCallback(
+    async (row: StockRow, raw: string) => {
+      if (!canCatalogWrite) return;
+      const parsed = parseMoneyInput(raw);
+      if (parsed === undefined) {
+        toast.error("Enter a valid sell price of zero or more.");
+        return;
+      }
+      const prev = row.sellPrice;
+      if (parsed == null && prev == null) return;
+      if (parsed != null && prev != null && Math.abs(parsed - prev) < 0.0001) {
+        return;
+      }
+      if (parsed == null) {
+        toast.error("Sell price is required.");
+        return;
+      }
+      setSavingCatalogId(row.id);
+      try {
+        await patchItem(row.id, { bundlePrice: parsed });
+        setRows((list) =>
+          list.map((r) =>
+            r.id === row.id ? { ...r, sellPrice: parsed } : r,
+          ),
+        );
+        toast.success("Sell price updated.");
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not update sell price.",
+        );
+      } finally {
+        setSavingCatalogId(null);
+      }
+    },
+    [canCatalogWrite],
+  );
+
   const saveEdit = useCallback(
     async (row: StockRow) => {
       const branch = branchId.trim();
@@ -1053,6 +1234,7 @@ export function StockLevelsPage() {
       inStock: rows.filter((r) => isInStock(r.stock, r.reorderLevel)).length,
       low: rows.filter((r) => isLowStock(r.stock, r.reorderLevel)).length,
       out: rows.filter((r) => isOutOfStock(r.stock)).length,
+      loss: rows.filter((r) => isPriceLoss(r.buyPrice, r.sellPrice)).length,
     }),
     [rows],
   );
@@ -1062,6 +1244,7 @@ export function StockLevelsPage() {
     if (statusFilter === "low") return "No low-stock products for this branch.";
     if (statusFilter === "out") return "No out-of-stock products for this branch.";
     if (statusFilter === "in_stock") return "No in-stock products for this branch.";
+    if (statusFilter === "loss") return "No products selling below buy price.";
     if (categoryId) return "No products in this category.";
     return "No stocked products found for this branch.";
   }, [search, statusFilter, categoryId]);
@@ -1090,7 +1273,7 @@ export function StockLevelsPage() {
             icon={Warehouse}
             eyebrow="Inventory"
             title="Stock"
-            description="In-store on-hand for the selected branch — filter by status, or sort by highest sell, buy, or stock value."
+            description="On-hand by branch. Orange rows sell below buy."
           />
           {quickLinks.length > 0 ? (
             <DashboardQuickLinks compact links={quickLinks} />
@@ -1130,6 +1313,13 @@ export function StockLevelsPage() {
                 active={statusFilter === "out"}
                 tone="danger"
                 onClick={() => setStatusFilter("out")}
+              />
+              <StockStatCard
+                label="Loss"
+                value={stockCounts.loss}
+                active={statusFilter === "loss"}
+                tone="loss"
+                onClick={() => setStatusFilter("loss")}
               />
             </div>
           )}
@@ -1234,17 +1424,9 @@ export function StockLevelsPage() {
           </p>
         ) : null}
 
-        {!canWrite && rows.length > 0 ? (
-          <p className="border-b border-border bg-muted/10 px-3 py-1.5 text-[11px] text-muted-foreground">
-            View-only stock quantities — your role cannot edit quantities here.
-            Ask an admin to enable stock editing in Business settings.
-          </p>
-        ) : null}
-
-        {!canCatalogWrite && rows.length > 0 ? (
-          <p className="border-b border-border bg-muted/10 px-3 py-1.5 text-[11px] text-muted-foreground">
-            Family, variant, category, and department are view-only without
-            catalog edit permission.
+        {!canWrite && !canCatalogWrite && rows.length > 0 ? (
+          <p className="border-b border-border px-3 py-1.5 text-[11px] text-muted-foreground">
+            View-only — ask an admin for stock or catalog edit access.
           </p>
         ) : null}
 
@@ -1262,13 +1444,15 @@ export function StockLevelsPage() {
             <StockListSkeleton />
           ) : (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
-                <h2 className="text-xs font-semibold tracking-tight text-foreground">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-2.5 py-1.5">
+                <h2 className="text-xs font-medium text-muted-foreground">
                   {filteredRows.length.toLocaleString("en-KE")} product
                   {filteredRows.length === 1 ? "" : "s"}
-                  {statusFilter !== "all"
-                    ? ` · ${statusFilter === "in_stock" ? "in stock" : statusFilter === "low" ? "low stock" : "out of stock"}`
-                    : ""}
+                  {statusFilter === "loss"
+                    ? " · selling below buy"
+                    : statusFilter !== "all"
+                      ? ` · ${statusFilter === "in_stock" ? "in stock" : statusFilter === "low" ? "low stock" : "out of stock"}`
+                      : ""}
                   {activeBranchName ? ` · ${activeBranchName}` : ""}
                 </h2>
                 {search.trim() && filteredRows.length !== rows.length ? (
@@ -1283,23 +1467,22 @@ export function StockLevelsPage() {
                   {emptyMessage}
                 </div>
               ) : (
-                <>
-                  <div className="overflow-x-auto">
+                <div className="overflow-x-auto">
                     <table className="w-full min-w-[72rem] border-collapse border-0 text-left text-xs">
                       <thead>
                         <tr className={supTableHead}>
                           <th className={cn(supTableCell, "min-w-[10rem]")}>Product</th>
-                          <th className={cn(supTableCell, "min-w-[8rem]")}>Family</th>
-                          <th className={cn(supTableCell, "min-w-[7rem]")}>Variant</th>
-                          <th className={cn(supTableCell, "min-w-[7rem]")}>Category</th>
-                          <th className={cn(supTableCell, "min-w-[7rem]")}>Department</th>
+                          <th className={cn(supTableCell, "min-w-[7rem]")}>Family</th>
+                          <th className={cn(supTableCell, "min-w-[6rem]")}>Variant</th>
+                          <th className={cn(supTableCell, "min-w-[6.5rem]")}>Category</th>
+                          <th className={cn(supTableCell, "min-w-[6.5rem]")}>Department</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>In store</th>
-                          <th className={cn(supTableCell, "w-[5rem] text-right")}>Reorder</th>
+                          <th className={cn(supTableCell, "w-[4.5rem] text-right")}>Reorder</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Buy</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Sell</th>
-                          <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Unit cost</th>
-                          <th className={cn(supTableCell, "w-[5rem]")}>Status</th>
-                          <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Edit</th>
+                          <th className={cn(supTableCell, "w-[5rem] text-right")}>Unit cost</th>
+                          <th className={cn(supTableCell, "w-[4.25rem]")}>Status</th>
+                          <th className={cn(supTableCell, "w-[4.5rem] text-right")}>Edit</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1328,21 +1511,13 @@ export function StockLevelsPage() {
                             onSaveDepartment={(value) =>
                               void saveDepartment(row, value)
                             }
+                            onSaveBuyPrice={(value) => void saveBuyPrice(row, value)}
+                            onSaveSellPrice={(value) => void saveSellPrice(row, value)}
                           />
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                  <div className="border-t border-border bg-[#eef2f7] px-2.5 py-1.5 text-[10px] text-muted-foreground dark:bg-muted/25">
-                    <span className={supKicker}>Tip</span>
-                    <span className="ml-2">
-                      Edit family, variant, category, or department inline when
-                      you have catalog write access. Sort by sell, buy, or stock
-                      value (buy × on hand). Unit cost is only needed when
-                      increasing stock.
-                    </span>
-                  </div>
-                </>
+                </div>
               )}
             </>
           )}
