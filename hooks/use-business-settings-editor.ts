@@ -413,6 +413,7 @@ export function useBusinessSettingsEditor() {
                 inventory.allowReceiveForStockManager,
               allowReceiveForGroceryClerk:
                 inventory.allowReceiveForGroceryClerk,
+              twoStepDelivery: inventory.twoStepDelivery,
             },
             creditTabs: {
               allowCashierTabClearance: inventory.allowCashierTabClearance,

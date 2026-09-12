@@ -37,7 +37,7 @@ const STEP_META: Partial<
   [APP_ROUTES.orderReceive]: {
     icon: ClipboardCheck,
     verb: "Confirm",
-    hint: "Tick what arrived",
+    hint: "Arrive, then unpack into stock",
   },
   [APP_ROUTES.purchasingRecordPayment]: {
     icon: CreditCard,

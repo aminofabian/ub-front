@@ -7,7 +7,7 @@ import { OrderReceiveStatsStrip } from "../_components/order-receive-stats-strip
 export const metadata: Metadata = {
   title: "Confirm order · Procurement · Kiosk",
   description:
-    "Confirm purchase order lines one-by-one or in bulk and post them as supplies.",
+    "Mark shipment arrived, then unpack quantities into stock against open purchase orders.",
 };
 
 export default function OrderReceivePage() {

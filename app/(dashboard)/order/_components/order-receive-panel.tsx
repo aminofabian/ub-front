@@ -10,6 +10,7 @@ import {
   Loader2,
   Minus,
   Package,
+  PackageCheck,
   Plus,
   Search,
   Trash2,
@@ -38,6 +39,7 @@ import {
   postPathAPurchaseOrderCancel,
   postPathAPurchaseOrderSend,
   postPathAPurchaseOrderSendToSupplier,
+  postPathAPurchaseOrderMarkArrived,
   postPathAGoodsReceipt,
   postPathAGrnSupplierInvoice,
   postPathAPurchaseOrderLine,
@@ -81,6 +83,31 @@ function roundQty(n: number): number {
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function deliveryPhaseLabel(status: string | null | undefined): {
+  label: string;
+  className: string;
+} {
+  const s = (status ?? "not_shipped").toLowerCase();
+  if (s === "delivered") {
+    return {
+      label: "Arrived",
+      className:
+        "border-emerald-700/35 bg-emerald-50 text-emerald-800",
+    };
+  }
+  if (s === "in_transit") {
+    return {
+      label: "In transit",
+      className: "border-sky-700/35 bg-sky-50 text-sky-800",
+    };
+  }
+  return {
+    label: "Awaiting",
+    className:
+      "border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]",
+  };
 }
 
 type ReceiveQty = Record<string, number>;
@@ -169,6 +196,9 @@ export function OrderReceivePanel({
 } = {}) {
   const router = useRouter();
   const { branchId, business } = useDashboard();
+  const twoStepDelivery = Boolean(
+    business?.inventory?.receiveStock?.twoStepDelivery,
+  );
   const { effective: orderTemplate, setTemplate: setOrderTemplate } =
     useOrderTemplate();
   const [orders, setOrders] = useState<PathAPurchaseOrderListRowRecord[]>([]);
@@ -202,6 +232,7 @@ export function OrderReceivePanel({
   const [deletingLineId, setDeletingLineId] = useState<string | null>(null);
   const [deletingOrder, setDeletingOrder] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [markingArrived, setMarkingArrived] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [sharing, setSharing] = useState<"whatsapp" | "pdf" | "copy" | null>(
     null,
@@ -940,11 +971,42 @@ export function OrderReceivePanel({
     }
   };
 
-  const confirmSelected = async () => {
+  const markArrived = async () => {
+    if (!detail) return;
+    setMarkingArrived(true);
+    try {
+      const flushed = await flushAllPending();
+      if (!flushed) {
+        toast.error("Could not save order changes");
+        return;
+      }
+      const po = await postPathAPurchaseOrderMarkArrived(detail.id);
+      setDetail(po);
+      await refreshOrders();
+      toast.success(
+        "Marked arrived — stock stays unchanged until you unpack quantities.",
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not mark arrived",
+      );
+    } finally {
+      setMarkingArrived(false);
+    }
+  };
+
+  const confirmSelected = async (opts?: { overrideArrival?: boolean }) => {
     if (!detail) return;
     const receiveBranch = detail.branchId || branchId;
     if (!receiveBranch.trim()) {
       toast.error("Branch is required to confirm");
+      return;
+    }
+
+    const arrived =
+      (detail.deliveryStatus ?? "not_shipped").toLowerCase() === "delivered";
+    if (twoStepDelivery && !arrived && !opts?.overrideArrival) {
+      toast.error("Mark arrived first, or use Override to unpack now");
       return;
     }
 
@@ -990,6 +1052,8 @@ export function OrderReceivePanel({
         return;
       }
 
+      const poArrived =
+        (po.deliveryStatus ?? "not_shipped").toLowerCase() === "delivered";
       const grn = await postPathAGoodsReceipt(
         {
           purchaseOrderId: po.id,
@@ -1000,6 +1064,9 @@ export function OrderReceivePanel({
             purchaseOrderLineId: l.purchaseOrderLineId,
             qtyReceived: l.qtyReceived,
           })),
+          ...(twoStepDelivery && !poArrived && opts?.overrideArrival
+            ? { overrideArrival: true }
+            : {}),
         },
         crypto.randomUUID(),
       );
@@ -1022,7 +1089,9 @@ export function OrderReceivePanel({
       );
 
       toast.success(
-        embedded ? "Order confirmed" : "Order confirmed — opening supplies",
+        embedded
+          ? "Unpacked — stock updated"
+          : "Unpacked into stock — opening supplies",
       );
       await refreshOrders();
       if (embedded) {
@@ -1061,7 +1130,9 @@ export function OrderReceivePanel({
               Open orders
             </p>
             <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-              Awaiting delivery
+              {twoStepDelivery
+                ? "Arrive first, then unpack into stock"
+                : "Confirm quantities into stock"}
             </p>
           </div>
           <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] px-2 font-heading text-[12px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
@@ -1094,7 +1165,7 @@ export function OrderReceivePanel({
                   suppliers.find((s) => s.id === o.supplierId)?.name ??
                   "Supplier";
                 const active = selectedId === o.id;
-                const isSent = o.status === "sent";
+                const phase = deliveryPhaseLabel(o.deliveryStatus);
                 return (
                   <li key={o.id}>
                     <button
@@ -1113,13 +1184,11 @@ export function OrderReceivePanel({
                         </span>
                         <span
                           className={cn(
-                            "shrink-0 rounded-none border px-1.5 py-0.5 text-[10px] font-semibold capitalize",
-                            isSent
-                              ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
-                              : "border-amber-700/40 text-amber-800",
+                            "shrink-0 rounded-none border px-1.5 py-0.5 text-[10px] font-semibold",
+                            phase.className,
                           )}
                         >
-                          {o.status}
+                          {phase.label}
                         </span>
                       </div>
                       <span className="text-[13px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
@@ -1128,6 +1197,9 @@ export function OrderReceivePanel({
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                         <span>
                           {o.lineCount} lines · {toNum(o.totalOrdered)} ordered
+                          {toNum(o.totalReceived) > 0
+                            ? ` · ${toNum(o.totalReceived)} in stock`
+                            : ""}
                         </span>
                       </div>
                       <span className="font-mono text-[9px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
@@ -1148,15 +1220,19 @@ export function OrderReceivePanel({
             <h2 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
               {detail
                 ? `${detail.poNumber} · ${supplierName}`
-                : "Confirm supply"}
+                : "Delivery & unpack"}
             </h2>
             {detail ? (
               <p className="mt-0.5 font-mono text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                 Created {formatOrderCreatedAt(selectedOrderCreatedAt)}
+                {" · "}
+                {deliveryPhaseLabel(detail.deliveryStatus).label}
               </p>
             ) : (
               <p className="mt-0.5 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                Pick an order from the list to review lines.
+                {twoStepDelivery
+                  ? "Mark arrival when crates land, then unpack quantities into stock."
+                  : "Pick an order from the list to review lines."}
               </p>
             )}
           </div>
@@ -1761,8 +1837,26 @@ export function OrderReceivePanel({
                 </button>
               </div>
               <p className="text-[10px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                Receive qty defaults to the open balance. Confirm posts a goods
-                receipt and supplier bill. Share via WhatsApp or PDF anytime.
+                {twoStepDelivery ? (
+                  <>
+                    Two-step is on:{" "}
+                    <strong className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)]">
+                      Mark arrived
+                    </strong>{" "}
+                    when crates land, then{" "}
+                    <strong className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)]">
+                      Unpack &amp; add to stock
+                    </strong>
+                    . Use Override for same-day exceptions. Turn off in Business
+                    settings → Receive stock.
+                  </>
+                ) : (
+                  <>
+                    One-step receive: set quantities and confirm to raise stock.
+                    Enable two-step delivery in Business settings for import lead
+                    times (arrive → unpack).
+                  </>
+                )}
               </p>
             </div>
 
@@ -1781,33 +1875,123 @@ export function OrderReceivePanel({
                     {formatMoney(selectedTotal, ORDER_CURRENCY)}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  disabled={confirming || !detail || openLines.length === 0}
-                  onClick={() => void confirmSelected()}
-                  className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50"
-                >
-                  {confirming ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Posting supply…
-                    </>
-                  ) : (
-                    <>
-                      <Check className="size-4" />
-                      Confirm supply
-                    </>
-                  )}
-                </button>
-                <p className="mt-2 text-center text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                  {Object.keys(savingLines).length > 0
-                    ? "Saving to order…"
-                    : orderDirty
-                      ? "Saving…"
-                      : detail
-                        ? "Edits saved to this order"
-                        : "\u00a0"}
-                </p>
+                {twoStepDelivery ? (
+                  <>
+                    {detail &&
+                    (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
+                      "delivered" ? (
+                      <button
+                        type="button"
+                        disabled={markingArrived || confirming}
+                        onClick={() => void markArrived()}
+                        className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50"
+                      >
+                        {markingArrived ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            Marking arrived…
+                          </>
+                        ) : (
+                          <>
+                            <PackageCheck className="size-4" />
+                            1 · Mark arrived
+                          </>
+                        )}
+                      </button>
+                    ) : detail ? (
+                      <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-emerald-800">
+                        <PackageCheck className="size-3.5" />
+                        Arrived — ready to unpack
+                      </p>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={
+                        confirming ||
+                        markingArrived ||
+                        !detail ||
+                        openLines.length === 0 ||
+                        (detail &&
+                          (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
+                            "delivered")
+                      }
+                      onClick={() => void confirmSelected()}
+                      className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50"
+                    >
+                      {confirming ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          Adding to stock…
+                        </>
+                      ) : (
+                        <>
+                          <Check className="size-4" />
+                          2 · Unpack &amp; add to stock
+                        </>
+                      )}
+                    </button>
+                    {detail &&
+                    (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
+                      "delivered" ? (
+                      <button
+                        type="button"
+                        disabled={
+                          confirming ||
+                          markingArrived ||
+                          !detail ||
+                          openLines.length === 0
+                        }
+                        onClick={() =>
+                          void confirmSelected({ overrideArrival: true })
+                        }
+                        className="mt-2 w-full text-center text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] underline-offset-2 transition hover:text-[var(--order-ink,#15231f)] hover:underline disabled:opacity-40"
+                      >
+                        Override — unpack without marking arrived
+                      </button>
+                    ) : null}
+                    <p className="mt-2 text-center text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                      {Object.keys(savingLines).length > 0
+                        ? "Saving to order…"
+                        : orderDirty
+                          ? "Saving…"
+                          : detail
+                            ? "Stock rises only on unpack"
+                            : "\u00a0"}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      disabled={
+                        confirming || !detail || openLines.length === 0
+                      }
+                      onClick={() => void confirmSelected()}
+                      className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50"
+                    >
+                      {confirming ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          Posting supply…
+                        </>
+                      ) : (
+                        <>
+                          <Check className="size-4" />
+                          Confirm supply
+                        </>
+                      )}
+                    </button>
+                    <p className="mt-2 text-center text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                      {Object.keys(savingLines).length > 0
+                        ? "Saving to order…"
+                        : orderDirty
+                          ? "Saving…"
+                          : detail
+                            ? "Edits saved to this order"
+                            : "\u00a0"}
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px]">

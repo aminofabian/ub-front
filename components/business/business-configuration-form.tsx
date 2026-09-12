@@ -10,6 +10,7 @@ import {
   Loader2,
   Moon,
   Package,
+  PackageCheck,
   PackageX,
   Save,
   ScanLine,
@@ -695,6 +696,18 @@ export function BusinessConfigurationForm({
             icon={<Truck className="size-4" aria-hidden />}
             title="Allow grocery clerks to stock in"
             description="Shows Stock in mode on the grocery counter. Clerk picks a supplier, then receives into a Path B till (same as cashier receive)."
+          />
+          <PolicySwitch
+            checked={inventory.twoStepDelivery}
+            onChange={(checked) =>
+              setInventory((previous) => ({
+                ...previous,
+                twoStepDelivery: checked,
+              }))
+            }
+            icon={<PackageCheck className="size-4" aria-hidden />}
+            title="Two-step delivery on Confirm order"
+            description="Mark arrived when crates land, then unpack quantities into stock. Turn off for same-day one-step receive. Even when on, staff can override and unpack immediately."
           />
         </PolicyPanel>
       ) : null}

@@ -84,6 +84,11 @@ export type InventoryForm = {
   allowReceiveForCashier: boolean;
   allowReceiveForStockManager: boolean;
   allowReceiveForGroceryClerk: boolean;
+  /**
+   * Mark arrived → unpack into stock. Off = one-step (default).
+   * When on, Confirm order can still override per receipt.
+   */
+  twoStepDelivery: boolean;
   allowCashierTabClearance: boolean;
   requirePhoneVerificationForNewTabCustomers: boolean;
   allowCashierSearchCustomersByName: boolean;
@@ -239,6 +244,8 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   allowReceiveForCashier: true,
   allowReceiveForStockManager: true,
   allowReceiveForGroceryClerk: true,
+  /** Match backend: two-step delivery defaults off (one-step unpack). */
+  twoStepDelivery: false,
   /** Match backend: cashier tab clearance defaults off. */
   allowCashierTabClearance: false,
   /** Match backend: phone verification for new tabs defaults on. */
@@ -482,6 +489,7 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
       b?.inventory?.receiveStock?.allowReceiveForStockManager !== false,
     allowReceiveForGroceryClerk:
       b?.inventory?.receiveStock?.allowReceiveForGroceryClerk !== false,
+    twoStepDelivery: Boolean(b?.inventory?.receiveStock?.twoStepDelivery),
     allowCashierTabClearance: Boolean(
       b?.inventory?.creditTabs?.allowCashierTabClearance,
     ),

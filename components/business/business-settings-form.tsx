@@ -17,6 +17,7 @@ import {
   Users,
   Warehouse,
   Package,
+  PackageCheck,
 } from "lucide-react";
 
 import { FormDrawerFields } from "@/components/form-drawer";
@@ -1141,6 +1142,18 @@ export function BusinessSettingsForm({
                 icon={<Truck className="size-4 text-muted-foreground" />}
                 title="Allow grocery clerks to stock in"
                 description="Shows Stock in mode on the grocery counter. Clerk picks a supplier, then receives into a Path B till (same as cashier receive)."
+              />
+              <ToggleRow
+                checked={inventory.twoStepDelivery}
+                onChange={(checked) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    twoStepDelivery: checked,
+                  }))
+                }
+                icon={<PackageCheck className="size-4 text-muted-foreground" />}
+                title="Two-step delivery on Confirm order"
+                description="Mark arrived when crates land, then unpack quantities into stock. Turn off for same-day one-step receive. Even when on, staff can override and unpack immediately."
               />
             </FormDrawerFields>
           </SettingsAnchor>

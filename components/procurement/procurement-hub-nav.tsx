@@ -34,14 +34,14 @@ const HUB_TABS: HubTab[] = [
   {
     href: APP_ROUTES.orderReceive,
     label: "Confirm order",
-    hint: "Receive goods against open orders",
+    hint: "Mark arrived, then unpack into stock",
     icon: ClipboardCheck,
     match: (p) => p.startsWith(APP_ROUTES.orderReceive),
   },
   {
     href: APP_ROUTES.purchasingAddSupplies,
-    label: "Supplies",
-    hint: "Delivery ledger & bills",
+    label: "Record delivery",
+    hint: "Walk-in delivery → stock",
     icon: PackagePlus,
     match: (p) =>
       p === APP_ROUTES.purchasingAddSupplies ||

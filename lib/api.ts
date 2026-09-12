@@ -1226,6 +1226,11 @@ export type ReceiveStockSettingsRecord = {
   allowReceiveForStockManager?: boolean;
   /** Grocery counter Stock in (Path B). Default on when absent. */
   allowReceiveForGroceryClerk?: boolean;
+  /**
+   * Mark arrived → unpack into stock on Confirm order.
+   * Default off (one-step). When on, can still override per receipt.
+   */
+  twoStepDelivery?: boolean;
 };
 
 export type CreditTabsSettingsRecord = {
@@ -1523,6 +1528,7 @@ export type ReceiveStockPatchPayload = {
   allowReceiveForCashier?: boolean;
   allowReceiveForStockManager?: boolean;
   allowReceiveForGroceryClerk?: boolean;
+  twoStepDelivery?: boolean;
 };
 
 export type CreditTabsPatchPayload = {
@@ -10223,6 +10229,11 @@ export type PathAPurchaseOrderDetailRecord = {
   expectedDate: string;
   status: string;
   notes: string | null;
+  source?: string | null;
+  sentToSupplierAt?: string | null;
+  supplierResponseAt?: string | null;
+  /** not_shipped | in_transit | delivered — arrival only; stock still needs GRN. */
+  deliveryStatus?: string | null;
   createdAt?: string | null;
   lines: PathAPurchaseOrderLineRecord[];
 };
@@ -10234,6 +10245,8 @@ export type PathAPurchaseOrderListRowRecord = {
   poNumber: string;
   expectedDate: string;
   status: string;
+  /** not_shipped | in_transit | delivered — arrival only; stock still needs GRN. */
+  deliveryStatus?: string | null;
   lineCount: number;
   totalOrdered: number | string;
   totalReceived: number | string;
@@ -10340,6 +10353,16 @@ export async function postPathAPurchaseOrderCancel(
   );
 }
 
+/** Physical arrival only — does not raise stock. Unpack via goods receipt. */
+export async function postPathAPurchaseOrderMarkArrived(
+  purchaseOrderId: string,
+): Promise<PathAPurchaseOrderDetailRecord> {
+  return request<PathAPurchaseOrderDetailRecord>(
+    `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/mark-arrived`,
+    { method: "POST" },
+  );
+}
+
 export async function postPathAPurchaseOrderSend(
   purchaseOrderId: string,
 ): Promise<PathAPurchaseOrderDetailRecord> {
@@ -10370,6 +10393,8 @@ export type PostPathAGoodsReceiptPayload = {
   receivedAt: string;
   notes?: string | null;
   lines: PostPathAGoodsReceiptLinePayload[];
+  /** When two-step delivery is on, skip Mark arrived and unpack now. */
+  overrideArrival?: boolean;
 };
 
 export type PostPathAGoodsReceiptResult = {
