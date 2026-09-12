@@ -28,11 +28,13 @@ import {
   fetchBatchDashboard,
   fetchBranches,
   fetchCategories,
+  fetchAisles,
   fetchItemTypes,
   fetchItemsPage,
   patchItem,
   postBatchDecrease,
   postStockIncrease,
+  type AisleRecord,
   type BranchRecord,
   type CategoryRecord,
   type ItemSummaryRecord,
@@ -91,6 +93,9 @@ type StockRow = {
   /** Department / item type. */
   itemTypeId: string | null;
   departmentName: string | null;
+  /** Shelf zone / aisle. */
+  aisleId: string | null;
+  shelfName: string | null;
   /** Catalog shelf / sell price (bundle price). */
   sellPrice: number | null;
   /** Reference buying / cost price. */
@@ -312,6 +317,7 @@ type StockRowItemProps = {
   canCatalogWrite: boolean;
   categories: CategoryRecord[];
   itemTypes: ItemTypeRecord[];
+  aisles: AisleRecord[];
   editing: boolean;
   editQty: string;
   editCost: string;
@@ -326,6 +332,7 @@ type StockRowItemProps = {
   onSaveVariant: (value: string) => void;
   onSaveCategory: (categoryId: string) => void;
   onSaveDepartment: (itemTypeId: string) => void;
+  onSaveShelf: (aisleId: string) => void;
   onSaveBuyPrice: (value: string) => void;
   onSaveSellPrice: (value: string) => void;
 };
@@ -337,6 +344,7 @@ function StockRowItem({
   canCatalogWrite,
   categories,
   itemTypes,
+  aisles,
   editing,
   editQty,
   editCost,
@@ -351,6 +359,7 @@ function StockRowItem({
   onSaveVariant,
   onSaveCategory,
   onSaveDepartment,
+  onSaveShelf,
   onSaveBuyPrice,
   onSaveSellPrice,
 }: StockRowItemProps) {
@@ -476,6 +485,28 @@ function StockRowItem({
         ) : (
           <span className="block max-w-[8rem] truncate px-2.5 py-1.5 text-muted-foreground">
             {row.departmentName ?? "—"}
+          </span>
+        )}
+      </td>
+      <td className={cn(supTableCell, "min-w-[6.5rem] p-0 align-middle")}>
+        {canCatalogWrite ? (
+          <select
+            value={row.aisleId ?? ""}
+            disabled={savingCatalog}
+            onChange={(e) => onSaveShelf(e.target.value)}
+            className={catalogCellSelect}
+            aria-label={`Shelf for ${row.name}`}
+          >
+            <option value="">—</option>
+            {aisles.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.code?.trim() ? `${a.code} · ${a.name}` : a.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="block max-w-[8rem] truncate px-2.5 py-1.5 text-muted-foreground">
+            {row.shelfName ?? "—"}
           </span>
         )}
       </td>
@@ -699,6 +730,7 @@ export function StockLevelsPage() {
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
+  const [aisles, setAisles] = useState<AisleRecord[]>([]);
   const [branchId, setBranchId] = useState("");
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   // Follow the global header branch selection (pinned for locked roles).
@@ -737,6 +769,15 @@ export function StockLevelsPage() {
     }
     return map;
   }, [itemTypes]);
+
+  const shelfLabelById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of aisles) {
+      const code = a.code?.trim();
+      map.set(a.id, code ? `${code} · ${a.name}` : a.name);
+    }
+    return map;
+  }, [aisles]);
 
   const categoryLabelById = useMemo(() => {
     const map = new Map<string, string>();
@@ -907,6 +948,40 @@ export function StockLevelsPage() {
     [canCatalogWrite, departmentLabelById],
   );
 
+  const saveShelf = useCallback(
+    async (row: StockRow, nextAisleId: string) => {
+      if (!canCatalogWrite) return;
+      const next = nextAisleId.trim();
+      const prev = (row.aisleId ?? "").trim();
+      if (next === prev) return;
+      setSavingCatalogId(row.id);
+      try {
+        await patchItem(row.id, { aisleId: next });
+        setRows((list) =>
+          list.map((r) =>
+            r.id === row.id
+              ? {
+                  ...r,
+                  aisleId: next || null,
+                  shelfName: next
+                    ? shelfLabelById.get(next) ?? r.shelfName
+                    : null,
+                }
+              : r,
+          ),
+        );
+        toast.success(next ? "Shelf updated." : "Shelf cleared.");
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not update shelf.",
+        );
+      } finally {
+        setSavingCatalogId(null);
+      }
+    },
+    [canCatalogWrite, shelfLabelById],
+  );
+
   const saveBuyPrice = useCallback(
     async (row: StockRow, raw: string) => {
       if (!canCatalogWrite) return;
@@ -1074,7 +1149,8 @@ export function StockLevelsPage() {
       fetchBranches().catch(() => [] as BranchRecord[]),
       fetchCategories().catch(() => [] as CategoryRecord[]),
       fetchItemTypes().catch(() => [] as ItemTypeRecord[]),
-    ]).then(([branchList, categoryList, itemTypeList]) => {
+      fetchAisles().catch(() => [] as AisleRecord[]),
+    ]).then(([branchList, categoryList, itemTypeList, aisleList]) => {
       setBranches(branchList);
       setCategories(
         [...categoryList]
@@ -1085,6 +1161,11 @@ export function StockLevelsPage() {
         [...itemTypeList]
           .filter((t) => t.active !== false)
           .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label)),
+      );
+      setAisles(
+        [...aisleList]
+          .filter((a) => a.active !== false)
+          .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
       );
     });
   }, []);
@@ -1160,6 +1241,11 @@ export function StockLevelsPage() {
               null,
             itemTypeId: item.itemTypeId?.trim() || null,
             departmentName: null,
+            aisleId: item.aisleId?.trim() || null,
+            shelfName:
+              item.aisleName?.trim() ||
+              item.aisleCode?.trim() ||
+              null,
             sellPrice: toNum(item.bundlePrice),
             buyPrice: toNum(item.buyingPrice),
             editable: !item.packageVariant,
@@ -1180,23 +1266,37 @@ export function StockLevelsPage() {
   }, [branchId, categoryId, headerItemTypeId]);
 
   useEffect(() => {
-    if (departmentLabelById.size === 0) return;
+    if (departmentLabelById.size === 0 && shelfLabelById.size === 0) return;
     setRows((prev) => {
       let changed = false;
       const next = prev.map((r) => {
-        if (!r.itemTypeId) {
-          if (r.departmentName == null) return r;
-          changed = true;
-          return { ...r, departmentName: null };
+        let row = r;
+        if (departmentLabelById.size > 0) {
+          if (!r.itemTypeId) {
+            if (r.departmentName != null) {
+              changed = true;
+              row = { ...row, departmentName: null };
+            }
+          } else {
+            const label = departmentLabelById.get(r.itemTypeId) ?? null;
+            if (label !== row.departmentName) {
+              changed = true;
+              row = { ...row, departmentName: label };
+            }
+          }
         }
-        const label = departmentLabelById.get(r.itemTypeId) ?? null;
-        if (label === r.departmentName) return r;
-        changed = true;
-        return { ...r, departmentName: label };
+        if (shelfLabelById.size > 0 && r.aisleId) {
+          const shelf = shelfLabelById.get(r.aisleId) ?? row.shelfName;
+          if (shelf !== row.shelfName) {
+            changed = true;
+            row = { ...row, shelfName: shelf };
+          }
+        }
+        return row;
       });
       return changed ? next : prev;
     });
-  }, [departmentLabelById]);
+  }, [departmentLabelById, shelfLabelById]);
 
   useEffect(() => {
     if (!allowed) return;
@@ -1219,6 +1319,7 @@ export function StockLevelsPage() {
           r.brand,
           r.categoryName,
           r.departmentName,
+          r.shelfName,
         )
       ) {
         return false;
@@ -1468,7 +1569,7 @@ export function StockLevelsPage() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[72rem] border-collapse border-0 text-left text-xs">
+                    <table className="w-full min-w-[78rem] border-collapse border-0 text-left text-xs">
                       <thead>
                         <tr className={supTableHead}>
                           <th className={cn(supTableCell, "min-w-[10rem]")}>Product</th>
@@ -1476,6 +1577,7 @@ export function StockLevelsPage() {
                           <th className={cn(supTableCell, "min-w-[6rem]")}>Variant</th>
                           <th className={cn(supTableCell, "min-w-[6.5rem]")}>Category</th>
                           <th className={cn(supTableCell, "min-w-[6.5rem]")}>Department</th>
+                          <th className={cn(supTableCell, "min-w-[6.5rem]")}>Shelf</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>In store</th>
                           <th className={cn(supTableCell, "w-[4.5rem] text-right")}>Reorder</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Buy</th>
@@ -1495,6 +1597,7 @@ export function StockLevelsPage() {
                             canCatalogWrite={canCatalogWrite}
                             categories={categories}
                             itemTypes={itemTypes}
+                            aisles={aisles}
                             editing={editId === row.id}
                             editQty={editId === row.id ? editQty : ""}
                             editCost={editId === row.id ? editCost : ""}
@@ -1511,6 +1614,7 @@ export function StockLevelsPage() {
                             onSaveDepartment={(value) =>
                               void saveDepartment(row, value)
                             }
+                            onSaveShelf={(value) => void saveShelf(row, value)}
                             onSaveBuyPrice={(value) => void saveBuyPrice(row, value)}
                             onSaveSellPrice={(value) => void saveSellPrice(row, value)}
                           />
