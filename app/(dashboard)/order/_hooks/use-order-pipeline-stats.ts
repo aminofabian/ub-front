@@ -114,6 +114,9 @@ export function useOrderPipelineStats() {
   const [cancelled, setCancelled] = useState<PathAPurchaseOrderListRowRecord[]>(
     [],
   );
+  const [receivedOrders, setReceivedOrders] = useState<
+    PathAPurchaseOrderListRowRecord[]
+  >([]);
   const [supplies, setSupplies] = useState<PathBSupplyListRowRecord[]>([]);
   const [intelligence, setIntelligence] =
     useState<PurchasingIntelligenceDashboardResponse | null>(null);
@@ -129,17 +132,19 @@ export function useOrderPipelineStats() {
       setSent([]);
       setSavedDrafts([]);
       setCancelled([]);
+      setReceivedOrders([]);
       setSupplies([]);
       setIntelligence(null);
       setLoading(false);
       return;
     }
     try {
-      const [sentRows, draftRows, cancelledRows, supplyRows, intel] =
+      const [sentRows, draftRows, cancelledRows, receivedRows, supplyRows, intel] =
         await Promise.all([
           fetchPathAPurchaseOrders({ status: "sent" }),
           fetchPathAPurchaseOrders({ status: "draft" }),
           fetchPathAPurchaseOrders({ status: "cancelled" }).catch(() => []),
+          fetchPathAPurchaseOrders({ status: "received" }).catch(() => []),
           fetchPathBSupplies({ branchId: branchId || undefined }).catch(
             () => [],
           ),
@@ -152,12 +157,14 @@ export function useOrderPipelineStats() {
       setSent(sentRows);
       setSavedDrafts(draftRows);
       setCancelled(cancelledRows);
+      setReceivedOrders(receivedRows);
       setSupplies(supplyRows);
       setIntelligence(intel);
     } catch {
       setSent([]);
       setSavedDrafts([]);
       setCancelled([]);
+      setReceivedOrders([]);
       setSupplies([]);
       setIntelligence(null);
     } finally {
@@ -190,14 +197,15 @@ export function useOrderPipelineStats() {
         sent,
         savedDrafts,
         cancelled,
+        receivedOrders,
         supplies,
         intelligence,
       ),
-    [sent, savedDrafts, cancelled, supplies, intelligence],
+    [sent, savedDrafts, cancelled, receivedOrders, supplies, intelligence],
   );
   const allOrders = useMemo(
-    () => [...sent, ...savedDrafts, ...cancelled],
-    [sent, savedDrafts, cancelled],
+    () => [...sent, ...savedDrafts, ...cancelled, ...receivedOrders],
+    [sent, savedDrafts, cancelled, receivedOrders],
   );
 
   return {

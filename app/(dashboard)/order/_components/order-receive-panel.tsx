@@ -97,6 +97,13 @@ function deliveryPhaseLabel(status: string | null | undefined): {
         "border-emerald-700/35 bg-emerald-50 text-emerald-800",
     };
   }
+  if (s === "partially_delivered") {
+    return {
+      label: "Partially arrived",
+      className:
+        "border-amber-700/35 bg-amber-50 text-amber-800",
+    };
+  }
   if (s === "in_transit") {
     return {
       label: "In transit",
@@ -1003,8 +1010,9 @@ export function OrderReceivePanel({
       return;
     }
 
-    const arrived =
-      (detail.deliveryStatus ?? "not_shipped").toLowerCase() === "delivered";
+    const arrived = ["delivered", "partially_delivered"].includes(
+      (detail.deliveryStatus ?? "not_shipped").toLowerCase(),
+    );
     if (twoStepDelivery && !arrived && !opts?.overrideArrival) {
       toast.error("Mark arrived first, or use Override to unpack now");
       return;

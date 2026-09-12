@@ -963,7 +963,7 @@ function LogoSection({
       </div>
       <p className={hintClass()}>
         {draftPair
-          ? "Preview only. Tap Save and use to apply the kit."
+          ? "Saving your AI kit to the shop…"
           : "PNG, JPEG, WEBP, or SVG. 4 MB max. Uploads go live immediately."}
       </p>
     </div>

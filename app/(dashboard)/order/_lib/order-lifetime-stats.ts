@@ -25,6 +25,7 @@ export function poReceivePhase(
   const status = row.status?.trim().toLowerCase();
   if (status === "cancelled") return "cancelled";
   if (status === "draft") return "draft";
+  if (status === "received") return "received";
   const ordered = toOrderStatNum(row.totalOrdered);
   const received = toOrderStatNum(row.totalReceived);
   if (ordered > 0 && received >= ordered) return "received";
@@ -70,10 +71,11 @@ export function summarizeLifetimeStats(
   sent: PathAPurchaseOrderListRowRecord[],
   draft: PathAPurchaseOrderListRowRecord[],
   cancelled: PathAPurchaseOrderListRowRecord[],
+  received: PathAPurchaseOrderListRowRecord[],
   supplies: PathBSupplyListRowRecord[],
   intelligence: PurchasingIntelligenceDashboardResponse | null,
 ): OrderLifetimeStats {
-  const allOrders = [...sent, ...draft, ...cancelled];
+  const allOrders = [...sent, ...draft, ...cancelled, ...received];
   let confirmedValue = 0;
   let paidValue = 0;
   let openBalance = 0;
@@ -91,10 +93,13 @@ export function summarizeLifetimeStats(
     else unpaidCount += 1;
   }
 
-  const fullyReceived = sent.filter(
+  // Legacy orders closed before the backend "received" status keep status "sent",
+  // so completion is still derived from qty math across both buckets.
+  const receivedRows = [...sent, ...received];
+  const fullyReceived = receivedRows.filter(
     (row) => poReceivePhase(row) === "received",
   ).length;
-  const partiallyReceived = sent.filter(
+  const partiallyReceived = receivedRows.filter(
     (row) => poReceivePhase(row) === "partial",
   ).length;
   const inFlightCount = sent.filter((row) => {

@@ -457,6 +457,7 @@ export function OnboardingQuestionnaire({
   const [logoDarkFile, setLogoDarkFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
   const [ogImageFile, setOgImageFile] = useState<File | null>(null);
+  const [appIconFile, setAppIconFile] = useState<File | null>(null);
   const [logoDraftPair, setLogoDraftPair] = useState<GeneratedBrandKit | null>(
     null,
   );
@@ -770,7 +771,7 @@ export function OnboardingQuestionnaire({
             logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
             faviconFile: faviconFile ?? logoDraftPair?.favicon ?? null,
             ogImageFile: ogImageFile ?? logoDraftPair?.og ?? null,
-            appIconFile: logoDraftPair?.appIcon ?? null,
+            appIconFile: appIconFile ?? logoDraftPair?.appIcon ?? null,
           },
         );
         break;
@@ -787,7 +788,7 @@ export function OnboardingQuestionnaire({
             logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
             faviconFile: faviconFile ?? logoDraftPair?.favicon ?? null,
             ogImageFile: ogImageFile ?? logoDraftPair?.og ?? null,
-            appIconFile: logoDraftPair?.appIcon ?? null,
+            appIconFile: appIconFile ?? logoDraftPair?.appIcon ?? null,
           },
         );
         break;
@@ -1600,6 +1601,7 @@ export function OnboardingQuestionnaire({
                             setLogoDarkFile(pair.dark);
                             setFaviconFile(pair.favicon);
                             setOgImageFile(pair.og);
+                            setAppIconFile(pair.appIcon);
                             setLogoDraftPair(null);
                             hapticTap();
                           }}
@@ -1612,6 +1614,7 @@ export function OnboardingQuestionnaire({
                               setLogoDarkFile(null);
                               setFaviconFile(null);
                               setOgImageFile(null);
+                              setAppIconFile(null);
                               setLogoDraftPair(null);
                               setLogoError("");
                               setLogoGeneratorKey((key) => key + 1);

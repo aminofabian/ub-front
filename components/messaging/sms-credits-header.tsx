@@ -272,7 +272,9 @@ export function SmsCreditsBuyDialog({
                 SMS credits
               </DialogTitle>
               <DialogDescription className="mt-1 text-[13px] leading-snug">
-                Included credits reset each month. Purchased credits roll over.
+                Included credits reset each month. Purchased credits roll over
+                and also pay for AI logo kits (50 credits each after the free
+                one).
               </DialogDescription>
             </div>
             <BillingBalanceStrip

@@ -3356,6 +3356,8 @@ export type PlatformSmsCreditSettingsRecord = {
   maxPurchaseCredits: number;
   lowBalanceThreshold: number;
   cycleTimezone: string;
+  aiLogoFreeAllowance: number;
+  aiLogoCreditCost: number;
   updatedAt: string | null;
 };
 
@@ -3411,6 +3413,8 @@ export async function updatePlatformSmsCreditSettings(body: {
   maxPurchaseCredits?: number;
   lowBalanceThreshold?: number;
   cycleTimezone?: string;
+  aiLogoFreeAllowance?: number;
+  aiLogoCreditCost?: number;
 }): Promise<PlatformSmsCreditSettingsRecord> {
   return saRequest<PlatformSmsCreditSettingsRecord>(
     API_ROUTES.superAdminSmsCreditsSettings,

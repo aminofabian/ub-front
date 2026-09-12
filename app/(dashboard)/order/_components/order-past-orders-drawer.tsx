@@ -91,10 +91,14 @@ export function OrderPastOrdersDrawer({
         supplierId: supplierFilter,
         status: "draft",
       }),
+      fetchPathAPurchaseOrders({
+        supplierId: supplierFilter,
+        status: "received",
+      }).catch(() => []),
     ])
-      .then(([sent, draft]) => {
+      .then(([sent, draft, received]) => {
         if (cancelled) return;
-        setRows(sortPastOrders([...sent, ...draft]));
+        setRows(sortPastOrders([...sent, ...draft, ...received]));
       })
       .catch(() => {
         if (!cancelled) setRows([]);

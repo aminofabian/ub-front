@@ -91,6 +91,8 @@ export default function SuperAdminSmsCreditsPage() {
         maxPurchaseCredits: settings.maxPurchaseCredits,
         lowBalanceThreshold: settings.lowBalanceThreshold,
         cycleTimezone: settings.cycleTimezone,
+        aiLogoFreeAllowance: settings.aiLogoFreeAllowance,
+        aiLogoCreditCost: settings.aiLogoCreditCost,
       });
       setSettings(updated);
       toast.success("SMS credit settings saved.");
@@ -251,7 +253,49 @@ export default function SuperAdminSmsCreditsPage() {
                     }
                   />
                 </Field>
+                <Field id="ai-logo-free" label="Free AI logos per shop">
+                  <Input
+                    id="ai-logo-free"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={settings.aiLogoFreeAllowance ?? 1}
+                    onChange={(e) =>
+                      setSettings((s) =>
+                        s
+                          ? {
+                              ...s,
+                              aiLogoFreeAllowance: num(e.target.value, 1),
+                            }
+                          : s,
+                      )
+                    }
+                  />
+                </Field>
+                <Field id="ai-logo-cost" label="Credits per AI logo kit">
+                  <Input
+                    id="ai-logo-cost"
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={settings.aiLogoCreditCost ?? 50}
+                    onChange={(e) =>
+                      setSettings((s) =>
+                        s
+                          ? {
+                              ...s,
+                              aiLogoCreditCost: num(e.target.value, 50),
+                            }
+                          : s,
+                      )
+                    }
+                  />
+                </Field>
               </div>
+              <p className="text-xs text-muted-foreground">
+                After the free AI logos, each brand kit spends purchased credits
+                (not the monthly SMS allowance).
+              </p>
             </div>
           </SaSection>
 

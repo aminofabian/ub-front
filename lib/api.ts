@@ -1443,6 +1443,31 @@ export async function generateBrandingLogo(body: {
   });
 }
 
+export type AiLogoQuotaRecord = {
+  freeAllowance: number;
+  freeUsed: number;
+  freeRemaining: number;
+  creditCost: number;
+  purchasedCredits: number;
+  nextGenerationIsFree: boolean;
+  canGenerate: boolean;
+  unitPriceKes: number | string;
+  minPurchaseCredits: number;
+  maxPurchaseCredits: number;
+};
+
+/** Free AI logo remaining and credit cost for the next kit. */
+export async function fetchAiLogoQuota(): Promise<AiLogoQuotaRecord | null> {
+  try {
+    return await request<AiLogoQuotaRecord>(API_ROUTES.aiBrandingLogoQuota, {
+      requiresAuth: true,
+      toast: false,
+    });
+  } catch {
+    return null;
+  }
+}
+
 export type BrandingAppIconGenerateResponse = {
   requestId: string;
   mimeType: string;
