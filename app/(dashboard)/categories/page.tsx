@@ -1503,8 +1503,8 @@ export default function CategoriesPage() {
 
   return (
     <>
-      <div className="h-full overflow-y-auto overscroll-contain">
-        <div className={DASHBOARD_MAX_WIDE}>
+      <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
+        <div className={cn(DASHBOARD_MAX_WIDE, "!h-auto")}>
           {/* Header */}
           <div className="space-y-2">
             <DashboardPageHero
