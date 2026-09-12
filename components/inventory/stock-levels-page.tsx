@@ -52,14 +52,8 @@ import { textMatchesQuery } from "@/lib/text-search";
 
 import {
   supFieldLabel,
-  supFilterRail,
-  supFormCellInput,
   supInput,
   supSelect,
-  supTableCell,
-  supTableHead,
-  supTableRow,
-  supWorkspaceShell,
 } from "@/app/(dashboard)/suppliers/_components/supplier-ui-tokens";
 
 const PAGE_SIZE = 50;
@@ -249,20 +243,40 @@ function priceInputValue(n: number | null): string {
 }
 
 const catalogCellInput = cn(
-  supFormCellInput,
-  "h-8 w-full min-w-[5.5rem] text-left disabled:opacity-60",
+  "h-8 w-full min-w-[5.5rem] rounded-none border-0 bg-transparent px-2 text-[12px] leading-none",
+  "text-[var(--order-ink,#15231f)]",
+  "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_34%,transparent)]",
+  "transition-colors duration-150",
+  "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3.5%,transparent)]",
+  "focus-visible:bg-white focus-visible:outline-none",
+  "focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+  "disabled:cursor-not-allowed disabled:opacity-50",
 );
 
 const catalogCellMoneyInput = cn(
   catalogCellInput,
-  "text-right tabular-nums font-mono",
+  "text-right font-mono tabular-nums",
 );
 
 const catalogCellSelect = cn(
-  "h-8 w-full min-w-[6rem] cursor-pointer rounded-none border-0 bg-transparent px-2 text-xs",
-  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
-  "disabled:cursor-not-allowed disabled:opacity-50",
+  catalogCellInput,
+  "cursor-pointer appearance-none pr-5",
 );
+
+const stockCell = cn(
+  "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 align-middle",
+);
+
+const stockHeadCell = cn(
+  stockCell,
+  "sticky top-0 z-[1] whitespace-nowrap bg-white py-2 text-left text-[10px] font-semibold tracking-[-0.02em]",
+  "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]",
+);
+
+const stockMute =
+  "text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]";
+
+const stockInk = "text-[var(--order-ink,#15231f)]";
 
 function isOutOfStock(stock: number): boolean {
   return stock <= 0;
@@ -317,21 +331,25 @@ function StockStatCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 items-center gap-2 px-2.5 text-left text-[11px] font-semibold transition-colors",
+        "inline-flex h-8 items-center gap-1.5 px-2.5 text-[11px] font-medium tracking-[-0.01em] transition-colors duration-150",
         active
           ? tone === "loss"
             ? "bg-orange-600 text-white"
-            : "bg-primary text-primary-foreground"
-          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+            : "bg-[var(--pos-primary,#0f766e)] text-white"
+          : cn(
+              "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+              "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+            ),
       )}
     >
       <span>{label}</span>
       <span
         className={cn(
-          "font-mono tabular-nums",
-          !active && tone === "success" && "text-emerald-600 dark:text-emerald-400",
-          !active && tone === "warning" && "text-amber-600 dark:text-amber-400",
-          !active && tone === "danger" && "text-destructive",
+          "font-mono text-[11px] tabular-nums",
+          active ? "opacity-90" : "font-semibold",
+          !active && tone === "success" && value > 0 && "text-emerald-700 dark:text-emerald-400",
+          !active && tone === "warning" && value > 0 && "text-amber-700 dark:text-amber-400",
+          !active && tone === "danger" && value > 0 && "text-rose-700 dark:text-rose-400",
           !active && tone === "loss" && value > 0 && "text-orange-700 dark:text-orange-300",
         )}
       >
@@ -404,28 +422,33 @@ function StockRowItem({
 
   const statusLabel = out ? "Out" : low ? "Low" : "OK";
   const statusClass = out
-    ? "border-rose-600/25 bg-rose-500/10 text-rose-700 dark:text-rose-300"
+    ? "bg-rose-500/12 text-rose-800 dark:text-rose-300"
     : low
-      ? "border-amber-600/25 bg-amber-500/10 text-amber-800 dark:text-amber-200"
-      : "border-border bg-muted/30 text-muted-foreground";
+      ? "bg-amber-500/12 text-amber-900 dark:text-amber-200"
+      : cn("bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)]", stockMute);
 
   return (
     <tr
       className={cn(
-        supTableRow,
+        "transition-colors duration-150",
+        "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]",
         loss &&
-          "bg-orange-500/[0.12] hover:bg-orange-500/[0.18] dark:bg-orange-400/15 dark:hover:bg-orange-400/22",
+          "bg-orange-500/[0.07] hover:bg-orange-500/[0.11] dark:bg-orange-400/10 dark:hover:bg-orange-400/16",
       )}
     >
-      <td className={cn(supTableCell, "min-w-[10rem] align-middle")}>
+      <td className={cn(stockCell, "min-w-[11rem]")}>
         <Link
           href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.name)}`}
-          className="block max-w-[16rem] truncate text-[13px] font-medium text-foreground hover:underline"
+          className={cn(
+            "block max-w-[17rem] truncate text-[12.5px] font-medium tracking-[-0.01em]",
+            stockInk,
+            "underline-offset-2 hover:text-[var(--pos-primary,#0f766e)] hover:underline",
+          )}
         >
           {row.name}
         </Link>
       </td>
-      <td className={cn(supTableCell, "min-w-[7rem] p-0 align-middle")}>
+      <td className={cn(stockCell, "min-w-[7rem] p-0")}>
         {canCatalogWrite ? (
           <input
             key={`family-${row.id}-${row.familyName ?? ""}`}
@@ -445,12 +468,12 @@ function StockRowItem({
             aria-label={`Family name for ${row.name}`}
           />
         ) : (
-          <span className="block max-w-[10rem] truncate px-2.5 py-1.5 text-muted-foreground">
+          <span className={cn("block max-w-[10rem] truncate px-2 py-1.5 text-[12px]", stockMute)}>
             {row.familyName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "min-w-[6rem] p-0 align-middle")}>
+      <td className={cn(stockCell, "min-w-[6rem] p-0")}>
         {canCatalogWrite ? (
           <input
             key={`variant-${row.id}-${row.variantName ?? ""}`}
@@ -470,12 +493,12 @@ function StockRowItem({
             aria-label={`Variant name for ${row.name}`}
           />
         ) : (
-          <span className="block max-w-[8rem] truncate px-2.5 py-1.5 text-muted-foreground">
+          <span className={cn("block max-w-[8rem] truncate px-2 py-1.5 text-[12px]", stockMute)}>
             {row.variantName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "min-w-[6.5rem] p-0 align-middle")}>
+      <td className={cn(stockCell, "min-w-[6.5rem] p-0")}>
         {canCatalogWrite ? (
           <select
             value={row.categoryId ?? ""}
@@ -492,12 +515,12 @@ function StockRowItem({
             ))}
           </select>
         ) : (
-          <span className="block max-w-[8rem] truncate px-2.5 py-1.5 text-muted-foreground">
+          <span className={cn("block max-w-[8rem] truncate px-2 py-1.5 text-[12px]", stockMute)}>
             {row.categoryName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "min-w-[6.5rem] p-0 align-middle")}>
+      <td className={cn(stockCell, "min-w-[6.5rem] p-0")}>
         {canCatalogWrite ? (
           <select
             value={row.itemTypeId ?? ""}
@@ -514,12 +537,12 @@ function StockRowItem({
             ))}
           </select>
         ) : (
-          <span className="block max-w-[8rem] truncate px-2.5 py-1.5 text-muted-foreground">
+          <span className={cn("block max-w-[8rem] truncate px-2 py-1.5 text-[12px]", stockMute)}>
             {row.departmentName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "min-w-[6.5rem] p-0 align-middle")}>
+      <td className={cn(stockCell, "min-w-[6.5rem] p-0")}>
         {canCatalogWrite ? (
           <select
             value={row.aisleId ?? ""}
@@ -536,12 +559,12 @@ function StockRowItem({
             ))}
           </select>
         ) : (
-          <span className="block max-w-[8rem] truncate px-2.5 py-1.5 text-muted-foreground">
+          <span className={cn("block max-w-[8rem] truncate px-2 py-1.5 text-[12px]", stockMute)}>
             {row.shelfName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "w-[5.5rem] p-0 align-middle")}>
+      <td className={cn(stockCell, "w-[5.25rem] p-0")}>
         {editing ? (
           <input
             type="number"
@@ -556,30 +579,29 @@ function StockRowItem({
               if (e.key === "Enter") onSaveEdit();
               if (e.key === "Escape") onCancelEdit();
             }}
-            className={cn(
-              supFormCellInput,
-              "h-8 w-full text-right tabular-nums disabled:opacity-60",
-            )}
+            className={cn(catalogCellMoneyInput, "disabled:opacity-60")}
             placeholder="Qty"
             aria-label={`New stock for ${row.name}`}
           />
         ) : (
           <span
             className={cn(
-              "block px-2.5 py-1.5 text-right font-mono tabular-nums",
-              out || low ? "font-semibold text-destructive" : "text-foreground",
+              "block px-2 py-1.5 text-right font-mono text-[12px] tabular-nums",
+              out || low
+                ? "font-semibold text-rose-700 dark:text-rose-300"
+                : stockInk,
             )}
           >
             {row.stock.toLocaleString("en-KE")}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "w-[4.5rem] text-right font-mono tabular-nums text-muted-foreground")}>
+      <td className={cn(stockCell, "w-[4.25rem] text-right font-mono text-[12px] tabular-nums", stockMute)}>
         {row.reorderLevel != null && row.reorderLevel > 0
           ? row.reorderLevel.toLocaleString("en-KE")
           : "—"}
       </td>
-      <td className={cn(supTableCell, "w-[5.5rem] p-0 align-middle")}>
+      <td className={cn(stockCell, "w-[5.25rem] p-0")}>
         {canCatalogWrite ? (
           <input
             key={`buy-${row.id}-${row.buyPrice ?? ""}`}
@@ -599,7 +621,7 @@ function StockRowItem({
             }}
             className={cn(
               catalogCellMoneyInput,
-              loss && "font-semibold text-orange-700 dark:text-orange-300",
+              loss && "font-semibold text-orange-800 dark:text-orange-300",
             )}
             placeholder="Buy"
             aria-label={`Buy price for ${row.name}`}
@@ -607,15 +629,17 @@ function StockRowItem({
         ) : (
           <span
             className={cn(
-              "block px-2.5 py-1.5 text-right font-mono tabular-nums",
-              loss && "font-semibold text-orange-700 dark:text-orange-300",
+              "block px-2 py-1.5 text-right font-mono text-[12px] tabular-nums",
+              loss
+                ? "font-semibold text-orange-800 dark:text-orange-300"
+                : stockInk,
             )}
           >
             {fmtMoney(row.buyPrice, currency)}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "w-[5.5rem] p-0 align-middle")}>
+      <td className={cn(stockCell, "w-[5.25rem] p-0")}>
         {canCatalogWrite ? (
           <input
             key={`sell-${row.id}-${row.sellPrice ?? ""}`}
@@ -635,7 +659,7 @@ function StockRowItem({
             }}
             className={cn(
               catalogCellMoneyInput,
-              loss && "font-semibold text-orange-700 dark:text-orange-300",
+              loss && "font-semibold text-orange-800 dark:text-orange-300",
             )}
             placeholder="Sell"
             aria-label={`Sell price for ${row.name}`}
@@ -643,15 +667,17 @@ function StockRowItem({
         ) : (
           <span
             className={cn(
-              "block px-2.5 py-1.5 text-right font-mono tabular-nums",
-              loss && "font-semibold text-orange-700 dark:text-orange-300",
+              "block px-2 py-1.5 text-right font-mono text-[12px] tabular-nums",
+              loss
+                ? "font-semibold text-orange-800 dark:text-orange-300"
+                : stockInk,
             )}
           >
             {fmtMoney(row.sellPrice, currency)}
           </span>
         )}
       </td>
-      <td className={cn(supTableCell, "w-[5rem] p-0 align-middle")}>
+      <td className={cn(stockCell, "w-[4.75rem] p-0")}>
         {showCost ? (
           <input
             type="number"
@@ -665,35 +691,34 @@ function StockRowItem({
               if (e.key === "Enter") onSaveEdit();
               if (e.key === "Escape") onCancelEdit();
             }}
-            className={cn(
-              catalogCellMoneyInput,
-              "disabled:opacity-60",
-            )}
+            className={cn(catalogCellMoneyInput, "disabled:opacity-60")}
             placeholder="Cost"
             aria-label={`Unit cost for ${row.name}`}
           />
         ) : (
-          <span className="block px-2.5 py-1.5 text-right text-muted-foreground">—</span>
+          <span className={cn("block px-2 py-1.5 text-right text-[12px]", stockMute)}>
+            —
+          </span>
         )}
       </td>
-      <td className={cn(supTableCell, "w-[4.25rem]")}>
+      <td className={cn(stockCell, "w-[3.75rem]")}>
         <span
           className={cn(
-            "inline-flex items-center border px-1.5 py-px text-[10px] font-semibold tracking-[-0.02em]",
+            "inline-flex min-w-[2.25rem] items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
             statusClass,
           )}
         >
           {statusLabel}
         </span>
       </td>
-      <td className={cn(supTableCell, "w-[4.5rem] p-0 text-right align-middle")}>
+      <td className={cn(stockCell, "w-[4rem] p-0 text-right")}>
         {editing ? (
-          <div className="flex items-center justify-end gap-0 border-l border-border">
+          <div className="flex items-center justify-end">
             <button
               type="button"
               onClick={onSaveEdit}
               disabled={saving || !editQty.trim()}
-              className="inline-flex size-8 items-center justify-center border-r border-border bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+              className="inline-flex size-8 items-center justify-center bg-[var(--pos-primary,#0f766e)] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
               aria-label="Save stock"
             >
               <Check className="size-3.5" aria-hidden />
@@ -702,7 +727,11 @@ function StockRowItem({
               type="button"
               onClick={onCancelEdit}
               disabled={saving}
-              className="inline-flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground disabled:opacity-40"
+              className={cn(
+                "inline-flex size-8 items-center justify-center transition-colors disabled:opacity-40",
+                stockMute,
+                "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+              )}
               aria-label="Cancel"
             >
               <X className="size-3.5" aria-hidden />
@@ -712,13 +741,17 @@ function StockRowItem({
           <button
             type="button"
             onClick={onStartEdit}
-            className="inline-flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-muted/40 hover:text-primary"
+            className={cn(
+              "inline-flex size-8 items-center justify-center transition-colors",
+              stockMute,
+              "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] hover:text-[var(--pos-primary,#0f766e)]",
+            )}
             aria-label={`Edit stock for ${row.name}`}
           >
             <Pencil className="size-3.5" aria-hidden />
           </button>
         ) : (
-          <span className="block px-2 text-[10px] text-muted-foreground">—</span>
+          <span className={cn("block px-2 text-[10px]", stockMute)}>—</span>
         )}
       </td>
     </tr>
@@ -727,15 +760,16 @@ function StockRowItem({
 
 function StockListSkeleton() {
   return (
-    <div className="border-t border-border">
-      {Array.from({ length: 6 }).map((_, i) => (
+    <div className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+      {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center gap-3 border-b border-border px-2.5 py-2 last:border-b-0"
+          className="flex items-center gap-3 px-3 py-2.5"
         >
-          <div className="h-3.5 w-36 animate-pulse bg-muted" />
-          <div className="h-3.5 w-16 animate-pulse bg-muted" />
-          <div className="ml-auto h-3.5 w-10 animate-pulse bg-muted" />
+          <div className="h-3 w-40 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]" />
+          <div className="h-3 w-20 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]" />
+          <div className="h-3 w-16 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]" />
+          <div className="ml-auto h-3 w-12 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]" />
         </div>
       ))}
     </div>
@@ -800,6 +834,7 @@ export function StockLevelsPage() {
   const hasMoreRef = useRef(false);
   const loadingMoreRef = useRef(false);
   const loadMoreRef = useRef<() => void>(() => {});
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const reorderByItemIdRef = useRef(new Map<string, number>());
   const categoryByItemIdRef = useRef(new Map<string, string>());
@@ -1426,6 +1461,7 @@ export function StockLevelsPage() {
 
   useEffect(() => {
     if (loading || !hasMore) return;
+    const root = scrollRef.current;
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
 
@@ -1435,7 +1471,11 @@ export function StockLevelsPage() {
           loadMoreRef.current();
         }
       },
-      { root: null, rootMargin: "280px 0px", threshold: 0 },
+      {
+        root: root ?? null,
+        rootMargin: "240px 0px",
+        threshold: 0,
+      },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -1478,176 +1518,183 @@ export function StockLevelsPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="flex min-h-0 flex-col overflow-hidden border border-border bg-white">
-        <header className="space-y-1">
+      <div className="flex min-h-0 flex-col gap-1">
+        <header>
           <DashboardPageHero
             compact
             showActiveScope
             icon={Warehouse}
             eyebrow="Inventory"
             title="Stock"
-            description="On-hand by branch. Orange rows sell below buy."
+            description="On-hand by branch. Orange marks sell-below-buy."
           />
           {quickLinks.length > 0 ? (
             <DashboardQuickLinks compact links={quickLinks} />
           ) : null}
         </header>
 
-        <div className={cn(supFilterRail, "flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end")}>
-          {(rows.length > 0 || loading) && (
-            <div
-              className="inline-flex flex-wrap border border-border bg-background p-0.5"
-              role="group"
-              aria-label="Stock summary"
-            >
-              <StockStatCard
-                label="All"
-                value={stockCounts.total}
-                active={statusFilter === "all"}
-                onClick={() => setStatusFilter("all")}
-              />
-              <StockStatCard
-                label="In stock"
-                value={stockCounts.inStock}
-                active={statusFilter === "in_stock"}
-                tone="success"
-                onClick={() => setStatusFilter("in_stock")}
-              />
-              <StockStatCard
-                label="Low"
-                value={stockCounts.low}
-                active={statusFilter === "low"}
-                tone="warning"
-                onClick={() => setStatusFilter("low")}
-              />
-              <StockStatCard
-                label="Out"
-                value={stockCounts.out}
-                active={statusFilter === "out"}
-                tone="danger"
-                onClick={() => setStatusFilter("out")}
-              />
-              <StockStatCard
-                label="Loss"
-                value={stockCounts.loss}
-                active={statusFilter === "loss"}
-                tone="loss"
-                onClick={() => setStatusFilter("loss")}
-              />
-            </div>
+        <div
+          className={cn(
+            "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
           )}
-
-          <div className="flex flex-1 flex-wrap items-end gap-2">
-            <label className="flex min-w-[10rem] flex-1 flex-col gap-1 sm:max-w-[11rem]">
-              <span className={supFieldLabel}>Branch</span>
-              <select
-                value={branchId}
-                onChange={(e) => onChangeBranch(e.target.value)}
-                disabled={isBranchLockedRole}
-                className={cn(
-                  supSelect,
-                  "h-8 bg-background py-0 text-xs disabled:cursor-not-allowed disabled:opacity-60",
-                )}
-                aria-label="Branch"
+        >
+          <div className="flex flex-col gap-2.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-2.5">
+            {(rows.length > 0 || loading) && (
+              <div
+                className="inline-flex w-fit max-w-full flex-wrap border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
+                role="group"
+                aria-label="Stock summary"
               >
-                <option value="">Select branch…</option>
-                {branches
-                  .filter((b) => b.active || b.id === branchId)
-                  .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
-                  .map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
+                <StockStatCard
+                  label="All"
+                  value={stockCounts.total}
+                  active={statusFilter === "all"}
+                  onClick={() => setStatusFilter("all")}
+                />
+                <StockStatCard
+                  label="In stock"
+                  value={stockCounts.inStock}
+                  active={statusFilter === "in_stock"}
+                  tone="success"
+                  onClick={() => setStatusFilter("in_stock")}
+                />
+                <StockStatCard
+                  label="Low"
+                  value={stockCounts.low}
+                  active={statusFilter === "low"}
+                  tone="warning"
+                  onClick={() => setStatusFilter("low")}
+                />
+                <StockStatCard
+                  label="Out"
+                  value={stockCounts.out}
+                  active={statusFilter === "out"}
+                  tone="danger"
+                  onClick={() => setStatusFilter("out")}
+                />
+                <StockStatCard
+                  label="Loss"
+                  value={stockCounts.loss}
+                  active={statusFilter === "loss"}
+                  tone="loss"
+                  onClick={() => setStatusFilter("loss")}
+                />
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="flex min-w-[9.5rem] flex-1 flex-col gap-1 sm:max-w-[11rem]">
+                <span className={supFieldLabel}>Branch</span>
+                <select
+                  value={branchId}
+                  onChange={(e) => onChangeBranch(e.target.value)}
+                  disabled={isBranchLockedRole}
+                  className={cn(
+                    supSelect,
+                    "h-8 bg-white py-0 text-xs disabled:cursor-not-allowed disabled:opacity-60",
+                  )}
+                  aria-label="Branch"
+                >
+                  <option value="">Select branch…</option>
+                  {branches
+                    .filter((b) => b.active || b.id === branchId)
+                    .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
+                    .map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+
+              <label className="flex min-w-[12rem] flex-[2] flex-col gap-1">
+                <span className={supFieldLabel}>Search</span>
+                <span className="relative">
+                  <Search
+                    className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]"
+                    aria-hidden
+                  />
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Name, SKU, barcode…"
+                    className={cn(supInput, "h-8 bg-white py-0 pl-8 text-xs")}
+                    aria-label="Search stock"
+                  />
+                </span>
+              </label>
+
+              <label className="flex min-w-[9.5rem] flex-1 flex-col gap-1 sm:max-w-[11rem]">
+                <span className={supFieldLabel}>Category</span>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className={cn(supSelect, "h-8 bg-white py-0 text-xs")}
+                  aria-label="Category"
+                  disabled={!branchId}
+                >
+                  <option value="">All categories</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
                     </option>
                   ))}
-              </select>
-            </label>
+                </select>
+              </label>
 
-            <label className="flex min-w-[10rem] flex-[2] flex-col gap-1">
-              <span className={supFieldLabel}>Search</span>
-              <span className="relative">
-                <Search
-                  className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              <label className="flex min-w-[10.5rem] flex-1 flex-col gap-1 sm:max-w-[13rem]">
+                <span className={supFieldLabel}>Sort</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as StockSort)}
+                  className={cn(supSelect, "h-8 bg-white py-0 text-xs")}
+                  aria-label="Sort stock"
+                  disabled={!branchId}
+                >
+                  <option value="attention">Needs attention</option>
+                  <option value="sell_desc">Highest selling price</option>
+                  <option value="buy_desc">Highest buying price</option>
+                  <option value="value_desc">Costliest stock value</option>
+                </select>
+              </label>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 shrink-0 gap-1.5 rounded-none px-3"
+                onClick={() => void load()}
+                disabled={loading || !branchId}
+              >
+                <RefreshCw
+                  className={cn("size-3.5", loading && "animate-spin")}
                   aria-hidden
                 />
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Name, SKU, barcode…"
-                  className={cn(supInput, "h-8 bg-background py-0 pl-8 text-xs")}
-                  aria-label="Search stock"
-                />
-              </span>
-            </label>
+                Refresh
+              </Button>
+            </div>
+          </div>
 
-            <label className="flex min-w-[10rem] flex-1 flex-col gap-1 sm:max-w-[11rem]">
-              <span className={supFieldLabel}>Category</span>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className={cn(supSelect, "h-8 bg-background py-0 text-xs")}
-                aria-label="Category"
-                disabled={!branchId}
-              >
-                <option value="">All categories</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+          {error ? (
+            <p className="border-b border-rose-600/20 bg-rose-500/5 px-3 py-2 text-xs text-rose-800 dark:text-rose-300">
+              {error}
+            </p>
+          ) : null}
 
-            <label className="flex min-w-[11rem] flex-1 flex-col gap-1 sm:max-w-[14rem]">
-              <span className={supFieldLabel}>Sort</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as StockSort)}
-                className={cn(supSelect, "h-8 bg-background py-0 text-xs")}
-                aria-label="Sort stock"
-                disabled={!branchId}
-              >
-                <option value="attention">Needs attention</option>
-                <option value="sell_desc">Highest selling price</option>
-                <option value="buy_desc">Highest buying price</option>
-                <option value="value_desc">Costliest stock value</option>
-              </select>
-            </label>
+          {!canWrite && !canCatalogWrite && rows.length > 0 ? (
+            <p className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-1.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+              View-only — ask an admin for stock or catalog edit access.
+            </p>
+          ) : null}
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 shrink-0 gap-1.5 rounded-none px-3"
-              onClick={() => void load()}
-              disabled={loading || !branchId}
-            >
-              <RefreshCw
-                className={cn("size-3.5", loading && "animate-spin")}
+          {!branchId ? (
+            <div className="flex flex-col items-center justify-center gap-2 px-4 py-14 text-center">
+              <Package
+                className="size-7 text-[color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)]"
                 aria-hidden
               />
-              {loading ? "…" : "Refresh"}
-            </Button>
-          </div>
-        </div>
-
-        {error ? (
-          <p className="border-b border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-            {error}
-          </p>
-        ) : null}
-
-        {!canWrite && !canCatalogWrite && rows.length > 0 ? (
-          <p className="border-b border-border px-3 py-1.5 text-[11px] text-muted-foreground">
-            View-only — ask an admin for stock or catalog edit access.
-          </p>
-        ) : null}
-
-        <div className={cn(supWorkspaceShell, "border-0 border-t")}>
-          {!branchId ? (
-            <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
-              <Package className="size-8 text-muted-foreground/40" aria-hidden />
-              <p className="text-sm text-muted-foreground">
+              <p className="max-w-sm text-sm text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                 {isBranchLockedRole
                   ? "Your account is not assigned to a branch. Contact your administrator."
                   : "Choose a branch to see in-store stock."}
@@ -1657,10 +1704,13 @@ export function StockLevelsPage() {
             <StockListSkeleton />
           ) : (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-2.5 py-1.5">
-                <h2 className="text-xs font-medium text-muted-foreground">
-                  {filteredRows.length.toLocaleString("en-KE")} shown
-                  {hasMore || rows.length < totalElements
+              <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-1.5">
+                <p className="text-[11px] tracking-[-0.01em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                  <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                    {filteredRows.length.toLocaleString("en-KE")}
+                  </span>{" "}
+                  shown
+                  {hasMore || (totalElements > 0 && rows.length < totalElements)
                     ? ` · ${rows.length.toLocaleString("en-KE")} loaded${
                         totalElements > 0
                           ? ` of ${totalElements.toLocaleString("en-KE")}`
@@ -1673,86 +1723,89 @@ export function StockLevelsPage() {
                       ? ` · ${statusFilter === "in_stock" ? "in stock" : statusFilter === "low" ? "low stock" : "out of stock"}`
                       : ""}
                   {activeBranchName ? ` · ${activeBranchName}` : ""}
-                </h2>
+                </p>
                 {search.trim() && filteredRows.length !== rows.length ? (
-                  <span className="text-[11px] text-muted-foreground">
-                    {filteredRows.length} of {rows.length} match search
+                  <span className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                    {filteredRows.length} of {rows.length} match
                   </span>
                 ) : null}
               </div>
 
               {filteredRows.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <div className="px-4 py-14 text-center text-sm text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                   {loadingMore || hasMore
                     ? "Loading more products…"
                     : emptyMessage}
                   <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full min-w-[78rem] border-collapse border-0 text-left text-xs">
-                      <thead>
-                        <tr className={supTableHead}>
-                          <th className={cn(supTableCell, "min-w-[10rem]")}>Product</th>
-                          <th className={cn(supTableCell, "min-w-[7rem]")}>Family</th>
-                          <th className={cn(supTableCell, "min-w-[6rem]")}>Variant</th>
-                          <th className={cn(supTableCell, "min-w-[6.5rem]")}>Category</th>
-                          <th className={cn(supTableCell, "min-w-[6.5rem]")}>Department</th>
-                          <th className={cn(supTableCell, "min-w-[6.5rem]")}>Shelf</th>
-                          <th className={cn(supTableCell, "w-[5.5rem] text-right")}>In store</th>
-                          <th className={cn(supTableCell, "w-[4.5rem] text-right")}>Reorder</th>
-                          <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Buy</th>
-                          <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Sell</th>
-                          <th className={cn(supTableCell, "w-[5rem] text-right")}>Unit cost</th>
-                          <th className={cn(supTableCell, "w-[4.25rem]")}>Status</th>
-                          <th className={cn(supTableCell, "w-[4.5rem] text-right")}>Edit</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredRows.map((row) => (
-                          <StockRowItem
-                            key={row.id}
-                            row={row}
-                            currency={currency}
-                            canWrite={canWrite}
-                            canCatalogWrite={canCatalogWrite}
-                            categories={categories}
-                            itemTypes={itemTypes}
-                            aisles={aisles}
-                            editing={editId === row.id}
-                            editQty={editId === row.id ? editQty : ""}
-                            editCost={editId === row.id ? editCost : ""}
-                            saving={savingEdit && editId === row.id}
-                            savingCatalog={savingCatalogId === row.id}
-                            onEditQtyChange={setEditQty}
-                            onEditCostChange={setEditCost}
-                            onStartEdit={() => startEdit(row)}
-                            onCancelEdit={cancelEdit}
-                            onSaveEdit={() => void saveEdit(row)}
-                            onSaveFamily={(value) => void saveFamily(row, value)}
-                            onSaveVariant={(value) => void saveVariant(row, value)}
-                            onSaveCategory={(value) => void saveCategory(row, value)}
-                            onSaveDepartment={(value) =>
-                              void saveDepartment(row, value)
-                            }
-                            onSaveShelf={(value) => void saveShelf(row, value)}
-                            onSaveBuyPrice={(value) => void saveBuyPrice(row, value)}
-                            onSaveSellPrice={(value) => void saveSellPrice(row, value)}
-                          />
-                        ))}
-                      </tbody>
-                    </table>
-                    <div ref={sentinelRef} className="h-8 w-full" aria-hidden />
-                    {loadingMore ? (
-                      <p className="border-t border-border px-2.5 py-2 text-center text-[11px] text-muted-foreground">
-                        Loading more…
-                      </p>
-                    ) : null}
-                    {!hasMore && rows.length > 0 ? (
-                      <p className="border-t border-border px-2.5 py-2 text-center text-[11px] text-muted-foreground">
-                        End of list
-                      </p>
-                    ) : null}
+                <div
+                  ref={scrollRef}
+                  className="max-h-[min(70vh,52rem)] overflow-auto"
+                >
+                  <table className="w-full min-w-[78rem] border-collapse text-left">
+                    <thead>
+                      <tr>
+                        <th className={cn(stockHeadCell, "min-w-[11rem]")}>Product</th>
+                        <th className={cn(stockHeadCell, "min-w-[7rem]")}>Family</th>
+                        <th className={cn(stockHeadCell, "min-w-[6rem]")}>Variant</th>
+                        <th className={cn(stockHeadCell, "min-w-[6.5rem]")}>Category</th>
+                        <th className={cn(stockHeadCell, "min-w-[6.5rem]")}>Department</th>
+                        <th className={cn(stockHeadCell, "min-w-[6.5rem]")}>Shelf</th>
+                        <th className={cn(stockHeadCell, "w-[5.25rem] text-right")}>In store</th>
+                        <th className={cn(stockHeadCell, "w-[4.25rem] text-right")}>Reorder</th>
+                        <th className={cn(stockHeadCell, "w-[5.25rem] text-right")}>Buy</th>
+                        <th className={cn(stockHeadCell, "w-[5.25rem] text-right")}>Sell</th>
+                        <th className={cn(stockHeadCell, "w-[4.75rem] text-right")}>Unit cost</th>
+                        <th className={cn(stockHeadCell, "w-[3.75rem]")}>Status</th>
+                        <th className={cn(stockHeadCell, "w-[4rem] text-right")}>Edit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRows.map((row) => (
+                        <StockRowItem
+                          key={row.id}
+                          row={row}
+                          currency={currency}
+                          canWrite={canWrite}
+                          canCatalogWrite={canCatalogWrite}
+                          categories={categories}
+                          itemTypes={itemTypes}
+                          aisles={aisles}
+                          editing={editId === row.id}
+                          editQty={editId === row.id ? editQty : ""}
+                          editCost={editId === row.id ? editCost : ""}
+                          saving={savingEdit && editId === row.id}
+                          savingCatalog={savingCatalogId === row.id}
+                          onEditQtyChange={setEditQty}
+                          onEditCostChange={setEditCost}
+                          onStartEdit={() => startEdit(row)}
+                          onCancelEdit={cancelEdit}
+                          onSaveEdit={() => void saveEdit(row)}
+                          onSaveFamily={(value) => void saveFamily(row, value)}
+                          onSaveVariant={(value) => void saveVariant(row, value)}
+                          onSaveCategory={(value) => void saveCategory(row, value)}
+                          onSaveDepartment={(value) =>
+                            void saveDepartment(row, value)
+                          }
+                          onSaveShelf={(value) => void saveShelf(row, value)}
+                          onSaveBuyPrice={(value) => void saveBuyPrice(row, value)}
+                          onSaveSellPrice={(value) => void saveSellPrice(row, value)}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                  <div ref={sentinelRef} className="h-10 w-full" aria-hidden />
+                  {loadingMore ? (
+                    <p className="border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-2 text-center text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                      Loading more…
+                    </p>
+                  ) : null}
+                  {!hasMore && rows.length > 0 ? (
+                    <p className="border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-2 text-center text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+                      End of list
+                    </p>
+                  ) : null}
                 </div>
               )}
             </>
