@@ -177,7 +177,9 @@ function lineTotal(
   qty: number,
   pack: OrderCartPackSelection | null = null,
   priceOverride: number | null = null,
+  totalOverride: number | null = null,
 ): number {
+  if (totalOverride != null && totalOverride > 0) return totalOverride;
   return packUnitPrice(link, pack, priceOverride) * qty;
 }
 
@@ -217,6 +219,31 @@ function snapAmount(
 
 function amountsMatch(a: number, b: number): boolean {
   return Math.abs(a - b) < 0.0005;
+}
+
+/** Button label = the money you get, not an abstract precision code. */
+function formatSnapTarget(
+  amount: number,
+  mode: Exclude<OrderRoundMode, "exact">,
+): string {
+  if (mode === "2dp") return amount.toFixed(2);
+  if (mode === "1dp") return amount.toFixed(1);
+  return String(Math.round(amount));
+}
+
+/** Show unit prices without dumping float noise into the field. */
+function formatUnitPriceDisplay(price: number): string {
+  if (!(price > 0)) return "";
+  const rounded = Math.round(price * 10000) / 10000;
+  if (rounded > 0) return String(rounded);
+  return price.toFixed(6).replace(/\.?0+$/, "") || "0";
+}
+
+function formatLineTotalDisplay(amount: number): string {
+  if (!(amount > 0)) return "";
+  const rounded = Math.round(amount * 10000) / 10000;
+  if (Number.isInteger(rounded)) return String(rounded);
+  return String(rounded);
 }
 
 function roundModeTicketParam(
@@ -333,6 +360,10 @@ export function TenantOrderWorkspace({
   const [totalDraftByItemId, setTotalDraftByItemId] = useState<
     Record<string, string>
   >({});
+  /** Authoritative line totals after a cash snap / typed total (unit×qty can lose cents). */
+  const [totalOverrideByItemId, setTotalOverrideByItemId] = useState<
+    Record<string, number>
+  >({});
   const [packSheetItemId, setPackSheetItemId] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
   const [whatsapping, setWhatsapping] = useState(false);
@@ -434,6 +465,7 @@ export function TenantOrderWorkspace({
     setPriceByItemId({});
     setPriceDraftByItemId({});
     setTotalDraftByItemId({});
+    setTotalOverrideByItemId({});
     setLineOrder([]);
     setFlashItemId(null);
   }, []);
@@ -570,6 +602,9 @@ export function TenantOrderWorkspace({
     setCart(cartsBySupplierRef.current[supplierId] ?? {});
     setPackByItemId(packsBySupplierRef.current[supplierId] ?? {});
     setPriceByItemId(pricesBySupplierRef.current[supplierId] ?? {});
+    setTotalOverrideByItemId({});
+    setPriceDraftByItemId({});
+    setTotalDraftByItemId({});
     setLineOrder(cartItemIds(cartsBySupplierRef.current[supplierId] ?? {}));
     void reloadSupplierLinks();
   }, [supplierId, reloadSupplierLinks]);
@@ -596,6 +631,7 @@ export function TenantOrderWorkspace({
     setLineOrder(cartItemIds(result.cart));
     setPackByItemId(result.packs);
     setPriceByItemId({});
+    setTotalOverrideByItemId({});
     setMobileOrderOpen(true);
     if (result.missed.length > 0) {
       toast.message(
@@ -628,6 +664,7 @@ export function TenantOrderWorkspace({
     setLineOrder(cartItemIds(result.cart));
     setPackByItemId(result.packs);
     setPriceByItemId(result.prices);
+    setTotalOverrideByItemId({});
     setMobileOrderOpen(true);
     if (result.missed > 0) {
       toast.message(
@@ -696,6 +733,7 @@ export function TenantOrderWorkspace({
       setLineOrder(cartItemIds(result.cart));
       setPackByItemId(result.packs);
       setPriceByItemId(result.prices);
+      setTotalOverrideByItemId({});
       setMobileOrderOpen(true);
       if (result.missed > 0) {
         toast.message(
@@ -831,6 +869,7 @@ export function TenantOrderWorkspace({
         pack: packByItemId[l.itemId] ?? null,
         packOptionId: packByItemId[l.itemId]?.packOptionId ?? null,
         priceOverride: priceByItemId[l.itemId] ?? null,
+        totalOverride: totalOverrideByItemId[l.itemId] ?? null,
       }));
     const rank = new Map(lineOrder.map((id, i) => [id, i]));
     return lines.sort((a, b) => {
@@ -841,12 +880,19 @@ export function TenantOrderWorkspace({
       if (ib == null) return -1;
       return ia - ib;
     });
-  }, [links, cart, packByItemId, priceByItemId, lineOrder]);
+  }, [links, cart, packByItemId, priceByItemId, totalOverrideByItemId, lineOrder]);
 
   const cartUnits = cartLines.reduce((sum, line) => sum + line.qty, 0);
   const cartTotal = cartLines.reduce(
     (sum, line) =>
-      sum + lineTotal(line.link, line.qty, line.pack, line.priceOverride),
+      sum +
+      lineTotal(
+        line.link,
+        line.qty,
+        line.pack,
+        line.priceOverride,
+        line.totalOverride,
+      ),
     0,
   );
 
@@ -952,6 +998,7 @@ export function TenantOrderWorkspace({
     setLineOrder(cartItemIds(result.cart));
     setPackByItemId(result.packs);
     setPriceByItemId({});
+    setTotalOverrideByItemId({});
     setImportOpen(false);
     setImportText("");
     setMobileOrderOpen(true);
@@ -976,15 +1023,28 @@ export function TenantOrderWorkspace({
       return null;
     }
 
-    const linesToPost = cartLines.map((line) => ({
-      itemId: line.link.itemId,
-      qtyOrdered: stockQtyOrdered(line.qty, line.pack),
-      unitEstimatedCost: stockUnitCost(
+    const linesToPost = cartLines.map((line) => {
+      const qtyOrdered = stockQtyOrdered(line.qty, line.pack);
+      let unitEstimatedCost = stockUnitCost(
         line.link,
         line.pack,
         line.priceOverride,
-      ),
-    }));
+      );
+      // Prefer the snapped line total when unit×qty would lose cents.
+      if (
+        line.totalOverride != null &&
+        line.totalOverride > 0 &&
+        qtyOrdered > 0
+      ) {
+        unitEstimatedCost =
+          Math.round((line.totalOverride / qtyOrdered) * 10000) / 10000;
+      }
+      return {
+        itemId: line.link.itemId,
+        qtyOrdered,
+        unitEstimatedCost,
+      };
+    });
     if (roundingActive && linesToPost.length > 0) {
       const last = linesToPost[linesToPost.length - 1];
       const diff = Math.round((effectiveTotal - cartTotal) * 100) / 100;
@@ -1132,6 +1192,13 @@ export function TenantOrderWorkspace({
       else next[itemId] = qty;
       return next;
     });
+    // Qty change invalidates a snapped total — recompute from unit × qty.
+    setTotalOverrideByItemId((prev) => {
+      if (prev[itemId] == null) return prev;
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
     if (qty <= 0) {
       setLineOrder((prev) => prev.filter((id) => id !== itemId));
       setFlashItemId((id) => (id === itemId ? null : id));
@@ -1187,16 +1254,24 @@ export function TenantOrderWorkspace({
     return () => window.clearTimeout(t);
   }, [flashItemId]);
 
-  const applyLinePrice = (itemId: string, price: number) => {
+  const applyLinePrice = (
+    itemId: string,
+    price: number,
+    /** Keep full float when deriving unit from a snapped line total. */
+    precision = 4,
+  ) => {
     const nextPrice = Number.isFinite(price) ? Math.max(0, price) : 0;
+    const factor = 10 ** Math.max(0, Math.min(10, precision));
+    const stored =
+      nextPrice <= 0 ? 0 : Math.round(nextPrice * factor) / factor;
     setPriceByItemId((prev) => {
-      if (nextPrice <= 0) {
+      if (stored <= 0) {
         if (prev[itemId] == null) return prev;
         const next = { ...prev };
         delete next[itemId];
         return next;
       }
-      return { ...prev, [itemId]: Math.round(nextPrice * 10000) / 10000 };
+      return { ...prev, [itemId]: stored };
     });
     setPackByItemId((prev) => {
       const pack = prev[itemId];
@@ -1205,14 +1280,24 @@ export function TenantOrderWorkspace({
         ...prev,
         [itemId]: {
           ...pack,
-          price: nextPrice > 0 ? Math.round(nextPrice * 10000) / 10000 : null,
+          price: stored > 0 ? stored : null,
         },
       };
     });
   };
 
+  const clearTotalOverride = (itemId: string) => {
+    setTotalOverrideByItemId((prev) => {
+      if (prev[itemId] == null) return prev;
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
+  };
+
   const setLinePrice = (itemId: string, price: number) => {
     applyLinePrice(itemId, price);
+    clearTotalOverride(itemId);
     setTotalDraftByItemId((prev) => {
       if (prev[itemId] == null) return prev;
       const next = { ...prev };
@@ -1223,20 +1308,36 @@ export function TenantOrderWorkspace({
 
   const setLineTotal = (itemId: string, total: number, qty: number) => {
     if (!(qty > 0)) return;
-    const unit = Math.round((Math.max(0, total) / qty) * 10000) / 10000;
-    applyLinePrice(itemId, unit);
+    const snapped = Math.max(0, total);
+    // Exact division — do not 4dp-round or 15 × 3.3333 quietly undoes a 50 snap.
+    const unit = snapped / qty;
+    applyLinePrice(itemId, unit, 8);
+    setTotalOverrideByItemId((prev) => ({ ...prev, [itemId]: snapped }));
     setPriceDraftByItemId((prev) => {
       if (prev[itemId] == null) return prev;
       const next = { ...prev };
       delete next[itemId];
       return next;
     });
+    setTotalDraftByItemId((prev) => {
+      if (prev[itemId] == null) return prev;
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
+    setFlashItemId(itemId);
   };
 
   const snapLinesToMode = (mode: Exclude<OrderRoundMode, "exact">) => {
     let changed = 0;
-    for (const { link, qty, pack, priceOverride } of cartLines) {
-      const amount = lineTotal(link, qty, pack, priceOverride);
+    for (const { link, qty, pack, priceOverride, totalOverride } of cartLines) {
+      const amount = lineTotal(
+        link,
+        qty,
+        pack,
+        priceOverride,
+        totalOverride,
+      );
       const snapped = snapAmount(amount, mode);
       if (snapped == null || amountsMatch(snapped, amount)) continue;
       setLineTotal(link.itemId, snapped, qty);
@@ -1255,6 +1356,12 @@ export function TenantOrderWorkspace({
 
   const selectPack = useCallback(
     (itemId: string, packOptionId: string | null) => {
+      setTotalOverrideByItemId((prev) => {
+        if (prev[itemId] == null) return prev;
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
       setPackByItemId((prev) => {
         const link = links.find((l) => l.itemId === itemId);
         if (!link) return prev;
@@ -1322,23 +1429,37 @@ export function TenantOrderWorkspace({
           </div>
         </div>
       ) : (
-        cartLines.map(({ link, qty, pack, priceOverride }) => {
+        cartLines.map(({ link, qty, pack, priceOverride, totalOverride }) => {
           const packed = pack != null && pack.size > 1;
           const price = packUnitPrice(link, pack, priceOverride);
-          const amount = lineTotal(link, qty, pack, priceOverride);
+          const amount = lineTotal(
+            link,
+            qty,
+            pack,
+            priceOverride,
+            totalOverride,
+          );
           const packs = linkPacks(link);
-          const lineSnapModes = (
-            snapMode
-              ? [snapMode]
-              : (["2dp", "1dp", "whole"] as const)
-          ).flatMap((mode) => {
+          const lineSnapModes: {
+            mode: Exclude<OrderRoundMode, "exact">;
+            snapped: number;
+            onSnap: boolean;
+          }[] = [];
+          const seenSnap = new Set<string>();
+          for (const mode of ["2dp", "1dp", "whole"] as const) {
             const snapped = snapAmount(amount, mode);
-            if (snapped == null) return [];
-            const onSnap = amountsMatch(snapped, amount);
-            // In the fan (as-is), only offer snaps that actually change the line.
-            if (snapMode == null && onSnap) return [];
-            return [{ mode, snapped, onSnap }];
-          });
+            if (snapped == null) continue;
+            const key = snapped.toFixed(4);
+            if (seenSnap.has(key)) continue;
+            seenSnap.add(key);
+            lineSnapModes.push({
+              mode,
+              snapped,
+              onSnap: amountsMatch(snapped, amount),
+            });
+          }
+          const showLineSnaps =
+            lineSnapModes.some((m) => !m.onSnap) || totalOverride != null;
           const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
           return (
             <div
@@ -1381,20 +1502,15 @@ export function TenantOrderWorkspace({
                         </p>
                       ) : null}
                     </div>
-                    <div className="flex max-w-[46%] shrink-0 flex-wrap items-start justify-end gap-1">
-                      {lineSnapModes.length > 0 ? (
+                    <div className="flex max-w-[52%] shrink-0 flex-wrap items-start justify-end gap-1">
+                      {showLineSnaps && lineSnapModes.length > 0 ? (
                         <div
                           className="inline-flex max-w-full items-stretch overflow-hidden rounded-none border border-[var(--pos-primary,#0f766e)]"
                           role="group"
-                          aria-label={`Snap ${link.itemName} total`}
+                          aria-label={`Round ${link.itemName} line total`}
                         >
                           {lineSnapModes.map(({ mode, snapped, onSnap }) => {
-                            const label =
-                              mode === "2dp"
-                                ? ".00"
-                                : mode === "1dp"
-                                  ? ".0"
-                                  : "1";
+                            const label = formatSnapTarget(snapped, mode);
                             return (
                               <button
                                 key={mode}
@@ -1404,7 +1520,7 @@ export function TenantOrderWorkspace({
                                   setLineTotal(link.itemId, snapped, qty)
                                 }
                                 className={cn(
-                                  "inline-flex h-7 min-w-0 max-w-[3.25rem] items-center justify-center px-1 font-mono text-[10px] font-bold tabular-nums transition-colors",
+                                  "inline-flex h-7 min-w-0 max-w-[4.25rem] flex-col items-center justify-center px-1.5 leading-none transition-colors",
                                   lineSnapModes.length > 1 &&
                                     "border-r border-[var(--pos-primary,#0f766e)] last:border-r-0",
                                   onSnap
@@ -1413,17 +1529,19 @@ export function TenantOrderWorkspace({
                                 )}
                                 aria-label={
                                   onSnap
-                                    ? `${link.itemName} already at ${formatMoney(snapped, ORDER_CURRENCY)}`
-                                    : `Snap ${link.itemName} to ${formatMoney(snapped, ORDER_CURRENCY)}`
+                                    ? `${link.itemName} line total is ${label}`
+                                    : `Round ${link.itemName} line total to ${label}`
                                 }
                                 aria-pressed={onSnap}
                                 title={
                                   onSnap
-                                    ? `On ${label}`
-                                    : `Snap line to ${formatMoney(snapped, ORDER_CURRENCY)} (${label})`
+                                    ? `Line total is ${label}`
+                                    : `Round line total to ${label}`
                                 }
                               >
-                                <span className="truncate">{label}</span>
+                                <span className="truncate font-mono text-[10px] font-bold tabular-nums">
+                                  {label}
+                                </span>
                               </button>
                             );
                           })}
@@ -1539,15 +1657,14 @@ export function TenantOrderWorkspace({
                       aria-label={packed ? "Pack price" : "Unit price"}
                       value={
                         priceDraftByItemId[link.itemId] ??
-                        (price > 0 ? String(price) : "")
+                        formatUnitPriceDisplay(price)
                       }
                       placeholder="0"
                       onFocus={() => {
                         setPriceDraftByItemId((prev) => ({
                           ...prev,
                           [link.itemId]:
-                            prev[link.itemId] ??
-                            (price > 0 ? String(price) : ""),
+                            prev[link.itemId] ?? formatUnitPriceDisplay(price),
                         }));
                         setTotalDraftByItemId((prev) => {
                           if (prev[link.itemId] == null) return prev;
@@ -1600,14 +1717,17 @@ export function TenantOrderWorkspace({
                       Line total
                     </span>
                     <input
-                      className="h-8 w-[4.75rem] max-w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
+                      className={cn(
+                        "h-8 w-[4.75rem] max-w-full rounded-none border bg-white px-1.5 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]",
+                        totalOverride != null
+                          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]"
+                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+                      )}
                       inputMode="decimal"
                       aria-label="Line total"
                       value={
                         totalDraftByItemId[link.itemId] ??
-                        (amount > 0
-                          ? String(Math.round(amount * 10000) / 10000)
-                          : "")
+                        formatLineTotalDisplay(amount)
                       }
                       placeholder="0"
                       onFocus={() => {
@@ -1615,9 +1735,7 @@ export function TenantOrderWorkspace({
                           ...prev,
                           [link.itemId]:
                             prev[link.itemId] ??
-                            (amount > 0
-                              ? String(Math.round(amount * 10000) / 10000)
-                              : ""),
+                            formatLineTotalDisplay(amount),
                         }));
                         setPriceDraftByItemId((prev) => {
                           if (prev[link.itemId] == null) return prev;
