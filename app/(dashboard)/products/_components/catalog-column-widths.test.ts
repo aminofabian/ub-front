@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   CATALOG_COL_WIDTH_DEFAULTS,
+  buildCatalogGridTemplateColumns,
   clampCatalogColWidth,
   parseCatalogColumnWidths,
 } from "./catalog-column-widths";
@@ -28,5 +29,23 @@ describe("catalog-column-widths", () => {
       sell: 80,
       category: 100,
     });
+  });
+
+  it("builds shared grid template for every row", () => {
+    expect(
+      buildCatalogGridTemplateColumns({
+        check: 22,
+        stock: 40,
+        sell: 56,
+        category: 72,
+      }),
+    ).toBe("22px minmax(0, 1fr) 40px 56px 72px");
+
+    expect(
+      buildCatalogGridTemplateColumns(
+        { check: 22, stock: 40, sell: 56, category: 72 },
+        { showCategory: false },
+      ),
+    ).toBe("22px minmax(0, 1fr) 40px 56px 0px");
   });
 });

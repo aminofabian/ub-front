@@ -5,15 +5,13 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { cn } from "@/lib/utils";
 
 import { catalogColResizeHandleClass } from "./catalog-list-styles";
-import type { CatalogResizableCol } from "./catalog-column-widths";
-
-type ResizeEdge = CatalogResizableCol | "product";
+import type { CatalogResizeEdge } from "./use-catalog-column-widths";
 
 type CatalogColResizeHandleProps = {
-  edge: ResizeEdge;
+  edge: CatalogResizeEdge;
   label: string;
   onResizeStart: (
-    edge: ResizeEdge,
+    edge: CatalogResizeEdge,
     event: ReactPointerEvent<HTMLElement>,
   ) => void;
   onReset?: () => void;

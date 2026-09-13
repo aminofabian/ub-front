@@ -250,10 +250,11 @@ export const VirtualizedCatalogBody = forwardRef<
   }, [density, rows.length, virtualizer]);
 
   return (
-    <div className={catalogListShellClass} style={gridStyle}>
+    <div className={catalogListShellClass}>
       {catalogEmpty ? null : (
         <div
           className={cn(catalogListGridClass, catalogListHeaderRowClass)}
+          style={gridStyle}
           role="row"
           aria-label="Catalog columns"
         >
@@ -529,6 +530,7 @@ export const VirtualizedCatalogBody = forwardRef<
                       catalogRowInteractionClasses(tone, rowInteraction),
                       row.active === false && "opacity-50",
                     )}
+                    style={gridStyle}
                     onClick={() => onRowClick(row.id)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {

@@ -82,7 +82,17 @@ export function writeCatalogColumnWidths(widths: CatalogColumnWidths): void {
   }
 }
 
-/** CSS custom properties consumed by `catalogListGridClass`. */
+/** Inline grid tracks — applied to every header/row so resize updates the whole sheet. */
+export function buildCatalogGridTemplateColumns(
+  widths: CatalogColumnWidths,
+  opts?: { showCategory?: boolean },
+): string {
+  const showCategory = opts?.showCategory ?? true;
+  const category = showCategory ? `${widths.category}px` : "0px";
+  return `${widths.check}px minmax(0, 1fr) ${widths.stock}px ${widths.sell}px ${category}`;
+}
+
+/** @deprecated Prefer buildCatalogGridTemplateColumns — kept for any CSS-var consumers. */
 export function catalogColumnWidthVars(
   widths: CatalogColumnWidths,
 ): Record<string, string> {

@@ -13,9 +13,11 @@ type CatalogDensity = "comfortable" | "dense";
 function CatalogListSkeletonRow({
   density,
   withBlockGap,
+  gridStyle,
 }: {
   density: CatalogDensity;
   withBlockGap: boolean;
+  gridStyle?: CSSProperties;
 }) {
   const minH = catalogRowHeightPx("standalone", density, {
     startsParentBlock: withBlockGap,
@@ -25,7 +27,7 @@ function CatalogListSkeletonRow({
   return (
     <div
       className={cn(catalogListGridClass, withBlockGap && "mt-4 first:mt-0")}
-      style={{ minHeight: minH }}
+      style={{ ...gridStyle, minHeight: minH }}
       role="row"
       aria-hidden
     >
@@ -69,17 +71,13 @@ export function CatalogListSkeleton({
   style?: CSSProperties;
 }) {
   return (
-    <div
-      className="py-0"
-      style={style}
-      aria-busy="true"
-      aria-label="Loading catalog"
-    >
+    <div className="py-0" aria-busy="true" aria-label="Loading catalog">
       {Array.from({ length: count }, (_, i) => (
         <CatalogListSkeletonRow
           key={i}
           density={density}
           withBlockGap={i > 0 && i % 4 === 0}
+          gridStyle={style}
         />
       ))}
     </div>

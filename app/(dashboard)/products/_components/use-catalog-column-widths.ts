@@ -3,15 +3,18 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
+import { useMediaXl } from "@/hooks/use-media-xl";
+
 import {
   CATALOG_COL_WIDTH_DEFAULTS,
-  catalogColumnWidthVars,
+  buildCatalogGridTemplateColumns,
   clampCatalogColWidth,
   readCatalogColumnWidths,
   writeCatalogColumnWidths,
@@ -19,13 +22,15 @@ import {
   type CatalogResizableCol,
 } from "./catalog-column-widths";
 
-type ResizeEdge = CatalogResizableCol | "product";
+export type CatalogResizeEdge = CatalogResizableCol | "product";
 
 /**
  * Spreadsheet column widths for the catalog list.
  * Product stays `1fr` (fills leftover); dragging its right edge shrinks/grows Qty.
+ * Every row shares the same `gridTemplateColumns` so the whole sheet moves together.
  */
 export function useCatalogColumnWidths() {
+  const isXl = useMediaXl();
   const [widths, setWidths] = useState<CatalogColumnWidths>(
     CATALOG_COL_WIDTH_DEFAULTS,
   );
@@ -52,20 +57,19 @@ export function useCatalogColumnWidths() {
   );
 
   const beginResize = useCallback(
-    (edge: ResizeEdge, event: ReactPointerEvent<HTMLElement>) => {
+    (edge: CatalogResizeEdge, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
 
       const startX = event.clientX;
       const start = { ...widthsRef.current };
-      const target = event.currentTarget;
-      const pointerId = event.pointerId;
-      target.setPointerCapture(pointerId);
+
       document.body.style.cursor = "col-resize";
       document.body.style.userSelect = "none";
 
       const onMove = (moveEvent: PointerEvent) => {
+        moveEvent.preventDefault();
         const delta = moveEvent.clientX - startX;
         const next = { ...start };
 
@@ -82,31 +86,37 @@ export function useCatalogColumnWidths() {
         widthsRef.current = next;
       };
 
-      const onUp = (upEvent: PointerEvent) => {
-        target.releasePointerCapture(pointerId);
-        target.removeEventListener("pointermove", onMove);
-        target.removeEventListener("pointerup", onUp);
-        target.removeEventListener("pointercancel", onUp);
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
         writeCatalogColumnWidths(widthsRef.current);
-        void upEvent;
       };
 
-      target.addEventListener("pointermove", onMove);
-      target.addEventListener("pointerup", onUp);
-      target.addEventListener("pointercancel", onUp);
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
     },
     [],
   );
 
-  const gridStyle = {
-    ...catalogColumnWidthVars(widths),
-  } as CSSProperties;
+  const gridTemplateColumns = useMemo(
+    () =>
+      buildCatalogGridTemplateColumns(widths, { showCategory: isXl }),
+    [widths, isXl],
+  );
+
+  const gridStyle = useMemo(
+    (): CSSProperties => ({ gridTemplateColumns }),
+    [gridTemplateColumns],
+  );
 
   return {
     widths,
     gridStyle,
+    gridTemplateColumns,
     beginResize,
     resetColumn,
   };

@@ -142,23 +142,18 @@ export const catalogListHeaderRowClass = cn(
 
 /**
  * Spreadsheet grid — last column has no right border (flush to edge).
- * Widths come from CSS vars (`--cat-col-*`) set by useCatalogColumnWidths.
- * mobile — # · Product · Qty · Price
- * xl+ — + Category
+ * Column tracks come from inline `gridTemplateColumns` (see useCatalogColumnWidths).
  */
 export const catalogListGridClass =
-  "grid w-full min-w-0 max-w-full items-stretch gap-0 " +
-  "grid-cols-[var(--cat-col-check)_minmax(0,1fr)_var(--cat-col-stock)_var(--cat-col-sell)] " +
-  "sm:grid-cols-[var(--cat-col-check)_minmax(0,1fr)_var(--cat-col-stock)_var(--cat-col-sell)_0px] " +
-  "xl:grid-cols-[var(--cat-col-check)_minmax(0,1fr)_var(--cat-col-stock)_var(--cat-col-sell)_var(--cat-col-category)]";
+  "grid w-full min-w-0 max-w-full items-stretch gap-0";
 
 /** Drag handle on the right edge of a catalog header cell. */
 export const catalogColResizeHandleClass = cn(
-  "absolute inset-y-0 right-0 z-20 w-1.5 translate-x-1/2 cursor-col-resize touch-none",
-  "opacity-0 transition-opacity",
+  "absolute inset-y-0 -right-1 z-20 w-2.5 cursor-col-resize touch-none",
+  "opacity-60 transition-opacity",
   "hover:opacity-100 group-hover/cat-col:opacity-100",
-  "before:absolute before:inset-y-0 before:left-1/2 before:w-px before:-translate-x-1/2",
-  "before:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_18%,transparent)]",
+  "before:absolute before:inset-y-1 before:left-1/2 before:w-0.5 before:-translate-x-1/2 before:rounded-full",
+  "before:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_28%,transparent)]",
   "hover:before:bg-[var(--catalog-primary,#0f766e)]",
   "active:before:bg-[var(--catalog-primary,#0f766e)]",
   "focus-visible:opacity-100 focus-visible:outline-none",
