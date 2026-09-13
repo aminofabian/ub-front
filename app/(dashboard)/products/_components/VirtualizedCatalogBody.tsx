@@ -28,6 +28,7 @@ import {
   resolveCatalogVariantListTitle,
 } from "@/lib/catalog-display";
 import { CatalogColResizeHandle } from "./CatalogColResizeHandle";
+import { CATALOG_COL_WIDTHS_RESTORE_SCRIPT } from "./catalog-column-widths";
 import { CatalogListSkeleton } from "./CatalogListSkeleton";
 import { CatalogListThumb } from "./CatalogListThumb";
 import sheetStyles from "./catalog-list-grid.module.css";
@@ -257,6 +258,12 @@ export const VirtualizedCatalogBody = forwardRef<
       ref={shellRef}
       className={cn(catalogListShellClass, sheetStyles.shell)}
     >
+      {/* Restores persisted widths before the sheet's first paint. */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: CATALOG_COL_WIDTHS_RESTORE_SCRIPT,
+        }}
+      />
       <div
         ref={guideRef}
         className={sheetStyles.guide}
@@ -375,7 +382,7 @@ export const VirtualizedCatalogBody = forwardRef<
 
       <div
         ref={parentRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth"
+        className="min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain scroll-smooth"
         tabIndex={-1}
         onScroll={(event) => checkLoadMore(event.currentTarget)}
       >

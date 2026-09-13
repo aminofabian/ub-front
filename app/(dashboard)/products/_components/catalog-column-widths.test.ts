@@ -2,6 +2,8 @@ import { describe, expect, it } from "bun:test";
 
 import {
   CATALOG_COL_WIDTH_DEFAULTS,
+  CATALOG_COL_WIDTHS_RESTORE_SCRIPT,
+  CATALOG_COL_WIDTHS_STORAGE_KEY,
   catalogSheetMinWidthPx,
   clampCatalogColWidth,
   parseCatalogColumnWidths,
@@ -46,5 +48,106 @@ describe("catalog-column-widths", () => {
         false,
       ),
     ).toBe(414);
+  });
+
+  it("restore script paints clamped widths onto its parent element", () => {
+    const painted: Array<[string, string]> = [];
+    const shell = {
+      style: {
+        setProperty: (key: string, value: string) => {
+          painted.push([key, value]);
+        },
+      },
+    };
+    const globals = globalThis as Record<string, unknown>;
+    const prevWindow = globals.window;
+    const prevDocument = globals.document;
+    globals.window = {
+      localStorage: {
+        getItem: (key: string) =>
+          key === CATALOG_COL_WIDTHS_STORAGE_KEY
+            ? JSON.stringify({ product: 400, stock: 9999, junk: "x" })
+            : null,
+      },
+      matchMedia: (query: string) => ({
+        matches: query.includes("min-width"),
+      }),
+    };
+    globals.document = { currentScript: { parentElement: shell } };
+
+    try {
+      new Function(CATALOG_COL_WIDTHS_RESTORE_SCRIPT)();
+    } finally {
+      globals.window = prevWindow;
+      globals.document = prevDocument;
+    }
+
+    // Stored product kept, stock clamped to max, junk key falls back to
+    // default, category included at xl, min-width sums every track.
+    expect(painted).toEqual([
+      ["--cat-col-check", "22px"],
+      ["--cat-col-product", "400px"],
+      ["--cat-col-stock", "200px"],
+      ["--cat-col-sell", "64px"],
+      ["--cat-col-category", "96px"],
+      ["--cat-sheet-min-width", "782px"],
+    ]);
+  });
+
+  it("restore script zeroes category below xl and skips when nothing stored", () => {
+    const painted: Array<[string, string]> = [];
+    const shell = {
+      style: {
+        setProperty: (key: string, value: string) => {
+          painted.push([key, value]);
+        },
+      },
+    };
+    const globals = globalThis as Record<string, unknown>;
+    const prevWindow = globals.window;
+    const prevDocument = globals.document;
+    globals.window = {
+      localStorage: {
+        getItem: (key: string) =>
+          key === CATALOG_COL_WIDTHS_STORAGE_KEY
+            ? JSON.stringify({ category: 150 })
+            : null,
+      },
+      matchMedia: () => ({ matches: false }),
+    };
+    globals.document = { currentScript: { parentElement: shell } };
+
+    try {
+      new Function(CATALOG_COL_WIDTHS_RESTORE_SCRIPT)();
+      // Nothing stored → script must leave the CSS defaults untouched.
+      globals.window = {
+        localStorage: { getItem: () => null },
+        matchMedia: () => ({ matches: false }),
+      };
+      const untouched: Array<[string, string]> = [];
+      const bare = {
+        style: {
+          setProperty: (key: string, value: string) => {
+            untouched.push([key, value]);
+          },
+        },
+      };
+      globals.document = { currentScript: { parentElement: bare } };
+      new Function(CATALOG_COL_WIDTHS_RESTORE_SCRIPT)();
+      expect(untouched).toEqual([]);
+    } finally {
+      globals.window = prevWindow;
+      globals.document = prevDocument;
+    }
+
+    // Category track forced to 0 below xl and excluded from the min-width sum.
+    expect(painted).toEqual([
+      ["--cat-col-check", "22px"],
+      ["--cat-col-product", "280px"],
+      ["--cat-col-stock", "48px"],
+      ["--cat-col-sell", "64px"],
+      ["--cat-col-category", "0px"],
+      ["--cat-sheet-min-width", "414px"],
+    ]);
   });
 });

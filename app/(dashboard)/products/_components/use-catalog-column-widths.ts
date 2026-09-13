@@ -40,6 +40,7 @@ export function useCatalogColumnWidths(
   const widthsRef = useRef(widths);
   widthsRef.current = widths;
 
+  const draggingRef = useRef(false);
   const guideRef = useRef<HTMLDivElement | null>(null);
 
   const paint = useCallback(
@@ -85,29 +86,56 @@ export function useCatalogColumnWidths(
   const beginResize = useCallback(
     (edge: CatalogResizeEdge, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
-      event.preventDefault();
-      event.stopPropagation();
+      if (draggingRef.current) return;
 
       const shell = shellRef.current;
       if (!shell) return;
 
+      event.preventDefault();
+      event.stopPropagation();
+
+      const handle = event.currentTarget;
+      const cell = handle.parentElement;
+
+      // Excel anchors the guide to the column boundary, not the pointer —
+      // the grab point inside the hit area must not offset the line.
+      const shellRect = shell.getBoundingClientRect();
+      const startBoundary = cell
+        ? cell.getBoundingClientRect().right - shellRect.left
+        : event.clientX - shellRect.left;
+
+      // Sheet's horizontal scroller, so the guide stays on the boundary if
+      // the sheet is scrolled mid-drag.
+      let scroller: HTMLElement | null = handle;
+      while (scroller && scroller.parentElement !== shell) {
+        scroller = scroller.parentElement;
+      }
+      const startScrollLeft = scroller?.scrollLeft ?? 0;
+
       const startX = event.clientX;
       const start = { ...widthsRef.current };
-      const shellLeft = shell.getBoundingClientRect().left;
 
       let raf = 0;
       let latest = start;
-      let latestGuide = event.clientX - shellLeft;
+      let latestGuide = startBoundary;
 
       const guide = guideRef.current;
       if (guide) {
-        guide.hidden = false;
         guide.style.transform = `translateX(${latestGuide}px)`;
+        guide.hidden = false;
       }
 
+      draggingRef.current = true;
       shell.dataset.resizing = "true";
       document.body.style.cursor = "col-resize";
       document.body.style.userSelect = "none";
+
+      // Keep receiving events if the pointer leaves the window mid-drag.
+      try {
+        handle.setPointerCapture(event.pointerId);
+      } catch {
+        // window listeners below still drive the drag
+      }
 
       const flush = () => {
         raf = 0;
@@ -120,11 +148,15 @@ export function useCatalogColumnWidths(
 
       const onMove = (moveEvent: PointerEvent) => {
         moveEvent.preventDefault();
-        const delta = moveEvent.clientX - startX;
         const next = { ...start };
-        next[edge] = clampCatalogColWidth(edge, start[edge] + delta);
+        // Clamped delta — guide hard-stops at min/max, Excel-style.
+        next[edge] = clampCatalogColWidth(
+          edge,
+          start[edge] + (moveEvent.clientX - startX),
+        );
         latest = next;
-        latestGuide = moveEvent.clientX - shellLeft;
+        const scrollDelta = (scroller?.scrollLeft ?? 0) - startScrollLeft;
+        latestGuide = startBoundary + (next[edge] - start[edge]) - scrollDelta;
         if (!raf) raf = requestAnimationFrame(flush);
       };
 
@@ -137,6 +169,12 @@ export function useCatalogColumnWidths(
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
+        try {
+          handle.releasePointerCapture(event.pointerId);
+        } catch {
+          // capture is released implicitly on pointerup/pointercancel
+        }
+        draggingRef.current = false;
         delete shell.dataset.resizing;
         document.body.style.cursor = "";
         document.body.style.userSelect = "";

@@ -132,3 +132,35 @@ export function applyCatalogColumnWidthsToElement(
     `${catalogSheetMinWidthPx(widths, showCategory)}px`,
   );
 }
+
+/**
+ * Inline script rendered as the list shell's first child: restores persisted
+ * widths before the sheet's first paint, so a reload never flashes default
+ * widths. Runs synchronously at DOM insertion (SSR parse or client mount);
+ * built from the constants above so it cannot drift from the hook's logic.
+ */
+export const CATALOG_COL_WIDTHS_RESTORE_SCRIPT = `(function(){
+try{
+var el=document.currentScript&&document.currentScript.parentElement;
+if(!el)return;
+var raw=window.localStorage.getItem(${JSON.stringify(CATALOG_COL_WIDTHS_STORAGE_KEY)});
+if(!raw)return;
+var w=JSON.parse(raw);
+if(!w||typeof w!=="object")return;
+var d=${JSON.stringify(CATALOG_COL_WIDTH_DEFAULTS)};
+var min=${JSON.stringify(CATALOG_COL_WIDTH_MIN)};
+var max=${JSON.stringify(CATALOG_COL_WIDTH_MAX)};
+var vars=${JSON.stringify(CATALOG_COL_CSS_VARS)};
+var xl=window.matchMedia("(min-width: 1280px)").matches;
+var s=el.style,total=0;
+for(var k in vars){
+var v=w[k];
+if(typeof v!=="number"||!isFinite(v))v=d[k];
+v=Math.round(Math.min(max[k],Math.max(min[k],v)));
+var track=(k==="category"&&!xl)?0:v;
+s.setProperty(vars[k],track+"px");
+total+=track;
+}
+s.setProperty("--cat-sheet-min-width",total+"px");
+}catch(e){}
+})();`;
