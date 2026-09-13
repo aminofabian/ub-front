@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   BadgeCheck,
@@ -67,9 +67,30 @@ import {
   downloadBlob,
   salesActivityPdfFilename,
 } from "@/lib/sales-activity-pdf";
+import { ColumnResizeHandle } from "@/lib/column-resize-handle";
+import sheetStyles from "./transactions-table-columns.module.css";
+import {
+  TX_COL_WIDTHS_RESTORE_SCRIPT,
+  TX_COLUMN_LABELS,
+  type TxResizableCol,
+} from "./transactions-column-widths";
+import { useTxColumnWidths } from "./use-tx-column-widths";
 
 const SURFACE = DASHBOARD_TABLE_SURFACE;
 const MUTED = "text-muted-foreground";
+
+/** Drag handle on the right edge of a transactions header cell. */
+const txColResizeHandleClass = cn(
+  "absolute inset-y-0 -right-1.5 z-20 w-3 cursor-col-resize touch-none",
+  "opacity-0 transition-opacity duration-75",
+  "hover:opacity-100 group-hover/tx-col:opacity-100",
+  "before:absolute before:inset-y-0 before:left-1/2 before:w-0.5 before:-translate-x-1/2",
+  "before:bg-transparent hover:before:bg-[var(--pos-primary,#0f766e)]",
+  "group-hover/tx-col:before:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]",
+  "active:before:bg-[var(--pos-primary,#0f766e)]",
+  "focus-visible:opacity-100 focus-visible:outline-none",
+  "focus-visible:before:bg-[var(--pos-primary,#0f766e)]",
+);
 
 export type { SaleTransaction };
 
@@ -335,7 +356,10 @@ function TransactionRow({
       <button
         type="button"
         onClick={onToggle}
-        className="hidden w-full grid-cols-[2rem_7rem_8rem_minmax(12rem,1.8fr)_minmax(8rem,1fr)_7rem_7rem_8rem] items-center text-left text-xs transition-colors hover:bg-muted/40 md:grid"
+        className={cn(
+          sheetStyles.row,
+          "hidden w-full items-center text-left text-xs transition-colors hover:bg-muted/40 md:grid",
+        )}
         aria-expanded={expanded}
       >
         <span className="flex h-10 items-center justify-center text-muted-foreground">
@@ -523,6 +547,18 @@ export function TransactionsPage() {
   const canVoid =
     hasPermission(me?.permissions, Permission.SalesVoidAny) ||
     hasPermission(me?.permissions, Permission.SalesVoidOwn);
+
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const { guideRef, beginResize, resetColumn } = useTxColumnWidths(shellRef);
+  const renderColHandle = (edge: TxResizableCol) => (
+    <ColumnResizeHandle
+      edge={edge}
+      label={TX_COLUMN_LABELS[edge]}
+      onResizeStart={beginResize}
+      onReset={() => resetColumn(edge)}
+      className={txColResizeHandleClass}
+    />
+  );
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [branchId, setBranchId] = useState("");
@@ -989,38 +1025,84 @@ export function TransactionsPage() {
               {pdfLoading ? "Preparing…" : "Download PDF"}
             </Button>
           </div>
-          <div className="hidden grid-cols-[2rem_7rem_8rem_minmax(12rem,1.8fr)_minmax(8rem,1fr)_7rem_7rem_8rem] items-center border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 text-[9px] font-semibold tracking-[-0.02em] text-muted-foreground md:grid">
-            <span aria-hidden />
-            <span className="py-1.5 pr-3">Receipt</span>
-            <span className="py-1.5 pr-3">Time</span>
-            <span className="py-1.5 pr-4">Items</span>
-            <span className="py-1.5 pr-3">Customer / staff</span>
-            <span className="py-1.5 pr-3">Payment</span>
-            <span className="py-1.5">Status</span>
-            <span className="py-1.5 pr-4 text-right">Total</span>
-          </div>
-          {filtered.map((tx) => (
-            <TransactionRow
-              key={tx.saleId}
-              tx={tx}
-              expanded={expandedId === tx.saleId}
-              onToggle={() =>
-                setExpandedId((id) => (id === tx.saleId ? null : tx.saleId))
-              }
-              nowMs={nowMs}
-              showRelativeTime={isToday}
-              canAdjustPayment={canAdjustPayment}
-              onAdjustPayment={() => {
-                setAdjustSaleId(tx.saleId);
-                setAdjustReceiptLabel(txDisplayNo(tx));
-              }}
-              canVoid={canVoid}
-              onVoid={() => {
-                setVoidSaleId(tx.saleId);
-                setVoidReceiptLabel(txDisplayNo(tx));
+          <div ref={shellRef} className={sheetStyles.shell}>
+            {/* Restores persisted widths before the sheet's first paint. */}
+            <script
+              dangerouslySetInnerHTML={{
+                __html: TX_COL_WIDTHS_RESTORE_SCRIPT,
               }}
             />
-          ))}
+            <div
+              ref={guideRef}
+              className={sheetStyles.guide}
+              hidden
+              aria-hidden
+            />
+            <div className={sheetStyles.sheetScroll}>
+              <div className={sheetStyles.sheetInner}>
+                <div
+                  className={cn(
+                    sheetStyles.row,
+                    "hidden items-center border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 text-[9px] font-semibold tracking-[-0.02em] text-muted-foreground md:grid",
+                  )}
+                >
+                  <span className="group/tx-col relative">
+                    {renderColHandle("chevron")}
+                  </span>
+                  <span className="group/tx-col relative py-1.5 pr-3">
+                    Receipt
+                    {renderColHandle("receipt")}
+                  </span>
+                  <span className="group/tx-col relative py-1.5 pr-3">
+                    Time
+                    {renderColHandle("time")}
+                  </span>
+                  <span className="group/tx-col relative py-1.5 pr-4">
+                    Items
+                    {renderColHandle("items")}
+                  </span>
+                  <span className="group/tx-col relative py-1.5 pr-3">
+                    Customer / staff
+                    {renderColHandle("person")}
+                  </span>
+                  <span className="group/tx-col relative py-1.5 pr-3">
+                    Payment
+                    {renderColHandle("payment")}
+                  </span>
+                  <span className="group/tx-col relative py-1.5">
+                    Status
+                    {renderColHandle("status")}
+                  </span>
+                  <span className="group/tx-col relative py-1.5 pr-4 text-right">
+                    Total
+                    {renderColHandle("total")}
+                  </span>
+                </div>
+                {filtered.map((tx) => (
+                  <TransactionRow
+                    key={tx.saleId}
+                    tx={tx}
+                    expanded={expandedId === tx.saleId}
+                    onToggle={() =>
+                      setExpandedId((id) => (id === tx.saleId ? null : tx.saleId))
+                    }
+                    nowMs={nowMs}
+                    showRelativeTime={isToday}
+                    canAdjustPayment={canAdjustPayment}
+                    onAdjustPayment={() => {
+                      setAdjustSaleId(tx.saleId);
+                      setAdjustReceiptLabel(txDisplayNo(tx));
+                    }}
+                    canVoid={canVoid}
+                    onVoid={() => {
+                      setVoidSaleId(tx.saleId);
+                      setVoidReceiptLabel(txDisplayNo(tx));
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
         </section>
       )}
 

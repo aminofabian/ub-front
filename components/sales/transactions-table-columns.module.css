@@ -1,0 +1,68 @@
+/* Transactions sheet columns — tracks come from CSS vars set on the shell. */
+
+.shell {
+  --tx-col-chevron: 32px;
+  --tx-col-receipt: 112px;
+  --tx-col-time: 128px;
+  --tx-col-items: 240px;
+  --tx-col-person: 144px;
+  --tx-col-payment: 112px;
+  --tx-col-status: 112px;
+  --tx-col-total: 128px;
+  --tx-table-min-width: 1008px;
+  position: relative;
+}
+
+.shell[data-resizing="true"] {
+  cursor: col-resize;
+}
+
+.shell[data-resizing="true"] * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+/* Shared by the header row and every transaction row (md+ grid layout). */
+.row {
+  grid-template-columns:
+    var(--tx-col-chevron)
+    var(--tx-col-receipt)
+    var(--tx-col-time)
+    var(--tx-col-items)
+    var(--tx-col-person)
+    var(--tx-col-payment)
+    var(--tx-col-status)
+    var(--tx-col-total);
+}
+
+.sheetScroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.sheetInner {
+  min-width: 100%;
+}
+
+/* The pixel sheet only applies at md+, where the grid row layout is active;
+   below md the list is stacked cards and must stay fluid. */
+@media (min-width: 768px) {
+  .sheetInner {
+    min-width: max(100%, var(--tx-table-min-width));
+  }
+}
+
+.guide {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--pos-primary, #0f766e);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--pos-primary, #0f766e) 25%, transparent);
+  will-change: transform;
+}
