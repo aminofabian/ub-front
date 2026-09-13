@@ -39,7 +39,10 @@ import {
   type ItemSummaryRecord,
   type ItemTypeRecord,
 } from "@/lib/api";
-import { formatProductNameForCatalog } from "@/lib/catalog-display";
+import {
+  formatProductNameForCatalog,
+  joinProductNameParts,
+} from "@/lib/catalog-display";
 import {
   canEditStockLevels,
   canViewStockLevels,
@@ -158,7 +161,8 @@ function sortStockRows(list: StockRow[], sort: StockSort): StockRow[] {
 function displayItemName(item: ItemSummaryRecord): string {
   const base = item.name?.trim() || item.sku?.trim() || "Unnamed item";
   const suffix = item.size?.trim() || item.variantName?.trim();
-  return suffix ? `${base} ${suffix}` : base;
+  // name is often already family+option from the API; join without repeating.
+  return joinProductNameParts(base, suffix) || base;
 }
 
 function familyNameFromItem(item: ItemSummaryRecord): string | null {
@@ -212,7 +216,7 @@ function composeStockDisplayName(
 ): string {
   const base = familyName?.trim() || fallback.trim() || "Unnamed item";
   const suffix = variantName?.trim();
-  return suffix ? `${base} ${suffix}` : base;
+  return joinProductNameParts(base, suffix) || base;
 }
 
 /** Sell below buy = margin loss (both prices set). */
