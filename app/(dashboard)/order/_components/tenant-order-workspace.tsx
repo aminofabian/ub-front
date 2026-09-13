@@ -502,7 +502,8 @@ export function TenantOrderWorkspace({
           if (fromSid && active.some((s) => s.id === fromSid)) return fromSid;
           return active[0]?.id ?? null;
         });
-        if (initialRoundTo10) setRoundTo10(true);
+        // Legacy `r=10` (nearest ten) — closest available snap is whole units.
+        if (initialRoundTo10) setRoundMode("whole");
       })
       .catch((error) => {
         toast.error(
