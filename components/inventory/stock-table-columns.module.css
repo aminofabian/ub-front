@@ -1,0 +1,43 @@
+/* Stock table spreadsheet columns — tracks come from CSS vars set on the shell. */
+
+.shell {
+  --stock-col-product: 176px;
+  --stock-col-family: 112px;
+  --stock-col-variant: 96px;
+  --stock-col-category: 104px;
+  --stock-col-department: 104px;
+  --stock-col-shelf: 104px;
+  --stock-col-in-store: 84px;
+  --stock-col-reorder: 68px;
+  --stock-col-buy: 84px;
+  --stock-col-sell: 84px;
+  --stock-col-unit-cost: 76px;
+  --stock-col-status: 68px;
+  --stock-col-edit: 84px;
+  --stock-table-min-width: 1244px;
+  position: relative;
+}
+
+.shell[data-resizing="true"] {
+  cursor: col-resize;
+}
+
+.shell[data-resizing="true"] * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+.guide {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--pos-primary, #0f766e);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--pos-primary, #0f766e) 25%, transparent);
+  will-change: transform;
+}

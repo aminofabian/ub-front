@@ -51,6 +51,16 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { textMatchesQuery } from "@/lib/text-search";
+import { ColumnResizeHandle } from "@/lib/column-resize-handle";
+import sheetStyles from "./stock-table-columns.module.css";
+import {
+  STOCK_COL_CSS_VARS,
+  STOCK_COL_WIDTHS_RESTORE_SCRIPT,
+  STOCK_COLUMN_LABELS,
+  STOCK_COLUMN_ORDER,
+  type StockResizableCol,
+} from "./stock-column-widths";
+import { useStockColumnWidths } from "./use-stock-column-widths";
 
 const PAGE_SIZE = 50;
 
@@ -240,7 +250,7 @@ function priceInputValue(n: number | null): string {
 }
 
 const catalogCellInput = cn(
-  "h-8 w-full min-w-[5.5rem] rounded-none border-0 bg-transparent px-2 text-[12px] leading-none",
+  "h-8 w-full rounded-none border-0 bg-transparent px-2 text-[12px] leading-none",
   "text-[var(--order-ink,#15231f)]",
   "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_34%,transparent)]",
   "caret-[var(--pos-primary,#0f766e)]",
@@ -282,6 +292,19 @@ const stockHeadCell = cn(
   "text-[10px] font-semibold tracking-[-0.02em]",
   "text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]",
   "shadow-[inset_0_-1px_0_0_color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+);
+
+/** Drag handle on the right edge of a stock table header cell. */
+const stockColResizeHandleClass = cn(
+  "absolute inset-y-0 -right-1.5 z-20 w-3 cursor-col-resize touch-none",
+  "opacity-0 transition-opacity duration-75",
+  "hover:opacity-100 group-hover/stock-col:opacity-100",
+  "before:absolute before:inset-y-0 before:left-1/2 before:w-0.5 before:-translate-x-1/2",
+  "before:bg-transparent hover:before:bg-[var(--pos-primary,#0f766e)]",
+  "group-hover/stock-col:before:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]",
+  "active:before:bg-[var(--pos-primary,#0f766e)]",
+  "focus-visible:opacity-100 focus-visible:outline-none",
+  "focus-visible:before:bg-[var(--pos-primary,#0f766e)]",
 );
 
 const stockMute =
@@ -463,11 +486,11 @@ function StockRowItem({
           "bg-orange-500/[0.06] hover:bg-orange-500/[0.1] dark:bg-orange-400/[0.09] dark:hover:bg-orange-400/[0.14]",
       )}
     >
-      <td className={cn(stockCell, "min-w-[11rem]")}>
+      <td className={stockCell}>
         <Link
           href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.name)}`}
           className={cn(
-            "block max-w-[17rem] truncate text-[12.5px] font-medium tracking-[-0.01em]",
+            "block truncate text-[12.5px] font-medium tracking-[-0.01em]",
             stockInk,
             "underline-offset-2 hover:text-[var(--pos-primary,#0f766e)] hover:underline",
           )}
@@ -475,7 +498,7 @@ function StockRowItem({
           {row.name}
         </Link>
       </td>
-      <td className={cn(stockCell, "min-w-[7rem] p-0")}>
+      <td className={cn(stockCell, "p-0")}>
         {canCatalogWrite ? (
           <input
             key={`family-${row.id}-${row.familyName ?? ""}`}
@@ -495,12 +518,12 @@ function StockRowItem({
             aria-label={`Family name for ${row.name}`}
           />
         ) : (
-          <span className={cn("block max-w-[10rem] truncate px-2 py-1.5 text-[12px]", stockMute)}>
+          <span className={cn("block truncate px-2 py-1.5 text-[12px]", stockMute)}>
             {row.familyName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "min-w-[6rem] p-0")}>
+      <td className={cn(stockCell, "p-0")}>
         {canCatalogWrite ? (
           <input
             key={`variant-${row.id}-${row.variantName ?? ""}`}
@@ -520,12 +543,12 @@ function StockRowItem({
             aria-label={`Variant name for ${row.name}`}
           />
         ) : (
-          <span className={cn("block max-w-[8rem] truncate px-2 py-1.5 text-[12px]", stockMute)}>
+          <span className={cn("block truncate px-2 py-1.5 text-[12px]", stockMute)}>
             {row.variantName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "min-w-[6.5rem] p-0")}>
+      <td className={cn(stockCell, "p-0")}>
         {canCatalogWrite ? (
           <select
             value={row.categoryId ?? ""}
@@ -542,12 +565,12 @@ function StockRowItem({
             ))}
           </select>
         ) : (
-          <span className={cn("block max-w-[8rem] truncate px-2 py-1.5 text-[12px]", stockMute)}>
+          <span className={cn("block truncate px-2 py-1.5 text-[12px]", stockMute)}>
             {row.categoryName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "min-w-[6.5rem] p-0")}>
+      <td className={cn(stockCell, "p-0")}>
         {canCatalogWrite ? (
           <select
             value={row.itemTypeId ?? ""}
@@ -564,12 +587,12 @@ function StockRowItem({
             ))}
           </select>
         ) : (
-          <span className={cn("block max-w-[8rem] truncate px-2 py-1.5 text-[12px]", stockMute)}>
+          <span className={cn("block truncate px-2 py-1.5 text-[12px]", stockMute)}>
             {row.departmentName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "min-w-[6.5rem] p-0")}>
+      <td className={cn(stockCell, "p-0")}>
         {canCatalogWrite ? (
           <select
             value={row.aisleId ?? ""}
@@ -586,12 +609,12 @@ function StockRowItem({
             ))}
           </select>
         ) : (
-          <span className={cn("block max-w-[8rem] truncate px-2 py-1.5 text-[12px]", stockMute)}>
+          <span className={cn("block truncate px-2 py-1.5 text-[12px]", stockMute)}>
             {row.shelfName ?? "—"}
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "w-[5.25rem] p-0")}>
+      <td className={cn(stockCell, "p-0")}>
         {editing ? (
           <input
             type="number"
@@ -623,12 +646,12 @@ function StockRowItem({
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "w-[4.25rem] text-right font-mono text-[12px] tabular-nums", stockMute)}>
+      <td className={cn(stockCell, "text-right font-mono text-[12px] tabular-nums", stockMute)}>
         {row.reorderLevel != null && row.reorderLevel > 0
           ? row.reorderLevel.toLocaleString("en-KE")
           : "—"}
       </td>
-      <td className={cn(stockCell, "w-[5.25rem] p-0")}>
+      <td className={cn(stockCell, "p-0")}>
         {canCatalogWrite ? (
           <input
             key={`buy-${row.id}-${row.buyPrice ?? ""}`}
@@ -666,7 +689,7 @@ function StockRowItem({
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "w-[5.25rem] p-0")}>
+      <td className={cn(stockCell, "p-0")}>
         {canCatalogWrite ? (
           <input
             key={`sell-${row.id}-${row.sellPrice ?? ""}`}
@@ -704,7 +727,7 @@ function StockRowItem({
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "w-[4.75rem] p-0")}>
+      <td className={cn(stockCell, "p-0")}>
         {showCost ? (
           <input
             type="number"
@@ -728,7 +751,7 @@ function StockRowItem({
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "w-[3.75rem]")}>
+      <td className={stockCell}>
         <span
           className={cn(
             "inline-flex min-w-[2.25rem] items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
@@ -738,7 +761,7 @@ function StockRowItem({
           {statusLabel}
         </span>
       </td>
-      <td className={cn(stockCell, "w-[4rem] p-0 text-right")}>
+      <td className={cn(stockCell, "p-0 text-right")}>
         {editing ? (
           <div className="flex items-center justify-end">
             <button
@@ -863,6 +886,18 @@ export function StockLevelsPage() {
   const loadMoreRef = useRef<() => void>(() => {});
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const { guideRef, beginResize, resetColumn } =
+    useStockColumnWidths(shellRef);
+  const renderColHandle = (edge: StockResizableCol) => (
+    <ColumnResizeHandle
+      edge={edge}
+      label={STOCK_COLUMN_LABELS[edge]}
+      onResizeStart={beginResize}
+      onReset={() => resetColumn(edge)}
+      className={stockColResizeHandleClass}
+    />
+  );
   const reorderByItemIdRef = useRef(new Map<string, number>());
   const categoryByItemIdRef = useRef(new Map<string, string>());
 
@@ -1756,34 +1791,103 @@ export function StockLevelsPage() {
               <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
             </div>
           ) : (
-            <div
-              ref={scrollRef}
-              className="max-h-[min(74vh,56rem)] overflow-auto selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)]"
-            >
-              <table className="w-full min-w-[78rem] border-collapse text-left">
-                <thead>
-                  <tr>
-                    <th className={cn(stockHeadCell, "min-w-[11rem]")}>Product</th>
-                    <th className={cn(stockHeadCell, "min-w-[7rem]")}>Family</th>
-                    <th className={cn(stockHeadCell, "min-w-[6rem]")}>Variant</th>
-                    <th className={cn(stockHeadCell, "min-w-[6.5rem]")}>Category</th>
-                    <th className={cn(stockHeadCell, "min-w-[6.5rem]")}>Department</th>
-                    <th className={cn(stockHeadCell, "min-w-[6.5rem]")}>Shelf</th>
-                    <th className={cn(stockHeadCell, "w-[5.25rem] text-right")}>
-                      In store
-                    </th>
-                    <th className={cn(stockHeadCell, "w-[4.25rem] text-right")}>
-                      Reorder
-                    </th>
-                    <th className={cn(stockHeadCell, "w-[5.25rem] text-right")}>Buy</th>
-                    <th className={cn(stockHeadCell, "w-[5.25rem] text-right")}>Sell</th>
-                    <th className={cn(stockHeadCell, "w-[4.75rem] text-right")}>
-                      Unit cost
-                    </th>
-                    <th className={cn(stockHeadCell, "w-[3.75rem]")}>Status</th>
-                    <th className={cn(stockHeadCell, "w-[4rem] text-right")}>Edit</th>
-                  </tr>
-                </thead>
+            <div ref={shellRef} className={sheetStyles.shell}>
+              {/* Restores persisted widths before the table's first paint. */}
+              <script
+                dangerouslySetInnerHTML={{
+                  __html: STOCK_COL_WIDTHS_RESTORE_SCRIPT,
+                }}
+              />
+              <div
+                ref={guideRef}
+                className={sheetStyles.guide}
+                hidden
+                aria-hidden
+              />
+              <div
+                ref={scrollRef}
+                className="max-h-[min(74vh,56rem)] overflow-auto selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)]"
+              >
+                <table
+                  className="table-fixed border-collapse text-left"
+                  style={{ width: "var(--stock-table-min-width)" }}
+                >
+                  <colgroup>
+                    {STOCK_COLUMN_ORDER.map((col) => (
+                      <col
+                        key={col}
+                        style={{ width: `var(${STOCK_COL_CSS_VARS[col]})` }}
+                      />
+                    ))}
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th className={cn(stockHeadCell, "group/stock-col")}>
+                        Product
+                        {renderColHandle("product")}
+                      </th>
+                      <th className={cn(stockHeadCell, "group/stock-col")}>
+                        Family
+                        {renderColHandle("family")}
+                      </th>
+                      <th className={cn(stockHeadCell, "group/stock-col")}>
+                        Variant
+                        {renderColHandle("variant")}
+                      </th>
+                      <th className={cn(stockHeadCell, "group/stock-col")}>
+                        Category
+                        {renderColHandle("category")}
+                      </th>
+                      <th className={cn(stockHeadCell, "group/stock-col")}>
+                        Department
+                        {renderColHandle("department")}
+                      </th>
+                      <th className={cn(stockHeadCell, "group/stock-col")}>
+                        Shelf
+                        {renderColHandle("shelf")}
+                      </th>
+                      <th
+                        className={cn(stockHeadCell, "group/stock-col text-right")}
+                      >
+                        In store
+                        {renderColHandle("inStore")}
+                      </th>
+                      <th
+                        className={cn(stockHeadCell, "group/stock-col text-right")}
+                      >
+                        Reorder
+                        {renderColHandle("reorder")}
+                      </th>
+                      <th
+                        className={cn(stockHeadCell, "group/stock-col text-right")}
+                      >
+                        Buy
+                        {renderColHandle("buy")}
+                      </th>
+                      <th
+                        className={cn(stockHeadCell, "group/stock-col text-right")}
+                      >
+                        Sell
+                        {renderColHandle("sell")}
+                      </th>
+                      <th
+                        className={cn(stockHeadCell, "group/stock-col text-right")}
+                      >
+                        Unit cost
+                        {renderColHandle("unitCost")}
+                      </th>
+                      <th className={cn(stockHeadCell, "group/stock-col")}>
+                        Status
+                        {renderColHandle("status")}
+                      </th>
+                      <th
+                        className={cn(stockHeadCell, "group/stock-col text-right")}
+                      >
+                        Edit
+                        {renderColHandle("edit")}
+                      </th>
+                    </tr>
+                  </thead>
                 <tbody>
                   {filteredRows.map((row) => (
                     <StockRowItem
@@ -1816,19 +1920,20 @@ export function StockLevelsPage() {
                       onSaveSellPrice={(value) => void saveSellPrice(row, value)}
                     />
                   ))}
-                </tbody>
-              </table>
-              <div ref={sentinelRef} className="h-8 w-full" aria-hidden />
-              {loadingMore ? (
-                <p className={cn("border-t px-3 py-1.5 text-center text-[11px]", stockHair, stockMute)}>
-                  Loading more…
-                </p>
-              ) : null}
-              {!hasMore && rows.length > 0 ? (
-                <p className={cn("border-t px-3 py-1.5 text-center text-[11px]", stockHair, "text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]")}>
-                  End of list
-                </p>
-              ) : null}
+                  </tbody>
+                </table>
+                <div ref={sentinelRef} className="h-8 w-full" aria-hidden />
+                {loadingMore ? (
+                  <p className={cn("border-t px-3 py-1.5 text-center text-[11px]", stockHair, stockMute)}>
+                    Loading more…
+                  </p>
+                ) : null}
+                {!hasMore && rows.length > 0 ? (
+                  <p className={cn("border-t px-3 py-1.5 text-center text-[11px]", stockHair, "text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]")}>
+                    End of list
+                  </p>
+                ) : null}
+              </div>
             </div>
           )}
         </div>

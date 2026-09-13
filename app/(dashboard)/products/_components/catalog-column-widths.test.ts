@@ -59,28 +59,25 @@ describe("catalog-column-widths", () => {
         },
       },
     };
-    const globals = globalThis as Record<string, unknown>;
-    const prevWindow = globals.window;
-    const prevDocument = globals.document;
-    globals.window = {
-      localStorage: {
-        getItem: (key: string) =>
-          key === CATALOG_COL_WIDTHS_STORAGE_KEY
-            ? JSON.stringify({ product: 400, stock: 9999, junk: "x" })
-            : null,
+    const run = new Function(
+      "window",
+      "document",
+      CATALOG_COL_WIDTHS_RESTORE_SCRIPT,
+    ) as (w: unknown, d: unknown) => void;
+    run(
+      {
+        localStorage: {
+          getItem: (key: string) =>
+            key === CATALOG_COL_WIDTHS_STORAGE_KEY
+              ? JSON.stringify({ product: 400, stock: 9999, junk: "x" })
+              : null,
+        },
+        matchMedia: (query: string) => ({
+          matches: query.includes("min-width"),
+        }),
       },
-      matchMedia: (query: string) => ({
-        matches: query.includes("min-width"),
-      }),
-    };
-    globals.document = { currentScript: { parentElement: shell } };
-
-    try {
-      new Function(CATALOG_COL_WIDTHS_RESTORE_SCRIPT)();
-    } finally {
-      globals.window = prevWindow;
-      globals.document = prevDocument;
-    }
+      { currentScript: { parentElement: shell } },
+    );
 
     // Stored product kept, stock clamped to max, junk key falls back to
     // default, category included at xl, min-width sums every track.
@@ -103,42 +100,39 @@ describe("catalog-column-widths", () => {
         },
       },
     };
-    const globals = globalThis as Record<string, unknown>;
-    const prevWindow = globals.window;
-    const prevDocument = globals.document;
-    globals.window = {
-      localStorage: {
-        getItem: (key: string) =>
-          key === CATALOG_COL_WIDTHS_STORAGE_KEY
-            ? JSON.stringify({ category: 150 })
-            : null,
-      },
-      matchMedia: () => ({ matches: false }),
-    };
-    globals.document = { currentScript: { parentElement: shell } };
+    const run = new Function(
+      "window",
+      "document",
+      CATALOG_COL_WIDTHS_RESTORE_SCRIPT,
+    ) as (w: unknown, d: unknown) => void;
 
-    try {
-      new Function(CATALOG_COL_WIDTHS_RESTORE_SCRIPT)();
-      // Nothing stored → script must leave the CSS defaults untouched.
-      globals.window = {
-        localStorage: { getItem: () => null },
-        matchMedia: () => ({ matches: false }),
-      };
-      const untouched: Array<[string, string]> = [];
-      const bare = {
-        style: {
-          setProperty: (key: string, value: string) => {
-            untouched.push([key, value]);
-          },
+    run(
+      {
+        localStorage: {
+          getItem: (key: string) =>
+            key === CATALOG_COL_WIDTHS_STORAGE_KEY
+              ? JSON.stringify({ category: 150 })
+              : null,
         },
-      };
-      globals.document = { currentScript: { parentElement: bare } };
-      new Function(CATALOG_COL_WIDTHS_RESTORE_SCRIPT)();
-      expect(untouched).toEqual([]);
-    } finally {
-      globals.window = prevWindow;
-      globals.document = prevDocument;
-    }
+        matchMedia: () => ({ matches: false }),
+      },
+      { currentScript: { parentElement: shell } },
+    );
+
+    // Nothing stored → script must leave the CSS defaults untouched.
+    const untouched: Array<[string, string]> = [];
+    const bare = {
+      style: {
+        setProperty: (key: string, value: string) => {
+          untouched.push([key, value]);
+        },
+      },
+    };
+    run(
+      { localStorage: { getItem: () => null }, matchMedia: () => ({ matches: false }) },
+      { currentScript: { parentElement: bare } },
+    );
+    expect(untouched).toEqual([]);
 
     // Category track forced to 0 below xl and excluded from the min-width sum.
     expect(painted).toEqual([
