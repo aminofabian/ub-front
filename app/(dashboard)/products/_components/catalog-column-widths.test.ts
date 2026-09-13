@@ -1,17 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 
 import {
   CATALOG_COL_WIDTH_DEFAULTS,
-  buildCatalogGridTemplateColumns,
+  catalogSheetMinWidthPx,
   clampCatalogColWidth,
   parseCatalogColumnWidths,
 } from "./catalog-column-widths";
 
 describe("catalog-column-widths", () => {
   it("clamps to min/max", () => {
-    expect(clampCatalogColWidth("stock", 1)).toBe(28);
-    expect(clampCatalogColWidth("stock", 999)).toBe(140);
-    expect(clampCatalogColWidth("sell", 56)).toBe(56);
+    expect(clampCatalogColWidth("stock", 1)).toBe(32);
+    expect(clampCatalogColWidth("stock", 999)).toBe(200);
+    expect(clampCatalogColWidth("product", 280)).toBe(280);
   });
 
   it("parses stored widths and ignores junk", () => {
@@ -19,6 +19,7 @@ describe("catalog-column-widths", () => {
     expect(
       parseCatalogColumnWidths({
         check: 30,
+        product: 320,
         stock: "nope",
         sell: 80,
         category: 100,
@@ -26,26 +27,24 @@ describe("catalog-column-widths", () => {
     ).toEqual({
       ...CATALOG_COL_WIDTH_DEFAULTS,
       check: 30,
+      product: 320,
       sell: 80,
       category: 100,
     });
   });
 
-  it("builds shared grid template for every row", () => {
+  it("sums sheet min width", () => {
     expect(
-      buildCatalogGridTemplateColumns({
-        check: 22,
-        stock: 40,
-        sell: 56,
-        category: 72,
-      }),
-    ).toBe("22px minmax(0, 1fr) 40px 56px 72px");
-
-    expect(
-      buildCatalogGridTemplateColumns(
-        { check: 22, stock: 40, sell: 56, category: 72 },
-        { showCategory: false },
+      catalogSheetMinWidthPx(
+        { check: 22, product: 280, stock: 48, sell: 64, category: 96 },
+        true,
       ),
-    ).toBe("22px minmax(0, 1fr) 40px 56px 0px");
+    ).toBe(510);
+    expect(
+      catalogSheetMinWidthPx(
+        { check: 22, product: 280, stock: 48, sell: 64, category: 96 },
+        false,
+      ),
+    ).toBe(414);
   });
 });

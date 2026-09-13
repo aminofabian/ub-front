@@ -1,0 +1,65 @@
+/* Spreadsheet grid — tracks come from CSS vars set on the list shell. */
+
+.shell {
+  --cat-col-check: 22px;
+  --cat-col-product: 280px;
+  --cat-col-stock: 48px;
+  --cat-col-sell: 64px;
+  --cat-col-category: 96px;
+  --cat-sheet-min-width: 510px;
+}
+
+.shell[data-resizing="true"] {
+  cursor: col-resize;
+}
+
+.shell[data-resizing="true"] * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns:
+    var(--cat-col-check)
+    var(--cat-col-product)
+    var(--cat-col-stock)
+    var(--cat-col-sell)
+    var(--cat-col-category);
+  width: 100%;
+  align-items: stretch;
+  gap: 0;
+}
+
+.sheetScroll {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.sheetInner {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  min-width: max(100%, var(--cat-sheet-min-width));
+}
+
+.guide {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--catalog-primary, #0f766e);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--catalog-primary, #0f766e) 25%, transparent);
+  will-change: transform;
+}

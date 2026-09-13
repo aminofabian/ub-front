@@ -49,11 +49,17 @@ export function parseOrderTicketFromInput(
   return parseOrderTicket(text);
 }
 
+/** Order-total snap encoded in share URLs (`r=`). */
+export type OrderTicketRoundParam = "2" | "1" | "0" | "10";
+
 export function tenantOrderTicketPath(opts: {
   ticket: string;
   supplierId?: string | null;
   marketplaceSupplierId?: string | null;
+  /** @deprecated Prefer `round` — kept for older callers. */
   roundTo10?: boolean;
+  /** Snap precision: 2dp / 1dp / whole / nearest 10. */
+  round?: OrderTicketRoundParam | null;
 }): string {
   const params = new URLSearchParams();
   if (opts.ticket.trim()) params.set("ticket", opts.ticket.trim());
@@ -61,7 +67,8 @@ export function tenantOrderTicketPath(opts: {
   if (opts.marketplaceSupplierId?.trim()) {
     params.set("msid", opts.marketplaceSupplierId.trim());
   }
-  if (opts.roundTo10) params.set("r", "10");
+  const round = opts.round ?? (opts.roundTo10 ? "10" : null);
+  if (round) params.set("r", round);
   const qs = params.toString();
   return qs ? `${APP_ROUTES.order}?${qs}` : APP_ROUTES.order;
 }

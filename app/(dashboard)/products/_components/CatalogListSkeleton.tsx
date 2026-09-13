@@ -1,5 +1,3 @@
-import type { CSSProperties } from "react";
-
 import {
   catalogListGridClass,
   catalogListMetricCellClass,
@@ -13,11 +11,11 @@ type CatalogDensity = "comfortable" | "dense";
 function CatalogListSkeletonRow({
   density,
   withBlockGap,
-  gridStyle,
+  gridClassName,
 }: {
   density: CatalogDensity;
   withBlockGap: boolean;
-  gridStyle?: CSSProperties;
+  gridClassName?: string;
 }) {
   const minH = catalogRowHeightPx("standalone", density, {
     startsParentBlock: withBlockGap,
@@ -26,8 +24,12 @@ function CatalogListSkeletonRow({
 
   return (
     <div
-      className={cn(catalogListGridClass, withBlockGap && "mt-4 first:mt-0")}
-      style={{ ...gridStyle, minHeight: minH }}
+      className={cn(
+        gridClassName,
+        catalogListGridClass,
+        withBlockGap && "mt-4 first:mt-0",
+      )}
+      style={{ minHeight: minH }}
       role="row"
       aria-hidden
     >
@@ -64,11 +66,11 @@ function CatalogListSkeletonRow({
 export function CatalogListSkeleton({
   density,
   count = 12,
-  style,
+  gridClassName,
 }: {
   density: CatalogDensity;
   count?: number;
-  style?: CSSProperties;
+  gridClassName?: string;
 }) {
   return (
     <div className="py-0" aria-busy="true" aria-label="Loading catalog">
@@ -77,7 +79,7 @@ export function CatalogListSkeleton({
           key={i}
           density={density}
           withBlockGap={i > 0 && i % 4 === 0}
-          gridStyle={style}
+          gridClassName={gridClassName}
         />
       ))}
     </div>

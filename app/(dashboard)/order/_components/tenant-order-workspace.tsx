@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
-  Check,
   ChevronDown,
   ChevronUp,
   ClipboardList,
@@ -182,11 +181,51 @@ function lineTotal(
   return packUnitPrice(link, pack, priceOverride) * qty;
 }
 
-/** Nearest 10 for a line amount. Skip tiny lines so they never snap to 0. */
-function nearestTen(amount: number): number | null {
-  if (!(amount >= 5)) return null;
-  const rounded = Math.round(amount / 10) * 10;
-  return rounded > 0 ? rounded : null;
+/**
+ * Cash-style override for line / order totals.
+ * `exact` leaves the computed amount alone; the rest snap to a step.
+ */
+type OrderRoundMode = "exact" | "2dp" | "1dp" | "whole";
+
+const ORDER_ROUND_MODES: {
+  id: OrderRoundMode;
+  label: string;
+  hint: string;
+}[] = [
+  { id: "exact", label: "as-is", hint: "Keep exact computed totals" },
+  { id: "2dp", label: ".00", hint: "Nearest 2 decimal places" },
+  { id: "1dp", label: ".0", hint: "Nearest 1 decimal place" },
+  { id: "whole", label: "1", hint: "Nearest whole number" },
+];
+
+function roundToMode(amount: number, mode: OrderRoundMode): number {
+  if (!Number.isFinite(amount) || mode === "exact") return amount;
+  if (mode === "2dp") return Math.round(amount * 100) / 100;
+  if (mode === "1dp") return Math.round(amount * 10) / 10;
+  return Math.round(amount);
+}
+
+/** Snap target for a line — skip zeros so a tiny line never becomes blank. */
+function snapAmount(
+  amount: number,
+  mode: Exclude<OrderRoundMode, "exact">,
+): number | null {
+  if (!(amount > 0)) return null;
+  const snapped = roundToMode(amount, mode);
+  return snapped > 0 ? snapped : null;
+}
+
+function amountsMatch(a: number, b: number): boolean {
+  return Math.abs(a - b) < 0.0005;
+}
+
+function roundModeTicketParam(
+  mode: OrderRoundMode,
+): "2" | "1" | "0" | null {
+  if (mode === "2dp") return "2";
+  if (mode === "1dp") return "1";
+  if (mode === "whole") return "0";
+  return null;
 }
 
 /** Stock units for a Path A PO line (packs × size when packed). */
@@ -317,8 +356,8 @@ export function TenantOrderWorkspace({
   const desktopSlipRef = useRef<HTMLDivElement>(null);
   const mobileSlipRef = useRef<HTMLDivElement>(null);
   const [supplierPickerOpen, setSupplierPickerOpen] = useState(false);
-  /** Round the order total to the nearest 10 (default on; toggle in the footer). */
-  const [roundTo10, setRoundTo10] = useState(true);
+  /** Override line / order totals to a cash snap precision. */
+  const [roundMode, setRoundMode] = useState<OrderRoundMode>("exact");
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [linkProductsOpen, setLinkProductsOpen] = useState(false);
@@ -810,14 +849,12 @@ export function TenantOrderWorkspace({
     0,
   );
 
-  // Round to the nearest 10 (e.g. 100.04 → 100, 99.99 → 100). Tiny orders
-  // (under 5) stay exact so a small cart can never round to 0.
-  const roundedTotal = (() => {
-    const r = Math.round(cartTotal / 10) * 10;
-    return r > 0 ? r : cartTotal;
-  })();
-  const effectiveTotal = roundTo10 ? roundedTotal : cartTotal;
-  const roundingActive = roundTo10 && roundedTotal !== cartTotal;
+  const roundedTotal = roundToMode(cartTotal, roundMode);
+  const effectiveTotal = roundedTotal;
+  const roundingActive =
+    roundMode !== "exact" && !amountsMatch(roundedTotal, cartTotal);
+  const snapMode =
+    roundMode === "exact" ? null : (roundMode as Exclude<OrderRoundMode, "exact">);
 
   const openDeposit = (opts?: {
     amount?: number;
@@ -856,11 +893,12 @@ export function TenantOrderWorkspace({
       ticket: encodeTenantCartTicket(cartLines),
       supplierId,
       marketplaceSupplierId: activeSupplier?.marketplaceSupplierId,
-      roundTo10: roundingActive,
+      round: roundingActive ? roundModeTicketParam(roundMode) : null,
     });
   }, [
     activeSupplier?.marketplaceSupplierId,
     cartLines,
+    roundMode,
     roundingActive,
     supplierId,
   ]);
@@ -1194,6 +1232,26 @@ export function TenantOrderWorkspace({
     });
   };
 
+  const snapLinesToMode = (mode: Exclude<OrderRoundMode, "exact">) => {
+    let changed = 0;
+    for (const { link, qty, pack, priceOverride } of cartLines) {
+      const amount = lineTotal(link, qty, pack, priceOverride);
+      const snapped = snapAmount(amount, mode);
+      if (snapped == null || amountsMatch(snapped, amount)) continue;
+      setLineTotal(link.itemId, snapped, qty);
+      changed += 1;
+    }
+    if (changed === 0) {
+      toast.message("Every line is already on that snap");
+      return;
+    }
+    toast.success(
+      `Snapped ${changed} line${changed === 1 ? "" : "s"} to ${
+        mode === "2dp" ? ".00" : mode === "1dp" ? ".0" : "whole"
+      }`,
+    );
+  };
+
   const selectPack = useCallback(
     (itemId: string, packOptionId: string | null) => {
       setPackByItemId((prev) => {
@@ -1268,21 +1326,30 @@ export function TenantOrderWorkspace({
           const price = packUnitPrice(link, pack, priceOverride);
           const amount = lineTotal(link, qty, pack, priceOverride);
           const packs = linkPacks(link);
-          const snapped = nearestTen(amount);
-          const lineOnTen =
-            snapped != null && Math.abs(snapped - amount) < 0.009;
+          const lineSnapModes = (
+            snapMode
+              ? [snapMode]
+              : (["2dp", "1dp", "whole"] as const)
+          ).flatMap((mode) => {
+            const snapped = snapAmount(amount, mode);
+            if (snapped == null) return [];
+            const onSnap = amountsMatch(snapped, amount);
+            // In the fan (as-is), only offer snaps that actually change the line.
+            if (snapMode == null && onSnap) return [];
+            return [{ mode, snapped, onSnap }];
+          });
           const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
           return (
             <div
               key={link.itemId}
               data-slip-item={link.itemId}
               className={cn(
-                "space-y-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-3 last:border-b-0",
+                "min-w-0 space-y-1.5 overflow-x-hidden border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-3 last:border-b-0",
                 flashItemId === link.itemId &&
                   "bg-white ring-1 ring-inset ring-[var(--pos-primary,#0f766e)]",
               )}
             >
-              <div className="flex gap-3">
+              <div className="flex min-w-0 gap-2">
                 <div className="relative size-11 shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
                   {thumb ? (
                     <span className="absolute left-1/2 top-1/2 h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2">
@@ -1302,51 +1369,76 @@ export function TenantOrderWorkspace({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="break-words text-[13px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
-                    {link.itemName}
-                  </p>
-                  {packed ? (
-                    <p className="mt-0.5 font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
-                      ×{formatPackSize(pack.size)} / {pack.unit}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex shrink-0 items-start gap-1">
-                  {snapped != null ? (
-                    <button
-                      type="button"
-                      disabled={lineOnTen}
-                      onClick={() => setLineTotal(link.itemId, snapped, qty)}
-                      className={cn(
-                        "inline-flex h-8 min-w-8 items-center justify-center rounded-none border px-1.5 font-mono text-[11px] font-bold tabular-nums transition-colors",
-                        lineOnTen
-                          ? "cursor-default border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                          : "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] active:scale-[0.97]",
-                      )}
-                      aria-label={
-                        lineOnTen
-                          ? `${link.itemName} already rounded to ${formatMoney(snapped, ORDER_CURRENCY)}`
-                          : `Round ${link.itemName} to ${formatMoney(snapped, ORDER_CURRENCY)}`
-                      }
-                      aria-pressed={lineOnTen}
-                      title={
-                        lineOnTen
-                          ? "On a ten"
-                          : `Snap this line to ${formatMoney(snapped, ORDER_CURRENCY)}`
-                      }
-                    >
-                      {lineOnTen ? "10" : snapped}
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => setQty(link.itemId, 0)}
-                    className="flex size-8 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] transition-colors hover:border-destructive/40 hover:bg-[color-mix(in_srgb,var(--destructive)_8%,transparent)] hover:text-destructive active:scale-[0.97]"
-                    aria-label={`Remove ${link.itemName}`}
-                    title="Remove from order"
-                  >
-                    <X className="size-3.5" strokeWidth={2.25} aria-hidden />
-                  </button>
+                  <div className="flex min-w-0 items-start gap-1.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-[13px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
+                        {link.itemName}
+                      </p>
+                      {packed ? (
+                        <p className="mt-0.5 font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
+                          ×{formatPackSize(pack.size)} / {pack.unit}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex max-w-[46%] shrink-0 flex-wrap items-start justify-end gap-1">
+                      {lineSnapModes.length > 0 ? (
+                        <div
+                          className="inline-flex max-w-full items-stretch overflow-hidden rounded-none border border-[var(--pos-primary,#0f766e)]"
+                          role="group"
+                          aria-label={`Snap ${link.itemName} total`}
+                        >
+                          {lineSnapModes.map(({ mode, snapped, onSnap }) => {
+                            const label =
+                              mode === "2dp"
+                                ? ".00"
+                                : mode === "1dp"
+                                  ? ".0"
+                                  : "1";
+                            return (
+                              <button
+                                key={mode}
+                                type="button"
+                                disabled={onSnap}
+                                onClick={() =>
+                                  setLineTotal(link.itemId, snapped, qty)
+                                }
+                                className={cn(
+                                  "inline-flex h-7 min-w-0 max-w-[3.25rem] items-center justify-center px-1 font-mono text-[10px] font-bold tabular-nums transition-colors",
+                                  lineSnapModes.length > 1 &&
+                                    "border-r border-[var(--pos-primary,#0f766e)] last:border-r-0",
+                                  onSnap
+                                    ? "cursor-default bg-[var(--pos-primary,#0f766e)] text-white"
+                                    : "bg-white text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] active:scale-[0.97]",
+                                )}
+                                aria-label={
+                                  onSnap
+                                    ? `${link.itemName} already at ${formatMoney(snapped, ORDER_CURRENCY)}`
+                                    : `Snap ${link.itemName} to ${formatMoney(snapped, ORDER_CURRENCY)}`
+                                }
+                                aria-pressed={onSnap}
+                                title={
+                                  onSnap
+                                    ? `On ${label}`
+                                    : `Snap line to ${formatMoney(snapped, ORDER_CURRENCY)} (${label})`
+                                }
+                              >
+                                <span className="truncate">{label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => setQty(link.itemId, 0)}
+                        className="flex size-7 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] transition-colors hover:border-destructive/40 hover:bg-[color-mix(in_srgb,var(--destructive)_8%,transparent)] hover:text-destructive active:scale-[0.97]"
+                        aria-label={`Remove ${link.itemName}`}
+                        title="Remove from order"
+                      >
+                        <X className="size-3.5" strokeWidth={2.25} aria-hidden />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1389,10 +1481,10 @@ export function TenantOrderWorkspace({
                 </div>
               ) : null}
 
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                 <div
                   className={cn(
-                    "inline-flex items-center border",
+                    "inline-flex max-w-full items-center border",
                     packed
                       ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]"
                       : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[var(--order-shelf,#ffffff)]",
@@ -1410,7 +1502,7 @@ export function TenantOrderWorkspace({
                     qty={qty}
                     onSetQty={(next) => setQty(link.itemId, next)}
                     ariaLabel={`Quantity for ${link.itemName}`}
-                    className="h-8 min-w-[4.5rem] w-[4.5rem] text-[13px]"
+                    className="h-8 min-w-[3.5rem] w-[3.5rem] text-[13px]"
                   />
                   <button
                     type="button"
@@ -1435,13 +1527,13 @@ export function TenantOrderWorkspace({
                     <Package className="size-3.5" aria-hidden />
                   </button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <label className="inline-flex flex-col items-end gap-0.5">
+                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+                  <label className="inline-flex min-w-0 flex-col items-end gap-0.5">
                     <span className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                       {packed ? "Pack price" : "Unit price"}
                     </span>
                     <input
-                      className="h-8 w-[5.25rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
+                      className="h-8 w-[4.75rem] max-w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
                       inputMode="decimal"
                       aria-label={packed ? "Pack price" : "Unit price"}
                       value={
@@ -1502,12 +1594,12 @@ export function TenantOrderWorkspace({
                       }}
                     />
                   </label>
-                  <label className="inline-flex flex-col items-end gap-0.5">
+                  <label className="inline-flex min-w-0 flex-col items-end gap-0.5">
                     <span className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                       Line total
                     </span>
                     <input
-                      className="h-8 w-[5.75rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
+                      className="h-8 w-[4.75rem] max-w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
                       inputMode="decimal"
                       aria-label="Line total"
                       value={
@@ -1582,7 +1674,7 @@ export function TenantOrderWorkspace({
   );
 
   const placeFooter = (
-    <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-4">
+    <div className="min-w-0 shrink-0 overflow-x-hidden border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-4">
       {pendingDeposit ? (
         <div className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] p-3.5">
           <p className="font-heading text-[14px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
@@ -1637,49 +1729,88 @@ export function TenantOrderWorkspace({
         </div>
       ) : (
         <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5">
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0 space-y-1.5">
-              <p className="text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+          <div className="space-y-3">
+            <div className="flex min-w-0 items-end justify-between gap-2">
+              <p className="min-w-0 text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 {cartUnits} line{cartUnits === 1 ? "" : "s"}
               </p>
-              <button
-                type="button"
-                onClick={() => setRoundTo10((v) => !v)}
-                className={cn(
-                  "inline-flex items-center gap-2 text-[12px] font-medium transition-colors",
-                  roundTo10
-                    ? "text-[var(--pos-primary,#0f766e)]"
-                    : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] hover:text-[var(--order-ink,#15231f)]",
-                )}
-                aria-pressed={roundTo10}
-                title="Round the order total to the nearest 10"
-              >
-                <span
-                  className={cn(
-                    "flex size-4 shrink-0 items-center justify-center rounded-none border transition-colors",
-                    roundTo10
-                      ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)] bg-white",
-                  )}
-                  aria-hidden
-                >
-                  {roundTo10 ? (
-                    <Check className="size-3" strokeWidth={2.5} />
-                  ) : null}
-                </span>
-                Round to 10
-              </button>
-            </div>
-            <div className="text-right">
-              <p className="font-heading text-[22px] font-semibold leading-none tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
-                {formatMoney(effectiveTotal, currency)}
-              </p>
-              {roundingActive ? (
-                <p className="mt-1 text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                  {effectiveTotal > cartTotal ? "up" : "down"} from{" "}
-                  {formatMoney(cartTotal, currency)}
+              <div className="min-w-0 max-w-[60%] text-right">
+                <p className="truncate font-heading text-[20px] font-semibold leading-none tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)] sm:text-[22px]">
+                  {formatMoney(effectiveTotal, currency)}
                 </p>
-              ) : null}
+                {roundingActive ? (
+                  <p className="mt-1 truncate text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                    {effectiveTotal > cartTotal ? "up" : "down"} from{" "}
+                    {formatMoney(cartTotal, currency)}
+                  </p>
+                ) : roundMode !== "exact" ? (
+                  <p className="mt-1 truncate text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                    already on{" "}
+                    {
+                      ORDER_ROUND_MODES.find((m) => m.id === roundMode)
+                        ?.label
+                    }
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="min-w-0 space-y-1.5">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                  Cash snap
+                </p>
+                {snapMode ? (
+                  <button
+                    type="button"
+                    onClick={() => snapLinesToMode(snapMode)}
+                    className="shrink-0 text-[10px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:text-[#0d6b63]"
+                    title="Rewrite every line total to this precision"
+                  >
+                    Snap lines
+                  </button>
+                ) : null}
+              </div>
+              <div
+                className="grid w-full min-w-0 grid-cols-4 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]"
+                role="radiogroup"
+                aria-label="Round order total"
+              >
+                {ORDER_ROUND_MODES.map((opt, index) => {
+                  const active = roundMode === opt.id;
+                  const preview =
+                    opt.id === "exact"
+                      ? cartTotal
+                      : roundToMode(cartTotal, opt.id);
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      title={`${opt.hint} → ${formatMoney(preview, currency)}`}
+                      onClick={() => setRoundMode(opt.id)}
+                      className={cn(
+                        "min-w-0 px-1 py-1.5 text-center transition-colors",
+                        index > 0 &&
+                          "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+                        active
+                          ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                          : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:bg-white hover:text-[var(--order-ink,#15231f)]",
+                      )}
+                    >
+                      <span className="block truncate font-mono text-[11px] font-bold tabular-nums leading-none">
+                        {opt.label}
+                      </span>
+                      {active && roundingActive ? (
+                        <span className="mt-0.5 block truncate text-[8px] font-semibold uppercase tracking-[0.08em] opacity-80">
+                          {effectiveTotal > cartTotal ? "up" : "down"}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -1933,7 +2064,7 @@ export function TenantOrderWorkspace({
         className={cn(
           "relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
           !embedded &&
-            "xl:grid xl:grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)_minmax(16rem,18rem)]",
+            "xl:grid xl:grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)_minmax(17rem,20rem)]",
         )}
       >
         <aside
@@ -2158,7 +2289,7 @@ export function TenantOrderWorkspace({
           </div>
           <div
             ref={desktopSlipRef}
-            className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
+            className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-width:thin]"
           >
             {cartLinesPanel}
           </div>

@@ -32,7 +32,7 @@ export const CATALOG_VARIANT_GROUP_END_GAP_PX = {
 } as const;
 
 export const catalogListShellClass = cn(
-  "flex h-full min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden",
+  "relative flex h-full min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden",
   "bg-transparent",
 );
 
@@ -141,20 +141,20 @@ export const catalogListHeaderRowClass = cn(
 );
 
 /**
- * Spreadsheet grid — last column has no right border (flush to edge).
- * Column tracks come from inline `gridTemplateColumns` (see useCatalogColumnWidths).
+ * Spreadsheet grid — column tracks come from CSS vars on the list shell
+ * (`catalog-list-grid.module.css`).
  */
 export const catalogListGridClass =
-  "grid w-full min-w-0 max-w-full items-stretch gap-0";
+  "w-full min-w-0 max-w-none items-stretch gap-0";
 
 /** Drag handle on the right edge of a catalog header cell. */
 export const catalogColResizeHandleClass = cn(
-  "absolute inset-y-0 -right-1 z-20 w-2.5 cursor-col-resize touch-none",
-  "opacity-60 transition-opacity",
+  "absolute inset-y-0 -right-1.5 z-20 w-3 cursor-col-resize touch-none",
+  "opacity-0 transition-opacity duration-75",
   "hover:opacity-100 group-hover/cat-col:opacity-100",
-  "before:absolute before:inset-y-1 before:left-1/2 before:w-0.5 before:-translate-x-1/2 before:rounded-full",
-  "before:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_28%,transparent)]",
-  "hover:before:bg-[var(--catalog-primary,#0f766e)]",
+  "before:absolute before:inset-y-0 before:left-1/2 before:w-0.5 before:-translate-x-1/2",
+  "before:bg-transparent hover:before:bg-[var(--catalog-primary,#0f766e)]",
+  "group-hover/cat-col:before:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_22%,transparent)]",
   "active:before:bg-[var(--catalog-primary,#0f766e)]",
   "focus-visible:opacity-100 focus-visible:outline-none",
   "focus-visible:before:bg-[var(--catalog-primary,#0f766e)]",

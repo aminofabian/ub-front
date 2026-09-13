@@ -3,18 +3,17 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
 } from "react";
 
 import { useMediaXl } from "@/hooks/use-media-xl";
 
 import {
   CATALOG_COL_WIDTH_DEFAULTS,
-  buildCatalogGridTemplateColumns,
+  applyCatalogColumnWidthsToElement,
   clampCatalogColWidth,
   readCatalogColumnWidths,
   writeCatalogColumnWidths,
@@ -22,29 +21,56 @@ import {
   type CatalogResizableCol,
 } from "./catalog-column-widths";
 
-export type CatalogResizeEdge = CatalogResizableCol | "product";
+export type CatalogResizeEdge = CatalogResizableCol;
 
 /**
- * Spreadsheet column widths for the catalog list.
- * Product stays `1fr` (fills leftover); dragging its right edge shrinks/grows Qty.
- * Every row shares the same `gridTemplateColumns` so the whole sheet moves together.
+ * Spreadsheet column widths — drag updates CSS vars on the shell (no React
+ * re-render per frame). State + localStorage commit once on pointer up.
  */
-export function useCatalogColumnWidths() {
+export function useCatalogColumnWidths(
+  shellRef: RefObject<HTMLElement | null>,
+) {
   const isXl = useMediaXl();
+  const isXlRef = useRef(isXl);
+  isXlRef.current = isXl;
+
   const [widths, setWidths] = useState<CatalogColumnWidths>(
     CATALOG_COL_WIDTH_DEFAULTS,
   );
   const widthsRef = useRef(widths);
   widthsRef.current = widths;
 
-  useEffect(() => {
-    setWidths(readCatalogColumnWidths());
-  }, []);
+  const guideRef = useRef<HTMLDivElement | null>(null);
 
-  const persist = useCallback((next: CatalogColumnWidths) => {
-    setWidths(next);
-    writeCatalogColumnWidths(next);
-  }, []);
+  const paint = useCallback(
+    (next: CatalogColumnWidths) => {
+      const el = shellRef.current;
+      if (!el) return;
+      applyCatalogColumnWidthsToElement(el, next, isXlRef.current);
+    },
+    [shellRef],
+  );
+
+  useEffect(() => {
+    const stored = readCatalogColumnWidths();
+    setWidths(stored);
+    widthsRef.current = stored;
+    paint(stored);
+  }, [paint]);
+
+  useEffect(() => {
+    paint(widthsRef.current);
+  }, [isXl, paint]);
+
+  const persist = useCallback(
+    (next: CatalogColumnWidths) => {
+      widthsRef.current = next;
+      setWidths(next);
+      paint(next);
+      writeCatalogColumnWidths(next);
+    },
+    [paint],
+  );
 
   const resetColumn = useCallback(
     (col: CatalogResizableCol) => {
@@ -62,61 +88,74 @@ export function useCatalogColumnWidths() {
       event.preventDefault();
       event.stopPropagation();
 
+      const shell = shellRef.current;
+      if (!shell) return;
+
       const startX = event.clientX;
       const start = { ...widthsRef.current };
+      const shellLeft = shell.getBoundingClientRect().left;
 
+      let raf = 0;
+      let latest = start;
+      let latestGuide = event.clientX - shellLeft;
+
+      const guide = guideRef.current;
+      if (guide) {
+        guide.hidden = false;
+        guide.style.transform = `translateX(${latestGuide}px)`;
+      }
+
+      shell.dataset.resizing = "true";
       document.body.style.cursor = "col-resize";
       document.body.style.userSelect = "none";
+
+      const flush = () => {
+        raf = 0;
+        widthsRef.current = latest;
+        applyCatalogColumnWidthsToElement(shell, latest, isXlRef.current);
+        if (guide) {
+          guide.style.transform = `translateX(${latestGuide}px)`;
+        }
+      };
 
       const onMove = (moveEvent: PointerEvent) => {
         moveEvent.preventDefault();
         const delta = moveEvent.clientX - startX;
         const next = { ...start };
-
-        if (edge === "product") {
-          // Dragging Product|Qty: move Qty's left edge (product is flex).
-          next.stock = clampCatalogColWidth("stock", start.stock - delta);
-        } else if (edge === "check") {
-          next.check = clampCatalogColWidth("check", start.check + delta);
-        } else {
-          next[edge] = clampCatalogColWidth(edge, start[edge] + delta);
-        }
-
-        setWidths(next);
-        widthsRef.current = next;
+        next[edge] = clampCatalogColWidth(edge, start[edge] + delta);
+        latest = next;
+        latestGuide = moveEvent.clientX - shellLeft;
+        if (!raf) raf = requestAnimationFrame(flush);
       };
 
       const onUp = () => {
+        if (raf) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        }
+        applyCatalogColumnWidthsToElement(shell, latest, isXlRef.current);
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
+        delete shell.dataset.resizing;
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
-        writeCatalogColumnWidths(widthsRef.current);
+        if (guide) guide.hidden = true;
+        setWidths(latest);
+        widthsRef.current = latest;
+        writeCatalogColumnWidths(latest);
       };
 
-      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointermove", onMove, { passive: false });
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onUp);
     },
-    [],
-  );
-
-  const gridTemplateColumns = useMemo(
-    () =>
-      buildCatalogGridTemplateColumns(widths, { showCategory: isXl }),
-    [widths, isXl],
-  );
-
-  const gridStyle = useMemo(
-    (): CSSProperties => ({ gridTemplateColumns }),
-    [gridTemplateColumns],
+    [shellRef],
   );
 
   return {
     widths,
-    gridStyle,
-    gridTemplateColumns,
+    guideRef,
     beginResize,
     resetColumn,
   };

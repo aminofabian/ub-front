@@ -31,13 +31,22 @@ describe("order ticket", () => {
       ticket: "CARROTS*16*110,AVOCADO*3",
       supplierId: "sup-1",
       marketplaceSupplierId: "mkt-9",
-      roundTo10: true,
+      round: "0",
     });
     const url = new URL(path, "https://example.test");
     expect(url.pathname).toBe("/order");
     expect(url.searchParams.get("ticket")).toBe("CARROTS*16*110,AVOCADO*3");
     expect(url.searchParams.get("sid")).toBe("sup-1");
     expect(url.searchParams.get("msid")).toBe("mkt-9");
+    expect(url.searchParams.get("r")).toBe("0");
+  });
+
+  it("still accepts legacy roundTo10", () => {
+    const path = tenantOrderTicketPath({
+      ticket: "X*1",
+      roundTo10: true,
+    });
+    const url = new URL(path, "https://example.test");
     expect(url.searchParams.get("r")).toBe("10");
   });
 

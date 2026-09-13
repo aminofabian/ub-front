@@ -30,6 +30,7 @@ import {
 import { CatalogColResizeHandle } from "./CatalogColResizeHandle";
 import { CatalogListSkeleton } from "./CatalogListSkeleton";
 import { CatalogListThumb } from "./CatalogListThumb";
+import sheetStyles from "./catalog-list-grid.module.css";
 import { useCatalogColumnWidths } from "./use-catalog-column-widths";
 import {
   buildCatalogRowMeta,
@@ -185,8 +186,10 @@ export const VirtualizedCatalogBody = forwardRef<
   },
   ref,
 ) {
+  const shellRef = useRef<HTMLDivElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
-  const { gridStyle, beginResize, resetColumn } = useCatalogColumnWidths();
+  const { guideRef, beginResize, resetColumn } =
+    useCatalogColumnWidths(shellRef);
   const rowMetaById = useMemo(() => buildCatalogRowMeta(rows), [rows]);
   const duplicateRowIds = useMemo(
     () => findDuplicateCatalogRowIds(rows),
@@ -250,11 +253,25 @@ export const VirtualizedCatalogBody = forwardRef<
   }, [density, rows.length, virtualizer]);
 
   return (
-    <div className={catalogListShellClass}>
+    <div
+      ref={shellRef}
+      className={cn(catalogListShellClass, sheetStyles.shell)}
+    >
+      <div
+        ref={guideRef}
+        className={sheetStyles.guide}
+        hidden
+        aria-hidden
+      />
+      <div className={sheetStyles.sheetScroll}>
+        <div className={sheetStyles.sheetInner}>
       {catalogEmpty ? null : (
         <div
-          className={cn(catalogListGridClass, catalogListHeaderRowClass)}
-          style={gridStyle}
+          className={cn(
+            sheetStyles.grid,
+            catalogListGridClass,
+            catalogListHeaderRowClass,
+          )}
           role="row"
           aria-label="Catalog columns"
         >
@@ -304,7 +321,7 @@ export const VirtualizedCatalogBody = forwardRef<
               edge="product"
               label="Product"
               onResizeStart={beginResize}
-              onReset={() => resetColumn("stock")}
+              onReset={() => resetColumn("product")}
             />
           </span>
           <span
@@ -363,7 +380,7 @@ export const VirtualizedCatalogBody = forwardRef<
         onScroll={(event) => checkLoadMore(event.currentTarget)}
       >
         {initialLoading ? (
-          <CatalogListSkeleton density={density} style={gridStyle} />
+          <CatalogListSkeleton density={density} gridClassName={sheetStyles.grid} />
         ) : rows.length === 0 ? (
           <div
             className={
@@ -520,8 +537,9 @@ export const VirtualizedCatalogBody = forwardRef<
                             : `Product: ${primaryName}`
                     }
                     className={cn(
+                      sheetStyles.grid,
                       catalogListGridClass,
-                      "group relative min-w-0 max-w-full text-left",
+                      "group relative min-w-0 max-w-none text-left",
                       density === "dense"
                         ? "min-h-[1.25rem] sm:min-h-[1.375rem]"
                         : "min-h-8 sm:min-h-9",
@@ -530,7 +548,6 @@ export const VirtualizedCatalogBody = forwardRef<
                       catalogRowInteractionClasses(tone, rowInteraction),
                       row.active === false && "opacity-50",
                     )}
-                    style={gridStyle}
                     onClick={() => onRowClick(row.id)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
@@ -778,9 +795,15 @@ export const VirtualizedCatalogBody = forwardRef<
         )}
         {loadingMore ? (
           <div className="border-t border-border/40 bg-background/95 backdrop-blur-md">
-            <CatalogListSkeleton density={density} count={4} />
+            <CatalogListSkeleton
+              density={density}
+              count={4}
+              gridClassName={sheetStyles.grid}
+            />
           </div>
         ) : null}
+      </div>
+        </div>
       </div>
     </div>
   );

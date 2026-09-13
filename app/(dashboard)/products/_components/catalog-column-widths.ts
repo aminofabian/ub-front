@@ -1,31 +1,47 @@
 /** Persisted spreadsheet-style column widths for the catalog list. */
 
-export const CATALOG_COL_WIDTHS_STORAGE_KEY = "ub_catalog_list_col_widths_v1";
+export const CATALOG_COL_WIDTHS_STORAGE_KEY = "ub_catalog_list_col_widths_v2";
 
-export type CatalogResizableCol = "check" | "stock" | "sell" | "category";
+export type CatalogResizableCol =
+  | "check"
+  | "product"
+  | "stock"
+  | "sell"
+  | "category";
 
 export type CatalogColumnWidths = Record<CatalogResizableCol, number>;
 
-/** Defaults match the previous Tailwind tracks (~1.35 / 2.5 / 3.5 / 4.5 rem). */
+/** Defaults match the previous Tailwind tracks, with Product as a real column. */
 export const CATALOG_COL_WIDTH_DEFAULTS: CatalogColumnWidths = {
   check: 22,
-  stock: 40,
-  sell: 56,
-  category: 72,
+  product: 280,
+  stock: 48,
+  sell: 64,
+  category: 96,
 };
 
 export const CATALOG_COL_WIDTH_MIN: CatalogColumnWidths = {
   check: 16,
-  stock: 28,
-  sell: 36,
-  category: 48,
+  product: 120,
+  stock: 32,
+  sell: 40,
+  category: 56,
 };
 
 export const CATALOG_COL_WIDTH_MAX: CatalogColumnWidths = {
-  check: 56,
-  stock: 140,
-  sell: 180,
-  category: 280,
+  check: 64,
+  product: 720,
+  stock: 200,
+  sell: 240,
+  category: 360,
+};
+
+export const CATALOG_COL_CSS_VARS: Record<CatalogResizableCol, string> = {
+  check: "--cat-col-check",
+  product: "--cat-col-product",
+  stock: "--cat-col-stock",
+  sell: "--cat-col-sell",
+  category: "--cat-col-category",
 };
 
 export function clampCatalogColWidth(
@@ -45,7 +61,9 @@ export function parseCatalogColumnWidths(
   const obj = raw as Record<string, unknown>;
   const next = { ...CATALOG_COL_WIDTH_DEFAULTS };
   let any = false;
-  for (const key of Object.keys(CATALOG_COL_WIDTH_DEFAULTS) as CatalogResizableCol[]) {
+  for (const key of Object.keys(
+    CATALOG_COL_WIDTH_DEFAULTS,
+  ) as CatalogResizableCol[]) {
     const value = obj[key];
     if (typeof value === "number" && Number.isFinite(value)) {
       next[key] = clampCatalogColWidth(key, value);
@@ -82,24 +100,35 @@ export function writeCatalogColumnWidths(widths: CatalogColumnWidths): void {
   }
 }
 
-/** Inline grid tracks — applied to every header/row so resize updates the whole sheet. */
-export function buildCatalogGridTemplateColumns(
+export function catalogSheetMinWidthPx(
   widths: CatalogColumnWidths,
-  opts?: { showCategory?: boolean },
-): string {
-  const showCategory = opts?.showCategory ?? true;
-  const category = showCategory ? `${widths.category}px` : "0px";
-  return `${widths.check}px minmax(0, 1fr) ${widths.stock}px ${widths.sell}px ${category}`;
+  showCategory: boolean,
+): number {
+  return (
+    widths.check +
+    widths.product +
+    widths.stock +
+    widths.sell +
+    (showCategory ? widths.category : 0)
+  );
 }
 
-/** @deprecated Prefer buildCatalogGridTemplateColumns — kept for any CSS-var consumers. */
-export function catalogColumnWidthVars(
+/** Paint column tracks onto a shell element — inherited by every row grid. */
+export function applyCatalogColumnWidthsToElement(
+  el: HTMLElement,
   widths: CatalogColumnWidths,
-): Record<string, string> {
-  return {
-    "--cat-col-check": `${widths.check}px`,
-    "--cat-col-stock": `${widths.stock}px`,
-    "--cat-col-sell": `${widths.sell}px`,
-    "--cat-col-category": `${widths.category}px`,
-  };
+  showCategory: boolean,
+): void {
+  el.style.setProperty(CATALOG_COL_CSS_VARS.check, `${widths.check}px`);
+  el.style.setProperty(CATALOG_COL_CSS_VARS.product, `${widths.product}px`);
+  el.style.setProperty(CATALOG_COL_CSS_VARS.stock, `${widths.stock}px`);
+  el.style.setProperty(CATALOG_COL_CSS_VARS.sell, `${widths.sell}px`);
+  el.style.setProperty(
+    CATALOG_COL_CSS_VARS.category,
+    showCategory ? `${widths.category}px` : "0px",
+  );
+  el.style.setProperty(
+    "--cat-sheet-min-width",
+    `${catalogSheetMinWidthPx(widths, showCategory)}px`,
+  );
 }
