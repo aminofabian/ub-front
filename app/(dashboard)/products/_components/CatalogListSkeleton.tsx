@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 import {
   catalogListGridClass,
   catalogListMetricCellClass,
@@ -60,12 +62,19 @@ function CatalogListSkeletonRow({
 export function CatalogListSkeleton({
   density,
   count = 12,
+  style,
 }: {
   density: CatalogDensity;
   count?: number;
+  style?: CSSProperties;
 }) {
   return (
-    <div className="py-0" aria-busy="true" aria-label="Loading catalog">
+    <div
+      className="py-0"
+      style={style}
+      aria-busy="true"
+      aria-label="Loading catalog"
+    >
       {Array.from({ length: count }, (_, i) => (
         <CatalogListSkeletonRow
           key={i}

@@ -27,8 +27,10 @@ import {
   resolveCatalogListSubtitle,
   resolveCatalogVariantListTitle,
 } from "@/lib/catalog-display";
+import { CatalogColResizeHandle } from "./CatalogColResizeHandle";
 import { CatalogListSkeleton } from "./CatalogListSkeleton";
 import { CatalogListThumb } from "./CatalogListThumb";
+import { useCatalogColumnWidths } from "./use-catalog-column-widths";
 import {
   buildCatalogRowMeta,
   catalogListCategoryTagClass,
@@ -184,6 +186,7 @@ export const VirtualizedCatalogBody = forwardRef<
   ref,
 ) {
   const parentRef = useRef<HTMLDivElement>(null);
+  const { gridStyle, beginResize, resetColumn } = useCatalogColumnWidths();
   const rowMetaById = useMemo(() => buildCatalogRowMeta(rows), [rows]);
   const duplicateRowIds = useMemo(
     () => findDuplicateCatalogRowIds(rows),
@@ -247,14 +250,14 @@ export const VirtualizedCatalogBody = forwardRef<
   }, [density, rows.length, virtualizer]);
 
   return (
-    <div className={catalogListShellClass}>
+    <div className={catalogListShellClass} style={gridStyle}>
       {catalogEmpty ? null : (
         <div
           className={cn(catalogListGridClass, catalogListHeaderRowClass)}
           role="row"
           aria-label="Catalog columns"
         >
-          <span className={catalogGridCol.check}>
+          <span className={cn(catalogGridCol.check, "group/cat-col relative")}>
             {onToggleSelectAllLoaded && rows.length > 0 ? (
               <button
                 type="button"
@@ -282,36 +285,72 @@ export const VirtualizedCatalogBody = forwardRef<
                 #
               </span>
             )}
+            <CatalogColResizeHandle
+              edge="check"
+              label="#"
+              onResizeStart={beginResize}
+              onReset={() => resetColumn("check")}
+            />
           </span>
           <span
             className={cn(
               catalogGridCol.product,
-              "text-[10px] font-semibold tracking-[-0.02em] text-foreground/40",
+              "group/cat-col relative text-[10px] font-semibold tracking-[-0.02em] text-foreground/40",
             )}
           >
             Product
+            <CatalogColResizeHandle
+              edge="product"
+              label="Product"
+              onResizeStart={beginResize}
+              onReset={() => resetColumn("stock")}
+            />
           </span>
           <span
-            className={cn(catalogListMetricHeaderClass, catalogGridCol.stock)}
+            className={cn(
+              catalogListMetricHeaderClass,
+              catalogGridCol.stock,
+              "group/cat-col relative",
+            )}
           >
             Qty
+            <CatalogColResizeHandle
+              edge="stock"
+              label="Qty"
+              onResizeStart={beginResize}
+              onReset={() => resetColumn("stock")}
+            />
           </span>
           <span
             className={cn(
               catalogListMetricHeaderClass,
               catalogGridCol.sell,
-              "pr-2.5",
+              "group/cat-col relative pr-2.5",
             )}
           >
             Price
+            <CatalogColResizeHandle
+              edge="sell"
+              label="Price"
+              onResizeStart={beginResize}
+              onReset={() => resetColumn("sell")}
+            />
           </span>
           <span
             className={cn(
               catalogListMetricHeaderClass,
               catalogGridCol.category,
+              "group/cat-col relative",
             )}
           >
             Category
+            <CatalogColResizeHandle
+              edge="category"
+              label="Category"
+              onResizeStart={beginResize}
+              onReset={() => resetColumn("category")}
+              className="max-xl:hidden"
+            />
           </span>
         </div>
       )}
@@ -323,7 +362,7 @@ export const VirtualizedCatalogBody = forwardRef<
         onScroll={(event) => checkLoadMore(event.currentTarget)}
       >
         {initialLoading ? (
-          <CatalogListSkeleton density={density} />
+          <CatalogListSkeleton density={density} style={gridStyle} />
         ) : rows.length === 0 ? (
           <div
             className={
