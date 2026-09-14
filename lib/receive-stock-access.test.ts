@@ -79,18 +79,15 @@ describe("canPathAPurchasing", () => {
     ).toBe(true);
   });
 
-  it("defaults stock manager Path A on when receive-stock setting absent", () => {
+  it("always allows stock manager Path A", () => {
     expect(canPathAPurchasing(me("stock_manager"), { name: "Shop" })).toBe(
       true,
     );
-  });
-
-  it("respects stock manager receive toggle for Path A", () => {
     expect(
       canPathAPurchasing(
         me("stock_manager"),
         business({ allowReceiveForStockManager: false }),
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 });

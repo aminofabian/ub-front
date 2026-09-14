@@ -44,8 +44,9 @@ export function canReceiveStock(
 
 /**
  * Path A purchase orders: list, create, mark arrived, unpack (GRN).
- * Stock managers inherit this when receive-stock is enabled (defaults on),
- * matching backend {@code grantsDelegatedPathAAccess}.
+ * Stock managers always get Path A (matches backend
+ * {@code grantsDelegatedPathAAccess}). Walk-in Path B still uses
+ * {@link canReceiveStock}.
  */
 export function canPathAPurchasing(
   me: MeResponse | null | undefined,
@@ -58,9 +59,8 @@ export function canPathAPurchasing(
     return true;
   }
   const key = roleKey(me);
-  const settings = receiveStockSettings(business);
   if (key === "stock_manager") {
-    return settings?.allowReceiveForStockManager !== false;
+    return true;
   }
   if (key === "grocery_clerk" || key === "grocery_manager") {
     const levels = business?.inventory?.stockLevels;
