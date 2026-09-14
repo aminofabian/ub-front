@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ArrowRightLeft,
   BarChart3,
+  ClipboardCheck,
   ClipboardList,
   Layers,
   Package,
@@ -11,7 +12,6 @@ import {
   ScanLine,
   ShoppingCart,
   TrendingUp,
-  Warehouse,
 } from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
@@ -89,9 +89,9 @@ export const STOCK_PAGE_QUICK_LINKS: readonly InventoryQuickLink[] = [
 export const STOCK_HUB_ACTIONS: readonly StockHubAction[] = [
   {
     id: "take-stock",
-    href: APP_ROUTES.inventoryStockTake,
+    href: `${APP_ROUTES.inventoryStock}?view=levels`,
     label: "Take stock",
-    hint: "Walk the shelves and count what's really there",
+    hint: "Find a product and set what’s on the shelf now",
     icon: ClipboardList,
     rank: "hero",
   },
@@ -112,10 +112,26 @@ export const STOCK_HUB_ACTIONS: readonly StockHubAction[] = [
     rank: "pair",
   },
   {
+    id: "full-count",
+    href: APP_ROUTES.inventoryStockTake,
+    label: "Full count",
+    hint: "Walk every shelf and close a count session",
+    icon: ClipboardList,
+    rank: "list",
+  },
+  {
+    id: "daily-audit",
+    href: APP_ROUTES.inventoryStockTakeDailyAudit,
+    label: "Daily audit",
+    hint: "Sample check for today’s variance",
+    icon: ClipboardCheck,
+    rank: "list",
+  },
+  {
     id: "restock-analysis",
     href: APP_ROUTES.inventoryStockTakeRestock,
     label: "Restock analysis",
-    hint: "What to reorder after the count",
+    hint: "What to reorder after a count",
     icon: TrendingUp,
     rank: "list",
   },
@@ -173,14 +189,6 @@ export const STOCK_HUB_ACTIONS: readonly StockHubAction[] = [
     label: "Products",
     hint: "Catalog, prices, and barcodes",
     icon: Package,
-    rank: "list",
-  },
-  {
-    id: "levels",
-    href: `${APP_ROUTES.inventoryStock}?view=levels`,
-    label: "Correct on-hand qty",
-    hint: "Fix one product’s shelf number without a full count",
-    icon: Warehouse,
     rank: "list",
   },
 ];

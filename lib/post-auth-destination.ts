@@ -137,7 +137,7 @@ function dedicatedRoleHome(
     return APP_ROUTES.cashier;
   }
   if (roleKey === "stock_manager") {
-    return APP_ROUTES.inventoryStock;
+    return `${APP_ROUTES.inventoryStock}?view=levels`;
   }
   if (roleKey === "manager" && isGroceryOperationsBusiness(business)) {
     return APP_ROUTES.grocery;

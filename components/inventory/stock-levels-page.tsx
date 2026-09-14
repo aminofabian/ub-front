@@ -484,7 +484,7 @@ type StockMobileCardProps = {
   onSaveEdit: () => void;
 };
 
-/** Compact, thumb-friendly stock editor for small screens (no horizontal scroll). */
+/** Compact, thumb-friendly Take stock row for small screens. */
 function StockMobileCard({
   row,
   currency,
@@ -503,7 +503,6 @@ function StockMobileCard({
   const target = Number(editQty.trim());
   const showCost =
     editing && Number.isFinite(target) && target > row.stock;
-  const metaBits = [row.sku, row.shelfName].filter(Boolean);
 
   return (
     <article
@@ -511,103 +510,104 @@ function StockMobileCard({
         "px-3 py-3.5 transition-colors",
         loss && "bg-orange-500/[0.06] dark:bg-orange-400/[0.09]",
         editing &&
-          "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
+          "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <Link
-            href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.name)}`}
-            className={cn(
-              "block text-[15px] font-semibold leading-snug tracking-[-0.015em]",
-              stockInk,
-              "underline-offset-2 hover:text-[var(--pos-primary,#0f766e)] hover:underline",
-            )}
-          >
-            {row.name}
-          </Link>
+          <div className="flex items-start justify-between gap-2">
+            <p
+              className={cn(
+                "text-[15px] font-semibold leading-snug tracking-[-0.015em]",
+                stockInk,
+              )}
+            >
+              {row.name}
+            </p>
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                statusClass,
+              )}
+            >
+              {label}
+            </span>
+          </div>
           {row.barcode ? (
             <p
               className={cn(
-                "mt-1 truncate font-mono text-[13px] tabular-nums tracking-wide",
+                "mt-1 font-mono text-[13px] tabular-nums tracking-wide",
                 stockInk,
               )}
             >
               {row.barcode}
             </p>
           ) : null}
-          {metaBits.length > 0 ? (
-            <p className={cn("mt-0.5 truncate text-[11px]", stockMute)}>
-              {metaBits.join(" · ")}
-            </p>
+          <p className={cn("mt-0.5 truncate text-[11px]", stockMute)}>
+            {[row.sku, row.shelfName].filter(Boolean).join(" · ") || "—"}
+          </p>
+        </div>
+
+        {!editing ? (
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <span
+              className={cn(
+                "font-mono text-[1.35rem] font-semibold tabular-nums leading-none tracking-[-0.02em]",
+                out || low
+                  ? "text-rose-700 dark:text-rose-300"
+                  : stockInk,
+              )}
+            >
+              {row.stock.toLocaleString("en-KE")}
+            </span>
+            <span className={cn("text-[10px] font-medium", stockMute)}>
+              on shelf
+            </span>
+          </div>
+        ) : null}
+      </div>
+
+      {!editing ? (
+        <div className="mt-2.5 flex items-center justify-between gap-3">
+          <p className={cn("min-w-0 truncate text-[11px] tabular-nums", stockMute)}>
+            Buy {fmtMoney(row.buyPrice, currency)}
+            <span className="mx-1.5 opacity-40">·</span>
+            Sell {fmtMoney(row.sellPrice, currency)}
+          </p>
+          {canWrite && row.editable ? (
+            <button
+              type="button"
+              onClick={onStartEdit}
+              className={cn(
+                "inline-flex h-9 shrink-0 items-center gap-1.5 border px-3 text-[12px] font-semibold transition-colors",
+                stockHair,
+                stockInk,
+                "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+              )}
+            >
+              <Pencil className="size-3.5" aria-hidden />
+              Set qty
+            </button>
+          ) : !row.editable ? (
+            <span className={cn("text-[11px]", stockMute)}>Parent SKU</span>
           ) : null}
         </div>
-        <span
-          className={cn(
-            "inline-flex shrink-0 items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
-            statusClass,
-          )}
-        >
-          {label}
-        </span>
-      </div>
-
-      <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className={stockMute}>In store</span>
-          <span
+      ) : (
+        <div className="mt-3 space-y-2.5">
+          <div
             className={cn(
-              "font-mono tabular-nums font-semibold",
-              out || low
-                ? "text-rose-700 dark:text-rose-300"
-                : stockInk,
+              "grid gap-2",
+              showCost ? "grid-cols-2" : "grid-cols-1",
             )}
           >
-            {row.stock.toLocaleString("en-KE")}
-          </span>
-        </div>
-        <div className="flex items-baseline justify-between gap-2">
-          <span className={stockMute}>Reorder</span>
-          <span className={cn("font-mono tabular-nums", stockMute)}>
-            {row.reorderLevel != null && row.reorderLevel > 0
-              ? row.reorderLevel.toLocaleString("en-KE")
-              : "—"}
-          </span>
-        </div>
-        <div className="flex items-baseline justify-between gap-2">
-          <span className={stockMute}>Buy</span>
-          <span
-            className={cn(
-              "font-mono tabular-nums",
-              loss
-                ? "font-semibold text-orange-800 dark:text-orange-300"
-                : stockInk,
-            )}
-          >
-            {fmtMoney(row.buyPrice, currency)}
-          </span>
-        </div>
-        <div className="flex items-baseline justify-between gap-2">
-          <span className={stockMute}>Sell</span>
-          <span
-            className={cn(
-              "font-mono tabular-nums",
-              loss
-                ? "font-semibold text-orange-800 dark:text-orange-300"
-                : stockInk,
-            )}
-          >
-            {fmtMoney(row.sellPrice, currency)}
-          </span>
-        </div>
-      </div>
-
-      {editing ? (
-        <div className="mt-3 space-y-2">
-          <div className={cn("grid gap-2", showCost ? "grid-cols-2" : "grid-cols-1")}>
             <label className="block min-w-0">
-              <span className={cn("mb-1 block text-[10px] font-semibold uppercase tracking-wide", stockMute)}>
-                New qty
+              <span
+                className={cn(
+                  "mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em]",
+                  stockMute,
+                )}
+              >
+                On shelf now
               </span>
               <input
                 type="number"
@@ -629,7 +629,12 @@ function StockMobileCard({
             </label>
             {showCost ? (
               <label className="block min-w-0">
-                <span className={cn("mb-1 block text-[10px] font-semibold uppercase tracking-wide", stockMute)}>
+                <span
+                  className={cn(
+                    "mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em]",
+                    stockMute,
+                  )}
+                >
                   Unit cost
                 </span>
                 <input
@@ -677,25 +682,7 @@ function StockMobileCard({
             </button>
           </div>
         </div>
-      ) : canWrite && row.editable ? (
-        <button
-          type="button"
-          onClick={onStartEdit}
-          className={cn(
-            "mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 border text-[13px] font-medium transition-colors",
-            stockHair,
-            stockInk,
-            "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
-          )}
-        >
-          <Pencil className="size-3.5" aria-hidden />
-          Edit stock
-        </button>
-      ) : !row.editable ? (
-        <p className={cn("mt-2 text-[11px]", stockMute)}>
-          Package variant — edit stock on the parent SKU.
-        </p>
-      ) : null}
+      )}
     </article>
   );
 }
@@ -2013,7 +2000,7 @@ export function StockLevelsPage() {
       <div className="flex min-h-0 flex-col gap-1">
         <header
           className={cn(
-            "flex items-center gap-2 border bg-white px-2 py-1.5",
+            "flex items-center gap-2.5 border bg-white px-3 py-2.5",
             stockHair,
           )}
         >
@@ -2021,33 +2008,29 @@ export function StockLevelsPage() {
             type="button"
             onClick={closeLevels}
             className={cn(
-              "inline-flex size-8 items-center justify-center border transition-colors",
+              "inline-flex size-9 items-center justify-center border transition-colors",
               stockHair,
               stockMute,
               "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
             )}
-            aria-label="Back to stock desk"
+            aria-label="Back to Home"
           >
             <ArrowLeft className="size-4" aria-hidden />
           </button>
           <div className="min-w-0 flex-1">
             <h1
               className={cn(
-                "truncate font-heading text-[15px] font-semibold tracking-[-0.02em]",
+                "truncate font-heading text-[1.15rem] font-semibold tracking-[-0.02em]",
                 stockInk,
               )}
             >
-              On-hand qty
+              Take stock
             </h1>
             <p className={cn("truncate text-[11px]", stockMute)}>
               {[activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||
-                "Correct a product’s shelf number"}
+                "Set what’s on the shelf now"}
             </p>
           </div>
-          <Warehouse
-            className="size-4 shrink-0 text-[var(--pos-primary,#0f766e)]"
-            aria-hidden
-          />
         </header>
 
         <div className={cn("overflow-hidden rounded-none border bg-white", stockHair)}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Building2,
   ClipboardList,
@@ -762,22 +762,45 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   return featureFlagAllows(item, gate.featureFlags);
 }
 
-function itemIsActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
-  if (href === APP_ROUTES.butcher) {
-    return pathname === APP_ROUTES.butcher;
-  }
-  if (href === APP_ROUTES.order) {
-    return pathname === href || pathname.startsWith(`${href}?`);
-  }
-  if (href === APP_ROUTES.analytics) {
-    return pathname === href || pathname.startsWith(`${href}?`);
-  }
-  return (
-    pathname === href ||
-    pathname.startsWith(href + "/") ||
-    pathname.startsWith(href + "?")
+function itemIsActive(
+  pathname: string,
+  href: string,
+  search = "",
+): boolean {
+  const [hrefPath, hrefQuery = ""] = href.split("?");
+  const path = pathname.split("?")[0] ?? pathname;
+  const live = new URLSearchParams(
+    search.startsWith("?") ? search.slice(1) : search,
   );
+
+  if (hrefPath === "/") return path === "/";
+  if (hrefPath === APP_ROUTES.butcher) {
+    return path === APP_ROUTES.butcher;
+  }
+  if (hrefPath === APP_ROUTES.order) {
+    return path === hrefPath;
+  }
+  if (hrefPath === APP_ROUTES.analytics) {
+    return path === hrefPath;
+  }
+
+  // Home vs Take stock share /inventory/stock — distinguish by ?view=
+  if (hrefPath === APP_ROUTES.inventoryStock) {
+    const isLevels = live.get("view") === "levels";
+    if (hrefQuery.includes("view=levels")) return path === hrefPath && isLevels;
+    return path === hrefPath && !isLevels;
+  }
+
+  if (hrefQuery) {
+    if (path !== hrefPath && !path.startsWith(`${hrefPath}/`)) return false;
+    const want = new URLSearchParams(hrefQuery);
+    for (const [k, v] of want.entries()) {
+      if (live.get(k) !== v) return false;
+    }
+    return true;
+  }
+
+  return path === hrefPath || path.startsWith(`${hrefPath}/`);
 }
 
 type BottomTab = {
@@ -788,28 +811,28 @@ type BottomTab = {
   matchSectionIds: string[];
 };
 
-/** Stock manager: core jobs on the dock; the rest lives in More. */
+/** Stock manager: Home first; Take stock = on-hand qty editor (not full count / audit). */
 const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
   {
-    id: "receive",
-    label: "Receive",
-    icon: Truck,
-    href: APP_ROUTES.purchasingAddSupplies,
-    matchSectionIds: ["procurement"],
-  },
-  {
-    id: "stock-levels",
+    id: "home",
     label: "Home",
     icon: Warehouse,
     href: APP_ROUTES.inventoryStock,
     matchSectionIds: ["inventory"],
   },
   {
-    id: "stock-take",
+    id: "take-stock",
     label: "Take stock",
     icon: ClipboardList,
-    href: APP_ROUTES.inventoryStockTake,
+    href: `${APP_ROUTES.inventoryStock}?view=levels`,
     matchSectionIds: ["inventory"],
+  },
+  {
+    id: "receive",
+    label: "Receive",
+    icon: Truck,
+    href: APP_ROUTES.purchasingAddSupplies,
+    matchSectionIds: ["procurement"],
   },
   {
     id: "order-pad",
@@ -881,7 +904,13 @@ type AppShellProps = { children: React.ReactNode };
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams.toString();
   const router = useRouter();
+  const isPathActive = useMemo(
+    () => (path: string, href: string) => itemIsActive(path, href, search),
+    [search],
+  );
   const tenant = useOptionalTenant();
   const tenantTitle =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? "UB Admin";
@@ -1097,8 +1126,8 @@ export function AppShell({ children }: AppShellProps) {
   ]);
 
   const activeSectionId = useMemo(
-    () => resolveActiveNavSectionId(visibleSections, pathname, itemIsActive),
-    [pathname, visibleSections],
+    () => resolveActiveNavSectionId(visibleSections, pathname, isPathActive),
+    [pathname, visibleSections, isPathActive],
   );
 
   const [moreOpen, setMoreOpen] = useState(false);
@@ -1163,13 +1192,14 @@ export function AppShell({ children }: AppShellProps) {
     const roleKey = me?.role?.key?.trim().toLowerCase();
     if (roleKey === "stock_manager") {
       const tabs: BottomTab[] = [];
-      if (canAddSupplies) {
-        tabs.push(STOCK_MANAGER_BOTTOM_TABS[0]); // Receive
-      }
+      // Home is always first when the stock page is on.
       if (stockManagerStockPage) {
-        tabs.push(STOCK_MANAGER_BOTTOM_TABS[1]); // Stock
+        tabs.push(STOCK_MANAGER_BOTTOM_TABS[0]); // Home
+        tabs.push(STOCK_MANAGER_BOTTOM_TABS[1]); // Take stock
       }
-      tabs.push(STOCK_MANAGER_BOTTOM_TABS[2]); // Counts
+      if (canAddSupplies) {
+        tabs.push(STOCK_MANAGER_BOTTOM_TABS[2]); // Receive
+      }
       if (canViewOrderPad) {
         tabs.push(STOCK_MANAGER_BOTTOM_TABS[3]); // Order pad
       }
@@ -1280,7 +1310,7 @@ export function AppShell({ children }: AppShellProps) {
   // Which bottom tab is currently "active"
   const activeBottomTabId = useMemo(() => {
     for (const tab of visibleBottomTabs) {
-      if (tab.href && itemIsActive(pathname, tab.href)) {
+      if (tab.href && isPathActive(pathname, tab.href)) {
         return tab.id;
       }
     }
@@ -1290,7 +1320,7 @@ export function AppShell({ children }: AppShellProps) {
       }
     }
     return null;
-  }, [pathname, visibleBottomTabs, activeSectionId]);
+  }, [pathname, visibleBottomTabs, activeSectionId, isPathActive]);
 
   // ── Phase 9: multi_branch gate ────────────────────────────────────────
   const multiBranch = mergedFeatureFlags.multi_branch !== false;
@@ -1623,6 +1653,12 @@ export function AppShell({ children }: AppShellProps) {
             logoUrl={business?.branding?.logoUrl}
             faviconUrl={business?.branding?.faviconUrl}
             primaryColor={business?.branding?.primaryColor}
+            pageTitle={
+              pathname === APP_ROUTES.inventoryStock &&
+              searchParams.get("view") === "levels"
+                ? "Take stock"
+                : undefined
+            }
             branchName={currentBranch?.name}
             departmentName={currentItemType?.label ?? ALL_DEPARTMENTS_LABEL}
             shelfZoneName={
@@ -1735,7 +1771,7 @@ export function AppShell({ children }: AppShellProps) {
             onAisleChange={setAisleId}
             showShelfZonePicker={showShelfZonePicker}
             onLogout={onLogout}
-            itemIsActive={itemIsActive}
+            itemIsActive={isPathActive}
             compactNav={
               isStockManager || isCashier || isButcherCashier || isGroceryClerk
             }

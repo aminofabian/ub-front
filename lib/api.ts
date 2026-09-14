@@ -4178,6 +4178,14 @@ export async function deactivateUser(userId: string): Promise<void> {
 }
 
 /**
+ * Soft-deletes a user (removed from directory and payroll). Owner/admin
+ * accounts are rejected by the API.
+ */
+export async function deleteUser(userId: string): Promise<void> {
+  await request(`${API_ROUTES.users}/${userId}`, { method: "DELETE" });
+}
+
+/**
  * Signs a user out of every device. Their password/PIN still works, so this is
  * for lost devices and abandoned sessions — deactivate to remove access.
  */

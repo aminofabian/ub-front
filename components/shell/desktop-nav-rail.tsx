@@ -150,7 +150,7 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
 const RAIL_SHORT_LABEL_BY_HREF: Partial<Record<string, string>> = {
   [APP_ROUTES.inventoryStock]: "Stock",
   [APP_ROUTES.inventoryRestock]: "Out",
-  [APP_ROUTES.inventoryStockTake]: "Take stock",
+  [APP_ROUTES.inventoryStockTake]: "Full count",
   [APP_ROUTES.inventoryStockTakeDailyAudit]: "Audit",
   [APP_ROUTES.inventoryStockTakeDailyAuditReview]: "Review",
   [APP_ROUTES.inventoryStockTakeRestock]: "Restock",

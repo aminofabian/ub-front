@@ -24,7 +24,7 @@ type StockActionHubProps = {
 };
 
 /**
- * Take-stock home — count first, then the jobs around keeping shelves honest.
+ * Stock Home — Take stock is the hero (on-hand qty). Full count / audit stay secondary.
  */
 export function StockActionHub({
   actions,
@@ -37,10 +37,7 @@ export function StockActionHub({
 }: StockActionHubProps) {
   const hero = actions.find((a) => a.rank === "hero");
   const pair = actions.filter((a) => a.rank === "pair");
-  const list = actions.filter(
-    (a) => a.rank === "list" && a.id !== "levels",
-  );
-  const levelsAction = actions.find((a) => a.id === "levels");
+  const list = actions.filter((a) => a.rank === "list");
 
   const placeLine = [branchName, departmentLabel].filter(Boolean).join(" · ");
 
@@ -53,10 +50,10 @@ export function StockActionHub({
             ink,
           )}
         >
-          Take stock
+          Home
         </h1>
         <p className={cn("mt-1.5 max-w-md text-[13px] leading-snug", mute)}>
-          Count what’s on the shelf, bring goods in, and keep the room honest.
+          Jump into Take stock to set shelf qty, or receive and order from here.
           {placeLine ? (
             <span className="mt-1 block text-[12px] tracking-[-0.01em]">
               {placeLine}
@@ -65,7 +62,6 @@ export function StockActionHub({
         </p>
       </header>
 
-      {/* Attention strip — doors into on-hand corrections */}
       <div className={cn("grid grid-cols-2 gap-px border bg-white", hair)}>
         <button
           type="button"
@@ -76,7 +72,12 @@ export function StockActionHub({
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
           )}
         >
-          <span className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", mute)}>
+          <span
+            className={cn(
+              "text-[10px] font-semibold uppercase tracking-[0.12em]",
+              mute,
+            )}
+          >
             Sold out
           </span>
           <span
@@ -101,7 +102,12 @@ export function StockActionHub({
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
           )}
         >
-          <span className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", mute)}>
+          <span
+            className={cn(
+              "text-[10px] font-semibold uppercase tracking-[0.12em]",
+              mute,
+            )}
+          >
             Running low
           </span>
           <span
@@ -123,7 +129,7 @@ export function StockActionHub({
         <Link
           href={hero.href}
           className={cn(
-            "group relative flex min-h-[5.5rem] items-end overflow-hidden border px-4 py-4 text-white sm:min-h-[6.25rem] sm:px-5 sm:py-5",
+            "group relative flex min-h-[5.75rem] items-end overflow-hidden border px-4 py-4 text-white sm:min-h-[6.5rem] sm:px-5 sm:py-5",
             "transition-[transform,opacity] duration-200 ease-out active:scale-[0.99]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)] focus-visible:ring-offset-2",
           )}
@@ -140,7 +146,7 @@ export function StockActionHub({
           </span>
           <span className="relative flex w-full items-end justify-between gap-3">
             <span className="min-w-0">
-              <span className="block text-[1.35rem] font-semibold tracking-[-0.02em] sm:text-[1.5rem]">
+              <span className="block text-[1.4rem] font-semibold tracking-[-0.02em] sm:text-[1.55rem]">
                 {hero.label}
               </span>
               <span className="mt-1 block text-[13px] text-white/80">
@@ -226,51 +232,6 @@ export function StockActionHub({
           ))}
         </div>
       ) : null}
-
-      {levelsAction ? (
-        <button
-          type="button"
-          onClick={() => onOpenLevels("all")}
-          className={cn(
-            "group flex w-full items-center justify-between gap-3 border bg-white px-4 py-3.5 text-left transition-colors",
-            hair,
-            "hover:border-[var(--pos-primary,#0f766e)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
-          )}
-        >
-          <span className="min-w-0">
-            <span
-              className={cn(
-                "block text-[14px] font-semibold tracking-[-0.015em]",
-                ink,
-              )}
-            >
-              {levelsAction.label}
-            </span>
-            <span className={cn("mt-0.5 block text-[12px]", mute)}>
-              {levelsAction.hint}
-            </span>
-          </span>
-          <ArrowRight
-            className="size-4 shrink-0 text-[var(--pos-primary,#0f766e)] transition-transform duration-200 group-hover:translate-x-0.5"
-            aria-hidden
-          />
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => onOpenLevels("all")}
-          className={cn(
-            "group flex w-full items-center justify-between gap-3 border bg-white px-4 py-3.5 text-left",
-            hair,
-          )}
-        >
-          <span className={cn("text-[14px] font-semibold", ink)}>
-            Correct on-hand qty
-          </span>
-          <ArrowRight className="size-4 text-[var(--pos-primary,#0f766e)]" aria-hidden />
-        </button>
-      )}
     </div>
   );
 }

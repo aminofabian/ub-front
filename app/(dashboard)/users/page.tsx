@@ -17,6 +17,7 @@ import {
   Pencil,
   Palette,
   Save,
+  Trash2,
   UserPlus,
   Users as UsersIcon,
   UserX,
@@ -45,6 +46,7 @@ import {
   assignUserRole,
   createUser,
   deactivateUser,
+  deleteUser,
   fetchBranches,
   fetchRoles,
   fetchUserPin,
@@ -93,6 +95,12 @@ type Feedback = { kind: "success" | "error"; text: string } | null;
 /** Roles whose catalog access is scoped by admin-assigned departments. */
 function roleUsesDepartmentAssignments(roleKey?: string): boolean {
   return roleKey?.trim().toLowerCase() === "grocery_clerk";
+}
+
+/** Owner and admin accounts cannot be hard-removed from the tenant. */
+function isProtectedFromDelete(roleKey?: string): boolean {
+  const key = roleKey?.trim().toLowerCase();
+  return key === "owner" || key === "admin";
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -435,6 +443,7 @@ export default function UsersPage() {
   const [savingNameId, setSavingNameId] = useState<string | null>(null);
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [signingOutId, setSigningOutId] = useState<string | null>(null);
   const [nameEditUserId, setNameEditUserId] = useState<string | null>(null);
   const [roleEditUserId, setRoleEditUserId] = useState<string | null>(null);
@@ -694,6 +703,36 @@ export default function UsersPage() {
           });
         } finally {
           setDeactivatingId(null);
+        }
+      },
+    });
+  };
+
+  const onDelete = (userId: string, email: string) => {
+    showThemedConfirmToast({
+      id: `delete-user-${userId}`,
+      title: "Delete this user permanently?",
+      description: `${email} will be removed from the team directory and payroll. Past sales and payslips stay on file. Owner and admin accounts cannot be deleted.`,
+      confirmLabel: "Delete",
+      onConfirm: async () => {
+        setDeletingId(userId);
+        setFeedback(null);
+        try {
+          await deleteUser(userId);
+          if (profileUserId === userId) {
+            setProfileUserId(null);
+            setProfileUserLabel("");
+          }
+          await loadData();
+          await refreshSession();
+          setFeedback({ kind: "success", text: "User deleted." });
+        } catch (error) {
+          setFeedback({
+            kind: "error",
+            text: error instanceof Error ? error.message : "Delete failed.",
+          });
+        } finally {
+          setDeletingId(null);
         }
       },
     });
@@ -1852,8 +1891,30 @@ export default function UsersPage() {
                                   label={`Deactivate ${user.email}`}
                                   tone="danger"
                                   spinning={deactivatingId === user.id}
-                                  disabled={deactivatingId === user.id}
+                                  disabled={
+                                    deactivatingId === user.id ||
+                                    deletingId === user.id
+                                  }
                                   onClick={() => void onDeactivate(user.id)}
+                                />
+                              ) : null}
+                              {canDeactivate &&
+                              user.id !== me?.id &&
+                              !isProtectedFromDelete(user.role?.key) ? (
+                                <ActionIconButton
+                                  icon={
+                                    deletingId === user.id ? Loader2 : Trash2
+                                  }
+                                  label={`Delete ${user.email}`}
+                                  tone="danger"
+                                  spinning={deletingId === user.id}
+                                  disabled={
+                                    deletingId === user.id ||
+                                    deactivatingId === user.id
+                                  }
+                                  onClick={() =>
+                                    void onDelete(user.id, user.email)
+                                  }
                                 />
                               ) : null}
                             </div>

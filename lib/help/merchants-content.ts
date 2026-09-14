@@ -2770,7 +2770,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
           {
             question: "What is the difference between deactivate and delete?",
             answer:
-              "Deactivate blocks access until re-invited while keeping history attached to the person. Users are not deleted outright — history stays attributable to the right account.",
+              "Deactivate blocks access but keeps the person on the team list. Delete removes them from the directory and payroll permanently (owner and admin accounts cannot be deleted). Past sales and payslips stay on file.",
           },
           {
             question: "My grocery clerk sees no products — why?",
