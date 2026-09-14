@@ -1671,6 +1671,8 @@ export type CreateUserPayload = {
   phone?: string;
   /** Email the user a set-password link instead of providing a PIN/password. */
   sendInvite?: boolean;
+  /** How their first month is paid once salaries unlock on the 25th. */
+  joinPayMode?: JoinPayMode;
 };
 
 /** Branch id + name for the public PIN-login branch picker. */
@@ -13313,6 +13315,9 @@ export async function replyToContactMessage(
 
 // ─── Staff profiles + monthly payroll ───────────────────────────────────────
 
+/** How the join month is paid once salaries unlock on the 25th. */
+export type JoinPayMode = "full" | "half" | "prorate" | "deferred";
+
 export type StaffProfilePublicFields = {
   displayName: string | null;
   title: string | null;
@@ -13322,8 +13327,8 @@ export type StaffProfilePublicFields = {
   includeInPayroll: boolean;
   /** When false, mid-month joins get full monthly pay. Default true. Legacy. */
   prorateJoinMonth?: boolean;
-  /** full | half | prorate — how the join month is paid after unlock on the 25th. */
-  joinPayMode: "full" | "half" | "prorate";
+  /** full | half | prorate | deferred — how the join month is paid after unlock on the 25th. */
+  joinPayMode: JoinPayMode;
 };
 
 export type StaffProfilePrivateFields = {
@@ -13424,8 +13429,8 @@ export type PayrollRunRow = {
   monthlySalary: number;
   /** payableDays/daysInMonth when prorated; 0.5 when half; null when full or locked. */
   prorationFactor: number | null;
-  /** full | half | prorate */
-  joinPayMode: "full" | "half" | "prorate";
+  /** full | half | prorate | deferred */
+  joinPayMode: JoinPayMode;
   /** False until the 25th of the labeled month — payable base is zero until then. */
   salaryReleased: boolean;
   /** Employment start / join date, if set (YYYY-MM-DD). */
@@ -13550,7 +13555,7 @@ export type UpdateStaffProfilePayload = {
   employmentStatus?: string;
   includeInPayroll?: boolean;
   prorateJoinMonth?: boolean;
-  joinPayMode?: "full" | "half" | "prorate";
+  joinPayMode?: JoinPayMode;
   phone?: string | null;
   address?: string | null;
   nationalId?: string | null;

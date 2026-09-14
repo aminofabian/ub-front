@@ -58,10 +58,12 @@ import {
   setUserPin,
   updateStaffProfile,
   updateUser,
+  type JoinPayMode,
   type BranchRecord,
   type RoleRecord,
   type UserRecord,
 } from "@/lib/api";
+import { JOIN_PAY_MODES } from "@/lib/payroll-utils";
 import { hasPermission, Permission } from "@/lib/permissions";
 
 const USER_STATUS_FILTERS = [
@@ -81,6 +83,8 @@ type UserDraft = {
   credentialMethod: CredentialMethod;
   pin: string;
   branchId: string;
+  /** How their first month is paid once salaries unlock on the 25th. */
+  joinPayMode: JoinPayMode;
 };
 
 const DEFAULT_DRAFT: UserDraft = {
@@ -90,6 +94,7 @@ const DEFAULT_DRAFT: UserDraft = {
   credentialMethod: "invite",
   pin: "",
   branchId: "",
+  joinPayMode: "half",
 };
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
@@ -631,6 +636,7 @@ export default function UsersPage() {
         sendInvite: usePin ? undefined : true,
         status: usePin ? "active" : "invited",
         branchId: draft.branchId || undefined,
+        joinPayMode: draft.joinPayMode,
       });
       setDraft((previous) => ({ ...DEFAULT_DRAFT, roleId: previous.roleId }));
       await loadData();
@@ -2207,6 +2213,30 @@ export default function UsersPage() {
                     password. They can sign in once they&apos;ve set it.
                   </p>
                 )}
+                <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:col-span-2">
+                  First month salary
+                  <select
+                    className={dashboardSelectClass()}
+                    value={draft.joinPayMode}
+                    onChange={(event) =>
+                      setDraft((previous) => ({
+                        ...previous,
+                        joinPayMode: event.target.value as JoinPayMode,
+                      }))
+                    }
+                    aria-label="First month salary calculation for new user"
+                  >
+                    {JOIN_PAY_MODES.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="font-normal text-[11px] text-muted-foreground/90">
+                    How their first month is calculated. Salaries unlock on the
+                    25th — before that, the month shows zero for everyone.
+                  </span>
+                </label>
               </div>
             </FormDrawerFields>
           </form>

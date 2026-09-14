@@ -4,6 +4,42 @@ export type AdvanceRepaymentMode =
   | "fixed_per_pay"
   | "manual";
 
+/** How the join month is paid once salaries unlock on the 25th. */
+export type JoinPayMode = "full" | "half" | "prorate" | "deferred";
+
+export const JOIN_PAY_MODES: Array<{
+  value: JoinPayMode;
+  label: string;
+  hint: string;
+}> = [
+  {
+    value: "full",
+    label: "Full salary",
+    hint: "They receive the full monthly salary for their first month",
+  },
+  {
+    value: "half",
+    label: "Half salary",
+    hint: "Half of the monthly salary for their first month",
+  },
+  {
+    value: "prorate",
+    label: "Prorated by days",
+    hint: "Calculated from their start date and days worked",
+  },
+  {
+    value: "deferred",
+    label: "No salary until next payroll",
+    hint: "First month stays at zero — salary starts next cycle",
+  },
+];
+
+export function joinPayModeLabel(mode: string | null | undefined): string {
+  return (
+    JOIN_PAY_MODES.find((m) => m.value === mode)?.label ?? "Half salary"
+  );
+}
+
 export const ADVANCE_REPAYMENT_MODES: Array<{
   value: AdvanceRepaymentMode;
   label: string;

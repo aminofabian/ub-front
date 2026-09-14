@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import {
   fetchStaffAdvances,
   updateStaffProfile,
+  type JoinPayMode,
   type PayrollRunRow,
   type SalaryAdvanceRecord,
 } from "@/lib/api";
@@ -29,6 +30,7 @@ import {
   employmentStatusLabel,
   formatPayrollDate,
   formatPayrollMoney,
+  JOIN_PAY_MODES,
   payrollArrearSummary,
   payrollCombinedBase,
   payrollMonthLabel,
@@ -286,7 +288,7 @@ export function PayrollStaffDrawer({
                   value={row.joinPayMode || "half"}
                   disabled={savingProration}
                   onChange={(e) => {
-                    const mode = e.target.value as "full" | "half" | "prorate";
+                    const mode = e.target.value as JoinPayMode;
                     void (async () => {
                       setSavingProration(true);
                       try {
@@ -300,14 +302,18 @@ export function PayrollStaffDrawer({
                     })();
                   }}
                 >
-                  <option value="half">Half salary</option>
-                  <option value="prorate">Prorate by days</option>
-                  <option value="full">Full salary</option>
+                  {JOIN_PAY_MODES.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
                 <span className="text-[11px] text-muted-foreground">
                   {row.salaryReleased === false
                     ? "This month unlocks on the 25th — payable shows as zero until then."
-                    : "Applied to this month’s payable amount."}
+                    : (JOIN_PAY_MODES.find(
+                          (o) => o.value === (row.joinPayMode || "half"),
+                        )?.hint ?? "Applied to this month’s payable amount.")}
                 </span>
               </label>
             ) : null}

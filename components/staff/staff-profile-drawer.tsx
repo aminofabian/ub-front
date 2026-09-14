@@ -16,6 +16,7 @@ import {
   fetchStaffProfile,
   fetchStaffSalaries,
   updateStaffProfile,
+  type JoinPayMode,
   type PayslipRecord,
   type SalaryAdvanceRecord,
   type SalaryRecord,
@@ -24,6 +25,7 @@ import {
 import {
   formatPayrollDate,
   formatPayrollMoney,
+  JOIN_PAY_MODES,
   payrollMonthLabel,
 } from "@/lib/payroll-utils";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -43,7 +45,7 @@ type ProfileDraft = {
   startDate: string;
   employmentStatus: string;
   includeInPayroll: boolean;
-  joinPayMode: "full" | "half" | "prorate";
+  joinPayMode: JoinPayMode;
   phone: string;
   address: string;
   nationalId: string;
@@ -88,7 +90,8 @@ function draftFromProfile(profile: StaffProfileRecord): ProfileDraft {
     joinPayMode:
       profile.publicFields.joinPayMode === "full" ||
       profile.publicFields.joinPayMode === "prorate" ||
-      profile.publicFields.joinPayMode === "half"
+      profile.publicFields.joinPayMode === "half" ||
+      profile.publicFields.joinPayMode === "deferred"
         ? profile.publicFields.joinPayMode
         : profile.publicFields.prorateJoinMonth === false
           ? "full"
@@ -388,7 +391,7 @@ export function StaffProfileDrawer({
                 </span>
               </label>
               <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:col-span-2">
-                Join-month pay
+                First month salary
                 <select
                   className={dashboardSelectClass()}
                   value={draft.joinPayMode}
@@ -396,20 +399,19 @@ export function StaffProfileDrawer({
                   onChange={(e) =>
                     setDraft((p) => ({
                       ...p,
-                      joinPayMode: e.target.value as
-                        | "full"
-                        | "half"
-                        | "prorate",
+                      joinPayMode: e.target.value as JoinPayMode,
                     }))
                   }
                 >
-                  <option value="half">Half salary</option>
-                  <option value="prorate">Prorate by days</option>
-                  <option value="full">Full salary</option>
+                  {JOIN_PAY_MODES.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
                 <span className="font-normal text-[11px] text-muted-foreground/90">
-                  Applies after salaries unlock on the 25th. Before the 25th,
-                  that month shows zero for everyone.
+                  Controls how their first month is calculated. Salaries unlock
+                  on the 25th — before that, the month shows zero for everyone.
                 </span>
               </label>
               <div className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
