@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, Printer, Receipt } from "lucide-react";
 
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
@@ -10,6 +10,8 @@ import {
   formatPayrollDateTime,
   formatPayrollMoney,
   payrollMonthLabel,
+  payslipDocumentHtml,
+  printPayslipDocument,
 } from "@/lib/payroll-utils";
 
 type Props = {
@@ -22,47 +24,6 @@ type Props = {
   payslipId?: string | null;
   initialPayslip?: PayslipRecord | null;
 };
-
-function payslipDocumentHtml(
-  payslip: PayslipRecord,
-  staffName: string,
-): string {
-  const period = payrollMonthLabel(payslip.periodYear, payslip.periodMonth);
-  const lines = [
-    ["Period", period],
-    ["Paid on", formatPayrollDateTime(payslip.paidAt)],
-    ["Base salary", formatPayrollMoney(Number(payslip.baseSalary))],
-    ["Advances deducted", formatPayrollMoney(Number(payslip.advancesDeducted))],
-    ["Other deductions", formatPayrollMoney(Number(payslip.otherDeductions))],
-    ["Net paid", formatPayrollMoney(Number(payslip.netPaid))],
-  ];
-  const note = payslip.note
-    ? `<p style="margin-top:16px;color:#555"><strong>Note:</strong> ${payslip.note}</p>`
-    : "";
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Payslip — ${staffName}</title>
-<style>
- body { font-family: system-ui, sans-serif; padding: 32px; color: #111; max-width: 480px; margin: 0 auto; }
- h1 { font-size: 1.25rem; margin: 0 0 4px; }
- p.sub { color: #555; margin: 0 0 24px; }
- table { width: 100%; border-collapse: collapse; }
- td { padding: 8px 0; border-bottom: 1px solid #eee; }
- td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
- tr.total td { font-weight: 700; border-top: 2px solid #111; border-bottom: none; padding-top: 12px; }
-</style></head><body>
- <h1>Payslip</h1>
- <p class="sub">${staffName} · ${period}</p>
- <table>
- ${lines
-   .map(
-     ([label, value], i) =>
-       `<tr class="${i === lines.length - 1 ? "total" : ""}"><td>${label}</td><td>${value}</td></tr>`,
-   )
-   .join("")}
- </table>
- ${note}
-</body></html>`;
-}
 
 export function PayslipDrawer({
   open,
@@ -77,7 +38,6 @@ export function PayslipDrawer({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payslip, setPayslip] = useState<PayslipRecord | null>(null);
-  const printRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     if (initialPayslip) {
@@ -116,17 +76,9 @@ export function PayslipDrawer({
 
   function onPrint() {
     if (!payslip) return;
-    const html = payslipDocumentHtml(payslip, staffName || payslip.displayName);
-    const win = window.open(
-      "",
-      "_blank",
-      "noopener,noreferrer,width=520,height=720",
+    printPayslipDocument(
+      payslipDocumentHtml(payslip, staffName || payslip.displayName),
     );
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    win.print();
   }
 
   const displayName = staffName || payslip?.displayName || "Staff";
@@ -170,7 +122,7 @@ export function PayslipDrawer({
         </p>
       ) : payslip ? (
         <FormDrawerFields legend="Payment record">
-          <div ref={printRef}>
+          <div>
             <dl className="space-y-3 rounded-none border border-border/50 bg-muted/20 p-4 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Period</dt>

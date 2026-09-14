@@ -47,6 +47,8 @@ export function PayrollAutomationPanel({
   const [autoPostExpense, setAutoPostExpense] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState("mpesa_manual");
   const [automationBranch, setAutomationBranch] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -61,8 +63,16 @@ export function PayrollAutomationPanel({
       setAutoPostExpense(data.postExpense);
       setPaymentMethod(data.paymentMethod);
       setAutomationBranch(data.branchId ?? "");
-    } catch {
+      setLoadFailed(false);
+      setError(null);
+    } catch (err) {
       setSettings(null);
+      setLoadFailed(true);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Couldn't load automation settings",
+      );
     } finally {
       setLoading(false);
     }
@@ -88,6 +98,7 @@ export function PayrollAutomationPanel({
   async function save() {
     if (!canManage) return;
     setSaving(true);
+    setError(null);
     try {
       const updated = await updatePayrollAutomation({
         enabled,
@@ -100,18 +111,23 @@ export function PayrollAutomationPanel({
         branchId: automationBranch || null,
       });
       setSettings(updated);
+      setLoadFailed(false);
       onSaved?.(updated);
       setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save automation settings");
     } finally {
       setSaving(false);
     }
   }
 
-  const statusLabel = !settings?.enabled
-    ? "Off"
-    : settings.automationMode === "remind"
-      ? `Remind · day ${settings.payDayOfMonth}`
-      : `Auto pay · day ${settings.payDayOfMonth}`;
+  const statusLabel = loadFailed
+    ? "Status unavailable"
+    : !settings?.enabled
+      ? "Off"
+      : settings.automationMode === "remind"
+        ? `Remind · day ${settings.payDayOfMonth}`
+        : `Auto pay · day ${settings.payDayOfMonth}`;
 
   return (
     <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4">
@@ -125,7 +141,15 @@ export function PayrollAutomationPanel({
               Automation
             </p>
             <p className="mt-0.5 text-sm font-medium">{statusLabel}</p>
-            {settings?.enabled ? (
+            {loadFailed ? (
+              <button
+                type="button"
+                className="mt-0.5 text-left text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                onClick={() => void reload()}
+              >
+                Couldn't load — tap to retry
+              </button>
+            ) : settings?.enabled ? (
               <p className="mt-0.5 text-[11px] text-muted-foreground">
                 {settings.autoPayTimes.join(", ")} EAT ·{" "}
                 {settings.automationMode === "auto_pay"
@@ -280,7 +304,10 @@ export function PayrollAutomationPanel({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                setError(null);
+              }}
             >
               Cancel
             </Button>
@@ -298,6 +325,12 @@ export function PayrollAutomationPanel({
               )}
             </Button>
           </div>
+
+          {error && open ? (
+            <p className="rounded-none border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {error}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

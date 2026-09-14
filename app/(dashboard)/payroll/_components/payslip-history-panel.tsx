@@ -20,10 +20,17 @@ import {
 type Props = {
   year: number;
   month: number;
+  /** Bump to refetch the current period (e.g. after a Refresh action). */
+  reloadToken?: number;
   onOpenPayslip: (payslip: PayslipRecord) => void;
 };
 
-export function PayslipHistoryPanel({ year, month, onOpenPayslip }: Props) {
+export function PayslipHistoryPanel({
+  year,
+  month,
+  reloadToken,
+  onOpenPayslip,
+}: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<PayslipRecord[]>([]);
@@ -43,7 +50,7 @@ export function PayslipHistoryPanel({ year, month, onOpenPayslip }: Props) {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, reloadToken]);
 
   const totals = rows.reduce(
     (acc, row) => ({

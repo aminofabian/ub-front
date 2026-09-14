@@ -43,6 +43,8 @@ export function StaffSmsDrawer({
   const [previewing, setPreviewing] = useState(false);
   const [sending, setSending] = useState(false);
   const [previewPhone, setPreviewPhone] = useState<string | null>(null);
+  const [renderedPreview, setRenderedPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const selectedTemplate = templates.find((t) => t.key === templateKey);
 
@@ -76,6 +78,8 @@ export function StaffSmsDrawer({
     setTemplateKey("complete_profile");
     setBody("");
     setPreviewPhone(null);
+    setRenderedPreview(null);
+    setError(null);
   }, [open, targetUserId]);
 
   const loadPreview = useCallback(async () => {
@@ -87,8 +91,14 @@ export function StaffSmsDrawer({
         templateKey,
         bodyOverride: body.trim() || undefined,
       });
-      setBody(preview.renderedBody);
+      // Keep the editable body untouched — the rendered result shows below so
+      // live placeholder expansion doesn't fight the user's cursor.
+      setRenderedPreview(preview.renderedBody);
       setPreviewPhone(preview.phoneAvailable ? preview.phone : null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Couldn't render the message preview",
+      );
     } finally {
       setPreviewing(false);
     }
@@ -102,10 +112,14 @@ export function StaffSmsDrawer({
 
   async function handleSend() {
     setSending(true);
+    setError(null);
     try {
       if (scope === "one") {
         const userId = recipients[0]?.userId ?? targetUserId;
-        if (!userId) return;
+        if (!userId) {
+          setError("No recipient selected.");
+          return;
+        }
         const result = await sendStaffSms(userId, {
           templateKey,
           bodyOverride: body.trim() || undefined,
@@ -128,6 +142,8 @@ export function StaffSmsDrawer({
         );
       }
       onOpenChange(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send SMS");
     } finally {
       setSending(false);
     }
@@ -240,6 +256,7 @@ export function StaffSmsDrawer({
           <textarea
             className="min-h-[120px] rounded-none border border-border/60 bg-background px-3 py-2 text-sm leading-relaxed"
             value={body}
+            maxLength={480}
             onChange={(e) => setBody(e.target.value)}
           />
         </label>
@@ -251,6 +268,31 @@ export function StaffSmsDrawer({
           </span>
           <span>{body.length}/480</span>
         </div>
+
+        {renderedPreview && renderedPreview !== body.trim() ? (
+          <div
+            className={cn(
+              "rounded-none border px-3 py-2 text-xs",
+              renderedPreview.length > 480
+                ? "border-destructive/40 bg-destructive/10"
+                : "border-border/60 bg-muted/20",
+            )}
+          >
+            <p className="font-medium text-muted-foreground">
+              What they'll receive
+              {renderedPreview.length > 480
+                ? ` · ${renderedPreview.length} chars after placeholders — shorten the message`
+                : ""}
+            </p>
+            <p className="mt-1 whitespace-pre-wrap">{renderedPreview}</p>
+          </div>
+        ) : null}
+
+        {error ? (
+          <p className="rounded-none border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
 
         {selectedTemplate ? (
           <p className="rounded-none bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">

@@ -309,9 +309,15 @@ export function PayrollStaffDrawer({
                 </span>
               </label>
             ) : null}
+            {row.startDate ? (
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">Joined</dt>
+                <dd className="tabular-nums">{row.startDate}</dd>
+              </div>
+            ) : null}
             {row.salaryEffectiveFrom ? (
               <div className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">Effective from</dt>
+                <dt className="text-muted-foreground">Salary from</dt>
                 <dd className="tabular-nums">{row.salaryEffectiveFrom}</dd>
               </div>
             ) : null}

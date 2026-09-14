@@ -24,6 +24,8 @@ type Props = {
   onApplyStatutoryChange: (value: boolean) => void;
   postExpenseDefault: boolean;
   onPostExpenseChange: (value: boolean) => void;
+  paymentMethod: string;
+  onPaymentMethodChange: (value: string) => void;
   pendingCount: number;
   canRunPayroll: boolean;
   canManagePayroll: boolean;
@@ -33,6 +35,7 @@ type Props = {
   onOpenSms?: () => void;
   onExport?: () => void;
   hasRows: boolean;
+  onAutomationSaved?: (message: string) => void;
 };
 
 export function PayrollRunSidebar({
@@ -43,6 +46,8 @@ export function PayrollRunSidebar({
   onApplyStatutoryChange,
   postExpenseDefault,
   onPostExpenseChange,
+  paymentMethod,
+  onPaymentMethodChange,
   pendingCount,
   canRunPayroll,
   canManagePayroll,
@@ -52,6 +57,7 @@ export function PayrollRunSidebar({
   onOpenSms,
   onExport,
   hasRows,
+  onAutomationSaved,
 }: Props) {
   return (
     <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
@@ -109,6 +115,20 @@ export function PayrollRunSidebar({
             description="Record net pay as salary expense"
             onClick={() => onPostExpenseChange(!postExpenseDefault)}
           />
+          {postExpenseDefault ? (
+            <label className="flex flex-col gap-1.5 pl-11 text-xs font-medium text-muted-foreground">
+              Payment method
+              <select
+                className={dashboardSelectClass(false)}
+                value={paymentMethod}
+                onChange={(e) => onPaymentMethodChange(e.target.value)}
+              >
+                <option value="mpesa_manual">M-Pesa</option>
+                <option value="bank">Bank</option>
+                <option value="cash">Cash</option>
+              </select>
+            </label>
+          ) : null}
         </div>
 
         {branches.length > 0 ? (
@@ -162,6 +182,11 @@ export function PayrollRunSidebar({
         applyStatutory={applyStatutory}
         postExpenseDefault={postExpenseDefault}
         branchFilter={branchFilter}
+        onSaved={() =>
+          onAutomationSaved?.(
+            "Payroll automation updated — it will run on the schedule you set.",
+          )
+        }
       />
 
       <div className="rounded-none border border-dashed border-border/60 px-4 py-3 text-xs leading-relaxed text-muted-foreground">

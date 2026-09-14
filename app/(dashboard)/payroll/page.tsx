@@ -81,6 +81,8 @@ export default function PayrollPage() {
   const [branchFilter, setBranchFilter] = useState("");
   const [applyStatutory, setApplyStatutory] = useState(false);
   const [postExpenseDefault, setPostExpenseDefault] = useState(false);
+  const [payAllMethod, setPayAllMethod] = useState("mpesa_manual");
+  const [historyTick, setHistoryTick] = useState(0);
 
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [profileUserLabel, setProfileUserLabel] = useState("");
@@ -100,6 +102,7 @@ export default function PayrollPage() {
   const [salaryCurrent, setSalaryCurrent] = useState(0);
   const [salaryAmount, setSalaryAmount] = useState("");
   const [salaryFrom, setSalaryFrom] = useState(() => localPayrollYmd());
+  const [salaryJoinDate, setSalaryJoinDate] = useState("");
   const [salarySaving, setSalarySaving] = useState(false);
 
   const [ledgerOpen, setLedgerOpen] = useState(false);
@@ -226,9 +229,13 @@ export default function PayrollPage() {
     const monthly = Number(row.monthlySalary ?? row.baseSalary) || 0;
     setSalaryCurrent(monthly);
     setSalaryAmount(monthly > 0 ? String(monthly) : "");
+    const join = row.startDate?.trim() || "";
+    const existing = row.salaryEffectiveFrom?.trim() || "";
+    setSalaryJoinDate(join);
+    // No salary yet → default to join date so the join month is covered.
+    // Otherwise keep the stored salary date (raises stay intact).
     setSalaryFrom(
-      row.salaryEffectiveFrom?.trim() ||
-        localPayrollYmd(),
+      existing || join || localPayrollYmd(),
     );
     setSalaryOpen(true);
   }
@@ -272,8 +279,8 @@ export default function PayrollPage() {
     setPayslipName(payslip.displayName);
     setPayslipId(payslip.id);
     setPayslipInitial(payslip);
-    setYear(payslip.periodYear);
-    setMonth(payslip.periodMonth);
+    // Deliberately no year/month change here — the drawer shows the initial
+    // payslip directly and mutating the global period had run-tab side effects.
     setPayslipOpen(true);
   }
 
@@ -330,7 +337,7 @@ export default function PayrollPage() {
         month,
         applyStatutory,
         postExpense: postExpenseDefault,
-        paymentMethod: postExpenseDefault ? "mpesa_manual" : undefined,
+        paymentMethod: postExpenseDefault ? payAllMethod : undefined,
         branchId: branchFilter || undefined,
       });
       await load();
@@ -415,6 +422,7 @@ export default function PayrollPage() {
             setYear(y);
             setMonth(m);
           }}
+          onRefresh={() => setHistoryTick((t) => t + 1)}
         />
       ) : null}
 
@@ -457,6 +465,8 @@ export default function PayrollPage() {
                 onApplyStatutoryChange={setApplyStatutory}
                 postExpenseDefault={postExpenseDefault}
                 onPostExpenseChange={setPostExpenseDefault}
+                paymentMethod={payAllMethod}
+                onPaymentMethodChange={setPayAllMethod}
                 pendingCount={summary.pendingCount}
                 canRunPayroll={canRunPayroll}
                 canManagePayroll={canManagePayroll}
@@ -464,8 +474,13 @@ export default function PayrollPage() {
                 payingId={payingId}
                 onPayAll={() => void onPayAll()}
                 onOpenSms={canManagePayroll ? openSmsBulk : undefined}
-                onExport={() => exportPayrollRunCsv(rows, year, month)}
+                onExport={() =>
+                  exportPayrollRunCsv(rows, year, month, applyStatutory)
+                }
                 hasRows={rows.length > 0}
+                onAutomationSaved={(text) =>
+                  setFeedback({ kind: "success", text })
+                }
               />
 
               <div className="min-w-0 space-y-4">
@@ -530,6 +545,7 @@ export default function PayrollPage() {
           <PayslipHistoryPanel
             year={year}
             month={month}
+            reloadToken={historyTick}
             onOpenPayslip={openPayslipRecord}
           />
         </div>
@@ -690,12 +706,30 @@ export default function PayrollPage() {
       >
         <FormDrawerFields
           legend="Monthly amount"
-          hint="Start date (or this effective date) drives first-month pay when proration is on. You can turn proration off per person or pay full month once when confirming pay."
+          hint="Effective from should match when pay starts — usually their join date. A join on the 15th is paid from that day (prorated), not from next month."
         >
           <div className="grid gap-3">
             {salaryCurrent > 0 ? (
               <p className="rounded-none bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
                 Current base: {formatPayrollMoney(salaryCurrent)}
+              </p>
+            ) : null}
+            {salaryJoinDate ? (
+              <p className="rounded-none border border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                Joined {salaryJoinDate}
+                {salaryFrom && salaryFrom > salaryJoinDate ? (
+                  <>
+                    {" "}
+                    · salary starts later, so the join month may have no pay.{" "}
+                    <button
+                      type="button"
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                      onClick={() => setSalaryFrom(salaryJoinDate)}
+                    >
+                      Use join date
+                    </button>
+                  </>
+                ) : null}
               </p>
             ) : null}
             <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
@@ -718,6 +752,9 @@ export default function PayrollPage() {
                 value={salaryFrom}
                 onChange={(e) => setSalaryFrom(e.target.value)}
               />
+              <span className="font-normal text-[11px] text-muted-foreground/90">
+                First salary: use the join date. Later raises: use the raise date.
+              </span>
             </label>
           </div>
         </FormDrawerFields>

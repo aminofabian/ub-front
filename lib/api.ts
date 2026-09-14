@@ -13424,6 +13424,8 @@ export type PayrollRunRow = {
   prorationFactor: number | null;
   /** Staff setting — when false, mid-month proration is off. */
   prorateJoinMonth: boolean;
+  /** Employment start / join date, if set (YYYY-MM-DD). */
+  startDate: string | null;
   /** Effective-from of the salary row used for monthlySalary, if any (YYYY-MM-DD). */
   salaryEffectiveFrom: string | null;
   arrearsBaseTotal: number;

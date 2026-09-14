@@ -120,9 +120,7 @@ export function StaffProfileDrawer({
   const [advances, setAdvances] = useState<SalaryAdvanceRecord[]>([]);
   const [payslips, setPayslips] = useState<PayslipRecord[]>([]);
   const [salaryAmount, setSalaryAmount] = useState("");
-  const [salaryFrom, setSalaryFrom] = useState(
-    () => new Date().toISOString().slice(0, 10),
-  );
+  const [salaryFrom, setSalaryFrom] = useState("");
   const [addingSalary, setAddingSalary] = useState(false);
 
   const load = useCallback(async () => {
@@ -133,6 +131,8 @@ export function StaffProfileDrawer({
       const next = await fetchStaffProfile(userId);
       setProfile(next);
       setDraft(draftFromProfile(next));
+      const join = next.publicFields.startDate?.trim() || "";
+      setSalaryFrom(join || localStaffYmd());
       if (canViewPayroll) {
         const [salaryRows, advanceRows, payslipRows] = await Promise.all([
           fetchStaffSalaries(userId),
@@ -142,6 +142,9 @@ export function StaffProfileDrawer({
         setSalaries(salaryRows);
         setAdvances(advanceRows);
         setPayslips(payslipRows);
+        if (!join && salaryRows[0]?.effectiveFrom) {
+          setSalaryFrom(salaryRows[0].effectiveFrom);
+        }
       } else {
         setSalaries([]);
         setAdvances([]);
@@ -323,13 +326,17 @@ export function StaffProfileDrawer({
                   className={dashboardInputClass()}
                   value={draft.startDate}
                   disabled={!canUpdate}
-                  onChange={(e) =>
-                    setDraft((p) => ({ ...p, startDate: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setDraft((p) => ({ ...p, startDate: next }));
+                    if (salaries.length === 0 && next) {
+                      setSalaryFrom(next);
+                    }
+                  }}
                 />
                 <span className="font-normal text-[11px] text-muted-foreground/90">
-                  Mid-month starts are paid for remaining calendar days that
-                  month.
+                  Mid-month starts are paid from this day (prorated). First
+                  salary effective-from should match this date.
                 </span>
               </label>
               <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
@@ -535,7 +542,7 @@ export function StaffProfileDrawer({
           {canViewPayroll ? (
             <FormDrawerFields
               legend="Salary"
-              hint="Same amount with a new date updates when it started. A different amount adds a raise. First-month pay uses start date (or effective from) and prorates by calendar days."
+              hint="First salary effective from should match join date (e.g. the 15th) so that month is paid, prorated. Raises use a later effective date."
             >
               <ul className="space-y-1.5 text-sm">
                 {salaries.length === 0 ? (
@@ -665,4 +672,11 @@ export function StaffProfileDrawer({
       )}
     </FormDrawer>
   );
+}
+
+function localStaffYmd(d = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }

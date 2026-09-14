@@ -44,12 +44,6 @@ export const ADVANCE_REPAYMENT_MODES: Array<{
   },
 ];
 
-export function advanceRepaymentModeLabel(mode: string | null | undefined): string {
-  return (
-    ADVANCE_REPAYMENT_MODES.find((m) => m.value === mode)?.label ?? "Full balance"
-  );
-}
-
 export function advanceRepaymentModeSummary(
   mode: string | null | undefined,
   value: number | null | undefined,
@@ -213,17 +207,6 @@ export function allocateAdvanceRepayments(
     allocations.reduce((sum, row) => sum + row.amount, 0),
   );
   return { allocations, total };
-}
-
-export function scheduledAdvanceDeduction(
-  advances: AdvanceRepaymentInput[],
-): number {
-  return roundMoney(
-    advances.reduce(
-      (sum, advance) => sum + advanceRepaymentCap(advance, false),
-      0,
-    ),
-  );
 }
 
 export type StaffAdvancePayPreviewLine = {
@@ -584,42 +567,12 @@ export function payrollCalendarStatusHint(
   }
 }
 
-export function payrollCalendarCellClass(status: PayrollCalendarStatus): string {
-  switch (status) {
-    case "paid":
-      return "border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/15";
-    case "pending":
-      return "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/15";
-    case "missing_salary":
-      return "border-red-500/40 bg-red-500/10 hover:bg-red-500/15";
-    case "future":
-      return "border-border/60 bg-muted/20 hover:bg-muted/30";
-    case "empty":
-      return "border-border/40 bg-muted/10 hover:bg-muted/20";
-    default:
-      return "border-border/60 bg-muted/20";
-  }
-}
-
-export function payrollCalendarDotClass(status: PayrollCalendarStatus): string {
-  switch (status) {
-    case "paid":
-      return "bg-emerald-500";
-    case "pending":
-      return "bg-amber-500";
-    case "missing_salary":
-      return "bg-red-500";
-    case "future":
-      return "bg-muted-foreground/40";
-    case "empty":
-      return "bg-muted-foreground/25";
-    default:
-      return "bg-muted-foreground/40";
-  }
-}
-
 export function escapeCsvCell(value: unknown): string {
-  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+  const raw = String(value ?? "").replace(/"/g, '""');
+  // Neutralize Excel/LibreOffice formula injection (=, +, -, @, tab, CR prefixes)
+  // — note fields are user-typed and end up in spreadsheets verbatim.
+  const safe = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+  return `"${safe}"`;
 }
 
 export function downloadPayrollCsv(
@@ -630,7 +583,8 @@ export function downloadPayrollCsv(
   const csv = [headers, ...rows]
     .map((line) => line.map(escapeCsvCell).join(","))
     .join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  // BOM keeps non-ASCII staff names readable when opened in Excel.
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -652,25 +606,43 @@ export function exportPayrollRunCsv(
     suggestedNet: number;
     alreadyPaid: boolean;
     paidAt: string | null;
+    statutoryTotal?: number;
+    payeSuggested?: number;
+    nssfSuggested?: number;
+    shifSuggested?: number;
+    housingLevySuggested?: number;
+    arrearsStatutoryTotal?: number;
   }>,
   year: number,
   month: number,
+  withStatutory = false,
 ): void {
+  const headers = [
+    "Employee",
+    "Title",
+    "Branch",
+    "Status",
+    "Base",
+    "Arrears",
+    "Arrear months",
+    "Advances",
+    ...(withStatutory
+      ? [
+          "Statutory total",
+          "Arrears statutory",
+          "PAYE",
+          "NSSF",
+          "SHIF",
+          "Housing levy",
+        ]
+      : []),
+    "Net",
+    "Run status",
+    "Paid on",
+  ];
   downloadPayrollCsv(
     `payroll-${year}-${String(month).padStart(2, "0")}.csv`,
-    [
-      "Employee",
-      "Title",
-      "Branch",
-      "Status",
-      "Base",
-      "Arrears",
-      "Arrear months",
-      "Advances",
-      "Net",
-      "Run status",
-      "Paid on",
-    ],
+    headers,
     rows.map((row) => [
       row.displayName,
       row.title ?? "",
@@ -680,6 +652,16 @@ export function exportPayrollRunCsv(
       Number(row.arrearsBaseTotal ?? 0).toFixed(2),
       payrollArrearMonthsLabel(row.arrearPeriods ?? []),
       row.advancesOutstanding.toFixed(2),
+      ...(withStatutory
+        ? [
+            Number(row.statutoryTotal ?? 0).toFixed(2),
+            Number(row.arrearsStatutoryTotal ?? 0).toFixed(2),
+            Number(row.payeSuggested ?? 0).toFixed(2),
+            Number(row.nssfSuggested ?? 0).toFixed(2),
+            Number(row.shifSuggested ?? 0).toFixed(2),
+            Number(row.housingLevySuggested ?? 0).toFixed(2),
+          ]
+        : []),
       row.suggestedNet.toFixed(2),
       row.alreadyPaid ? "Paid" : "Pending",
       row.paidAt ? formatPayrollDate(row.paidAt) : "",
@@ -741,6 +723,10 @@ export function exportPayslipHistoryCsv(
     baseSalary: number;
     advancesDeducted: number;
     otherDeductions: number;
+    payeDeducted?: number;
+    nssfDeducted?: number;
+    shifDeducted?: number;
+    housingLevyDeducted?: number;
     netPaid: number;
     paidAt: string;
     note: string | null;
@@ -756,6 +742,10 @@ export function exportPayslipHistoryCsv(
       "Base",
       "Advances deducted",
       "Other deductions",
+      "PAYE",
+      "NSSF",
+      "SHIF",
+      "Housing levy",
       "Net paid",
       "Paid on",
       "Note",
@@ -766,11 +756,24 @@ export function exportPayslipHistoryCsv(
       Number(row.baseSalary).toFixed(2),
       Number(row.advancesDeducted).toFixed(2),
       Number(row.otherDeductions).toFixed(2),
+      Number(row.payeDeducted ?? 0).toFixed(2),
+      Number(row.nssfDeducted ?? 0).toFixed(2),
+      Number(row.shifDeducted ?? 0).toFixed(2),
+      Number(row.housingLevyDeducted ?? 0).toFixed(2),
       Number(row.netPaid).toFixed(2),
       formatPayrollDateTime(row.paidAt),
       row.note ?? "",
     ]),
   );
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 export function payslipDocumentHtml(
@@ -791,6 +794,7 @@ export function payslipDocumentHtml(
   staffName: string,
 ): string {
   const period = payrollMonthLabel(payslip.periodYear, payslip.periodMonth);
+  const safeName = escapeHtml(staffName);
   const lines: [string, string][] = [
     ["Period", period],
     ["Paid on", formatPayrollDateTime(payslip.paidAt)],
@@ -821,10 +825,10 @@ export function payslipDocumentHtml(
   }
   lines.push(["Net paid", formatPayrollMoney(Number(payslip.netPaid))]);
   const note = payslip.note
-    ? `<p style="margin-top:16px;color:#555"><strong>Note:</strong> ${payslip.note}</p>`
+    ? `<p style="margin-top:16px;color:#555"><strong>Note:</strong> ${escapeHtml(payslip.note)}</p>`
     : "";
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Payslip — ${staffName}</title>
+<html><head><meta charset="utf-8"><title>Payslip — ${safeName}</title>
 <style>
   body { font-family: system-ui, sans-serif; padding: 32px; color: #111; max-width: 480px; margin: 0 auto; }
   h1 { font-size: 1.25rem; margin: 0 0 4px; }
@@ -835,7 +839,7 @@ export function payslipDocumentHtml(
   tr.total td { font-weight: 700; border-top: 2px solid #111; border-bottom: none; padding-top: 12px; }
 </style></head><body>
   <h1>Payslip</h1>
-  <p class="sub">${staffName} · ${period}</p>
+  <p class="sub">${safeName} · ${period}</p>
   <table>
     ${lines
       .map(
