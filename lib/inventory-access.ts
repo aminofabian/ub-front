@@ -99,7 +99,7 @@ export const STOCK_HUB_ACTIONS: readonly StockHubAction[] = [
     id: "place-order",
     href: APP_ROUTES.order,
     label: "Place order",
-    hint: "Build a PO from linked products",
+    hint: "Build a PO, send it, then receive when it arrives",
     icon: ShoppingCart,
     rank: "pair",
   },
@@ -107,7 +107,7 @@ export const STOCK_HUB_ACTIONS: readonly StockHubAction[] = [
     id: "receive-order",
     href: APP_ROUTES.orderReceive,
     label: "Receive goods",
-    hint: "Unpack a delivery into stock",
+    hint: "Unpack against an order — or walk-in with no PO",
     icon: PackageCheck,
     rank: "pair",
   },
@@ -230,6 +230,9 @@ export function filterInventoryQuickLinksForUser(
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   if (roleKey === "stock_manager") {
     const stockPageOn = stockManagerStockPageEnabled(business);
+    const canPathA =
+      hasPermission(me?.permissions, Permission.PurchasingPathARead) ||
+      hasPermission(me?.permissions, Permission.PurchasingPathAWrite);
     const allowed = STOCK_MANAGER_INVENTORY_HREFS.filter((href) => {
       if (
         href === APP_ROUTES.inventoryStock ||
@@ -237,6 +240,9 @@ export function filterInventoryQuickLinksForUser(
         href === APP_ROUTES.inventoryMissingBarcodes
       ) {
         return stockPageOn;
+      }
+      if (href === APP_ROUTES.order || href === APP_ROUTES.orderReceive) {
+        return canPathA;
       }
       return true;
     });

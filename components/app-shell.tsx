@@ -10,9 +10,11 @@ import {
   Lock,
   MapPin,
   Package,
+  PackageCheck,
   Receipt,
   ScanLine,
   ShoppingBag,
+  ShoppingCart,
   SlidersHorizontal,
   Store,
   Tags,
@@ -503,6 +505,7 @@ type NavGate = {
   canViewCategories: boolean;
   canViewPurchasingIntelligence: boolean;
   canAddSupplies: boolean;
+  canPathAOrder: boolean;
   canViewApAging: boolean;
   canViewSuppliers: boolean;
   canViewMarketplace: boolean;
@@ -599,6 +602,10 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     if (gate.canAddSupplies) {
       allowed.push(APP_ROUTES.purchasingAddSupplies);
       allowed.push(APP_ROUTES.supplierDirectory);
+    }
+    if (gate.canPathAOrder) {
+      allowed.push(APP_ROUTES.order);
+      allowed.push(APP_ROUTES.orderReceive);
     }
     if (
       gate.canViewSuppliers &&
@@ -811,7 +818,7 @@ type BottomTab = {
   matchSectionIds: string[];
 };
 
-/** Stock manager: Home first; Take stock = on-hand qty editor (not full count / audit). */
+/** Stock manager: Home first; Order/Receive = Path A PO flow; Take stock = shelf qty. */
 const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
   {
     id: "home",
@@ -828,18 +835,18 @@ const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
     matchSectionIds: ["inventory"],
   },
   {
-    id: "receive",
-    label: "Receive",
-    icon: Truck,
-    href: APP_ROUTES.purchasingAddSupplies,
+    id: "order",
+    label: "Order",
+    icon: ShoppingCart,
+    href: APP_ROUTES.order,
     matchSectionIds: ["procurement"],
   },
   {
-    id: "order-pad",
-    label: "Order",
-    icon: Package,
-    href: APP_ROUTES.inventoryOrderPad,
-    matchSectionIds: ["inventory"],
+    id: "receive",
+    label: "Receive",
+    icon: PackageCheck,
+    href: APP_ROUTES.orderReceive,
+    matchSectionIds: ["procurement"],
   },
   {
     id: "profile",
@@ -928,6 +935,8 @@ export function AppShell({ children }: AppShellProps) {
     canViewAuditLog,
     canViewCategories,
     canViewPurchasingIntelligence,
+    canPathARead,
+    canPathAWrite,
     canPathBWrite,
     canViewApAging,
     canViewSuppliers,
@@ -1013,6 +1022,7 @@ export function AppShell({ children }: AppShellProps) {
     hasPermission(me?.permissions, Permission.OrderPadManage);
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
+  const canPathAOrder = canPathARead || canPathAWrite;
   const groceryClerkStockAccess = groceryClerkStockAccessEnabled(business);
   const stockManagerStockPage = stockManagerStockPageEnabled(business);
   const stockManagerActivity = stockManagerActivityEnabled(business);
@@ -1036,6 +1046,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewCategories,
       canViewPurchasingIntelligence,
       canAddSupplies,
+      canPathAOrder,
       canViewApAging,
       canViewSuppliers,
       canViewMarketplace,
@@ -1092,6 +1103,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewCategories,
     canViewPurchasingIntelligence,
     canAddSupplies,
+    canPathAOrder,
     canViewApAging,
     canViewSuppliers,
     canViewMarketplace,
@@ -1197,11 +1209,15 @@ export function AppShell({ children }: AppShellProps) {
         tabs.push(STOCK_MANAGER_BOTTOM_TABS[0]); // Home
         tabs.push(STOCK_MANAGER_BOTTOM_TABS[1]); // Take stock
       }
-      if (canAddSupplies) {
-        tabs.push(STOCK_MANAGER_BOTTOM_TABS[2]); // Receive
-      }
-      if (canViewOrderPad) {
-        tabs.push(STOCK_MANAGER_BOTTOM_TABS[3]); // Order pad
+      if (canPathAOrder) {
+        tabs.push(STOCK_MANAGER_BOTTOM_TABS[2]); // Order (Path A)
+        tabs.push(STOCK_MANAGER_BOTTOM_TABS[3]); // Receive (Path A + walk-in)
+      } else if (canAddSupplies) {
+        tabs.push({
+          ...STOCK_MANAGER_BOTTOM_TABS[3],
+          href: APP_ROUTES.purchasingAddSupplies,
+          icon: Truck,
+        });
       }
       tabs.push(
         STOCK_MANAGER_BOTTOM_TABS[4], // Profile
@@ -1302,6 +1318,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewSuppliers,
     supplierToolsEnabled,
     canAddSupplies,
+    canPathAOrder,
     stockManagerStockPage,
     stockManagerActivity,
     canViewOrderPad,
@@ -1370,6 +1387,10 @@ export function AppShell({ children }: AppShellProps) {
       if (canAddSupplies) {
         allowed.push(APP_ROUTES.purchasingAddSupplies);
         allowed.push(APP_ROUTES.supplierDirectory);
+      }
+      if (canPathAOrder) {
+        allowed.push(APP_ROUTES.order);
+        allowed.push(APP_ROUTES.orderReceive);
       }
       if (supplierToolsEnabled) {
         allowed.push(APP_ROUTES.suppliers);
@@ -1447,6 +1468,7 @@ export function AppShell({ children }: AppShellProps) {
     supplierToolsEnabled,
     canViewSuppliers,
     canAddSupplies,
+    canPathAOrder,
     stockManagerStockPage,
     stockManagerActivity,
     canViewOrderPad,

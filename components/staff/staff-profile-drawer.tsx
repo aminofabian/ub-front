@@ -42,6 +42,7 @@ type ProfileDraft = {
   photoUrl: string;
   startDate: string;
   employmentStatus: string;
+  includeInPayroll: boolean;
   phone: string;
   address: string;
   nationalId: string;
@@ -60,6 +61,7 @@ const EMPTY_DRAFT: ProfileDraft = {
   photoUrl: "",
   startDate: "",
   employmentStatus: "active",
+  includeInPayroll: true,
   phone: "",
   address: "",
   nationalId: "",
@@ -80,6 +82,7 @@ function draftFromProfile(profile: StaffProfileRecord): ProfileDraft {
     photoUrl: profile.publicFields.photoUrl ?? "",
     startDate: profile.publicFields.startDate ?? "",
     employmentStatus: profile.publicFields.employmentStatus || "active",
+    includeInPayroll: profile.publicFields.includeInPayroll !== false,
     phone: profile.privateFields?.phone ?? "",
     address: profile.privateFields?.address ?? "",
     nationalId: profile.privateFields?.nationalId ?? "",
@@ -178,6 +181,7 @@ export function StaffProfileDrawer({
         photoUrl: draft.photoUrl || null,
         startDate: draft.startDate || null,
         employmentStatus: draft.employmentStatus,
+        includeInPayroll: draft.includeInPayroll,
         phone: draft.phone,
         address: draft.address,
         nationalId: draft.nationalId,
@@ -337,6 +341,29 @@ export function StaffProfileDrawer({
                   <option value="on_leave">On leave</option>
                   <option value="terminated">Terminated</option>
                 </select>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 rounded-none border border-border/60 bg-muted/20 px-3 py-2.5 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 accent-[var(--pos-primary,#0f766e)]"
+                  checked={draft.includeInPayroll}
+                  disabled={!canUpdate}
+                  onChange={(e) =>
+                    setDraft((p) => ({
+                      ...p,
+                      includeInPayroll: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="min-w-0">
+                  <span className="block text-xs font-medium text-foreground">
+                    Include in payroll
+                  </span>
+                  <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
+                    When off, this person stays on the team but is hidden from pay
+                    runs. Use this for owners or unpaid helpers.
+                  </span>
+                </span>
               </label>
               <div className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                 <p>

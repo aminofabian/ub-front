@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import {
   PROCUREMENT_VARS,
   ProcurementHubNav,
@@ -24,16 +25,28 @@ export function OrderPageLayout({
   header?: ReactNode;
   className?: string;
 }) {
+  const { me } = useDashboard();
+  const isStockManager =
+    me?.role?.key?.trim().toLowerCase() === "stock_manager";
+
   return (
     <div
       className={cn(
-        "relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[1400px] flex-col overflow-hidden bg-white px-3 pt-1 sm:px-5 sm:pt-1.5",
+        "relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[1400px] flex-col overflow-hidden bg-white px-2.5 pt-1 sm:px-5 sm:pt-1.5",
+        isStockManager &&
+          "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
         className,
       )}
       style={PROCUREMENT_VARS}
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-1">
-        <div className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink)_12%,transparent)] bg-white">
+        <div
+          className={cn(
+            "shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink)_12%,transparent)] bg-white",
+            isStockManager &&
+              "shadow-[0_1px_0_0_color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]",
+          )}
+        >
           <ProcurementHubNav />
         </div>
 

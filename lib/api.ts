@@ -13313,6 +13313,7 @@ export type StaffProfilePublicFields = {
   photoUrl: string | null;
   startDate: string | null;
   employmentStatus: string;
+  includeInPayroll: boolean;
 };
 
 export type StaffProfilePrivateFields = {
@@ -13524,6 +13525,7 @@ export type UpdateStaffProfilePayload = {
   photoUrl?: string | null;
   startDate?: string | null;
   employmentStatus?: string;
+  includeInPayroll?: boolean;
   phone?: string | null;
   address?: string | null;
   nationalId?: string | null;

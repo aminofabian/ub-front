@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ClipboardList, PackagePlus } from "lucide-react";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -19,19 +20,20 @@ export function ReceivePathSwitcher({
   onWalkIn: () => void;
   className?: string;
 }) {
+  const { me } = useDashboard();
+  const isStockManager =
+    me?.role?.key?.trim().toLowerCase() === "stock_manager";
+
   return (
     <div
-      className={cn(
-        "grid grid-cols-1 gap-2 sm:grid-cols-2",
-        className,
-      )}
+      className={cn("grid grid-cols-2 gap-1.5 sm:gap-2", className)}
       role="group"
       aria-label="How goods arrived"
     >
       <Link
         href={APP_ROUTES.orderReceive}
         className={cn(
-          "flex items-start gap-3 border px-3 py-2.5 transition-colors",
+          "flex items-start gap-2.5 border px-2.5 py-2.5 transition-colors sm:gap-3 sm:px-3",
           active === "against-order"
             ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]"
             : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_24%,transparent)]",
@@ -49,11 +51,12 @@ export function ReceivePathSwitcher({
         </span>
         <span className="min-w-0">
           <span className="block text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-            Against an order
+            {isStockManager ? "Against order" : "Against an order"}
           </span>
           <span className="mt-0.5 block text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
-            China PO, marketplace, or any open order — mark arrived, then unpack
-            into stock.
+            {isStockManager
+              ? "Open PO · mark arrived · unpack"
+              : "China PO, marketplace, or any open order — mark arrived, then unpack into stock."}
           </span>
         </span>
       </Link>
@@ -62,7 +65,7 @@ export function ReceivePathSwitcher({
         type="button"
         onClick={onWalkIn}
         className={cn(
-          "flex items-start gap-3 border px-3 py-2.5 text-left transition-colors",
+          "flex items-start gap-2.5 border px-2.5 py-2.5 text-left transition-colors sm:gap-3 sm:px-3",
           active === "walk-in"
             ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]"
             : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_24%,transparent)]",
@@ -80,11 +83,12 @@ export function ReceivePathSwitcher({
         </span>
         <span className="min-w-0">
           <span className="block text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-            Walk-in · no order
+            {isStockManager ? "Direct · no PO" : "Walk-in · no order"}
           </span>
           <span className="mt-0.5 block text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
-            Direct supply — supplier shows up, you count, stock rises when you
-            post.
+            {isStockManager
+              ? "Supplier drops goods — count & post"
+              : "Direct supply — supplier shows up, you count, stock rises when you post."}
           </span>
         </span>
       </button>

@@ -49,12 +49,14 @@ import {
   deleteUser,
   fetchBranches,
   fetchRoles,
+  fetchStaffProfiles,
   fetchUserPin,
   fetchUsers,
   forceLogoutUser,
   setUserItemTypes,
   setUserPassword,
   setUserPin,
+  updateStaffProfile,
   updateUser,
   type BranchRecord,
   type RoleRecord,
@@ -475,6 +477,10 @@ export default function UsersPage() {
   const [pinRevealed, setPinRevealed] = useState<Record<string, boolean>>({});
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [profileUserLabel, setProfileUserLabel] = useState("");
+  const [payrollInclude, setPayrollInclude] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [payrollSavingId, setPayrollSavingId] = useState<string | null>(null);
 
   const isOwner = me?.role?.key === "owner";
   const canCreate = hasPermission(me?.permissions, Permission.UsersCreate);
@@ -482,6 +488,10 @@ export default function UsersPage() {
   const canReadStaffProfile = hasPermission(
     me?.permissions,
     Permission.StaffProfileRead,
+  );
+  const canTogglePayroll = hasPermission(
+    me?.permissions,
+    Permission.StaffHrUpdate,
   );
   const canAssign = hasPermission(me?.permissions, Permission.UsersAssignRole);
   const canDeactivate = hasPermission(
@@ -526,6 +536,28 @@ export default function UsersPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  const loadPayrollFlags = useCallback(async () => {
+    if (!canTogglePayroll) {
+      setPayrollInclude({});
+      return;
+    }
+    try {
+      const profiles = await fetchStaffProfiles();
+      const next: Record<string, boolean> = {};
+      for (const profile of profiles) {
+        next[profile.userId] = profile.publicFields.includeInPayroll !== false;
+      }
+      setPayrollInclude(next);
+    } catch {
+      // Payroll toggles stay best-effort; directory still works without them.
+    }
+  }, [canTogglePayroll]);
+
+  useEffect(() => {
+    if (!firstLoadDone) return;
+    void loadPayrollFlags();
+  }, [firstLoadDone, loadPayrollFlags, users.length, profileUserId]);
 
   // Deep link: /users?profile=<userId> opens the staff profile drawer.
   useEffect(() => {
@@ -736,6 +768,36 @@ export default function UsersPage() {
         }
       },
     });
+  };
+
+  const onTogglePayroll = async (userId: string, include: boolean) => {
+    setPayrollSavingId(userId);
+    setFeedback(null);
+    try {
+      const updated = await updateStaffProfile(userId, {
+        includeInPayroll: include,
+      });
+      setPayrollInclude((previous) => ({
+        ...previous,
+        [userId]: updated.publicFields.includeInPayroll !== false,
+      }));
+      setFeedback({
+        kind: "success",
+        text: include
+          ? "Added to payroll."
+          : "Removed from payroll (still on the team).",
+      });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Could not update payroll inclusion.",
+      });
+    } finally {
+      setPayrollSavingId(null);
+    }
   };
 
   const onForceLogout = (userId: string, email: string) => {
@@ -1193,6 +1255,9 @@ export default function UsersPage() {
                         ["Role", false],
                         ["Departments", false],
                         ["Branch", false],
+                        ...(canTogglePayroll
+                          ? ([["Payroll", false]] as const)
+                          : []),
                         ["Status", false],
                         ["Actions", true],
                       ] as const
@@ -1568,6 +1633,39 @@ export default function UsersPage() {
                           )}
                         </td>
 
+                        {/* PAYROLL */}
+                        {canTogglePayroll ? (
+                          <td className="px-3 py-2.5 align-middle sm:px-4">
+                            {user.role?.key === "buyer" ? (
+                              <span className="text-xs text-muted-foreground/60">
+                                —
+                              </span>
+                            ) : (
+                              <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                                <input
+                                  type="checkbox"
+                                  className="size-4 accent-[var(--pos-primary,#0f766e)]"
+                                  checked={payrollInclude[user.id] !== false}
+                                  disabled={payrollSavingId === user.id}
+                                  aria-label={`Include ${user.email} in payroll`}
+                                  onChange={(event) =>
+                                    void onTogglePayroll(
+                                      user.id,
+                                      event.target.checked,
+                                    )
+                                  }
+                                />
+                                <span className="tabular-nums">
+                                  {payrollSavingId === user.id
+                                    ? "Saving…"
+                                    : payrollInclude[user.id] !== false
+                                      ? "On"
+                                      : "Off"}
+                                </span>
+                              </label>
+                            )}
+                          </td>
+                        ) : null}
                         {/* STATUS */}
                         <td className="px-3 py-2.5 align-middle sm:px-4">
                           <div className="flex items-center gap-1.5">

@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation";
 import {
   ClipboardCheck,
   Package,
+  PackagePlus,
   ShoppingCart,
   Truck,
   type LucideIcon,
 } from "lucide-react";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -73,15 +75,145 @@ const HUB_STEPS: HubStep[] = [
   },
 ];
 
+/** Stock floor: Order → Receive → Walk-in. Thumb-first, no ledger noise. */
+const STOCK_FLOOR_STEPS: HubStep[] = [
+  {
+    href: APP_ROUTES.order,
+    label: "Order",
+    beat: "Build PO",
+    hint: "Pick supplier products and send",
+    icon: ShoppingCart,
+    match: (p) =>
+      p === APP_ROUTES.order || p.startsWith(`${APP_ROUTES.order}?`),
+  },
+  {
+    href: APP_ROUTES.orderReceive,
+    label: "Receive",
+    beat: "Unpack",
+    hint: "Confirm arrival and put into stock",
+    icon: ClipboardCheck,
+    match: (p) => p.startsWith(APP_ROUTES.orderReceive),
+  },
+  {
+    href: APP_ROUTES.purchasingAddSupplies,
+    label: "Walk-in",
+    beat: "No PO",
+    hint: "Goods arrived without an order",
+    icon: PackagePlus,
+    match: (p) =>
+      p === APP_ROUTES.purchasingAddSupplies ||
+      p.startsWith(`${APP_ROUTES.purchasingAddSupplies}?`) ||
+      p.startsWith(`${APP_ROUTES.purchasingAddSupplies}/`),
+  },
+];
+
 export function ProcurementHubNav({
   className,
 }: {
   className?: string;
-  /** @deprecated Journey is always 4 beats; kept for call-site compatibility. */
+  /** @deprecated Journey is always driven by role; kept for call-site compatibility. */
   columns?: 2 | 4;
 }) {
   const pathname = usePathname();
-  const activeIndex = HUB_STEPS.findIndex((step) => step.match(pathname));
+  const { me } = useDashboard();
+  const isStockManager =
+    me?.role?.key?.trim().toLowerCase() === "stock_manager";
+  const steps = isStockManager ? STOCK_FLOOR_STEPS : HUB_STEPS;
+  const activeIndex = steps.findIndex((step) => step.match(pathname));
+
+  if (isStockManager) {
+    return (
+      <nav
+        className={cn("bg-white", className)}
+        aria-label="Stock buying flow"
+        style={PROCUREMENT_VARS}
+      >
+        <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-1.5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--pos-primary,#0f766e)]">
+            Buying
+          </p>
+          <p className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+            {activeIndex >= 0
+              ? `${steps[activeIndex]?.label} · ${activeIndex + 1}/${steps.length}`
+              : "Order → receive → walk-in"}
+          </p>
+        </div>
+
+        <ol
+          className="m-0 grid list-none grid-cols-3 p-1"
+          style={{
+            gap: "2px",
+            background:
+              "color-mix(in srgb, var(--order-ink, #15231f) 6%, white)",
+          }}
+        >
+          {steps.map((step, index) => {
+            const active = index === activeIndex;
+            const past = activeIndex > index;
+            const Icon = step.icon;
+            return (
+              <li key={step.href} className="min-w-0">
+                <Link
+                  href={step.href}
+                  title={`${step.label}: ${step.hint}`}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-2 transition-colors",
+                    active
+                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                      : "bg-white text-[var(--order-ink,#15231f)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
+                  )}
+                >
+                  <span className="flex items-center gap-1">
+                    <span
+                      className={cn(
+                        "inline-flex size-4 items-center justify-center text-[9px] font-bold tabular-nums",
+                        active
+                          ? "bg-white/20 text-white"
+                          : past
+                            ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,white)] text-[var(--pos-primary,#0f766e)]"
+                            : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]",
+                      )}
+                      aria-hidden
+                    >
+                      {index + 1}
+                    </span>
+                    <Icon
+                      className={cn(
+                        "size-3.5",
+                        active
+                          ? "text-white"
+                          : "text-[var(--pos-primary,#0f766e)]",
+                      )}
+                      aria-hidden
+                    />
+                  </span>
+                  <span
+                    className={cn(
+                      "truncate text-[12px] font-semibold tracking-[-0.02em]",
+                      active ? "text-white" : "text-[var(--order-ink,#15231f)]",
+                    )}
+                  >
+                    {step.label}
+                  </span>
+                  <span
+                    className={cn(
+                      "truncate text-[9px] leading-none",
+                      active
+                        ? "text-white/75"
+                        : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]",
+                    )}
+                  >
+                    {step.beat}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+    );
+  }
 
   return (
     <nav
@@ -95,17 +227,17 @@ export function ProcurementHubNav({
         </p>
         <p className="text-[10px] font-medium tabular-nums text-[var(--pos-primary,#0f766e)]">
           {activeIndex >= 0
-            ? `Step ${activeIndex + 1} of ${HUB_STEPS.length}`
-            : `${HUB_STEPS.length} stops`}
+            ? `Step ${activeIndex + 1} of ${steps.length}`
+            : `${steps.length} stops`}
         </p>
       </div>
 
       <ol className="m-0 grid list-none grid-cols-2 p-0 sm:grid-cols-4">
-        {HUB_STEPS.map((step, index) => {
+        {steps.map((step, index) => {
           const active = index === activeIndex;
           const past = activeIndex > index;
           const Icon = step.icon;
-          const isLast = index === HUB_STEPS.length - 1;
+          const isLast = index === steps.length - 1;
 
           return (
             <li
