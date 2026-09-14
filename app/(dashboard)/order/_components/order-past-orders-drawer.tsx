@@ -94,6 +94,7 @@ export function OrderPastOrdersDrawer({
       fetchPathAPurchaseOrders({
         supplierId: supplierFilter,
         status: "received",
+        toast: false,
       }).catch(() => []),
     ])
       .then(([sent, draft, received]) => {

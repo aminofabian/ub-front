@@ -6352,9 +6352,11 @@ export async function fetchPurchasingIntelligenceDashboard(
   from?: string,
   to?: string,
   branchId?: string,
+  opts?: { toast?: boolean },
 ): Promise<PurchasingIntelligenceDashboardResponse> {
   return request<PurchasingIntelligenceDashboardResponse>(
     `/api/v1/purchasing/intelligence/dashboard${intelligenceDateQuery(from, to, branchId)}`,
+    { toast: opts?.toast },
   );
 }
 
@@ -10306,6 +10308,7 @@ const PATH_A_PURCHASE_ORDERS = "/api/v1/purchasing/path-a/purchase-orders";
 export async function fetchPathAPurchaseOrders(opts?: {
   supplierId?: string;
   status?: string;
+  toast?: boolean;
 }): Promise<PathAPurchaseOrderListRowRecord[]> {
   const params = new URLSearchParams();
   const supplierId = opts?.supplierId?.trim();
@@ -10315,6 +10318,7 @@ export async function fetchPathAPurchaseOrders(opts?: {
   const qs = params.toString();
   return request<PathAPurchaseOrderListRowRecord[]>(
     `${PATH_A_PURCHASE_ORDERS}${qs ? `?${qs}` : ""}`,
+    { toast: opts?.toast },
   );
 }
 
@@ -10589,6 +10593,7 @@ export type SupplyPaymentHistoryRecord = {
 
 export async function fetchPathBSupplies(opts?: {
   branchId?: string | null;
+  toast?: boolean;
 }): Promise<PathBSupplyListRowRecord[]> {
   const params = new URLSearchParams();
   const branchId = opts?.branchId?.trim();
@@ -10598,6 +10603,7 @@ export async function fetchPathBSupplies(opts?: {
   const qs = params.toString();
   return request<PathBSupplyListRowRecord[]>(
     `/api/v1/purchasing/supplies${qs ? `?${qs}` : ""}`,
+    { toast: opts?.toast },
   );
 }
 

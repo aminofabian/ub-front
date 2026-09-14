@@ -104,7 +104,8 @@ export function summarizeOpenReceiveRows(
 }
 
 export function useOrderPipelineStats() {
-  const { branchId } = useDashboard();
+  const { branchId, canViewPurchasingIntelligence, canPathBRead } =
+    useDashboard();
   const businessId = getSessionTenantId()?.trim() ?? "";
   const [loading, setLoading] = useState(true);
   const [sent, setSent] = useState<PathAPurchaseOrderListRowRecord[]>([]);
@@ -139,20 +140,35 @@ export function useOrderPipelineStats() {
       return;
     }
     try {
+      // Optional enrichment calls use toast:false — .catch alone still lets
+      // the API client toast "Access Denied" for roles without those perms
+      // (e.g. stock_manager vs purchasing.intelligence.read).
       const [sentRows, draftRows, cancelledRows, receivedRows, supplyRows, intel] =
         await Promise.all([
           fetchPathAPurchaseOrders({ status: "sent" }),
           fetchPathAPurchaseOrders({ status: "draft" }),
-          fetchPathAPurchaseOrders({ status: "cancelled" }).catch(() => []),
-          fetchPathAPurchaseOrders({ status: "received" }).catch(() => []),
-          fetchPathBSupplies({ branchId: branchId || undefined }).catch(
-            () => [],
-          ),
-          fetchPurchasingIntelligenceDashboard(
-            undefined,
-            undefined,
-            branchId || undefined,
-          ).catch(() => null),
+          fetchPathAPurchaseOrders({
+            status: "cancelled",
+            toast: false,
+          }).catch(() => []),
+          fetchPathAPurchaseOrders({
+            status: "received",
+            toast: false,
+          }).catch(() => []),
+          canPathBRead
+            ? fetchPathBSupplies({
+                branchId: branchId || undefined,
+                toast: false,
+              }).catch(() => [])
+            : Promise.resolve([]),
+          canViewPurchasingIntelligence
+            ? fetchPurchasingIntelligenceDashboard(
+                undefined,
+                undefined,
+                branchId || undefined,
+                { toast: false },
+              ).catch(() => null)
+            : Promise.resolve(null),
         ]);
       setSent(sentRows);
       setSavedDrafts(draftRows);
@@ -170,7 +186,7 @@ export function useOrderPipelineStats() {
     } finally {
       setLoading(false);
     }
-  }, [businessId, branchId]);
+  }, [businessId, branchId, canPathBRead, canViewPurchasingIntelligence]);
 
   useEffect(() => {
     void refresh();
