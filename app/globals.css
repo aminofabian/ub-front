@@ -591,22 +591,22 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
 }
 
 .tablet-more-sheet {
-    animation: tablet-sheet-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: tablet-sheet-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes tablet-sheet-in {
     from {
         opacity: 0;
-        transform: translateY(1.75rem) scale(0.98);
+        transform: translateY(0.75rem);
     }
     to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
     }
 }
 
 .tablet-more-aurora {
-    animation: tablet-aurora-drift 18s ease-in-out infinite alternate;
+    animation: none;
 }
 
 @keyframes tablet-aurora-drift {
@@ -623,7 +623,7 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
 
 .tablet-more-avatar-ring {
     box-shadow: 0 0 0 2px
-        color-mix(in srgb, var(--tablet-accent, #28a745) 40%, transparent);
+        color-mix(in srgb, var(--tablet-accent, #0f766e) 40%, transparent);
 }
 
 .tablet-more-section-pill {
@@ -636,42 +636,17 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
 }
 
 .tablet-more-link-tile {
-    animation: tablet-tile-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.tablet-more-link-tile:nth-child(1) {
-    animation-delay: 0.04s;
-}
-.tablet-more-link-tile:nth-child(2) {
-    animation-delay: 0.07s;
-}
-.tablet-more-link-tile:nth-child(3) {
-    animation-delay: 0.1s;
-}
-.tablet-more-link-tile:nth-child(4) {
-    animation-delay: 0.13s;
-}
-.tablet-more-link-tile:nth-child(5) {
-    animation-delay: 0.16s;
-}
-.tablet-more-link-tile:nth-child(6) {
-    animation-delay: 0.19s;
-}
-.tablet-more-link-tile:nth-child(7) {
-    animation-delay: 0.22s;
-}
-.tablet-more-link-tile:nth-child(8) {
-    animation-delay: 0.25s;
+    animation: tablet-tile-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes tablet-tile-in {
     from {
         opacity: 0;
-        transform: translateY(0.65rem) scale(0.96);
+        transform: translateY(0.35rem);
     }
     to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
     }
 }
 

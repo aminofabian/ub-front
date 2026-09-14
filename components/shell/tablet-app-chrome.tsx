@@ -11,13 +11,13 @@ import {
 } from "react";
 import {
   Banknote,
+  ChevronDown,
   ChevronRight,
   Compass,
   Lock,
   LogOut,
   MapPin,
   Search,
-  Sparkles,
   UserRound,
   X,
   type LucideIcon,
@@ -25,7 +25,6 @@ import {
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { NotificationBell } from "@/components/notification-bell";
-import { Button } from "@/components/ui/button";
 import { ALL_DEPARTMENTS_LABEL, ALL_SHELF_ZONES_LABEL, UNASSIGNED_SHELF_ZONE_VALUE } from "@/hooks/use-session-scope";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { shellPageTitle } from "@/lib/shell-page-titles";
@@ -480,16 +479,6 @@ type TabletMoreSheetProps = {
   profileHref?: string | null;
 };
 
-const TILE_HUES = [0, 42, 84, 126, 168, 210, 252, 294] as const;
-
-function itemMonogram(label: string): string {
-  const words = label.trim().split(/\s+/).filter(Boolean);
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
-  }
-  return label.trim().slice(0, 2).toUpperCase() || "?";
-}
-
 function greetingForHour(hour: number): string {
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
@@ -549,35 +538,41 @@ function MoreWorkspaceConsole({
   showShelfZonePicker?: boolean;
   showUnassignedAisleOption?: boolean;
 }) {
-  const selectClass =
-    "w-full appearance-none border border-border bg-background px-3 py-2 pr-8 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:opacity-50";
+  const field =
+    "w-full appearance-none bg-transparent py-2.5 pl-0 pr-6 text-[13px] font-medium tracking-[-0.01em] text-[var(--order-ink,#15231f)] focus:outline-none disabled:opacity-50";
+  const row =
+    "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] last:border-b-0";
 
   return (
-    <div className="relative overflow-hidden border border-border bg-muted/30 p-3">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.07]"
-        style={{
-          background: `linear-gradient(135deg, ${accent}, transparent 65%)`,
-        }}
-        aria-hidden
-      />
-      <p className="relative mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-        <Compass className="size-3" aria-hidden />
-        Workspace
-      </p>
-      <div className="relative grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        <div>
-          <label className="mb-1 block text-[10px] font-semibold text-muted-foreground">
+    <section
+      className="overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
+      aria-label="Workspace scope"
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-3 py-2">
+        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--pos-primary,#0f766e)]">
+          <Compass className="size-3" aria-hidden />
+          Scope
+        </p>
+        <span
+          className="size-1.5 shrink-0 rounded-full"
+          style={{ background: accent }}
+          aria-hidden
+        />
+      </div>
+
+      <div className="px-3">
+        <div className={row}>
+          <label className="pt-2.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
             Branch
           </label>
           {showBranchPicker ? (
             <div className="relative">
               <MapPin
-                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-primary/80"
+                className="pointer-events-none absolute left-0 top-1/2 size-3.5 -translate-y-1/2 text-[var(--pos-primary,#0f766e)]"
                 aria-hidden
               />
               <select
-                className={cn(selectClass, "pl-8")}
+                className={cn(field, "pl-5")}
                 value={branchId}
                 onChange={(e) => onBranchChange(e.target.value)}
                 disabled={branchesLoading || branches.length === 0}
@@ -599,94 +594,116 @@ function MoreWorkspaceConsole({
                   </>
                 )}
               </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-0 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
+                aria-hidden
+              />
             </div>
           ) : branchName ? (
-            <p className="flex items-center gap-2 border border-border/50 bg-muted/30 px-3 py-2 text-sm font-medium">
+            <p className="flex items-center gap-2 py-2.5 text-[13px] font-medium text-[var(--order-ink,#15231f)]">
               {branchLocked ? (
-                <Lock className="size-3.5 shrink-0 text-muted-foreground" />
+                <Lock className="size-3.5 shrink-0 text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]" />
               ) : (
-                <MapPin className="size-3.5 shrink-0 text-primary" />
+                <MapPin className="size-3.5 shrink-0 text-[var(--pos-primary,#0f766e)]" />
               )}
               <span className="truncate">{branchName}</span>
             </p>
           ) : null}
         </div>
-        <div>
-          <label className="mb-1 block text-[10px] font-semibold text-muted-foreground">
+
+        <div className={row}>
+          <label className="pt-2.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
             Department
           </label>
           {departmentLocked ? (
-            <p className="flex items-center gap-2 border border-border/50 bg-muted/30 px-3 py-2 text-sm font-medium">
-              <Lock className="size-3.5 shrink-0 text-muted-foreground" />
+            <p className="flex items-center gap-2 py-2.5 text-[13px] font-medium text-[var(--order-ink,#15231f)]">
+              <Lock className="size-3.5 shrink-0 text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]" />
               <span className="truncate">
                 {itemTypes.find((t) => t.id === itemTypeId)?.label ??
                   "Department"}
               </span>
             </p>
           ) : (
-          <select
-            className={selectClass}
-            value={itemTypeId}
-            onChange={(e) => onItemTypeChange(e.target.value)}
-            disabled={itemTypesLoading || itemTypes.length === 0}
-          >
-            {itemTypes.length === 0 ? (
-              <option value="">
-                {itemTypesLoading ? "Loading…" : "No departments"}
-              </option>
-            ) : (
-              <>
-                <option value="">{ALL_DEPARTMENTS_LABEL}</option>
-                {itemTypes.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label}
-                    {t.isDefault ? " ★" : ""}
+            <div className="relative">
+              <select
+                className={field}
+                value={itemTypeId}
+                onChange={(e) => onItemTypeChange(e.target.value)}
+                disabled={itemTypesLoading || itemTypes.length === 0}
+              >
+                {itemTypes.length === 0 ? (
+                  <option value="">
+                    {itemTypesLoading ? "Loading…" : "No departments"}
                   </option>
-                ))}
-              </>
-            )}
-          </select>
+                ) : (
+                  <>
+                    <option value="">{ALL_DEPARTMENTS_LABEL}</option>
+                    {itemTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                        {t.isDefault ? " ★" : ""}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-0 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
+                aria-hidden
+              />
+            </div>
           )}
         </div>
+
         {showShelfZonePicker && onAisleChange ? (
-          <div className="sm:col-span-2 lg:col-span-1">
-            <label className="mb-1 block text-[10px] font-semibold text-muted-foreground">
+          <div className={row}>
+            <label className="pt-2.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
               Shelf zone
             </label>
-            <select
-              className={selectClass}
-              value={aisleId}
-              onChange={(e) => onAisleChange(e.target.value)}
-              disabled={aislesLoading || aisles.length === 0}
-              aria-label="Select shelf zone"
-            >
-              {aisles.length === 0 ? (
-                <option value="">
-                  {aislesLoading ? "Loading…" : itemTypeId.trim() ? "No zones in department" : "No shelf zones"}
-                </option>
-              ) : (
-                <>
-                  <option value="">{ALL_SHELF_ZONES_LABEL}</option>
-                  {showUnassignedAisleOption ? (
-                    <option value={UNASSIGNED_SHELF_ZONE_VALUE}>
-                      No shelf zone
-                    </option>
-                  ) : null}
-                  {aisles.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.code})
-                      {itemTypeId.trim() && a.productCount != null
-                        ? ` · ${a.productCount}`
-                        : ""}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
+            <div className="relative">
+              <select
+                className={field}
+                value={aisleId}
+                onChange={(e) => onAisleChange(e.target.value)}
+                disabled={aislesLoading || aisles.length === 0}
+                aria-label="Select shelf zone"
+              >
+                {aisles.length === 0 ? (
+                  <option value="">
+                    {aislesLoading
+                      ? "Loading…"
+                      : itemTypeId.trim()
+                        ? "No zones in department"
+                        : "No shelf zones"}
+                  </option>
+                ) : (
+                  <>
+                    <option value="">{ALL_SHELF_ZONES_LABEL}</option>
+                    {showUnassignedAisleOption ? (
+                      <option value={UNASSIGNED_SHELF_ZONE_VALUE}>
+                        No shelf zone
+                      </option>
+                    ) : null}
+                    {aisles.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} ({a.code})
+                        {itemTypeId.trim() && a.productCount != null
+                          ? ` · ${a.productCount}`
+                          : ""}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-0 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
+                aria-hidden
+              />
+            </div>
           </div>
         ) : null}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -727,7 +744,7 @@ export function TabletMoreSheet({
   myPayHref,
   profileHref,
 }: TabletMoreSheetProps) {
-  const accent = primaryColor?.trim() || "#28a745";
+  const accent = primaryColor?.trim() || "#0f766e";
   const greeting = greetingForHour(new Date().getHours());
   const [search, setSearch] = useState("");
   const [sectionId, setSectionId] = useState(() =>
@@ -766,13 +783,20 @@ export function TabletMoreSheet({
     }[] = [];
     for (const section of sections) {
       for (const item of section.items) {
+        if (
+          compactNav &&
+          profileHref &&
+          item.href === profileHref
+        ) {
+          continue;
+        }
         if (item.label.toLowerCase().includes(q)) {
           hits.push({ ...item, section });
         }
       }
     }
     return hits;
-  }, [search, sections]);
+  }, [search, sections, compactNav, profileHref]);
 
   const activeSection = useMemo(
     () => sections.find((s) => s.id === sectionId) ?? sections[0],
@@ -793,46 +817,48 @@ export function TabletMoreSheet({
     if (currentItem) break;
   }
 
+  const compactSections = useMemo(() => {
+    if (!compactNav || !profileHref) return sections;
+    return sections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => item.href !== profileHref),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [compactNav, profileHref, sections]);
+
   if (!open) return null;
 
   const sheetStyle = {
     "--tablet-accent": accent,
+    "--pos-primary": accent,
+    "--order-ink": "#15231f",
   } as CSSProperties;
+
+  const ink = "text-[var(--order-ink,#15231f)]";
+  const mute =
+    "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]";
+  const hair =
+    "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
 
   return (
     <div
-      className="tablet-more-sheet fixed inset-0 z-50 flex flex-col bg-background"
+      className="tablet-more-sheet fixed inset-0 z-50 flex flex-col bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,#f7f5f1)]"
       role="dialog"
       aria-modal="true"
       aria-label="App menu"
       style={sheetStyle}
     >
-      {/* Aurora backdrop */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div
-          className="tablet-more-aurora absolute -left-[20%] -top-[30%] h-[70%] w-[70%] opacity-30 blur-3xl"
-          style={{ background: `radial-gradient(circle, ${accent}, transparent 70%)` }}
-        />
-        <div
-          className="tablet-more-aurora absolute -bottom-[25%] -right-[15%] h-[60%] w-[55%] opacity-20 blur-3xl [animation-delay:2s]"
-          style={{
-            background: `radial-gradient(circle, color-mix(in srgb, ${accent} 70%, #6366f1), transparent 70%)`,
-          }}
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.45),transparent_50%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.04),transparent_50%)]" />
-      </div>
-
-      {/* Command deck header */}
-      <div className="relative shrink-0 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5">
+      {/* Identity */}
+      <header className="relative shrink-0 border-b bg-white px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5" style={{ borderColor: "color-mix(in srgb, var(--order-ink, #15231f) 10%, transparent)" }}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <div
-              className="tablet-more-avatar-ring relative flex size-[3.35rem] shrink-0 items-center justify-center bg-foreground text-lg font-bold text-background"
+              className="relative flex size-11 shrink-0 items-center justify-center bg-[var(--order-ink,#15231f)] text-[15px] font-semibold tracking-[-0.02em] text-white"
+              aria-hidden
             >
               {userInitial}
-              <span
-                className="pointer-events-none absolute -bottom-1 -right-1 flex size-6 items-center justify-center overflow-hidden bg-background ring-2 ring-background"
-              >
+              <span className="pointer-events-none absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center overflow-hidden bg-white ring-2 ring-white">
                 <TenantLogo
                   brand={tenantTitle}
                   logoUrl={logoUrl}
@@ -843,14 +869,18 @@ export function TabletMoreSheet({
               </span>
             </div>
             <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Sparkles className="size-3.5 shrink-0 text-primary" aria-hidden />
+              <p className={cn("text-[11px] tracking-[-0.01em]", mute)}>
                 {greeting}
               </p>
-              <p className="truncate font-sans text-lg font-semibold leading-tight tracking-tight sm:text-xl">
+              <p
+                className={cn(
+                  "truncate text-[1.05rem] font-semibold leading-tight tracking-[-0.02em]",
+                  ink,
+                )}
+              >
                 {userDisplayName}
               </p>
-              <p className="truncate text-[11px] text-muted-foreground">
+              <p className={cn("truncate text-[11px]", mute)}>
                 {userEmail?.trim() && userEmail !== userDisplayName
                   ? userEmail
                   : tenantTitle}
@@ -860,7 +890,13 @@ export function TabletMoreSheet({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-9 items-center justify-center border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className={cn(
+              "flex size-9 shrink-0 items-center justify-center border bg-white transition-colors",
+              hair,
+              mute,
+              "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+            )}
             aria-label="Close menu"
           >
             <X className="size-4" />
@@ -868,87 +904,84 @@ export function TabletMoreSheet({
         </div>
 
         {currentItem ? (
-          <div
-            className="mt-3 flex items-center gap-2 border px-3 py-2 text-xs"
-            style={{
-              borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
-              background: `color-mix(in srgb, ${accent} 10%, transparent)`,
-            }}
+          <p
+            className={cn(
+              "mt-3 flex items-center gap-2 border px-3 py-2 text-[12px]",
+              hair,
+              "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
+            )}
           >
             <span
-              className="size-1.5 shrink-0 animate-pulse bg-primary"
+              className="size-1.5 shrink-0 bg-[var(--pos-primary,#0f766e)]"
               aria-hidden
             />
-            <span className="font-medium text-foreground">You&apos;re on</span>
-            <span className="truncate font-semibold text-primary">
+            <span className={mute}>Now on</span>
+            <span className={cn("truncate font-semibold", ink)}>
               {currentItem.item.label}
             </span>
-          </div>
+          </p>
         ) : null}
-      </div>
+      </header>
 
       {profileHref || myPayHref ? (
-        <div className="relative shrink-0 space-y-2 px-4 pb-2 sm:px-5">
+        <div className="shrink-0 px-4 pt-3 sm:px-5">
           {profileHref ? (
             <Link
               href={profileHref}
               onClick={onClose}
-              className="flex items-center gap-3 border px-3.5 py-3 transition-colors hover:bg-muted/40"
-              style={{
-                borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
-                background: `color-mix(in srgb, ${accent} 8%, transparent)`,
-              }}
+              className={cn(
+                "group flex items-center gap-3 border bg-white px-3.5 py-3 transition-colors",
+                hair,
+                "hover:border-[var(--pos-primary,#0f766e)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+              )}
             >
-              <span
-                className="flex size-10 shrink-0 items-center justify-center rounded-xl text-primary"
-                style={{
-                  background: `color-mix(in srgb, ${accent} 14%, transparent)`,
-                }}
-              >
-                <UserRound className="size-5" aria-hidden />
+              <span className="flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
+                <UserRound className="size-4" strokeWidth={1.75} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-foreground">
+                <span className={cn("block text-[13px] font-semibold tracking-[-0.01em]", ink)}>
                   My profile
                 </span>
-                <span className="block text-xs text-muted-foreground">
+                <span className={cn("block text-[11px]", mute)}>
                   Pay, advances, and raise a concern
                 </span>
               </span>
               <ChevronRight
-                className="size-4 shrink-0 text-muted-foreground"
+                className={cn(
+                  "size-4 shrink-0 transition-transform group-hover:translate-x-0.5",
+                  mute,
+                )}
                 aria-hidden
               />
             </Link>
-          ) : null}
-          {myPayHref && !profileHref ? (
+          ) : myPayHref ? (
             <Link
               href={myPayHref}
               onClick={onClose}
-              className="flex items-center gap-3 border px-3.5 py-3 transition-colors hover:bg-muted/40"
-              style={{
-                borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
-                background: `color-mix(in srgb, ${accent} 8%, transparent)`,
-              }}
+              className={cn(
+                "group flex items-center gap-3 border bg-white px-3.5 py-3 transition-colors",
+                hair,
+                "hover:border-[var(--pos-primary,#0f766e)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+              )}
             >
-              <span
-                className="flex size-10 shrink-0 items-center justify-center rounded-xl text-primary"
-                style={{
-                  background: `color-mix(in srgb, ${accent} 14%, transparent)`,
-                }}
-              >
-                <Banknote className="size-5" aria-hidden />
+              <span className="flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
+                <Banknote className="size-4" strokeWidth={1.75} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-foreground">
+                <span className={cn("block text-[13px] font-semibold tracking-[-0.01em]", ink)}>
                   My pay
                 </span>
-                <span className="block text-xs text-muted-foreground">
+                <span className={cn("block text-[11px]", mute)}>
                   Salary, advances, and payslips
                 </span>
               </span>
               <ChevronRight
-                className="size-4 shrink-0 text-muted-foreground"
+                className={cn(
+                  "size-4 shrink-0 transition-transform group-hover:translate-x-0.5",
+                  mute,
+                )}
                 aria-hidden
               />
             </Link>
@@ -956,7 +989,7 @@ export function TabletMoreSheet({
         </div>
       ) : null}
 
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-4 sm:px-5">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-3 sm:px-5">
         <MoreWorkspaceConsole
           accent={accent}
           branchName={branchName}
@@ -981,7 +1014,7 @@ export function TabletMoreSheet({
 
         <div className="relative mt-3 shrink-0">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
             aria-hidden
           />
           <input
@@ -989,14 +1022,25 @@ export function TabletMoreSheet({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Jump to any screen…"
-            className="h-10 w-full border border-border bg-background pl-9 pr-9 text-sm placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className={cn(
+              "h-10 w-full border bg-white pl-9 pr-9 text-[13px] tracking-[-0.01em]",
+              hair,
+              ink,
+              "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]",
+              "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none",
+              "focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+            )}
             aria-label="Search navigation"
           />
           {search ? (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className={cn(
+                "absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5",
+                mute,
+                "hover:text-[var(--order-ink,#15231f)]",
+              )}
               aria-label="Clear search"
             >
               <X className="size-3.5" />
@@ -1006,66 +1050,114 @@ export function TabletMoreSheet({
 
         <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(1rem,env(safe-area-inset-bottom))]">
           {compactNav ? (
-            <div className="space-y-4">
-              {sections.map((section) => {
+            <div className="space-y-5">
+              {(search.trim()
+                ? [
+                    {
+                      id: "search",
+                      title: searchHits.length
+                        ? `${searchHits.length} match${searchHits.length === 1 ? "" : "es"}`
+                        : "No matches",
+                      blurb: "",
+                      icon: Search,
+                      items: searchHits.map(({ href, label }) => ({
+                        href,
+                        label,
+                      })),
+                    } satisfies TabletNavSection,
+                  ]
+                : compactSections
+              ).map((section) => {
                 const Icon = section.icon;
                 const sectionHasActive = section.items.some((item) =>
                   itemIsActive(pathname, item.href),
                 );
+                if (search.trim() && section.items.length === 0) {
+                  return (
+                    <p
+                      key={section.id}
+                      className={cn(
+                        "border border-dashed bg-white px-4 py-10 text-center text-[13px]",
+                        hair,
+                        mute,
+                      )}
+                    >
+                      Try a different keyword — stock, order, support…
+                    </p>
+                  );
+                }
                 return (
                   <div key={section.id}>
-                    <div className="mb-1.5 flex items-center gap-2 px-0.5">
-                      <span
+                    <div className="mb-2 flex items-center gap-2 px-0.5">
+                      <Icon
                         className={cn(
-                          "flex size-6 items-center justify-center",
+                          "size-3.5 shrink-0",
                           sectionHasActive
-                            ? "bg-primary/15 text-primary"
-                            : "bg-muted text-muted-foreground",
+                            ? "text-[var(--pos-primary,#0f766e)]"
+                            : mute,
+                        )}
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                      <p
+                        className={cn(
+                          "text-[10px] font-bold uppercase tracking-[0.14em]",
+                          sectionHasActive
+                            ? "text-[var(--pos-primary,#0f766e)]"
+                            : mute,
                         )}
                       >
-                        <Icon className="size-3.5" aria-hidden />
-                      </span>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                         {section.title}
                       </p>
                     </div>
-                    <ul className="space-y-1 border border-border/50 bg-card/80 p-1.5 shadow-sm backdrop-blur-sm">
+                    <ul className={cn("divide-y border bg-white", hair)}>
                       {section.items.map((item, index) => {
                         const active = itemIsActive(pathname, item.href);
-                        const hue = TILE_HUES[index % TILE_HUES.length];
                         return (
                           <li key={item.href}>
                             <Link
                               href={item.href}
                               onClick={onClose}
                               className={cn(
-                                "tablet-more-link-tile group flex items-center gap-3 px-3 py-3 transition-colors",
+                                "tablet-more-link-tile group flex min-h-12 items-center gap-3 px-3.5 py-3 transition-colors",
                                 active
-                                  ? "bg-primary/12 font-semibold text-primary"
-                                  : "hover:bg-muted/60",
+                                  ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]"
+                                  : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
                               )}
-                              style={{ animationDelay: `${index * 0.03}s` }}
+                              style={{ animationDelay: `${index * 0.025}s` }}
                             >
                               <span
-                                className="flex size-9 shrink-0 items-center justify-center text-xs font-bold text-white shadow-sm"
-                                style={{
-                                  background: `linear-gradient(135deg, hsl(${hue} 62% 48%), hsl(${(hue + 24) % 360} 58% 38%))`,
-                                }}
+                                className={cn(
+                                  "size-1.5 shrink-0",
+                                  active
+                                    ? "bg-[var(--pos-primary,#0f766e)]"
+                                    : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]",
+                                )}
+                                aria-hidden
+                              />
+                              <span
+                                className={cn(
+                                  "min-w-0 flex-1 truncate text-[13px] tracking-[-0.01em]",
+                                  active
+                                    ? "font-semibold text-[var(--pos-primary,#0f766e)]"
+                                    : cn("font-medium", ink),
+                                )}
                               >
-                                {itemMonogram(item.label)}
-                              </span>
-                              <span className="min-w-0 flex-1 truncate text-sm">
                                 {item.label}
                               </span>
                               {badgeByHref?.[item.href] ? (
-                                <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
-                                  {badgeByHref[item.href] > 9 ? "9+" : badgeByHref[item.href]}
+                                <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 text-[10px] font-bold leading-none text-white">
+                                  {badgeByHref[item.href] > 9
+                                    ? "9+"
+                                    : badgeByHref[item.href]}
                                 </span>
                               ) : null}
                               <ChevronRight
                                 className={cn(
-                                  "size-4 shrink-0 opacity-30 transition-transform group-hover:translate-x-0.5 group-hover:opacity-60",
-                                  active && "opacity-100",
+                                  "size-4 shrink-0 opacity-35 transition-transform group-hover:translate-x-0.5 group-hover:opacity-70",
+                                  active &&
+                                    "text-[var(--pos-primary,#0f766e)] opacity-100",
                                 )}
                                 aria-hidden
                               />
@@ -1080,13 +1172,18 @@ export function TabletMoreSheet({
             </div>
           ) : search.trim() ? (
             <div>
-              <p className="mb-2 px-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              <p
+                className={cn(
+                  "mb-2 px-0.5 text-[10px] font-bold uppercase tracking-[0.14em]",
+                  mute,
+                )}
+              >
                 {searchHits.length > 0
                   ? `${searchHits.length} match${searchHits.length === 1 ? "" : "es"}`
                   : "No matches"}
               </p>
               {searchHits.length > 0 ? (
-                <ul className="grid gap-2 sm:grid-cols-2">
+                <ul className={cn("divide-y border bg-white", hair)}>
                   {searchHits.map((hit, index) => {
                     const active = itemIsActive(pathname, hit.href);
                     const SectionIcon = hit.section.icon;
@@ -1096,43 +1193,60 @@ export function TabletMoreSheet({
                           href={hit.href}
                           onClick={onClose}
                           className={cn(
-                            "tablet-more-link-tile flex h-full flex-col gap-2 border p-3 transition-colors",
+                            "tablet-more-link-tile flex min-h-12 items-center gap-3 px-3.5 py-3 transition-colors",
                             active
-                              ? "border-primary/30 bg-primary/10"
-                              : "border-border/50 bg-card hover:border-border hover:bg-muted/40",
+                              ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]"
+                              : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
                           )}
-                          style={{ animationDelay: `${index * 0.03}s` }}
+                          style={{ animationDelay: `${index * 0.025}s` }}
                         >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="flex size-8 items-center justify-center bg-muted text-muted-foreground">
-                              <SectionIcon className="size-4" aria-hidden />
+                          <SectionIcon
+                            className={cn("size-4 shrink-0", mute)}
+                            strokeWidth={1.75}
+                            aria-hidden
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span
+                              className={cn(
+                                "block truncate text-[13px] font-medium",
+                                active
+                                  ? "font-semibold text-[var(--pos-primary,#0f766e)]"
+                                  : ink,
+                              )}
+                            >
+                              {hit.label}
                             </span>
-                            <span className="truncate text-[10px] font-medium text-muted-foreground">
+                            <span className={cn("block text-[10px]", mute)}>
                               {hit.section.title}
                             </span>
-                          </div>
-                          <span className="flex items-center justify-between gap-2 text-sm font-semibold leading-snug">
-                            <span className="truncate">{hit.label}</span>
-                            {badgeByHref?.[hit.href] ? (
-                              <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
-                                {badgeByHref[hit.href] > 9 ? "9+" : badgeByHref[hit.href]}
-                              </span>
-                            ) : null}
                           </span>
+                          {badgeByHref?.[hit.href] ? (
+                            <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 text-[10px] font-bold leading-none text-white">
+                              {badgeByHref[hit.href] > 9
+                                ? "9+"
+                                : badgeByHref[hit.href]}
+                            </span>
+                          ) : null}
                         </Link>
                       </li>
                     );
                   })}
                 </ul>
               ) : (
-                <p className="border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+                <p
+                  className={cn(
+                    "border border-dashed bg-white px-4 py-10 text-center text-[13px]",
+                    hair,
+                    mute,
+                  )}
+                >
                   Try a different keyword — products, stock, settings…
                 </p>
               )}
             </div>
           ) : (
             <>
-              <div className="mb-3 flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="mb-3 flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {sections.map((section) => {
                   const Icon = section.icon;
                   const selected = section.id === sectionId;
@@ -1147,23 +1261,28 @@ export function TabletMoreSheet({
                       className={cn(
                         "tablet-more-section-pill flex shrink-0 items-center gap-2 border px-3 py-2 text-left transition-colors",
                         selected
-                          ? "tablet-more-section-pill-active border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background text-foreground hover:bg-muted/70",
+                          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                          : cn(
+                              hair,
+                              "bg-white",
+                              ink,
+                              "hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]",
+                            ),
                       )}
                     >
-                      <span
+                      <Icon
                         className={cn(
-                          "flex size-7 items-center justify-center",
+                          "size-3.5 shrink-0",
                           selected
-                            ? "bg-primary-foreground/15"
+                            ? "text-white"
                             : hasActive
-                              ? "bg-primary/15 text-primary"
-                              : "bg-muted text-muted-foreground",
+                              ? "text-[var(--pos-primary,#0f766e)]"
+                              : mute,
                         )}
-                      >
-                        <Icon className="size-3.5" aria-hidden />
-                      </span>
-                      <span className="max-w-[7.5rem] truncate text-xs font-semibold">
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                      <span className="max-w-[7.5rem] truncate text-[12px] font-semibold tracking-[-0.01em]">
                         {section.title}
                       </span>
                     </button>
@@ -1173,58 +1292,58 @@ export function TabletMoreSheet({
 
               {activeSection ? (
                 <div>
-                  <p className="mb-2 px-0.5 text-[10px] text-muted-foreground">
+                  <p className={cn("mb-2 px-0.5 text-[12px]", mute)}>
                     {activeSection.blurb}
                   </p>
-                  <ul className="grid gap-2 sm:grid-cols-2">
+                  <ul className={cn("divide-y border bg-white sm:grid sm:grid-cols-2 sm:gap-px sm:divide-y-0 sm:border-0 sm:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]", hair)}>
                     {activeSection.items.map((item, index) => {
                       const active = itemIsActive(pathname, item.href);
-                      const hue = TILE_HUES[index % TILE_HUES.length];
                       return (
-                        <li key={item.href}>
+                        <li key={item.href} className="sm:bg-white">
                           <Link
                             href={item.href}
                             onClick={onClose}
                             className={cn(
-                              "tablet-more-link-tile group relative flex min-h-[4.5rem] flex-col justify-between overflow-hidden border p-3 transition-colors",
+                              "tablet-more-link-tile group flex min-h-12 items-center gap-3 px-3.5 py-3.5 transition-colors sm:min-h-[4.25rem] sm:flex-col sm:items-start sm:justify-between",
                               active
-                                ? "border-primary/35 bg-primary/10"
-                                : "border-border/50 bg-card hover:border-border hover:bg-muted/40",
+                                ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]"
+                                : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
                             )}
-                            style={{ animationDelay: `${index * 0.04}s` }}
+                            style={{ animationDelay: `${index * 0.03}s` }}
                           >
-                            <div
-                              className="pointer-events-none absolute -right-4 -top-4 size-16 opacity-[0.12] blur-xl"
-                              style={{ background: `hsl(${hue} 70% 55%)` }}
-                              aria-hidden
-                            />
-                            <div className="relative flex items-start justify-between gap-2">
+                            <span className="flex w-full items-center justify-between gap-2">
                               <span
-                                className="flex size-9 items-center justify-center text-xs font-bold text-white shadow-sm"
-                                style={{
-                                  background: `linear-gradient(145deg, hsl(${hue} 65% 50%), hsl(${(hue + 30) % 360} 60% 40%))`,
-                                }}
-                              >
-                                {itemMonogram(item.label)}
-                              </span>
-                              <ChevronRight
                                 className={cn(
-                                  "size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5",
-                                  active && "text-primary",
+                                  "size-1.5 shrink-0 sm:mt-1",
+                                  active
+                                    ? "bg-[var(--pos-primary,#0f766e)]"
+                                    : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]",
                                 )}
                                 aria-hidden
                               />
-                            </div>
+                              <ChevronRight
+                                className={cn(
+                                  "size-4 shrink-0 opacity-30 transition-transform group-hover:translate-x-0.5 sm:ml-auto",
+                                  active &&
+                                    "text-[var(--pos-primary,#0f766e)] opacity-100",
+                                )}
+                                aria-hidden
+                              />
+                            </span>
                             <span
                               className={cn(
-                                "relative mt-2 flex items-center justify-between gap-2 text-sm font-semibold leading-snug",
-                                active && "text-primary",
+                                "flex min-w-0 flex-1 items-center justify-between gap-2 text-[13px] font-semibold tracking-[-0.01em] sm:mt-2 sm:w-full",
+                                active
+                                  ? "text-[var(--pos-primary,#0f766e)]"
+                                  : ink,
                               )}
                             >
                               <span className="truncate">{item.label}</span>
                               {badgeByHref?.[item.href] ? (
-                                <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
-                                  {badgeByHref[item.href] > 9 ? "9+" : badgeByHref[item.href]}
+                                <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 text-[10px] font-bold leading-none text-white">
+                                  {badgeByHref[item.href] > 9
+                                    ? "9+"
+                                    : badgeByHref[item.href]}
                                 </span>
                               ) : null}
                             </span>
@@ -1238,16 +1357,23 @@ export function TabletMoreSheet({
             </>
           )}
 
-          <div className="mt-5 flex flex-col items-center gap-2 border-t border-border/40 pt-4">
-            <Button
-              variant="ghost"
-              className="w-full max-w-xs gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          <div className="mt-6 flex flex-col items-center gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] pt-4">
+            <button
+              type="button"
               onClick={onLogout}
+              className={cn(
+                "inline-flex h-10 w-full max-w-xs items-center justify-center gap-2 border bg-white text-[13px] font-medium transition-colors",
+                hair,
+                "text-rose-700 hover:border-rose-600/40 hover:bg-rose-50",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/40",
+              )}
             >
               <LogOut className="size-4" aria-hidden />
               Sign out
-            </Button>
-            <p className="text-[10px] text-muted-foreground/70">{tenantTitle}</p>
+            </button>
+            <p className={cn("text-[10px] tracking-[-0.01em]", mute)}>
+              {tenantTitle}
+            </p>
           </div>
         </div>
       </div>
