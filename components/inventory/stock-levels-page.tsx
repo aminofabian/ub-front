@@ -436,6 +436,253 @@ type StockRowItemProps = {
   onSaveSellPrice: (value: string) => void;
 };
 
+function stockStatusMeta(row: StockRow): {
+  out: boolean;
+  low: boolean;
+  loss: boolean;
+  label: string;
+  className: string;
+} {
+  const out = isOutOfStock(row.stock);
+  const low = isLowStock(row.stock, row.reorderLevel);
+  const loss = isPriceLoss(row.buyPrice, row.sellPrice);
+  const label = out ? "Out" : low ? "Low" : "OK";
+  const className = out
+    ? "bg-rose-500/12 text-rose-800 dark:text-rose-300"
+    : low
+      ? "bg-amber-500/12 text-amber-900 dark:text-amber-200"
+      : cn("bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)]", stockMute);
+  return { out, low, loss, label, className };
+}
+
+const mobileFieldInput = cn(
+  "h-11 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white",
+  "px-3 text-[15px] leading-none text-[var(--order-ink,#15231f)]",
+  "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
+  "caret-[var(--pos-primary,#0f766e)]",
+  "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none",
+  "disabled:cursor-not-allowed disabled:opacity-50",
+);
+
+type StockMobileCardProps = {
+  row: StockRow;
+  currency: string;
+  canWrite: boolean;
+  editing: boolean;
+  editQty: string;
+  editCost: string;
+  saving: boolean;
+  onEditQtyChange: (value: string) => void;
+  onEditCostChange: (value: string) => void;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
+  onSaveEdit: () => void;
+};
+
+/** Compact, thumb-friendly stock editor for small screens (no horizontal scroll). */
+function StockMobileCard({
+  row,
+  currency,
+  canWrite,
+  editing,
+  editQty,
+  editCost,
+  saving,
+  onEditQtyChange,
+  onEditCostChange,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+}: StockMobileCardProps) {
+  const { out, low, loss, label, className: statusClass } = stockStatusMeta(row);
+  const target = Number(editQty.trim());
+  const showCost =
+    editing && Number.isFinite(target) && target > row.stock;
+  const metaBits = [row.sku, row.shelfName].filter(Boolean);
+
+  return (
+    <article
+      className={cn(
+        "px-3 py-3",
+        loss && "bg-orange-500/[0.06] dark:bg-orange-400/[0.09]",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <Link
+            href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.name)}`}
+            className={cn(
+              "block text-[14px] font-medium leading-snug tracking-[-0.01em]",
+              stockInk,
+              "underline-offset-2 hover:text-[var(--pos-primary,#0f766e)] hover:underline",
+            )}
+          >
+            {row.name}
+          </Link>
+          {metaBits.length > 0 ? (
+            <p className={cn("mt-0.5 truncate text-[11px]", stockMute)}>
+              {metaBits.join(" · ")}
+            </p>
+          ) : null}
+        </div>
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+            statusClass,
+          )}
+        >
+          {label}
+        </span>
+      </div>
+
+      <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={stockMute}>In store</span>
+          <span
+            className={cn(
+              "font-mono tabular-nums font-semibold",
+              out || low
+                ? "text-rose-700 dark:text-rose-300"
+                : stockInk,
+            )}
+          >
+            {row.stock.toLocaleString("en-KE")}
+          </span>
+        </div>
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={stockMute}>Reorder</span>
+          <span className={cn("font-mono tabular-nums", stockMute)}>
+            {row.reorderLevel != null && row.reorderLevel > 0
+              ? row.reorderLevel.toLocaleString("en-KE")
+              : "—"}
+          </span>
+        </div>
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={stockMute}>Buy</span>
+          <span
+            className={cn(
+              "font-mono tabular-nums",
+              loss
+                ? "font-semibold text-orange-800 dark:text-orange-300"
+                : stockInk,
+            )}
+          >
+            {fmtMoney(row.buyPrice, currency)}
+          </span>
+        </div>
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={stockMute}>Sell</span>
+          <span
+            className={cn(
+              "font-mono tabular-nums",
+              loss
+                ? "font-semibold text-orange-800 dark:text-orange-300"
+                : stockInk,
+            )}
+          >
+            {fmtMoney(row.sellPrice, currency)}
+          </span>
+        </div>
+      </div>
+
+      {editing ? (
+        <div className="mt-3 space-y-2">
+          <div className={cn("grid gap-2", showCost ? "grid-cols-2" : "grid-cols-1")}>
+            <label className="block min-w-0">
+              <span className={cn("mb-1 block text-[10px] font-semibold uppercase tracking-wide", stockMute)}>
+                New qty
+              </span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                autoFocus
+                value={editQty}
+                disabled={saving}
+                onChange={(e) => onEditQtyChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onSaveEdit();
+                  if (e.key === "Escape") onCancelEdit();
+                }}
+                className={cn(mobileFieldInput, "font-mono tabular-nums")}
+                placeholder="Qty"
+                aria-label={`New stock for ${row.name}`}
+              />
+            </label>
+            {showCost ? (
+              <label className="block min-w-0">
+                <span className={cn("mb-1 block text-[10px] font-semibold uppercase tracking-wide", stockMute)}>
+                  Unit cost
+                </span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="any"
+                  value={editCost}
+                  disabled={saving}
+                  onChange={(e) => onEditCostChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") onSaveEdit();
+                    if (e.key === "Escape") onCancelEdit();
+                  }}
+                  className={cn(mobileFieldInput, "font-mono tabular-nums")}
+                  placeholder="Cost"
+                  aria-label={`Unit cost for ${row.name}`}
+                />
+              </label>
+            ) : null}
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onSaveEdit}
+              disabled={saving || !editQty.trim()}
+              className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            >
+              <Check className="size-4" aria-hidden />
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              disabled={saving}
+              className={cn(
+                "inline-flex h-11 items-center justify-center gap-1.5 border px-4 text-[13px] font-medium transition-colors disabled:opacity-40",
+                stockHair,
+                stockMute,
+                "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+              )}
+            >
+              <X className="size-4" aria-hidden />
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : canWrite && row.editable ? (
+        <button
+          type="button"
+          onClick={onStartEdit}
+          className={cn(
+            "mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 border text-[13px] font-medium transition-colors",
+            stockHair,
+            stockInk,
+            "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+          )}
+        >
+          <Pencil className="size-3.5" aria-hidden />
+          Edit stock
+        </button>
+      ) : !row.editable ? (
+        <p className={cn("mt-2 text-[11px]", stockMute)}>
+          Package variant — edit stock on the parent SKU.
+        </p>
+      ) : null}
+    </article>
+  );
+}
+
 function StockRowItem({
   row,
   currency,
@@ -462,20 +709,12 @@ function StockRowItem({
   onSaveBuyPrice,
   onSaveSellPrice,
 }: StockRowItemProps) {
-  const out = isOutOfStock(row.stock);
-  const low = isLowStock(row.stock, row.reorderLevel);
-  const loss = isPriceLoss(row.buyPrice, row.sellPrice);
+  const { out, low, loss, label: statusLabel, className: statusClass } =
+    stockStatusMeta(row);
 
   const target = Number(editQty.trim());
   const showCost =
     editing && Number.isFinite(target) && target > row.stock;
-
-  const statusLabel = out ? "Out" : low ? "Low" : "OK";
-  const statusClass = out
-    ? "bg-rose-500/12 text-rose-800 dark:text-rose-300"
-    : low
-      ? "bg-amber-500/12 text-amber-900 dark:text-amber-200"
-      : cn("bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)]", stockMute);
 
   return (
     <tr
@@ -1791,23 +2030,53 @@ export function StockLevelsPage() {
               <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
             </div>
           ) : (
-            <div ref={shellRef} className={sheetStyles.shell}>
-              {/* Restores persisted widths before the table's first paint. */}
-              <script
-                dangerouslySetInnerHTML={{
-                  __html: STOCK_COL_WIDTHS_RESTORE_SCRIPT,
-                }}
-              />
+            <div
+              ref={scrollRef}
+              className="max-h-[min(74vh,56rem)] overflow-auto selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)]"
+            >
+              {/* Mobile: stacked cards — edit stock without horizontal scroll */}
               <div
-                ref={guideRef}
-                className={sheetStyles.guide}
-                hidden
-                aria-hidden
-              />
-              <div
-                ref={scrollRef}
-                className="max-h-[min(74vh,56rem)] overflow-auto selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)]"
+                className={cn(
+                  "divide-y sm:hidden",
+                  "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
+                )}
               >
+                {filteredRows.map((row) => (
+                  <StockMobileCard
+                    key={row.id}
+                    row={row}
+                    currency={currency}
+                    canWrite={canWrite}
+                    editing={editId === row.id}
+                    editQty={editId === row.id ? editQty : ""}
+                    editCost={editId === row.id ? editCost : ""}
+                    saving={savingEdit && editId === row.id}
+                    onEditQtyChange={setEditQty}
+                    onEditCostChange={setEditCost}
+                    onStartEdit={() => startEdit(row)}
+                    onCancelEdit={cancelEdit}
+                    onSaveEdit={() => void saveEdit(row)}
+                  />
+                ))}
+              </div>
+
+              {/* Desktop: full spreadsheet */}
+              <div
+                ref={shellRef}
+                className={cn(sheetStyles.shell, "hidden sm:block")}
+              >
+                {/* Restores persisted widths before the table's first paint. */}
+                <script
+                  dangerouslySetInnerHTML={{
+                    __html: STOCK_COL_WIDTHS_RESTORE_SCRIPT,
+                  }}
+                />
+                <div
+                  ref={guideRef}
+                  className={sheetStyles.guide}
+                  hidden
+                  aria-hidden
+                />
                 <table
                   className="table-fixed border-collapse text-left"
                   style={{ width: "var(--stock-table-min-width)" }}
@@ -1888,52 +2157,67 @@ export function StockLevelsPage() {
                       </th>
                     </tr>
                   </thead>
-                <tbody>
-                  {filteredRows.map((row) => (
-                    <StockRowItem
-                      key={row.id}
-                      row={row}
-                      currency={currency}
-                      canWrite={canWrite}
-                      canCatalogWrite={canCatalogWrite}
-                      categories={categories}
-                      itemTypes={itemTypes}
-                      aisles={aisles}
-                      editing={editId === row.id}
-                      editQty={editId === row.id ? editQty : ""}
-                      editCost={editId === row.id ? editCost : ""}
-                      saving={savingEdit && editId === row.id}
-                      savingCatalog={savingCatalogId === row.id}
-                      onEditQtyChange={setEditQty}
-                      onEditCostChange={setEditCost}
-                      onStartEdit={() => startEdit(row)}
-                      onCancelEdit={cancelEdit}
-                      onSaveEdit={() => void saveEdit(row)}
-                      onSaveFamily={(value) => void saveFamily(row, value)}
-                      onSaveVariant={(value) => void saveVariant(row, value)}
-                      onSaveCategory={(value) => void saveCategory(row, value)}
-                      onSaveDepartment={(value) =>
-                        void saveDepartment(row, value)
-                      }
-                      onSaveShelf={(value) => void saveShelf(row, value)}
-                      onSaveBuyPrice={(value) => void saveBuyPrice(row, value)}
-                      onSaveSellPrice={(value) => void saveSellPrice(row, value)}
-                    />
-                  ))}
+                  <tbody>
+                    {filteredRows.map((row) => (
+                      <StockRowItem
+                        key={row.id}
+                        row={row}
+                        currency={currency}
+                        canWrite={canWrite}
+                        canCatalogWrite={canCatalogWrite}
+                        categories={categories}
+                        itemTypes={itemTypes}
+                        aisles={aisles}
+                        editing={editId === row.id}
+                        editQty={editId === row.id ? editQty : ""}
+                        editCost={editId === row.id ? editCost : ""}
+                        saving={savingEdit && editId === row.id}
+                        savingCatalog={savingCatalogId === row.id}
+                        onEditQtyChange={setEditQty}
+                        onEditCostChange={setEditCost}
+                        onStartEdit={() => startEdit(row)}
+                        onCancelEdit={cancelEdit}
+                        onSaveEdit={() => void saveEdit(row)}
+                        onSaveFamily={(value) => void saveFamily(row, value)}
+                        onSaveVariant={(value) => void saveVariant(row, value)}
+                        onSaveCategory={(value) => void saveCategory(row, value)}
+                        onSaveDepartment={(value) =>
+                          void saveDepartment(row, value)
+                        }
+                        onSaveShelf={(value) => void saveShelf(row, value)}
+                        onSaveBuyPrice={(value) => void saveBuyPrice(row, value)}
+                        onSaveSellPrice={(value) =>
+                          void saveSellPrice(row, value)
+                        }
+                      />
+                    ))}
                   </tbody>
                 </table>
-                <div ref={sentinelRef} className="h-8 w-full" aria-hidden />
-                {loadingMore ? (
-                  <p className={cn("border-t px-3 py-1.5 text-center text-[11px]", stockHair, stockMute)}>
-                    Loading more…
-                  </p>
-                ) : null}
-                {!hasMore && rows.length > 0 ? (
-                  <p className={cn("border-t px-3 py-1.5 text-center text-[11px]", stockHair, "text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]")}>
-                    End of list
-                  </p>
-                ) : null}
               </div>
+
+              <div ref={sentinelRef} className="h-8 w-full" aria-hidden />
+              {loadingMore ? (
+                <p
+                  className={cn(
+                    "border-t px-3 py-1.5 text-center text-[11px]",
+                    stockHair,
+                    stockMute,
+                  )}
+                >
+                  Loading more…
+                </p>
+              ) : null}
+              {!hasMore && rows.length > 0 ? (
+                <p
+                  className={cn(
+                    "border-t px-3 py-1.5 text-center text-[11px]",
+                    stockHair,
+                    "text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]",
+                  )}
+                >
+                  End of list
+                </p>
+              ) : null}
             </div>
           )}
         </div>
