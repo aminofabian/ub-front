@@ -123,7 +123,7 @@ export function inferSokoMindSkill(message: string): string {
   return "explain_page";
 }
 
-/** POS / till surfaces — Guide stays off to protect scan focus. */
+/** POS / till + focused stock work — Guide stays off to protect scan/count focus. */
 export function isSokoMindGuideHiddenRoute(pathname: string): boolean {
   const path = (pathname || "/").split("?")[0] || "/";
   return (
@@ -131,7 +131,9 @@ export function isSokoMindGuideHiddenRoute(pathname: string): boolean {
     path.startsWith("/grocery") ||
     path.startsWith("/butcher") ||
     path.startsWith("/sales/quick") ||
-    path.startsWith("/supplier/")
+    path.startsWith("/supplier/") ||
+    path === "/inventory/stock" ||
+    path.startsWith("/inventory/stock/")
   );
 }
 

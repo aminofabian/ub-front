@@ -17,6 +17,17 @@ import { APP_ROUTES } from "@/lib/config";
 import { OPEN_SUPPORT_CHAT_EVENT } from "@/lib/support-open";
 import { cn } from "@/lib/utils";
 
+/** Floating chat stays off tills and the stock take desk. */
+function isSupportLauncherHiddenRoute(pathname: string): boolean {
+  const path = (pathname || "/").split("?")[0] || "/";
+  return (
+    path === APP_ROUTES.support ||
+    path.startsWith("/cashier") ||
+    path === "/inventory/stock" ||
+    path.startsWith("/inventory/stock/")
+  );
+}
+
 /**
  * Floating support launcher — always-visible chat button in the dashboard.
  * Opens Kiosk Support as a left-edge drawer so the conversation feels like a
@@ -40,8 +51,8 @@ export function SupportLauncher() {
     return () => window.removeEventListener(OPEN_SUPPORT_CHAT_EVENT, onOpen);
   }, []);
 
-  // The full chat page is already open — the launcher would be redundant.
-  if (pathname === APP_ROUTES.support) {
+  // Full chat page, tills, and stock desk — launcher would fight the task.
+  if (isSupportLauncherHiddenRoute(pathname)) {
     return null;
   }
 

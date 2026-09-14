@@ -2037,11 +2037,11 @@ export function StockLevelsPage() {
                 stockInk,
               )}
             >
-              In-store levels
+              On-hand qty
             </h1>
             <p className={cn("truncate text-[11px]", stockMute)}>
               {[activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||
-                "Edit qty by SKU"}
+                "Correct a product’s shelf number"}
             </p>
           </div>
           <Warehouse

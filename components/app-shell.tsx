@@ -799,14 +799,14 @@ const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
   },
   {
     id: "stock-levels",
-    label: "Stock",
+    label: "Home",
     icon: Warehouse,
     href: APP_ROUTES.inventoryStock,
     matchSectionIds: ["inventory"],
   },
   {
     id: "stock-take",
-    label: "Counts",
+    label: "Take stock",
     icon: ClipboardList,
     href: APP_ROUTES.inventoryStockTake,
     matchSectionIds: ["inventory"],
@@ -1352,7 +1352,7 @@ export function AppShell({ children }: AppShellProps) {
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
       );
       if (!isAllowed) {
-        router.replace(APP_ROUTES.inventoryStockTake);
+        router.replace(APP_ROUTES.inventoryStock);
       }
       return;
     }

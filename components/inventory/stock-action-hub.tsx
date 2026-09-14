@@ -24,7 +24,7 @@ type StockActionHubProps = {
 };
 
 /**
- * Stock desk — jobs first. The levels spreadsheet is a deliberate second step.
+ * Take-stock home — count first, then the jobs around keeping shelves honest.
  */
 export function StockActionHub({
   actions,
@@ -53,16 +53,19 @@ export function StockActionHub({
             ink,
           )}
         >
-          Stock desk
+          Take stock
         </h1>
-        {placeLine ? (
-          <p className={cn("mt-1.5 text-[12px] tracking-[-0.01em]", mute)}>
-            {placeLine}
-          </p>
-        ) : null}
+        <p className={cn("mt-1.5 max-w-md text-[13px] leading-snug", mute)}>
+          Count what’s on the shelf, bring goods in, and keep the room honest.
+          {placeLine ? (
+            <span className="mt-1 block text-[12px] tracking-[-0.01em]">
+              {placeLine}
+            </span>
+          ) : null}
+        </p>
       </header>
 
-      {/* Attention strip — not a metric hero; a door into levels */}
+      {/* Attention strip — doors into on-hand corrections */}
       <div className={cn("grid grid-cols-2 gap-px border bg-white", hair)}>
         <button
           type="button"
@@ -74,7 +77,7 @@ export function StockActionHub({
           )}
         >
           <span className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", mute)}>
-            Out
+            Sold out
           </span>
           <span
             className={cn(
@@ -99,7 +102,7 @@ export function StockActionHub({
           )}
         >
           <span className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", mute)}>
-            Low
+            Running low
           </span>
           <span
             className={cn(
@@ -263,7 +266,7 @@ export function StockActionHub({
           )}
         >
           <span className={cn("text-[14px] font-semibold", ink)}>
-            Adjust in-store levels
+            Correct on-hand qty
           </span>
           <ArrowRight className="size-4 text-[var(--pos-primary,#0f766e)]" aria-hidden />
         </button>

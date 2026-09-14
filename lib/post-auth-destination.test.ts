@@ -104,10 +104,10 @@ describe("resolvePostAuthDestination", () => {
     ).toBe(APP_ROUTES.overview);
   });
 
-  it("sends stock managers to daily audit", () => {
+  it("sends stock managers to take stock", () => {
     expect(
       resolvePostAuthDestination({ role: { key: "stock_manager" } }),
-    ).toBe(APP_ROUTES.inventoryStockTakeDailyAudit);
+    ).toBe(APP_ROUTES.inventoryStock);
   });
 
   it("sends shoppers to the storefront catalog", () => {
@@ -278,7 +278,7 @@ describe("resolvePostAuthDestination", () => {
         null,
         pendingOnboarding,
       ),
-    ).toBe(APP_ROUTES.inventoryStockTakeDailyAudit);
+    ).toBe(APP_ROUTES.inventoryStock);
     expect(
       resolvePostAuthDestination(
         { role: { key: "grocery_manager" } },
@@ -453,7 +453,7 @@ describe("roleLandingRedirect", () => {
         { role: { key: "stock_manager" } },
         APP_ROUTES.business,
       ),
-    ).toBe(APP_ROUTES.inventoryStockTakeDailyAudit);
+    ).toBe(APP_ROUTES.inventoryStock);
   });
 
   it("does not yank configured owners off the business hub", () => {
