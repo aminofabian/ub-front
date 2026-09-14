@@ -4,15 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
-  ClipboardCheck,
   ClipboardList,
   CreditCard,
-  Gauge,
   LayoutDashboard,
   Lock,
   MapPin,
   Package,
-  PackageX,
   Receipt,
   ScanLine,
   ShoppingBag,
@@ -21,6 +18,7 @@ import {
   Tags,
   Truck,
   Users,
+  UserRound,
   Wallet,
   Warehouse,
   type LucideIcon,
@@ -190,6 +188,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Access and locations",
       },
       {
+        href: APP_ROUTES.myProfile,
+        label: "My profile",
+        group: "Access and locations",
+      },
+      {
         href: APP_ROUTES.messages,
         label: "Messages",
         group: "Inbox",
@@ -290,7 +293,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       {
         href: APP_ROUTES.inventoryStockTakeDailyAudit,
-        label: "Today's count",
+        label: "Daily audit",
         group: "Counts",
       },
       {
@@ -335,7 +338,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       },
       {
         href: APP_ROUTES.inventoryRestock,
-        label: "Sold out",
+        label: "Out of stock",
         group: "In the shop",
       },
       {
@@ -443,7 +446,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       },
       {
         href: APP_ROUTES.analyticsActivity,
-        label: "Who did what",
+        label: "Activity",
         group: "Reports",
       },
       {
@@ -579,6 +582,9 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
       APP_ROUTES.inventoryStockTake,
       APP_ROUTES.inventoryStockTakeMyStats,
       APP_ROUTES.inventoryStockTakeDailyAudit,
+      APP_ROUTES.myProfile,
+      APP_ROUTES.myPay,
+      APP_ROUTES.support,
     ];
     if (gate.stockManagerStockPage) {
       allowed.push(
@@ -599,6 +605,10 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
       (gate.canWriteSuppliers || gate.canLinkSupplierProducts)
     ) {
       allowed.push(APP_ROUTES.suppliers);
+    }
+    if (gate.canViewOrderPad) {
+      allowed.push(APP_ROUTES.inventoryOrderPad);
+      allowed.push(APP_ROUTES.inventoryStockTakeRestock);
     }
     return allowed.includes(item.href);
   }
@@ -650,6 +660,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canManageBusinessSettings;
   if (item.href === APP_ROUTES.users) return gate.canListUsers;
   if (item.href === APP_ROUTES.payroll) return gate.canViewPayroll;
+  if (item.href === APP_ROUTES.myProfile) return true;
   if (item.href === APP_ROUTES.fixedCosts) return gate.canReadFinanceExpenses;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
   if (item.href === APP_ROUTES.inventoryStockTakeDailyAuditReview)
@@ -777,7 +788,7 @@ type BottomTab = {
   matchSectionIds: string[];
 };
 
-/** Stock manager: every allowed screen gets its own tab — no burying in More. */
+/** Stock manager: core jobs on the dock; the rest lives in More. */
 const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
   {
     id: "receive",
@@ -794,20 +805,6 @@ const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
     matchSectionIds: ["inventory"],
   },
   {
-    id: "out-of-stock",
-    label: "Out",
-    icon: PackageX,
-    href: APP_ROUTES.inventoryRestock,
-    matchSectionIds: ["inventory"],
-  },
-  {
-    id: "daily-audit",
-    label: "Audit",
-    icon: ClipboardCheck,
-    href: APP_ROUTES.inventoryStockTakeDailyAudit,
-    matchSectionIds: ["inventory"],
-  },
-  {
     id: "stock-take",
     label: "Counts",
     icon: ClipboardList,
@@ -820,6 +817,19 @@ const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
     icon: Package,
     href: APP_ROUTES.inventoryOrderPad,
     matchSectionIds: ["inventory"],
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    icon: UserRound,
+    href: APP_ROUTES.myProfile,
+    matchSectionIds: ["org"],
+  },
+  {
+    id: "more",
+    label: "More",
+    icon: Tags,
+    matchSectionIds: ["org", "payments", "procurement", "inventory", "sales"],
   },
 ];
 
@@ -1156,37 +1166,17 @@ export function AppShell({ children }: AppShellProps) {
       if (canAddSupplies) {
         tabs.push(STOCK_MANAGER_BOTTOM_TABS[0]); // Receive
       }
-      if (supplierToolsEnabled) {
-        tabs.push({
-          id: "suppliers",
-          label: "Vendors",
-          icon: Truck,
-          href: APP_ROUTES.suppliers,
-          matchSectionIds: ["procurement"],
-        });
-      }
       if (stockManagerStockPage) {
-        tabs.push(
-          STOCK_MANAGER_BOTTOM_TABS[1], // Stock
-          STOCK_MANAGER_BOTTOM_TABS[2], // Out
-        );
+        tabs.push(STOCK_MANAGER_BOTTOM_TABS[1]); // Stock
       }
-      if (stockManagerActivity) {
-        tabs.push({
-          id: "activity",
-          label: "Activity",
-          icon: Gauge,
-          href: APP_ROUTES.analyticsActivity,
-          matchSectionIds: ["sales"],
-        });
+      tabs.push(STOCK_MANAGER_BOTTOM_TABS[2]); // Counts
+      if (canViewOrderPad) {
+        tabs.push(STOCK_MANAGER_BOTTOM_TABS[3]); // Order pad
       }
       tabs.push(
-        STOCK_MANAGER_BOTTOM_TABS[3], // Audit
-        STOCK_MANAGER_BOTTOM_TABS[4], // Counts
+        STOCK_MANAGER_BOTTOM_TABS[4], // Profile
+        STOCK_MANAGER_BOTTOM_TABS[5], // More
       );
-      if (canViewOrderPad) {
-        tabs.push(STOCK_MANAGER_BOTTOM_TABS[5]); // Order pad
-      }
       return tabs;
     }
     if (roleKey === "cashier") {
@@ -1334,7 +1324,11 @@ export function AppShell({ children }: AppShellProps) {
     if (roleKey === "stock_manager") {
       const allowed: string[] = [
         APP_ROUTES.inventoryStockTake,
+        APP_ROUTES.inventoryStockTakeMyStats,
         APP_ROUTES.inventoryStockTakeDailyAudit,
+        APP_ROUTES.myProfile,
+        APP_ROUTES.myPay,
+        APP_ROUTES.support,
       ];
       if (stockManagerStockPage) {
         allowed.push(APP_ROUTES.inventoryStock, APP_ROUTES.inventoryRestock);
@@ -1349,6 +1343,10 @@ export function AppShell({ children }: AppShellProps) {
       }
       if (supplierToolsEnabled) {
         allowed.push(APP_ROUTES.suppliers);
+      }
+      if (canViewOrderPad) {
+        allowed.push(APP_ROUTES.inventoryOrderPad);
+        allowed.push(APP_ROUTES.inventoryStockTakeRestock);
       }
       const isAllowed = allowed.some(
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
@@ -1421,6 +1419,7 @@ export function AppShell({ children }: AppShellProps) {
     canAddSupplies,
     stockManagerStockPage,
     stockManagerActivity,
+    canViewOrderPad,
   ]);
 
   return (
@@ -1742,6 +1741,7 @@ export function AppShell({ children }: AppShellProps) {
             }
             badgeByHref={navBadgeByHref}
             myPayHref={canViewPayrollSelf ? APP_ROUTES.myPay : null}
+            profileHref={APP_ROUTES.myProfile}
           />
         </div>
       </div>

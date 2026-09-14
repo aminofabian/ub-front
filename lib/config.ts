@@ -71,6 +71,8 @@ export const APP_ROUTES = {
   fixedCosts: "/fixed-costs",
   /** Staff self-service payslip portal (login required). */
   myPay: "/my-pay",
+  /** Staff self-service profile — pay, advances, workplace concern. */
+  myProfile: "/my-profile",
   staffPayPortal: (phone: string) => `/pay/${encodeURIComponent(phone)}`,
   products: "/products",
   productsCatalog: "/products/catalog",

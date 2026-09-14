@@ -18,6 +18,7 @@ import {
   MapPin,
   Search,
   Sparkles,
+  UserRound,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -475,6 +476,8 @@ type TabletMoreSheetProps = {
   badgeByHref?: Readonly<Record<string, number>>;
   /** Personal staff payslip portal link. */
   myPayHref?: string | null;
+  /** Staff profile — pay, advances, workplace concern. */
+  profileHref?: string | null;
 };
 
 const TILE_HUES = [0, 42, 84, 126, 168, 210, 252, 294] as const;
@@ -722,6 +725,7 @@ export function TabletMoreSheet({
   compactNav = false,
   badgeByHref,
   myPayHref,
+  profileHref,
 }: TabletMoreSheetProps) {
   const accent = primaryColor?.trim() || "#28a745";
   const greeting = greetingForHour(new Date().getHours());
@@ -883,35 +887,72 @@ export function TabletMoreSheet({
         ) : null}
       </div>
 
-      {myPayHref ? (
-        <div className="relative shrink-0 px-4 pb-2 sm:px-5">
-          <Link
-            href={myPayHref}
-            onClick={onClose}
-            className="flex items-center gap-3 border px-3.5 py-3 transition-colors hover:bg-muted/40"
-            style={{
-              borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
-              background: `color-mix(in srgb, ${accent} 8%, transparent)`,
-            }}
-          >
-            <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-xl text-primary"
+      {profileHref || myPayHref ? (
+        <div className="relative shrink-0 space-y-2 px-4 pb-2 sm:px-5">
+          {profileHref ? (
+            <Link
+              href={profileHref}
+              onClick={onClose}
+              className="flex items-center gap-3 border px-3.5 py-3 transition-colors hover:bg-muted/40"
               style={{
-                background: `color-mix(in srgb, ${accent} 14%, transparent)`,
+                borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
+                background: `color-mix(in srgb, ${accent} 8%, transparent)`,
               }}
             >
-              <Banknote className="size-5" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-foreground">
-                My pay
+              <span
+                className="flex size-10 shrink-0 items-center justify-center rounded-xl text-primary"
+                style={{
+                  background: `color-mix(in srgb, ${accent} 14%, transparent)`,
+                }}
+              >
+                <UserRound className="size-5" aria-hidden />
               </span>
-              <span className="block text-xs text-muted-foreground">
-                Salary, advances, and payslips
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-foreground">
+                  My profile
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  Pay, advances, and raise a concern
+                </span>
               </span>
-            </span>
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          </Link>
+              <ChevronRight
+                className="size-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+            </Link>
+          ) : null}
+          {myPayHref && !profileHref ? (
+            <Link
+              href={myPayHref}
+              onClick={onClose}
+              className="flex items-center gap-3 border px-3.5 py-3 transition-colors hover:bg-muted/40"
+              style={{
+                borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
+                background: `color-mix(in srgb, ${accent} 8%, transparent)`,
+              }}
+            >
+              <span
+                className="flex size-10 shrink-0 items-center justify-center rounded-xl text-primary"
+                style={{
+                  background: `color-mix(in srgb, ${accent} 14%, transparent)`,
+                }}
+              >
+                <Banknote className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-foreground">
+                  My pay
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  Salary, advances, and payslips
+                </span>
+              </span>
+              <ChevronRight
+                className="size-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+            </Link>
+          ) : null}
         </div>
       ) : null}
 

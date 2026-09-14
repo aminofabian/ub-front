@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
+  ArrowLeft,
   Check,
   Lock,
   Package,
@@ -17,8 +19,6 @@ import { toast } from "sonner";
 import {
   DASHBOARD_MAX,
   DashboardAccessDenied,
-  DashboardPageHero,
-  DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -50,12 +50,13 @@ import {
 import {
   canEditStockLevels,
   canViewStockLevels,
-  inventoryQuickLinksForUser,
+  inventoryHubActionsForUser,
 } from "@/lib/inventory-access";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { textMatchesQuery } from "@/lib/text-search";
 import { ColumnResizeHandle } from "@/lib/column-resize-handle";
+import { StockActionHub } from "./stock-action-hub";
 import sheetStyles from "./stock-table-columns.module.css";
 import {
   STOCK_COL_CSS_VARS,
@@ -507,8 +508,10 @@ function StockMobileCard({
   return (
     <article
       className={cn(
-        "px-3 py-3",
+        "px-3 py-3.5 transition-colors",
         loss && "bg-orange-500/[0.06] dark:bg-orange-400/[0.09]",
+        editing &&
+          "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -516,13 +519,23 @@ function StockMobileCard({
           <Link
             href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.name)}`}
             className={cn(
-              "block text-[14px] font-medium leading-snug tracking-[-0.01em]",
+              "block text-[15px] font-semibold leading-snug tracking-[-0.015em]",
               stockInk,
               "underline-offset-2 hover:text-[var(--pos-primary,#0f766e)] hover:underline",
             )}
           >
             {row.name}
           </Link>
+          {row.barcode ? (
+            <p
+              className={cn(
+                "mt-1 truncate font-mono text-[13px] tabular-nums tracking-wide",
+                stockInk,
+              )}
+            >
+              {row.barcode}
+            </p>
+          ) : null}
           {metaBits.length > 0 ? (
             <p className={cn("mt-0.5 truncate text-[11px]", stockMute)}>
               {metaBits.join(" · ")}
@@ -740,6 +753,16 @@ function StockRowItem({
         >
           {row.name}
         </Link>
+        {row.barcode ? (
+          <span
+            className={cn(
+              "mt-0.5 block truncate font-mono text-[10px] tabular-nums",
+              stockMute,
+            )}
+          >
+            {row.barcode}
+          </span>
+        ) : null}
       </td>
       <td className={cn(stockCell, "p-0")}>
         {canCatalogWrite ? (
@@ -1070,6 +1093,11 @@ function StockListSkeleton() {
 }
 
 export function StockLevelsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isLevelsView = searchParams.get("view") === "levels";
+
   const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
   const {
     itemTypeId: headerItemTypeId,
@@ -1087,10 +1115,27 @@ export function StockLevelsPage() {
   const departmentLocked =
     me?.role?.key === "grocery_clerk" && sessionItemTypes.length === 1;
 
-  const quickLinks = useMemo(
-    () => inventoryQuickLinksForUser(me, business),
+  const hubActions = useMemo(
+    () => inventoryHubActionsForUser(me, business),
     [me, business],
   );
+
+  const openLevels = useCallback(
+    (status: "out" | "low" | "all" = "all") => {
+      const params = new URLSearchParams();
+      params.set("view", "levels");
+      if (status === "out" || status === "low") {
+        params.set("status", status);
+      }
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [pathname, router],
+  );
+
+  const closeLevels = useCallback(() => {
+    router.push(pathname);
+  }, [pathname, router]);
+
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
@@ -1116,6 +1161,21 @@ export function StockLevelsPage() {
   const [categoryId, setCategoryId] = useState("");
   const [statusFilter, setStatusFilter] = useState<StockStatusFilter>("all");
   const [sortBy, setSortBy] = useState<StockSort>("attention");
+
+  useEffect(() => {
+    if (!isLevelsView) return;
+    const raw = searchParams.get("status");
+    if (
+      raw === "all" ||
+      raw === "in_stock" ||
+      raw === "low" ||
+      raw === "out" ||
+      raw === "loss"
+    ) {
+      setStatusFilter(raw);
+    }
+  }, [isLevelsView, searchParams]);
+
   const [rows, setRows] = useState<StockRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -1814,6 +1874,9 @@ export function StockLevelsPage() {
     return "No stocked products found for this branch.";
   }, [search, statusFilter, categoryId]);
 
+  const activeBranchName =
+    branches.find((b) => b.id === branchId)?.name?.trim() || "";
+
   if (!allowed) {
     return (
       <DashboardAccessDenied
@@ -1825,144 +1888,170 @@ export function StockLevelsPage() {
     );
   }
 
-  return (
-    <div className={DASHBOARD_MAX}>
-      <div className="flex min-h-0 flex-col gap-1">
-        <DashboardPageHero
-          compact
-          showActiveScope
-          icon={Warehouse}
-          title="Stock"
-          description={null}
+  const departmentRail = (
+    <div
+      className={cn(
+        "flex items-center gap-1.5 border-b px-1.5 py-1",
+        "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
+        "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
+      )}
+    >
+      <span
+        className={cn(
+          "shrink-0 px-1 text-[9px] font-bold uppercase tracking-[0.16em]",
+          "text-[var(--pos-primary,#0f766e)]",
+        )}
+      >
+        Dept
+      </span>
+      {departmentLocked ? (
+        <span
+          className={cn(
+            "inline-flex min-w-0 flex-1 items-center gap-1.5 truncate px-1.5 py-1 text-[12px] font-semibold",
+            stockInk,
+          )}
+          title="Department switching is disabled for your role"
         >
-          {quickLinks.length > 0 ? (
-            <div className="max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {/* Icon-only chips on narrow screens to reclaim vertical space */}
-              <div className="sm:hidden">
-                <div className="flex gap-1">
-                  {quickLinks.map(({ href, label, icon: Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      title={label}
-                      aria-label={label}
-                      className={cn(
-                        "inline-flex size-7 items-center justify-center rounded-none border bg-white",
+          <Lock className="size-3 shrink-0 opacity-60" aria-hidden />
+          {itemTypeLabel || sessionItemTypes[0]?.label || "Department"}
+        </span>
+      ) : (
+        <div
+          className="flex min-w-0 flex-1 gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="group"
+          aria-label="Department"
+        >
+          <button
+            type="button"
+            onClick={() => setItemTypeId("")}
+            className={cn(
+              "h-7 shrink-0 px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
+              !headerItemTypeId.trim()
+                ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                : cn(
+                    "border bg-white",
+                    stockHair,
+                    stockMute,
+                    "hover:text-[var(--order-ink,#15231f)]",
+                  ),
+            )}
+          >
+            All
+          </button>
+          {sessionItemTypes.map((t) => {
+            const active = headerItemTypeId === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setItemTypeId(t.id)}
+                className={cn(
+                  "h-7 max-w-[10rem] shrink-0 truncate px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
+                  active
+                    ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                    : cn(
+                        "border bg-white",
                         stockHair,
                         stockMute,
                         "hover:text-[var(--order-ink,#15231f)]",
-                      )}
-                    >
-                      <Icon className="size-3.5 opacity-80" aria-hidden />
-                    </Link>
-                  ))}
-                </div>
-              </div>
-              <div className="hidden sm:block">
-                <DashboardQuickLinks compact links={quickLinks} />
-              </div>
-            </div>
-          ) : null}
-        </DashboardPageHero>
+                      ),
+                )}
+                title={t.label}
+              >
+                {t.label}
+                {t.isDefault ? " ★" : ""}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {isLevelsView && (rows.length > 0 || loading) ? (
+        <p
+          className={cn(
+            "hidden shrink-0 truncate pl-1 text-[10px] sm:block",
+            stockMute,
+          )}
+        >
+          <span className={cn("font-semibold tabular-nums", stockInk)}>
+            {filteredRows.length.toLocaleString("en-KE")}
+          </span>
+          {hasMore || (totalElements > 0 && rows.length < totalElements)
+            ? ` · ${rows.length.toLocaleString("en-KE")}${
+                totalElements > 0
+                  ? `/${totalElements.toLocaleString("en-KE")}`
+                  : ""
+              }`
+            : " shown"}
+        </p>
+      ) : null}
+    </div>
+  );
 
+  if (!isLevelsView) {
+    return (
+      <div className={DASHBOARD_MAX}>
         <div className={cn("overflow-hidden rounded-none border bg-white", stockHair)}>
-          {/* Department rail — global scope, hard to miss, filters the list */}
-          <div
+          {departmentRail}
+          <div className="px-3 pt-3 sm:px-4 sm:pt-4">
+            <StockActionHub
+              actions={hubActions}
+              branchName={activeBranchName}
+              departmentLabel={itemTypeLabel}
+              outCount={loading && rows.length === 0 ? null : stockCounts.out}
+              lowCount={loading && rows.length === 0 ? null : stockCounts.low}
+              countsLoading={loading && rows.length === 0}
+              onOpenLevels={openLevels}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={DASHBOARD_MAX}>
+      <div className="flex min-h-0 flex-col gap-1">
+        <header
+          className={cn(
+            "flex items-center gap-2 border bg-white px-2 py-1.5",
+            stockHair,
+          )}
+        >
+          <button
+            type="button"
+            onClick={closeLevels}
             className={cn(
-              "flex items-center gap-1.5 border-b px-1.5 py-1",
-              "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
-              "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
+              "inline-flex size-8 items-center justify-center border transition-colors",
+              stockHair,
+              stockMute,
+              "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
             )}
+            aria-label="Back to stock desk"
           >
-            <span
+            <ArrowLeft className="size-4" aria-hidden />
+          </button>
+          <div className="min-w-0 flex-1">
+            <h1
               className={cn(
-                "shrink-0 px-1 text-[9px] font-bold uppercase tracking-[0.16em]",
-                "text-[var(--pos-primary,#0f766e)]",
+                "truncate font-heading text-[15px] font-semibold tracking-[-0.02em]",
+                stockInk,
               )}
             >
-              Dept
-            </span>
-            {departmentLocked ? (
-              <span
-                className={cn(
-                  "inline-flex min-w-0 flex-1 items-center gap-1.5 truncate px-1.5 py-1 text-[12px] font-semibold",
-                  stockInk,
-                )}
-                title="Department switching is disabled for your role"
-              >
-                <Lock className="size-3 shrink-0 opacity-60" aria-hidden />
-                {itemTypeLabel || sessionItemTypes[0]?.label || "Department"}
-              </span>
-            ) : (
-              <div
-                className="flex min-w-0 flex-1 gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                role="group"
-                aria-label="Department"
-              >
-                <button
-                  type="button"
-                  onClick={() => setItemTypeId("")}
-                  className={cn(
-                    "h-7 shrink-0 px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
-                    !headerItemTypeId.trim()
-                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                      : cn(
-                          "border bg-white",
-                          stockHair,
-                          stockMute,
-                          "hover:text-[var(--order-ink,#15231f)]",
-                        ),
-                  )}
-                >
-                  All
-                </button>
-                {sessionItemTypes.map((t) => {
-                  const active = headerItemTypeId === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setItemTypeId(t.id)}
-                      className={cn(
-                        "h-7 max-w-[10rem] shrink-0 truncate px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
-                        active
-                          ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                          : cn(
-                              "border bg-white",
-                              stockHair,
-                              stockMute,
-                              "hover:text-[var(--order-ink,#15231f)]",
-                            ),
-                      )}
-                      title={t.label}
-                    >
-                      {t.label}
-                      {t.isDefault ? " ★" : ""}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {(rows.length > 0 || loading) && (
-              <p
-                className={cn(
-                  "hidden shrink-0 truncate pl-1 text-[10px] sm:block",
-                  stockMute,
-                )}
-              >
-                <span className={cn("font-semibold tabular-nums", stockInk)}>
-                  {filteredRows.length.toLocaleString("en-KE")}
-                </span>
-                {hasMore || (totalElements > 0 && rows.length < totalElements)
-                  ? ` · ${rows.length.toLocaleString("en-KE")}${
-                      totalElements > 0
-                        ? `/${totalElements.toLocaleString("en-KE")}`
-                        : ""
-                    }`
-                  : " shown"}
-              </p>
-            )}
+              In-store levels
+            </h1>
+            <p className={cn("truncate text-[11px]", stockMute)}>
+              {[activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||
+                "Edit qty by SKU"}
+            </p>
           </div>
+          <Warehouse
+            className="size-4 shrink-0 text-[var(--pos-primary,#0f766e)]"
+            aria-hidden
+          />
+        </header>
+
+        <div className={cn("overflow-hidden rounded-none border bg-white", stockHair)}>
+          {departmentRail}
 
           {/* Status + search + secondary filters — one dense row on mobile */}
           <div
