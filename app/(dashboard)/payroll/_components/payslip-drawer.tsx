@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Printer, Receipt } from "lucide-react";
+import { Download, Loader2, Printer, Receipt } from "lucide-react";
 
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -20,6 +20,7 @@ import {
   printPayslipDocument,
   type PayslipDocumentOptions,
 } from "@/lib/payroll-utils";
+import { downloadPayslipPdf } from "@/lib/payslip-pdf";
 
 type Props = {
   open: boolean;
@@ -90,6 +91,8 @@ export function PayslipDrawer({
   const [error, setError] = useState<string | null>(null);
   const [payslip, setPayslip] = useState<PayslipRecord | null>(null);
   const [profile, setProfile] = useState<StaffProfileRecord | null>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const branding = business?.branding;
   const accent =
@@ -196,6 +199,25 @@ export function PayslipDrawer({
     );
   }
 
+  async function onDownloadPdf() {
+    if (!payslip) return;
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      await downloadPayslipPdf(
+        payslip,
+        staffName || payslip.displayName,
+        documentOptions(),
+      );
+    } catch (err) {
+      setPdfError(
+        err instanceof Error ? err.message : "Couldn't generate the PDF",
+      );
+    } finally {
+      setPdfBusy(false);
+    }
+  }
+
   return (
     <FormDrawer
       open={open}
@@ -207,10 +229,25 @@ export function PayslipDrawer({
       footer={
         <div className="flex justify-end gap-2">
           {payslip ? (
-            <Button type="button" variant="outline" onClick={onPrint}>
-              <Printer className="mr-1.5 size-4" aria-hidden />
-              Print
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pdfBusy}
+                onClick={() => void onDownloadPdf()}
+              >
+                {pdfBusy ? (
+                  <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden />
+                ) : (
+                  <Download className="mr-1.5 size-4" aria-hidden />
+                )}
+                PDF
+              </Button>
+              <Button type="button" variant="outline" onClick={onPrint}>
+                <Printer className="mr-1.5 size-4" aria-hidden />
+                Print
+              </Button>
+            </>
           ) : null}
           <Button
             type="button"
@@ -261,6 +298,11 @@ export function PayslipDrawer({
               <p className="text-xs tabular-nums text-muted-foreground">
                 {payrollMonthLabel(payslip.periodYear, payslip.periodMonth)}
               </p>
+              {payslip.payslipNumber ? (
+                <p className="text-[11px] font-semibold tracking-[0.04em] text-muted-foreground">
+                  No. {payslip.payslipNumber}
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -368,6 +410,12 @@ export function PayslipDrawer({
               </p>
               <p className="mt-0.5">{payslip.note}</p>
             </div>
+          ) : null}
+
+          {pdfError ? (
+            <p className="mt-3 rounded-none border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {pdfError}
+            </p>
           ) : null}
 
           <p className="mt-3 text-center text-[11px] italic text-muted-foreground">

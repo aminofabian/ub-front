@@ -9,6 +9,7 @@ import {
 } from "react";
 import Link from "next/link";
 import {
+  Download,
   ArrowLeft,
   Banknote,
   Loader2,
@@ -35,6 +36,7 @@ import {
   payslipDocumentHtml,
   printPayslipDocument,
 } from "@/lib/payroll-utils";
+import { downloadPayslipPdf } from "@/lib/payslip-pdf";
 import { buildStorefrontThemeVars, parseStorefrontHex } from "@/lib/storefront-theme";
 import { phonesMatchKenyan, toKenyanLocal07 } from "@/lib/kenyan-phone";
 import styles from "@/components/payroll/staff-pay-portal.module.css";
@@ -377,6 +379,28 @@ function PayslipSheet({
   };
   onClose: () => void;
 }) {
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
+  async function onDownloadPdf() {
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      await downloadPayslipPdf(payslip, staffName, {
+        shopName,
+        logoUrl,
+        accent,
+        employee,
+      });
+    } catch (err) {
+      setPdfError(
+        err instanceof Error ? err.message : "Couldn't generate the PDF",
+      );
+    } finally {
+      setPdfBusy(false);
+    }
+  }
+
   const lines: Array<{ label: string; value: string; muted?: boolean }> = [
     { label: "Base salary", value: formatPayrollMoney(Number(payslip.baseSalary)) },
     {
@@ -429,6 +453,7 @@ function PayslipSheet({
             </p>
             <p className={styles.rowSub}>
               Paid {formatPayrollDateTime(payslip.paidAt)}
+              {payslip.payslipNumber ? ` · No. ${payslip.payslipNumber}` : ""}
             </p>
           </div>
           <button type="button" className={styles.theme} onClick={onClose}>
@@ -470,6 +495,24 @@ function PayslipSheet({
           <Printer className="size-4" aria-hidden />
           Print payslip
         </button>
+        <button
+          type="button"
+          className={styles.printBtn}
+          disabled={pdfBusy}
+          onClick={() => void onDownloadPdf()}
+        >
+          {pdfBusy ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <Download className="size-4" aria-hidden />
+          )}
+          Download PDF
+        </button>
+        {pdfError ? (
+          <p className={styles.rowSub} style={{ marginTop: "0.5rem", color: "#b91c1c" }}>
+            {pdfError}
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -784,6 +784,7 @@ export function exportAdvanceLedgerCsv(
 
 export function exportPayslipHistoryCsv(
   rows: Array<{
+    payslipNumber?: string | null;
     displayName: string;
     periodYear: number;
     periodMonth: number;
@@ -805,6 +806,7 @@ export function exportPayslipHistoryCsv(
     `payslips-${year}-${String(month).padStart(2, "0")}.csv`,
     [
       "Employee",
+      "Payslip no.",
       "Period",
       "Base",
       "Advances deducted",
@@ -819,6 +821,7 @@ export function exportPayslipHistoryCsv(
     ],
     rows.map((row) => [
       row.displayName,
+      row.payslipNumber ?? "",
       payrollMonthLabel(row.periodYear, row.periodMonth),
       Number(row.baseSalary).toFixed(2),
       Number(row.advancesDeducted).toFixed(2),
@@ -861,7 +864,7 @@ export type PayslipDocumentOptions = {
 
 const DEFAULT_PAYSLIP_ACCENT = "#0f766e";
 
-function hexToRgb(hex: string): [number, number, number] | null {
+export function hexToRgb(hex: string): [number, number, number] | null {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
   if (!m) return null;
   const n = parseInt(m[1], 16);
@@ -1018,35 +1021,12 @@ export function payslipDocumentHtml(
   const deductionRows = m.deductions.map(
     (d) => [d.label, d.value] as [string, number],
   );
-  const paidOn = m.paidOn;
-  const bankLine = m.rightDetails.some(([label]) => label === "Bank")
-    ? (m.rightDetails.find(([label]) => label === "Bank")?.[1] ?? "")
-    : "";
-
-  // Left column: employee identity · right column: pay info (matches the
-  // reference payslip layout). Optional rows collapse away cleanly.
-  const leftDetailRows: Array<[string, string]> = [["Employee name", staffName]];
-  if (employee.code) {
-    leftDetailRows.push(["Employee ID", employee.code]);
-  }
-  if (employee.designation) {
-    leftDetailRows.push(["Designation", employee.designation]);
-  }
-  const rightDetailRows: Array<[string, string]> = [
-    ["Pay period", period],
-    ["Pay date", paidOn],
-  ];
-  if (bankLine) {
-    rightDetailRows.push(["Bank", bankLine]);
-  } else if (paidVia) {
-    rightDetailRows.push(["Paid via", paidVia]);
-  }
 
   const detailCell = ([label, value]: [string, string]) =>
     `<div class="detail"><span class="detail-label">${escapeHtml(label)}</span><span class="detail-value">${escapeHtml(value)}</span></div>`;
   const detailsHtml =
-    `<div class="detail-col">${leftDetailRows.map(detailCell).join("")}</div>` +
-    `<div class="detail-col">${rightDetailRows.map(detailCell).join("")}</div>`;
+    `<div class="detail-col">${m.leftDetails.map(detailCell).join("")}</div>` +
+    `<div class="detail-col">${m.rightDetails.map(detailCell).join("")}</div>`;
 
   const tableRow = (
     label: string,
@@ -1059,18 +1039,23 @@ export function payslipDocumentHtml(
     .map(([label, value]) => tableRow(label, value))
     .join("");
   const deductionsHtml =
-    deductionRows
-      .map(([label, value]) => tableRow(label, formatPayrollMoney(value)))
-      .join("") || tableRow("Deductions", formatPayrollMoney(0));
+    deductionRows.length > 0
+      ? deductionRows
+          .map(([label, value]) => tableRow(label, formatPayrollMoney(value)))
+          .join("")
+      : tableRow("Deductions", formatPayrollMoney(0));
 
-  const note = payslip.note
-    ? `<div class="note"><span class="note-label">Note</span>${escapeHtml(payslip.note)}</div>`
+  const note = m.note
+    ? `<div class="note"><span class="note-label">Note</span>${escapeHtml(m.note)}</div>`
     : "";
-  const logo = options.logoUrl
-    ? `<img class="logo" src="${escapeHtml(options.logoUrl)}" alt="" />`
+  const logo = m.logoUrl
+    ? `<img class="logo" src="${escapeHtml(m.logoUrl)}" alt="" />`
     : "";
   const brandName = shopName
     ? `<div class="brand"><span class="brand-name">${escapeHtml(shopName)}</span><span class="brand-sub">Payroll</span></div>`
+    : "";
+  const numberLine = m.payslipNumber
+    ? `<p class="doc-number">No. ${escapeHtml(m.payslipNumber)}</p>`
     : "";
 
   return `<!DOCTYPE html>
@@ -1091,6 +1076,7 @@ export function payslipDocumentHtml(
   .doc-title { margin-left: auto; text-align: right; }
   .doc-title h1 { font-size: 22px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: ${accent}; }
   .doc-title p { font-size: 12px; color: #64748b; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .doc-number { font-size: 11px; font-weight: 600; color: #475569; margin-top: 4px; letter-spacing: 0.04em; }
   .band {
     margin-top: 22px; background: ${accent}; color: #fff;
     font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
@@ -1129,6 +1115,7 @@ export function payslipDocumentHtml(
       <div class="doc-title">
         <h1>Monthly Payslip</h1>
         <p>${escapeHtml(period)}</p>
+        ${numberLine}
       </div>
     </div>
 
@@ -1140,21 +1127,21 @@ export function payslipDocumentHtml(
         <div class="band">Earnings</div>
         <table>
           ${earningsHtml}
-          ${tableRow("Total earnings", formatPayrollMoney(totalEarnings), { total: true })}
+          ${tableRow("Total earnings", formatPayrollMoney(m.totalEarnings), { total: true })}
         </table>
       </div>
       <div>
         <div class="band">Deductions</div>
         <table>
           ${deductionsHtml}
-          ${tableRow("Total deductions", formatPayrollMoney(totalDeductions), { total: true })}
+          ${tableRow("Total deductions", formatPayrollMoney(m.totalDeductions), { total: true })}
         </table>
       </div>
     </div>
 
     <div class="net">
       <span class="net-label">Net salary payable</span>
-      <span class="net-amount">${escapeHtml(formatPayrollMoney(Number(payslip.netPaid)))}</span>
+      <span class="net-amount">${escapeHtml(formatPayrollMoney(m.net))}</span>
     </div>
 
     ${note}
