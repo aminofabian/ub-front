@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Check,
+  Lock,
   Package,
   Pencil,
   RefreshCw,
@@ -20,7 +21,10 @@ import {
   DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
-import { useSyncBranchFilter, useSessionItemType } from "@/hooks/use-session-scope";
+import {
+  useSyncBranchFilter,
+  useSessionItemType,
+} from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchAllocationPreview,
@@ -1067,7 +1071,12 @@ function StockListSkeleton() {
 
 export function StockLevelsPage() {
   const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
-  const { itemTypeId: headerItemTypeId } = useSessionItemType();
+  const {
+    itemTypeId: headerItemTypeId,
+    setItemTypeId,
+    itemTypeLabel,
+    itemTypes: sessionItemTypes,
+  } = useSessionItemType();
   const allowed = canViewStockLevels(me, business);
   const canWrite = canEditStockLevels(me, business);
   const canCatalogWrite = hasPermission(
@@ -1075,6 +1084,8 @@ export function StockLevelsPage() {
     Permission.CatalogItemsWrite,
   );
   const currency = business?.currency?.trim() || "KES";
+  const departmentLocked =
+    me?.role?.key === "grocery_clerk" && sessionItemTypes.length === 1;
 
   const quickLinks = useMemo(
     () => inventoryQuickLinksForUser(me, business),
@@ -1803,9 +1814,6 @@ export function StockLevelsPage() {
     return "No stocked products found for this branch.";
   }, [search, statusFilter, categoryId]);
 
-  const activeBranchName =
-    branches.find((b) => b.id === branchId)?.name?.trim() || "";
-
   if (!allowed) {
     return (
       <DashboardAccessDenied
@@ -1829,62 +1837,221 @@ export function StockLevelsPage() {
         >
           {quickLinks.length > 0 ? (
             <div className="max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <DashboardQuickLinks compact links={quickLinks} />
+              {/* Icon-only chips on narrow screens to reclaim vertical space */}
+              <div className="sm:hidden">
+                <div className="flex gap-1">
+                  {quickLinks.map(({ href, label, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      title={label}
+                      aria-label={label}
+                      className={cn(
+                        "inline-flex size-7 items-center justify-center rounded-none border bg-white",
+                        stockHair,
+                        stockMute,
+                        "hover:text-[var(--order-ink,#15231f)]",
+                      )}
+                    >
+                      <Icon className="size-3.5 opacity-80" aria-hidden />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              <div className="hidden sm:block">
+                <DashboardQuickLinks compact links={quickLinks} />
+              </div>
             </div>
           ) : null}
         </DashboardPageHero>
 
         <div className={cn("overflow-hidden rounded-none border bg-white", stockHair)}>
+          {/* Department rail — global scope, hard to miss, filters the list */}
           <div
             className={cn(
-              "flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] px-2 py-1.5",
+              "flex items-center gap-1.5 border-b px-1.5 py-1",
+              "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
+              "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
+            )}
+          >
+            <span
+              className={cn(
+                "shrink-0 px-1 text-[9px] font-bold uppercase tracking-[0.16em]",
+                "text-[var(--pos-primary,#0f766e)]",
+              )}
+            >
+              Dept
+            </span>
+            {departmentLocked ? (
+              <span
+                className={cn(
+                  "inline-flex min-w-0 flex-1 items-center gap-1.5 truncate px-1.5 py-1 text-[12px] font-semibold",
+                  stockInk,
+                )}
+                title="Department switching is disabled for your role"
+              >
+                <Lock className="size-3 shrink-0 opacity-60" aria-hidden />
+                {itemTypeLabel || sessionItemTypes[0]?.label || "Department"}
+              </span>
+            ) : (
+              <div
+                className="flex min-w-0 flex-1 gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                role="group"
+                aria-label="Department"
+              >
+                <button
+                  type="button"
+                  onClick={() => setItemTypeId("")}
+                  className={cn(
+                    "h-7 shrink-0 px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
+                    !headerItemTypeId.trim()
+                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                      : cn(
+                          "border bg-white",
+                          stockHair,
+                          stockMute,
+                          "hover:text-[var(--order-ink,#15231f)]",
+                        ),
+                  )}
+                >
+                  All
+                </button>
+                {sessionItemTypes.map((t) => {
+                  const active = headerItemTypeId === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setItemTypeId(t.id)}
+                      className={cn(
+                        "h-7 max-w-[10rem] shrink-0 truncate px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
+                        active
+                          ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                          : cn(
+                              "border bg-white",
+                              stockHair,
+                              stockMute,
+                              "hover:text-[var(--order-ink,#15231f)]",
+                            ),
+                      )}
+                      title={t.label}
+                    >
+                      {t.label}
+                      {t.isDefault ? " ★" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {(rows.length > 0 || loading) && (
+              <p
+                className={cn(
+                  "hidden shrink-0 truncate pl-1 text-[10px] sm:block",
+                  stockMute,
+                )}
+              >
+                <span className={cn("font-semibold tabular-nums", stockInk)}>
+                  {filteredRows.length.toLocaleString("en-KE")}
+                </span>
+                {hasMore || (totalElements > 0 && rows.length < totalElements)
+                  ? ` · ${rows.length.toLocaleString("en-KE")}${
+                      totalElements > 0
+                        ? `/${totalElements.toLocaleString("en-KE")}`
+                        : ""
+                    }`
+                  : " shown"}
+              </p>
+            )}
+          </div>
+
+          {/* Status + search + secondary filters — one dense row on mobile */}
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-x-1.5 gap-y-1 border-b bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] px-1.5 py-1",
               stockHair,
             )}
           >
             {(rows.length > 0 || loading) && (
-              <div
-                className={cn("inline-flex max-w-full flex-wrap overflow-hidden border bg-white", stockHair)}
-                role="group"
-                aria-label="Stock summary"
-              >
-                <StockStatCard
-                  label="All"
-                  value={stockCounts.total}
-                  active={statusFilter === "all"}
-                  onClick={() => setStatusFilter("all")}
-                />
-                <StockStatCard
-                  label="In"
-                  value={stockCounts.inStock}
-                  active={statusFilter === "in_stock"}
-                  tone="success"
-                  onClick={() => setStatusFilter("in_stock")}
-                />
-                <StockStatCard
-                  label="Low"
-                  value={stockCounts.low}
-                  active={statusFilter === "low"}
-                  tone="warning"
-                  onClick={() => setStatusFilter("low")}
-                />
-                <StockStatCard
-                  label="Out"
-                  value={stockCounts.out}
-                  active={statusFilter === "out"}
-                  tone="danger"
-                  onClick={() => setStatusFilter("out")}
-                />
-                <StockStatCard
-                  label="Loss"
-                  value={stockCounts.loss}
-                  active={statusFilter === "loss"}
-                  tone="loss"
-                  onClick={() => setStatusFilter("loss")}
-                />
-              </div>
+              <>
+                {/* Desktop / tablet: chip strip */}
+                <div
+                  className={cn(
+                    "hidden max-w-full overflow-hidden border bg-white sm:inline-flex",
+                    stockHair,
+                  )}
+                  role="group"
+                  aria-label="Stock summary"
+                >
+                  <StockStatCard
+                    label="All"
+                    value={stockCounts.total}
+                    active={statusFilter === "all"}
+                    onClick={() => setStatusFilter("all")}
+                  />
+                  <StockStatCard
+                    label="In"
+                    value={stockCounts.inStock}
+                    active={statusFilter === "in_stock"}
+                    tone="success"
+                    onClick={() => setStatusFilter("in_stock")}
+                  />
+                  <StockStatCard
+                    label="Low"
+                    value={stockCounts.low}
+                    active={statusFilter === "low"}
+                    tone="warning"
+                    onClick={() => setStatusFilter("low")}
+                  />
+                  <StockStatCard
+                    label="Out"
+                    value={stockCounts.out}
+                    active={statusFilter === "out"}
+                    tone="danger"
+                    onClick={() => setStatusFilter("out")}
+                  />
+                  <StockStatCard
+                    label="Loss"
+                    value={stockCounts.loss}
+                    active={statusFilter === "loss"}
+                    tone="loss"
+                    onClick={() => setStatusFilter("loss")}
+                  />
+                </div>
+
+                {/* Mobile: status as a compact select */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) =>
+                    setStatusFilter(e.target.value as StockStatusFilter)
+                  }
+                  className={cn(
+                    stockTool,
+                    "w-[6.75rem] cursor-pointer py-0 sm:hidden",
+                    statusFilter === "out" && "font-semibold text-rose-700",
+                    statusFilter === "loss" && "font-semibold text-orange-700",
+                  )}
+                  aria-label="Stock status"
+                >
+                  <option value="all">
+                    All · {stockCounts.total.toLocaleString("en-KE")}
+                  </option>
+                  <option value="in_stock">
+                    In · {stockCounts.inStock.toLocaleString("en-KE")}
+                  </option>
+                  <option value="low">
+                    Low · {stockCounts.low.toLocaleString("en-KE")}
+                  </option>
+                  <option value="out">
+                    Out · {stockCounts.out.toLocaleString("en-KE")}
+                  </option>
+                  <option value="loss">
+                    Loss · {stockCounts.loss.toLocaleString("en-KE")}
+                  </option>
+                </select>
+              </>
             )}
 
-            <span className="relative min-w-[11rem] flex-[2] basis-[14rem]">
+            <span className="relative min-w-0 flex-1 basis-[8rem]">
               <Search
                 className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
                 aria-hidden
@@ -1893,94 +2060,84 @@ export function StockLevelsPage() {
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search name, SKU, barcode…"
+                placeholder="Search…"
                 className={cn(stockTool, "w-full pl-7")}
                 aria-label="Search stock"
               />
             </span>
 
-            <div className="flex flex-wrap items-center gap-1">
+            {!isBranchLockedRole ? (
               <select
                 value={branchId}
                 onChange={(e) => onChangeBranch(e.target.value)}
-                disabled={isBranchLockedRole}
-                className={cn(stockTool, "w-[8.25rem] cursor-pointer py-0")}
+                className={cn(
+                  stockTool,
+                  "w-[6.5rem] cursor-pointer py-0 sm:w-[8.25rem]",
+                )}
                 aria-label="Branch"
               >
                 <option value="">Branch…</option>
                 {branches
                   .filter((b) => b.active || b.id === branchId)
-                  .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
                   .map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name}
                     </option>
                   ))}
               </select>
+            ) : null}
 
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className={cn(stockTool, "w-[8.75rem] cursor-pointer py-0")}
-                aria-label="Category"
-                disabled={!branchId}
-              >
-                <option value="">Category</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className={cn(
+                stockTool,
+                "hidden w-[8.75rem] cursor-pointer py-0 sm:block",
+              )}
+              aria-label="Category"
+              disabled={!branchId}
+            >
+              <option value="">Category</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
 
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as StockSort)}
-                className={cn(stockTool, "w-[9.25rem] cursor-pointer py-0")}
-                aria-label="Sort stock"
-                disabled={!branchId}
-              >
-                <option value="attention">Needs attention</option>
-                <option value="sell_desc">Highest sell</option>
-                <option value="buy_desc">Highest buy</option>
-                <option value="value_desc">Costliest stock</option>
-              </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as StockSort)}
+              className={cn(
+                stockTool,
+                "w-[5.5rem] cursor-pointer py-0 sm:w-[9.25rem]",
+              )}
+              aria-label="Sort stock"
+              disabled={!branchId}
+            >
+              <option value="attention">Attention</option>
+              <option value="sell_desc">Highest sell</option>
+              <option value="buy_desc">Highest buy</option>
+              <option value="value_desc">Costliest</option>
+            </select>
 
-              <button
-                type="button"
-                onClick={() => void load()}
-                disabled={loading || !branchId}
-                className={cn(
-                  stockTool,
-                  "inline-flex size-7 items-center justify-center px-0",
-                  "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
-                  "disabled:opacity-50",
-                )}
-                aria-label="Refresh stock"
-              >
-                <RefreshCw
-                  className={cn("size-3.5", loading && "animate-spin")}
-                  aria-hidden
-                />
-              </button>
-            </div>
-
-            {(rows.length > 0 || loading) && (
-              <p className="ml-auto min-w-0 truncate text-[10px] tracking-[-0.01em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_46%,transparent)]">
-                <span className="font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
-                  {filteredRows.length.toLocaleString("en-KE")}
-                </span>
-                {" shown"}
-                {hasMore || (totalElements > 0 && rows.length < totalElements)
-                  ? ` · ${rows.length.toLocaleString("en-KE")}${
-                      totalElements > 0
-                        ? `/${totalElements.toLocaleString("en-KE")}`
-                        : ""
-                    }`
-                  : ""}
-                {activeBranchName ? ` · ${activeBranchName}` : ""}
-              </p>
-            )}
+            <button
+              type="button"
+              onClick={() => void load()}
+              disabled={loading || !branchId}
+              className={cn(
+                stockTool,
+                "inline-flex size-7 shrink-0 items-center justify-center px-0",
+                "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+                "disabled:opacity-50",
+              )}
+              aria-label="Refresh stock"
+            >
+              <RefreshCw
+                className={cn("size-3.5", loading && "animate-spin")}
+                aria-hidden
+              />
+            </button>
           </div>
 
           {error ? (
