@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Check,
+  ClipboardList,
   Lock,
   Package,
   Pencil,
@@ -27,6 +28,7 @@ import {
 } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchActiveStockTakeSession,
   fetchAllocationPreview,
   fetchBatchDashboard,
   fetchBranches,
@@ -34,6 +36,8 @@ import {
   fetchAisles,
   fetchItemTypes,
   fetchItemsPage,
+  fetchSupplierItemLinks,
+  fetchSuppliers,
   patchItem,
   postBatchDecrease,
   postStockIncrease,
@@ -42,6 +46,7 @@ import {
   type CategoryRecord,
   type ItemSummaryRecord,
   type ItemTypeRecord,
+  type SupplierRecord,
 } from "@/lib/api";
 import {
   formatProductNameForCatalog,
@@ -56,7 +61,11 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { textMatchesQuery } from "@/lib/text-search";
 import { ColumnResizeHandle } from "@/lib/column-resize-handle";
-import { StockActionHub } from "./stock-action-hub";
+import {
+  StockActionHub,
+  type FullCountProgress,
+} from "./stock-action-hub";
+import { StockFilterMenu } from "./stock-filter-menu";
 import sheetStyles from "./stock-table-columns.module.css";
 import {
   STOCK_COL_CSS_VARS,
@@ -1148,6 +1157,14 @@ export function StockLevelsPage() {
   const [categoryId, setCategoryId] = useState("");
   const [statusFilter, setStatusFilter] = useState<StockStatusFilter>("all");
   const [sortBy, setSortBy] = useState<StockSort>("attention");
+  const [supplierId, setSupplierId] = useState("");
+  const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
+  const [supplierItemIds, setSupplierItemIds] = useState<Set<string> | null>(
+    null,
+  );
+  const [supplierFilterLoading, setSupplierFilterLoading] = useState(false);
+  const [fullCountProgress, setFullCountProgress] =
+    useState<FullCountProgress | null>(null);
 
   useEffect(() => {
     if (!isLevelsView) return;
@@ -1586,24 +1603,38 @@ export function StockLevelsPage() {
       fetchCategories().catch(() => [] as CategoryRecord[]),
       fetchItemTypes().catch(() => [] as ItemTypeRecord[]),
       fetchAisles().catch(() => [] as AisleRecord[]),
-    ]).then(([branchList, categoryList, itemTypeList, aisleList]) => {
-      setBranches(branchList);
-      setCategories(
-        [...categoryList]
-          .filter((c) => c.active !== false)
-          .sort((a, b) => a.name.localeCompare(b.name)),
-      );
-      setItemTypes(
-        [...itemTypeList]
-          .filter((t) => t.active !== false)
-          .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label)),
-      );
-      setAisles(
-        [...aisleList]
-          .filter((a) => a.active !== false)
-          .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
-      );
-    });
+      fetchSuppliers().catch(() => [] as SupplierRecord[]),
+    ]).then(
+      ([branchList, categoryList, itemTypeList, aisleList, supplierList]) => {
+        setBranches(branchList);
+        setCategories(
+          [...categoryList]
+            .filter((c) => c.active !== false)
+            .sort((a, b) => a.name.localeCompare(b.name)),
+        );
+        setItemTypes(
+          [...itemTypeList]
+            .filter((t) => t.active !== false)
+            .sort(
+              (a, b) =>
+                a.sortOrder - b.sortOrder || a.label.localeCompare(b.label),
+            ),
+        );
+        setAisles(
+          [...aisleList]
+            .filter((a) => a.active !== false)
+            .sort(
+              (a, b) =>
+                a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+            ),
+        );
+        setSuppliers(
+          [...supplierList]
+            .filter((s) => (s.status || "").toLowerCase() !== "inactive")
+            .sort((a, b) => a.name.localeCompare(b.name)),
+        );
+      },
+    );
   }, []);
 
   // Fall back to the first active branch when the header has no selection.
@@ -1612,6 +1643,85 @@ export function StockLevelsPage() {
     const fallback = branches.find((b) => b.active)?.id ?? branches[0]?.id ?? "";
     if (fallback) setBranchId(fallback);
   }, [isBranchLockedRole, branchId, branches]);
+
+  // Supplier → catalog item ids for Take stock filter.
+  useEffect(() => {
+    const sid = supplierId.trim();
+    if (!sid) {
+      setSupplierItemIds(null);
+      setSupplierFilterLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setSupplierFilterLoading(true);
+    void fetchSupplierItemLinks(sid, {
+      branchId: branchId.trim() || null,
+    })
+      .then((links) => {
+        if (cancelled) return;
+        const ids = new Set(
+          links
+            .filter((l) => l.active !== false)
+            .map((l) => l.itemId.trim())
+            .filter(Boolean),
+        );
+        setSupplierItemIds(ids);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSupplierItemIds(new Set());
+        toast.error("Could not load products for that supplier.");
+      })
+      .finally(() => {
+        if (!cancelled) setSupplierFilterLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [supplierId, branchId]);
+
+  // Resume Full count across days — progress for hub + levels banner.
+  useEffect(() => {
+    const branch = branchId.trim();
+    if (!branch || !allowed) {
+      setFullCountProgress(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchActiveStockTakeSession(branch)
+      .then((res) => {
+        if (cancelled) return;
+        const session = res.session;
+        if (!session || session.status !== "in_progress") {
+          setFullCountProgress(null);
+          return;
+        }
+        const total = session.summary?.totalCount ?? session.lines?.length ?? 0;
+        const remaining = session.summary?.remainingCount ?? 0;
+        const counted = Math.max(
+          0,
+          (session.summary?.submittedCount ?? 0) +
+            (session.summary?.confirmedCount ?? 0),
+        );
+        const done = counted > 0 ? counted : Math.max(0, total - remaining);
+        if (remaining <= 0 || total <= 0) {
+          setFullCountProgress(null);
+          return;
+        }
+        setFullCountProgress({
+          counted: done,
+          total,
+          remaining,
+          sessionName: session.name?.trim() || "Full count",
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setFullCountProgress(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [branchId, allowed]);
 
   const loadPage = useCallback(
     async (opts: { reset: boolean }) => {
@@ -1776,6 +1886,7 @@ export function StockLevelsPage() {
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     const filtered = rows.filter((r) => {
+      if (supplierItemIds && !supplierItemIds.has(r.id)) return false;
       if (!matchesStockStatus(r, statusFilter)) return false;
       if (
         q &&
@@ -1797,13 +1908,16 @@ export function StockLevelsPage() {
       return true;
     });
     return sortStockRows(filtered, sortBy);
-  }, [rows, search, statusFilter, sortBy]);
+  }, [rows, search, statusFilter, sortBy, supplierItemIds]);
 
   // When filters hide the loaded page, keep fetching until matches appear or list ends.
   useEffect(() => {
-    if (loading || loadingMore || !hasMore) return;
+    if (loading || loadingMore || !hasMore || supplierFilterLoading) return;
     if (rows.length === 0) return;
-    const filtering = Boolean(search.trim()) || statusFilter !== "all";
+    const filtering =
+      Boolean(search.trim()) ||
+      statusFilter !== "all" ||
+      Boolean(supplierId.trim());
     if (!filtering) return;
     if (filteredRows.length > 0) return;
     loadMore();
@@ -1811,10 +1925,12 @@ export function StockLevelsPage() {
     loading,
     loadingMore,
     hasMore,
+    supplierFilterLoading,
     rows.length,
     filteredRows.length,
     search,
     statusFilter,
+    supplierId,
     loadMore,
   ]);
 
@@ -1852,6 +1968,13 @@ export function StockLevelsPage() {
   );
 
   const emptyMessage = useMemo(() => {
+    if (supplierId.trim() && supplierFilterLoading) {
+      return "Loading supplier products…";
+    }
+    if (supplierId.trim() && supplierItemIds?.size === 0) {
+      return "No catalog products linked to this supplier.";
+    }
+    if (supplierId.trim()) return "No stocked products for this supplier.";
     if (search.trim()) return "No products match your search.";
     if (statusFilter === "low") return "No low-stock products for this branch.";
     if (statusFilter === "out") return "No out-of-stock products for this branch.";
@@ -1859,10 +1982,92 @@ export function StockLevelsPage() {
     if (statusFilter === "loss") return "No products selling below buy price.";
     if (categoryId) return "No products in this category.";
     return "No stocked products found for this branch.";
-  }, [search, statusFilter, categoryId]);
+  }, [
+    search,
+    statusFilter,
+    categoryId,
+    supplierId,
+    supplierItemIds,
+    supplierFilterLoading,
+  ]);
+
+  const statusFilterOptions = useMemo(
+    () =>
+      [
+        {
+          value: "all" as const,
+          label: "All",
+          meta: stockCounts.total.toLocaleString("en-KE"),
+        },
+        {
+          value: "in_stock" as const,
+          label: "In stock",
+          meta: stockCounts.inStock.toLocaleString("en-KE"),
+        },
+        {
+          value: "low" as const,
+          label: "Low",
+          meta: stockCounts.low.toLocaleString("en-KE"),
+        },
+        {
+          value: "out" as const,
+          label: "Out",
+          meta: stockCounts.out.toLocaleString("en-KE"),
+        },
+        {
+          value: "loss" as const,
+          label: "Loss",
+          meta: stockCounts.loss.toLocaleString("en-KE"),
+        },
+      ] as const,
+    [stockCounts],
+  );
+
+  const sortFilterOptions = useMemo(
+    () =>
+      [
+        { value: "attention" as const, label: "Attention" },
+        { value: "sell_desc" as const, label: "Highest sell" },
+        { value: "buy_desc" as const, label: "Highest buy" },
+        { value: "value_desc" as const, label: "Costliest" },
+      ] as const,
+    [],
+  );
+
+  const supplierFilterOptions = useMemo(
+    () => [
+      { value: "", label: "All suppliers" },
+      ...suppliers.map((s) => ({
+        value: s.id,
+        label: s.name,
+      })),
+    ],
+    [suppliers],
+  );
+
+  const categoryFilterOptions = useMemo(
+    () => [
+      { value: "", label: "All categories" },
+      ...categories.map((c) => ({
+        value: c.id,
+        label: c.name,
+      })),
+    ],
+    [categories],
+  );
 
   const activeBranchName =
     branches.find((b) => b.id === branchId)?.name?.trim() || "";
+
+  const fullCountPct =
+    fullCountProgress && fullCountProgress.total > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (fullCountProgress.counted / fullCountProgress.total) * 100,
+          ),
+        )
+      : 0;
 
   if (!allowed) {
     return (
@@ -1988,6 +2193,7 @@ export function StockLevelsPage() {
               lowCount={loading && rows.length === 0 ? null : stockCounts.low}
               countsLoading={loading && rows.length === 0}
               onOpenLevels={openLevels}
+              fullCountProgress={fullCountProgress}
             />
           </div>
         </div>
@@ -2035,6 +2241,57 @@ export function StockLevelsPage() {
 
         <div className={cn("overflow-hidden rounded-none border bg-white", stockHair)}>
           {departmentRail}
+
+          {fullCountProgress && fullCountProgress.remaining > 0 ? (
+            <Link
+              href={APP_ROUTES.inventoryStockTake}
+              className={cn(
+                "flex items-center gap-2.5 border-b px-3 py-2.5 transition-colors",
+                stockHair,
+                "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
+                "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+              )}
+            >
+              <ClipboardList
+                className="size-4 shrink-0 text-[var(--pos-primary,#0f766e)]"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <p className={cn("text-[12px] font-semibold tracking-[-0.01em]", stockInk)}>
+                  Full count · {fullCountProgress.counted.toLocaleString("en-KE")}/
+                  {fullCountProgress.total.toLocaleString("en-KE")}
+                  <span className={cn("ml-1.5 font-normal", stockMute)}>
+                    · {fullCountProgress.remaining.toLocaleString("en-KE")} left
+                  </span>
+                </p>
+                <div
+                  className={cn(
+                    "mt-1.5 h-1 overflow-hidden bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,white)]",
+                  )}
+                  role="progressbar"
+                  aria-valuenow={fullCountPct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="Full count progress"
+                >
+                  <div
+                    className="h-full bg-[var(--pos-primary,#0f766e)]"
+                    style={{ width: `${fullCountPct}%` }}
+                  />
+                </div>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 text-[10px] font-bold uppercase tracking-[0.1em]",
+                  "text-[var(--pos-primary,#0f766e)]",
+                )}
+              >
+                Resume
+              </span>
+            </Link>
+          ) : null}
 
           {/* Status + search + secondary filters — one dense row on mobile */}
           <div
@@ -2090,36 +2347,14 @@ export function StockLevelsPage() {
                   />
                 </div>
 
-                {/* Mobile: status as a compact select */}
-                <select
+                {/* Mobile: light custom status menu (avoids OS dark picker) */}
+                <StockFilterMenu
+                  className="w-[7.25rem] sm:hidden"
+                  label="Stock status"
                   value={statusFilter}
-                  onChange={(e) =>
-                    setStatusFilter(e.target.value as StockStatusFilter)
-                  }
-                  className={cn(
-                    stockTool,
-                    "w-[6.75rem] cursor-pointer py-0 sm:hidden",
-                    statusFilter === "out" && "font-semibold text-rose-700",
-                    statusFilter === "loss" && "font-semibold text-orange-700",
-                  )}
-                  aria-label="Stock status"
-                >
-                  <option value="all">
-                    All · {stockCounts.total.toLocaleString("en-KE")}
-                  </option>
-                  <option value="in_stock">
-                    In · {stockCounts.inStock.toLocaleString("en-KE")}
-                  </option>
-                  <option value="low">
-                    Low · {stockCounts.low.toLocaleString("en-KE")}
-                  </option>
-                  <option value="out">
-                    Out · {stockCounts.out.toLocaleString("en-KE")}
-                  </option>
-                  <option value="loss">
-                    Loss · {stockCounts.loss.toLocaleString("en-KE")}
-                  </option>
-                </select>
+                  options={statusFilterOptions}
+                  onChange={setStatusFilter}
+                />
               </>
             )}
 
@@ -2159,39 +2394,35 @@ export function StockLevelsPage() {
               </select>
             ) : null}
 
-            <select
+            <StockFilterMenu
+              className="hidden w-[8.75rem] sm:block"
+              label="Category"
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className={cn(
-                stockTool,
-                "hidden w-[8.75rem] cursor-pointer py-0 sm:block",
-              )}
-              aria-label="Category"
+              options={categoryFilterOptions}
+              onChange={setCategoryId}
               disabled={!branchId}
-            >
-              <option value="">Category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              wide
+            />
 
-            <select
+            <StockFilterMenu
+              className="w-[7.5rem] sm:w-[9.5rem]"
+              label="Supplier"
+              value={supplierId}
+              options={supplierFilterOptions}
+              onChange={setSupplierId}
+              disabled={!branchId || suppliers.length === 0}
+              wide
+            />
+
+            <StockFilterMenu
+              className="w-[6.25rem] sm:w-[9.25rem]"
+              label="Sort"
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as StockSort)}
-              className={cn(
-                stockTool,
-                "w-[5.5rem] cursor-pointer py-0 sm:w-[9.25rem]",
-              )}
-              aria-label="Sort stock"
+              options={sortFilterOptions}
+              onChange={setSortBy}
               disabled={!branchId}
-            >
-              <option value="attention">Attention</option>
-              <option value="sell_desc">Highest sell</option>
-              <option value="buy_desc">Highest buy</option>
-              <option value="value_desc">Costliest</option>
-            </select>
+              align="end"
+            />
 
             <button
               type="button"

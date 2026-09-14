@@ -115,7 +115,7 @@ export const STOCK_HUB_ACTIONS: readonly StockHubAction[] = [
     id: "full-count",
     href: APP_ROUTES.inventoryStockTake,
     label: "Full count",
-    hint: "Walk every shelf and close a count session",
+    hint: "Count in batches across days until every SKU is done",
     icon: ClipboardList,
     rank: "list",
   },

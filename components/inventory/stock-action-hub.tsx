@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight, ClipboardList } from "lucide-react";
 
 import type { StockHubAction } from "@/lib/inventory-access";
+import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 const ink = "text-[var(--order-ink,#15231f)]";
@@ -13,6 +14,13 @@ const hair =
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
 const teal = "var(--pos-primary,#0f766e)";
 
+export type FullCountProgress = {
+  counted: number;
+  total: number;
+  remaining: number;
+  sessionName: string;
+};
+
 type StockActionHubProps = {
   actions: readonly StockHubAction[];
   branchName: string;
@@ -21,6 +29,8 @@ type StockActionHubProps = {
   lowCount: number | null;
   countsLoading: boolean;
   onOpenLevels: (status?: "out" | "low" | "all") => void;
+  /** Open Full count session progress — resume across days. */
+  fullCountProgress?: FullCountProgress | null;
 };
 
 /**
@@ -34,12 +44,22 @@ export function StockActionHub({
   lowCount,
   countsLoading,
   onOpenLevels,
+  fullCountProgress,
 }: StockActionHubProps) {
   const hero = actions.find((a) => a.rank === "hero");
   const pair = actions.filter((a) => a.rank === "pair");
   const list = actions.filter((a) => a.rank === "list");
 
   const placeLine = [branchName, departmentLabel].filter(Boolean).join(" · ");
+  const countPct =
+    fullCountProgress && fullCountProgress.total > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (fullCountProgress.counted / fullCountProgress.total) * 100,
+          ),
+        )
+      : 0;
 
   return (
     <div className="flex flex-col gap-4 px-1 pb-6 pt-1 sm:gap-5 sm:px-0">
@@ -61,6 +81,63 @@ export function StockActionHub({
           ) : null}
         </p>
       </header>
+
+      {fullCountProgress && fullCountProgress.remaining > 0 ? (
+        <Link
+          href={APP_ROUTES.inventoryStockTake}
+          className={cn(
+            "block border bg-white px-3 py-3 transition-colors",
+            hair,
+            "hover:border-[var(--pos-primary,#0f766e)]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+          )}
+        >
+          <div className="flex items-start gap-2.5">
+            <ClipboardList
+              className="mt-0.5 size-4 shrink-0 text-[var(--pos-primary,#0f766e)]"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+            <div className="min-w-0 flex-1">
+              <p
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-[0.12em]",
+                  mute,
+                )}
+              >
+                Full count in progress
+              </p>
+              <p className={cn("mt-0.5 text-[13px] font-semibold", ink)}>
+                {fullCountProgress.counted.toLocaleString("en-KE")} of{" "}
+                {fullCountProgress.total.toLocaleString("en-KE")} counted
+                <span className={cn("ml-1.5 font-normal", mute)}>
+                  · {fullCountProgress.remaining.toLocaleString("en-KE")} left
+                </span>
+              </p>
+              <p className={cn("mt-0.5 truncate text-[11px]", mute)}>
+                {fullCountProgress.sessionName} — resume tomorrow if needed
+              </p>
+              <div
+                className={cn(
+                  "mt-2.5 h-1.5 overflow-hidden border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]",
+                  hair,
+                )}
+                role="progressbar"
+                aria-valuenow={countPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Full count progress"
+              >
+                <div
+                  className="h-full bg-[var(--pos-primary,#0f766e)] transition-[width] duration-300"
+                  style={{ width: `${countPct}%` }}
+                />
+              </div>
+            </div>
+            <ChevronRight className={cn("mt-1 size-4 shrink-0", mute)} aria-hidden />
+          </div>
+        </Link>
+      ) : null}
 
       <div className={cn("grid grid-cols-2 gap-px border bg-white", hair)}>
         <button
