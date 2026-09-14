@@ -28,7 +28,7 @@ import { isGroceryOperationsBusiness } from "@/lib/business-store-type";
 import { syncCatalogDisplayPolicyFromBusiness } from "@/lib/catalog-display-policy";
 import { confirmScopeChange } from "@/lib/scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { canReceiveStock } from "@/lib/receive-stock-access";
+import { canReceiveStock, canPathAPurchasing } from "@/lib/receive-stock-access";
 import {
   writeSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
@@ -707,14 +707,16 @@ export function DashboardProvider({
         Permission.PurchasingPathBRead,
       ),
       canPathBWrite: canReceiveStock(effectiveMe, effectiveBusiness),
-      canPathARead: hasPermission(
-        effectiveMe?.permissions,
-        Permission.PurchasingPathARead,
-      ),
-      canPathAWrite: hasPermission(
-        effectiveMe?.permissions,
-        Permission.PurchasingPathAWrite,
-      ),
+      canPathARead:
+        hasPermission(
+          effectiveMe?.permissions,
+          Permission.PurchasingPathARead,
+        ) || canPathAPurchasing(effectiveMe, effectiveBusiness),
+      canPathAWrite:
+        hasPermission(
+          effectiveMe?.permissions,
+          Permission.PurchasingPathAWrite,
+        ) || canPathAPurchasing(effectiveMe, effectiveBusiness),
       canViewApAging: hasPermission(
         effectiveMe?.permissions,
         Permission.PurchasingPaymentRead,

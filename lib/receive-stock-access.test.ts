@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BusinessRecord, MeResponse } from "@/lib/api";
 import { Permission } from "@/lib/permissions";
-import { canReceiveStock } from "@/lib/receive-stock-access";
+import { canPathAPurchasing, canReceiveStock } from "@/lib/receive-stock-access";
 
 function me(
   roleKey: string,
@@ -62,6 +62,32 @@ describe("canReceiveStock", () => {
     ).toBe(true);
     expect(
       canReceiveStock(
+        me("stock_manager"),
+        business({ allowReceiveForStockManager: false }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("canPathAPurchasing", () => {
+  it("allows explicit path_a permissions", () => {
+    expect(
+      canPathAPurchasing(
+        me("owner", [Permission.PurchasingPathAWrite]),
+        business(),
+      ),
+    ).toBe(true);
+  });
+
+  it("defaults stock manager Path A on when receive-stock setting absent", () => {
+    expect(canPathAPurchasing(me("stock_manager"), { name: "Shop" })).toBe(
+      true,
+    );
+  });
+
+  it("respects stock manager receive toggle for Path A", () => {
+    expect(
+      canPathAPurchasing(
         me("stock_manager"),
         business({ allowReceiveForStockManager: false }),
       ),

@@ -41,3 +41,33 @@ export function canReceiveStock(
   }
   return false;
 }
+
+/**
+ * Path A purchase orders: list, create, mark arrived, unpack (GRN).
+ * Stock managers inherit this when receive-stock is enabled (defaults on),
+ * matching backend {@code grantsDelegatedPathAAccess}.
+ */
+export function canPathAPurchasing(
+  me: MeResponse | null | undefined,
+  business: BusinessRecord | null | undefined,
+): boolean {
+  if (
+    hasPermission(me?.permissions, Permission.PurchasingPathARead) ||
+    hasPermission(me?.permissions, Permission.PurchasingPathAWrite)
+  ) {
+    return true;
+  }
+  const key = roleKey(me);
+  const settings = receiveStockSettings(business);
+  if (key === "stock_manager") {
+    return settings?.allowReceiveForStockManager !== false;
+  }
+  if (key === "grocery_clerk" || key === "grocery_manager") {
+    const levels = business?.inventory?.stockLevels;
+    return (
+      levels?.allowOrderPadForGroceryClerk === true ||
+      levels?.allowOrderConfirmForGroceryClerk === true
+    );
+  }
+  return false;
+}

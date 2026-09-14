@@ -17,6 +17,7 @@ import {
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import type { BusinessRecord, MeResponse } from "@/lib/api";
+import { canPathAPurchasing } from "@/lib/receive-stock-access";
 
 export type InventoryQuickLink = {
   href: string;
@@ -230,9 +231,7 @@ export function filterInventoryQuickLinksForUser(
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   if (roleKey === "stock_manager") {
     const stockPageOn = stockManagerStockPageEnabled(business);
-    const canPathA =
-      hasPermission(me?.permissions, Permission.PurchasingPathARead) ||
-      hasPermission(me?.permissions, Permission.PurchasingPathAWrite);
+    const canPathA = canPathAPurchasing(me, business);
     const allowed = STOCK_MANAGER_INVENTORY_HREFS.filter((href) => {
       if (
         href === APP_ROUTES.inventoryStock ||

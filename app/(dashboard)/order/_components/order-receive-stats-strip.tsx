@@ -10,11 +10,17 @@ import {
 } from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
+import { cn } from "@/lib/utils";
 import { useOrderPipelineStats } from "@/app/(dashboard)/order/_hooks/use-order-pipeline-stats";
 import { OrderLifetimeOverview } from "./order-lifetime-overview";
 import { PipelineStat, PipelineStatsGrid } from "./order-pipeline-stat";
 
-export function OrderReceiveStatsStrip() {
+export function OrderReceiveStatsStrip({
+  compact = false,
+}: {
+  /** Stock floor — one pulse row, no lifetime ledger. */
+  compact?: boolean;
+}) {
   const { loading, receiveStats, localStats, lifetime } =
     useOrderPipelineStats();
 
@@ -22,6 +28,56 @@ export function OrderReceiveStatsStrip() {
   const dueActive = receiveStats.awaitingUnits > 0;
   const partialActive = receiveStats.partialCount > 0;
   const basketActive = localStats.units > 0;
+
+  if (compact) {
+    return (
+      <section
+        aria-label="Receive desk pulse"
+        className="flex items-stretch gap-px border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]"
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-3 bg-white px-3 py-2">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+              Queue
+            </p>
+            <p className="mt-0.5 truncate text-[13px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+              {loading ? "—" : (
+                <>
+                  <span
+                    className={cn(
+                      queueActive && "text-[var(--pos-primary,#0f766e)]",
+                    )}
+                  >
+                    {receiveStats.openCount}
+                  </span>
+                  <span className="mx-1 font-normal text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
+                    open
+                  </span>
+                  <span
+                    className={cn(
+                      dueActive && "text-amber-800",
+                    )}
+                  >
+                    {receiveStats.awaitingUnits}
+                  </span>
+                  <span className="ml-1 font-normal text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
+                    units due
+                  </span>
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+        <Link
+          href={APP_ROUTES.order}
+          className="inline-flex shrink-0 items-center gap-1.5 bg-white px-3 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]"
+        >
+          <ShoppingCart className="size-3.5" aria-hidden />
+          Order
+        </Link>
+      </section>
+    );
+  }
 
   return (
     <section aria-label="Receive desk stats" className="space-y-1">
