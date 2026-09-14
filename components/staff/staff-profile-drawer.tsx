@@ -43,7 +43,7 @@ type ProfileDraft = {
   startDate: string;
   employmentStatus: string;
   includeInPayroll: boolean;
-  prorateJoinMonth: boolean;
+  joinPayMode: "full" | "half" | "prorate";
   phone: string;
   address: string;
   nationalId: string;
@@ -63,7 +63,7 @@ const EMPTY_DRAFT: ProfileDraft = {
   startDate: "",
   employmentStatus: "active",
   includeInPayroll: true,
-  prorateJoinMonth: true,
+  joinPayMode: "half",
   phone: "",
   address: "",
   nationalId: "",
@@ -85,7 +85,14 @@ function draftFromProfile(profile: StaffProfileRecord): ProfileDraft {
     startDate: profile.publicFields.startDate ?? "",
     employmentStatus: profile.publicFields.employmentStatus || "active",
     includeInPayroll: profile.publicFields.includeInPayroll !== false,
-    prorateJoinMonth: profile.publicFields.prorateJoinMonth !== false,
+    joinPayMode:
+      profile.publicFields.joinPayMode === "full" ||
+      profile.publicFields.joinPayMode === "prorate" ||
+      profile.publicFields.joinPayMode === "half"
+        ? profile.publicFields.joinPayMode
+        : profile.publicFields.prorateJoinMonth === false
+          ? "full"
+          : "half",
     phone: profile.privateFields?.phone ?? "",
     address: profile.privateFields?.address ?? "",
     nationalId: profile.privateFields?.nationalId ?? "",
@@ -188,7 +195,7 @@ export function StaffProfileDrawer({
         startDate: draft.startDate || null,
         employmentStatus: draft.employmentStatus,
         includeInPayroll: draft.includeInPayroll,
-        prorateJoinMonth: draft.prorateJoinMonth,
+        joinPayMode: draft.joinPayMode,
         phone: draft.phone,
         address: draft.address,
         nationalId: draft.nationalId,
@@ -380,27 +387,29 @@ export function StaffProfileDrawer({
                   </span>
                 </span>
               </label>
-              <label className="flex cursor-pointer items-start gap-3 rounded-none border border-border/60 bg-muted/20 px-3 py-2.5 sm:col-span-2">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-4 accent-[var(--pos-primary,#0f766e)]"
-                  checked={draft.prorateJoinMonth}
+              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:col-span-2">
+                Join-month pay
+                <select
+                  className={dashboardSelectClass()}
+                  value={draft.joinPayMode}
                   disabled={!canUpdate}
                   onChange={(e) =>
                     setDraft((p) => ({
                       ...p,
-                      prorateJoinMonth: e.target.checked,
+                      joinPayMode: e.target.value as
+                        | "full"
+                        | "half"
+                        | "prorate",
                     }))
                   }
-                />
-                <span className="min-w-0">
-                  <span className="block text-xs font-medium text-foreground">
-                    Prorate mid-cycle join
-                  </span>
-                  <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
-                    When on, joins after the cycle starts (25th) pay only remaining
-                    days through the 24th. Turn off to always pay the full amount.
-                  </span>
+                >
+                  <option value="half">Half salary</option>
+                  <option value="prorate">Prorate by days</option>
+                  <option value="full">Full salary</option>
+                </select>
+                <span className="font-normal text-[11px] text-muted-foreground/90">
+                  Applies after salaries unlock on the 25th. Before the 25th,
+                  that month shows zero for everyone.
                 </span>
               </label>
               <div className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">

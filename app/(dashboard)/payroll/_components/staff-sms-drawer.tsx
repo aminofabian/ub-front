@@ -279,7 +279,7 @@ export function StaffSmsDrawer({
             )}
           >
             <p className="font-medium text-muted-foreground">
-              What they'll receive
+              What they&apos;ll receive
               {renderedPreview.length > 480
                 ? ` · ${renderedPreview.length} chars after placeholders — shorten the message`
                 : ""}

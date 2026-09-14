@@ -279,18 +279,19 @@ export function PayrollStaffDrawer({
               </div>
             ) : null}
             {canManagePayroll && Number(row.monthlySalary ?? row.baseSalary) > 0 ? (
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-none border border-border/50 bg-muted/20 px-3 py-2">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-4 accent-[var(--pos-primary,#0f766e)]"
-                  checked={row.prorateJoinMonth !== false}
+              <label className="flex flex-col gap-1.5 rounded-none border border-border/50 bg-muted/20 px-3 py-2 text-xs">
+                <span className="font-medium text-foreground">Join-month pay</span>
+                <select
+                  className="h-8 rounded-none border border-border/60 bg-background px-2 text-xs"
+                  value={row.joinPayMode || "half"}
                   disabled={savingProration}
                   onChange={(e) => {
+                    const mode = e.target.value as "full" | "half" | "prorate";
                     void (async () => {
                       setSavingProration(true);
                       try {
                         await updateStaffProfile(row.userId, {
-                          prorateJoinMonth: e.target.checked,
+                          joinPayMode: mode,
                         });
                         onProrationSettingChanged?.();
                       } finally {
@@ -298,15 +299,15 @@ export function PayrollStaffDrawer({
                       }
                     })();
                   }}
-                />
-                <span className="min-w-0 text-xs">
-                  <span className="block font-medium text-foreground">
-                    Prorate mid-cycle join
-                  </span>
-                  <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                    Off = always pay full monthly amount for this person.
-                    Cycles run 25th→24th.
-                  </span>
+                >
+                  <option value="half">Half salary</option>
+                  <option value="prorate">Prorate by days</option>
+                  <option value="full">Full salary</option>
+                </select>
+                <span className="text-[11px] text-muted-foreground">
+                  {row.salaryReleased === false
+                    ? "This month unlocks on the 25th — payable shows as zero until then."
+                    : "Applied to this month’s payable amount."}
                 </span>
               </label>
             ) : null}

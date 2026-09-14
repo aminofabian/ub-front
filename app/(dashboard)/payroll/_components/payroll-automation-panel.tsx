@@ -147,7 +147,7 @@ export function PayrollAutomationPanel({
                 className="mt-0.5 text-left text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
                 onClick={() => void reload()}
               >
-                Couldn't load — tap to retry
+                Couldn&apos;t load — tap to retry
               </button>
             ) : settings?.enabled ? (
               <p className="mt-0.5 text-[11px] text-muted-foreground">

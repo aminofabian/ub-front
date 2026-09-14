@@ -13320,8 +13320,10 @@ export type StaffProfilePublicFields = {
   startDate: string | null;
   employmentStatus: string;
   includeInPayroll: boolean;
-  /** When false, mid-month joins get full monthly pay. Default true. */
-  prorateJoinMonth: boolean;
+  /** When false, mid-month joins get full monthly pay. Default true. Legacy. */
+  prorateJoinMonth?: boolean;
+  /** full | half | prorate — how the join month is paid after unlock on the 25th. */
+  joinPayMode: "full" | "half" | "prorate";
 };
 
 export type StaffProfilePrivateFields = {
@@ -13420,10 +13422,12 @@ export type PayrollRunRow = {
   baseSalary: number;
   /** Full contractual monthly amount before proration. */
   monthlySalary: number;
-  /** payableDays/daysInMonth when prorated; null when full month or no salary. */
+  /** payableDays/daysInMonth when prorated; 0.5 when half; null when full or locked. */
   prorationFactor: number | null;
-  /** Staff setting — when false, mid-month proration is off. */
-  prorateJoinMonth: boolean;
+  /** full | half | prorate */
+  joinPayMode: "full" | "half" | "prorate";
+  /** False until the 25th of the labeled month — payable base is zero until then. */
+  salaryReleased: boolean;
   /** Employment start / join date, if set (YYYY-MM-DD). */
   startDate: string | null;
   /** Effective-from of the salary row used for monthlySalary, if any (YYYY-MM-DD). */
@@ -13546,6 +13550,7 @@ export type UpdateStaffProfilePayload = {
   employmentStatus?: string;
   includeInPayroll?: boolean;
   prorateJoinMonth?: boolean;
+  joinPayMode?: "full" | "half" | "prorate";
   phone?: string | null;
   address?: string | null;
   nationalId?: string | null;

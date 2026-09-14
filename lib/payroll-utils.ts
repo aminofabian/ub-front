@@ -348,11 +348,8 @@ export function formatPayrollMoney(n: number): string {
   });
 }
 
-/** Pay cycle starts on this day of the previous calendar month (through the 24th). */
-export const PAYROLL_CYCLE_START_DAY = 25;
-
-/** Pay cycle ends on this day of the labeled month. */
-export const PAYROLL_CYCLE_END_DAY = 24;
+/** Pay cycle unlocks on this day of the labeled month. */
+export const PAYROLL_SALARY_UNLOCK_DAY = 25;
 
 /** From the 25th onward, payroll UI defaults to the next pay period. */
 export const PAYROLL_FOCUS_DAY = 24;
@@ -368,22 +365,28 @@ export function defaultPayrollPeriod(from: Date = new Date()): {
   return { year: from.getFullYear(), month: from.getMonth() + 1 };
 }
 
-/** Inclusive day count for the 25th→24th cycle of a labeled pay month. */
 export function payrollPeriodDayCount(year: number, month: number): number {
-  const end = new Date(year, month - 1, PAYROLL_CYCLE_END_DAY);
-  const startMonth = month === 1 ? 12 : month - 1;
-  const startYear = month === 1 ? year - 1 : year;
-  const start = new Date(startYear, startMonth - 1, PAYROLL_CYCLE_START_DAY);
-  return Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+  return new Date(year, month, 0).getDate();
 }
 
-/** Label like "10/31 days" when a payroll row is mid-cycle prorated. */
+export function isPayrollMonthReleased(
+  year: number,
+  month: number,
+  from: Date = new Date(),
+): boolean {
+  const unlock = new Date(year, month - 1, PAYROLL_SALARY_UNLOCK_DAY);
+  const today = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  return today.getTime() >= unlock.getTime();
+}
+
+/** Label like "17/30 days" when a payroll row is calendar-day prorated. */
 export function payrollProrationDaysLabel(
   factor: number | null | undefined,
   year: number,
   month: number,
 ): string | null {
   if (factor == null || !(factor > 0) || !(factor < 1)) return null;
+  if (Math.abs(factor - 0.5) < 0.0001) return "Half month";
   const daysInPeriod = payrollPeriodDayCount(year, month);
   const payableDays = Math.round(factor * daysInPeriod);
   if (payableDays <= 0 || payableDays >= daysInPeriod) return null;
