@@ -13415,6 +13415,8 @@ export type PayrollRunRow = {
   branchName: string | null;
   branchId: string | null;
   baseSalary: number;
+  /** Effective-from of the salary row used for baseSalary, if any (YYYY-MM-DD). */
+  salaryEffectiveFrom: string | null;
   arrearsBaseTotal: number;
   arrearPeriods: PayrollArrearPeriod[];
   advancesOutstanding: number;

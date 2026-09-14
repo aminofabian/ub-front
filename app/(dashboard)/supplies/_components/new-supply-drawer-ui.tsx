@@ -151,8 +151,8 @@ export function SupplyDrawerSection({
   bodyClassName?: string;
 }) {
   return (
-    <section className={cn(nsdSectionShell, className)}>
-      <div className={nsdSectionHeader}>
+    <section className={cn(nsdSectionShell, "flex flex-col", className)}>
+      <div className={cn(nsdSectionHeader, "shrink-0")}>
         <div className="flex min-w-0 items-center gap-1.5">
           {step != null ? (
             <span
@@ -176,7 +176,7 @@ export function SupplyDrawerSection({
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className={cn("p-0", bodyClassName)}>{children}</div>
+      <div className={cn("min-h-0 flex-1 p-0", bodyClassName)}>{children}</div>
     </section>
   );
 }

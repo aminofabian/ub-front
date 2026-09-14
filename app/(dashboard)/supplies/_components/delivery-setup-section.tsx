@@ -1,49 +1,19 @@
 "use client";
 
-import { Building2, ChevronDown, Loader2, Search, Truck } from "lucide-react";
+import { Building2, Loader2, Search, Truck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { SupplierRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-import { ExtraCostsBody, type ExtraRow } from "./extra-costs-section";
+import { type ExtraRow } from "./extra-costs-section";
 import {
+  nsdBorder,
   nsdFieldLabel,
   nsdInput,
   nsdSelect,
   nsdTextarea,
 } from "./new-supply-drawer-ui";
-
-const nsdSetupBlock = cn("overflow-hidden border border-border bg-card");
-
-function SetupBlock({
-  step,
-  title,
-  children,
-  className,
-}: {
-  step: string;
-  title: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn(nsdSetupBlock, className)}>
-      <div className="flex items-center gap-2 border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
-        <span
-          className="flex size-4 shrink-0 items-center justify-center border border-primary/30 bg-primary/10 text-[9px] font-bold tabular-nums text-primary"
-          aria-hidden
-        >
-          {step}
-        </span>
-        <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-          {title}
-        </span>
-      </div>
-      <div className="p-2 sm:p-2.5">{children}</div>
-    </div>
-  );
-}
 
 function formatReceivedShort(value: string): string {
   if (!value.trim()) return "—";
@@ -81,9 +51,13 @@ type DeliverySetupSectionProps = {
   extras: ExtraRow[];
   onExtrasChange: (extras: ExtraRow[]) => void;
   showExtras: boolean;
-  /** When true and a supplier is selected, show a one-line summary instead of the full form. */
-  collapsed?: boolean;
-  onToggleCollapsed?: () => void;
+  /** Opens the delivery-details drawer (working phase). */
+  onEditDelivery?: () => void;
+  /**
+   * `pick` — focused supplier + receipt columns before a vendor is chosen.
+   * `strip` — compact context bar once receiving.
+   */
+  layout?: "pick" | "strip";
 };
 
 export function DeliverySetupSection({
@@ -107,219 +81,179 @@ export function DeliverySetupSection({
   onDocRefChange,
   notes,
   onNotesChange,
-  extras,
-  onExtrasChange,
-  showExtras,
-  collapsed = false,
-  onToggleCollapsed,
+  onEditDelivery,
+  layout,
 }: DeliverySetupSectionProps) {
-  const extrasOpen = extras.length > 0;
+  const mode =
+    layout ?? (supplier ? "strip" : "pick");
 
-  if (collapsed && supplier) {
+  if (mode === "strip" && supplier) {
     return (
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border border-primary/25 bg-primary/[0.04] px-2.5 py-2">
-          <span className="flex size-6 shrink-0 items-center justify-center border border-primary/25 bg-background text-primary">
-            <Truck className="size-3" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold leading-tight text-foreground">
-              {supplier.name}
-            </p>
-            <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-              {[
-                selectedBranchName || null,
-                formatReceivedShort(receivedAtLocal),
-                docRef.trim() || null,
-                extras.length > 0
-                  ? `${extras.length} extra${extras.length === 1 ? "" : "s"}`
-                  : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border border-primary/25 bg-primary/[0.04] px-2.5 py-2">
+        <span className="flex size-7 shrink-0 items-center justify-center border border-primary/25 bg-background text-primary">
+          <Truck className="size-3.5" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold leading-tight text-foreground">
+            {supplier.name}
+          </p>
+          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+            {[
+              selectedBranchName || null,
+              formatReceivedShort(receivedAtLocal),
+              docRef.trim() || null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 shrink-0 gap-1 rounded-none px-2 text-[11px] touch-manipulation"
+            className="h-8 rounded-none px-2.5 text-[11px] touch-manipulation"
             disabled={busy}
-            onClick={onToggleCollapsed}
+            onClick={onEditDelivery}
           >
-            Edit
-            <ChevronDown className="size-3" aria-hidden />
+            Delivery details
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 rounded-none px-2 text-[11px] text-muted-foreground touch-manipulation"
+            disabled={busy}
+            onClick={onClearSupplier}
+          >
+            Change
           </Button>
         </div>
-        {showExtras ? (
-          <details
-            id="supply-extra-costs"
-            className={cn(nsdSetupBlock, "group p-0")}
-            open={extrasOpen}
-          >
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 sm:px-3 [&::-webkit-details-marker]:hidden">
-              <div>
-                <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                  Extra costs
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  Transport, handling — added to payable
-                </p>
-              </div>
-              <span
-                className={cn(
-                  "shrink-0 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium",
-                  extras.length > 0
-                    ? "border-primary/35 bg-primary/10 text-primary"
-                    : "border-border bg-background text-muted-foreground",
-                )}
-              >
-                {extras.length > 0
-                  ? `${extras.length} line${extras.length === 1 ? "" : "s"}`
-                  : "Optional"}
-              </span>
-            </summary>
-            <div className="border-t border-border/50 px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
-              <ExtraCostsBody
-                extras={extras}
-                onChange={onExtrasChange}
-                busy={busy}
-              />
-            </div>
-          </details>
-        ) : null}
       </div>
     );
   }
 
+  /* ── Pick phase: two balanced columns ─────────────────────────────── */
   return (
-    <div className="space-y-2">
-      {supplier && onToggleCollapsed ? (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            className="text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            onClick={onToggleCollapsed}
+    <div className="grid min-h-0 flex-1 gap-0 overflow-hidden border border-border bg-card lg:grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)]">
+      {/* Supplier column */}
+      <div className="flex min-h-0 flex-col border-b border-border lg:border-b-0 lg:border-r">
+        <div className="flex items-center gap-2 border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
+          <span
+            className="flex size-5 shrink-0 items-center justify-center border border-primary/30 bg-primary/10 text-[9px] font-bold tabular-nums text-primary"
+            aria-hidden
           >
-            Collapse setup
-          </button>
+            1
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold tracking-tight text-foreground">
+              Supplier
+            </p>
+            <p className="hidden text-[10px] text-muted-foreground sm:block">
+              Who delivered this stock?
+            </p>
+          </div>
         </div>
-      ) : null}
 
-      <div className="grid gap-2 lg:grid-cols-2 lg:gap-2.5">
-        <SetupBlock
-          step="1"
-          title="Supplier"
-          className="relative z-20 overflow-visible"
-        >
-          {supplier ? (
-            <div className="flex items-start gap-2 border border-primary/30 bg-primary/[0.05] px-2 py-1.5">
-              <span className="flex size-7 shrink-0 items-center justify-center border border-primary/25 bg-background text-primary">
-                <Truck className="size-3.5" aria-hidden />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-foreground">
-                  {supplier.name}
-                </p>
-                {supplier.code?.trim() ? (
-                  <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                    {supplier.code.trim()}
-                  </p>
-                ) : (
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    Selected
-                  </p>
-                )}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 shrink-0 rounded-none px-2.5 text-xs touch-manipulation"
-                disabled={busy}
-                onClick={onClearSupplier}
-              >
-                Change
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              <div className="relative">
-                <Search
-                  className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-                  aria-hidden
-                />
-                <input
-                  className={cn(nsdInput, "bg-background pl-9")}
-                  placeholder="Search suppliers…"
-                  value={supplierQuery}
-                  onChange={(e) => onSupplierQueryChange(e.target.value)}
-                  disabled={busy}
-                  autoComplete="off"
-                  autoFocus
-                  aria-autocomplete="list"
-                  aria-controls="new-supply-vendor-list"
-                  aria-expanded
-                  aria-label="Search suppliers"
-                />
-              </div>
-              <ul
-                id="new-supply-vendor-list"
-                className="max-h-44 overflow-auto border border-border bg-background"
-                role="listbox"
-                aria-label="Suppliers"
-              >
-                {supplierLoading && supplierHits.length === 0 ? (
-                  <li
-                    className="flex items-center gap-2 px-3 py-2.5 text-xs text-muted-foreground"
-                    role="presentation"
-                  >
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                    Loading suppliers…
-                  </li>
-                ) : supplierHits.length === 0 ? (
-                  <li
-                    className="px-3 py-2.5 text-xs text-muted-foreground"
-                    role="presentation"
-                  >
-                    {supplierQuery.trim()
-                      ? "No suppliers match that search"
-                      : "No suppliers yet — add one on the Suppliers page"}
-                  </li>
-                ) : (
-                  supplierHits.map((s) => (
-                    <li key={s.id} role="option">
-                      <button
-                        type="button"
-                        className="flex w-full flex-col items-start border-b border-border/60 px-3 py-2.5 text-left text-sm transition-colors last:border-b-0 touch-manipulation hover:bg-muted/50 active:bg-muted/60 sm:py-2"
-                        onClick={() => onSelectSupplier(s)}
-                        disabled={busy}
-                      >
-                        <span className="font-medium leading-tight text-foreground">
-                          {s.name}
-                        </span>
-                        {s.code?.trim() ? (
-                          <span className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                            {s.code.trim()}
-                          </span>
-                        ) : null}
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
-              {supplierLoading && supplierHits.length > 0 ? (
-                <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <Loader2 className="size-3 animate-spin" aria-hidden />
-                  Updating…
-                </p>
-              ) : null}
-            </div>
-          )}
-        </SetupBlock>
+        <div className="flex min-h-0 flex-1 flex-col gap-2 p-2.5">
+          <div className="relative shrink-0">
+            <Search
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <input
+              className={cn(nsdInput, "bg-background pl-9")}
+              placeholder="Search suppliers…"
+              value={supplierQuery}
+              onChange={(e) => onSupplierQueryChange(e.target.value)}
+              disabled={busy}
+              autoComplete="off"
+              autoFocus
+              aria-autocomplete="list"
+              aria-controls="new-supply-vendor-list"
+              aria-expanded
+              aria-label="Search suppliers"
+            />
+          </div>
 
-        <SetupBlock step="2" title="Receipt">
-          <div className="grid gap-2 sm:grid-cols-2">
+          <ul
+            id="new-supply-vendor-list"
+            className={cn(
+              "min-h-0 flex-1 overflow-auto bg-background",
+              nsdBorder,
+            )}
+            role="listbox"
+            aria-label="Suppliers"
+          >
+            {supplierLoading && supplierHits.length === 0 ? (
+              <li
+                className="flex items-center gap-2 px-3 py-3 text-xs text-muted-foreground"
+                role="presentation"
+              >
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                Loading suppliers…
+              </li>
+            ) : supplierHits.length === 0 ? (
+              <li
+                className="px-3 py-3 text-xs text-muted-foreground"
+                role="presentation"
+              >
+                {supplierQuery.trim()
+                  ? "No suppliers match that search"
+                  : "No suppliers yet — add one on the Suppliers page"}
+              </li>
+            ) : (
+              supplierHits.map((s) => (
+                <li key={s.id} role="option">
+                  <button
+                    type="button"
+                    className="flex w-full flex-col items-start border-b border-border/60 px-3 py-2.5 text-left text-sm transition-colors last:border-b-0 touch-manipulation hover:bg-muted/50 active:bg-muted/60 sm:py-2"
+                    onClick={() => onSelectSupplier(s)}
+                    disabled={busy}
+                  >
+                    <span className="font-medium leading-tight text-foreground">
+                      {s.name}
+                    </span>
+                    {s.code?.trim() ? (
+                      <span className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                        {s.code.trim()}
+                      </span>
+                    ) : null}
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+          {supplierLoading && supplierHits.length > 0 ? (
+            <p className="flex shrink-0 items-center gap-1.5 text-[10px] text-muted-foreground">
+              <Loader2 className="size-3 animate-spin" aria-hidden />
+              Updating…
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Receipt column */}
+      <div className="flex min-h-0 flex-col">
+        <div className="flex items-center gap-2 border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
+          <span
+            className="flex size-5 shrink-0 items-center justify-center border border-border bg-background text-[9px] font-bold tabular-nums text-muted-foreground"
+            aria-hidden
+          >
+            2
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold tracking-tight text-foreground">
+              Receipt
+            </p>
+            <p className="hidden text-[10px] text-muted-foreground sm:block">
+              Branch and receive time
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-1 flex-col gap-3 p-2.5">
+          <div className="grid gap-2.5">
             {branchLocked ? (
               selectedBranchName ? (
                 <div className="flex flex-col gap-1">
@@ -335,7 +269,7 @@ export function DeliverySetupSection({
                   </div>
                 </div>
               ) : (
-                <p className="col-span-2 text-xs text-destructive">
+                <p className="text-xs text-destructive">
                   No branch assigned — contact your administrator.
                 </p>
               )
@@ -368,7 +302,7 @@ export function DeliverySetupSection({
             </label>
           </div>
 
-          <details className="mt-2 border-t border-border/50 pt-2">
+          <details className="border-t border-border/50 pt-2">
             <summary className="cursor-pointer list-none text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/80 [&::-webkit-details-marker]:hidden">
               References{" "}
               <span className="font-normal normal-case">(optional)</span>
@@ -378,7 +312,7 @@ export function DeliverySetupSection({
                 </span>
               )}
             </summary>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <div className="mt-2 grid gap-2">
               <label className="flex flex-col gap-1">
                 <span className={nsdFieldLabel}>Delivery note / DN ref</span>
                 <input
@@ -394,9 +328,9 @@ export function DeliverySetupSection({
                 <textarea
                   className={cn(
                     nsdTextarea,
-                    "min-h-[2rem] bg-background text-xs",
+                    "min-h-[2.5rem] bg-background text-xs",
                   )}
-                  rows={1}
+                  rows={2}
                   value={notes}
                   onChange={(e) => onNotesChange(e.target.value)}
                   disabled={busy}
@@ -405,54 +339,18 @@ export function DeliverySetupSection({
               </label>
             </div>
           </details>
-        </SetupBlock>
-      </div>
 
-      {showExtras ? (
-        <details
-          id="supply-extra-costs"
-          className={cn(nsdSetupBlock, "group p-0")}
-          open={extrasOpen}
-        >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 sm:px-3 [&::-webkit-details-marker]:hidden">
-            <div className="flex items-center gap-2">
-              <span
-                className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-muted text-[10px] font-bold tabular-nums text-muted-foreground"
-                aria-hidden
-              >
-                3
-              </span>
-              <div>
-                <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                  Extra costs
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  Transport, handling — added to payable
-                </p>
-              </div>
-            </div>
-            <span
-              className={cn(
-                "shrink-0 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium",
-                extras.length > 0
-                  ? "border-primary/35 bg-primary/10 text-primary"
-                  : "border-border bg-background text-muted-foreground",
-              )}
-            >
-              {extras.length > 0
-                ? `${extras.length} line${extras.length === 1 ? "" : "s"}`
-                : "Optional"}
-            </span>
-          </summary>
-          <div className="border-t border-border/50 px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
-            <ExtraCostsBody
-              extras={extras}
-              onChange={onExtrasChange}
-              busy={busy}
-            />
+          <div className="mt-auto border border-dashed border-border bg-muted/20 px-2.5 py-2.5">
+            <p className="text-[11px] font-medium text-foreground">
+              Next: pick a supplier
+            </p>
+            <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
+              Their linked products open in the receive grid. You can still
+              edit receipt details after choosing.
+            </p>
           </div>
-        </details>
-      ) : null}
+        </div>
+      </div>
     </div>
   );
 }

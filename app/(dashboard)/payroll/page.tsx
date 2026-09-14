@@ -99,9 +99,7 @@ export default function PayrollPage() {
   const [salaryName, setSalaryName] = useState("");
   const [salaryCurrent, setSalaryCurrent] = useState(0);
   const [salaryAmount, setSalaryAmount] = useState("");
-  const [salaryFrom, setSalaryFrom] = useState(() =>
-    new Date().toISOString().slice(0, 10),
-  );
+  const [salaryFrom, setSalaryFrom] = useState(() => localPayrollYmd());
   const [salarySaving, setSalarySaving] = useState(false);
 
   const [ledgerOpen, setLedgerOpen] = useState(false);
@@ -224,7 +222,10 @@ export default function PayrollPage() {
     setSalaryName(row.displayName);
     setSalaryCurrent(Number(row.baseSalary) || 0);
     setSalaryAmount(row.baseSalary > 0 ? String(Number(row.baseSalary)) : "");
-    setSalaryFrom(new Date().toISOString().slice(0, 10));
+    setSalaryFrom(
+      row.salaryEffectiveFrom?.trim() ||
+        localPayrollYmd(),
+    );
     setSalaryOpen(true);
   }
 
@@ -679,7 +680,7 @@ export default function PayrollPage() {
       >
         <FormDrawerFields
           legend="Monthly amount"
-          hint="Raises add a new record with an effective date — previous amounts stay in history."
+          hint="Changing only the date updates when the current amount started. A new amount adds a raise — previous amounts stay in history."
         >
           <div className="grid gap-3">
             {salaryCurrent > 0 ? (
@@ -729,4 +730,11 @@ function AlertBanner({
   return (
     <p className={cn("rounded-none border px-3 py-2 text-sm", cls)}>{children}</p>
   );
+}
+
+function localPayrollYmd(d = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }

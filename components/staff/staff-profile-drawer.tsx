@@ -504,7 +504,7 @@ export function StaffProfileDrawer({
           {canViewPayroll ? (
             <FormDrawerFields
               legend="Salary"
-              hint="Raises add a new row with an effective date — history is never overwritten."
+              hint="Same amount with a new date updates when it started. A different amount adds a raise — history keeps prior amounts."
             >
               <ul className="space-y-1.5 text-sm">
                 {salaries.length === 0 ? (

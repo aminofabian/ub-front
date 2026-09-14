@@ -252,6 +252,12 @@ export function PayrollStaffDrawer({
                   : "Not set"}
               </dd>
             </div>
+            {row.salaryEffectiveFrom ? (
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">Effective from</dt>
+                <dd className="tabular-nums">{row.salaryEffectiveFrom}</dd>
+              </div>
+            ) : null}
             {(row.arrearPeriods?.length ?? 0) > 0 ? (
               <div className="rounded-none border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs">
                 <div className="flex justify-between gap-3 font-medium text-violet-950 dark:text-violet-100">

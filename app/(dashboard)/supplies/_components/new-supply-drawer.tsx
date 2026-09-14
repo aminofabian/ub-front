@@ -8,7 +8,6 @@ import {
   PackagePlus,
   Plus,
   Trash2,
-  Truck,
 } from "lucide-react";
 
 import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
@@ -122,6 +121,7 @@ import {
   type ShelfPriceHint,
 } from "./supply-shelf-price-cell";
 import { SupplyDrawerSummaryPanel } from "./supply-drawer-summary";
+import { SupplyReceiptDrawer } from "./supply-receipt-drawer";
 import { formatSupplyMoneyCompact } from "./supplies-shared";
 
 function receivedLocalToYmd(receivedAtLocal: string): string {
@@ -539,7 +539,9 @@ export function NewSupplyDrawer({
   const [lineFocus, setLineFocus] = useState<"all" | "fill" | "ready">("all");
   /** Optional expiry column — sell + margin stay visible. */
   const [showExpiry, setShowExpiry] = useState(false);
-  const [deliveryExpanded, setDeliveryExpanded] = useState(true);
+  const [receiptDrawerOpen, setReceiptDrawerOpen] = useState(false);
+  const [receiptFocusExtras, setReceiptFocusExtras] = useState(false);
+  const receiptDrawerOpenRef = useRef(false);
   /** True after local draft restore (or confirmed empty) so auto-save may run. */
   const [draftReady, setDraftReady] = useState(false);
   const [draftRestoredAt, setDraftRestoredAt] = useState<number | null>(null);
@@ -581,11 +583,18 @@ export function NewSupplyDrawer({
     addLineOpenRef.current = addLineOpen;
   }, [addLineOpen]);
 
+  useEffect(() => {
+    receiptDrawerOpenRef.current = receiptDrawerOpen;
+  }, [receiptDrawerOpen]);
+
   const handleDrawerOpenChange = useCallback(
     (next: boolean) => {
       if (
         !next &&
-        (addLineOpenRef.current || packModalOpenRef.current || packGuideOpen)
+        (addLineOpenRef.current ||
+          packModalOpenRef.current ||
+          packGuideOpen ||
+          receiptDrawerOpenRef.current)
       ) {
         return;
       }
@@ -593,6 +602,11 @@ export function NewSupplyDrawer({
     },
     [onOpenChange, packGuideOpen],
   );
+
+  const openReceiptDrawer = useCallback((focusExtras = false) => {
+    setReceiptFocusExtras(focusExtras);
+    setReceiptDrawerOpen(true);
+  }, []);
 
   const handlePackModalOpenChange = useCallback((open: boolean) => {
     if (packModalOpenRef.current && !open) {
@@ -724,7 +738,8 @@ export function NewSupplyDrawer({
       setLineSearchQuery("");
       setLineFocus("all");
       setShowExpiry(false);
-      setDeliveryExpanded(true);
+      setReceiptDrawerOpen(false);
+      setReceiptFocusExtras(false);
       setAddLineOpen(false);
       setLinkModalSupplierId(null);
       return;
@@ -760,7 +775,7 @@ export function NewSupplyDrawer({
       setDocRef(stored.docRef);
       setExtras(stored.extras);
       setShowExpiry(stored.showExpiry);
-      setDeliveryExpanded(!stored.supplier);
+      setReceiptDrawerOpen(false);
       setDraftRestoredAt(stored.updatedAt);
       setServerSessionId(stored.serverSessionId?.trim() || null);
       if (
@@ -783,7 +798,7 @@ export function NewSupplyDrawer({
       setSupplier(initialSupplier);
       setSupplierQuery("");
       setSupplierHits([]);
-      setDeliveryExpanded(false);
+      setReceiptDrawerOpen(false);
       setServerSessionId(null);
     }
     setDraftReady(true);
@@ -1003,7 +1018,7 @@ export function NewSupplyDrawer({
         setDocRef(client?.docRef ?? noteParts.docRef);
         setExtras(client?.extras ?? []);
         setShowExpiry(Boolean(client?.showExpiry));
-        setDeliveryExpanded(false);
+        setReceiptDrawerOpen(false);
         setServerSessionId(detail.id);
         setDraftRestoredAt(Date.now());
         if (
@@ -1158,7 +1173,7 @@ export function NewSupplyDrawer({
     setLineSearchQuery("");
     setLineFocus("all");
     setShowExpiry(false);
-    setDeliveryExpanded(true);
+    setReceiptDrawerOpen(false);
     if (sid) {
       void clearSupplyPathBDraftLines(sid);
     }
@@ -1487,11 +1502,30 @@ export function NewSupplyDrawer({
   };
 
   const focusExtraCosts = () => {
-    const el = document.getElementById("supply-extra-costs");
-    if (el instanceof HTMLDetailsElement) {
-      el.open = true;
+    openReceiptDrawer(true);
+  };
+
+  const selectSupplier = (s: SupplierRecord) => {
+    if (supplier?.id !== s.id) {
+      serverSyncGenRef.current += 1;
+      setServerSessionId(null);
+      setServerSyncState("idle");
+      setRows((prev) => prev.map((r) => ({ ...r, serverLineId: null })));
     }
-    el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    setSupplier(s);
+    setSupplierQuery("");
+    setSupplierHits([]);
+    setReceiptDrawerOpen(false);
+  };
+
+  const clearSupplier = () => {
+    serverSyncGenRef.current += 1;
+    setServerSessionId(null);
+    setServerSyncState("idle");
+    setSupplier(null);
+    setSupplierQuery("");
+    setSupplierHits([]);
+    setReceiptDrawerOpen(false);
   };
 
   const linkProductFromModal = async (draft: LinkSupplierProductDraft) => {
@@ -1794,6 +1828,7 @@ export function NewSupplyDrawer({
         width="full"
         appearance="sharp"
         headerDensity="compact"
+        bodyLayout="fill"
         icon={<PackagePlus className="size-3.5 text-primary" aria-hidden />}
         contextLabel="Purchasing"
         banner={
@@ -1858,7 +1893,7 @@ export function NewSupplyDrawer({
       >
         <form
           id="new-supply-form"
-          className="flex flex-col gap-2 pb-0"
+          className="flex min-h-0 flex-1 flex-col gap-2 px-3 pb-2 pt-1.5"
           onSubmit={(e) => {
             e.preventDefault();
             if (Date.now() < suppressPostUntilRef.current) {
@@ -1906,55 +1941,48 @@ export function NewSupplyDrawer({
 
           {!supplier ? <SupplyWorkflowRail steps={workflowSteps} /> : null}
 
-          <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1fr)_min(13rem,20%)] lg:items-start">
-            <div className="flex min-w-0 flex-col gap-2">
-              <SupplyDrawerSection
-                step={supplier ? undefined : 1}
-                title={supplier ? "Delivery" : "1 · Supplier"}
-                hint={
-                  !supplier
-                    ? "Who delivered this stock?"
-                    : deliveryExpanded
-                      ? "Branch and receive time."
-                      : undefined
-                }
-                done={
-                  supplier != null &&
-                  Boolean(branchId.trim() && receivedAtLocal)
-                }
-                className="relative z-30 overflow-visible lg:z-20"
-                bodyClassName="overflow-visible p-2 sm:p-2.5"
-              >
+          {!supplier ? (
+            <div className="flex min-h-[min(28rem,70vh)] flex-1 flex-col lg:min-h-0">
+              <DeliverySetupSection
+                layout="pick"
+                busy={busy}
+                supplier={supplier}
+                supplierQuery={supplierQuery}
+                supplierHits={supplierHits}
+                supplierLoading={supplierLoading}
+                onSupplierQueryChange={setSupplierQuery}
+                onSelectSupplier={selectSupplier}
+                onClearSupplier={clearSupplier}
+                branchId={branchId}
+                branches={branches}
+                branchesLoading={branchesLoading}
+                branchLocked={branchLocked}
+                selectedBranchName={selectedBranchName}
+                onBranchChange={setBranchId}
+                receivedAtLocal={receivedAtLocal}
+                onReceivedAtChange={setReceivedAtLocal}
+                docRef={docRef}
+                onDocRefChange={setDocRef}
+                notes={notes}
+                onNotesChange={setNotes}
+                extras={extras}
+                onExtrasChange={setExtras}
+                showExtras={false}
+              />
+            </div>
+          ) : (
+            <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_min(14rem,22%)] lg:items-stretch">
+              <div className="flex min-h-0 min-w-0 flex-col gap-2">
                 <DeliverySetupSection
+                  layout="strip"
                   busy={busy}
                   supplier={supplier}
                   supplierQuery={supplierQuery}
                   supplierHits={supplierHits}
                   supplierLoading={supplierLoading}
                   onSupplierQueryChange={setSupplierQuery}
-                  onSelectSupplier={(s) => {
-                    if (supplier?.id !== s.id) {
-                      serverSyncGenRef.current += 1;
-                      setServerSessionId(null);
-                      setServerSyncState("idle");
-                      setRows((prev) =>
-                        prev.map((r) => ({ ...r, serverLineId: null })),
-                      );
-                    }
-                    setSupplier(s);
-                    setSupplierQuery("");
-                    setSupplierHits([]);
-                    setDeliveryExpanded(false);
-                  }}
-                  onClearSupplier={() => {
-                    serverSyncGenRef.current += 1;
-                    setServerSessionId(null);
-                    setServerSyncState("idle");
-                    setSupplier(null);
-                    setSupplierQuery("");
-                    setSupplierHits([]);
-                    setDeliveryExpanded(true);
-                  }}
+                  onSelectSupplier={selectSupplier}
+                  onClearSupplier={clearSupplier}
                   branchId={branchId}
                   branches={branches}
                   branchesLoading={branchesLoading}
@@ -1969,23 +1997,16 @@ export function NewSupplyDrawer({
                   onNotesChange={setNotes}
                   extras={extras}
                   onExtrasChange={setExtras}
-                  showExtras={supplier != null}
-                  collapsed={!deliveryExpanded && supplier != null}
-                  onToggleCollapsed={() => setDeliveryExpanded((open) => !open)}
+                  showExtras
+                  onEditDelivery={() => openReceiptDrawer(false)}
                 />
-              </SupplyDrawerSection>
 
-              <div ref={linesSectionRef}>
+                <div ref={linesSectionRef} className="flex min-h-0 flex-1 flex-col">
                 <SupplyDrawerSection
-                  step={supplier ? undefined : 2}
                   title="Receive stock"
-                  hint={
-                    supplier
-                      ? "Qty, cost, sell, and margin. Turn on Expiry only if needed."
-                      : undefined
-                  }
+                  hint="Qty, cost, sell, and margin. Turn on Expiry only if needed."
                   done={lineStats.valid > 0 && duplicateIds.length === 0}
-                  className="overflow-visible"
+                  className="flex min-h-0 flex-1 flex-col overflow-hidden"
                   action={
                     <div className="flex flex-wrap items-center justify-end gap-1.5">
                       <SupplyPackGuideHintButton
@@ -2022,15 +2043,9 @@ export function NewSupplyDrawer({
                       ) : null}
                     </div>
                   }
-                  bodyClassName="p-0"
+                  bodyClassName="flex min-h-0 flex-1 flex-col p-0"
                 >
-                  {!supplier ? (
-                    <SupplyEmptyState
-                      icon={Truck}
-                      title="Pick a supplier above"
-                      description="Their linked products will appear here to receive."
-                    />
-                  ) : linksLoading ? (
+                  {linksLoading ? (
                     <>
                       <SupplyLoadingInline label="Loading products…" />
                       <SupplyTableSkeleton />
@@ -2115,7 +2130,7 @@ export function NewSupplyDrawer({
                         </div>
                       ) : (
                         <>
-                          <div className="space-y-1.5 p-2 lg:hidden">
+                          <div className="space-y-1.5 overflow-auto p-2 lg:hidden">
                             {visibleRows.map((row) => {
                               const p = linePayload(row);
                               const stock = rowStock(row);
@@ -2266,7 +2281,7 @@ export function NewSupplyDrawer({
                             })}
                           </div>
 
-                          <div className="hidden max-h-[min(70vh,40rem)] overflow-auto border-t border-border lg:block">
+                          <div className="hidden min-h-0 flex-1 overflow-auto border-t border-border lg:block">
                             <table
                               className={cn(
                                 "w-full border-collapse border border-border text-left text-xs",
@@ -2735,7 +2750,7 @@ export function NewSupplyDrawer({
             </div>
 
             <SupplyDrawerSummaryPanel
-              className="hidden lg:flex lg:sticky lg:top-0"
+              className="hidden h-full min-h-0 lg:flex lg:sticky lg:top-0"
               supplierName={supplier?.name ?? null}
               branchName={selectedBranchName}
               lineStats={lineStats}
@@ -2743,11 +2758,38 @@ export function NewSupplyDrawer({
               extrasTotal={extrasTotal}
               canPost={canPost}
               currency={currency}
-              onEditExtras={supplier ? focusExtraCosts : undefined}
+              onEditExtras={focusExtraCosts}
             />
           </div>
+          )}
         </form>
       </FormDrawer>
+
+      <SupplyReceiptDrawer
+        open={receiptDrawerOpen}
+        onOpenChange={(next) => {
+          setReceiptDrawerOpen(next);
+          if (!next) setReceiptFocusExtras(false);
+        }}
+        busy={busy}
+        supplier={supplier}
+        onChangeSupplier={clearSupplier}
+        branchId={branchId}
+        branches={branches}
+        branchesLoading={branchesLoading}
+        branchLocked={branchLocked}
+        selectedBranchName={selectedBranchName}
+        onBranchChange={setBranchId}
+        receivedAtLocal={receivedAtLocal}
+        onReceivedAtChange={setReceivedAtLocal}
+        docRef={docRef}
+        onDocRefChange={setDocRef}
+        notes={notes}
+        onNotesChange={setNotes}
+        extras={extras}
+        onExtrasChange={setExtras}
+        focusExtras={receiptFocusExtras}
+      />
 
       <LinkSupplierProductModal
         open={addLineOpen}
