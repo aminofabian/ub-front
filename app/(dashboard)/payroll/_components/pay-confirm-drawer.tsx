@@ -24,6 +24,7 @@ import {
   formatPayrollMoney,
   payrollArrearMonthsLabel,
   payrollArrearsNet,
+  payrollIsJoinMonth,
   payrollMonthLabel,
 } from "@/lib/payroll-utils";
 
@@ -234,6 +235,11 @@ export function PayConfirmDrawer({
 
   if (!row) return null;
 
+  const salaryLocked = row.salaryReleased === false;
+  const deferredJoinMonth =
+    row.joinPayMode === "deferred" &&
+    payrollIsJoinMonth(row.startDate, year, month);
+
   return (
     <FormDrawer
       open={open}
@@ -255,7 +261,12 @@ export function PayConfirmDrawer({
           <Button
             type="button"
             className="rounded-none bg-[var(--pos-primary,#0f766e)] text-white"
-            disabled={saving || row.employmentStatus === "on_leave"}
+            disabled={
+              saving ||
+              row.employmentStatus === "on_leave" ||
+              salaryLocked ||
+              deferredJoinMonth
+            }
             onClick={() =>
               onConfirm({
                 otherDeductions: other,
@@ -283,6 +294,20 @@ export function PayConfirmDrawer({
       {row.employmentStatus === "on_leave" ? (
         <p className="mb-4 rounded-none border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
           This employee is on leave. Update their status before paying.
+        </p>
+      ) : null}
+
+      {salaryLocked ? (
+        <p className="mb-4 rounded-none border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-sm text-sky-950 dark:text-sky-100">
+          Salaries for {payrollMonthLabel(year, month)} unlock on the 25th —
+          this month shows zero until then.
+        </p>
+      ) : null}
+
+      {deferredJoinMonth ? (
+        <p className="mb-4 rounded-none border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-sm text-sky-950 dark:text-sky-100">
+          Their first month is set to “no salary until next payroll” — salary
+          starts from the next cycle.
         </p>
       ) : null}
 
@@ -471,7 +496,7 @@ export function PayConfirmDrawer({
 
         <FormDrawerFields legend="Summary & finance">
           {Number(row.monthlySalary ?? 0) > Number(row.baseSalary) &&
-          row.prorateJoinMonth !== false ? (
+          row.joinPayMode !== "full" ? (
             <label className="mb-3 flex cursor-pointer items-start gap-2.5 rounded-none border border-border/60 bg-muted/20 px-3 py-2.5">
               <input
                 type="checkbox"

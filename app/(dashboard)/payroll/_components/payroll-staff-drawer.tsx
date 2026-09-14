@@ -83,17 +83,18 @@ export function PayrollStaffDrawer({
   const [loadingAdvances, setLoadingAdvances] = useState(false);
   const [savingProration, setSavingProration] = useState(false);
 
+  const rowUserId = row?.userId;
   const loadAdvances = useCallback(async () => {
-    if (!row?.userId) return;
+    if (!rowUserId) return;
     setLoadingAdvances(true);
     try {
-      setAdvances(await fetchStaffAdvances(row.userId));
+      setAdvances(await fetchStaffAdvances(rowUserId));
     } catch {
       setAdvances([]);
     } finally {
       setLoadingAdvances(false);
     }
-  }, [row?.userId]);
+  }, [rowUserId]);
 
   useEffect(() => {
     if (open && row) void loadAdvances();

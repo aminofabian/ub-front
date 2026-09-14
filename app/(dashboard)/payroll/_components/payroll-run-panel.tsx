@@ -14,6 +14,7 @@ import {
   formatPayrollDate,
   formatPayrollMoney,
   payrollArrearSummary,
+  payrollIsJoinMonth,
   payrollProrationDaysLabel,
   payrollShortMonth,
 } from "@/lib/payroll-utils";
@@ -159,6 +160,8 @@ export function PayrollRunPanel({
           <StaffRunCard
             key={row.userId}
             row={row}
+            year={year}
+            month={month}
             applyStatutoryPreview={applyStatutoryPreview}
             onSelect={() => onSelectRow(row)}
           />
@@ -297,7 +300,7 @@ export function PayrollRunPanel({
                       {formatPayrollMoney(row.suggestedNet)}
                     </td>
                     <td className="px-4 py-3">
-                      <RunStatusBadge row={row} />
+                      <RunStatusBadge row={row} year={year} month={month} />
                     </td>
                     <td className="px-2 py-3 text-muted-foreground">
                       <ChevronRight
@@ -339,10 +342,14 @@ function StaffAvatar({ name, paid }: { name: string; paid: boolean }) {
 
 function StaffRunCard({
   row,
+  year,
+  month,
   applyStatutoryPreview,
   onSelect,
 }: {
   row: PayrollRunRow;
+  year: number;
+  month: number;
   applyStatutoryPreview: boolean;
   onSelect: () => void;
 }) {
@@ -359,7 +366,7 @@ function StaffRunCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <p className="truncate font-medium">{row.displayName}</p>
-          <RunStatusBadge row={row} />
+          <RunStatusBadge row={row} year={year} month={month} />
         </div>
         <p className="truncate text-xs text-muted-foreground">
           {[row.title, row.branchName].filter(Boolean).join(" · ")}
@@ -390,7 +397,15 @@ function EmptyFilter({ message }: { message: string }) {
   return <p className="text-center text-sm text-muted-foreground">{message}</p>;
 }
 
-function RunStatusBadge({ row }: { row: PayrollRunRow }) {
+function RunStatusBadge({
+  row,
+  year,
+  month,
+}: {
+  row: PayrollRunRow;
+  year: number;
+  month: number;
+}) {
   if (row.alreadyPaid) {
     return (
       <span className="inline-flex flex-col items-end gap-0.5 sm:items-start">
@@ -409,6 +424,24 @@ function RunStatusBadge({ row }: { row: PayrollRunRow }) {
     return (
       <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-medium text-sky-900 dark:text-sky-200">
         On leave
+      </span>
+    );
+  }
+  if (row.salaryReleased === false) {
+    // New starter before the 25th — zero by design, not a missing salary.
+    return (
+      <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-medium text-sky-900 dark:text-sky-200">
+        Unlocks 25th
+      </span>
+    );
+  }
+  if (
+    row.joinPayMode === "deferred" &&
+    payrollIsJoinMonth(row.startDate, year, month)
+  ) {
+    return (
+      <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-medium text-sky-900 dark:text-sky-200">
+        Starts next payroll
       </span>
     );
   }

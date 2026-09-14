@@ -40,6 +40,19 @@ export function joinPayModeLabel(mode: string | null | undefined): string {
   );
 }
 
+/** True when the given start date falls inside the labeled pay month. */
+export function payrollIsJoinMonth(
+  startDate: string | null | undefined,
+  year: number,
+  month: number,
+): boolean {
+  if (!startDate) return false;
+  const d = new Date(`${startDate}T00:00:00`);
+  return !Number.isNaN(d.getTime())
+    && d.getFullYear() === year
+    && d.getMonth() + 1 === month;
+}
+
 export const ADVANCE_REPAYMENT_MODES: Array<{
   value: AdvanceRepaymentMode;
   label: string;

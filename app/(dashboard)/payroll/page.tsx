@@ -31,6 +31,7 @@ import {
   formatPayrollMoney,
   payrollArrearMonthsLabel,
   payrollCombinedBase,
+  payrollIsJoinMonth,
   payrollMonthLabel,
 } from "@/lib/payroll-utils";
 
@@ -152,11 +153,22 @@ export default function PayrollPage() {
         (s, r) => s + (applyStatutory ? Number(r.statutoryTotal) : 0),
         0,
       ),
-      missingSalary: rows.filter((r) => Number(r.baseSalary) <= 0).length,
+      // Zero-base rows that are explained by the join-month rules are not
+      // "missing salary": pre-25th unlocks and deferred join months.
+      missingSalary: rows.filter(
+        (r) =>
+          Number(r.baseSalary) <= 0 &&
+          r.salaryReleased !== false &&
+          !(
+            r.joinPayMode === "deferred" &&
+            payrollIsJoinMonth(r.startDate, year, month)
+          ),
+      ).length,
+      pendingUnlock: rows.filter((r) => r.salaryReleased === false).length,
       onLeaveCount: rows.filter((r) => r.employmentStatus === "on_leave")
         .length,
     };
-  }, [rows, applyStatutory]);
+  }, [rows, applyStatutory, year, month]);
 
   const load = useCallback(async () => {
     if (!canViewPayroll) return;
@@ -251,6 +263,23 @@ export default function PayrollPage() {
       setFeedback({
         kind: "error",
         text: `${row.displayName} is on leave. Update employment status before paying.`,
+      });
+      return;
+    }
+    if (row.salaryReleased === false) {
+      setFeedback({
+        kind: "error",
+        text: `Salaries for ${payrollMonthLabel(year, month)} unlock on the 25th — ${row.displayName} shows zero until then.`,
+      });
+      return;
+    }
+    if (
+      row.joinPayMode === "deferred" &&
+      payrollIsJoinMonth(row.startDate, year, month)
+    ) {
+      setFeedback({
+        kind: "error",
+        text: `${row.displayName}'s first month is set to "no salary until next payroll" — nothing to pay for ${payrollMonthLabel(year, month)}.`,
       });
       return;
     }
@@ -498,6 +527,13 @@ export default function PayrollPage() {
                   <AlertBanner tone="amber">
                     {summary.missingSalary} without salary — open their row to
                     set pay before marking paid.
+                  </AlertBanner>
+                ) : null}
+
+                {!loading && !error && summary.pendingUnlock > 0 ? (
+                  <AlertBanner tone="sky">
+                    Salaries for {payrollMonthLabel(year, month)} unlock on the
+                    25th — {summary.pendingUnlock} staff show zero until then.
                   </AlertBanner>
                 ) : null}
 
