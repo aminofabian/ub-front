@@ -881,65 +881,146 @@ function payslipPaymentMethodLabel(method: string | null | undefined): string {
   }
 }
 
-export function payslipDocumentHtml(
-  payslip: {
-    periodYear: number;
-    periodMonth: number;
-    paidAt: string;
-    baseSalary: number;
-    advancesDeducted: number;
-    otherDeductions: number;
-    payeDeducted?: number;
-    nssfDeducted?: number;
-    shifDeducted?: number;
-    housingLevyDeducted?: number;
-    netPaid: number;
-    note?: string | null;
-    paymentMethod?: string | null;
-  },
+/** Payslip fields needed to render the document (print HTML or PDF). */
+export type PayslipDocumentData = {
+  periodYear: number;
+  periodMonth: number;
+  paidAt: string;
+  baseSalary: number;
+  advancesDeducted: number;
+  otherDeductions: number;
+  payeDeducted?: number;
+  nssfDeducted?: number;
+  shifDeducted?: number;
+  housingLevyDeducted?: number;
+  netPaid: number;
+  note?: string | null;
+  paymentMethod?: string | null;
+  payslipNumber?: string | null;
+};
+
+export type PayslipModel = {
+  period: string;
+  paidOn: string;
+  payslipNumber: string | null;
+  staffName: string;
+  shopName: string;
+  logoUrl: string | null;
+  accent: string;
+  leftDetails: Array<[string, string]>;
+  rightDetails: Array<[string, string]>;
+  earnings: Array<{ label: string; value: number }>;
+  deductions: Array<{ label: string; value: number }>;
+  totalEarnings: number;
+  totalDeductions: number;
+  net: number;
+  note: string | null;
+};
+
+/** Shared shaping for every payslip rendering — print HTML, PDF, on-screen. */
+export function buildPayslipModel(
+  payslip: PayslipDocumentData,
   staffName: string,
   options: PayslipDocumentOptions = {},
-): string {
+): PayslipModel {
   const period = payrollMonthLabel(payslip.periodYear, payslip.periodMonth);
-  const safeName = escapeHtml(staffName);
-  const accent = hexToRgb(options.accent ?? "") ? (options.accent as string).trim() : DEFAULT_PAYSLIP_ACCENT;
-  const [ar, ag, ab] = hexToRgb(accent) ?? [15, 118, 110];
+  const accent = hexToRgb(options.accent ?? "")
+    ? (options.accent as string).trim()
+    : DEFAULT_PAYSLIP_ACCENT;
   const shopName = (options.shopName ?? "").trim();
   const employee = options.employee ?? {};
 
   const paidOn = formatPayrollDateTime(payslip.paidAt);
-  const earnings: [string, string][] = [
-    ["Basic salary", formatPayrollMoney(Number(payslip.baseSalary))],
-  ];
-  const totalEarnings = Number(payslip.baseSalary);
+  const totalEarnings = roundMoney(Number(payslip.baseSalary));
+  const earnings = [{ label: "Basic salary", value: totalEarnings }];
 
-  const deductionRows: Array<[string, number]> = [];
+  const deductions: Array<{ label: string; value: number }> = [];
   if (Number(payslip.payeDeducted) > 0) {
-    deductionRows.push(["PAYE (income tax)", Number(payslip.payeDeducted)]);
+    deductions.push({ label: "PAYE (income tax)", value: Number(payslip.payeDeducted) });
   }
   if (Number(payslip.nssfDeducted) > 0) {
-    deductionRows.push(["NSSF pension", Number(payslip.nssfDeducted)]);
+    deductions.push({ label: "NSSF pension", value: Number(payslip.nssfDeducted) });
   }
   if (Number(payslip.shifDeducted) > 0) {
-    deductionRows.push(["SHIF (health insurance)", Number(payslip.shifDeducted)]);
+    deductions.push({ label: "SHIF (health insurance)", value: Number(payslip.shifDeducted) });
   }
   if (Number(payslip.housingLevyDeducted) > 0) {
-    deductionRows.push(["Affordable Housing Levy", Number(payslip.housingLevyDeducted)]);
+    deductions.push({ label: "Affordable Housing Levy", value: Number(payslip.housingLevyDeducted) });
   }
   if (Number(payslip.advancesDeducted) > 0) {
-    deductionRows.push(["Salary advance repayment", Number(payslip.advancesDeducted)]);
+    deductions.push({ label: "Salary advance repayment", value: Number(payslip.advancesDeducted) });
   }
   if (Number(payslip.otherDeductions) > 0) {
-    deductionRows.push(["Other deductions", Number(payslip.otherDeductions)]);
+    deductions.push({ label: "Other deductions", value: Number(payslip.otherDeductions) });
   }
-  const totalDeductions = deductionRows.reduce(
-    (sum, [, value]) => sum + value,
-    0,
+  const totalDeductions = roundMoney(
+    deductions.reduce((sum, d) => sum + d.value, 0),
   );
 
   const paidVia = payslipPaymentMethodLabel(payslip.paymentMethod);
   const bankLine = employee.bankName
     ? [employee.bankName, employee.accountMasked].filter(Boolean).join(" · ")
+    : "";
+
+  // Left column: employee identity · right column: pay info. Optional rows
+  // collapse away cleanly.
+  const leftDetails: Array<[string, string]> = [["Employee name", staffName]];
+  if (employee.code) {
+    leftDetails.push(["Employee ID", employee.code]);
+  }
+  if (employee.designation) {
+    leftDetails.push(["Designation", employee.designation]);
+  }
+  const rightDetails: Array<[string, string]> = [
+    ["Pay period", period],
+    ["Pay date", paidOn],
+  ];
+  if (bankLine) {
+    rightDetails.push(["Bank", bankLine]);
+  } else if (paidVia) {
+    rightDetails.push(["Paid via", paidVia]);
+  }
+
+  return {
+    period,
+    paidOn,
+    payslipNumber: payslip.payslipNumber?.trim() || null,
+    staffName,
+    shopName,
+    logoUrl: options.logoUrl?.trim() || null,
+    accent,
+    leftDetails,
+    rightDetails,
+    earnings,
+    deductions,
+    totalEarnings,
+    totalDeductions,
+    net: roundMoney(Number(payslip.netPaid)),
+    note: payslip.note?.trim() || null,
+  };
+}
+
+export function payslipDocumentHtml(
+  payslip: PayslipDocumentData,
+  staffName: string,
+  options: PayslipDocumentOptions = {},
+): string {
+  const m = buildPayslipModel(payslip, staffName, options);
+  const period = m.period;
+  const safeName = escapeHtml(m.staffName);
+  const accent = m.accent;
+  const [ar, ag, ab] = hexToRgb(accent) ?? [15, 118, 110];
+  const shopName = m.shopName;
+
+  const earnings = m.earnings.map(
+    (d) => [d.label, formatPayrollMoney(d.value)] as [string, string],
+  );
+  const deductionRows = m.deductions.map(
+    (d) => [d.label, d.value] as [string, number],
+  );
+  const paidOn = m.paidOn;
+  const bankLine = m.rightDetails.some(([label]) => label === "Bank")
+    ? (m.rightDetails.find(([label]) => label === "Bank")?.[1] ?? "")
     : "";
 
   // Left column: employee identity · right column: pay info (matches the

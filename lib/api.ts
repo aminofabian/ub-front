@@ -13384,6 +13384,8 @@ export type SalaryAdvanceRecord = {
 
 export type PayslipRecord = {
   id: string;
+  /** Human-friendly reference, e.g. PAL-2026-09-0042 (null for pre-numbering payslips). */
+  payslipNumber: string | null;
   staffProfileId: string;
   userId: string;
   displayName: string;
@@ -13490,6 +13492,7 @@ export type StaffPaySelfAdvance = {
 
 export type StaffPaySelfPayslip = {
   id: string;
+  payslipNumber: string | null;
   periodYear: number;
   periodMonth: number;
   baseSalary: number;
