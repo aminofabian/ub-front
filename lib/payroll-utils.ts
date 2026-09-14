@@ -843,6 +843,44 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+export type PayslipDocumentOptions = {
+  /** Tenant display name — shown in the masthead. */
+  shopName?: string | null;
+  /** Tenant logo URL — rendered at the top of the document when present. */
+  logoUrl?: string | null;
+  /** Brand hex used for section bands and the net-pay strip. */
+  accent?: string | null;
+  /** Employee identity fields shown in the details grid; omit what you don't have. */
+  employee?: {
+    code?: string | null;
+    designation?: string | null;
+    bankName?: string | null;
+    accountMasked?: string | null;
+  };
+};
+
+const DEFAULT_PAYSLIP_ACCENT = "#0f766e";
+
+function hexToRgb(hex: string): [number, number, number] | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function payslipPaymentMethodLabel(method: string | null | undefined): string {
+  switch (method) {
+    case "mpesa_manual":
+      return "M-Pesa";
+    case "bank":
+      return "Bank transfer";
+    case "cash":
+      return "Cash";
+    default:
+      return method ? method.replace(/_/g, " ") : "";
+  }
+}
+
 export function payslipDocumentHtml(
   payslip: {
     periodYear: number;
@@ -857,65 +895,190 @@ export function payslipDocumentHtml(
     housingLevyDeducted?: number;
     netPaid: number;
     note?: string | null;
+    paymentMethod?: string | null;
   },
   staffName: string,
+  options: PayslipDocumentOptions = {},
 ): string {
   const period = payrollMonthLabel(payslip.periodYear, payslip.periodMonth);
   const safeName = escapeHtml(staffName);
-  const lines: [string, string][] = [
-    ["Period", period],
-    ["Paid on", formatPayrollDateTime(payslip.paidAt)],
-    ["Base salary", formatPayrollMoney(Number(payslip.baseSalary))],
-    [
-      "Advances deducted",
-      formatPayrollMoney(Number(payslip.advancesDeducted)),
-    ],
-    [
-      "Other deductions",
-      formatPayrollMoney(Number(payslip.otherDeductions)),
-    ],
+  const accent = hexToRgb(options.accent ?? "") ? (options.accent as string).trim() : DEFAULT_PAYSLIP_ACCENT;
+  const [ar, ag, ab] = hexToRgb(accent) ?? [15, 118, 110];
+  const shopName = (options.shopName ?? "").trim();
+  const employee = options.employee ?? {};
+
+  const paidOn = formatPayrollDateTime(payslip.paidAt);
+  const earnings: [string, string][] = [
+    ["Basic salary", formatPayrollMoney(Number(payslip.baseSalary))],
   ];
+  const totalEarnings = Number(payslip.baseSalary);
+
+  const deductionRows: Array<[string, number]> = [];
   if (Number(payslip.payeDeducted) > 0) {
-    lines.push(["PAYE", formatPayrollMoney(Number(payslip.payeDeducted))]);
+    deductionRows.push(["PAYE (income tax)", Number(payslip.payeDeducted)]);
   }
   if (Number(payslip.nssfDeducted) > 0) {
-    lines.push(["NSSF", formatPayrollMoney(Number(payslip.nssfDeducted))]);
+    deductionRows.push(["NSSF pension", Number(payslip.nssfDeducted)]);
   }
   if (Number(payslip.shifDeducted) > 0) {
-    lines.push(["SHIF", formatPayrollMoney(Number(payslip.shifDeducted))]);
+    deductionRows.push(["SHIF (health insurance)", Number(payslip.shifDeducted)]);
   }
   if (Number(payslip.housingLevyDeducted) > 0) {
-    lines.push([
-      "Housing levy",
-      formatPayrollMoney(Number(payslip.housingLevyDeducted)),
-    ]);
+    deductionRows.push(["Affordable Housing Levy", Number(payslip.housingLevyDeducted)]);
   }
-  lines.push(["Net paid", formatPayrollMoney(Number(payslip.netPaid))]);
-  const note = payslip.note
-    ? `<p style="margin-top:16px;color:#555"><strong>Note:</strong> ${escapeHtml(payslip.note)}</p>`
+  if (Number(payslip.advancesDeducted) > 0) {
+    deductionRows.push(["Salary advance repayment", Number(payslip.advancesDeducted)]);
+  }
+  if (Number(payslip.otherDeductions) > 0) {
+    deductionRows.push(["Other deductions", Number(payslip.otherDeductions)]);
+  }
+  const totalDeductions = deductionRows.reduce(
+    (sum, [, value]) => sum + value,
+    0,
+  );
+
+  const paidVia = payslipPaymentMethodLabel(payslip.paymentMethod);
+  const bankLine = employee.bankName
+    ? [employee.bankName, employee.accountMasked].filter(Boolean).join(" · ")
     : "";
+
+  // Left column: employee identity · right column: pay info (matches the
+  // reference payslip layout). Optional rows collapse away cleanly.
+  const leftDetailRows: Array<[string, string]> = [["Employee name", staffName]];
+  if (employee.code) {
+    leftDetailRows.push(["Employee ID", employee.code]);
+  }
+  if (employee.designation) {
+    leftDetailRows.push(["Designation", employee.designation]);
+  }
+  const rightDetailRows: Array<[string, string]> = [
+    ["Pay period", period],
+    ["Pay date", paidOn],
+  ];
+  if (bankLine) {
+    rightDetailRows.push(["Bank", bankLine]);
+  } else if (paidVia) {
+    rightDetailRows.push(["Paid via", paidVia]);
+  }
+
+  const detailCell = ([label, value]: [string, string]) =>
+    `<div class="detail"><span class="detail-label">${escapeHtml(label)}</span><span class="detail-value">${escapeHtml(value)}</span></div>`;
+  const detailsHtml =
+    `<div class="detail-col">${leftDetailRows.map(detailCell).join("")}</div>` +
+    `<div class="detail-col">${rightDetailRows.map(detailCell).join("")}</div>`;
+
+  const tableRow = (
+    label: string,
+    value: string,
+    opts: { total?: boolean } = {},
+  ) =>
+    `<tr class="${opts.total ? "total" : ""}"><td>${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`;
+
+  const earningsHtml = earnings
+    .map(([label, value]) => tableRow(label, value))
+    .join("");
+  const deductionsHtml =
+    deductionRows
+      .map(([label, value]) => tableRow(label, formatPayrollMoney(value)))
+      .join("") || tableRow("Deductions", formatPayrollMoney(0));
+
+  const note = payslip.note
+    ? `<div class="note"><span class="note-label">Note</span>${escapeHtml(payslip.note)}</div>`
+    : "";
+  const logo = options.logoUrl
+    ? `<img class="logo" src="${escapeHtml(options.logoUrl)}" alt="" />`
+    : "";
+  const brandName = shopName
+    ? `<div class="brand"><span class="brand-name">${escapeHtml(shopName)}</span><span class="brand-sub">Payroll</span></div>`
+    : "";
+
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Payslip — ${safeName}</title>
+<html><head><meta charset="utf-8"><title>Payslip — ${safeName} · ${period}</title>
 <style>
-  body { font-family: system-ui, sans-serif; padding: 32px; color: #111; max-width: 480px; margin: 0 auto; }
-  h1 { font-size: 1.25rem; margin: 0 0 4px; }
-  p.sub { color: #555; margin: 0 0 24px; }
-  table { width: 100%; border-collapse: collapse; }
-  td { padding: 8px 0; border-bottom: 1px solid #eee; }
-  td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-  tr.total td { font-weight: 700; border-top: 2px solid #111; border-bottom: none; padding-top: 12px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #eceff3; color: #16202b;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .sheet { max-width: 760px; margin: 28px auto; background: #fff; padding: 34px 38px 26px; }
+  .masthead { display: flex; align-items: center; gap: 14px; padding-bottom: 18px; border-bottom: 3px solid ${accent}; }
+  .logo { height: 46px; width: 46px; object-fit: contain; border-radius: 8px; }
+  .brand { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .brand-name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .brand-sub { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #64748b; }
+  .doc-title { margin-left: auto; text-align: right; }
+  .doc-title h1 { font-size: 22px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: ${accent}; }
+  .doc-title p { font-size: 12px; color: #64748b; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .band {
+    margin-top: 22px; background: ${accent}; color: #fff;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+    padding: 6px 12px;
+  }
+  .details { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #dbe3ec; border-top: none; }
+  .detail-col { display: flex; flex-direction: column; }
+  .detail-col + .detail-col { border-left: 1px solid #dbe3ec; }
+  .detail { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-bottom: 1px solid #edf1f6; font-size: 13px; }
+  .detail-col .detail:last-child { border-bottom: none; }
+  .detail-label { color: #5c6b7c; }
+  .detail-value { font-weight: 600; text-align: right; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; border: 1px solid #dbe3ec; border-top: none; }
+  td { padding: 7px 10px; border-bottom: 1px solid #edf1f6; }
+  td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.total td { background: rgba(${ar}, ${ag}, ${ab}, 0.08); border-top: 2px solid ${accent}; border-bottom: none; font-weight: 700; }
+  .net {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-top: 20px; background: ${accent}; color: #fff; padding: 12px 16px;
+  }
+  .net-label { font-size: 12px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
+  .net-amount { font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .note { margin-top: 14px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 9px 12px; font-size: 12px; color: #334155; }
+  .note-label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-bottom: 3px; }
+  .foot { margin-top: 18px; text-align: center; font-size: 11px; font-style: italic; color: #8494a5; }
+  @media print {
+    body { background: #fff; }
+    .sheet { margin: 0; max-width: none; padding: 24px 28px 18px; }
+  }
 </style></head><body>
-  <h1>Payslip</h1>
-  <p class="sub">${safeName} · ${period}</p>
-  <table>
-    ${lines
-      .map(
-        ([label, value], i) =>
-          `<tr class="${i === lines.length - 1 ? "total" : ""}"><td>${label}</td><td>${value}</td></tr>`,
-      )
-      .join("")}
-  </table>
-  ${note}
+  <div class="sheet">
+    <div class="masthead">
+      ${logo}
+      ${brandName}
+      <div class="doc-title">
+        <h1>Monthly Payslip</h1>
+        <p>${escapeHtml(period)}</p>
+      </div>
+    </div>
+
+    <div class="band">Employee &amp; Payroll Details</div>
+    <div class="details">${detailsHtml}</div>
+
+    <div class="cols">
+      <div>
+        <div class="band">Earnings</div>
+        <table>
+          ${earningsHtml}
+          ${tableRow("Total earnings", formatPayrollMoney(totalEarnings), { total: true })}
+        </table>
+      </div>
+      <div>
+        <div class="band">Deductions</div>
+        <table>
+          ${deductionsHtml}
+          ${tableRow("Total deductions", formatPayrollMoney(totalDeductions), { total: true })}
+        </table>
+      </div>
+    </div>
+
+    <div class="net">
+      <span class="net-label">Net salary payable</span>
+      <span class="net-amount">${escapeHtml(formatPayrollMoney(Number(payslip.netPaid)))}</span>
+    </div>
+
+    ${note}
+    <p class="foot">This is a computer-generated document and does not require a signature.</p>
+  </div>
 </body></html>`;
 }
 

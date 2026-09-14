@@ -13517,6 +13517,10 @@ export type StaffPaySelfPortal = {
   advances: StaffPaySelfAdvance[];
   payslips: StaffPaySelfPayslip[];
   sharePath: string | null;
+  /** Own-data fields for the printable payslip — account arrives masked. */
+  employeeCode: string | null;
+  bankName: string | null;
+  bankAccountMasked: string | null;
 };
 
 export type PayrollAdvanceLedgerRow = {

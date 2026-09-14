@@ -321,6 +321,15 @@ export function StaffPayPortal({
         <PayslipSheet
           payslip={selected}
           staffName={portal.displayName}
+          shopName={portal.shopName || branding.shopName}
+          logoUrl={branding.logoUrl}
+          accent={parseStorefrontHex(branding.primaryHex)}
+          employee={{
+            designation: portal.title,
+            code: portal.employeeCode,
+            bankName: portal.bankName,
+            accountMasked: portal.bankAccountMasked,
+          }}
           onClose={() => setSelected(null)}
         />
       ) : null}
@@ -349,10 +358,23 @@ function AdvanceRow({ row }: { row: StaffPaySelfAdvance }) {
 function PayslipSheet({
   payslip,
   staffName,
+  shopName,
+  logoUrl,
+  accent,
+  employee,
   onClose,
 }: {
   payslip: StaffPaySelfPayslip;
   staffName: string;
+  shopName: string;
+  logoUrl: string | null;
+  accent: string | null;
+  employee: {
+    designation?: string | null;
+    code?: string | null;
+    bankName?: string | null;
+    accountMasked?: string | null;
+  };
   onClose: () => void;
 }) {
   const lines: Array<{ label: string; value: string; muted?: boolean }> = [
@@ -435,7 +457,14 @@ function PayslipSheet({
           type="button"
           className={styles.printBtn}
           onClick={() =>
-            printPayslipDocument(payslipDocumentHtml(payslip, staffName))
+            printPayslipDocument(
+              payslipDocumentHtml(payslip, staffName, {
+                shopName,
+                logoUrl,
+                accent,
+                employee,
+              }),
+            )
           }
         >
           <Printer className="size-4" aria-hidden />
