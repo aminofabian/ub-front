@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  dashboardInputClass,
-  dashboardSelectClass,
-} from "@/components/dashboard-page-ui";
+import { dashboardInputClass } from "@/components/dashboard-page-ui";
 import {
   ADVANCE_REPAYMENT_MODES,
   type AdvanceRepaymentMode,
@@ -194,36 +191,12 @@ export function AdvanceRepaymentArrangement({
 
       {balancePreview != null ? (
         <p className="rounded-none bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          Balance after save:{" "}
+          Balance after save: {" "}
           <span className="font-semibold tabular-nums text-foreground">
             {formatPayrollMoney(balancePreview)}
           </span>
         </p>
       ) : null}
     </div>
-  );
-}
-
-export function AdvanceRepaymentModeSelect({
-  mode,
-  onModeChange,
-  className,
-}: {
-  mode: AdvanceRepaymentMode;
-  onModeChange: (mode: AdvanceRepaymentMode) => void;
-  className?: string;
-}) {
-  return (
-    <select
-      className={cn(dashboardSelectClass(), className)}
-      value={mode}
-      onChange={(e) => onModeChange(e.target.value as AdvanceRepaymentMode)}
-    >
-      {ADVANCE_REPAYMENT_MODES.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
   );
 }

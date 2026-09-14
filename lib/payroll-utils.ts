@@ -348,17 +348,46 @@ export function formatPayrollMoney(n: number): string {
   });
 }
 
-/** Label like "16/30 days" when a payroll row is mid-month prorated. */
+/** Pay cycle starts on this day of the previous calendar month (through the 24th). */
+export const PAYROLL_CYCLE_START_DAY = 25;
+
+/** Pay cycle ends on this day of the labeled month. */
+export const PAYROLL_CYCLE_END_DAY = 24;
+
+/** From the 25th onward, payroll UI defaults to the next pay period. */
+export const PAYROLL_FOCUS_DAY = 24;
+
+/** Default pay period when opening payroll — next month from the 25th. */
+export function defaultPayrollPeriod(from: Date = new Date()): {
+  year: number;
+  month: number;
+} {
+  if (from.getDate() > PAYROLL_FOCUS_DAY) {
+    return shiftPayrollMonth(from.getFullYear(), from.getMonth() + 1, 1);
+  }
+  return { year: from.getFullYear(), month: from.getMonth() + 1 };
+}
+
+/** Inclusive day count for the 25th→24th cycle of a labeled pay month. */
+export function payrollPeriodDayCount(year: number, month: number): number {
+  const end = new Date(year, month - 1, PAYROLL_CYCLE_END_DAY);
+  const startMonth = month === 1 ? 12 : month - 1;
+  const startYear = month === 1 ? year - 1 : year;
+  const start = new Date(startYear, startMonth - 1, PAYROLL_CYCLE_START_DAY);
+  return Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+}
+
+/** Label like "10/31 days" when a payroll row is mid-cycle prorated. */
 export function payrollProrationDaysLabel(
   factor: number | null | undefined,
   year: number,
   month: number,
 ): string | null {
   if (factor == null || !(factor > 0) || !(factor < 1)) return null;
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const payableDays = Math.round(factor * daysInMonth);
-  if (payableDays <= 0 || payableDays >= daysInMonth) return null;
-  return `${payableDays}/${daysInMonth} days`;
+  const daysInPeriod = payrollPeriodDayCount(year, month);
+  const payableDays = Math.round(factor * daysInPeriod);
+  if (payableDays <= 0 || payableDays >= daysInPeriod) return null;
+  return `${payableDays}/${daysInPeriod} days`;
 }
 
 export function payrollMonthLabel(year: number, month: number): string {
@@ -382,20 +411,6 @@ export function shiftPayrollMonth(
 ): { year: number; month: number } {
   const d = new Date(year, month - 1 + delta, 1);
   return { year: d.getFullYear(), month: d.getMonth() + 1 };
-}
-
-/** After this day of the month, payroll UI defaults to the next pay period. */
-export const PAYROLL_FOCUS_DAY = 15;
-
-/** Default pay period when opening payroll — next month after the 15th. */
-export function defaultPayrollPeriod(from: Date = new Date()): {
-  year: number;
-  month: number;
-} {
-  if (from.getDate() > PAYROLL_FOCUS_DAY) {
-    return shiftPayrollMonth(from.getFullYear(), from.getMonth() + 1, 1);
-  }
-  return { year: from.getFullYear(), month: from.getMonth() + 1 };
 }
 
 export function isPayrollFocusPeriod(year: number, month: number, from: Date = new Date()): boolean {

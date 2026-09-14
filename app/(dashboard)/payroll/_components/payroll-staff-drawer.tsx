@@ -301,10 +301,11 @@ export function PayrollStaffDrawer({
                 />
                 <span className="min-w-0 text-xs">
                   <span className="block font-medium text-foreground">
-                    Prorate mid-month join
+                    Prorate mid-cycle join
                   </span>
                   <span className="mt-0.5 block text-[11px] text-muted-foreground">
                     Off = always pay full monthly amount for this person.
+                    Cycles run 25th→24th.
                   </span>
                 </span>
               </label>

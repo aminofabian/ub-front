@@ -335,8 +335,8 @@ export function StaffProfileDrawer({
                   }}
                 />
                 <span className="font-normal text-[11px] text-muted-foreground/90">
-                  Mid-month starts are paid from this day (prorated). First
-                  salary effective-from should match this date.
+                  Mid-cycle starts (after the prior 25th) are prorated through the
+                  24th. First salary effective-from should match join date.
                 </span>
               </label>
               <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
@@ -395,11 +395,11 @@ export function StaffProfileDrawer({
                 />
                 <span className="min-w-0">
                   <span className="block text-xs font-medium text-foreground">
-                    Prorate mid-month join
+                    Prorate mid-cycle join
                   </span>
                   <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
-                    When on, the first month pays only calendar days from their
-                    start date. Turn off to always pay the full monthly amount.
+                    When on, joins after the cycle starts (25th) pay only remaining
+                    days through the 24th. Turn off to always pay the full amount.
                   </span>
                 </span>
               </label>
@@ -542,7 +542,7 @@ export function StaffProfileDrawer({
           {canViewPayroll ? (
             <FormDrawerFields
               legend="Salary"
-              hint="First salary effective from should match join date (e.g. the 15th) so that month is paid, prorated. Raises use a later effective date."
+              hint="Pay cycles run 25th→24th. First salary effective from should match join date so that cycle is paid (prorated). Raises use a later effective date."
             >
               <ul className="space-y-1.5 text-sm">
                 {salaries.length === 0 ? (

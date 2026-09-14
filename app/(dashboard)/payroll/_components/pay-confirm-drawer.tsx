@@ -105,9 +105,6 @@ export function PayConfirmDrawer({
     row && skipProration
       ? Number(row.monthlySalary ?? row.baseSalary)
       : Number(row?.baseSalary ?? 0);
-  const combinedBase = row
-    ? periodBase + Number(row.arrearsBaseTotal ?? 0)
-    : 0;
   const currentStatutory = applyStatutory
     ? Number(row?.statutoryTotal) || 0
     : 0;
@@ -115,16 +112,17 @@ export function PayConfirmDrawer({
     ? Number(row?.arrearsStatutoryTotal ?? 0)
     : 0;
   const combinedStatutory = currentStatutory + arrearsStatutory;
-  const statutory = combinedStatutory;
+  // Arrear payslips are disbursed in full as their own payslips, so advances can
+  // only be recovered from the current month's pay — mirrors the backend pool.
   const advancePool = row
-    ? Math.max(0, combinedBase - combinedStatutory - other)
+    ? Math.max(0, periodBase - currentStatutory - other)
     : 0;
 
   const payPreview = useMemo(() => {
     if (!row) return null;
     return buildStaffAdvancePayPreview(
-      combinedBase,
-      combinedStatutory,
+      periodBase,
+      currentStatutory,
       other,
       advances.map((a) => ({
         id: a.id,
@@ -137,7 +135,7 @@ export function PayConfirmDrawer({
         status: a.status,
       })),
     );
-  }, [row, combinedBase, combinedStatutory, other, advances]);
+  }, [row, periodBase, currentStatutory, other, advances]);
 
   const scheduledThisRun = payPreview?.totalAllocatedThisRun ?? 0;
 
@@ -206,7 +204,7 @@ export function PayConfirmDrawer({
   const currentPeriodNet = row
     ? Math.max(
         0,
-        Number(row.baseSalary) - currentStatutory - advancesApplied - other,
+        periodBase - currentStatutory - advancesApplied - other,
       )
     : 0;
   const arrearNet = row ? payrollArrearsNet(row) : 0;
@@ -514,7 +512,7 @@ export function PayConfirmDrawer({
             <div className="flex justify-between gap-4 border-b border-border/40 pb-2">
               <dt className="text-muted-foreground">Combined gross</dt>
               <dd className="tabular-nums font-semibold">
-                {formatPayrollMoney(combinedBase)}
+                {formatPayrollMoney(periodBase + Number(row.arrearsBaseTotal ?? 0))}
               </dd>
             </div>
             {combinedStatutory > 0 ? (

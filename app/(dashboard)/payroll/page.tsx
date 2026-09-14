@@ -706,7 +706,7 @@ export default function PayrollPage() {
       >
         <FormDrawerFields
           legend="Monthly amount"
-          hint="Effective from should match when pay starts — usually their join date. A join on the 15th is paid from that day (prorated), not from next month."
+          hint="Pay cycles run 25th→24th. Effective from should match when pay starts — usually their join date. Join on the 25th starts the next cycle."
         >
           <div className="grid gap-3">
             {salaryCurrent > 0 ? (
