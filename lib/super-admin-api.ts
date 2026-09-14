@@ -319,7 +319,7 @@ async function saRequest<T>(
 export async function fetchSaBusinesses(
   page = 0,
   size = 50,
-): Promise<SaBusinessRow[]> {
+): Promise<{ rows: SaBusinessRow[]; total: number; last: boolean }> {
   const params = new URLSearchParams({
     page: String(page),
     size: String(size),
@@ -329,7 +329,32 @@ export async function fetchSaBusinesses(
     `${API_ROUTES.superAdminBusinesses}?${params.toString()}`,
     { method: "GET" },
   );
-  return extractPageContent<SaBusinessRow>(payload);
+  const rows = extractPageContent<SaBusinessRow>(payload);
+  const meta = extractSpringPageMeta(payload);
+  return {
+    rows,
+    total: meta?.totalElements ?? rows.length,
+    last: meta?.last ?? true,
+  };
+}
+
+/** Loads every non-deleted tenant (paginates until the last Spring page). */
+export async function fetchAllSaBusinesses(pageSize = 100): Promise<SaBusinessRow[]> {
+  const size = Math.max(1, Math.min(pageSize, 200));
+  const all: SaBusinessRow[] = [];
+  let page = 0;
+  for (;;) {
+    const { rows, last, total } = await fetchSaBusinesses(page, size);
+    all.push(...rows);
+    if (last || rows.length === 0 || all.length >= total) {
+      break;
+    }
+    page += 1;
+    if (page > 500) {
+      break;
+    }
+  }
+  return all;
 }
 
 export type CreateSaBusinessPayload = {

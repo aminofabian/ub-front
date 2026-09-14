@@ -35,7 +35,7 @@ import {
   type SaBusinessRow,
   createSaBusiness,
   deleteSaBusiness,
-  fetchSaBusinesses,
+  fetchAllSaBusinesses,
   fetchSaEmailRecipients,
 } from "@/lib/super-admin-api";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
@@ -153,7 +153,7 @@ export default function SuperAdminBusinessesPage() {
     else setLoading(true);
     try {
       const [tenants, stuck] = await Promise.all([
-        fetchSaBusinesses(0, 100),
+        fetchAllSaBusinesses(100),
         fetchSaEmailRecipients({ segment: "stuck_signup" }, 0, 500).catch(() => ({
           rows: [] as { businessId: string }[],
           total: 0,
@@ -295,7 +295,7 @@ export default function SuperAdminBusinessesPage() {
     try {
       await deleteSaBusiness(b.id);
       setSelectedIds((prev) => prev.filter((id) => id !== b.id));
-      showThemedSuccessToast(`Tenant “${b.name}” deleted.`);
+      showThemedSuccessToast(`Tenant “${b.name}” removed.`);
       await reload();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Delete failed.";
@@ -309,8 +309,9 @@ export default function SuperAdminBusinessesPage() {
   const onDeleteTenant = (b: SaBusinessRow) => {
     showThemedConfirmToast({
       id: `delete-sa-business-${b.id}`,
-      title: `Delete tenant “${b.name}”?`,
+      title: `Remove tenant “${b.name}”?`,
       description: `Slug: ${b.slug}. This archives the business and all users under it. It cannot be undone from the console.`,
+      confirmLabel: "Remove tenant",
       onConfirm: () => performDeleteTenant(b),
     });
   };
@@ -447,11 +448,11 @@ export default function SuperAdminBusinessesPage() {
       </Button>
       <Button
         variant="ghost"
-        size="icon-sm"
+        size="sm"
         type="button"
-        className="text-muted-foreground hover:text-destructive"
-        aria-label={`Delete ${b.name}`}
-        title="Delete tenant"
+        className="gap-1.5 text-muted-foreground hover:text-destructive"
+        aria-label={`Remove ${b.name}`}
+        title="Remove tenant"
         disabled={deletingId !== null}
         onClick={() => onDeleteTenant(b)}
       >
@@ -460,6 +461,7 @@ export default function SuperAdminBusinessesPage() {
         ) : (
           <Trash2 className="size-3.5" />
         )}
+        <span>Remove</span>
       </Button>
     </div>
   );

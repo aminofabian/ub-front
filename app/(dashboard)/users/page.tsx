@@ -677,7 +677,7 @@ export default function UsersPage() {
       id: `deactivate-user-${userId}`,
       title: "Deactivate this user?",
       description:
-        "They are signed out of every device and lose access until re-invited.",
+        "They are signed out of every device and lose access. Their plan seat frees up so you can invite someone else.",
       confirmLabel: "Deactivate",
       onConfirm: async () => {
         setDeactivatingId(userId);
