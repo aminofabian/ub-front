@@ -365,6 +365,19 @@ export function formatPayrollMoney(n: number): string {
   });
 }
 
+/** Label like "16/30 days" when a payroll row is mid-month prorated. */
+export function payrollProrationDaysLabel(
+  factor: number | null | undefined,
+  year: number,
+  month: number,
+): string | null {
+  if (factor == null || !(factor > 0) || !(factor < 1)) return null;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const payableDays = Math.round(factor * daysInMonth);
+  if (payableDays <= 0 || payableDays >= daysInMonth) return null;
+  return `${payableDays}/${daysInMonth} days`;
+}
+
 export function payrollMonthLabel(year: number, month: number): string {
   return new Date(year, month - 1, 1).toLocaleString(undefined, {
     month: "long",

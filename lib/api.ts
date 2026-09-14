@@ -13320,6 +13320,8 @@ export type StaffProfilePublicFields = {
   startDate: string | null;
   employmentStatus: string;
   includeInPayroll: boolean;
+  /** When false, mid-month joins get full monthly pay. Default true. */
+  prorateJoinMonth: boolean;
 };
 
 export type StaffProfilePrivateFields = {
@@ -13414,8 +13416,15 @@ export type PayrollRunRow = {
   employmentStatus: string;
   branchName: string | null;
   branchId: string | null;
+  /** Payable base for the period (prorated when mid-month join). */
   baseSalary: number;
-  /** Effective-from of the salary row used for baseSalary, if any (YYYY-MM-DD). */
+  /** Full contractual monthly amount before proration. */
+  monthlySalary: number;
+  /** payableDays/daysInMonth when prorated; null when full month or no salary. */
+  prorationFactor: number | null;
+  /** Staff setting — when false, mid-month proration is off. */
+  prorateJoinMonth: boolean;
+  /** Effective-from of the salary row used for monthlySalary, if any (YYYY-MM-DD). */
   salaryEffectiveFrom: string | null;
   arrearsBaseTotal: number;
   arrearPeriods: PayrollArrearPeriod[];
@@ -13534,6 +13543,7 @@ export type UpdateStaffProfilePayload = {
   startDate?: string | null;
   employmentStatus?: string;
   includeInPayroll?: boolean;
+  prorateJoinMonth?: boolean;
   phone?: string | null;
   address?: string | null;
   nationalId?: string | null;
@@ -13659,6 +13669,8 @@ export async function payStaffPayroll(
     branchId?: string;
     advancesToDeduct?: number;
     includeArrears?: boolean;
+    /** One-off: pay full monthly amount even if join-month proration would apply. */
+    skipProration?: boolean;
   },
 ): Promise<PayslipRecord> {
   return request<PayslipRecord>(

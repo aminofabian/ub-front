@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   fetchStaffAdvances,
+  updateStaffProfile,
   type PayrollRunRow,
   type SalaryAdvanceRecord,
 } from "@/lib/api";
@@ -31,6 +32,7 @@ import {
   payrollArrearSummary,
   payrollCombinedBase,
   payrollMonthLabel,
+  payrollProrationDaysLabel,
   payrollShortMonth,
 } from "@/lib/payroll-utils";
 
@@ -52,6 +54,7 @@ type Props = {
   onOpenPay: () => void;
   onOpenPayslip: () => void;
   onSendSms?: () => void;
+  onProrationSettingChanged?: () => void;
 };
 
 export function PayrollStaffDrawer({
@@ -72,9 +75,11 @@ export function PayrollStaffDrawer({
   onOpenPay,
   onOpenPayslip,
   onSendSms,
+  onProrationSettingChanged,
 }: Props) {
   const [advances, setAdvances] = useState<SalaryAdvanceRecord[]>([]);
   const [loadingAdvances, setLoadingAdvances] = useState(false);
+  const [savingProration, setSavingProration] = useState(false);
 
   const loadAdvances = useCallback(async () => {
     if (!row?.userId) return;
@@ -239,7 +244,9 @@ export function PayrollStaffDrawer({
                 onClick={onEditSalary}
               >
                 <Pencil className="mr-1 size-3" aria-hidden />
-                {Number(row.baseSalary) > 0 ? "Edit" : "Set salary"}
+                {Number(row.monthlySalary ?? row.baseSalary) > 0
+                  ? "Edit"
+                  : "Set salary"}
               </Button>
             ) : null}
           </div>
@@ -247,11 +254,61 @@ export function PayrollStaffDrawer({
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">Monthly base</dt>
               <dd className="tabular-nums font-semibold">
-                {Number(row.baseSalary) > 0
-                  ? formatPayrollMoney(row.baseSalary)
+                {Number(row.monthlySalary ?? row.baseSalary) > 0
+                  ? formatPayrollMoney(row.monthlySalary ?? row.baseSalary)
                   : "Not set"}
               </dd>
             </div>
+            {payrollProrationDaysLabel(row.prorationFactor, year, month) ? (
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">
+                  This month (prorated)
+                </dt>
+                <dd className="text-right">
+                  <span className="tabular-nums font-semibold">
+                    {formatPayrollMoney(row.baseSalary)}
+                  </span>
+                  <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                    {payrollProrationDaysLabel(
+                      row.prorationFactor,
+                      year,
+                      month,
+                    )}
+                  </span>
+                </dd>
+              </div>
+            ) : null}
+            {canManagePayroll && Number(row.monthlySalary ?? row.baseSalary) > 0 ? (
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-none border border-border/50 bg-muted/20 px-3 py-2">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 accent-[var(--pos-primary,#0f766e)]"
+                  checked={row.prorateJoinMonth !== false}
+                  disabled={savingProration}
+                  onChange={(e) => {
+                    void (async () => {
+                      setSavingProration(true);
+                      try {
+                        await updateStaffProfile(row.userId, {
+                          prorateJoinMonth: e.target.checked,
+                        });
+                        onProrationSettingChanged?.();
+                      } finally {
+                        setSavingProration(false);
+                      }
+                    })();
+                  }}
+                />
+                <span className="min-w-0 text-xs">
+                  <span className="block font-medium text-foreground">
+                    Prorate mid-month join
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                    Off = always pay full monthly amount for this person.
+                  </span>
+                </span>
+              </label>
+            ) : null}
             {row.salaryEffectiveFrom ? (
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">Effective from</dt>
@@ -454,7 +511,14 @@ export function PayrollStaffDrawer({
         }
       >
         <div className="grid gap-2 sm:grid-cols-3">
-          <MiniStat label="Base" value={formatPayrollMoney(row.baseSalary)} />
+          <MiniStat
+            label={
+              payrollProrationDaysLabel(row.prorationFactor, year, month)
+                ? "This month"
+                : "Base"
+            }
+            value={formatPayrollMoney(row.baseSalary)}
+          />
           <MiniStat
             label="Statutory"
             value={

@@ -165,6 +165,9 @@ export default function PayrollPage() {
         statutory: applyStatutory,
       });
       setRows(data);
+      setSelectedRow((prev) =>
+        prev ? (data.find((r) => r.userId === prev.userId) ?? prev) : prev,
+      );
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load payroll run",
@@ -220,8 +223,9 @@ export default function PayrollPage() {
   function openSalary(row: PayrollRunRow) {
     setSalaryUserId(row.userId);
     setSalaryName(row.displayName);
-    setSalaryCurrent(Number(row.baseSalary) || 0);
-    setSalaryAmount(row.baseSalary > 0 ? String(Number(row.baseSalary)) : "");
+    const monthly = Number(row.monthlySalary ?? row.baseSalary) || 0;
+    setSalaryCurrent(monthly);
+    setSalaryAmount(monthly > 0 ? String(monthly) : "");
     setSalaryFrom(
       row.salaryEffectiveFrom?.trim() ||
         localPayrollYmd(),
@@ -289,6 +293,7 @@ export default function PayrollPage() {
         branchId: branchFilter || undefined,
         advancesToDeduct: payload.advancesToDeduct,
         includeArrears: true,
+        skipProration: payload.skipProration || undefined,
       });
       setPayConfirmOpen(false);
       const arrearNote = payRow.arrearPeriods?.length
@@ -483,6 +488,8 @@ export default function PayrollPage() {
 
                 <PayrollRunPanel
                   rows={rows}
+                  year={year}
+                  month={month}
                   applyStatutoryPreview={applyStatutory}
                   onSelectRow={openStaffDrawer}
                 />
@@ -550,6 +557,9 @@ export default function PayrollPage() {
             ? () => openSmsForRow(selectedRow)
             : undefined
         }
+        onProrationSettingChanged={() => {
+          void load();
+        }}
       />
 
       <StaffSmsDrawer
@@ -680,7 +690,7 @@ export default function PayrollPage() {
       >
         <FormDrawerFields
           legend="Monthly amount"
-          hint="Changing only the date updates when the current amount started. A new amount adds a raise — previous amounts stay in history."
+          hint="Start date (or this effective date) drives first-month pay when proration is on. You can turn proration off per person or pay full month once when confirming pay."
         >
           <div className="grid gap-3">
             {salaryCurrent > 0 ? (

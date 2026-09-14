@@ -24,7 +24,6 @@ import {
   formatPayrollMoney,
   payrollArrearMonthsLabel,
   payrollArrearsNet,
-  payrollCombinedBase,
   payrollMonthLabel,
 } from "@/lib/payroll-utils";
 
@@ -41,6 +40,8 @@ export type PayConfirmPayload = {
   postExpense: boolean;
   paymentMethod: string;
   advancesToDeduct: number;
+  /** One-off: pay full monthly amount for this period. */
+  skipProration: boolean;
 };
 
 type Props = {
@@ -77,6 +78,7 @@ export function PayConfirmDrawer({
   const [deductionPreset, setDeductionPreset] = useState<
     "scheduled" | "full" | "half" | "none" | "custom"
   >("scheduled");
+  const [skipProration, setSkipProration] = useState(false);
 
   useEffect(() => {
     if (!open || !row) return;
@@ -86,6 +88,7 @@ export function PayConfirmDrawer({
     setPostExpense(postExpenseDefault);
     setPaymentMethod("mpesa_manual");
     setDeductionPreset("scheduled");
+    setSkipProration(false);
     setAdvances([]);
     setLoadingAdvances(true);
     void fetchStaffAdvances(row.userId)
@@ -98,7 +101,13 @@ export function PayConfirmDrawer({
   }, [open, row, applyStatutoryDefault, postExpenseDefault]);
 
   const other = Number(otherDeductions) || 0;
-  const combinedBase = row ? payrollCombinedBase(row) : 0;
+  const periodBase =
+    row && skipProration
+      ? Number(row.monthlySalary ?? row.baseSalary)
+      : Number(row?.baseSalary ?? 0);
+  const combinedBase = row
+    ? periodBase + Number(row.arrearsBaseTotal ?? 0)
+    : 0;
   const currentStatutory = applyStatutory
     ? Number(row?.statutoryTotal) || 0
     : 0;
@@ -257,6 +266,7 @@ export function PayConfirmDrawer({
                 postExpense,
                 paymentMethod,
                 advancesToDeduct: advancesApplied,
+                skipProration,
               })
             }
           >
@@ -462,11 +472,33 @@ export function PayConfirmDrawer({
         </FormDrawerFields>
 
         <FormDrawerFields legend="Summary & finance">
+          {Number(row.monthlySalary ?? 0) > Number(row.baseSalary) &&
+          row.prorateJoinMonth !== false ? (
+            <label className="mb-3 flex cursor-pointer items-start gap-2.5 rounded-none border border-border/60 bg-muted/20 px-3 py-2.5">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 accent-[var(--pos-primary,#0f766e)]"
+                checked={skipProration}
+                onChange={(e) => setSkipProration(e.target.checked)}
+              />
+              <span className="min-w-0 text-xs">
+                <span className="block font-medium text-foreground">
+                  Pay full month this time
+                </span>
+                <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                  Skip proration for this payment only (
+                  {formatPayrollMoney(row.monthlySalary)} instead of{" "}
+                  {formatPayrollMoney(row.baseSalary)}). Does not change their
+                  profile setting.
+                </span>
+              </span>
+            </label>
+          ) : null}
           <dl className="space-y-2 rounded-none border border-border/50 bg-muted/25 p-4 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">This period</dt>
               <dd className="tabular-nums font-medium">
-                {formatPayrollMoney(row.baseSalary)}
+                {formatPayrollMoney(periodBase)}
               </dd>
             </div>
             {(row.arrearPeriods?.length ?? 0) > 0 ? (

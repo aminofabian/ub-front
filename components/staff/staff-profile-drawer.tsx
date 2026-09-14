@@ -43,6 +43,7 @@ type ProfileDraft = {
   startDate: string;
   employmentStatus: string;
   includeInPayroll: boolean;
+  prorateJoinMonth: boolean;
   phone: string;
   address: string;
   nationalId: string;
@@ -62,6 +63,7 @@ const EMPTY_DRAFT: ProfileDraft = {
   startDate: "",
   employmentStatus: "active",
   includeInPayroll: true,
+  prorateJoinMonth: true,
   phone: "",
   address: "",
   nationalId: "",
@@ -83,6 +85,7 @@ function draftFromProfile(profile: StaffProfileRecord): ProfileDraft {
     startDate: profile.publicFields.startDate ?? "",
     employmentStatus: profile.publicFields.employmentStatus || "active",
     includeInPayroll: profile.publicFields.includeInPayroll !== false,
+    prorateJoinMonth: profile.publicFields.prorateJoinMonth !== false,
     phone: profile.privateFields?.phone ?? "",
     address: profile.privateFields?.address ?? "",
     nationalId: profile.privateFields?.nationalId ?? "",
@@ -182,6 +185,7 @@ export function StaffProfileDrawer({
         startDate: draft.startDate || null,
         employmentStatus: draft.employmentStatus,
         includeInPayroll: draft.includeInPayroll,
+        prorateJoinMonth: draft.prorateJoinMonth,
         phone: draft.phone,
         address: draft.address,
         nationalId: draft.nationalId,
@@ -323,6 +327,10 @@ export function StaffProfileDrawer({
                     setDraft((p) => ({ ...p, startDate: e.target.value }))
                   }
                 />
+                <span className="font-normal text-[11px] text-muted-foreground/90">
+                  Mid-month starts are paid for remaining calendar days that
+                  month.
+                </span>
               </label>
               <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                 Employment status
@@ -362,6 +370,29 @@ export function StaffProfileDrawer({
                   <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
                     When off, this person stays on the team but is hidden from pay
                     runs. Use this for owners or unpaid helpers.
+                  </span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 rounded-none border border-border/60 bg-muted/20 px-3 py-2.5 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 accent-[var(--pos-primary,#0f766e)]"
+                  checked={draft.prorateJoinMonth}
+                  disabled={!canUpdate}
+                  onChange={(e) =>
+                    setDraft((p) => ({
+                      ...p,
+                      prorateJoinMonth: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="min-w-0">
+                  <span className="block text-xs font-medium text-foreground">
+                    Prorate mid-month join
+                  </span>
+                  <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
+                    When on, the first month pays only calendar days from their
+                    start date. Turn off to always pay the full monthly amount.
                   </span>
                 </span>
               </label>
@@ -504,7 +535,7 @@ export function StaffProfileDrawer({
           {canViewPayroll ? (
             <FormDrawerFields
               legend="Salary"
-              hint="Same amount with a new date updates when it started. A different amount adds a raise — history keeps prior amounts."
+              hint="Same amount with a new date updates when it started. A different amount adds a raise. First-month pay uses start date (or effective from) and prorates by calendar days."
             >
               <ul className="space-y-1.5 text-sm">
                 {salaries.length === 0 ? (

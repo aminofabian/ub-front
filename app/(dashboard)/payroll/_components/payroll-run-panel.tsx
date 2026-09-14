@@ -14,6 +14,7 @@ import {
   formatPayrollDate,
   formatPayrollMoney,
   payrollArrearSummary,
+  payrollProrationDaysLabel,
   payrollShortMonth,
 } from "@/lib/payroll-utils";
 
@@ -21,12 +22,16 @@ type StatusFilter = "all" | "pending" | "paid" | "attention";
 
 type Props = {
   rows: PayrollRunRow[];
+  year: number;
+  month: number;
   applyStatutoryPreview: boolean;
   onSelectRow: (row: PayrollRunRow) => void;
 };
 
 export function PayrollRunPanel({
   rows,
+  year,
+  month,
   applyStatutoryPreview,
   onSelectRow,
 }: Props) {
@@ -223,7 +228,23 @@ export function PayrollRunPanel({
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
                       {row.baseSalary > 0 ? (
-                        formatPayrollMoney(row.baseSalary)
+                        <span>
+                          {formatPayrollMoney(row.baseSalary)}
+                          {payrollProrationDaysLabel(
+                            row.prorationFactor,
+                            year,
+                            month,
+                          ) ? (
+                            <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                              Prorated ·{" "}
+                              {payrollProrationDaysLabel(
+                                row.prorationFactor,
+                                year,
+                                month,
+                              )}
+                            </span>
+                          ) : null}
+                        </span>
                       ) : (
                         <span className="text-amber-700 dark:text-amber-300">
                           —
