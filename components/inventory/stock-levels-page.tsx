@@ -8,10 +8,13 @@ import {
   Check,
   ClipboardList,
   Lock,
+  Minus,
   Package,
   Pencil,
+  Plus,
   RefreshCw,
   Search,
+  SlidersHorizontal,
   Warehouse,
   X,
 } from "lucide-react";
@@ -423,6 +426,62 @@ function StockStatCard({
   );
 }
 
+/** Mobile status chip — larger tap target than the desktop strip. */
+function MobileStatusChip({
+  label,
+  value,
+  active,
+  tone = "default",
+  onClick,
+}: StockStatCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-10 shrink-0 items-center gap-1.5 border px-3 text-[12px] tracking-[-0.01em] transition-colors",
+        stockHair,
+        active
+          ? tone === "loss"
+            ? "border-orange-600 bg-orange-600 font-semibold text-white"
+            : "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] font-semibold text-white"
+          : cn(
+              "bg-white font-medium",
+              stockMute,
+              "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
+            ),
+      )}
+    >
+      <span>{label}</span>
+      <span
+        className={cn(
+          "font-mono text-[12px] tabular-nums",
+          active ? "text-white/90" : "font-semibold",
+          !active &&
+            tone === "success" &&
+            value > 0 &&
+            "text-emerald-700 dark:text-emerald-400",
+          !active &&
+            tone === "warning" &&
+            value > 0 &&
+            "text-amber-700 dark:text-amber-400",
+          !active &&
+            tone === "danger" &&
+            value > 0 &&
+            "text-rose-700 dark:text-rose-400",
+          !active &&
+            tone === "loss" &&
+            value > 0 &&
+            "text-orange-700 dark:text-orange-300",
+          !active && tone === "default" && stockInk,
+        )}
+      >
+        {value.toLocaleString("en-KE")}
+      </span>
+    </button>
+  );
+}
+
 type StockRowItemProps = {
   row: StockRow;
   currency: string;
@@ -470,12 +529,21 @@ function stockStatusMeta(row: StockRow): {
 }
 
 const mobileFieldInput = cn(
-  "h-11 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white",
-  "px-3 text-[15px] leading-none text-[var(--order-ink,#15231f)]",
+  "h-12 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white",
+  "px-3 text-[17px] leading-none text-[var(--order-ink,#15231f)]",
   "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
   "caret-[var(--pos-primary,#0f766e)]",
   "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none",
   "disabled:cursor-not-allowed disabled:opacity-50",
+);
+
+const mobileStepBtn = cn(
+  "inline-flex size-12 shrink-0 items-center justify-center border bg-white transition-colors",
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
+  "text-[var(--order-ink,#15231f)]",
+  "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]",
+  "disabled:cursor-not-allowed disabled:opacity-40",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
 );
 
 type StockMobileCardProps = {
@@ -493,7 +561,7 @@ type StockMobileCardProps = {
   onSaveEdit: () => void;
 };
 
-/** Compact, thumb-friendly Take stock row for small screens. */
+/** Thumb-first Take stock row — tap qty, step ±1, save in one place. */
 function StockMobileCard({
   row,
   currency,
@@ -510,8 +578,21 @@ function StockMobileCard({
 }: StockMobileCardProps) {
   const { out, low, loss, label, className: statusClass } = stockStatusMeta(row);
   const target = Number(editQty.trim());
-  const showCost =
-    editing && Number.isFinite(target) && target > row.stock;
+  const targetOk = editQty.trim() !== "" && Number.isFinite(target) && target >= 0;
+  const showCost = editing && targetOk && target > row.stock;
+  const delta =
+    editing && targetOk
+      ? Math.round((target - row.stock) * 10000) / 10000
+      : 0;
+  const metaBits = [row.shelfName, row.barcode || row.sku].filter(Boolean);
+  const canEdit = canWrite && row.editable;
+
+  const bumpQty = (step: number) => {
+    const current = Number(editQty.trim());
+    const base = Number.isFinite(current) ? current : row.stock;
+    const next = Math.max(0, Math.round((base + step) * 10000) / 10000);
+    onEditQtyChange(String(next));
+  };
 
   return (
     <article
@@ -519,15 +600,17 @@ function StockMobileCard({
         "px-3 py-3.5 transition-colors",
         loss && "bg-orange-500/[0.06] dark:bg-orange-400/[0.09]",
         editing &&
-          "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
+          "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
+        out && !editing && "bg-rose-500/[0.04]",
+        low && !editing && !out && "bg-amber-500/[0.04]",
       )}
     >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-2">
             <p
               className={cn(
-                "text-[15px] font-semibold leading-snug tracking-[-0.015em]",
+                "min-w-0 flex-1 text-[15px] font-semibold leading-snug tracking-[-0.015em]",
                 stockInk,
               )}
             >
@@ -535,89 +618,120 @@ function StockMobileCard({
             </p>
             <span
               className={cn(
-                "inline-flex shrink-0 items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                "mt-0.5 inline-flex shrink-0 items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                 statusClass,
               )}
             >
               {label}
             </span>
           </div>
-          {row.barcode ? (
-            <p
-              className={cn(
-                "mt-1 font-mono text-[13px] tabular-nums tracking-wide",
-                stockInk,
-              )}
-            >
-              {row.barcode}
+          {metaBits.length > 0 ? (
+            <p className={cn("mt-1 truncate text-[12px] tabular-nums", stockMute)}>
+              {metaBits.join(" · ")}
             </p>
           ) : null}
-          <p className={cn("mt-0.5 truncate text-[11px]", stockMute)}>
-            {[row.sku, row.shelfName].filter(Boolean).join(" · ") || "—"}
+          <p className={cn("mt-1 text-[11px] tabular-nums", stockMute)}>
+            Buy {fmtMoney(row.buyPrice, currency)}
+            <span className="mx-1.5 opacity-40">·</span>
+            Sell {fmtMoney(row.sellPrice, currency)}
+            {row.reorderLevel != null && row.reorderLevel > 0 ? (
+              <>
+                <span className="mx-1.5 opacity-40">·</span>
+                Reorder {row.reorderLevel.toLocaleString("en-KE")}
+              </>
+            ) : null}
           </p>
         </div>
 
         {!editing ? (
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <span
-              className={cn(
-                "font-mono text-[1.35rem] font-semibold tabular-nums leading-none tracking-[-0.02em]",
-                out || low
-                  ? "text-rose-700 dark:text-rose-300"
-                  : stockInk,
-              )}
-            >
-              {row.stock.toLocaleString("en-KE")}
-            </span>
-            <span className={cn("text-[10px] font-medium", stockMute)}>
-              on shelf
-            </span>
-          </div>
-        ) : null}
-      </div>
-
-      {!editing ? (
-        <div className="mt-2.5 flex items-center justify-between gap-3">
-          <p className={cn("min-w-0 truncate text-[11px] tabular-nums", stockMute)}>
-            Buy {fmtMoney(row.buyPrice, currency)}
-            <span className="mx-1.5 opacity-40">·</span>
-            Sell {fmtMoney(row.sellPrice, currency)}
-          </p>
-          {canWrite && row.editable ? (
+          canEdit ? (
             <button
               type="button"
               onClick={onStartEdit}
               className={cn(
-                "inline-flex h-9 shrink-0 items-center gap-1.5 border px-3 text-[12px] font-semibold transition-colors",
+                "flex min-w-[4.5rem] shrink-0 flex-col items-end justify-center gap-0.5 self-stretch border px-2.5 py-2 text-right transition-colors",
                 stockHair,
-                stockInk,
-                "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+                "active:border-[var(--pos-primary,#0f766e)] active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
               )}
+              aria-label={`Set shelf qty for ${row.name}, currently ${row.stock}`}
             >
-              <Pencil className="size-3.5" aria-hidden />
-              Set qty
-            </button>
-          ) : !row.editable ? (
-            <span className={cn("text-[11px]", stockMute)}>Parent SKU</span>
-          ) : null}
-        </div>
-      ) : (
-        <div className="mt-3 space-y-2.5">
-          <div
-            className={cn(
-              "grid gap-2",
-              showCost ? "grid-cols-2" : "grid-cols-1",
-            )}
-          >
-            <label className="block min-w-0">
               <span
                 className={cn(
-                  "mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em]",
-                  stockMute,
+                  "font-mono text-[1.5rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+                  out || low
+                    ? "text-rose-700 dark:text-rose-300"
+                    : stockInk,
                 )}
               >
-                On shelf now
+                {row.stock.toLocaleString("en-KE")}
               </span>
+              <span
+                className={cn(
+                  "text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-primary,#0f766e)]",
+                )}
+              >
+                Edit
+              </span>
+            </button>
+          ) : (
+            <div className="flex min-w-[4.5rem] shrink-0 flex-col items-end gap-0.5 px-1 py-1">
+              <span
+                className={cn(
+                  "font-mono text-[1.5rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+                  out || low
+                    ? "text-rose-700 dark:text-rose-300"
+                    : stockInk,
+                )}
+              >
+                {row.stock.toLocaleString("en-KE")}
+              </span>
+              <span className={cn("text-[10px] font-medium", stockMute)}>
+                {row.editable ? "on shelf" : "parent SKU"}
+              </span>
+            </div>
+          )
+        ) : null}
+      </div>
+
+      {editing ? (
+        <div className="mt-3 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className={cn("text-[12px]", stockMute)}>
+              System{" "}
+              <span className={cn("font-mono font-semibold tabular-nums", stockInk)}>
+                {row.stock.toLocaleString("en-KE")}
+              </span>
+            </p>
+            {targetOk && Math.abs(delta) >= 0.0001 ? (
+              <p
+                className={cn(
+                  "font-mono text-[12px] font-semibold tabular-nums",
+                  delta > 0
+                    ? "text-emerald-700 dark:text-emerald-400"
+                    : "text-rose-700 dark:text-rose-300",
+                )}
+              >
+                {delta > 0 ? "+" : ""}
+                {delta.toLocaleString("en-KE")} to shelf
+              </p>
+            ) : (
+              <p className={cn("text-[12px]", stockMute)}>No change yet</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => bumpQty(-1)}
+              disabled={saving || (targetOk && target <= 0)}
+              className={mobileStepBtn}
+              aria-label="Decrease by 1"
+            >
+              <Minus className="size-5" aria-hidden />
+            </button>
+            <label className="min-w-0 flex-1">
+              <span className="sr-only">On shelf now</span>
               <input
                 type="number"
                 inputMode="decimal"
@@ -627,63 +741,83 @@ function StockMobileCard({
                 value={editQty}
                 disabled={saving}
                 onChange={(e) => onEditQtyChange(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onSaveEdit();
+                  if (e.key === "Escape") onCancelEdit();
+                }}
+                className={cn(
+                  mobileFieldInput,
+                  "text-center font-mono text-[1.35rem] font-semibold tabular-nums",
+                )}
+                placeholder="0"
+                aria-label={`New stock for ${row.name}`}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => bumpQty(1)}
+              disabled={saving}
+              className={mobileStepBtn}
+              aria-label="Increase by 1"
+            >
+              <Plus className="size-5" aria-hidden />
+            </button>
+          </div>
+
+          {showCost ? (
+            <label className="block min-w-0">
+              <span
+                className={cn(
+                  "mb-1.5 block text-[11px] font-semibold",
+                  stockMute,
+                )}
+              >
+                Unit cost for the +
+                {delta.toLocaleString("en-KE")} added
+              </span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                value={editCost}
+                disabled={saving}
+                onChange={(e) => onEditCostChange(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") onSaveEdit();
                   if (e.key === "Escape") onCancelEdit();
                 }}
                 className={cn(mobileFieldInput, "font-mono tabular-nums")}
-                placeholder="Qty"
-                aria-label={`New stock for ${row.name}`}
+                placeholder="0"
+                aria-label={`Unit cost for ${row.name}`}
               />
             </label>
-            {showCost ? (
-              <label className="block min-w-0">
-                <span
-                  className={cn(
-                    "mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em]",
-                    stockMute,
-                  )}
-                >
-                  Unit cost
-                </span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="any"
-                  value={editCost}
-                  disabled={saving}
-                  onChange={(e) => onEditCostChange(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") onSaveEdit();
-                    if (e.key === "Escape") onCancelEdit();
-                  }}
-                  className={cn(mobileFieldInput, "font-mono tabular-nums")}
-                  placeholder="Cost"
-                  aria-label={`Unit cost for ${row.name}`}
-                />
-              </label>
-            ) : null}
-          </div>
+          ) : null}
+
           <div className="flex gap-2">
             <button
               type="button"
               onClick={onSaveEdit}
-              disabled={saving || !editQty.trim()}
-              className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+              disabled={saving || !targetOk || Math.abs(delta) < 0.0001}
+              className="inline-flex h-12 flex-1 items-center justify-center gap-1.5 bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition-opacity active:opacity-90 disabled:opacity-40"
             >
               <Check className="size-4" aria-hidden />
-              {saving ? "Saving…" : "Save"}
+              {saving
+                ? "Saving…"
+                : targetOk && Math.abs(delta) >= 0.0001
+                  ? `Save · ${target.toLocaleString("en-KE")}`
+                  : "Save"}
             </button>
             <button
               type="button"
               onClick={onCancelEdit}
               disabled={saving}
               className={cn(
-                "inline-flex h-11 items-center justify-center gap-1.5 border px-4 text-[13px] font-medium transition-colors disabled:opacity-40",
+                "inline-flex h-12 items-center justify-center gap-1.5 border px-4 text-[14px] font-medium transition-colors disabled:opacity-40",
                 stockHair,
                 stockMute,
-                "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]",
               )}
             >
               <X className="size-4" aria-hidden />
@@ -691,7 +825,7 @@ function StockMobileCard({
             </button>
           </div>
         </div>
-      )}
+      ) : null}
     </article>
   );
 }
@@ -1076,12 +1210,14 @@ function StockListSkeleton() {
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center gap-3 px-3 py-2.5"
+          className="flex items-start justify-between gap-3 px-3 py-3.5"
         >
-          <div className="h-3 w-40 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]" />
-          <div className="h-3 w-20 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]" />
-          <div className="h-3 w-16 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]" />
-          <div className="ml-auto h-3 w-12 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-3.5 w-[70%] animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]" />
+            <div className="h-2.5 w-[45%] animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]" />
+            <div className="h-2.5 w-[55%] animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)]" />
+          </div>
+          <div className="h-12 w-[4.5rem] shrink-0 animate-pulse border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)]" />
         </div>
       ))}
     </div>
@@ -1193,6 +1329,8 @@ export function StockLevelsPage() {
   const [editCost, setEditCost] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [savingCatalogId, setSavingCatalogId] = useState<string | null>(null);
+  /** Mobile: branch / supplier / sort stay collapsed until needed. */
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const pageRef = useRef(0);
   const hasMoreRef = useRef(false);
@@ -1243,7 +1381,8 @@ export function StockLevelsPage() {
   const startEdit = useCallback((row: StockRow) => {
     setEditId(row.id);
     setEditQty(String(row.stock));
-    setEditCost("");
+    // Prefill catalog buy price so increasing stock rarely needs retyping cost.
+    setEditCost(row.buyPrice != null ? String(row.buyPrice) : "");
   }, []);
 
   const cancelEdit = useCallback(() => {
@@ -1991,38 +2130,6 @@ export function StockLevelsPage() {
     supplierFilterLoading,
   ]);
 
-  const statusFilterOptions = useMemo(
-    () =>
-      [
-        {
-          value: "all" as const,
-          label: "All",
-          meta: stockCounts.total.toLocaleString("en-KE"),
-        },
-        {
-          value: "in_stock" as const,
-          label: "In stock",
-          meta: stockCounts.inStock.toLocaleString("en-KE"),
-        },
-        {
-          value: "low" as const,
-          label: "Low",
-          meta: stockCounts.low.toLocaleString("en-KE"),
-        },
-        {
-          value: "out" as const,
-          label: "Out",
-          meta: stockCounts.out.toLocaleString("en-KE"),
-        },
-        {
-          value: "loss" as const,
-          label: "Loss",
-          meta: stockCounts.loss.toLocaleString("en-KE"),
-        },
-      ] as const,
-    [stockCounts],
-  );
-
   const sortFilterOptions = useMemo(
     () =>
       [
@@ -2219,7 +2326,7 @@ export function StockLevelsPage() {
               stockMute,
               "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
             )}
-            aria-label="Back to Home"
+            aria-label="Back to Stock"
           >
             <ArrowLeft className="size-4" aria-hidden />
           </button>
@@ -2293,154 +2400,356 @@ export function StockLevelsPage() {
             </Link>
           ) : null}
 
-          {/* Status + search + secondary filters — one dense row on mobile */}
+          {/* Search + status + filters — mobile stacks; desktop stays dense */}
           <div
             className={cn(
-              "flex flex-wrap items-center gap-x-1.5 gap-y-1 border-b bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] px-1.5 py-1",
+              "border-b bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]",
               stockHair,
             )}
           >
+            {/* Mobile: search + filters toggle */}
+            <div className="flex items-center gap-2 px-2.5 py-2 sm:hidden">
+              <span className="relative min-w-0 flex-1">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
+                  aria-hidden
+                />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search name, barcode, SKU…"
+                  className={cn(
+                    "h-11 w-full rounded-none border bg-white pl-10 pr-3 text-[15px]",
+                    stockHair,
+                    stockInk,
+                    "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
+                    "caret-[var(--pos-primary,#0f766e)]",
+                    "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none",
+                  )}
+                  aria-label="Search stock"
+                />
+              </span>
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen((v) => !v)}
+                className={cn(
+                  "relative inline-flex h-11 shrink-0 items-center gap-1.5 border bg-white px-3 text-[12px] font-semibold",
+                  stockHair,
+                  stockInk,
+                  mobileFiltersOpen &&
+                    "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
+                )}
+                aria-expanded={mobileFiltersOpen}
+                aria-label="More filters"
+              >
+                <SlidersHorizontal className="size-4" aria-hidden />
+                Filters
+                {supplierId || categoryId || sortBy !== "attention" ? (
+                  <span className="absolute -right-1 -top-1 size-2 rounded-full bg-[var(--pos-primary,#0f766e)]" />
+                ) : null}
+              </button>
+              <button
+                type="button"
+                onClick={() => void load()}
+                disabled={loading || !branchId}
+                className={cn(
+                  "inline-flex size-11 shrink-0 items-center justify-center border bg-white",
+                  stockHair,
+                  "disabled:opacity-50",
+                )}
+                aria-label="Refresh stock"
+              >
+                <RefreshCw
+                  className={cn("size-4", loading && "animate-spin")}
+                  aria-hidden
+                />
+              </button>
+            </div>
+
+            {/* Mobile: status chips */}
             {(rows.length > 0 || loading) && (
-              <>
-                {/* Desktop / tablet: chip strip */}
+              <div
+                className={cn(
+                  "flex gap-1.5 overflow-x-auto px-2.5 pb-2 sm:hidden",
+                  "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                )}
+                role="group"
+                aria-label="Stock status"
+              >
+                <MobileStatusChip
+                  label="All"
+                  value={stockCounts.total}
+                  active={statusFilter === "all"}
+                  onClick={() => setStatusFilter("all")}
+                />
+                <MobileStatusChip
+                  label="Out"
+                  value={stockCounts.out}
+                  active={statusFilter === "out"}
+                  tone="danger"
+                  onClick={() => setStatusFilter("out")}
+                />
+                <MobileStatusChip
+                  label="Low"
+                  value={stockCounts.low}
+                  active={statusFilter === "low"}
+                  tone="warning"
+                  onClick={() => setStatusFilter("low")}
+                />
+                <MobileStatusChip
+                  label="In"
+                  value={stockCounts.inStock}
+                  active={statusFilter === "in_stock"}
+                  tone="success"
+                  onClick={() => setStatusFilter("in_stock")}
+                />
+                <MobileStatusChip
+                  label="Loss"
+                  value={stockCounts.loss}
+                  active={statusFilter === "loss"}
+                  tone="loss"
+                  onClick={() => setStatusFilter("loss")}
+                />
+              </div>
+            )}
+
+            {/* Mobile: secondary filters panel */}
+            {mobileFiltersOpen ? (
+              <div
+                className={cn(
+                  "grid grid-cols-2 gap-2 border-t px-2.5 py-2.5 sm:hidden",
+                  stockHair,
+                )}
+              >
+                {!isBranchLockedRole ? (
+                  <label className="col-span-2 block min-w-0">
+                    <span
+                      className={cn(
+                        "mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em]",
+                        stockMute,
+                      )}
+                    >
+                      Branch
+                    </span>
+                    <select
+                      value={branchId}
+                      onChange={(e) => onChangeBranch(e.target.value)}
+                      className={cn(
+                        "h-11 w-full cursor-pointer border bg-white px-3 text-[14px]",
+                        stockHair,
+                        stockInk,
+                      )}
+                      aria-label="Branch"
+                    >
+                      <option value="">Choose branch…</option>
+                      {branches
+                        .filter((b) => b.active || b.id === branchId)
+                        .map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                ) : null}
+                <div className="min-w-0">
+                  <span
+                    className={cn(
+                      "mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em]",
+                      stockMute,
+                    )}
+                  >
+                    Category
+                  </span>
+                  <StockFilterMenu
+                    className="w-full [&_button]:h-11 [&_button]:text-[13px]"
+                    label="Category"
+                    value={categoryId}
+                    options={categoryFilterOptions}
+                    onChange={setCategoryId}
+                    disabled={!branchId}
+                    wide
+                  />
+                </div>
+                <div className="min-w-0">
+                  <span
+                    className={cn(
+                      "mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em]",
+                      stockMute,
+                    )}
+                  >
+                    Supplier
+                  </span>
+                  <StockFilterMenu
+                    className="w-full [&_button]:h-11 [&_button]:text-[13px]"
+                    label="Supplier"
+                    value={supplierId}
+                    options={supplierFilterOptions}
+                    onChange={setSupplierId}
+                    disabled={!branchId || suppliers.length === 0}
+                    wide
+                  />
+                </div>
+                <div className="col-span-2 min-w-0">
+                  <span
+                    className={cn(
+                      "mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em]",
+                      stockMute,
+                    )}
+                  >
+                    Sort
+                  </span>
+                  <StockFilterMenu
+                    className="w-full [&_button]:h-11 [&_button]:text-[13px]"
+                    label="Sort"
+                    value={sortBy}
+                    options={sortFilterOptions}
+                    onChange={setSortBy}
+                    disabled={!branchId}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {/* Desktop / tablet: dense one-row toolbar */}
+            <div
+              className={cn(
+                "hidden flex-wrap items-center gap-x-1.5 gap-y-1 px-1.5 py-1 sm:flex",
+              )}
+            >
+              {(rows.length > 0 || loading) && (
                 <div
                   className={cn(
-                    "hidden max-w-full overflow-hidden border bg-white sm:inline-flex",
+                    "max-w-full overflow-hidden border bg-white",
                     stockHair,
                   )}
                   role="group"
                   aria-label="Stock summary"
                 >
-                  <StockStatCard
-                    label="All"
-                    value={stockCounts.total}
-                    active={statusFilter === "all"}
-                    onClick={() => setStatusFilter("all")}
-                  />
-                  <StockStatCard
-                    label="In"
-                    value={stockCounts.inStock}
-                    active={statusFilter === "in_stock"}
-                    tone="success"
-                    onClick={() => setStatusFilter("in_stock")}
-                  />
-                  <StockStatCard
-                    label="Low"
-                    value={stockCounts.low}
-                    active={statusFilter === "low"}
-                    tone="warning"
-                    onClick={() => setStatusFilter("low")}
-                  />
-                  <StockStatCard
-                    label="Out"
-                    value={stockCounts.out}
-                    active={statusFilter === "out"}
-                    tone="danger"
-                    onClick={() => setStatusFilter("out")}
-                  />
-                  <StockStatCard
-                    label="Loss"
-                    value={stockCounts.loss}
-                    active={statusFilter === "loss"}
-                    tone="loss"
-                    onClick={() => setStatusFilter("loss")}
-                  />
+                  <div className="inline-flex">
+                    <StockStatCard
+                      label="All"
+                      value={stockCounts.total}
+                      active={statusFilter === "all"}
+                      onClick={() => setStatusFilter("all")}
+                    />
+                    <StockStatCard
+                      label="In"
+                      value={stockCounts.inStock}
+                      active={statusFilter === "in_stock"}
+                      tone="success"
+                      onClick={() => setStatusFilter("in_stock")}
+                    />
+                    <StockStatCard
+                      label="Low"
+                      value={stockCounts.low}
+                      active={statusFilter === "low"}
+                      tone="warning"
+                      onClick={() => setStatusFilter("low")}
+                    />
+                    <StockStatCard
+                      label="Out"
+                      value={stockCounts.out}
+                      active={statusFilter === "out"}
+                      tone="danger"
+                      onClick={() => setStatusFilter("out")}
+                    />
+                    <StockStatCard
+                      label="Loss"
+                      value={stockCounts.loss}
+                      active={statusFilter === "loss"}
+                      tone="loss"
+                      onClick={() => setStatusFilter("loss")}
+                    />
+                  </div>
                 </div>
+              )}
 
-                {/* Mobile: light custom status menu (avoids OS dark picker) */}
-                <StockFilterMenu
-                  className="w-[7.25rem] sm:hidden"
-                  label="Stock status"
-                  value={statusFilter}
-                  options={statusFilterOptions}
-                  onChange={setStatusFilter}
+              <span className="relative min-w-0 flex-1 basis-[8rem]">
+                <Search
+                  className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
+                  aria-hidden
                 />
-              </>
-            )}
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search…"
+                  className={cn(stockTool, "w-full pl-7")}
+                  aria-label="Search stock"
+                />
+              </span>
 
-            <span className="relative min-w-0 flex-1 basis-[8rem]">
-              <Search
-                className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
-                aria-hidden
-              />
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search…"
-                className={cn(stockTool, "w-full pl-7")}
-                aria-label="Search stock"
-              />
-            </span>
+              {!isBranchLockedRole ? (
+                <select
+                  value={branchId}
+                  onChange={(e) => onChangeBranch(e.target.value)}
+                  className={cn(
+                    stockTool,
+                    "w-[8.25rem] cursor-pointer py-0",
+                  )}
+                  aria-label="Branch"
+                >
+                  <option value="">Branch…</option>
+                  {branches
+                    .filter((b) => b.active || b.id === branchId)
+                    .map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                </select>
+              ) : null}
 
-            {!isBranchLockedRole ? (
-              <select
-                value={branchId}
-                onChange={(e) => onChangeBranch(e.target.value)}
+              <StockFilterMenu
+                className="w-[8.75rem]"
+                label="Category"
+                value={categoryId}
+                options={categoryFilterOptions}
+                onChange={setCategoryId}
+                disabled={!branchId}
+                wide
+              />
+
+              <StockFilterMenu
+                className="w-[9.5rem]"
+                label="Supplier"
+                value={supplierId}
+                options={supplierFilterOptions}
+                onChange={setSupplierId}
+                disabled={!branchId || suppliers.length === 0}
+                wide
+              />
+
+              <StockFilterMenu
+                className="w-[9.25rem]"
+                label="Sort"
+                value={sortBy}
+                options={sortFilterOptions}
+                onChange={setSortBy}
+                disabled={!branchId}
+                align="end"
+              />
+
+              <button
+                type="button"
+                onClick={() => void load()}
+                disabled={loading || !branchId}
                 className={cn(
                   stockTool,
-                  "w-[6.5rem] cursor-pointer py-0 sm:w-[8.25rem]",
+                  "inline-flex size-7 shrink-0 items-center justify-center px-0",
+                  "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+                  "disabled:opacity-50",
                 )}
-                aria-label="Branch"
+                aria-label="Refresh stock"
               >
-                <option value="">Branch…</option>
-                {branches
-                  .filter((b) => b.active || b.id === branchId)
-                  .map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-              </select>
-            ) : null}
-
-            <StockFilterMenu
-              className="hidden w-[8.75rem] sm:block"
-              label="Category"
-              value={categoryId}
-              options={categoryFilterOptions}
-              onChange={setCategoryId}
-              disabled={!branchId}
-              wide
-            />
-
-            <StockFilterMenu
-              className="w-[7.5rem] sm:w-[9.5rem]"
-              label="Supplier"
-              value={supplierId}
-              options={supplierFilterOptions}
-              onChange={setSupplierId}
-              disabled={!branchId || suppliers.length === 0}
-              wide
-            />
-
-            <StockFilterMenu
-              className="w-[6.25rem] sm:w-[9.25rem]"
-              label="Sort"
-              value={sortBy}
-              options={sortFilterOptions}
-              onChange={setSortBy}
-              disabled={!branchId}
-              align="end"
-            />
-
-            <button
-              type="button"
-              onClick={() => void load()}
-              disabled={loading || !branchId}
-              className={cn(
-                stockTool,
-                "inline-flex size-7 shrink-0 items-center justify-center px-0",
-                "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
-                "disabled:opacity-50",
-              )}
-              aria-label="Refresh stock"
-            >
-              <RefreshCw
-                className={cn("size-3.5", loading && "animate-spin")}
-                aria-hidden
-              />
-            </button>
+                <RefreshCw
+                  className={cn("size-3.5", loading && "animate-spin")}
+                  aria-hidden
+                />
+              </button>
+            </div>
           </div>
 
           {error ? (
@@ -2452,12 +2761,22 @@ export function StockLevelsPage() {
           {!canWrite && !canCatalogWrite && rows.length > 0 ? (
             <p
               className={cn(
-                "border-b px-3 py-1 text-[11px]",
+                "border-b px-3 py-1.5 text-[11px]",
                 stockHair,
                 stockMute,
               )}
             >
               View-only — ask an admin for stock or catalog edit access.
+            </p>
+          ) : canWrite && rows.length > 0 ? (
+            <p
+              className={cn(
+                "border-b px-3 py-1.5 text-[12px] sm:hidden",
+                stockHair,
+                stockMute,
+              )}
+            >
+              Tap a qty to set what’s on the shelf. Use − / + for quick changes.
             </p>
           ) : null}
 
@@ -2492,7 +2811,7 @@ export function StockLevelsPage() {
           ) : (
             <div
               ref={scrollRef}
-              className="max-h-[min(74vh,56rem)] overflow-auto selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)]"
+              className="max-h-[min(70dvh,56rem)] overflow-auto overscroll-contain selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)] sm:max-h-[min(74vh,56rem)]"
             >
               {/* Mobile: stacked cards — edit stock without horizontal scroll */}
               <div

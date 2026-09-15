@@ -513,7 +513,7 @@ export default function InventoryMissingImagesPage() {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2.5 py-1 sm:px-3">
             <div className="flex min-w-0 items-center gap-2">
               <Link
-                href="/inventory"
+                href="/inventory/stock"
                 className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
                 aria-label="Back to inventory"
               >

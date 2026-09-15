@@ -70,10 +70,11 @@ export function StockActionHub({
             ink,
           )}
         >
-          Home
+          Stock
         </h1>
         <p className={cn("mt-1.5 max-w-md text-[13px] leading-snug", mute)}>
-          Jump into Take stock to set shelf qty, or receive and order from here.
+          Check what’s on the shelf, then set qty in Take stock. Order and receive
+          live here too.
           {placeLine ? (
             <span className="mt-1 block text-[12px] tracking-[-0.01em]">
               {placeLine}
