@@ -121,6 +121,74 @@ function Panel({
   );
 }
 
+/** Desktop filter rail: a compact radio list that slices the board. */
+function SlicerPanel({
+  title,
+  name,
+  items,
+  value,
+  onChange,
+  onClear,
+}: {
+  title: string;
+  name: string;
+  items: { id: string; label: string }[];
+  value: string;
+  onChange: (id: string) => void;
+  onClear?: () => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={title}
+      className="border border-border px-2.5 py-2.5"
+    >
+      <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
+        <SectionTitle>{title}</SectionTitle>
+        {onClear && value ? (
+          <button
+            type="button"
+            onClick={onClear}
+            className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="size-3" aria-hidden />
+            Clear
+          </button>
+        ) : null}
+      </div>
+      <div className="space-y-px">
+        {items.map((item) => {
+          const selected = item.id === value;
+          return (
+            <label
+              key={item.id || "all"}
+              className={cn(
+                "flex cursor-pointer items-center justify-between gap-2 px-2 py-1.5 text-[12px] tracking-[-0.01em] transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring",
+                selected
+                  ? "bg-foreground font-semibold text-background"
+                  : "text-foreground hover:bg-muted/50",
+              )}
+            >
+              <span className="truncate">{item.label}</span>
+              <input
+                type="radio"
+                name={name}
+                value={item.id}
+                checked={selected}
+                onChange={() => onChange(item.id)}
+                className="sr-only"
+              />
+              {selected ? (
+                <Check className="size-3 shrink-0" aria-hidden />
+              ) : null}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ChartCard({
   title,
   children,
