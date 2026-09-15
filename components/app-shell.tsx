@@ -1014,8 +1014,10 @@ export function AppShell({ children }: AppShellProps) {
   // at 1366px — in native-app mode; only wide desktop monitors get the sidebar.
   const desktopChromeVisible = "hidden 2xl:flex";
   const tabletChromeVisible = "2xl:hidden";
+  // Phone/tablet: edge-flush canvas + clearance for the fixed tab bar only.
+  // Desktop (2xl): classic inset padding; sidebar replaces the tab bar.
   const mainContentPadding =
-    "p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:p-6 2xl:pb-6";
+    "px-3 pt-2 pb-[calc(3.85rem+env(safe-area-inset-bottom,0px))] sm:px-4 sm:pt-3 2xl:p-6 2xl:pb-6";
   const homeHref = resolvePostAuthDestination(me, null, business);
   const canViewPaymentGateways = hasPermission(
     me?.permissions,

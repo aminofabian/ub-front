@@ -51,73 +51,76 @@ export function BusinessPageLayout({
     <div
       className={cn(
         "hub-paper relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col",
-        "px-3 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] pt-1.5",
-        "sm:px-5 sm:pb-6 sm:pt-2.5",
+        // Shell already clears the tab bar — don't stack a second bottom pad.
+        "px-0 pb-0 pt-0",
+        "sm:px-1 sm:pb-4 sm:pt-1",
         className,
       )}
       style={BUSINESS_HUB_VARS}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col gap-2.5 sm:gap-3">
-        {showNav || showToolbar || stage ? (
-          <div
-            className={cn(
-              "sticky top-0 z-20 shrink-0 overflow-hidden border bg-white",
-              "border-[color-mix(in_srgb,var(--hub-ink)_12%,transparent)]",
-            )}
-          >
-            {showNav ? (
-              <div className="p-0.5">
-                <BusinessHubNav setupHome={setupHome} />
-              </div>
-            ) : null}
+      <div className="relative flex min-h-0 flex-1 flex-col gap-2 sm:gap-3">
+        <div
+          className={cn(
+            "sticky top-0 z-20 shrink-0 overflow-hidden border-b bg-white/92",
+            "border-[color-mix(in_srgb,var(--hub-ink)_10%,transparent)]",
+            "backdrop-blur-xl supports-[backdrop-filter]:bg-white/80",
+            // Edge-flush under shell gutters on phone
+            "-mx-3 sm:mx-0 sm:border",
+          )}
+        >
+          {/* Phone: Settings/Pay/Config/Users live under More → Jump to */}
+          {showNav ? (
+            <div className="hidden p-0.5 sm:block">
+              <BusinessHubNav setupHome={setupHome} />
+            </div>
+          ) : null}
 
-            {showToolbar ? (
-              <div
-                className={cn(
-                  "flex items-center gap-2 px-2 py-1.5",
-                  showNav &&
-                    "border-t border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
-                  toolbarLeading ? "justify-between" : "justify-end",
-                )}
-              >
-                {toolbarLeading ? (
-                  <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                    {toolbarLeading}
-                  </div>
-                ) : null}
-                <div className="flex shrink-0 items-center gap-1">
-                  <OnlineStoreHeaderSwitch />
-                  {headerActions}
+          {showToolbar ? (
+            <div
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 sm:px-2 sm:py-1.5",
+                showNav &&
+                  "sm:border-t sm:border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
+                toolbarLeading ? "justify-between" : "justify-end",
+              )}
+            >
+              {toolbarLeading ? (
+                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                  {toolbarLeading}
                 </div>
-              </div>
-            ) : (
-              <div
-                className={cn(
-                  "flex justify-end px-2 py-1.5",
-                  showNav &&
-                    "border-t border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
-                )}
-              >
+              ) : null}
+              <div className="flex shrink-0 items-center gap-1">
                 <OnlineStoreHeaderSwitch />
+                {headerActions}
               </div>
-            )}
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "flex justify-end px-3 py-2 sm:px-2 sm:py-1.5",
+                showNav &&
+                  "sm:border-t sm:border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
+              )}
+            >
+              <OnlineStoreHeaderSwitch />
+            </div>
+          )}
 
-            {stage ? (
-              <div
-                className={cn(
-                  "px-2 py-1.5",
-                  "border-t border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
-                  "bg-[color-mix(in_srgb,var(--hub-ink)_2.5%,white)]",
-                )}
-              >
-                {stage}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+          {stage ? (
+            <div
+              className={cn(
+                "px-3 py-2 sm:px-2 sm:py-1.5",
+                "border-t border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
+                "bg-[color-mix(in_srgb,var(--hub-ink)_2.5%,white)]",
+              )}
+            >
+              {stage}
+            </div>
+          ) : null}
+        </div>
 
         {showCopy ? (
-          <header className="min-w-0 py-0.5">
+          <header className="min-w-0 px-0.5 py-0.5">
             {heading ? (
               <h1 className="font-heading text-lg font-semibold leading-none tracking-[-0.03em] text-[var(--hub-ink)] sm:text-xl">
                 {heading}

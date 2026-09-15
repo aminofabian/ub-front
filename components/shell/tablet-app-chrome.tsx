@@ -32,7 +32,7 @@ import {
 import { ALL_DEPARTMENTS_LABEL, ALL_SHELF_ZONES_LABEL, UNASSIGNED_SHELF_ZONE_VALUE } from "@/hooks/use-session-scope";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { shellPageTitle } from "@/lib/shell-page-titles";
-import { openSupportChat } from "@/lib/support-open";
+import { requestOpenSupportChat } from "@/lib/support-open";
 import { cn } from "@/lib/utils";
 
 export type TabletNavSection = {
@@ -208,10 +208,10 @@ export function TabletAppHeader({
         <div className="tablet-header-wash pointer-events-none absolute inset-0" aria-hidden />
         <div className="tablet-header-hatch pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden />
 
-        <div className="relative flex min-h-[3.75rem] items-stretch">
-          {/* Brand stamp block — logo-only on phone so tools keep a clear column */}
-          <div className="tablet-header-stamp flex shrink-0 items-center gap-2.5 bg-[var(--tablet-header-leaf)] px-2.5 py-2.5 text-[var(--tablet-header-paper)] sm:gap-3 sm:px-4">
-            <div className="tablet-header-logo relative flex size-10 shrink-0 items-center justify-center overflow-hidden bg-[var(--tablet-header-paper)] sm:size-11">
+        <div className="relative flex min-h-[3.25rem] items-stretch sm:min-h-[3.75rem]">
+          {/* Brand stamp — mark only on phone so the aisle title owns the row */}
+          <div className="tablet-header-stamp flex shrink-0 items-center gap-2.5 bg-[var(--tablet-header-leaf)] px-2 py-2 text-[var(--tablet-header-paper)] sm:gap-3 sm:px-4 sm:py-2.5">
+            <div className="tablet-header-logo relative flex size-9 shrink-0 items-center justify-center overflow-hidden bg-[var(--tablet-header-paper)] sm:size-11">
               <TenantLogo
                 brand={tenantTitle}
                 logoUrl={logoUrl}
@@ -239,18 +239,18 @@ export function TabletAppHeader({
           />
 
           {/* Aisle deck */}
-          <div className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 sm:gap-3 sm:px-3">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1.5 sm:gap-3 sm:px-3 sm:py-2">
             <div className="tablet-header-aisle min-w-0 flex-1">
               <div className="flex min-w-0 items-baseline gap-x-2 gap-y-0.5">
                 <span className="tablet-header-page hidden font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--tablet-header-accent)] sm:inline">
                   Aisle
                 </span>
-                <p className="truncate font-heading text-lg font-semibold leading-none tracking-tight text-[var(--tablet-header-ink)] sm:text-[1.35rem]">
+                <p className="truncate font-heading text-[1.05rem] font-semibold leading-none tracking-tight text-[var(--tablet-header-ink)] sm:text-[1.35rem]">
                   {title}
                 </p>
               </div>
               {placeLine ? (
-                <p className="mt-1 hidden truncate font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--tablet-header-ink)]/55 sm:block">
+                <p className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-[0.1em] text-[var(--tablet-header-ink)]/55 sm:mt-1 sm:text-[10px] sm:tracking-[0.12em]">
                   {placeLine}
                   {businessName?.trim() && businessName !== tenantTitle
                     ? ` · ${businessName.trim()}`
@@ -260,16 +260,18 @@ export function TabletAppHeader({
             </div>
 
             <div className="flex shrink-0 items-stretch self-stretch border border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-paper)]/70">
-              <HeaderPosLinks links={posLinks} pathname={pathname} />
+              <div className="hidden sm:contents">
+                <HeaderPosLinks links={posLinks} pathname={pathname} />
+              </div>
               {headerTools}
-              <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-1.5">
+              <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-1 sm:px-1.5">
                 <NotificationBell />
               </span>
               <button
                 type="button"
                 onClick={onOpenMore}
                 aria-label="Open menu"
-                className="tablet-header-avatar inline-flex size-11 shrink-0 items-center justify-center border-l border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-ink)] font-mono text-sm font-bold text-[var(--tablet-header-paper)] transition-[letter-spacing,background-color] hover:tracking-widest"
+                className="tablet-header-avatar inline-flex size-10 shrink-0 items-center justify-center border-l border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-ink)] font-mono text-sm font-bold text-[var(--tablet-header-paper)] transition-[letter-spacing,background-color] hover:tracking-widest sm:size-11"
               >
                 {userInitial}
               </button>
@@ -298,38 +300,30 @@ export function TabletBottomNav({
   tabs,
   activeTabId,
   onMore,
-  layout = "default",
+  layout: _layout = "default",
 }: TabletBottomNavProps) {
   const linkTabs = tabs.filter((tab) => tab.id !== "more");
   const moreTab = tabs.find((tab) => tab.id === "more");
-  const isCompact =
-    layout === "compact" || (linkTabs.length >= 4 && !moreTab);
   const tabCount = linkTabs.length + (moreTab ? 1 : 0);
+  void _layout;
 
   return (
     <nav
       aria-label="Main navigation"
-      className="tablet-bottom-nav fixed inset-x-0 bottom-0 z-40 flex justify-center px-2 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] pt-2 pointer-events-none sm:px-4"
+      className="tablet-bottom-nav fixed inset-x-0 bottom-0 z-40 pointer-events-none"
     >
       <div
         className={cn(
           "tablet-bottom-nav-dock pointer-events-auto w-full",
-          isCompact ? "max-w-[36rem]" : "max-w-[42rem]",
-          "border border-border/60 bg-background/95",
-          "shadow-[0_8px_28px_-12px_rgba(0,0,0,0.28)]",
-          "backdrop-blur-xl",
-          "dark:border-border/50 dark:bg-background/90",
-          isCompact
-            ? "grid gap-0 p-0.5"
-            : "flex items-stretch justify-between gap-0 px-0.5 py-0.5",
+          "border-t border-border/70 bg-background/95",
+          "pb-[max(0.35rem,env(safe-area-inset-bottom,0px))] pt-1",
+          "backdrop-blur-xl supports-[backdrop-filter]:bg-background/88",
+          "dark:border-border/50 dark:bg-background/92",
+          "grid gap-0",
         )}
-        style={
-          isCompact
-            ? {
-                gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`,
-              }
-            : undefined
-        }
+        style={{
+          gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`,
+        }}
       >
         {linkTabs.map((tab) => {
           const Icon = tab.icon;
@@ -341,39 +335,28 @@ export function TabletBottomNav({
               href={tab.href ?? "#"}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "tablet-nav-tab flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 transition-colors duration-150",
-                isActive && "tablet-nav-tab-active bg-primary/12",
-                !isActive && "hover:bg-muted/50",
+                "tablet-nav-tab relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition-colors duration-150",
+                "active:bg-muted/60",
+                isActive && "tablet-nav-tab-active",
               )}
             >
-              <span
-                className={cn(
-                  "relative flex items-center justify-center transition-colors duration-150",
-                  isCompact ? "size-8 sm:size-9" : "size-9 sm:size-10",
-                )}
-              >
-                {isActive && !isCompact ? (
-                  <span
-                    className="absolute inset-0 bg-primary/15"
-                    aria-hidden
-                  />
-                ) : null}
-                <Icon
-                  className={cn(
-                    "relative",
-                    isCompact ? "size-[1.05rem] sm:size-[1.15rem]" : "size-[1.15rem] sm:size-5",
-                    isActive ? "text-primary" : "text-muted-foreground",
-                  )}
-                  strokeWidth={isActive ? 2.25 : 2}
+              {isActive ? (
+                <span
+                  className="absolute inset-x-3 top-0 h-0.5 bg-primary"
                   aria-hidden
                 />
-              </span>
+              ) : null}
+              <Icon
+                className={cn(
+                  "size-[1.35rem]",
+                  isActive ? "text-primary" : "text-muted-foreground",
+                )}
+                strokeWidth={isActive ? 2.35 : 1.9}
+                aria-hidden
+              />
               <span
                 className={cn(
-                  "w-full truncate text-center font-semibold leading-none",
-                  isCompact
-                    ? "text-[9px] sm:text-[10px]"
-                    : "max-w-[4.5rem] text-[9px] sm:text-[10px]",
+                  "w-full truncate text-center text-[11px] font-semibold leading-none tracking-[-0.01em]",
                   isActive ? "text-primary" : "text-muted-foreground",
                 )}
               >
@@ -387,7 +370,6 @@ export function TabletBottomNav({
           <CompactMoreTab
             tab={moreTab}
             isActive={activeTabId === moreTab.id}
-            isCompact={isCompact}
             onMore={onMore}
           />
         ) : null}
@@ -399,12 +381,10 @@ export function TabletBottomNav({
 function CompactMoreTab({
   tab,
   isActive,
-  isCompact,
   onMore,
 }: {
   tab: TabletBottomTab;
   isActive: boolean;
-  isCompact: boolean;
   onMore: () => void;
 }) {
   const Icon = tab.icon;
@@ -416,36 +396,28 @@ function CompactMoreTab({
       aria-label={tab.label}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "tablet-nav-tab flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 transition-colors duration-150",
-        isActive && "tablet-nav-tab-active bg-primary/12",
-        !isActive && "hover:bg-muted/50",
+        "tablet-nav-tab relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition-colors duration-150",
+        "active:bg-muted/60",
+        isActive && "tablet-nav-tab-active",
       )}
     >
-      <span
-        className={cn(
-          "relative flex items-center justify-center transition-colors duration-150",
-          isCompact ? "size-8 sm:size-9" : "size-9 sm:size-10",
-        )}
-      >
-        {isActive && !isCompact ? (
-          <span className="absolute inset-0 bg-primary/15" aria-hidden />
-        ) : null}
-        <Icon
-          className={cn(
-            "relative",
-            isCompact ? "size-[1.05rem] sm:size-[1.15rem]" : "size-[1.15rem] sm:size-5",
-            isActive ? "text-primary" : "text-muted-foreground",
-          )}
-          strokeWidth={isActive ? 2.25 : 2}
+      {isActive ? (
+        <span
+          className="absolute inset-x-3 top-0 h-0.5 bg-primary"
           aria-hidden
         />
-      </span>
+      ) : null}
+      <Icon
+        className={cn(
+          "size-[1.35rem]",
+          isActive ? "text-primary" : "text-muted-foreground",
+        )}
+        strokeWidth={isActive ? 2.35 : 1.9}
+        aria-hidden
+      />
       <span
         className={cn(
-          "w-full truncate text-center font-semibold leading-none",
-          isCompact
-            ? "text-[9px] sm:text-[10px]"
-            : "max-w-[4.5rem] text-[9px] sm:text-[10px]",
+          "w-full truncate text-center text-[11px] font-semibold leading-none tracking-[-0.01em]",
           isActive ? "text-primary" : "text-muted-foreground",
         )}
       >
@@ -892,7 +864,7 @@ export function TabletMoreSheet({
   const runQuickLink = (link: MoreQuickLink) => {
     if (link.action === "support") {
       onClose();
-      openSupportChat();
+      requestOpenSupportChat();
       return;
     }
     if (link.workspace && onOpenWorkspace) {
@@ -926,15 +898,24 @@ export function TabletMoreSheet({
       style={sheetStyle}
     >
       {/* Identity */}
-      <header className="relative shrink-0 border-b bg-white px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5" style={{ borderColor: "color-mix(in srgb, var(--order-ink, #15231f) 10%, transparent)" }}>
+      <header
+        className="relative shrink-0 border-b bg-white px-4 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-5"
+        style={{
+          borderColor:
+            "color-mix(in srgb, var(--order-ink, #15231f) 10%, transparent)",
+        }}
+      >
+        <div className="mx-auto mb-2.5 flex justify-center sm:hidden" aria-hidden>
+          <span className="h-1 w-10 rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]" />
+        </div>
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <div
-              className="relative flex size-11 shrink-0 items-center justify-center bg-[var(--order-ink,#15231f)] text-[15px] font-semibold tracking-[-0.02em] text-white"
+              className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--order-ink,#15231f)] text-[15px] font-semibold tracking-[-0.02em] text-white"
               aria-hidden
             >
               {userInitial}
-              <span className="pointer-events-none absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center overflow-hidden bg-white ring-2 ring-white">
+              <span className="pointer-events-none absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center overflow-hidden rounded-full bg-white ring-2 ring-white">
                 <TenantLogo
                   brand={tenantTitle}
                   logoUrl={logoUrl}
@@ -967,7 +948,7 @@ export function TabletMoreSheet({
             type="button"
             onClick={onClose}
             className={cn(
-              "flex size-9 shrink-0 items-center justify-center border bg-white transition-colors",
+              "flex size-9 shrink-0 items-center justify-center rounded-full border bg-white transition-colors",
               hair,
               mute,
               "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
@@ -982,13 +963,13 @@ export function TabletMoreSheet({
         {currentItem ? (
           <p
             className={cn(
-              "mt-3 flex items-center gap-2 border px-3 py-2 text-[12px]",
+              "mt-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-[12px]",
               hair,
               "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
             )}
           >
             <span
-              className="size-1.5 shrink-0 bg-[var(--pos-primary,#0f766e)]"
+              className="size-1.5 shrink-0 rounded-full bg-[var(--pos-primary,#0f766e)]"
               aria-hidden
             />
             <span className={mute}>Now on</span>
@@ -1006,13 +987,13 @@ export function TabletMoreSheet({
               href={profileHref}
               onClick={onClose}
               className={cn(
-                "group flex items-center gap-3 border bg-white px-3.5 py-3 transition-colors",
+                "group flex items-center gap-3 rounded-2xl border bg-white px-3.5 py-3 transition-colors",
                 hair,
                 "hover:border-[var(--pos-primary,#0f766e)]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
               )}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
                 <UserRound className="size-4" strokeWidth={1.75} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
@@ -1036,13 +1017,13 @@ export function TabletMoreSheet({
               href={myPayHref}
               onClick={onClose}
               className={cn(
-                "group flex items-center gap-3 border bg-white px-3.5 py-3 transition-colors",
+                "group flex items-center gap-3 rounded-2xl border bg-white px-3.5 py-3 transition-colors",
                 hair,
                 "hover:border-[var(--pos-primary,#0f766e)]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
               )}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
                 <Banknote className="size-4" strokeWidth={1.75} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
@@ -1079,9 +1060,9 @@ export function TabletMoreSheet({
             {quickLinks.map((link) => {
               const Icon = link.icon;
               const className = cn(
-                "group flex min-h-[4.5rem] flex-col justify-between border bg-white px-3 py-2.5 text-left transition-colors",
+                "group flex min-h-[4.25rem] flex-col justify-between rounded-2xl border bg-white px-3 py-2.5 text-left transition-colors",
                 hair,
-                "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
+                "active:scale-[0.98] active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
                 "hover:border-[var(--pos-primary,#0f766e)]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
               );

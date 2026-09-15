@@ -37,36 +37,40 @@ export function BusinessHubEmptyState({
 
   return (
     <section
-      className={cn(HUB_SURFACE, "px-5 py-6 sm:px-7 sm:py-7")}
+      className={cn(HUB_SURFACE, "px-4 py-5 sm:px-7 sm:py-7")}
       aria-label={`No sales ${label}`}
     >
       <p
-        className="text-xl font-medium tracking-tight text-[#141414] sm:text-2xl"
+        className="text-lg font-medium tracking-tight text-[#141414] sm:text-2xl"
         style={{ fontFamily: "var(--font-heading)" }}
       >
-        Products are on the shelf
+        Ready when you are
       </p>
-      <p className={cn("mt-1.5 max-w-lg text-sm leading-relaxed", HUB_MUTED)}>
-        Nothing through the till {label}. Open the cashier when you are ready to
-        sell. The pulse fills in as money moves.
+      <p className={cn("mt-1.5 max-w-lg text-[13px] leading-relaxed sm:text-sm", HUB_MUTED)}>
+        No sales {label} yet. Open the till to ring the first one — this board
+        updates as money comes in.
       </p>
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="mt-4 flex flex-col gap-2.5 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
         <Link
           href={APP_ROUTES.cashier}
-          className="inline-flex items-center gap-2 rounded-none bg-[#0f766e] px-3.5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-none bg-[#0f766e] px-4 text-[15px] font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80 sm:h-auto sm:w-auto sm:rounded-none sm:px-3.5 sm:py-2 sm:text-sm sm:font-medium"
         >
-          <ShoppingCart className="size-3.5" aria-hidden />
+          <ShoppingCart className="size-4 sm:size-3.5" aria-hidden />
           Open the till
         </Link>
-        {extras.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="text-[13px] font-medium text-[#0f766e] underline-offset-4 hover:underline"
-          >
-            {item.text}
-          </Link>
-        ))}
+        {extras.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-0.5">
+            {extras.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-[13px] font-medium text-[#0f766e] underline-offset-4 hover:underline"
+              >
+                {item.text}
+              </Link>
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   );

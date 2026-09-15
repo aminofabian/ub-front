@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
-import { HUB_BTN, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HUB_BTN } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export type OpenWorkColumn = {
@@ -50,7 +50,7 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
 
       {visible.length > 1 ? (
         <div
-          className={cn(HUB_SURFACE, "flex gap-0.5 p-0.5 sm:hidden")}
+          className="flex gap-0.5 rounded-full border border-[color-mix(in_srgb,#141414_10%,transparent)] bg-[color-mix(in_srgb,#141414_4%,white)] p-0.5 sm:hidden"
           role="tablist"
           aria-label="Open work boards"
         >
@@ -65,9 +65,9 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
                 onClick={() => setActiveId(column.id)}
                 className={cn(
                   HUB_BTN,
-                  "min-h-9 min-w-0 flex-1 px-2 py-1.5 text-center",
+                  "min-h-9 min-w-0 flex-1 rounded-full px-2 py-1.5 text-center",
                   selected
-                    ? "border border-[#0f766e] bg-white text-[#0f766e]"
+                    ? "bg-[#0f766e] text-white shadow-sm"
                     : "text-[#5C5C5C] hover:text-[#0f766e]",
                 )}
               >
@@ -78,7 +78,7 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
                   <span
                     className={cn(
                       "mt-1 block truncate text-[10px] font-medium leading-none",
-                      selected ? "text-[#0f766e]/80" : "text-[#8A8A8A]",
+                      selected ? "text-white/80" : "text-[#8A8A8A]",
                     )}
                   >
                     {column.meta}

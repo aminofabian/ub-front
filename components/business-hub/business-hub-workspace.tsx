@@ -1169,7 +1169,7 @@ export function BusinessHubWorkspace() {
           {canManageBusinessSettings ? (
             <Link
               href={APP_ROUTES.businessSettings}
-              className={HUB_ICON_BTN}
+              className={cn(HUB_ICON_BTN, "hidden sm:inline-flex")}
               aria-label="Business settings"
             >
               <Settings className="size-3.5" aria-hidden />

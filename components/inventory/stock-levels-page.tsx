@@ -2315,7 +2315,7 @@ export function StockLevelsPage() {
       <div className="flex min-h-0 flex-col gap-1">
         <header
           className={cn(
-            "sticky top-0 z-20 flex items-center gap-3 border bg-white/95 px-3 py-2.5 backdrop-blur-sm",
+            "sticky top-0 z-20 -mx-3 flex items-center gap-3 border-b bg-white/92 px-3 py-2.5 backdrop-blur-xl sm:mx-0 sm:border",
             stockHair,
           )}
         >

@@ -817,7 +817,7 @@ export function AnalyticsWorkspace({
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-[1280px] space-y-4 pb-20 text-foreground sm:space-y-5 sm:pb-16",
+        "mx-auto w-full max-w-[1280px] space-y-4 pb-4 text-foreground sm:space-y-5 sm:pb-8",
         refreshing && "opacity-80",
       )}
     >

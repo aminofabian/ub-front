@@ -334,23 +334,11 @@
 
 /* ── Tablet / iPad native-app shell (bottom nav below 2xl) ─────────────── */
 .tablet-app-root:has(.tablet-bottom-nav) {
-    background:
-        radial-gradient(
-            ellipse 120% 80% at 50% -20%,
-            rgba(40, 167, 69, 0.06),
-            transparent 55%
-        ),
-        rgb(245, 245, 245);
+    background: rgb(250, 250, 250);
 }
 
 .dark .tablet-app-root:has(.tablet-bottom-nav) {
-    background:
-        radial-gradient(
-            ellipse 120% 80% at 50% -20%,
-            rgba(40, 167, 69, 0.08),
-            transparent 55%
-        ),
-        rgb(10, 10, 10);
+    background: rgb(10, 10, 10);
 }
 
 /* Market fascia header — shelf-edge composition */
@@ -563,13 +551,13 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
 }
 
 .tablet-bottom-nav-dock {
-    animation: tablet-dock-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: tablet-dock-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes tablet-dock-rise {
     from {
         opacity: 0;
-        transform: translateY(0.75rem);
+        transform: translateY(0.4rem);
     }
     to {
         opacity: 1;

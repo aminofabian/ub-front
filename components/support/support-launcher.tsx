@@ -87,7 +87,7 @@ export function SupportLauncher() {
         title={open ? "Close support" : "Chat with Kiosk Support"}
         className={cn(
           "group fixed z-40 flex size-[3.6rem] items-center justify-center rounded-full text-primary-foreground outline-none transition-[transform,box-shadow,background-color] duration-200",
-          "bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] left-4 2xl:bottom-6 2xl:left-6",
+          "bottom-[calc(4.15rem+env(safe-area-inset-bottom,0px))] left-4 2xl:bottom-6 2xl:left-6",
           "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           open
             ? "bg-foreground shadow-[0_10px_28px_-12px_rgba(15,23,42,0.55)] hover:scale-[1.03]"

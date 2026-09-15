@@ -55,16 +55,16 @@ export function PulseHero({
         />
 
         {/* Row 1 — revenue figure */}
-        <div className="border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3.5 py-3.5 sm:px-4 sm:py-3">
+        <div className="border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3.5 py-3 sm:px-4 sm:py-3">
           <p className="text-[11px] font-medium text-[#6B6B6B]">
             {revenueLabel ?? "Revenue"}
           </p>
-          <div className="mt-1.5 flex flex-wrap items-end gap-x-2.5 gap-y-1">
+          <div className="mt-1 flex flex-wrap items-end gap-x-2.5 gap-y-1">
             <p
               key={justUpdated ? `${revenue}-tick` : revenue}
               className={cn(
                 "font-medium leading-none tracking-[-0.04em] text-[#141414] tabular-nums",
-                "text-[2.15rem] sm:text-[1.85rem]",
+                "text-[1.85rem] sm:text-[1.85rem]",
                 justUpdated && "hub-figure-pop",
               )}
               style={{ fontFamily: "var(--font-heading)" }}
@@ -132,7 +132,7 @@ export function PulseHero({
           >
             {metrics.map((metric) => {
               const body = (
-                <div className="flex h-full min-h-[4.25rem] flex-col justify-center gap-1 px-3 py-2.5 transition-colors hover:bg-white sm:min-h-[3.75rem]">
+                <div className="flex h-full min-h-[3.75rem] flex-col justify-center gap-0.5 px-3 py-2.5 transition-colors hover:bg-white sm:min-h-[3.75rem]">
                   <p
                     className={cn(
                       "truncate text-[10px] font-medium",
