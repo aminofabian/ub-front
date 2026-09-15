@@ -839,7 +839,7 @@ type BottomTab = {
   workspace?: ShellWorkspaceId;
 };
 
-/** Stock manager: Home first; Order/Receive = Path A PO flow; Take stock = shelf qty. */
+/** Stock manager: Home first; Order/Receive = Path A PO flow; Inventory = shelf qty. */
 const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
   {
     id: "home",
@@ -850,7 +850,7 @@ const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
   },
   {
     id: "take-stock",
-    label: "Take stock",
+    label: "Inventory",
     icon: ClipboardList,
     href: `${APP_ROUTES.inventoryStock}?view=levels`,
     matchSectionIds: ["inventory"],
@@ -1865,7 +1865,7 @@ export function AppShell({ children }: AppShellProps) {
             pageTitle={
               pathname === APP_ROUTES.inventoryStock &&
               searchParams.get("view") === "levels"
-                ? "Take stock"
+                ? "Inventory"
                 : undefined
             }
             branchName={currentBranch?.name}

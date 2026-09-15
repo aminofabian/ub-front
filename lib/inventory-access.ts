@@ -91,7 +91,7 @@ export const STOCK_HUB_ACTIONS: readonly StockHubAction[] = [
   {
     id: "take-stock",
     href: `${APP_ROUTES.inventoryStock}?view=levels`,
-    label: "Take stock",
+    label: "Inventory",
     hint: "Find a product and set what’s on the shelf now",
     icon: ClipboardList,
     rank: "hero",

@@ -2340,7 +2340,7 @@ export function StockLevelsPage() {
                 stockInk,
               )}
             >
-              Take stock
+              Inventory
             </h1>
             <p className={cn("truncate text-[12px]", stockMute)}>
               {[activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||

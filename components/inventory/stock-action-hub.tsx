@@ -34,8 +34,38 @@ type StockActionHubProps = {
 };
 
 /**
- * Stock Home — Take stock is the hero (on-hand qty). Full count / audit stay secondary.
+ * Soft washes for the services board, cycled by position so the grid reads as
+ * one family (M-Pesa-style tiles) without rainbow noise. Each tone pairs a
+ * fill with its own readable ink for the icon.
  */
+const TILE_TONES = [
+  {
+    bg: "bg-[color-mix(in_srgb,#0f766e_7%,white)] dark:bg-[color-mix(in_srgb,#0f766e_22%,#0c1512)]",
+    icon: "text-[#0f766e] dark:text-[#2dd4bf]",
+  },
+  {
+    bg: "bg-[color-mix(in_srgb,#0369a1_7%,white)] dark:bg-[color-mix(in_srgb,#0369a1_24%,#0c1512)]",
+    icon: "text-[#0369a1] dark:text-[#38bdf8]",
+  },
+  {
+    bg: "bg-[color-mix(in_srgb,#b45309_8%,white)] dark:bg-[color-mix(in_srgb,#b45309_24%,#0c1512)]",
+    icon: "text-[#b45309] dark:text-[#fbbf24]",
+  },
+  {
+    bg: "bg-[color-mix(in_srgb,#6d28d9_7%,white)] dark:bg-[color-mix(in_srgb,#6d28d9_24%,#0c1512)]",
+    icon: "text-[#6d28d9] dark:text-[#a78bfa]",
+  },
+  {
+    bg: "bg-[color-mix(in_srgb,#be123c_6%,white)] dark:bg-[color-mix(in_srgb,#be123c_22%,#0c1512)]",
+    icon: "text-[#be123c] dark:text-[#fb7185]",
+  },
+  {
+    bg: "bg-[color-mix(in_srgb,#047857_7%,white)] dark:bg-[color-mix(in_srgb,#047857_22%,#0c1512)]",
+    icon: "text-[#047857] dark:text-[#34d399]",
+  },
+] as const;
+
+/** Stock Home — the jobs board: hero banner, attention pair, services grid. */
 export function StockActionHub({
   actions,
   branchName,
@@ -49,6 +79,7 @@ export function StockActionHub({
   const hero = actions.find((a) => a.rank === "hero");
   const pair = actions.filter((a) => a.rank === "pair");
   const list = actions.filter((a) => a.rank === "list");
+  const services = [...pair, ...list];
 
   const placeLine = [branchName, departmentLabel].filter(Boolean).join(" · ");
   const countPct =
@@ -62,6 +93,7 @@ export function StockActionHub({
       : 0;
   const outN = outCount ?? 0;
   const lowN = lowCount ?? 0;
+  const phoneFill = (3 - (services.length % 3)) % 3;
 
   return (
     <div className="flex flex-col gap-3.5 px-0.5 pb-8 pt-1 sm:gap-5 sm:px-0 sm:pb-6">
@@ -258,8 +290,66 @@ export function StockActionHub({
         </Link>
       ) : null}
 
+      {/* Phone: services board — label top-left, icon bottom-right, tinted
+          fills, hairline dividers, square corners. */}
+      {services.length > 0 ? (
+        <section aria-label="Inventory tools" className="sm:hidden">
+          <p
+            className={cn(
+              "px-0.5 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em]",
+              mute,
+            )}
+          >
+            Inventory tools
+          </p>
+          <div
+            className={cn(
+              "grid grid-cols-3 gap-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+            )}
+          >
+            {services.map((action, index) => {
+              const tone = TILE_TONES[index % TILE_TONES.length]!;
+              return (
+                <Link
+                  key={action.id}
+                  href={action.href}
+                  className={cn(
+                    "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 p-2.5 transition-colors",
+                    "active:brightness-[0.96]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+                    tone.bg,
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "text-[12.5px] font-semibold leading-[1.2] tracking-[-0.01em]",
+                      ink,
+                    )}
+                  >
+                    {action.label}
+                  </span>
+                  <action.icon
+                    className={cn("size-7 self-end", tone.icon)}
+                    strokeWidth={1.5}
+                    aria-hidden
+                  />
+                </Link>
+              );
+            })}
+            {Array.from({ length: phoneFill }).map((_, index) => (
+              <span
+                key={`fill-${index}`}
+                aria-hidden
+                className="min-h-[5.75rem] bg-white dark:bg-[#0c1512]"
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Tablet and up: ranked desk — pair cards, then the row list. */}
       {pair.length > 0 ? (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="hidden gap-2 sm:grid sm:grid-cols-2">
           {pair.map((action) => (
             <Link
               key={action.id}
@@ -296,7 +386,12 @@ export function StockActionHub({
       ) : null}
 
       {list.length > 0 ? (
-        <div className={cn("divide-y border bg-white", hair)}>
+        <div
+          className={cn(
+            "hidden divide-y border bg-white sm:block",
+            hair,
+          )}
+        >
           {list.map((action) => (
             <Link
               key={action.id}
