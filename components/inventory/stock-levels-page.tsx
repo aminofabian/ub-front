@@ -439,12 +439,16 @@ function MobileStatusChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-10 shrink-0 items-center gap-1.5 border px-3 text-[12px] tracking-[-0.01em] transition-colors",
+        "inline-flex h-11 shrink-0 items-center gap-1.5 border px-3.5 text-[13px] tracking-[-0.01em] transition-colors",
         stockHair,
         active
           ? tone === "loss"
             ? "border-orange-600 bg-orange-600 font-semibold text-white"
-            : "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] font-semibold text-white"
+            : tone === "danger"
+              ? "border-rose-600 bg-rose-600 font-semibold text-white"
+              : tone === "warning"
+                ? "border-amber-600 bg-amber-600 font-semibold text-white"
+                : "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] font-semibold text-white"
           : cn(
               "bg-white font-medium",
               stockMute,
@@ -455,8 +459,8 @@ function MobileStatusChip({
       <span>{label}</span>
       <span
         className={cn(
-          "font-mono text-[12px] tabular-nums",
-          active ? "text-white/90" : "font-semibold",
+          "font-mono text-[13px] tabular-nums",
+          active ? "text-white/95" : "font-semibold",
           !active &&
             tone === "success" &&
             value > 0 &&
@@ -529,8 +533,8 @@ function stockStatusMeta(row: StockRow): {
 }
 
 const mobileFieldInput = cn(
-  "h-12 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white",
-  "px-3 text-[17px] leading-none text-[var(--order-ink,#15231f)]",
+  "h-14 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white",
+  "px-3 text-[18px] leading-none text-[var(--order-ink,#15231f)]",
   "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
   "caret-[var(--pos-primary,#0f766e)]",
   "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none",
@@ -538,10 +542,10 @@ const mobileFieldInput = cn(
 );
 
 const mobileStepBtn = cn(
-  "inline-flex size-12 shrink-0 items-center justify-center border bg-white transition-colors",
+  "inline-flex size-14 shrink-0 items-center justify-center border bg-white transition-colors",
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
   "text-[var(--order-ink,#15231f)]",
-  "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]",
+  "active:scale-[0.96] active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)]",
   "disabled:cursor-not-allowed disabled:opacity-40",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
 );
@@ -561,7 +565,7 @@ type StockMobileCardProps = {
   onSaveEdit: () => void;
 };
 
-/** Thumb-first Take stock row — tap qty, step ±1, save in one place. */
+/** Thumb-first Take stock row — whole row opens qty pad; − / + then Save. */
 function StockMobileCard({
   row,
   currency,
@@ -594,133 +598,128 @@ function StockMobileCard({
     onEditQtyChange(String(next));
   };
 
+  const qtyTone = out
+    ? "border-rose-300/70 bg-rose-50 text-rose-800 dark:border-rose-500/35 dark:bg-rose-500/15 dark:text-rose-200"
+    : low
+      ? "border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-500/35 dark:bg-amber-500/15 dark:text-amber-100"
+      : "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--order-ink,#15231f)]";
+
   return (
     <article
       className={cn(
-        "px-3 py-3.5 transition-colors",
-        loss && "bg-orange-500/[0.06] dark:bg-orange-400/[0.09]",
-        editing &&
-          "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
-        out && !editing && "bg-rose-500/[0.04]",
-        low && !editing && !out && "bg-amber-500/[0.04]",
+        "transition-colors",
+        editing
+          ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]"
+          : loss
+            ? "bg-orange-500/[0.05]"
+            : "bg-white",
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-2">
+      {!editing ? (
+        <button
+          type="button"
+          onClick={canEdit ? onStartEdit : undefined}
+          disabled={!canEdit}
+          className={cn(
+            "flex w-full items-center gap-3 px-3 py-3.5 text-left transition-colors",
+            canEdit &&
+              "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+            "disabled:cursor-default",
+          )}
+          aria-label={
+            canEdit
+              ? `Set shelf qty for ${row.name}, currently ${row.stock}`
+              : row.name
+          }
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-2">
+              <p
+                className={cn(
+                  "min-w-0 flex-1 text-[15px] font-semibold leading-snug tracking-[-0.015em]",
+                  stockInk,
+                )}
+              >
+                {row.name}
+              </p>
+              <span
+                className={cn(
+                  "mt-0.5 inline-flex shrink-0 items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                  statusClass,
+                )}
+              >
+                {label}
+              </span>
+            </div>
+            {metaBits.length > 0 ? (
+              <p className={cn("mt-1 truncate text-[12px] tabular-nums", stockMute)}>
+                {metaBits.join(" · ")}
+              </p>
+            ) : null}
+            {!canEdit && !row.editable ? (
+              <p className={cn("mt-1 text-[11px]", stockMute)}>Stock on parent SKU</p>
+            ) : null}
+          </div>
+
+          <div
+            className={cn(
+              "flex min-h-[3.75rem] min-w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 border px-2.5",
+              qtyTone,
+            )}
+          >
+            <span className="font-mono text-[1.65rem] font-semibold tabular-nums leading-none tracking-[-0.03em]">
+              {row.stock.toLocaleString("en-KE")}
+            </span>
+            <span
+              className={cn(
+                "text-[10px] font-semibold uppercase tracking-[0.1em]",
+                canEdit
+                  ? "text-[var(--pos-primary,#0f766e)]"
+                  : "opacity-60",
+              )}
+            >
+              {canEdit ? "Set" : "Qty"}
+            </span>
+          </div>
+        </button>
+      ) : (
+        <div className="space-y-3.5 px-3 py-3.5">
+          <div className="min-w-0">
             <p
               className={cn(
-                "min-w-0 flex-1 text-[15px] font-semibold leading-snug tracking-[-0.015em]",
+                "text-[15px] font-semibold leading-snug tracking-[-0.015em]",
                 stockInk,
               )}
             >
               {row.name}
             </p>
-            <span
-              className={cn(
-                "mt-0.5 inline-flex shrink-0 items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
-                statusClass,
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
+              <span className={stockMute}>
+                System{" "}
+                <span className={cn("font-mono font-semibold tabular-nums", stockInk)}>
+                  {row.stock.toLocaleString("en-KE")}
+                </span>
+              </span>
+              {targetOk && Math.abs(delta) >= 0.0001 ? (
+                <span
+                  className={cn(
+                    "font-mono font-semibold tabular-nums",
+                    delta > 0
+                      ? "text-emerald-700 dark:text-emerald-400"
+                      : "text-rose-700 dark:text-rose-300",
+                  )}
+                >
+                  → {delta > 0 ? "+" : ""}
+                  {delta.toLocaleString("en-KE")}
+                </span>
+              ) : (
+                <span className={stockMute}>· type or tap − / +</span>
               )}
-            >
-              {label}
-            </span>
-          </div>
-          {metaBits.length > 0 ? (
-            <p className={cn("mt-1 truncate text-[12px] tabular-nums", stockMute)}>
-              {metaBits.join(" · ")}
-            </p>
-          ) : null}
-          <p className={cn("mt-1 text-[11px] tabular-nums", stockMute)}>
-            Buy {fmtMoney(row.buyPrice, currency)}
-            <span className="mx-1.5 opacity-40">·</span>
-            Sell {fmtMoney(row.sellPrice, currency)}
-            {row.reorderLevel != null && row.reorderLevel > 0 ? (
-              <>
-                <span className="mx-1.5 opacity-40">·</span>
-                Reorder {row.reorderLevel.toLocaleString("en-KE")}
-              </>
-            ) : null}
-          </p>
-        </div>
-
-        {!editing ? (
-          canEdit ? (
-            <button
-              type="button"
-              onClick={onStartEdit}
-              className={cn(
-                "flex min-w-[4.5rem] shrink-0 flex-col items-end justify-center gap-0.5 self-stretch border px-2.5 py-2 text-right transition-colors",
-                stockHair,
-                "active:border-[var(--pos-primary,#0f766e)] active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
-              )}
-              aria-label={`Set shelf qty for ${row.name}, currently ${row.stock}`}
-            >
-              <span
-                className={cn(
-                  "font-mono text-[1.5rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
-                  out || low
-                    ? "text-rose-700 dark:text-rose-300"
-                    : stockInk,
-                )}
-              >
-                {row.stock.toLocaleString("en-KE")}
-              </span>
-              <span
-                className={cn(
-                  "text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-primary,#0f766e)]",
-                )}
-              >
-                Edit
-              </span>
-            </button>
-          ) : (
-            <div className="flex min-w-[4.5rem] shrink-0 flex-col items-end gap-0.5 px-1 py-1">
-              <span
-                className={cn(
-                  "font-mono text-[1.5rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
-                  out || low
-                    ? "text-rose-700 dark:text-rose-300"
-                    : stockInk,
-                )}
-              >
-                {row.stock.toLocaleString("en-KE")}
-              </span>
-              <span className={cn("text-[10px] font-medium", stockMute)}>
-                {row.editable ? "on shelf" : "parent SKU"}
-              </span>
             </div>
-          )
-        ) : null}
-      </div>
-
-      {editing ? (
-        <div className="mt-3 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className={cn("text-[12px]", stockMute)}>
-              System{" "}
-              <span className={cn("font-mono font-semibold tabular-nums", stockInk)}>
-                {row.stock.toLocaleString("en-KE")}
-              </span>
-            </p>
-            {targetOk && Math.abs(delta) >= 0.0001 ? (
-              <p
-                className={cn(
-                  "font-mono text-[12px] font-semibold tabular-nums",
-                  delta > 0
-                    ? "text-emerald-700 dark:text-emerald-400"
-                    : "text-rose-700 dark:text-rose-300",
-                )}
-              >
-                {delta > 0 ? "+" : ""}
-                {delta.toLocaleString("en-KE")} to shelf
-              </p>
-            ) : (
-              <p className={cn("text-[12px]", stockMute)}>No change yet</p>
-            )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
               onClick={() => bumpQty(-1)}
@@ -728,7 +727,7 @@ function StockMobileCard({
               className={mobileStepBtn}
               aria-label="Decrease by 1"
             >
-              <Minus className="size-5" aria-hidden />
+              <Minus className="size-6" strokeWidth={2.25} aria-hidden />
             </button>
             <label className="min-w-0 flex-1">
               <span className="sr-only">On shelf now</span>
@@ -748,7 +747,7 @@ function StockMobileCard({
                 }}
                 className={cn(
                   mobileFieldInput,
-                  "text-center font-mono text-[1.35rem] font-semibold tabular-nums",
+                  "text-center font-mono text-[1.6rem] font-semibold tabular-nums",
                 )}
                 placeholder="0"
                 aria-label={`New stock for ${row.name}`}
@@ -761,7 +760,7 @@ function StockMobileCard({
               className={mobileStepBtn}
               aria-label="Increase by 1"
             >
-              <Plus className="size-5" aria-hidden />
+              <Plus className="size-6" strokeWidth={2.25} aria-hidden />
             </button>
           </div>
 
@@ -769,12 +768,16 @@ function StockMobileCard({
             <label className="block min-w-0">
               <span
                 className={cn(
-                  "mb-1.5 block text-[11px] font-semibold",
+                  "mb-1.5 block text-[12px] font-semibold",
                   stockMute,
                 )}
               >
-                Unit cost for the +
-                {delta.toLocaleString("en-KE")} added
+                Cost per unit for +{delta.toLocaleString("en-KE")}
+                {row.buyPrice != null ? (
+                  <span className="ml-1 font-normal">
+                    (buy {fmtMoney(row.buyPrice, currency)})
+                  </span>
+                ) : null}
               </span>
               <input
                 type="number"
@@ -800,13 +803,13 @@ function StockMobileCard({
               type="button"
               onClick={onSaveEdit}
               disabled={saving || !targetOk || Math.abs(delta) < 0.0001}
-              className="inline-flex h-12 flex-1 items-center justify-center gap-1.5 bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition-opacity active:opacity-90 disabled:opacity-40"
+              className="inline-flex h-14 flex-1 items-center justify-center gap-1.5 bg-[var(--pos-primary,#0f766e)] text-[15px] font-semibold text-white transition-[opacity,transform] active:scale-[0.99] active:opacity-90 disabled:opacity-40"
             >
-              <Check className="size-4" aria-hidden />
+              <Check className="size-5" aria-hidden />
               {saving
                 ? "Saving…"
                 : targetOk && Math.abs(delta) >= 0.0001
-                  ? `Save · ${target.toLocaleString("en-KE")}`
+                  ? `Save ${target.toLocaleString("en-KE")}`
                   : "Save"}
             </button>
             <button
@@ -814,18 +817,17 @@ function StockMobileCard({
               onClick={onCancelEdit}
               disabled={saving}
               className={cn(
-                "inline-flex h-12 items-center justify-center gap-1.5 border px-4 text-[14px] font-medium transition-colors disabled:opacity-40",
+                "inline-flex h-14 items-center justify-center gap-1.5 border px-5 text-[15px] font-medium transition-colors disabled:opacity-40",
                 stockHair,
                 stockMute,
                 "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]",
               )}
             >
-              <X className="size-4" aria-hidden />
               Cancel
             </button>
           </div>
         </div>
-      ) : null}
+      )}
     </article>
   );
 }
@@ -2190,7 +2192,7 @@ export function StockLevelsPage() {
   const departmentRail = (
     <div
       className={cn(
-        "flex items-center gap-1.5 border-b px-1.5 py-1",
+        "flex items-center gap-1.5 border-b px-2 py-1.5 sm:px-1.5 sm:py-1",
         "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
         "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
       )}
@@ -2206,17 +2208,17 @@ export function StockLevelsPage() {
       {departmentLocked ? (
         <span
           className={cn(
-            "inline-flex min-w-0 flex-1 items-center gap-1.5 truncate px-1.5 py-1 text-[12px] font-semibold",
+            "inline-flex min-w-0 flex-1 items-center gap-1.5 truncate px-1.5 py-1.5 text-[13px] font-semibold sm:py-1 sm:text-[12px]",
             stockInk,
           )}
           title="Department switching is disabled for your role"
         >
-          <Lock className="size-3 shrink-0 opacity-60" aria-hidden />
+          <Lock className="size-3.5 shrink-0 opacity-60 sm:size-3" aria-hidden />
           {itemTypeLabel || sessionItemTypes[0]?.label || "Department"}
         </span>
       ) : (
         <div
-          className="flex min-w-0 flex-1 gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="group"
           aria-label="Department"
         >
@@ -2224,14 +2226,14 @@ export function StockLevelsPage() {
             type="button"
             onClick={() => setItemTypeId("")}
             className={cn(
-              "h-7 shrink-0 px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
+              "h-9 shrink-0 px-3 text-[12px] font-semibold tracking-[-0.01em] transition-colors sm:h-7 sm:px-2.5 sm:text-[11px]",
               !headerItemTypeId.trim()
                 ? "bg-[var(--pos-primary,#0f766e)] text-white"
                 : cn(
                     "border bg-white",
                     stockHair,
                     stockMute,
-                    "hover:text-[var(--order-ink,#15231f)]",
+                    "active:text-[var(--order-ink,#15231f)] hover:text-[var(--order-ink,#15231f)]",
                   ),
             )}
           >
@@ -2245,14 +2247,14 @@ export function StockLevelsPage() {
                 type="button"
                 onClick={() => setItemTypeId(t.id)}
                 className={cn(
-                  "h-7 max-w-[10rem] shrink-0 truncate px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
+                  "h-9 max-w-[10rem] shrink-0 truncate px-3 text-[12px] font-semibold tracking-[-0.01em] transition-colors sm:h-7 sm:px-2.5 sm:text-[11px]",
                   active
                     ? "bg-[var(--pos-primary,#0f766e)] text-white"
                     : cn(
                         "border bg-white",
                         stockHair,
                         stockMute,
-                        "hover:text-[var(--order-ink,#15231f)]",
+                        "active:text-[var(--order-ink,#15231f)] hover:text-[var(--order-ink,#15231f)]",
                       ),
                 )}
                 title={t.label}
@@ -2289,7 +2291,7 @@ export function StockLevelsPage() {
   if (!isLevelsView) {
     return (
       <div className={DASHBOARD_MAX}>
-        <div className={cn("overflow-hidden rounded-none border bg-white", stockHair)}>
+        <div className={cn("rounded-none border bg-white", stockHair)}>
           {departmentRail}
           <div className="px-3 pt-3 sm:px-4 sm:pt-4">
             <StockActionHub
@@ -2313,7 +2315,7 @@ export function StockLevelsPage() {
       <div className="flex min-h-0 flex-col gap-1">
         <header
           className={cn(
-            "flex items-center gap-2.5 border bg-white px-3 py-2.5",
+            "sticky top-0 z-20 flex items-center gap-3 border bg-white/95 px-3 py-2.5 backdrop-blur-sm",
             stockHair,
           )}
         >
@@ -2321,32 +2323,33 @@ export function StockLevelsPage() {
             type="button"
             onClick={closeLevels}
             className={cn(
-              "inline-flex size-9 items-center justify-center border transition-colors",
+              "inline-flex size-11 items-center justify-center border transition-colors sm:size-9",
               stockHair,
               stockMute,
+              "active:border-[var(--pos-primary,#0f766e)] active:text-[var(--pos-primary,#0f766e)]",
               "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
             )}
             aria-label="Back to Stock"
           >
-            <ArrowLeft className="size-4" aria-hidden />
+            <ArrowLeft className="size-5 sm:size-4" aria-hidden />
           </button>
           <div className="min-w-0 flex-1">
             <h1
               className={cn(
-                "truncate font-heading text-[1.15rem] font-semibold tracking-[-0.02em]",
+                "truncate font-heading text-[1.2rem] font-semibold tracking-[-0.02em]",
                 stockInk,
               )}
             >
               Take stock
             </h1>
-            <p className={cn("truncate text-[11px]", stockMute)}>
+            <p className={cn("truncate text-[12px]", stockMute)}>
               {[activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||
-                "Set what’s on the shelf now"}
+                "Tap a product · set shelf qty"}
             </p>
           </div>
         </header>
 
-        <div className={cn("overflow-hidden rounded-none border bg-white", stockHair)}>
+        <div className={cn("rounded-none border bg-white", stockHair)}>
           {departmentRail}
 
           {fullCountProgress && fullCountProgress.remaining > 0 ? (
@@ -2400,10 +2403,10 @@ export function StockLevelsPage() {
             </Link>
           ) : null}
 
-          {/* Search + status + filters — mobile stacks; desktop stays dense */}
+          {/* Search + status + filters — always above the list on mobile */}
           <div
             className={cn(
-              "border-b bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]",
+              "border-b bg-white sm:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]",
               stockHair,
             )}
           >
@@ -2758,7 +2761,18 @@ export function StockLevelsPage() {
             </p>
           ) : null}
 
-          {!canWrite && !canCatalogWrite && rows.length > 0 ? (
+          {canWrite && rows.length > 0 ? (
+            <p
+              className={cn(
+                "border-b px-3 py-2 text-[12px] sm:hidden",
+                stockHair,
+                "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]",
+                "text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]",
+              )}
+            >
+              Tap any row → set qty with − / + → Save
+            </p>
+          ) : !canWrite && !canCatalogWrite && rows.length > 0 ? (
             <p
               className={cn(
                 "border-b px-3 py-1.5 text-[11px]",
@@ -2767,16 +2781,6 @@ export function StockLevelsPage() {
               )}
             >
               View-only — ask an admin for stock or catalog edit access.
-            </p>
-          ) : canWrite && rows.length > 0 ? (
-            <p
-              className={cn(
-                "border-b px-3 py-1.5 text-[12px] sm:hidden",
-                stockHair,
-                stockMute,
-              )}
-            >
-              Tap a qty to set what’s on the shelf. Use − / + for quick changes.
             </p>
           ) : null}
 
@@ -2811,13 +2815,13 @@ export function StockLevelsPage() {
           ) : (
             <div
               ref={scrollRef}
-              className="max-h-[min(70dvh,56rem)] overflow-auto overscroll-contain selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)] sm:max-h-[min(74vh,56rem)]"
+              className="max-h-[min(78dvh,56rem)] overflow-auto overscroll-contain selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)] sm:max-h-[min(74vh,56rem)]"
             >
               {/* Mobile: stacked cards — edit stock without horizontal scroll */}
               <div
                 className={cn(
                   "divide-y sm:hidden",
-                  "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
+                  "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
                 )}
               >
                 {filteredRows.map((row) => (

@@ -35,7 +35,7 @@ export const HUB_BTN =
 
 export const HUB_ICON_BTN =
   HUB_BTN +
-  " inline-flex size-7 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--pos-primary,#0f766e)] hover:border-[var(--pos-primary,#0f766e)] disabled:cursor-not-allowed disabled:opacity-60";
+  " inline-flex size-8 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--pos-primary,#0f766e)] hover:border-[var(--pos-primary,#0f766e)] disabled:cursor-not-allowed disabled:opacity-60";
 
 export const HUB_CHIP =
   "inline-flex shrink-0 items-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 py-0.5 text-[11px] font-semibold tracking-[-0.02em]";

@@ -67,6 +67,7 @@ import {
   groceryClerkStockAccessEnabled,
   stockManagerActivityEnabled,
   stockManagerStockPageEnabled,
+  stockManagerStoreRoomEnabled,
 } from "@/lib/inventory-access";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import {
@@ -542,6 +543,7 @@ type NavGate = {
   groceryClerkStockAccess: boolean;
   stockManagerStockPage: boolean;
   stockManagerActivity: boolean;
+  stockManagerStoreRoom: boolean;
   canWriteSuppliers: boolean;
   canLinkSupplierProducts: boolean;
 };
@@ -623,6 +625,9 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     if (gate.canViewOrderPad) {
       allowed.push(APP_ROUTES.inventoryOrderPad);
       allowed.push(APP_ROUTES.inventoryStockTakeRestock);
+    }
+    if (gate.stockManagerStoreRoom && gate.canViewStoreRoom) {
+      allowed.push(APP_ROUTES.store);
     }
     return allowed.includes(item.href);
   }
@@ -1039,6 +1044,9 @@ export function AppShell({ children }: AppShellProps) {
   const groceryClerkStockAccess = groceryClerkStockAccessEnabled(business);
   const stockManagerStockPage = stockManagerStockPageEnabled(business);
   const stockManagerActivity = stockManagerActivityEnabled(business);
+  // Mirrors the backend delegation for `inventory.write`, so the nav item only
+  // appears when a stock manager could actually record a movement.
+  const stockManagerStoreRoom = stockManagerStoreRoomEnabled(business);
   const canWriteSuppliersDelegated = canWriteSuppliers(me, business);
   const canLinkSupplierProductsDelegated = canLinkSupplierProducts(
     me,
@@ -1090,6 +1098,7 @@ export function AppShell({ children }: AppShellProps) {
       groceryClerkStockAccess,
       stockManagerStockPage,
       stockManagerActivity,
+      stockManagerStoreRoom,
       canWriteSuppliers: canWriteSuppliersDelegated,
       canLinkSupplierProducts: canLinkSupplierProductsDelegated,
     };
@@ -1148,6 +1157,7 @@ export function AppShell({ children }: AppShellProps) {
     groceryClerkStockAccess,
     stockManagerStockPage,
     stockManagerActivity,
+    stockManagerStoreRoom,
     canWriteSuppliersDelegated,
     canLinkSupplierProductsDelegated,
   ]);
@@ -1414,6 +1424,11 @@ export function AppShell({ children }: AppShellProps) {
         allowed.push(APP_ROUTES.inventoryOrderPad);
         allowed.push(APP_ROUTES.inventoryStockTakeRestock);
       }
+      // Must mirror `isNavItemVisible`: adding the nav item without this makes the
+      // item bounce straight back to Stock levels.
+      if (stockManagerStoreRoom && canViewStoreRoom) {
+        allowed.push(APP_ROUTES.store);
+      }
       const isAllowed = allowed.some(
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
       );
@@ -1486,7 +1501,9 @@ export function AppShell({ children }: AppShellProps) {
     canPathAOrder,
     stockManagerStockPage,
     stockManagerActivity,
+    stockManagerStoreRoom,
     canViewOrderPad,
+    canViewStoreRoom,
   ]);
 
   return (

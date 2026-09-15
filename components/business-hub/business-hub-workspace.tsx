@@ -30,9 +30,11 @@ import {
   CommandGrid,
   type CommandLink,
 } from "@/components/business-hub/command-grid";
+import { FloorTapeDrawer } from "@/components/business-hub/floor-tape-drawer";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
 import { HubLiveStatus } from "@/components/business-hub/hub-live-status";
 import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
+import { OpenWorkBoard } from "@/components/business-hub/open-work-board";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
@@ -121,7 +123,7 @@ import {
   type SalesRegisterResponse,
   type WebOrderSummary,
 } from "@/lib/api";
-import { filterAndSortSupplyRows } from "@/app/(dashboard)/supplies/_components/supplies-bill-filters";
+import { filterAndSortSupplyRows, summarizeSupplyRows } from "@/app/(dashboard)/supplies/_components/supplies-bill-filters";
 import { PaySupplyDrawer } from "@/app/(dashboard)/supplies/_components/pay-supply-drawer";
 import { groupLinesIntoTransactions } from "@/lib/sale-transactions";
 import {
@@ -1140,6 +1142,11 @@ export function BusinessHubWorkspace() {
           : null
       }
       setupHome={shopNotReady}
+      toolbarLeading={
+        shopNotReady ? null : (
+          <PeriodToggle value={period} onChange={setPeriod} />
+        )
+      }
       headerActions={
         <>
           <HubLiveStatus
@@ -1159,9 +1166,6 @@ export function BusinessHubWorkspace() {
               aria-hidden
             />
           </button>
-          {shopNotReady ? null : (
-            <PeriodToggle value={period} onChange={setPeriod} />
-          )}
           {canManageBusinessSettings ? (
             <Link
               href={APP_ROUTES.businessSettings}
@@ -1173,6 +1177,15 @@ export function BusinessHubWorkspace() {
           ) : null}
         </>
       }
+      stage={
+        showTillStage ? (
+          <CashierStageTabs
+            cashiers={cashierNames}
+            selected={selectedCashiers}
+            onChange={setSelectedCashiers}
+          />
+        ) : null
+      }
     >
       <div
         className={cn(
@@ -1183,14 +1196,6 @@ export function BusinessHubWorkspace() {
       >
         <div className="flex flex-col gap-2">
           {canManageBusinessSettings ? <SetupProgressBanner /> : null}
-
-          {showTillStage ? (
-            <CashierStageTabs
-              cashiers={cashierNames}
-              selected={selectedCashiers}
-              onChange={setSelectedCashiers}
-            />
-          ) : null}
 
           <div
             className={cn(
@@ -1274,91 +1279,113 @@ export function BusinessHubWorkspace() {
                     )
                   ) : null}
 
-                  {/* 3 — Open work */}
+                  {/* 3 — Open work (phone: column tabs; sm+: multi-column grid) */}
                   {(canViewSupplyBills &&
                     !(salesEmpty && todaySupplies.length === 0)) ||
                   (canViewCreditTabs &&
                     !(salesEmpty && openCreditTabs.length === 0)) ||
                   (canShowWebOrders &&
                     !(salesEmpty && openWebOrders.length === 0)) ? (
-                    <section className="space-y-1.5">
-                      <HubSectionLabel title="Open work" />
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                        {canViewSupplyBills &&
-                        !(salesEmpty && todaySupplies.length === 0) ? (
-                          <SupplyBillsRail
-                            bills={todaySupplies}
-                            currency={currency}
-                            justUpdated={supplyJustUpdated}
-                            onPayBill={
-                              canOpenSupplyPay ? openSupplyPay : undefined
-                            }
-                            onInspect={openSupplyHistory}
-                          />
-                        ) : null}
-
-                        {canViewCreditTabs &&
-                        !(salesEmpty && openCreditTabs.length === 0) ? (
-                          <CreditTabsRail
-                            tabs={openCreditTabs}
-                            currency={currency}
-                            justUpdated={creditJustUpdated}
-                            onPayTab={
-                              canOpenCreditPay ? openCreditPay : undefined
-                            }
-                            onInspect={openCreditHistory}
-                            paidTotal={creditActivity?.totalPaid ?? null}
-                            paidCount={creditActivity?.paymentCount ?? null}
-                            paidPeriodLabel={isToday ? "today" : "this week"}
-                          />
-                        ) : null}
-
-                        {canShowWebOrders &&
-                        !(salesEmpty && openWebOrders.length === 0) ? (
-                          <WebOrdersRail
-                            orders={openWebOrders}
-                            currency={currency}
-                            justUpdated={webOrdersJustUpdated}
-                            onInspect={openShopperHistory}
-                            className="sm:col-span-2 xl:col-span-1"
-                          />
-                        ) : null}
-                      </div>
-                    </section>
+                    <OpenWorkBoard
+                      columns={[
+                        ...(canViewSupplyBills &&
+                        !(salesEmpty && todaySupplies.length === 0)
+                          ? [
+                              {
+                                id: "supply",
+                                label: "Supply",
+                                meta: (() => {
+                                  const summary =
+                                    summarizeSupplyRows(todaySupplies);
+                                  return summary.count > 0
+                                    ? `${summary.count}`
+                                    : "None";
+                                })(),
+                                panel: (
+                                  <SupplyBillsRail
+                                    bills={todaySupplies}
+                                    currency={currency}
+                                    justUpdated={supplyJustUpdated}
+                                    onPayBill={
+                                      canOpenSupplyPay
+                                        ? openSupplyPay
+                                        : undefined
+                                    }
+                                    onInspect={openSupplyHistory}
+                                  />
+                                ),
+                              },
+                            ]
+                          : []),
+                        ...(canViewCreditTabs &&
+                        !(salesEmpty && openCreditTabs.length === 0)
+                          ? [
+                              {
+                                id: "credit",
+                                label: "Credit",
+                                meta:
+                                  openCreditTabs.length > 0
+                                    ? `${openCreditTabs.length}`
+                                    : "None",
+                                panel: (
+                                  <CreditTabsRail
+                                    tabs={openCreditTabs}
+                                    currency={currency}
+                                    justUpdated={creditJustUpdated}
+                                    onPayTab={
+                                      canOpenCreditPay
+                                        ? openCreditPay
+                                        : undefined
+                                    }
+                                    onInspect={openCreditHistory}
+                                    paidTotal={
+                                      creditActivity?.totalPaid ?? null
+                                    }
+                                    paidCount={
+                                      creditActivity?.paymentCount ?? null
+                                    }
+                                    paidPeriodLabel={
+                                      isToday ? "today" : "this week"
+                                    }
+                                  />
+                                ),
+                              },
+                            ]
+                          : []),
+                        ...(canShowWebOrders &&
+                        !(salesEmpty && openWebOrders.length === 0)
+                          ? [
+                              {
+                                id: "web",
+                                label: "Web",
+                                meta:
+                                  openWebOrders.length > 0
+                                    ? `${openWebOrders.length}`
+                                    : "None",
+                                panel: (
+                                  <WebOrdersRail
+                                    orders={openWebOrders}
+                                    currency={currency}
+                                    justUpdated={webOrdersJustUpdated}
+                                    onInspect={openShopperHistory}
+                                  />
+                                ),
+                                className: "sm:col-span-2 xl:col-span-1",
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
                   ) : null}
 
-                  {/* 4 — Floor tape (phone / tablet; xl uses side column) */}
+                  {/* 4 — Floor tape (phone drawer; xl uses side column) */}
                   {showTillStage && !galleryOpen ? (
-                    <section className="space-y-1.5 xl:hidden">
-                      <HubSectionLabel
-                        title={
-                          tickLanes.length > 1 ? "Till lanes" : "Floor tape"
-                        }
-                      />
-                      <div
-                        className={cn(
-                          "grid gap-2",
-                          dualLanes && "sm:grid-cols-2",
-                        )}
-                      >
-                        {tickLanes.map((lane, index) => (
-                          <RecentTicksRail
-                            key={lane.key}
-                            ticks={lane.ticks}
-                            drawouts={lane.drawouts}
-                            currency={currency}
-                            justUpdated={justUpdated && index === 0}
-                            title={lane.title}
-                            subtitle={lane.subtitle}
-                            showCashier={lane.showCashier}
-                            accent={lane.accent}
-                            laneIndex={dualLanes ? index : undefined}
-                            fillViewport={false}
-                            className="max-h-[18rem]"
-                          />
-                        ))}
-                      </div>
-                    </section>
+                    <FloorTapeDrawer
+                      lanes={tickLanes}
+                      currency={currency}
+                      justUpdated={justUpdated}
+                      dualLanes={dualLanes}
+                    />
                   ) : null}
 
                   {/* 5 — Trend */}

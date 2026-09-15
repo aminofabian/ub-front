@@ -314,6 +314,22 @@ export function stockManagerStockPageEnabled(
   return stockLevelsSettings(business)?.allowStockPageForStockManager !== false;
 }
 
+/**
+ * Whether a stock manager may actually work the back room, i.e. record a take-out.
+ *
+ * Deliberately mirrors the backend delegation one-for-one —
+ * `InventoryRoleAccessService.grantsDelegatedInventoryWrite` reads
+ * `allowStockEditForStockManager` and nothing else — so nav visibility and the
+ * ability to record a movement cannot drift apart. Note this is *stricter* than
+ * {@link stockManagerStockPageEnabled}, which governs read-only stock pages and
+ * defaults on.
+ */
+export function stockManagerStoreRoomEnabled(
+  business: BusinessRecord | null | undefined,
+): boolean {
+  return Boolean(stockLevelsSettings(business)?.allowStockEditForStockManager);
+}
+
 export function canEditStockLevels(
   me: MeResponse | null | undefined,
   business: BusinessRecord | null | undefined,

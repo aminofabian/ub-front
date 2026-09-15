@@ -192,8 +192,8 @@ export function TabletAppHeader({
         <div className="tablet-header-hatch pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden />
 
         <div className="relative flex min-h-[3.75rem] items-stretch">
-          {/* Brand stamp block */}
-          <div className="tablet-header-stamp flex shrink-0 items-center gap-2.5 bg-[var(--tablet-header-leaf)] px-3 py-2.5 text-[var(--tablet-header-paper)] sm:gap-3 sm:px-4">
+          {/* Brand stamp block — logo-only on phone so tools keep a clear column */}
+          <div className="tablet-header-stamp flex shrink-0 items-center gap-2.5 bg-[var(--tablet-header-leaf)] px-2.5 py-2.5 text-[var(--tablet-header-paper)] sm:gap-3 sm:px-4">
             <div className="tablet-header-logo relative flex size-10 shrink-0 items-center justify-center overflow-hidden bg-[var(--tablet-header-paper)] sm:size-11">
               <TenantLogo
                 brand={tenantTitle}
@@ -207,11 +207,12 @@ export function TabletAppHeader({
                 aria-hidden
               />
             </div>
-            <div className="min-w-0 max-w-[11rem] sm:max-w-[16rem]">
-              <h1 className="tablet-header-brand truncate font-heading text-[1.35rem] font-semibold leading-[0.95] tracking-[-0.02em] sm:text-[1.55rem]">
+            <div className="hidden min-w-0 max-w-[16rem] sm:block">
+              <h1 className="tablet-header-brand truncate font-heading text-[1.55rem] font-semibold leading-[0.95] tracking-[-0.02em]">
                 {tenantTitle}
               </h1>
             </div>
+            <h1 className="sr-only sm:hidden">{tenantTitle}</h1>
           </div>
 
           {/* Diagonal cut between stamp and deck */}
@@ -223,16 +224,16 @@ export function TabletAppHeader({
           {/* Aisle deck */}
           <div className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 sm:gap-3 sm:px-3">
             <div className="tablet-header-aisle min-w-0 flex-1">
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="tablet-header-page font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--tablet-header-accent)]">
+              <div className="flex min-w-0 items-baseline gap-x-2 gap-y-0.5">
+                <span className="tablet-header-page hidden font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--tablet-header-accent)] sm:inline">
                   Aisle
                 </span>
-                <p className="truncate font-heading text-xl font-semibold leading-none tracking-tight text-[var(--tablet-header-ink)] sm:text-[1.35rem]">
+                <p className="truncate font-heading text-lg font-semibold leading-none tracking-tight text-[var(--tablet-header-ink)] sm:text-[1.35rem]">
                   {title}
                 </p>
               </div>
               {placeLine ? (
-                <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--tablet-header-ink)]/55">
+                <p className="mt-1 hidden truncate font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--tablet-header-ink)]/55 sm:block">
                   {placeLine}
                   {businessName?.trim() && businessName !== tenantTitle
                     ? ` · ${businessName.trim()}`

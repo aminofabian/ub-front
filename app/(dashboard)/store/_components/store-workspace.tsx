@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ArrowUpFromLine,
   Link2,
   Link2Off,
   Loader2,
@@ -50,7 +51,9 @@ import {
   updateStoreRoomSettings,
   type ItemSummaryRecord,
   type StoreItemRecord,
+  type StoreRoomDirection,
   type StoreRoomMode,
+  type StoreRoomMovementRecord,
   type StoreRoomSettingsRecord,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
@@ -58,7 +61,9 @@ import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
 import { cn } from "@/lib/utils";
 
+import { StoreRoomActivity } from "./store-room-activity";
 import { StoreRoomConnectionChooser } from "./store-room-connection-chooser";
+import { StoreRoomMovementDrawer } from "./store-room-movement-drawer";
 import { StoreRoomProductPicker } from "./store-room-product-picker";
 
 function mutationError(
@@ -163,6 +168,15 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
 
   const [deleteRow, setDeleteRow] = useState<StoreItemRecord | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const [movementOpen, setMovementOpen] = useState(false);
+  // Bumped per open so the drawer remounts and re-seeds from `movementInitial`.
+  const [movementKey, setMovementKey] = useState(0);
+  const [movementInitial, setMovementInitial] = useState<{
+    storeItemId?: string;
+    direction: StoreRoomDirection;
+  } | null>(null);
+  const [activityToken, setActivityToken] = useState(0);
 
   const mode = settings?.mode ?? null;
   const connected = mode === "connected";
@@ -292,6 +306,29 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setEditRow(row);
     setEditDraft(draftFromRow(row));
     setFeedback(null);
+  };
+
+  const openMovement = (
+    row: StoreItemRecord | null,
+    direction: StoreRoomDirection,
+  ) => {
+    setMovementInitial(row ? { storeItemId: row.id, direction } : { direction });
+    setMovementKey((prev) => prev + 1);
+    setMovementOpen(true);
+    setFeedback(null);
+  };
+
+  const handleRecorded = (movement: StoreRoomMovementRecord) => {
+    setActivityToken((prev) => prev + 1);
+    setFeedback({
+      kind: "success",
+      text:
+        movement.direction === "out"
+          ? `Recorded ${formatQuantity(movement.quantity)} out of the store room.`
+          : `Recorded ${formatQuantity(movement.quantity)} back in.`,
+    });
+    // A movement changes stock (linked) or the local count (standalone), so re-read.
+    refreshQuietly();
   };
 
   const createFromProduct = async (item: ItemSummaryRecord) => {
@@ -542,25 +579,39 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         }
       >
         {canWrite ? (
-          connected ? (
-            <Button
-              type="button"
-              className="gap-2 shadow-none"
-              onClick={openPickerForCreate}
-            >
-              <Plus className="size-4" aria-hidden />
-              Add from products
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              className="gap-2 shadow-none"
-              onClick={openCustomCreate}
-            >
-              <Plus className="size-4" aria-hidden />
-              Add item
-            </Button>
-          )
+          <>
+            {rows.length > 0 ? (
+              <Button
+                type="button"
+                className="gap-2 shadow-none"
+                onClick={() => openMovement(null, "out")}
+              >
+                <ArrowUpFromLine className="size-4" aria-hidden />
+                Take out
+              </Button>
+            ) : null}
+            {connected ? (
+              <Button
+                type="button"
+                variant={rows.length > 0 ? "outline" : "default"}
+                className="gap-2 shadow-none"
+                onClick={openPickerForCreate}
+              >
+                <Plus className="size-4" aria-hidden />
+                Add from products
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant={rows.length > 0 ? "outline" : "default"}
+                className="gap-2 shadow-none"
+                onClick={openCustomCreate}
+              >
+                <Plus className="size-4" aria-hidden />
+                Add item
+              </Button>
+            )}
+          </>
         ) : null}
       </DashboardPageHero>
 
@@ -666,6 +717,14 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
           ) : null}
         </div>
       )}
+
+      {rows.length > 0 ? (
+        <StoreRoomActivity
+          reloadToken={activityToken}
+          canWrite={canWrite}
+          onPutIn={() => openMovement(null, "in")}
+        />
+      ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <label className="relative block min-w-[min(100%,18rem)] flex-1">
@@ -900,6 +959,16 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
                           variant="ghost"
                           size="sm"
                           className="h-8 gap-1.5 px-2 text-xs hover:bg-muted"
+                          onClick={() => openMovement(row, "out")}
+                        >
+                          <ArrowUpFromLine className="size-3.5" aria-hidden />
+                          Take out
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1.5 px-2 text-xs hover:bg-muted"
                           onClick={() => openEdit(row)}
                         >
                           <Pencil className="size-3.5" aria-hidden />
@@ -937,6 +1006,16 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
           Can&apos;t find it in your products? Add a back-room line instead.
         </button>
       ) : null}
+
+      <StoreRoomMovementDrawer
+        key={movementKey}
+        open={movementOpen}
+        onOpenChange={setMovementOpen}
+        rows={rows}
+        connected={connected}
+        initial={movementInitial}
+        onRecorded={handleRecorded}
+      />
 
       <StoreRoomProductPicker
         open={pickOpen}

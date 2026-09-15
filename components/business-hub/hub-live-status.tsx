@@ -116,7 +116,7 @@ export function HubLiveStatus({
   return (
     <span
       className={cn(
-        "relative inline-flex items-center gap-2 overflow-hidden border px-2.5 py-1 text-[10px] font-semibold tracking-[-0.02em]",
+        "relative inline-flex h-8 items-center gap-1.5 overflow-hidden border px-2 text-[10px] font-semibold tracking-[-0.02em] sm:gap-2 sm:px-2.5",
         view.tone === "live" &&
           "border-emerald-300/80 bg-[#0B1F17] text-emerald-100",
         view.tone === "sync" && "border-amber-300 bg-amber-50 text-amber-950",
@@ -145,7 +145,7 @@ export function HubLiveStatus({
       <span
         className={cn(
           "border-l pl-2 font-medium normal-case tracking-normal",
-          "max-sm:hidden",
+          "hidden sm:inline",
           view.tone === "live"
             ? "border-emerald-400/30 text-emerald-200/90"
             : "border-current/20 text-current/70",

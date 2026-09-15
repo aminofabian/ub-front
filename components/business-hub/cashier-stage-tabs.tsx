@@ -48,11 +48,11 @@ export function CashierStageTabs({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2",
+        "flex items-center gap-2",
         className,
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className="hidden shrink-0 items-center gap-2 sm:flex">
         <p className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#141414] before:block before:h-px before:w-2 before:bg-[#0f766e] before:content-['']">
           Stage
         </p>
@@ -60,7 +60,7 @@ export function CashierStageTabs({
       </div>
 
       <div
-        className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex min-w-0 flex-1 gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="tablist"
         aria-label="Cashier lanes"
       >

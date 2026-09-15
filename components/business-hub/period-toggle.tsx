@@ -12,7 +12,7 @@ export function PeriodToggle({
   onChange: (p: Period) => void;
 }) {
   return (
-    <div className="inline-flex shrink-0 items-stretch gap-0.5 rounded-none border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-white p-0.5">
+    <div className="inline-flex h-8 shrink-0 items-stretch gap-0.5 rounded-none border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-white p-0.5">
       {(
         [
           { id: "week" as const, label: "Week" },
@@ -27,7 +27,7 @@ export function PeriodToggle({
             onClick={() => onChange(id)}
             className={cn(
               HUB_BTN,
-              "relative min-w-[3.25rem] px-2 py-1 text-[11px] font-medium sm:min-w-[3.5rem] sm:text-[12px]",
+              "relative min-w-[3rem] px-2.5 text-[11px] font-medium sm:min-w-[3.5rem] sm:text-[12px]",
               active
                 ? "border border-[#0f766e] bg-white text-[#0f766e]"
                 : "text-[#5C5C5C] hover:bg-white hover:text-[#0f766e]",

@@ -3991,6 +3991,107 @@ export type PatchStoreItemPayload = {
   clearItemId?: boolean;
 };
 
+/** Which way stock moved through the store-room door. */
+export type StoreRoomDirection = "in" | "out";
+
+/** What a movement did to stock. `none` = a location memo, not a stock change. */
+export type StoreRoomStockEffect = "none" | "decrease" | "increase";
+
+/** Why something left (or entered) the store room. Mirrors `StoreRoomReason`. */
+export type StoreRoomReason =
+  | "restock_to_shelf"
+  | "kitchen_prep"
+  | "counter_transfer"
+  | "spoilage"
+  | "expired"
+  | "breakage"
+  | "customer_return"
+  | "theft"
+  | "staff_use"
+  | "count_correction"
+  | "other"
+  | "received_into_room";
+
+export type StoreRoomMovementRecord = {
+  id: string;
+  storeItemId: string | null;
+  /** The register row's name at read time; null once the row is deleted. */
+  storeItemName: string | null;
+  itemId: string | null;
+  /** The linked catalogue product's name, when there is one. */
+  itemName: string | null;
+  direction: StoreRoomDirection;
+  reason: StoreRoomReason;
+  stockEffect: StoreRoomStockEffect;
+  quantity: number | string;
+  note: string | null;
+  /** The `stock_movements` row this produced, if it moved stock. */
+  movementId: string | null;
+  /** How many ledger rows were written — a wastage can split across batches. */
+  movementCount: number;
+  branchId: string | null;
+  createdAt: string;
+  createdBy: string | null;
+  createdByName: string | null;
+};
+
+export type StoreRoomActivityRecord = {
+  from: string;
+  to: string;
+  summary: {
+    total: number;
+    takeOuts: number;
+    putIns: number;
+    stockLossQuantity: number | string;
+  };
+  movements: StoreRoomMovementRecord[];
+};
+
+export type CreateStoreRoomMovementPayload = {
+  storeItemId: string;
+  direction: StoreRoomDirection;
+  reason: StoreRoomReason;
+  quantity: number;
+  note?: string | null;
+  branchId?: string | null;
+};
+
+/**
+ * The activity trail for a window. The client supplies the window because it knows
+ * its own local day; the server has no opinion about what "today" means for a shop.
+ */
+export async function fetchStoreRoomActivity(params?: {
+  from?: string;
+  to?: string;
+  limit?: number;
+}): Promise<StoreRoomActivityRecord> {
+  const q = new URLSearchParams();
+  if (params?.from) q.set("from", params.from);
+  if (params?.to) q.set("to", params.to);
+  if (params?.limit != null) q.set("limit", String(params.limit));
+  const qs = q.toString();
+  return request<StoreRoomActivityRecord>(
+    `${API_ROUTES.storeRoomMovements}${qs ? `?${qs}` : ""}`,
+  );
+}
+
+/**
+ * Records one take-out or put-in.
+ *
+ * `toast: false` because the caller owns the message — the likely failure is a
+ * missing permission or not enough stock, and both read better inline than as a
+ * generic toast.
+ */
+export async function postStoreRoomMovement(
+  body: CreateStoreRoomMovementPayload,
+): Promise<StoreRoomMovementRecord> {
+  return request<StoreRoomMovementRecord>(API_ROUTES.storeRoomMovements, {
+    method: "POST",
+    body,
+    toast: false,
+  });
+}
+
 export async function fetchStoreItems(): Promise<StoreItemRecord[]> {
   return request<StoreItemRecord[]>(API_ROUTES.storeItems);
 }

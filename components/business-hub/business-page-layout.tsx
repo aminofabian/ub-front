@@ -18,6 +18,8 @@ export const BUSINESS_HUB_VARS = {
 export function BusinessPageLayout({
   children,
   headerActions,
+  toolbarLeading,
+  stage,
   className,
   title,
   description,
@@ -25,7 +27,12 @@ export function BusinessPageLayout({
   setupHome = false,
 }: {
   children: ReactNode;
+  /** Trailing toolbar controls (live, refresh, settings, …). */
   headerActions?: ReactNode;
+  /** Leading toolbar controls (period toggle). Renders left of trailing actions. */
+  toolbarLeading?: ReactNode;
+  /** Optional stage/lane picker rendered under the toolbar inside the sticky chrome. */
+  stage?: ReactNode;
   className?: string;
   /** @deprecated Eyebrows removed for a quieter header; ignored. */
   eyebrow?: string;
@@ -38,6 +45,7 @@ export function BusinessPageLayout({
   const heading = title?.trim() || "";
   const blurb = description?.trim() || "";
   const showCopy = Boolean(heading || blurb);
+  const showToolbar = Boolean(toolbarLeading || headerActions);
 
   return (
     <div
@@ -49,46 +57,83 @@ export function BusinessPageLayout({
       )}
       style={BUSINESS_HUB_VARS}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col gap-2 sm:gap-2.5">
-        {showNav ? (
+      <div className="relative flex min-h-0 flex-1 flex-col gap-2.5 sm:gap-3">
+        {showNav || showToolbar || stage ? (
           <div
             className={cn(
-              "sticky top-0 z-20 shrink-0 overflow-hidden border bg-white p-0.5",
+              "sticky top-0 z-20 shrink-0 overflow-hidden border bg-white",
               "border-[color-mix(in_srgb,var(--hub-ink)_12%,transparent)]",
-              "shadow-none",
             )}
           >
-            <BusinessHubNav setupHome={setupHome} />
+            {showNav ? (
+              <div className="p-0.5">
+                <BusinessHubNav setupHome={setupHome} />
+              </div>
+            ) : null}
+
+            {showToolbar ? (
+              <div
+                className={cn(
+                  "flex items-center gap-2 px-2 py-1.5",
+                  showNav &&
+                    "border-t border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
+                  toolbarLeading ? "justify-between" : "justify-end",
+                )}
+              >
+                {toolbarLeading ? (
+                  <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                    {toolbarLeading}
+                  </div>
+                ) : null}
+                <div className="flex shrink-0 items-center gap-1">
+                  <OnlineStoreHeaderSwitch />
+                  {headerActions}
+                </div>
+              </div>
+            ) : (
+              <div
+                className={cn(
+                  "flex justify-end px-2 py-1.5",
+                  showNav &&
+                    "border-t border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
+                )}
+              >
+                <OnlineStoreHeaderSwitch />
+              </div>
+            )}
+
+            {stage ? (
+              <div
+                className={cn(
+                  "px-2 py-1.5",
+                  "border-t border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
+                  "bg-[color-mix(in_srgb,var(--hub-ink)_2.5%,white)]",
+                )}
+              >
+                {stage}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
-        <header
-          className={cn(
-            "flex flex-wrap items-center gap-2",
-            showCopy ? "justify-between" : "justify-end",
-          )}
-        >
-          {showCopy ? (
-            <div className="min-w-0 flex-1 py-0.5">
-              {heading ? (
-                <h1 className="font-heading text-lg font-semibold leading-none tracking-[-0.03em] text-[var(--hub-ink)] sm:text-xl">
-                  {heading}
-                </h1>
-              ) : null}
-              {blurb ? (
-                <p className="mt-1 max-w-xl text-[12px] leading-snug text-[color-mix(in_srgb,var(--hub-ink)_52%,transparent)] max-sm:line-clamp-2">
-                  {blurb}
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <h1 className="sr-only">Business</h1>
-          )}
-          <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1">
-            <OnlineStoreHeaderSwitch />
-            {headerActions}
-          </div>
-        </header>
+        {showCopy ? (
+          <header className="min-w-0 py-0.5">
+            {heading ? (
+              <h1 className="font-heading text-lg font-semibold leading-none tracking-[-0.03em] text-[var(--hub-ink)] sm:text-xl">
+                {heading}
+              </h1>
+            ) : (
+              <h1 className="sr-only">Business</h1>
+            )}
+            {blurb ? (
+              <p className="mt-1 max-w-xl text-[12px] leading-snug text-[color-mix(in_srgb,var(--hub-ink)_52%,transparent)] max-sm:line-clamp-2">
+                {blurb}
+              </p>
+            ) : null}
+          </header>
+        ) : (
+          <h1 className="sr-only">Business</h1>
+        )}
 
         {children}
       </div>
