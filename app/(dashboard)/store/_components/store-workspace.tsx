@@ -30,6 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { useStoreRoomRealtime } from "@/hooks/use-store-room-realtime";
 import {
   ApiRequestError,
@@ -173,6 +174,8 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   const [approvalDraft, setApprovalDraft] = useState("");
   const [approvalBusy, setApprovalBusy] = useState(false);
   const [approvalError, setApprovalError] = useState<string | null>(null);
+  /** Drafted "second pair of eyes" policy, saved with the threshold. */
+  const [separateDraft, setSeparateDraft] = useState(false);
 
   /** Theatre selection — drives history + inspect columns. */
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -428,6 +431,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
 
   const openApprovalThreshold = () => {
     setApprovalDraft(approvalThreshold == null ? "" : String(approvalThreshold));
+    setSeparateDraft(settings?.requireSeparateApprover ?? false);
     setApprovalError(null);
     setApprovalOpen(true);
   };
@@ -437,7 +441,12 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setApprovalError(null);
     try {
       if (clear) {
-        setSettings(await updateStoreRoomSettings({ clearApprovalThreshold: true }));
+        setSettings(
+          await updateStoreRoomSettings({
+            clearApprovalThreshold: true,
+            requireSeparateApprover: separateDraft,
+          }),
+        );
         setFeedback({
           kind: "success",
           text: "Big take-outs no longer need approval.",
@@ -449,10 +458,19 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
           setApprovalError("Enter a number greater than zero.");
           return;
         }
-        setSettings(await updateStoreRoomSettings({ approvalThreshold: n }));
+        setSettings(
+          await updateStoreRoomSettings({
+            approvalThreshold: n,
+            requireSeparateApprover: separateDraft,
+          }),
+        );
         setFeedback({
           kind: "success",
-          text: `Take-outs of more than ${n} will wait for approval.`,
+          text:
+            `Take-outs of more than ${n} will wait for approval.` +
+            (separateDraft
+              ? " Nobody may approve a take-out they raised themselves."
+              : ""),
         });
       }
       setApprovalOpen(false);
@@ -774,6 +792,8 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         connected={connected}
         canWrite={canWrite}
         canDecide={canDecide}
+        requireSeparateApprover={settings.requireSeparateApprover}
+        currentUserId={me?.id ?? null}
         currency={currency}
         settingsBanner={
           <StoreModeBanner
@@ -784,6 +804,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
             linkedCount={settings.linkedCount}
             unlinkedCount={settings.unlinkedCount}
             approvalThreshold={approvalThreshold}
+            requireSeparateApprover={settings.requireSeparateApprover}
             onApprovals={openApprovalThreshold}
             onStopFollowing={() => void chooseMode("standalone")}
             onFollowInventory={() => void chooseMode("connected")}
@@ -939,6 +960,24 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
               placeholder="e.g. 10"
             />
           </label>
+          <div className="flex items-start justify-between gap-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] px-2.5 py-2">
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold tracking-[-0.02em] text-foreground">
+                Second pair of eyes
+              </p>
+              <p className={dashboardHintClass()}>
+                Nobody can approve a take-out they raised themselves — they can
+                still turn down their own. Only matters while approval is on.
+              </p>
+            </div>
+            <Switch
+              checked={separateDraft}
+              onCheckedChange={setSeparateDraft}
+              disabled={approvalBusy}
+              aria-label="Nobody may approve a take-out they raised themselves"
+              className="mt-0.5 shrink-0"
+            />
+          </div>
           {approvalError ? (
             <p className="border border-destructive/40 bg-destructive/5 px-2.5 py-2 text-[12px] leading-snug text-destructive">
               {approvalError}

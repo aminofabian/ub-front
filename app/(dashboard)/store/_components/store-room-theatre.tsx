@@ -12,6 +12,7 @@ import {
   PackageSearch,
   RefreshCcw,
   Search,
+  ShieldCheck,
   Trash2,
 } from "lucide-react";
 
@@ -64,6 +65,8 @@ export function StoreRoomTheatre({
   connected,
   canWrite,
   canDecide,
+  requireSeparateApprover,
+  currentUserId,
   currency,
   settingsBanner,
   query,
@@ -98,6 +101,10 @@ export function StoreRoomTheatre({
   connected: boolean;
   canWrite: boolean;
   canDecide: boolean;
+  /** Nobody may approve a take-out they raised themselves. */
+  requireSeparateApprover: boolean;
+  /** The signed-in user, so the history can tell "mine" from someone else's. */
+  currentUserId: string | null;
   currency: string;
   settingsBanner: ReactNode;
   query: string;
@@ -285,6 +292,8 @@ export function StoreRoomTheatre({
       reloadToken={activityToken}
       canWrite={canWrite}
       canDecide={canDecide}
+      requireSeparateApprover={requireSeparateApprover}
+      currentUserId={currentUserId}
       onPutIn={selectedRow ? undefined : onPutIn}
       onRecorded={onRecorded}
       focusStoreItemId={selectedRow?.id ?? null}
@@ -676,6 +685,7 @@ export function StoreModeBanner({
   linkedCount,
   unlinkedCount,
   approvalThreshold,
+  requireSeparateApprover = false,
   onApprovals,
   onStopFollowing,
   onFollowInventory,
@@ -687,6 +697,8 @@ export function StoreModeBanner({
   linkedCount: number;
   unlinkedCount: number;
   approvalThreshold: number | null;
+  /** Nobody may approve a take-out they raised themselves. */
+  requireSeparateApprover?: boolean;
   onApprovals: () => void;
   onStopFollowing: () => void;
   onFollowInventory: () => void;
@@ -728,9 +740,20 @@ export function StoreModeBanner({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-xs"
+              className="h-8 gap-1.5 px-2 text-xs"
               onClick={onApprovals}
+              title={
+                requireSeparateApprover
+                  ? "Take-outs above the limit need somebody else's approval"
+                  : undefined
+              }
             >
+              {requireSeparateApprover ? (
+                <ShieldCheck
+                  className="size-3.5 text-[var(--pos-primary,#0f766e)]"
+                  aria-hidden
+                />
+              ) : null}
               {approvalThreshold == null
                 ? "Approvals off"
                 : `Approvals > ${approvalThreshold}`}

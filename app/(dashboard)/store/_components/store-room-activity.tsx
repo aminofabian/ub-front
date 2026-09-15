@@ -8,6 +8,7 @@ import {
   Clock,
   Loader2,
   RotateCcw,
+  ShieldAlert,
   X,
 } from "lucide-react";
 
@@ -80,6 +81,8 @@ export function StoreRoomActivity({
   onRecorded,
   canWrite,
   canDecide,
+  requireSeparateApprover = false,
+  currentUserId = null,
   focusStoreItemId = null,
   focusLabel = null,
   variant = "panel",
@@ -91,6 +94,14 @@ export function StoreRoomActivity({
   onRecorded?: () => void;
   canWrite: boolean;
   canDecide: boolean;
+  /**
+   * When the store room asks for a second pair of eyes, the person who raised a
+   * take-out cannot approve it. We hide their Approve button rather than let them
+   * press it and collect a 403 — the server enforces this either way.
+   */
+  requireSeparateApprover?: boolean;
+  /** The signed-in user, so "mine" can be told from "somebody else's". */
+  currentUserId?: string | null;
   /** When set, only movements for this store-room row are shown. */
   focusStoreItemId?: string | null;
   focusLabel?: string | null;
@@ -353,6 +364,15 @@ export function StoreRoomActivity({
               const incoming = movement.direction === "in";
               const pending = movement.status === "pending";
               const rejected = movement.status === "rejected";
+              /**
+               * This person raised it and the shop wants a second opinion. Turn
+               * down stays available: withdrawing your own request moves no stock.
+               */
+              const ownApprovalBlocked =
+                pending &&
+                requireSeparateApprover &&
+                currentUserId != null &&
+                movement.createdBy === currentUserId;
               const Icon = incoming ? ArrowDownToLine : ArrowUpFromLine;
               return (
                 <li
@@ -428,33 +448,50 @@ export function StoreRoomActivity({
                       </p>
                     ) : null}
                     {pending && canDecide ? (
-                      <div className="mt-1.5 flex items-center gap-1.5">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-7 gap-1 px-2 text-[11px]"
-                          disabled={decidingId === movement.id}
-                          onClick={() => void decide(movement, true)}
-                        >
-                          {decidingId === movement.id ? (
-                            <Loader2 className="size-3 animate-spin" aria-hidden />
-                          ) : (
-                            <Check className="size-3" aria-hidden />
+                      <div className="mt-1.5 space-y-1.5">
+                        {ownApprovalBlocked ? (
+                          <p className="flex items-start gap-1 text-[11px] leading-snug text-amber-700 dark:text-amber-400">
+                            <ShieldAlert
+                              className="mt-px size-3 shrink-0"
+                              aria-hidden
+                            />
+                            You raised this take-out — somebody else has to approve
+                            it. You can still turn it down.
+                          </p>
+                        ) : null}
+                        <div className="flex items-center gap-1.5">
+                          {ownApprovalBlocked ? null : (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 gap-1 px-2 text-[11px]"
+                              disabled={decidingId === movement.id}
+                              onClick={() => void decide(movement, true)}
+                            >
+                              {decidingId === movement.id ? (
+                                <Loader2
+                                  className="size-3 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : (
+                                <Check className="size-3" aria-hidden />
+                              )}
+                              Approve
+                            </Button>
                           )}
-                          Approve
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 gap-1 px-2 text-[11px] text-muted-foreground"
-                          disabled={decidingId === movement.id}
-                          onClick={() => void decide(movement, false)}
-                        >
-                          <X className="size-3" aria-hidden />
-                          Turn down
-                        </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 gap-1 px-2 text-[11px] text-muted-foreground"
+                            disabled={decidingId === movement.id}
+                            onClick={() => void decide(movement, false)}
+                          >
+                            <X className="size-3" aria-hidden />
+                            Turn down
+                          </Button>
+                        </div>
                       </div>
                     ) : null}
                   </div>
