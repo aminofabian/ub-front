@@ -58,6 +58,7 @@ export function BusinessPageLayout({
   headerActions,
   toolbarLeading,
   stage,
+  stageClassName,
   className,
   title,
   description,
@@ -73,6 +74,8 @@ export function BusinessPageLayout({
   toolbarLeading?: ReactNode;
   /** Optional stage/lane picker rendered under the controls inside the sticky chrome. */
   stage?: ReactNode;
+  /** Hide the stage band itself, e.g. when the stage is a phone-only rail. */
+  stageClassName?: string;
   className?: string;
   /** @deprecated Eyebrows removed for a quieter header; ignored. */
   eyebrow?: string;
@@ -105,7 +108,10 @@ export function BusinessPageLayout({
       style={BUSINESS_HUB_VARS}
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-2 sm:gap-3">
+        {/* `data-hub-chrome` lets in-page jumps measure the sticky header they
+            have to clear, instead of guessing a fixed offset. */}
         <div
+          data-hub-chrome=""
           className={cn(
             "sticky top-0 z-20 shrink-0 border-b bg-white/92",
             "border-[color-mix(in_srgb,var(--hub-ink)_10%,transparent)]",
@@ -167,6 +173,7 @@ export function BusinessPageLayout({
                 "bg-[color-mix(in_srgb,var(--hub-ink)_2.5%,white)]",
                 HUB_RULE_8,
                 "border-t",
+                stageClassName,
               )}
             >
               {stage}

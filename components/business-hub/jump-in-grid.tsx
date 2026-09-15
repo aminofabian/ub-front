@@ -15,7 +15,7 @@ export type JumpInLink = {
   hint: string;
   icon: LucideIcon;
   /** Job the shortcut belongs to — used to group the overflow sheet. */
-  group: string;
+  group?: string;
 };
 
 const TILE_EDGE =
@@ -34,11 +34,12 @@ const INLINE_LIMIT = BOARD_SLOTS - 1;
 function groupLinks(links: JumpInLink[]) {
   const groups: { name: string; links: JumpInLink[] }[] = [];
   for (const link of links) {
-    const group = groups.find((candidate) => candidate.name === link.group);
+    const name = link.group ?? "Shortcuts";
+    const group = groups.find((candidate) => candidate.name === name);
     if (group) {
       group.links.push(link);
     } else {
-      groups.push({ name: link.group, links: [link] });
+      groups.push({ name, links: [link] });
     }
   }
   return groups;
@@ -126,7 +127,16 @@ function ShortcutsSheet({
  * whole row is reachable with one thumb, widening to four and six as the screen
  * grows. Tiles carry an icon and a short label; the sheet keeps the rest.
  */
-export function JumpInGrid({ links }: { links: JumpInLink[] }) {
+export function JumpInGrid({
+  links,
+  title = "Jump in",
+  meta,
+}: {
+  links: JumpInLink[];
+  title?: string;
+  /** Defaults to the shortcut count. */
+  meta?: string;
+}) {
   const [sheetOpen, setSheetOpen] = useState(false);
   if (links.length === 0) return null;
 
@@ -138,8 +148,8 @@ export function JumpInGrid({ links }: { links: JumpInLink[] }) {
   return (
     <section className="space-y-1.5 border-t border-[color-mix(in_srgb,#141414_7%,transparent)] pt-2.5">
       <HubSectionLabel
-        title="Jump in"
-        meta={`${links.length} shortcuts`}
+        title={title}
+        meta={meta ?? `${links.length} shortcuts`}
         className="px-0.5"
       />
 

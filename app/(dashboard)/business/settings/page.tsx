@@ -27,7 +27,12 @@ import {
   BUSINESS_OPS_ALERT_NAV,
   BUSINESS_PROFILE_NAV,
 } from "@/components/business/business-settings-nav";
-import { BusinessSettingsQuickLinks } from "@/components/business-hub/business-settings-quick-links";
+import { BusinessHubMenuButton } from "@/components/business-hub/hub-menu";
+import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
+import {
+  JumpInGrid,
+  type JumpInLink,
+} from "@/components/business-hub/jump-in-grid";
 import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
 import {
   DashboardAccessDenied,
@@ -36,16 +41,71 @@ import {
 import { BusinessSettingsSkeleton } from "@/components/dashboard/business-settings-skeleton";
 import { Button } from "@/components/ui/button";
 import { useBusinessSettingsEditor } from "@/hooks/use-business-settings-editor";
-import { HUB_BORDER, HUB_SURFACE } from "@/lib/business-hub/constants";
-import { APP_ROUTES } from "@/lib/config";
+import { HUB_BORDER, HUB_BTN, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
 
+/** Breathing room under the sticky header when a section is scrolled into view. */
+const SECTION_OFFSET = 12;
+
+/**
+ * Jumps to a form section, clearing whatever the sticky hub header currently
+ * measures — it grows with the shop identity and the section rail, so a fixed
+ * offset would bury the heading on a phone.
+ */
 function scrollToSection(id: string) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  const chrome = document.querySelector<HTMLElement>("[data-hub-chrome]");
+  const offset = (chrome?.getBoundingClientRect().height ?? 88) + SECTION_OFFSET;
+  const scroller = el.closest("main");
+  if (scroller) {
+    const top =
+      el.getBoundingClientRect().top -
+      scroller.getBoundingClientRect().top +
+      scroller.scrollTop -
+      offset;
+    scroller.scrollTo({ top: Math.max(top, 0), behavior: "smooth" });
+  } else {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   history.replaceState(null, "", `#${id}`);
+}
+
+/** The two form sections as a compact rail inside the sticky chrome. */
+function ProfileSectionRail({
+  active,
+  onSelect,
+}: {
+  active: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <nav aria-label="Settings sections" className="flex gap-1">
+      {BUSINESS_PROFILE_NAV.map(({ id, label, icon: Icon }) => {
+        const current = active === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onSelect(id)}
+            aria-current={current ? "true" : undefined}
+            className={cn(
+              HUB_BTN,
+              "inline-flex min-h-8 min-w-0 flex-1 items-center justify-center gap-1.5 border bg-white px-2.5 text-[12px] font-medium",
+              current
+                ? "border-[#0f766e] text-[#0f766e]"
+                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[#5A5A5A] hover:text-[#0f766e]",
+            )}
+          >
+            <Icon className="size-3.5 shrink-0" aria-hidden />
+            <span className="truncate">{label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
 }
 
 /** Old inventory/till anchors lived on this page — send them to Configuration. */
@@ -118,6 +178,88 @@ export default function BusinessSettingsPage() {
     ];
   }, []);
 
+  /**
+   * Everything a shop owner leaves this page for. Ordered by how often it is
+   * reached for, then regrouped by job in the board's overflow sheet.
+   */
+  const setupLinks = useMemo<JumpInLink[]>(
+    () => [
+      {
+        href: APP_ROUTES.paymentsSettings,
+        label: "Payments",
+        hint: "Gateways & payouts",
+        icon: CreditCard,
+        group: "Money",
+      },
+      {
+        href: APP_ROUTES.branches,
+        label: "Branches",
+        hint: "Where you sell",
+        icon: Building2,
+        group: "Shop",
+      },
+      {
+        href: APP_ROUTES.businessBranding,
+        label: "Branding",
+        hint: "Logo and colours",
+        icon: Palette,
+        group: "Storefront",
+      },
+      {
+        href: APP_ROUTES.businessThemes,
+        label: "Themes",
+        hint: "How the site looks",
+        icon: LayoutTemplate,
+        group: "Storefront",
+      },
+      {
+        href: APP_ROUTES.businessMobile,
+        label: "Store app",
+        hint: "Mobile storefront",
+        icon: Smartphone,
+        group: "Storefront",
+      },
+      {
+        href: APP_ROUTES.businessDomains,
+        label: "Domains",
+        hint: "Custom hostnames",
+        icon: Globe,
+        group: "Storefront",
+      },
+      {
+        href: APP_ROUTES.businessConfiguration,
+        label: "Configuration",
+        hint: "Inventory & till",
+        icon: SlidersHorizontal,
+        group: "Policies",
+      },
+      {
+        href: `${APP_ROUTES.businessConfiguration}#settings-whatsapp-alerts`,
+        label: "Alerts",
+        hint: "WhatsApp order notices",
+        icon: MessageCircle,
+        group: "Policies",
+      },
+    ],
+    [],
+  );
+
+  const snapshot = editor.effectiveSnapshot;
+  const shopIdentity = {
+    name: snapshot?.branding?.displayName?.trim() || snapshot?.name?.trim() || "",
+    meta: [
+      snapshot?.primaryDomain?.trim() ||
+        (snapshot?.slug?.trim()
+          ? `${snapshot.slug.trim()}.${PLATFORM_DOMAIN}`
+          : ""),
+      snapshot?.currency?.trim().toUpperCase(),
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    logoUrl: snapshot?.branding?.logoUrl,
+    faviconUrl: snapshot?.branding?.faviconUrl,
+  };
+
   if (!editor.canManageBusinessSettings) {
     return (
       <DashboardAccessDenied
@@ -167,61 +309,21 @@ export default function BusinessSettingsPage() {
     <BusinessPageLayout
       title="Business settings"
       description="Profile, storefront, and delivery — inventory and till policies live under Configuration."
-    >
-      <div className="space-y-4 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-2">
-        <BusinessSettingsQuickLinks
-          links={[
-            {
-              href: APP_ROUTES.paymentsSettings,
-              label: "Payments",
-              desc: "Gateways & supplier payouts",
-              icon: CreditCard,
-            },
-            {
-              href: APP_ROUTES.businessConfiguration,
-              label: "Configuration",
-              desc: "Inventory & till",
-              icon: SlidersHorizontal,
-            },
-            {
-              href: `${APP_ROUTES.businessConfiguration}#settings-whatsapp-alerts`,
-              label: "WhatsApp alerts",
-              desc: "Owner event notifications",
-              icon: MessageCircle,
-            },
-            {
-              href: APP_ROUTES.businessBranding,
-              label: "Branding",
-              desc: "Logo & colors",
-              icon: Palette,
-            },
-            {
-              href: APP_ROUTES.businessThemes,
-              label: "Themes",
-              desc: "How the website looks",
-              icon: LayoutTemplate,
-            },
-            {
-              href: APP_ROUTES.businessMobile,
-              label: "Store app",
-              desc: "Mobile storefront",
-              icon: Smartphone,
-            },
-            {
-              href: APP_ROUTES.businessDomains,
-              label: "Domains",
-              desc: "Custom hostnames",
-              icon: Globe,
-            },
-            {
-              href: APP_ROUTES.branches,
-              label: "Branches",
-              desc: "Locations",
-              icon: Building2,
-            },
-          ]}
+      identity={shopIdentity}
+      menu={<BusinessHubMenuButton identity={shopIdentity} />}
+      toolbarLeading={null}
+      stageClassName="lg:hidden"
+      stage={
+        <ProfileSectionRail
+          active={activeSection}
+          onSelect={(id) => {
+            setActiveSection(id);
+            scrollToSection(id);
+          }}
         />
-
+      }
+    >
+      <div className="space-y-3.5 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] sm:space-y-4 lg:pb-2">
         {editor.feedback && !editor.loadFailed ? (
           <DashboardFeedback
             kind={editor.feedback.kind === "error" ? "error" : "success"}
@@ -229,115 +331,85 @@ export default function BusinessSettingsPage() {
           />
         ) : null}
 
-        {editor.effectiveSnapshot ? (
-          <section className={HUB_SURFACE}>
-            <div className={cn("flex flex-wrap items-center gap-2 border-b bg-white px-4 py-2.5 sm:px-5", HUB_BORDER)}>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="truncate font-heading text-sm font-semibold tracking-tight text-[#141414]">
-                    {editor.effectiveSnapshot.name ?? "—"}
-                  </h2>
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
-                      editor.effectiveSnapshot.active
-                        ? "bg-emerald-500/10 text-emerald-700"
-                        : "bg-white text-[#7A7A7A] ring-1 ring-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
-                    )}
-                  >
-                    {editor.effectiveSnapshot.active ? "Live" : "Paused"}
-                  </span>
-                  <span className="text-[11px] capitalize text-[#8A8A8A]">
-                    {editor.effectiveSnapshot.subscriptionTier ?? "starter"}
-                  </span>
+        {snapshot ? (
+          <section className="space-y-1.5">
+            <HubSectionLabel title="This shop" className="px-0.5" />
+            <div className={HUB_SURFACE}>
+              <div className={cn("flex flex-wrap items-center gap-2 border-b bg-white px-4 py-2.5 sm:px-5", HUB_BORDER)}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="truncate font-heading text-sm font-semibold tracking-tight text-[#141414]">
+                      {snapshot.name ?? "—"}
+                    </h2>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                        snapshot.active
+                          ? "bg-emerald-500/10 text-emerald-700"
+                          : "bg-white text-[#6F6F6F] ring-1 ring-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+                      )}
+                    >
+                      {snapshot.active ? "Live" : "Paused"}
+                    </span>
+                    <span className="text-[11px] capitalize text-[#6F6F6F]">
+                      {snapshot.subscriptionTier ?? "starter"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <Link
-                href={`${APP_ROUTES.businessConfiguration}#settings-stock-levels`}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-none border px-2.5 py-1 text-[11px] font-medium transition-colors",
-                  editor.inventory.allowNegativeStock
-                    ? "border-amber-500/30 bg-amber-500/10 text-amber-800"
-                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666] hover:border-[#0f766e] hover:text-[#0f766e]",
-                )}
-              >
-                <ShoppingCart className="size-3 shrink-0" aria-hidden />
-                Oversell {editor.inventory.allowNegativeStock ? "on" : "off"}
-                <ArrowRight className="size-3" aria-hidden />
-              </Link>
-            </div>
-            <dl className="grid grid-cols-2 gap-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:grid-cols-4">
-              {[
-                {
-                  label: "Slug",
-                  value: editor.effectiveSnapshot.slug ?? "—",
-                  icon: Globe,
-                },
-                {
-                  label: "Country",
-                  value: editor.effectiveSnapshot.countryCode ?? "—",
-                  icon: MapPin,
-                },
-                {
-                  label: "Currency",
-                  value: editor.effectiveSnapshot.currency ?? "—",
-                  icon: Coins,
-                },
-                {
-                  label: "Timezone",
-                  value: editor.effectiveSnapshot.timezone ?? "—",
-                  icon: Clock,
-                },
-              ].map(({ label, value, icon: Icon }) => (
-                <div key={label} className="bg-white px-3 py-2.5 sm:px-4">
-                  <dt className="flex items-center gap-1 text-[10px] font-semibold tracking-[-0.02em] text-[#8A8A8A]">
-                    <Icon
-                      className="size-3 shrink-0 text-[#0f766e]"
-                      aria-hidden
-                    />
-                    {label}
-                  </dt>
-                  <dd className="mt-0.5 truncate font-mono text-xs font-semibold text-[#141414]">
-                    {value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-        ) : null}
-
-        <nav
-          aria-label="Settings sections"
-          className={cn(
-            "sticky top-[3.75rem] z-20 -mx-0.5 overflow-x-auto rounded-none border bg-white px-1 py-1 lg:hidden",
-            HUB_BORDER,
-          )}
-        >
-          <div className="flex w-max gap-1 pb-0.5">
-            {BUSINESS_PROFILE_NAV.map(({ id, label, icon: Icon }) => {
-              const active = activeSection === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => {
-                    setActiveSection(id);
-                    scrollToSection(id);
-                  }}
+                <Link
+                  href={`${APP_ROUTES.businessConfiguration}#settings-stock-levels`}
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-none border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-                    active
-                      ? "border-[#0f766e] bg-white text-[#0f766e]"
-                      : "border-transparent text-[#666666] hover:border-[#0f766e] hover:text-[#0f766e]",
+                    "inline-flex items-center gap-1 rounded-none border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                    editor.inventory.allowNegativeStock
+                      ? "border-amber-500/30 bg-amber-500/10 text-amber-800"
+                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666] hover:border-[#0f766e] hover:text-[#0f766e]",
                   )}
                 >
-                  <Icon className="size-3 shrink-0" aria-hidden />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
+                  <ShoppingCart className="size-3 shrink-0" aria-hidden />
+                  Oversell {editor.inventory.allowNegativeStock ? "on" : "off"}
+                  <ArrowRight className="size-3" aria-hidden />
+                </Link>
+              </div>
+              <dl className="grid grid-cols-2 gap-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:grid-cols-4">
+                {[
+                  {
+                    label: "Slug",
+                    value: snapshot.slug ?? "—",
+                    icon: Globe,
+                  },
+                  {
+                    label: "Country",
+                    value: snapshot.countryCode ?? "—",
+                    icon: MapPin,
+                  },
+                  {
+                    label: "Currency",
+                    value: snapshot.currency ?? "—",
+                    icon: Coins,
+                  },
+                  {
+                    label: "Timezone",
+                    value: snapshot.timezone ?? "—",
+                    icon: Clock,
+                  },
+                ].map(({ label, value, icon: Icon }) => (
+                  <div key={label} className="bg-white px-3 py-2.5 sm:px-4">
+                    <dt className="flex items-center gap-1 text-[10px] font-semibold tracking-[-0.02em] text-[#6F6F6F]">
+                      <Icon
+                        className="size-3 shrink-0 text-[#0f766e]"
+                        aria-hidden
+                      />
+                      {label}
+                    </dt>
+                    <dd className="mt-0.5 truncate font-mono text-xs font-semibold text-[#141414]">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </section>
+        ) : null}
 
         <div
           className="grid gap-4 lg:grid-cols-[11.5rem_minmax(0,1fr)] lg:items-start xl:grid-cols-[12.5rem_minmax(0,1fr)]"
@@ -431,6 +503,14 @@ export default function BusinessSettingsPage() {
             />
           </section>
         </div>
+
+        {/* Where this page hands off. Kept last: the form is the job here, and
+            the board is one consistent gesture with the Business hub. */}
+        <JumpInGrid
+          links={setupLinks}
+          title="Shop setup"
+          meta={`${setupLinks.length} pages`}
+        />
       </div>
     </BusinessPageLayout>
   );
