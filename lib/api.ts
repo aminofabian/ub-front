@@ -3962,6 +3962,8 @@ export type StoreRoomSettingsRecord = {
   /** null until the merchant answers the "follow inventory?" prompt. */
   mode: StoreRoomMode | null;
   connectedAt: string | null;
+  /** Ask before more than this leaves stock; null = never ask. */
+  approvalThreshold: number | string | null;
   itemCount: number;
   linkedCount: number;
   unlinkedCount: number;
@@ -4012,6 +4014,9 @@ export type StoreRoomReason =
   | "other"
   | "received_into_room";
 
+/** Where a movement stands. Only `pending` means stock has NOT moved yet. */
+export type StoreRoomMovementStatus = "applied" | "pending" | "rejected";
+
 export type StoreRoomMovementRecord = {
   id: string;
   storeItemId: string | null;
@@ -4023,6 +4028,7 @@ export type StoreRoomMovementRecord = {
   direction: StoreRoomDirection;
   reason: StoreRoomReason;
   stockEffect: StoreRoomStockEffect;
+  status: StoreRoomMovementStatus;
   quantity: number | string;
   note: string | null;
   /** The `stock_movements` row this produced, if it moved stock. */
@@ -4033,6 +4039,10 @@ export type StoreRoomMovementRecord = {
   createdAt: string;
   createdBy: string | null;
   createdByName: string | null;
+  decidedAt: string | null;
+  decidedBy: string | null;
+  decidedByName: string | null;
+  decisionNote: string | null;
 };
 
 export type StoreRoomActivityRecord = {
@@ -4043,6 +4053,13 @@ export type StoreRoomActivityRecord = {
     takeOuts: number;
     putIns: number;
     stockLossQuantity: number | string;
+    /** Waiting on a decision — stock has NOT moved for these. */
+    pending: number;
+  };
+  /** Filter options actually present in the window. */
+  facets: {
+    actors: { userId: string; name: string; count: number }[];
+    reasons: { reason: StoreRoomReason; count: number }[];
   };
   movements: StoreRoomMovementRecord[];
 };
@@ -4064,11 +4081,19 @@ export async function fetchStoreRoomActivity(params?: {
   from?: string;
   to?: string;
   limit?: number;
+  reason?: string;
+  createdBy?: string;
+  direction?: StoreRoomDirection;
+  status?: StoreRoomMovementStatus;
 }): Promise<StoreRoomActivityRecord> {
   const q = new URLSearchParams();
   if (params?.from) q.set("from", params.from);
   if (params?.to) q.set("to", params.to);
   if (params?.limit != null) q.set("limit", String(params.limit));
+  if (params?.reason) q.set("reason", params.reason);
+  if (params?.createdBy) q.set("createdBy", params.createdBy);
+  if (params?.direction) q.set("direction", params.direction);
+  if (params?.status) q.set("status", params.status);
   const qs = q.toString();
   return request<StoreRoomActivityRecord>(
     `${API_ROUTES.storeRoomMovements}${qs ? `?${qs}` : ""}`,
@@ -4092,6 +4117,25 @@ export async function postStoreRoomMovement(
   });
 }
 
+/**
+ * Approve or turn down a pending movement. Approving is where stock actually moves,
+ * so it needs inventory write.
+ */
+export async function decideStoreRoomMovement(
+  id: string,
+  approve: boolean,
+  note?: string | null,
+): Promise<StoreRoomMovementRecord> {
+  return request<StoreRoomMovementRecord>(
+    `${API_ROUTES.storeRoomMovements}/${encodeURIComponent(id)}/${approve ? "approve" : "reject"}`,
+    {
+      method: "POST",
+      body: note?.trim() ? { note: note.trim() } : {},
+      toast: false,
+    },
+  );
+}
+
 export async function fetchStoreItems(): Promise<StoreItemRecord[]> {
   return request<StoreItemRecord[]>(API_ROUTES.storeItems);
 }
@@ -4100,13 +4144,18 @@ export async function fetchStoreRoomSettings(): Promise<StoreRoomSettingsRecord>
   return request<StoreRoomSettingsRecord>(API_ROUTES.storeRoomSettings);
 }
 
-/** Records the standalone-vs-connected choice; connecting auto-links by barcode. */
-export async function updateStoreRoomSettings(
-  mode: StoreRoomMode,
-): Promise<StoreRoomSettingsRecord> {
+/**
+ * Records the standalone-vs-connected choice, sets or clears the approval threshold,
+ * or both. Sending only a threshold leaves the mode alone.
+ */
+export async function updateStoreRoomSettings(patch: {
+  mode?: StoreRoomMode;
+  approvalThreshold?: number;
+  clearApprovalThreshold?: boolean;
+}): Promise<StoreRoomSettingsRecord> {
   return request<StoreRoomSettingsRecord>(API_ROUTES.storeRoomSettings, {
     method: "PUT",
-    body: { mode },
+    body: patch,
   });
 }
 

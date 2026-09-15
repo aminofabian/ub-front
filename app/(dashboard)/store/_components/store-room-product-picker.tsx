@@ -20,6 +20,8 @@ export function StoreRoomProductPicker({
   description,
   /** Products already mirrored elsewhere in the store room. */
   takenItemIds,
+  /** Seed the search, e.g. from a scanned barcode that is not tracked yet. */
+  initialQuery,
   busy,
   onPick,
   onCreateCustom,
@@ -29,6 +31,7 @@ export function StoreRoomProductPicker({
   title: string;
   description: string;
   takenItemIds: ReadonlySet<string>;
+  initialQuery?: string;
   busy: boolean;
   onPick: (item: ItemSummaryRecord) => void;
   onCreateCustom?: () => void;
@@ -61,12 +64,12 @@ export function StoreRoomProductPicker({
 
   useEffect(() => {
     if (!open) return;
-    setQuery("");
+    setQuery(initialQuery ?? "");
     setResults([]);
     setFailed(false);
     // Show the loader straight away — the debounce below still has to wait.
     setSearching(true);
-  }, [open]);
+  }, [open, initialQuery]);
 
   useEffect(() => {
     if (!open) return;

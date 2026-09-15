@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Filter, RefreshCw, X } from "lucide-react";
+import { Check, ChevronDown, Filter, RefreshCw, X } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -146,7 +146,81 @@ function EmptyPlot({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Horizontal ranked bars — readable on phones where vertical columns crush. */
+function RankedBars({
+  items,
+  formatValue,
+  empty,
+}: {
+  items: { key: string; label: string; value: number }[];
+  formatValue: (n: number) => string;
+  empty: string;
+}) {
+  if (items.length === 0) return <EmptyPlot>{empty}</EmptyPlot>;
+  const max = Math.max(...items.map((i) => Math.abs(i.value)), 1);
+  return (
+    <ul className="space-y-2.5">
+      {items.map((item, index) => {
+        const pct = Math.max(
+          (Math.abs(item.value) / max) * 100,
+          item.value ? 4 : 0,
+        );
+        return (
+          <li key={item.key} className="min-w-0">
+            <div className="mb-1 flex items-baseline justify-between gap-2">
+              <span className="min-w-0 truncate text-[13px] font-medium tracking-[-0.015em]">
+                <span className="mr-1.5 tabular-nums text-muted-foreground">
+                  {index + 1}.
+                </span>
+                {item.label}
+              </span>
+              <span className="shrink-0 text-[12px] font-semibold tabular-nums tracking-[-0.02em]">
+                {formatValue(item.value)}
+              </span>
+            </div>
+            <div className="h-2 bg-muted/60">
+              <div
+                className="h-full origin-left motion-reduce:transition-none"
+                style={{
+                  width: `${pct}%`,
+                  background: index === 0 ? BAR_LEAD : BAR,
+                  transition: `width 200ms ${EASE}`,
+                }}
+              />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function ColumnChart({
+  items,
+  formatValue,
+  empty,
+}: {
+  items: { key: string; label: string; value: number }[];
+  formatValue: (n: number) => string;
+  empty: string;
+}) {
+  return (
+    <>
+      <div className="sm:hidden">
+        <RankedBars items={items} formatValue={formatValue} empty={empty} />
+      </div>
+      <div className="hidden sm:block">
+        <ColumnChartDesktop
+          items={items}
+          formatValue={formatValue}
+          empty={empty}
+        />
+      </div>
+    </>
+  );
+}
+
+function ColumnChartDesktop({
   items,
   formatValue,
   empty,
@@ -392,6 +466,14 @@ function BoardSkeleton() {
       aria-busy="true"
     >
       <div className="h-8 w-2/3 animate-pulse bg-muted" />
+      <div className="flex gap-1.5 lg:hidden">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-10 w-20 shrink-0 animate-pulse border border-border bg-muted/40"
+          />
+        ))}
+      </div>
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => (
           <div
@@ -409,7 +491,7 @@ function BoardSkeleton() {
             />
           ))}
         </div>
-        <div className="space-y-3">
+        <div className="hidden space-y-3 lg:block">
           <div className="h-36 animate-pulse border border-border bg-muted/30" />
           <div className="h-36 animate-pulse border border-border bg-muted/30" />
         </div>
@@ -456,6 +538,7 @@ export function AnalyticsWorkspace({
     allowAll: true,
   });
   const [refreshing, setRefreshing] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const hasLoadedRef = useRef(false);
 
   const onChangeBranch = useCallback(
@@ -716,19 +799,34 @@ export function AnalyticsWorkspace({
 
   if (loading) return <BoardSkeleton />;
 
+  const periodLabel =
+    ANALYTICS_PRESET_LABELS.find((p) => p.key === preset)?.label ?? "Period";
+  const categoryLabel =
+    categoryItems.find((c) => c.id === categoryId)?.label ?? "Category";
+  const branchLabel =
+    branchItems.find((b) => b.id === branchId)?.label ?? "Branch";
+  const filtersActive = Boolean(categoryId || (!branchLocked && branchId));
+
+  const primaryPeriods: DatePreset[] = [
+    "today",
+    "last7",
+    "last30",
+    "thisMonth",
+  ];
+
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-[1280px] space-y-5 pb-16 text-foreground",
+        "mx-auto w-full max-w-[1280px] space-y-4 pb-20 text-foreground sm:space-y-5 sm:pb-16",
         refreshing && "opacity-80",
       )}
     >
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
+      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-3 sm:pb-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="text-lg font-bold tracking-tight sm:text-xl">
+            <h1 className="text-[1.35rem] font-bold tracking-tight sm:text-xl">
               Trends
             </h1>
             <span
@@ -743,26 +841,33 @@ export function AnalyticsWorkspace({
           </div>
           <p className="mt-1 text-[12px] text-muted-foreground">
             {me?.name || business?.name || "Sales performance"}
+            {dateRange ? (
+              <span className="mt-0.5 block tabular-nums sm:mt-0 sm:inline sm:before:content-['_·_']">
+                {dateRange.from === dateRange.to
+                  ? dateRange.from
+                  : `${dateRange.from} → ${dateRange.to}`}
+              </span>
+            ) : null}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {activityHref ? (
             <Link
               href={activityHref}
-              className="text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex h-10 items-center border border-border px-3 text-[12px] font-semibold text-foreground active:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-auto sm:border-0 sm:px-0 sm:font-medium sm:text-muted-foreground sm:underline-offset-2 sm:hover:text-foreground sm:hover:underline"
             >
               Activity
             </Link>
           ) : null}
           <Link
             href={APP_ROUTES.analyticsCustomers}
-            className="text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-10 items-center border border-border px-3 text-[12px] font-semibold text-foreground active:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-auto sm:border-0 sm:px-0 sm:font-medium sm:text-muted-foreground sm:underline-offset-2 sm:hover:text-foreground sm:hover:underline"
           >
             Shoppers
           </Link>
           <button
             type="button"
-            className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+            className="flex size-10 items-center justify-center border border-border text-muted-foreground active:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 sm:size-9 sm:border-0"
             onClick={() => {
               setRefreshing(true);
               void load();
@@ -778,24 +883,151 @@ export function AnalyticsWorkspace({
         </div>
       </header>
 
+      {/* Mobile: period + filters before KPIs */}
+      <div className="space-y-2 lg:hidden">
+        <div
+          className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="group"
+          aria-label="Period"
+        >
+          {primaryPeriods.map((key) => {
+            const label =
+              ANALYTICS_PRESET_LABELS.find((p) => p.key === key)?.label ?? key;
+            const active = preset === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setPreset(key)}
+                className={cn(
+                  "inline-flex h-10 shrink-0 items-center border px-3.5 text-[13px] font-semibold tracking-[-0.015em] transition-colors",
+                  active
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border bg-transparent text-foreground active:bg-muted/40",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setMobileFiltersOpen((v) => !v)}
+            className={cn(
+              "relative inline-flex h-10 shrink-0 items-center gap-1 border px-3 text-[13px] font-semibold",
+              mobileFiltersOpen ||
+                preset === "custom" ||
+                !primaryPeriods.includes(preset) ||
+                filtersActive
+                ? "border-foreground text-foreground"
+                : "border-border text-muted-foreground",
+            )}
+            aria-expanded={mobileFiltersOpen}
+          >
+            <Filter className="size-3.5" aria-hidden />
+            More
+            <ChevronDown
+              className={cn(
+                "size-3.5 transition-transform",
+                mobileFiltersOpen && "rotate-180",
+              )}
+              aria-hidden
+            />
+            {filtersActive ? (
+              <span className="absolute -right-1 -top-1 size-2 rounded-full bg-[var(--pos-primary,#0f766e)]" />
+            ) : null}
+          </button>
+        </div>
+
+        <p className="truncate text-[12px] text-muted-foreground">
+          <span className="font-medium text-foreground">{periodLabel}</span>
+          <span className="mx-1.5 opacity-40">·</span>
+          {categoryLabel}
+          <span className="mx-1.5 opacity-40">·</span>
+          {branchLabel}
+        </p>
+
+        {mobileFiltersOpen ? (
+          <div className="space-y-3 border border-border bg-muted/20 p-3">
+            <div>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                Period
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {ANALYTICS_PRESET_LABELS.map(({ key, label }) => {
+                  const active = preset === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setPreset(key)}
+                      className={cn(
+                        "inline-flex h-9 items-center border px-3 text-[12px] font-semibold",
+                        active
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border bg-background",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <label className="block min-w-0">
+              <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                Category
+              </span>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="h-11 w-full border border-border bg-background px-3 text-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {categoryItems.map((c) => (
+                  <option key={c.id || "all"} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block min-w-0">
+              <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                Branch
+              </span>
+              <select
+                value={branchId}
+                onChange={(e) => onChangeBranch(e.target.value)}
+                className="h-11 w-full border border-border bg-background px-3 text-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {branchItems.map((b) => (
+                  <option key={b.id || "all"} value={b.id}>
+                    {b.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : null}
+      </div>
+
       {preset === "custom" ? (
-        <div className="flex flex-wrap items-center gap-3 text-[12px] text-muted-foreground">
-          <label className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 text-[12px] text-muted-foreground sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+          <label className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
             From
             <input
               type="date"
               value={customFrom}
               onChange={(e) => setCustomFrom(e.target.value)}
-              className="h-10 border border-border bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-11 w-full border border-border bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-10 sm:w-auto"
             />
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
             To
             <input
               type="date"
               value={customTo}
               onChange={(e) => setCustomTo(e.target.value)}
-              className="h-10 border border-border bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-11 w-full border border-border bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-10 sm:w-auto"
             />
           </label>
         </div>
@@ -805,20 +1037,31 @@ export function AnalyticsWorkspace({
         <div className="min-w-0 space-y-4">
           <div className="grid grid-cols-2 gap-0 border border-border xl:grid-cols-5">
             {[
-              { label: "Total revenue", value: money(totalRevenue) },
+              {
+                label: "Total revenue",
+                short: "Revenue",
+                value: money(totalRevenue),
+              },
               {
                 label: "Total cost of goods sold",
+                short: "COGS",
                 value: money(totalCogs),
               },
-              { label: "Total profit", value: money(totalProfit) },
+              {
+                label: "Total profit",
+                short: "Profit",
+                value: money(totalProfit),
+              },
               {
                 label: "Total customers",
+                short: "Customers",
                 value: (customerTrend?.totalDistinct ?? 0).toLocaleString(
                   "en-KE",
                 ),
               },
               {
                 label: "Unallocated",
+                short: "Unallocated",
                 value: money(unallocated + owedTotal),
                 warn: unallocated + owedTotal > 0,
               },
@@ -826,17 +1069,18 @@ export function AnalyticsWorkspace({
               <div
                 key={kpi.label}
                 className={cn(
-                  "flex min-h-[5.25rem] flex-col justify-between border-border px-3 py-3",
+                  "flex min-h-[4.75rem] flex-col justify-between border-border px-3 py-3 sm:min-h-[5.25rem]",
                   i > 0 && "border-l",
                   i >= 2 && "border-t xl:border-t-0",
                   i === 4 && "col-span-2 border-t xl:col-span-1 xl:border-t-0",
                 )}
               >
                 <p className="text-[11px] font-medium tracking-[-0.02em] text-muted-foreground">
-                  {kpi.label}
+                  <span className="sm:hidden">{kpi.short}</span>
+                  <span className="hidden sm:inline">{kpi.label}</span>
                 </p>
                 <p
-                  className="text-[1.45rem] font-bold tabular-nums leading-none tracking-[-0.03em] sm:text-[1.6rem]"
+                  className="text-[1.35rem] font-bold tabular-nums leading-none tracking-[-0.03em] sm:text-[1.6rem]"
                   style={{
                     color: "warn" in kpi && kpi.warn ? OWED : undefined,
                   }}
@@ -878,7 +1122,7 @@ export function AnalyticsWorkspace({
           </div>
         </div>
 
-        <aside className="flex flex-col gap-3 lg:sticky lg:top-3 lg:self-start">
+        <aside className="hidden flex-col gap-3 lg:sticky lg:top-3 lg:flex lg:self-start">
           <SlicerPanel
             title="Period"
             name="analytics-period"
@@ -928,7 +1172,33 @@ export function AnalyticsWorkspace({
           <h2 className="border-b border-border px-3 py-3 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Net revenue by category
           </h2>
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-border sm:hidden">
+            {categoryRevenue.length === 0 ? (
+              <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+                No category rows for this window.
+              </p>
+            ) : (
+              categoryRevenue.map((row) => (
+                <div
+                  key={row.categoryId}
+                  className="flex items-start justify-between gap-3 px-3 py-3"
+                >
+                  <p className="min-w-0 text-[14px] font-medium">
+                    {row.categoryName}
+                  </p>
+                  <div className="shrink-0 text-right">
+                    <p className="text-[14px] font-semibold tabular-nums">
+                      {money(row.netRevenue)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground tabular-nums">
+                      Profit {money(row.netProfit)}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[28rem] text-left text-sm">
               <thead className="border-b border-border text-[11px] text-muted-foreground">
                 <tr>

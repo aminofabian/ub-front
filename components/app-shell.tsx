@@ -7,12 +7,14 @@ import {
   ClipboardList,
   CreditCard,
   LayoutDashboard,
+  LifeBuoy,
   Lock,
   MapPin,
   Package,
   PackageCheck,
   Receipt,
   ScanLine,
+  Settings2,
   ShoppingBag,
   ShoppingCart,
   SlidersHorizontal,
@@ -40,10 +42,15 @@ import { DesktopNavRail } from "@/components/shell/desktop-nav-rail";
 import {
   HeaderPosLinks,
   type HeaderPosLink,
+  type MoreQuickLink,
   TabletAppHeader,
   TabletBottomNav,
   TabletMoreSheet,
 } from "@/components/shell/tablet-app-chrome";
+import {
+  ShellWorkspaceDrawer,
+  type ShellWorkspaceId,
+} from "@/components/shell/shell-workspace-drawer";
 
 import {
   useOptionalTenant,
@@ -916,7 +923,16 @@ const BOTTOM_TABS: readonly BottomTab[] = [
     id: "more",
     label: "More",
     icon: Tags,
-    matchSectionIds: ["org", "payments"],
+    matchSectionIds: [
+      "org",
+      "payments",
+      "procurement",
+      "inventory",
+      "sales",
+      "credits",
+      "customers",
+      "ops",
+    ],
   },
 ];
 
@@ -1167,7 +1183,81 @@ export function AppShell({ children }: AppShellProps) {
     [pathname, visibleSections, isPathActive],
   );
 
+  const allowedHrefs = useMemo(() => {
+    const set = new Set<string>();
+    for (const section of visibleSections) {
+      for (const item of section.items) set.add(item.href);
+    }
+    return set;
+  }, [visibleSections]);
+
+  const moreQuickLinks = useMemo(() => {
+    const candidates: MoreQuickLink[] = [
+      {
+        id: "order",
+        label: "Order",
+        hint: "Buy from suppliers",
+        icon: ShoppingCart,
+        workspace: "order",
+        href: APP_ROUTES.order,
+      },
+      {
+        id: "receive",
+        label: "Receive",
+        hint: "Goods in",
+        icon: PackageCheck,
+        workspace: "receive",
+        href: APP_ROUTES.orderReceive,
+      },
+      {
+        id: "credits",
+        label: "On tab",
+        hint: "Collect credit",
+        icon: CreditCard,
+        workspace: "credits",
+        href: APP_ROUTES.creditsOnTab,
+      },
+      {
+        id: "settings",
+        label: "Settings",
+        hint: "Shop & storefront",
+        icon: Settings2,
+        workspace: "settings",
+        href: APP_ROUTES.businessSettings,
+      },
+      {
+        id: "configuration",
+        label: "How it runs",
+        hint: "Inventory & till",
+        icon: SlidersHorizontal,
+        workspace: "configuration",
+        href: APP_ROUTES.businessConfiguration,
+      },
+      {
+        id: "takings",
+        label: "Takings",
+        hint: "Today’s ledger",
+        icon: Wallet,
+        href: APP_ROUTES.paymentsDayLedger,
+      },
+      {
+        id: "support",
+        label: "Support",
+        hint: "Ask for help",
+        icon: LifeBuoy,
+        action: "support",
+      },
+    ];
+    return candidates.filter((link) => {
+      if (link.action === "support") return true;
+      return Boolean(link.href && allowedHrefs.has(link.href));
+    });
+  }, [allowedHrefs]);
+
   const [moreOpen, setMoreOpen] = useState(false);
+  const [shellWorkspace, setShellWorkspace] = useState<ShellWorkspaceId | null>(
+    null,
+  );
 
   useEffect(() => {
     const onOpenMore = () => setMoreOpen(true);
@@ -1832,9 +1922,15 @@ export function AppShell({ children }: AppShellProps) {
             badgeByHref={navBadgeByHref}
             myPayHref={canViewPayrollSelf ? APP_ROUTES.myPay : null}
             profileHref={APP_ROUTES.myProfile}
+            quickLinks={moreQuickLinks}
+            onOpenWorkspace={setShellWorkspace}
           />
         </div>
       </div>
+      <ShellWorkspaceDrawer
+        workspace={shellWorkspace}
+        onClose={() => setShellWorkspace(null)}
+      />
       <SokoMindGuide />
     </div>
   );

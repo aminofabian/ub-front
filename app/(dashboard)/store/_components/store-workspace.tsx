@@ -12,6 +12,7 @@ import {
   Pencil,
   Plus,
   RefreshCcw,
+  ScanLine,
   Search,
   Trash2,
   Warehouse,
@@ -29,6 +30,7 @@ import {
   dashboardHintClass,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
+import { BarcodeScanner } from "@/components/barcode-scanner";
 import { FormDrawer } from "@/components/form-drawer";
 import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
@@ -58,6 +60,7 @@ import {
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { formatMoney, resolveCurrencyCode } from "@/lib/money";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
 import { cn } from "@/lib/utils";
 
@@ -75,7 +78,7 @@ function mutationError(
   return fallback;
 }
 
-type Feedback = { kind: "success" | "error"; text: string } | null;
+type Feedback = { kind: "success" | "error" | "warning"; text: string } | null;
 
 type Draft = {
   name: string;
@@ -141,8 +144,10 @@ function LiveDot() {
 }
 
 export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
-  const { business } = useDashboard();
+  const { business, me } = useDashboard();
   const currency = resolveCurrencyCode(business?.currency);
+  // Approving a big take-out is where stock actually moves, so it needs the same key.
+  const canDecide = hasPermission(me?.permissions, Permission.InventoryWrite);
 
   const [rows, setRows] = useState<StoreItemRecord[]>([]);
   const [settings, setSettings] = useState<StoreRoomSettingsRecord | null>(null);
@@ -178,8 +183,23 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   } | null>(null);
   const [activityToken, setActivityToken] = useState(0);
 
+  const [scannerOpen, setScannerOpen] = useState(false);
+  /** Barcode the picker should search for, when a scan found nothing tracked. */
+  const [pickerQuery, setPickerQuery] = useState<string | undefined>(undefined);
+  const [scanAddThenTakeOut, setScanAddThenTakeOut] = useState(false);
+
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const [approvalDraft, setApprovalDraft] = useState("");
+  const [approvalBusy, setApprovalBusy] = useState(false);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+
   const mode = settings?.mode ?? null;
   const connected = mode === "connected";
+  const configuredThreshold = settings?.approvalThreshold;
+  const approvalThreshold =
+    configuredThreshold == null || configuredThreshold === ""
+      ? null
+      : Number(configuredThreshold);
 
   const fetchAll = useCallback(async () => {
     const [nextSettings, nextRows] = await Promise.all([
@@ -254,7 +274,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setModeBusy(true);
     setFeedback(null);
     try {
-      const nextSettings = await updateStoreRoomSettings(next);
+      const nextSettings = await updateStoreRoomSettings({ mode: next });
       setSettings(nextSettings);
       setRows(await fetchStoreItems());
       setOnlyUnlinked(false);
@@ -292,6 +312,8 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
 
   const openPickerForCreate = () => {
     setLinkRow(null);
+    setPickerQuery(undefined);
+    setScanAddThenTakeOut(false);
     setPickOpen(true);
     setFeedback(null);
   };
@@ -320,15 +342,94 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
 
   const handleRecorded = (movement: StoreRoomMovementRecord) => {
     setActivityToken((prev) => prev + 1);
+    const amount = formatQuantity(movement.quantity);
+    const pending = movement.status === "pending";
     setFeedback({
-      kind: "success",
-      text:
-        movement.direction === "out"
-          ? `Recorded ${formatQuantity(movement.quantity)} out of the store room.`
-          : `Recorded ${formatQuantity(movement.quantity)} back in.`,
+      kind: pending ? "warning" : "success",
+      text: pending
+        ? `${amount} is waiting for approval — stock has not moved yet.`
+        : movement.direction === "out"
+          ? `Recorded ${amount} out of the store room.`
+          : `Recorded ${amount} back in.`,
     });
     // A movement changes stock (linked) or the local count (standalone), so re-read.
     refreshQuietly();
+  };
+
+  /**
+   * A scan is only useful if it lands somewhere, so this resolves the barcode in
+   * order of decreasing convenience: the row itself, then the catalogue.
+   */
+  const handleScan = (barcode: string) => {
+    setScannerOpen(false);
+    const needle = barcode.trim().toLowerCase();
+    if (!needle) return;
+
+    const row = rows.find(
+      (candidate) => (candidate.barcode ?? "").trim().toLowerCase() === needle,
+    );
+    if (row) {
+      setFeedback(null);
+      openMovement(row, "out");
+      return;
+    }
+
+    if (connected) {
+      // Not tracked yet — but the product may exist, and the intent was to take
+      // something out. Hand off to the picker, then straight into the drawer.
+      setLinkRow(null);
+      setPickerQuery(barcode.trim());
+      setScanAddThenTakeOut(true);
+      setPickOpen(true);
+      setFeedback({
+        kind: "warning",
+        text: `Nothing tracked has barcode ${barcode.trim()}. Add the product, then record the take-out.`,
+      });
+      return;
+    }
+
+    setFeedback({
+      kind: "error",
+      text: `Nothing in the store room has barcode ${barcode.trim()}.`,
+    });
+  };
+
+  const openApprovalThreshold = () => {
+    setApprovalDraft(approvalThreshold == null ? "" : String(approvalThreshold));
+    setApprovalError(null);
+    setApprovalOpen(true);
+  };
+
+  const saveApprovalThreshold = async (clear: boolean) => {
+    setApprovalBusy(true);
+    setApprovalError(null);
+    try {
+      if (clear) {
+        setSettings(await updateStoreRoomSettings({ clearApprovalThreshold: true }));
+        setFeedback({
+          kind: "success",
+          text: "Big take-outs no longer need approval.",
+        });
+      } else {
+        const raw = approvalDraft.trim();
+        const n = Number(raw);
+        if (!raw || !Number.isFinite(n) || n <= 0) {
+          setApprovalError("Enter a number greater than zero.");
+          return;
+        }
+        setSettings(await updateStoreRoomSettings({ approvalThreshold: n }));
+        setFeedback({
+          kind: "success",
+          text: `Take-outs of more than ${n} will wait for approval.`,
+        });
+      }
+      setApprovalOpen(false);
+      setActivityToken((prev) => prev + 1);
+    } catch (err) {
+      setApprovalError(mutationError(err, "Could not save that."));
+    } finally {
+      setApprovalBusy(false);
+    }
   };
 
   const createFromProduct = async (item: ItemSummaryRecord) => {
@@ -351,6 +452,12 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         kind: "success",
         text: `“${created.name}” now follows inventory.`,
       });
+      // Scanned but untracked: the operator's intent was clearly to take it out.
+      if (scanAddThenTakeOut) {
+        setScanAddThenTakeOut(false);
+        setPickerQuery(undefined);
+        openMovement(created, "out");
+      }
     } catch (err) {
       setFeedback({
         kind: "error",
@@ -590,6 +697,15 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
                 Take out
               </Button>
             ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2 shadow-none"
+              onClick={() => setScannerOpen(true)}
+            >
+              <ScanLine className="size-4" aria-hidden />
+              Scan
+            </Button>
             {connected ? (
               <Button
                 type="button"
@@ -652,6 +768,19 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {canWrite ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={openApprovalThreshold}
+              >
+                {approvalThreshold == null
+                  ? "Approvals off"
+                  : `Approvals > ${approvalThreshold}`}
+              </Button>
+            ) : null}
             <Link
               href={APP_ROUTES.inventoryStock}
               className={cn(
@@ -722,7 +851,9 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         <StoreRoomActivity
           reloadToken={activityToken}
           canWrite={canWrite}
+          canDecide={canDecide}
           onPutIn={() => openMovement(null, "in")}
+          onRecorded={refreshQuietly}
         />
       ) : null}
 
@@ -1013,6 +1144,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         onOpenChange={setMovementOpen}
         rows={rows}
         connected={connected}
+        approvalThreshold={approvalThreshold}
         initial={movementInitial}
         onRecorded={handleRecorded}
       />
@@ -1021,7 +1153,11 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         open={pickOpen}
         onOpenChange={(open) => {
           setPickOpen(open);
-          if (!open) setLinkRow(null);
+          if (!open) {
+            setLinkRow(null);
+            setPickerQuery(undefined);
+            setScanAddThenTakeOut(false);
+          }
         }}
         title={linkRow ? "Link this item to a product" : "Add products to follow"}
         description={
@@ -1030,6 +1166,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
             : "Pick a product and this store room will track its stock from now on."
         }
         takenItemIds={takenItemIds}
+        initialQuery={pickerQuery}
         busy={pickBusy}
         onPick={(item) =>
           void (linkRow ? linkProduct(item) : createFromProduct(item))
@@ -1117,6 +1254,78 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog
+        open={approvalOpen}
+        onOpenChange={(open) => {
+          if (!open && !approvalBusy) setApprovalOpen(false);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ask before big take-outs?</DialogTitle>
+            <DialogDescription>
+              Anything above this number waits for approval before stock moves. Turn
+              it off and every take-out applies straight away.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="block space-y-1.5">
+            <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+              Quantity that triggers approval
+            </span>
+            <input
+              className={dashboardInputClass()}
+              type="number"
+              min={1}
+              step={1}
+              inputMode="decimal"
+              value={approvalDraft}
+              onChange={(event) => setApprovalDraft(event.target.value)}
+              placeholder="e.g. 10"
+            />
+          </label>
+          {approvalError ? (
+            <p className="border border-destructive/40 bg-destructive/5 px-2.5 py-2 text-[12px] leading-snug text-destructive">
+              {approvalError}
+            </p>
+          ) : null}
+          <DialogFooter>
+            {approvalThreshold != null ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="mr-auto"
+                disabled={approvalBusy}
+                onClick={() => void saveApprovalThreshold(true)}
+              >
+                Never ask
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={approvalBusy}
+              onClick={() => setApprovalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={approvalBusy}
+              onClick={() => void saveApprovalThreshold(false)}
+            >
+              {approvalBusy ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : null}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {scannerOpen ? (
+        <BarcodeScanner onScan={handleScan} onClose={() => setScannerOpen(false)} />
+      ) : null}
     </div>
   );
 }

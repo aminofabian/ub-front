@@ -25,9 +25,14 @@ import {
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { NotificationBell } from "@/components/notification-bell";
+import {
+  SHELL_WORKSPACE_BY_HREF,
+  type ShellWorkspaceId,
+} from "@/lib/shell-workspaces";
 import { ALL_DEPARTMENTS_LABEL, ALL_SHELF_ZONES_LABEL, UNASSIGNED_SHELF_ZONE_VALUE } from "@/hooks/use-session-scope";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { shellPageTitle } from "@/lib/shell-page-titles";
+import { openSupportChat } from "@/lib/support-open";
 import { cn } from "@/lib/utils";
 
 export type TabletNavSection = {
@@ -44,6 +49,18 @@ export type TabletBottomTab = {
   icon: LucideIcon;
   href?: string;
   matchSectionIds: string[];
+};
+
+export type MoreQuickLink = {
+  id: string;
+  label: string;
+  hint: string;
+  icon: LucideIcon;
+  /** Open as shell FormDrawer instead of navigating. */
+  workspace?: ShellWorkspaceId;
+  href?: string;
+  /** Special actions that aren't routes. */
+  action?: "support";
 };
 
 export type HeaderPosLink = {
@@ -478,6 +495,10 @@ type TabletMoreSheetProps = {
   myPayHref?: string | null;
   /** Staff profile — pay, advances, workplace concern. */
   profileHref?: string | null;
+  /** Owner shortcuts shown above section browse. */
+  quickLinks?: readonly MoreQuickLink[];
+  /** Open Order / Credits / Settings as drawers instead of pages. */
+  onOpenWorkspace?: (workspace: ShellWorkspaceId) => void;
 };
 
 function greetingForHour(hour: number): string {
@@ -495,6 +516,44 @@ function resolveSectionId(
     resolveActiveNavSectionId(sections, pathname, itemIsActive) ??
     sections[0]?.id ??
     ""
+  );
+}
+
+function MoreDestControl({
+  href,
+  onClose,
+  onOpenWorkspace,
+  className,
+  style,
+  children,
+}: {
+  href: string;
+  onClose: () => void;
+  onOpenWorkspace?: (workspace: ShellWorkspaceId) => void;
+  className?: string;
+  style?: CSSProperties;
+  children: ReactNode;
+}) {
+  const workspace = SHELL_WORKSPACE_BY_HREF[href];
+  if (workspace && onOpenWorkspace) {
+    return (
+      <button
+        type="button"
+        className={className}
+        style={style}
+        onClick={() => {
+          onClose();
+          window.setTimeout(() => onOpenWorkspace(workspace), 40);
+        }}
+      >
+        {children}
+      </button>
+    );
+  }
+  return (
+    <Link href={href} onClick={onClose} className={className} style={style}>
+      {children}
+    </Link>
   );
 }
 
@@ -744,6 +803,8 @@ export function TabletMoreSheet({
   badgeByHref,
   myPayHref,
   profileHref,
+  quickLinks = [],
+  onOpenWorkspace,
 }: TabletMoreSheetProps) {
   const accent = primaryColor?.trim() || "#0f766e";
   const greeting = greetingForHour(new Date().getHours());
@@ -827,6 +888,20 @@ export function TabletMoreSheet({
       }))
       .filter((section) => section.items.length > 0);
   }, [compactNav, profileHref, sections]);
+
+  const runQuickLink = (link: MoreQuickLink) => {
+    if (link.action === "support") {
+      onClose();
+      openSupportChat();
+      return;
+    }
+    if (link.workspace && onOpenWorkspace) {
+      onClose();
+      window.setTimeout(() => onOpenWorkspace(link.workspace!), 40);
+      return;
+    }
+    onClose();
+  };
 
   if (!open) return null;
 
@@ -990,6 +1065,75 @@ export function TabletMoreSheet({
         </div>
       ) : null}
 
+      {quickLinks.length > 0 ? (
+        <div className="shrink-0 px-4 pt-3 sm:px-5">
+          <p
+            className={cn(
+              "mb-2 px-0.5 text-[10px] font-bold uppercase tracking-[0.14em]",
+              mute,
+            )}
+          >
+            Jump to
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {quickLinks.map((link) => {
+              const Icon = link.icon;
+              const className = cn(
+                "group flex min-h-[4.5rem] flex-col justify-between border bg-white px-3 py-2.5 text-left transition-colors",
+                hair,
+                "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
+                "hover:border-[var(--pos-primary,#0f766e)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+              );
+              const body = (
+                <>
+                  <Icon
+                    className="size-5 text-[var(--pos-primary,#0f766e)]"
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
+                  <span className="min-w-0">
+                    <span
+                      className={cn(
+                        "block text-[13px] font-semibold tracking-[-0.015em]",
+                        ink,
+                      )}
+                    >
+                      {link.label}
+                    </span>
+                    <span className={cn("mt-0.5 block text-[11px] leading-snug", mute)}>
+                      {link.hint}
+                    </span>
+                  </span>
+                </>
+              );
+              if (link.workspace || link.action) {
+                return (
+                  <button
+                    key={link.id}
+                    type="button"
+                    onClick={() => runQuickLink(link)}
+                    className={className}
+                  >
+                    {body}
+                  </button>
+                );
+              }
+              return (
+                <Link
+                  key={link.id}
+                  href={link.href ?? "#"}
+                  onClick={onClose}
+                  className={className}
+                >
+                  {body}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-3 sm:px-5">
         <MoreWorkspaceConsole
           accent={accent}
@@ -1116,11 +1260,12 @@ export function TabletMoreSheet({
                         const active = itemIsActive(pathname, item.href);
                         return (
                           <li key={item.href}>
-                            <Link
+                            <MoreDestControl
                               href={item.href}
-                              onClick={onClose}
+                              onClose={onClose}
+                              onOpenWorkspace={onOpenWorkspace}
                               className={cn(
-                                "tablet-more-link-tile group flex min-h-12 items-center gap-3 px-3.5 py-3 transition-colors",
+                                "tablet-more-link-tile group flex min-h-12 w-full items-center gap-3 px-3.5 py-3 text-left transition-colors",
                                 active
                                   ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]"
                                   : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
@@ -1162,7 +1307,7 @@ export function TabletMoreSheet({
                                 )}
                                 aria-hidden
                               />
-                            </Link>
+                            </MoreDestControl>
                           </li>
                         );
                       })}
@@ -1190,11 +1335,12 @@ export function TabletMoreSheet({
                     const SectionIcon = hit.section.icon;
                     return (
                       <li key={`${hit.href}-${hit.section.id}`}>
-                        <Link
+                        <MoreDestControl
                           href={hit.href}
-                          onClick={onClose}
+                          onClose={onClose}
+                          onOpenWorkspace={onOpenWorkspace}
                           className={cn(
-                            "tablet-more-link-tile flex min-h-12 items-center gap-3 px-3.5 py-3 transition-colors",
+                            "tablet-more-link-tile flex min-h-12 w-full items-center gap-3 px-3.5 py-3 text-left transition-colors",
                             active
                               ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]"
                               : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
@@ -1228,7 +1374,7 @@ export function TabletMoreSheet({
                                 : badgeByHref[hit.href]}
                             </span>
                           ) : null}
-                        </Link>
+                        </MoreDestControl>
                       </li>
                     );
                   })}
@@ -1301,11 +1447,12 @@ export function TabletMoreSheet({
                       const active = itemIsActive(pathname, item.href);
                       return (
                         <li key={item.href} className="sm:bg-white">
-                          <Link
+                          <MoreDestControl
                             href={item.href}
-                            onClick={onClose}
+                            onClose={onClose}
+                            onOpenWorkspace={onOpenWorkspace}
                             className={cn(
-                              "tablet-more-link-tile group flex min-h-12 items-center gap-3 px-3.5 py-3.5 transition-colors sm:min-h-[4.25rem] sm:flex-col sm:items-start sm:justify-between",
+                              "tablet-more-link-tile group flex min-h-12 w-full items-center gap-3 px-3.5 py-3.5 text-left transition-colors sm:min-h-[4.25rem] sm:flex-col sm:items-start sm:justify-between",
                               active
                                 ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]"
                                 : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
@@ -1348,7 +1495,7 @@ export function TabletMoreSheet({
                                 </span>
                               ) : null}
                             </span>
-                          </Link>
+                          </MoreDestControl>
                         </li>
                       );
                     })}

@@ -61,14 +61,14 @@ function Panel({
 }) {
   return (
     <section className="flex min-h-0 flex-col border border-border">
-      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
-        <h2 className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+      <div className="flex min-h-11 items-center justify-between gap-2 border-b border-border px-3 py-2.5">
+        <h2 className="text-[12px] font-semibold tracking-[-0.02em] text-foreground sm:text-[11px] sm:text-muted-foreground">
           {title}
         </h2>
         {href ? (
           <Link
             href={href}
-            className="text-[11px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-8 items-center px-1 text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 active:opacity-70 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-auto sm:font-medium sm:text-muted-foreground sm:hover:text-foreground"
           >
             {hrefLabel ?? "Open"}
           </Link>
@@ -76,6 +76,14 @@ function Panel({
       </div>
       {children}
     </section>
+  );
+}
+
+function MobileEmpty({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-3 py-6 text-center text-[13px] text-muted-foreground">
+      {children}
+    </p>
   );
 }
 
@@ -239,7 +247,39 @@ export function AnalyticsOpsBoard({
           href={APP_ROUTES.paymentsDayLedger}
           hrefLabel="Day ledger"
         >
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-border sm:hidden">
+            {shownPayments.length === 0 ? (
+              <MobileEmpty>No tenders in this window.</MobileEmpty>
+            ) : (
+              shownPayments.map((row) => {
+                const st = paymentStatus(row);
+                return (
+                  <div
+                    key={row.paymentId}
+                    className="flex items-start justify-between gap-3 px-3 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] font-semibold tracking-[-0.015em]">
+                        {row.customerName || row.cashierName || "Walk-in"}
+                      </p>
+                      <p className="mt-0.5 text-[12px] text-muted-foreground">
+                        {formatPaymentMethodLabel(row.method)}
+                        <span className="mx-1 opacity-40">·</span>
+                        {formatWhen(row.soldAt)}
+                      </p>
+                      <div className="mt-1">
+                        <StatusMark tone={st.tone}>{st.label}</StatusMark>
+                      </div>
+                    </div>
+                    <p className="shrink-0 text-[15px] font-semibold tabular-nums">
+                      {money(row.amount)}
+                    </p>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
               <thead className="border-b border-border text-muted-foreground">
                 <tr className="text-[11px]">
@@ -290,7 +330,40 @@ export function AnalyticsOpsBoard({
           href={APP_ROUTES.paymentsDayLedger}
           hrefLabel="Review"
         >
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-border sm:hidden">
+            {shownReview.length === 0 ? (
+              <MobileEmpty>Nothing waiting to review.</MobileEmpty>
+            ) : (
+              shownReview.map((row) => (
+                <div
+                  key={row.paymentId}
+                  className="flex items-center justify-between gap-3 px-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-[14px] font-semibold">
+                      {row.customerName || row.cashierName || "Walk-in"}
+                    </p>
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">
+                      {row.receiptNo != null ? `#${row.receiptNo}` : "No receipt"}
+                      <span className="mx-1 opacity-40">·</span>
+                      {formatPaymentMethodLabel(row.method)}
+                      <span className="mx-1 opacity-40">·</span>
+                      <span className="tabular-nums font-medium text-foreground">
+                        {money(row.amount)}
+                      </span>
+                    </p>
+                  </div>
+                  <Link
+                    href={APP_ROUTES.paymentsDayLedger}
+                    className="inline-flex h-10 shrink-0 items-center border border-border px-3 text-[12px] font-semibold active:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    Review
+                  </Link>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
               <thead className="border-b border-border text-muted-foreground">
                 <tr className="text-[11px]">
@@ -345,7 +418,58 @@ export function AnalyticsOpsBoard({
           href={APP_ROUTES.creditsOnTab}
           hrefLabel="Credits"
         >
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-border sm:hidden">
+            {shownTabs.length === 0 && shownPaid.length === 0 ? (
+              <MobileEmpty>No open tabs in this slice.</MobileEmpty>
+            ) : (
+              <>
+                {shownTabs.map((row) => (
+                  <div
+                    key={row.customerId}
+                    className="flex items-center justify-between gap-3 px-3 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] font-semibold">
+                        {row.name}
+                      </p>
+                      <div className="mt-1">
+                        <StatusMark
+                          tone={row.creditSuspended ? "bad" : "warn"}
+                        >
+                          {row.creditSuspended ? "Suspended" : "Open"}
+                        </StatusMark>
+                      </div>
+                    </div>
+                    <p
+                      className="shrink-0 text-[15px] font-semibold tabular-nums"
+                      style={{ color: OWED }}
+                    >
+                      {money(row.balanceOwed)}
+                    </p>
+                  </div>
+                ))}
+                {shownPaid.map((row) => (
+                  <div
+                    key={row.id}
+                    className="flex items-center justify-between gap-3 px-3 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] font-semibold">
+                        {row.name}
+                      </p>
+                      <div className="mt-1">
+                        <StatusMark tone="ok">Collected</StatusMark>
+                      </div>
+                    </div>
+                    <p className="shrink-0 text-[15px] font-semibold tabular-nums text-muted-foreground">
+                      {money(row.amount)}
+                    </p>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
               <thead className="border-b border-border text-muted-foreground">
                 <tr className="text-[11px]">
@@ -406,7 +530,29 @@ export function AnalyticsOpsBoard({
           href={APP_ROUTES.paymentsDayLedger}
           hrefLabel="Ledger"
         >
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-border sm:hidden">
+            {exceptions.length === 0 ? (
+              <MobileEmpty>No exceptions in this window.</MobileEmpty>
+            ) : (
+              exceptions.map((row) => (
+                <div
+                  key={row.key}
+                  className="flex items-start justify-between gap-3 px-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold">{row.type}</p>
+                    <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                      {row.detail}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-[15px] font-semibold tabular-nums">
+                    {money(row.amount)}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
               <thead className="border-b border-border text-muted-foreground">
                 <tr className="text-[11px]">
@@ -446,7 +592,7 @@ export function AnalyticsOpsBoard({
 
       <div className="grid gap-3 lg:grid-cols-3">
         <Panel title="Reconciliation">
-          <div className="space-y-2 px-3 py-3 text-[13px]">
+          <div className="space-y-2.5 px-3 py-3.5 text-[14px] sm:text-[13px]">
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">Imported</span>
               <span className="tabular-nums font-semibold">
@@ -471,14 +617,14 @@ export function AnalyticsOpsBoard({
             <div className="mt-2 border-t border-border pt-3">
               <p
                 className={cn(
-                  "flex items-center gap-1.5 text-[13px] font-bold tracking-[-0.02em]",
+                  "flex items-center gap-1.5 text-[14px] font-bold tracking-[-0.02em] sm:text-[13px]",
                   balanced ? "text-emerald-700" : "text-[#9a2e16]",
                 )}
               >
                 {balanced ? <Check className="size-3.5" aria-hidden /> : null}
                 {balanced ? "Balanced" : "Needs review"}
               </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
+              <p className="mt-1 text-[12px] text-muted-foreground sm:text-[11px]">
                 {balanced
                   ? "Posted tenders match the period total."
                   : "Open tenders or tabs still need a pass."}
@@ -496,11 +642,11 @@ export function AnalyticsOpsBoard({
               >
                 <Link
                   href={item.href}
-                  className="flex min-h-10 items-center gap-2 px-1 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex min-h-12 items-center gap-2.5 px-1.5 text-[14px] active:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-10 sm:text-[13px]"
                 >
                   <span
                     className={cn(
-                      "flex size-4 shrink-0 items-center justify-center border border-border",
+                      "flex size-5 shrink-0 items-center justify-center border border-border sm:size-4",
                       item.done && "border-emerald-700 text-emerald-700",
                     )}
                     aria-hidden
@@ -527,7 +673,27 @@ export function AnalyticsOpsBoard({
           href={canViewAudit ? APP_ROUTES.businessLogs : undefined}
           hrefLabel="Full log"
         >
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-border sm:hidden">
+            {!canViewAudit ? (
+              <MobileEmpty>You do not have the activity log.</MobileEmpty>
+            ) : audit.length === 0 ? (
+              <MobileEmpty>No entries in this window.</MobileEmpty>
+            ) : (
+              audit.slice(0, 6).map((row) => (
+                <div key={row.id} className="px-3 py-3">
+                  <p className="text-[14px] font-semibold">
+                    {humanizeEvent(row.eventType)}
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-muted-foreground">
+                    {row.actorName || row.actorType || "System"}
+                    <span className="mx-1 opacity-40">·</span>
+                    {formatDay(row.createdAt)}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[20rem] text-left text-[12px]">
               <thead className="border-b border-border text-muted-foreground">
                 <tr className="text-[11px]">

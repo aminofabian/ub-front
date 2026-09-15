@@ -230,7 +230,12 @@ function LedgerSkeleton({ rows = 6 }: { rows?: number }) {
   );
 }
 
-export function CreditActivityPage() {
+export function CreditActivityPage({
+  embedded = false,
+}: {
+  /** Hide page hero — for shell / hub drawers. */
+  embedded?: boolean;
+} = {}) {
   const {
     loading: sessionLoading,
     canViewSalesIntelligence,
@@ -550,7 +555,13 @@ export function CreditActivityPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, styles.shell, "space-y-5 pb-16")}>
+    <div
+      className={cn(
+        !embedded && DASHBOARD_MAX_WIDE,
+        styles.shell,
+        embedded ? "space-y-4 pb-8" : "space-y-5 pb-16",
+      )}
+    >
       {/*
  THESIS: a flush ledger — type and hairlines, no panel, no radius.
  OWN-WORLD: page paper, charcoal type, rust only on outstanding.
@@ -560,12 +571,20 @@ export function CreditActivityPage() {
  FINISH: verify in the browser.
  */}
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <DashboardPageHero
-          compact
-          icon={CreditCard}
-          title="On tab"
-          description="The shop cash book. Open a name to collect, remind, or freeze credit."
-        />
+        {embedded ? (
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold tracking-[-0.015em]">
+              Collect or freeze from the list below
+            </p>
+          </div>
+        ) : (
+          <DashboardPageHero
+            compact
+            icon={CreditCard}
+            title="On tab"
+            description="The shop cash book. Open a name to collect, remind, or freeze credit."
+          />
+        )}
         <div className="flex flex-wrap items-center gap-2">
           {canReviewPaymentClaims ? (
             <Button asChild size="sm" variant="outline">

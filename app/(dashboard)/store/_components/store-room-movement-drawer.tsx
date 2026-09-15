@@ -167,6 +167,7 @@ export function StoreRoomMovementDrawer({
   onOpenChange,
   rows,
   connected,
+  approvalThreshold = null,
   initial,
   onRecorded,
 }: {
@@ -174,6 +175,8 @@ export function StoreRoomMovementDrawer({
   onOpenChange: (open: boolean) => void;
   rows: StoreItemRecord[];
   connected: boolean;
+  /** Above this, the take-out is recorded but waits for approval. */
+  approvalThreshold?: number | null;
   /** Pre-selected row + direction, e.g. from a table row action. */
   initial: { storeItemId?: string | null; direction: StoreRoomDirection } | null;
   onRecorded: (movement: StoreRoomMovementRecord) => void;
@@ -209,6 +212,12 @@ export function StoreRoomMovementDrawer({
   const wholeOnly = changesStock && !linked;
   const parsed = parseQuantity(quantity, wholeOnly);
   const noteRequired = reason === "other";
+  const needsApproval =
+    changesStock &&
+    linked &&
+    approvalThreshold != null &&
+    parsed != null &&
+    parsed > approvalThreshold;
 
   const submit = async () => {
     if (!row) {
@@ -295,7 +304,11 @@ export function StoreRoomMovementDrawer({
               {busy ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />
               ) : null}
-              {direction === "out" ? "Record take-out" : "Record put-in"}
+              {direction === "out"
+                ? needsApproval
+                  ? "Send for approval"
+                  : "Record take-out"
+                : "Record put-in"}
             </Button>
           </div>
         </div>
@@ -433,6 +446,18 @@ export function StoreRoomMovementDrawer({
                 ? " This reduces stock for the linked product."
                 : " This reduces this list's count."
               : null}
+          </p>
+        ) : null}
+
+        {needsApproval ? (
+          <p
+            className={cn(
+              dashboardHintClass(),
+              "border-l-2 border-amber-500/60 pl-2.5 text-amber-700 dark:text-amber-400",
+            )}
+          >
+            More than {approvalThreshold} needs approval. This will be recorded and
+            wait for a decision — stock will not move until then.
           </p>
         ) : null}
 
