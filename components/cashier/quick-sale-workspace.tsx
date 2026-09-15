@@ -298,10 +298,13 @@ export type QuickSaleWorkspaceVariant = "admin" | "cashier";
 
 type QuickSaleWorkspaceProps = {
   variant?: QuickSaleWorkspaceVariant;
+  /** Rendered inside the full-screen shell drawer (no shell chrome of its own). */
+  inShellDrawer?: boolean;
 };
 
 export function QuickSaleWorkspace({
   variant = "admin",
+  inShellDrawer = false,
 }: QuickSaleWorkspaceProps) {
   const {
     me,
@@ -4720,6 +4723,7 @@ export function QuickSaleWorkspace({
         onCheckoutDrawerOpenChange={setCheckoutDrawerOpen}
         pageTitle={heading}
         embeddedInDashboard={!isCashier}
+        inDrawer={!isCashier && inShellDrawer}
         checkoutCompletedKey={checkoutCompletedKey}
         brandTheme={dialogBrandTheme}
         toolbarExtras={isLedger ? pendingExtras : undefined}

@@ -177,6 +177,8 @@ export type CashierPosLayoutProps = {
   onCheckoutDrawerOpenChange: (open: boolean) => void;
   /** When true, lifts fixed cart controls above the dashboard mobile bottom nav. */
   embeddedInDashboard?: boolean;
+  /** Hosted inside the full-screen shell drawer — no shell chrome of its own. */
+  inDrawer?: boolean;
   /** Brand CSS variables on the layout root (POS primary colors). */
   brandTheme?: CSSProperties;
   /** Compact pending-invoice / draft controls (ledger header). */
@@ -1030,6 +1032,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     checkoutDrawerOpen,
     onCheckoutDrawerOpenChange,
     embeddedInDashboard = false,
+    inDrawer = false,
     brandTheme,
     online,
     offlineBanner,
@@ -1131,7 +1134,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     Record<string, string>
   >({});
   const isLg = useMediaLg();
-  const compactShelf = !embeddedInDashboard;
+  // Density follows the viewport, not the host: the shell drawer on a phone is
+  // a phone screen and gets the compact shelf the /cashier page uses.
+  const compactShelf = !embeddedInDashboard || !isLg;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const photoFileInputRef = useRef<HTMLInputElement>(null);
   const pendingPhotoRef = useRef<{ itemId: string; itemName: string } | null>(
@@ -1815,7 +1820,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     posShiftLinks,
   ]);
 
-  const mobilePhone = !isLg && !embeddedInDashboard;
+  const mobilePhone = !isLg;
   const tileCompact = compactShelf && !mobilePhone;
 
   /**
@@ -1850,15 +1855,23 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     );
   };
 
-  const cartDockBottomClass =
-    "bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] sm:bottom-6";
+  // The dashboard page floats the dock above the shell's bottom nav; the
+  // full-screen drawer has no chrome under it, so the dock sits on the edge.
+  const cartDockBottomClass = inDrawer
+    ? "bottom-[calc(env(safe-area-inset-bottom,0px)+0.375rem)] sm:bottom-3"
+    : "bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] sm:bottom-6";
 
   return (
     <div
       className={cn(
         "mx-auto w-full max-w-[1600px]",
         embeddedInDashboard
-          ? "pos-market-paper max-w-none px-2 py-2 pb-28 sm:px-3 sm:py-3 lg:pb-6"
+          ? cn(
+              "pos-market-paper max-w-none px-2 py-2 pb-28 sm:px-3 sm:py-3 lg:pb-6",
+              // The drawer host does not scroll — the workspace brings its own
+              // scroller, unlike the dashboard page where `main` scrolls.
+              inDrawer && "min-h-0 flex-1 overflow-y-auto overscroll-y-contain",
+            )
           : "flex h-full min-h-0 flex-1 flex-col overflow-hidden pb-4 lg:pb-0",
       )}
       style={brandTheme}
@@ -2762,7 +2775,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           onToggleWeighed={onToggleWeighed}
           className={cn(
             embeddedInDashboard
-              ? "sticky top-[3.75rem] h-[calc(100dvh-5.5rem)]"
+              ? inDrawer
+                ? "sticky top-0 h-[calc(100dvh-4.5rem)]"
+                : "sticky top-[3.75rem] h-[calc(100dvh-5.5rem)]"
               : "h-full max-h-full overflow-hidden",
             drawerOpen && "lg:invisible lg:pointer-events-none",
           )}

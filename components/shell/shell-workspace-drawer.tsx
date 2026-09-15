@@ -277,7 +277,7 @@ export function ShellWorkspaceDrawer({
         return (
           <Suspense fallback={<DrawerBodySkeleton />}>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <QuickSaleWorkspace variant="admin" />
+              <QuickSaleWorkspace variant="admin" inShellDrawer />
             </div>
           </Suspense>
         );
