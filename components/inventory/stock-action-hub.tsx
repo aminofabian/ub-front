@@ -60,26 +60,26 @@ export function StockActionHub({
           ),
         )
       : 0;
+  const outN = outCount ?? 0;
+  const lowN = lowCount ?? 0;
 
   return (
-    <div className="flex flex-col gap-4 px-1 pb-6 pt-1 sm:gap-5 sm:px-0">
+    <div className="flex flex-col gap-3.5 px-0.5 pb-8 pt-1 sm:gap-5 sm:px-0 sm:pb-6">
       <header className="min-w-0">
         <h1
           className={cn(
-            "font-heading text-[1.65rem] font-semibold leading-[1.05] tracking-[-0.03em] sm:text-[1.85rem]",
+            "font-heading text-[1.75rem] font-semibold leading-[1.05] tracking-[-0.03em] sm:text-[1.85rem]",
             ink,
           )}
         >
           Stock
         </h1>
-        <p className={cn("mt-1.5 max-w-md text-[13px] leading-snug", mute)}>
-          Check what’s on the shelf, then set qty in Take stock. Order and receive
-          live here too.
+        <p className={cn("mt-1 max-w-md text-[13px] leading-snug", mute)}>
           {placeLine ? (
-            <span className="mt-1 block text-[12px] tracking-[-0.01em]">
-              {placeLine}
-            </span>
-          ) : null}
+            <span className="block tracking-[-0.01em]">{placeLine}</span>
+          ) : (
+            "Shelf qty, orders, and receive — one place."
+          )}
         </p>
       </header>
 
@@ -87,41 +87,34 @@ export function StockActionHub({
         <Link
           href={APP_ROUTES.inventoryStockTake}
           className={cn(
-            "block border bg-white px-3 py-3 transition-colors",
+            "block border bg-white px-3.5 py-3.5 transition-colors active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
             hair,
             "hover:border-[var(--pos-primary,#0f766e)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
           )}
         >
-          <div className="flex items-start gap-2.5">
+          <div className="flex items-start gap-3">
             <ClipboardList
-              className="mt-0.5 size-4 shrink-0 text-[var(--pos-primary,#0f766e)]"
+              className="mt-0.5 size-5 shrink-0 text-[var(--pos-primary,#0f766e)]"
               strokeWidth={1.75}
               aria-hidden
             />
             <div className="min-w-0 flex-1">
-              <p
-                className={cn(
-                  "text-[10px] font-bold uppercase tracking-[0.12em]",
-                  mute,
-                )}
-              >
-                Full count in progress
-              </p>
-              <p className={cn("mt-0.5 text-[13px] font-semibold", ink)}>
-                {fullCountProgress.counted.toLocaleString("en-KE")} of{" "}
-                {fullCountProgress.total.toLocaleString("en-KE")} counted
+              <p className={cn("text-[13px] font-semibold", ink)}>
+                Full count · {fullCountProgress.counted.toLocaleString("en-KE")}/
+                {fullCountProgress.total.toLocaleString("en-KE")}
                 <span className={cn("ml-1.5 font-normal", mute)}>
                   · {fullCountProgress.remaining.toLocaleString("en-KE")} left
                 </span>
               </p>
-              <p className={cn("mt-0.5 truncate text-[11px]", mute)}>
-                {fullCountProgress.sessionName} — resume tomorrow if needed
+              <p className={cn("mt-0.5 truncate text-[12px]", mute)}>
+                {fullCountProgress.sessionName}
               </p>
               <div
                 className={cn(
-                  "mt-2.5 h-1.5 overflow-hidden border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]",
+                  "mt-2.5 h-2 overflow-hidden bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]",
                   hair,
+                  "border",
                 )}
                 role="progressbar"
                 aria-valuenow={countPct}
@@ -135,70 +128,97 @@ export function StockActionHub({
                 />
               </div>
             </div>
-            <ChevronRight className={cn("mt-1 size-4 shrink-0", mute)} aria-hidden />
+            <ChevronRight className={cn("mt-1 size-5 shrink-0", mute)} aria-hidden />
           </div>
         </Link>
       ) : null}
 
-      <div className={cn("grid grid-cols-2 gap-px border bg-white", hair)}>
+      {/* Attention strip — first things to fix */}
+      <div className={cn("grid grid-cols-2 gap-2")}>
         <button
           type="button"
           onClick={() => onOpenLevels("out")}
           className={cn(
-            "flex flex-col items-start gap-0.5 bg-white px-3 py-2.5 text-left transition-colors",
-            "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]",
+            "flex min-h-[4.75rem] flex-col justify-between border bg-white px-3.5 py-3 text-left transition-colors",
+            hair,
+            outN > 0
+              ? "border-rose-300/80 bg-rose-50/80 dark:border-rose-500/30 dark:bg-rose-500/10"
+              : "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
           )}
         >
           <span
             className={cn(
-              "text-[10px] font-semibold uppercase tracking-[0.12em]",
-              mute,
+              "text-[11px] font-semibold tracking-[-0.01em]",
+              outN > 0 ? "text-rose-800 dark:text-rose-200" : mute,
             )}
           >
             Sold out
           </span>
-          <span
-            className={cn(
-              "font-mono text-[1.35rem] font-semibold tabular-nums leading-none tracking-[-0.02em]",
-              (outCount ?? 0) > 0
-                ? "text-rose-700 dark:text-rose-300"
-                : ink,
-            )}
-          >
-            {countsLoading && outCount == null
-              ? "—"
-              : (outCount ?? 0).toLocaleString("en-KE")}
+          <span className="flex items-end justify-between gap-2">
+            <span
+              className={cn(
+                "font-mono text-[1.75rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+                outN > 0 ? "text-rose-700 dark:text-rose-300" : ink,
+              )}
+            >
+              {countsLoading && outCount == null
+                ? "—"
+                : outN.toLocaleString("en-KE")}
+            </span>
+            <span
+              className={cn(
+                "mb-0.5 text-[11px] font-semibold",
+                outN > 0
+                  ? "text-rose-700 dark:text-rose-300"
+                  : "text-[var(--pos-primary,#0f766e)]",
+              )}
+            >
+              Fix →
+            </span>
           </span>
         </button>
         <button
           type="button"
           onClick={() => onOpenLevels("low")}
           className={cn(
-            "flex flex-col items-start gap-0.5 bg-white px-3 py-2.5 text-left transition-colors",
-            "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]",
+            "flex min-h-[4.75rem] flex-col justify-between border bg-white px-3.5 py-3 text-left transition-colors",
+            hair,
+            lowN > 0
+              ? "border-amber-300/80 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-500/10"
+              : "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
           )}
         >
           <span
             className={cn(
-              "text-[10px] font-semibold uppercase tracking-[0.12em]",
-              mute,
+              "text-[11px] font-semibold tracking-[-0.01em]",
+              lowN > 0 ? "text-amber-900 dark:text-amber-200" : mute,
             )}
           >
             Running low
           </span>
-          <span
-            className={cn(
-              "font-mono text-[1.35rem] font-semibold tabular-nums leading-none tracking-[-0.02em]",
-              (lowCount ?? 0) > 0
-                ? "text-amber-800 dark:text-amber-200"
-                : ink,
-            )}
-          >
-            {countsLoading && lowCount == null
-              ? "—"
-              : (lowCount ?? 0).toLocaleString("en-KE")}
+          <span className="flex items-end justify-between gap-2">
+            <span
+              className={cn(
+                "font-mono text-[1.75rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+                lowN > 0 ? "text-amber-800 dark:text-amber-200" : ink,
+              )}
+            >
+              {countsLoading && lowCount == null
+                ? "—"
+                : lowN.toLocaleString("en-KE")}
+            </span>
+            <span
+              className={cn(
+                "mb-0.5 text-[11px] font-semibold",
+                lowN > 0
+                  ? "text-amber-800 dark:text-amber-200"
+                  : "text-[var(--pos-primary,#0f766e)]",
+              )}
+            >
+              Fix →
+            </span>
           </span>
         </button>
       </div>
@@ -207,34 +227,33 @@ export function StockActionHub({
         <Link
           href={hero.href}
           className={cn(
-            "group relative flex min-h-[5.75rem] items-end overflow-hidden border px-4 py-4 text-white sm:min-h-[6.5rem] sm:px-5 sm:py-5",
-            "transition-[transform,opacity] duration-200 ease-out active:scale-[0.99]",
+            "group relative flex min-h-[6.5rem] items-end overflow-hidden border px-4 py-4 text-white sm:min-h-[6.5rem] sm:px-5 sm:py-5",
+            "transition-[transform,opacity] duration-150 ease-out active:scale-[0.985]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)] focus-visible:ring-offset-2",
           )}
           style={{
-            background: `linear-gradient(135deg, ${teal} 0%, color-mix(in srgb, ${teal} 72%, #0a3d38) 100%)`,
+            background: `linear-gradient(145deg, ${teal} 0%, color-mix(in srgb, ${teal} 68%, #062e2a) 100%)`,
             borderColor: teal,
           }}
         >
           <span
-            className="pointer-events-none absolute -right-6 -top-8 size-28 rotate-12 opacity-[0.12]"
+            className="pointer-events-none absolute -right-4 -top-6 size-32 rotate-12 opacity-[0.14]"
             aria-hidden
           >
             <hero.icon className="size-full" strokeWidth={1.25} />
           </span>
           <span className="relative flex w-full items-end justify-between gap-3">
             <span className="min-w-0">
-              <span className="block text-[1.4rem] font-semibold tracking-[-0.02em] sm:text-[1.55rem]">
+              <span className="block text-[1.55rem] font-semibold tracking-[-0.025em] sm:text-[1.55rem]">
                 {hero.label}
               </span>
-              <span className="mt-1 block text-[13px] text-white/80">
-                {hero.hint}
+              <span className="mt-1.5 block max-w-[16rem] text-[13px] leading-snug text-white/85">
+                {hero.hint || "Tap a product, set the shelf qty, save."}
               </span>
             </span>
-            <ArrowRight
-              className="mb-0.5 size-5 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
-              aria-hidden
-            />
+            <span className="mb-0.5 inline-flex size-11 shrink-0 items-center justify-center bg-white/15">
+              <ArrowRight className="size-5" aria-hidden />
+            </span>
           </span>
         </Link>
       ) : null}
@@ -246,27 +265,28 @@ export function StockActionHub({
               key={action.id}
               href={action.href}
               className={cn(
-                "group flex min-h-[5.25rem] flex-col justify-between border bg-white px-3 py-3 transition-colors",
+                "group flex min-h-[5.75rem] flex-col justify-between border bg-white px-3.5 py-3.5 transition-colors",
                 hair,
+                "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
                 "hover:border-[var(--pos-primary,#0f766e)]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
               )}
             >
               <action.icon
-                className="size-5 text-[var(--pos-primary,#0f766e)]"
+                className="size-6 text-[var(--pos-primary,#0f766e)]"
                 strokeWidth={1.75}
                 aria-hidden
               />
               <span className="min-w-0">
                 <span
                   className={cn(
-                    "block text-[14px] font-semibold tracking-[-0.015em]",
+                    "block text-[15px] font-semibold tracking-[-0.015em]",
                     ink,
                   )}
                 >
                   {action.label}
                 </span>
-                <span className={cn("mt-0.5 block text-[11px] leading-snug", mute)}>
+                <span className={cn("mt-0.5 block text-[12px] leading-snug", mute)}>
                   {action.hint}
                 </span>
               </span>
@@ -282,30 +302,38 @@ export function StockActionHub({
               key={action.id}
               href={action.href}
               className={cn(
-                "flex min-h-12 items-center gap-3 px-3 py-2.5 transition-colors",
+                "flex min-h-14 items-center gap-3 px-3.5 py-3 transition-colors",
+                "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
                 "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
               )}
             >
-              <action.icon
-                className={cn("size-4 shrink-0", mute)}
-                strokeWidth={1.75}
-                aria-hidden
-              />
+              <span
+                className={cn(
+                  "inline-flex size-9 shrink-0 items-center justify-center border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
+                  hair,
+                )}
+              >
+                <action.icon
+                  className={cn("size-4", mute)}
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
+              </span>
               <span className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    "block text-[13px] font-semibold tracking-[-0.01em]",
+                    "block text-[14px] font-semibold tracking-[-0.01em]",
                     ink,
                   )}
                 >
                   {action.label}
                 </span>
-                <span className={cn("block text-[11px]", mute)}>
+                <span className={cn("block text-[12px]", mute)}>
                   {action.hint}
                 </span>
               </span>
-              <ChevronRight className={cn("size-4 shrink-0", mute)} aria-hidden />
+              <ChevronRight className={cn("size-5 shrink-0", mute)} aria-hidden />
             </Link>
           ))}
         </div>
