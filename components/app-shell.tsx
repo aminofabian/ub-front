@@ -233,7 +233,6 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.itemTypes, label: "Departments" },
       { href: APP_ROUTES.aisles, label: "Shelf zones" },
       { href: APP_ROUTES.categories, label: "Categories" },
-      { href: APP_ROUTES.store, label: "Store room" },
     ],
   },
   {
@@ -336,6 +335,13 @@ const NAV_SECTIONS: readonly NavSection[] = [
       {
         href: APP_ROUTES.inventoryStock,
         label: "Stock levels",
+        group: "In the shop",
+      },
+      // Sits with stock rather than the catalogue: a store room can follow
+      // inventory, so its counts move with what's on the shelf.
+      {
+        href: APP_ROUTES.store,
+        label: "Store room",
         group: "In the shop",
       },
       {
@@ -525,6 +531,7 @@ type NavGate = {
   canViewAnalytics: boolean;
   canViewSalesIntelligence: boolean;
   canViewStorefrontOrders: boolean;
+  canViewStoreRoom: boolean;
   canQuickSale: boolean;
   canViewPosDrafts: boolean;
   canAccessGrocery: boolean;
@@ -673,6 +680,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.inventoryStockTakeDailyAuditReview)
     return gate.canApproveStockTake;
   if (item.href === APP_ROUTES.categories) return gate.canViewCategories;
+  if (item.href === APP_ROUTES.store) return gate.canViewStoreRoom;
   if (item.href === APP_ROUTES.purchasingIntelligence)
     return gate.canViewPurchasingIntelligence;
   if (item.href === APP_ROUTES.purchasingAddSupplies)
@@ -1020,6 +1028,11 @@ export function AppShell({ children }: AppShellProps) {
     hasPermission(me?.permissions, Permission.OrderPadRead) ||
     hasPermission(me?.permissions, Permission.OrderPadWrite) ||
     hasPermission(me?.permissions, Permission.OrderPadManage);
+  // The store room page itself requires catalog.items.read.
+  const canViewStoreRoom = hasPermission(
+    me?.permissions,
+    Permission.CatalogItemsRead,
+  );
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
   const canPathAOrder = canPathARead || canPathAWrite;
@@ -1066,6 +1079,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewAnalytics,
       canViewSalesIntelligence,
       canViewStorefrontOrders,
+      canViewStoreRoom,
       canQuickSale,
       canViewPosDrafts,
       canAccessGrocery,
@@ -1123,6 +1137,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewAnalytics,
     canViewSalesIntelligence,
     canViewStorefrontOrders,
+    canViewStoreRoom,
     canQuickSale,
     canViewPosDrafts,
     canAccessGrocery,

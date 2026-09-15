@@ -254,6 +254,8 @@ export const API_ROUTES = {
   itemTypes: "/api/v1/item-types",
   aisles: "/api/v1/aisles",
   storeItems: "/api/v1/store-items",
+  /** Store room ↔ inventory connection choice + census. */
+  storeRoomSettings: "/api/v1/store-items/settings",
   categories: "/api/v1/categories",
   globalCatalog: "/api/v1/global-catalog",
   publicMarketplace: "/api/v1/public/marketplace",

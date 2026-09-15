@@ -3942,11 +3942,31 @@ export type StoreItemRecord = {
   id: string;
   name: string;
   barcode: string | null;
+  /** Catalogue product this row mirrors, once the store room follows inventory. */
+  itemId: string | null;
   quantity: number;
   expiryDate: string | null;
   buyingPrice: number | string | null;
+  /** Live on-hand read from inventory; null while the row is not linked. */
+  inventoryQuantity: number | string | null;
+  /** Name of the linked product, so a renamed row still says what it tracks. */
+  inventoryItemName: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+/** How a store room's counts are kept. */
+export type StoreRoomMode = "standalone" | "connected";
+
+export type StoreRoomSettingsRecord = {
+  /** null until the merchant answers the "follow inventory?" prompt. */
+  mode: StoreRoomMode | null;
+  connectedAt: string | null;
+  itemCount: number;
+  linkedCount: number;
+  unlinkedCount: number;
+  /** Rows auto-linked by barcode during the request that made this connection. */
+  linkedNow: number;
 };
 
 export type CreateStoreItemPayload = {
@@ -3955,6 +3975,8 @@ export type CreateStoreItemPayload = {
   quantity: number;
   expiryDate?: string | null;
   buyingPrice?: number | null;
+  /** Optional catalogue product to mirror straight away. */
+  itemId?: string | null;
 };
 
 export type PatchStoreItemPayload = {
@@ -3965,10 +3987,26 @@ export type PatchStoreItemPayload = {
   clearExpiryDate?: boolean;
   buyingPrice?: number | null;
   clearBuyingPrice?: boolean;
+  itemId?: string | null;
+  clearItemId?: boolean;
 };
 
 export async function fetchStoreItems(): Promise<StoreItemRecord[]> {
   return request<StoreItemRecord[]>(API_ROUTES.storeItems);
+}
+
+export async function fetchStoreRoomSettings(): Promise<StoreRoomSettingsRecord> {
+  return request<StoreRoomSettingsRecord>(API_ROUTES.storeRoomSettings);
+}
+
+/** Records the standalone-vs-connected choice; connecting auto-links by barcode. */
+export async function updateStoreRoomSettings(
+  mode: StoreRoomMode,
+): Promise<StoreRoomSettingsRecord> {
+  return request<StoreRoomSettingsRecord>(API_ROUTES.storeRoomSettings, {
+    method: "PUT",
+    body: { mode },
+  });
 }
 
 export async function createStoreItem(
