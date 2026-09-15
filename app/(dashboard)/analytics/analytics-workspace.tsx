@@ -124,17 +124,27 @@ function Panel({
 function ChartCard({
   title,
   children,
+  className,
 }: {
   title: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <Panel className="flex min-h-0 flex-col px-3 pb-3 pt-4">
-      <h2 className="mb-3 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+    <div className={cn("flex min-h-0 flex-col px-3 pb-3 pt-3.5 sm:px-4", className)}>
+      <h3 className="mb-3 text-[12px] font-semibold tracking-[-0.02em] text-foreground">
         {title}
-      </h2>
+      </h3>
       <div className="min-h-0 flex-1 text-foreground">{children}</div>
-    </Panel>
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-foreground">
+      {children}
+    </h2>
   );
 }
 
@@ -390,111 +400,38 @@ function CustomerTrend({
   );
 }
 
-function SlicerPanel({
-  title,
-  name,
-  items,
-  value,
-  onChange,
-  onClear,
-}: {
-  title: string;
-  name: string;
-  items: { id: string; label: string }[];
-  value: string;
-  onChange: (id: string) => void;
-  onClear?: () => void;
-}) {
-  return (
-    <section className="border border-border">
-      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
-        <h2 className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-          {title}
-        </h2>
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <Filter className="size-3.5" aria-hidden />
-          {onClear ? (
-            <button
-              type="button"
-              onClick={onClear}
-              className="flex size-8 items-center justify-center hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={`Clear ${title}`}
-            >
-              <X className="size-3.5" />
-            </button>
-          ) : null}
-        </div>
-      </div>
-      <div className="flex max-h-56 flex-col overflow-y-auto">
-        {items.map((item) => {
-          const selected = value === item.id;
-          return (
-            <label
-              key={item.id || `${name}-all`}
-              className="block border-b border-border last:border-0"
-            >
-              <input
-                type="radio"
-                name={name}
-                className="peer sr-only"
-                checked={selected}
-                onChange={() => onChange(item.id)}
-              />
-              <span
-                className={cn(
-                  "flex min-h-10 cursor-pointer items-center px-3 py-2 text-[13px] font-medium tracking-[-0.02em] transition-colors",
-                  "peer-focus-visible:bg-muted/40",
-                  selected
-                    ? "bg-foreground text-background"
-                    : "text-foreground hover:bg-muted/30",
-                )}
-              >
-                {item.label}
-              </span>
-            </label>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
 function BoardSkeleton() {
   return (
     <div
-      className="mx-auto w-full max-w-[1280px] space-y-4 pb-10"
+      className="mx-auto w-full max-w-[1280px] space-y-6 pb-10"
       aria-busy="true"
     >
-      <div className="h-8 w-2/3 animate-pulse bg-muted" />
-      <div className="flex gap-1.5 lg:hidden">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-10 w-20 shrink-0 animate-pulse border border-border bg-muted/40"
-          />
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+      <div className="h-10 w-1/2 animate-pulse bg-muted" />
+      <div className="h-12 animate-pulse border border-border bg-muted/40" />
+      <div className="grid grid-cols-2 gap-0 border border-border xl:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
-            className="h-20 animate-pulse border border-border bg-muted/40"
+            className={cn(
+              "h-20 animate-pulse bg-muted/40",
+              i > 0 && "border-l border-border",
+              i >= 2 && "border-t border-border xl:border-t-0",
+              i === 4 && "col-span-2 xl:col-span-1",
+            )}
           />
         ))}
       </div>
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13.5rem]">
-        <div className="grid gap-3 sm:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-56 animate-pulse border border-border bg-muted/30"
-            />
-          ))}
-        </div>
-        <div className="hidden space-y-3 lg:block">
-          <div className="h-36 animate-pulse border border-border bg-muted/30" />
-          <div className="h-36 animate-pulse border border-border bg-muted/30" />
-        </div>
+      <div className="grid gap-0 border border-border md:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className={cn(
+              "h-56 animate-pulse bg-muted/30",
+              i % 2 === 1 && "md:border-l md:border-border",
+              i >= 2 && "border-t border-border",
+            )}
+          />
+        ))}
       </div>
       <span className="sr-only">Loading sales performance</span>
     </div>

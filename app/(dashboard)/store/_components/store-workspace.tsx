@@ -1,28 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowUpFromLine,
-  Link2,
-  Link2Off,
   Loader2,
-  Package,
-  PackageSearch,
-  Pencil,
   Plus,
-  RefreshCcw,
   ScanLine,
-  Search,
-  Trash2,
   Warehouse,
 } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
-  DASHBOARD_SECTION_SURFACE,
-  DASHBOARD_TABLE_HEAD,
-  DASHBOARD_TABLE_SURFACE,
   DashboardFeedback,
   DashboardLoadError,
   DashboardLoading,
@@ -58,16 +46,18 @@ import {
   type StoreRoomMovementRecord,
   type StoreRoomSettingsRecord,
 } from "@/lib/api";
-import { APP_ROUTES } from "@/lib/config";
-import { formatMoney, resolveCurrencyCode } from "@/lib/money";
+import { resolveCurrencyCode } from "@/lib/money";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
 import { cn } from "@/lib/utils";
 
-import { StoreRoomActivity } from "./store-room-activity";
 import { StoreRoomConnectionChooser } from "./store-room-connection-chooser";
 import { StoreRoomMovementDrawer } from "./store-room-movement-drawer";
 import { StoreRoomProductPicker } from "./store-room-product-picker";
+import {
+  StoreModeBanner,
+  StoreRoomTheatre,
+} from "./store-room-theatre";
 
 function mutationError(
   error: unknown,
@@ -134,15 +124,6 @@ function formatQuantity(value: number | string | null): string {
   return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
 }
 
-function LiveDot() {
-  return (
-    <span
-      className="inline-block size-1.5 shrink-0 rounded-full bg-[var(--pos-primary,#0f766e)]"
-      aria-hidden
-    />
-  );
-}
-
 export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   const { business, me } = useDashboard();
   const currency = resolveCurrencyCode(business?.currency);
@@ -192,6 +173,15 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   const [approvalDraft, setApprovalDraft] = useState("");
   const [approvalBusy, setApprovalBusy] = useState(false);
   const [approvalError, setApprovalError] = useState<string | null>(null);
+
+  /** Theatre selection — drives history + inspect columns. */
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  /** Mobile: which pane of the detail stack is showing. */
+  const [mobileDetailTab, setMobileDetailTab] = useState<"history" | "edit">(
+    "history",
+  );
+  /** Mobile: roster vs focused item. */
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
   const mode = settings?.mode ?? null;
   const connected = mode === "connected";
@@ -259,6 +249,23 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     });
   }, [rows, query, onlyUnlinked]);
 
+  const selectedRow = useMemo(
+    () => filtered.find((row) => row.id === selectedId) ?? rows.find((row) => row.id === selectedId) ?? null,
+    [filtered, rows, selectedId],
+  );
+
+  const maxCount = useMemo(() => {
+    let max = 1;
+    for (const row of rows) {
+      const live =
+        connected && row.itemId != null
+          ? Number(row.inventoryQuantity ?? 0)
+          : Number(row.quantity);
+      if (Number.isFinite(live) && live > max) max = live;
+    }
+    return max;
+  }, [rows, connected]);
+
   /** Item ids already mirrored, minus the row currently being re-linked. */
   const takenItemIds = useMemo(() => {
     const taken = new Set<string>();
@@ -324,11 +331,36 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setFeedback(null);
   };
 
-  const openEdit = (row: StoreItemRecord) => {
+  const selectRow = (row: StoreItemRecord) => {
+    setSelectedId(row.id);
     setEditRow(row);
     setEditDraft(draftFromRow(row));
+    setMobileShowDetail(true);
+    setMobileDetailTab("history");
     setFeedback(null);
   };
+
+  const clearSelection = () => {
+    setSelectedId(null);
+    setEditRow(null);
+    setMobileShowDetail(false);
+    setMobileDetailTab("history");
+  };
+
+  // Keep a focused row so history + inspect aren't empty shells on desktop.
+  useEffect(() => {
+    if (selectedId && filtered.some((row) => row.id === selectedId)) return;
+    if (filtered.length === 0) {
+      setSelectedId(null);
+      setEditRow(null);
+      setMobileShowDetail(false);
+      return;
+    }
+    const first = filtered[0]!;
+    setSelectedId(first.id);
+    setEditRow(first);
+    setEditDraft(draftFromRow(first));
+  }, [filtered, selectedId]);
 
   const openMovement = (
     row: StoreItemRecord | null,
@@ -606,7 +638,9 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
           .map((r) => (r.id === updated.id ? updated : r))
           .sort((a, b) => a.name.localeCompare(b.name)),
       );
-      setEditRow(null);
+      setEditRow(updated);
+      setEditDraft(draftFromRow(updated));
+      setSelectedId(updated.id);
       setFeedback({ kind: "success", text: `Updated “${updated.name}”.` });
     } catch (err) {
       setFeedback({
@@ -625,6 +659,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     try {
       await deleteStoreItem(deleteRow.id);
       setRows((prev) => prev.filter((r) => r.id !== deleteRow.id));
+      if (selectedId === deleteRow.id) clearSelection();
       refreshQuietly();
       setFeedback({ kind: "success", text: `Removed “${deleteRow.name}”.` });
       setDeleteRow(null);
@@ -674,15 +709,15 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   }
 
   return (
-    <div className={DASHBOARD_MAX_WIDE}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-2.5")}>
       <DashboardPageHero
         icon={Warehouse}
         eyebrow="Stock"
         title="Store room"
         description={
           connected
-            ? "Mirrors the products you sell. Counts come from stock and move on their own as products sell."
-            : "A simple list of items in the store — name, barcode, count, optional expiry and buy price. Separate from sellable inventory."
+            ? "Pick a product — see what moved, then edit the details."
+            : "Back-room register: name, barcode, count. Separate from till stock."
         }
       >
         {canWrite ? (
@@ -735,408 +770,54 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         <DashboardFeedback kind={feedback.kind} text={feedback.text} />
       ) : null}
 
-      {connected ? (
-        <div
-          className={cn(
-            DASHBOARD_SECTION_SURFACE,
-            "flex flex-wrap items-start justify-between gap-3",
-          )}
-        >
-          <div className="flex items-start gap-2.5">
-            <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] text-[var(--pos-primary,#0f766e)]">
-              <RefreshCcw className="size-3.5" aria-hidden />
-            </span>
-            <div>
-              <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
-                Following inventory
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--pos-primary,#0f766e)]">
-                  <LiveDot />
-                  Live
-                </span>
-              </p>
-              <p className={dashboardHintClass()}>
-                {settings.itemCount === 0
-                  ? "No products followed yet — add one to start tracking its stock."
-                  : `${settings.linkedCount} of ${settings.itemCount} item${
-                      settings.itemCount === 1 ? "" : "s"
-                    } track a product${
-                      settings.unlinkedCount > 0
-                        ? ` · ${settings.unlinkedCount} still to link`
-                        : ""
-                    }. Counts refresh as sales come in.`}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {canWrite ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-xs"
-                onClick={openApprovalThreshold}
-              >
-                {approvalThreshold == null
-                  ? "Approvals off"
-                  : `Approvals > ${approvalThreshold}`}
-              </Button>
-            ) : null}
-            <Link
-              href={APP_ROUTES.inventoryStock}
-              className={cn(
-                "inline-flex h-8 items-center px-2.5 text-xs font-medium text-[var(--pos-primary,#0f766e)] underline-offset-4 hover:underline",
-              )}
-            >
-              See stock levels
-            </Link>
-            {canWrite ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-xs"
-                disabled={modeBusy}
-                onClick={() => void chooseMode("standalone")}
-              >
-                {modeBusy ? (
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                ) : null}
-                Stop following
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      ) : (
-        <div
-          className={cn(
-            DASHBOARD_SECTION_SURFACE,
-            "flex flex-wrap items-start justify-between gap-3",
-          )}
-        >
-          <div className="flex items-start gap-2.5">
-            <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center border text-muted-foreground">
-              <Package className="size-3.5" aria-hidden />
-            </span>
-            <div>
-              <p className="text-[13px] font-semibold text-foreground">
-                Back-room only
-              </p>
-              <p className={dashboardHintClass()}>
-                Counts stay exactly as you type them. Follow inventory and this
-                list will move on its own as products sell.
-              </p>
-            </div>
-          </div>
-          {canWrite ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 px-2.5 text-xs"
-              disabled={modeBusy}
-              onClick={() => void chooseMode("connected")}
-            >
-              {modeBusy ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              ) : (
-                <Link2 className="size-3.5" aria-hidden />
-              )}
-              Follow inventory
-            </Button>
-          ) : null}
-        </div>
-      )}
-
-      {rows.length > 0 ? (
-        <StoreRoomActivity
-          reloadToken={activityToken}
-          canWrite={canWrite}
-          canDecide={canDecide}
-          onPutIn={() => openMovement(null, "in")}
-          onRecorded={refreshQuietly}
-        />
-      ) : null}
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="relative block min-w-[min(100%,18rem)] flex-1">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
+      <StoreRoomTheatre
+        connected={connected}
+        canWrite={canWrite}
+        canDecide={canDecide}
+        currency={currency}
+        settingsBanner={
+          <StoreModeBanner
+            connected={connected}
+            canWrite={canWrite}
+            modeBusy={modeBusy}
+            itemCount={settings.itemCount}
+            linkedCount={settings.linkedCount}
+            unlinkedCount={settings.unlinkedCount}
+            approvalThreshold={approvalThreshold}
+            onApprovals={openApprovalThreshold}
+            onStopFollowing={() => void chooseMode("standalone")}
+            onFollowInventory={() => void chooseMode("connected")}
           />
-          <input
-            className={cn(dashboardInputClass(), "pl-9")}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, barcode, or product…"
-            aria-label="Search store items"
-          />
-        </label>
-        <div className="flex items-center gap-3">
-          {connected && settings.unlinkedCount > 0 ? (
-            <button
-              type="button"
-              onClick={() => setOnlyUnlinked((prev) => !prev)}
-              aria-pressed={onlyUnlinked}
-              className={cn(
-                "inline-flex h-8 items-center gap-1.5 border px-2.5 text-xs font-medium transition-colors",
-                onlyUnlinked
-                  ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)] text-[var(--pos-primary,#0f766e)]"
-                  : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_15%,transparent)] text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Link2Off className="size-3.5" aria-hidden />
-              Needs linking ({settings.unlinkedCount})
-            </button>
-          ) : null}
-          <p className={cn(dashboardHintClass(), "tabular-nums")}>
-            {filtered.length} item{filtered.length !== 1 ? "s" : ""}
-            {query.trim() || onlyUnlinked ? ` · of ${rows.length}` : ""}
-          </p>
-        </div>
-      </div>
-
-      {rows.length === 0 ? (
-        <div
-          className={cn(
-            DASHBOARD_SECTION_SURFACE,
-            "border-dashed bg-muted/15 py-12 text-center",
-          )}
-        >
-          {connected ? (
-            <PackageSearch
-              className="mx-auto size-10 text-muted-foreground/60"
-              aria-hidden
-            />
-          ) : (
-            <Package
-              className="mx-auto size-10 text-muted-foreground/60"
-              aria-hidden
-            />
-          )}
-          <h2 className="mt-4 text-base font-semibold tracking-tight text-foreground">
-            {connected ? "Nothing to follow yet" : "No store items yet"}
-          </h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-            {connected
-              ? "Pick the products you want this store room to keep an eye on. Their counts come straight from stock."
-              : "Record what’s in the store room without touching product inventory."}
-          </p>
-          {canWrite ? (
-            <Button
-              type="button"
-              className="mt-6 gap-2 shadow-none"
-              onClick={connected ? openPickerForCreate : openCustomCreate}
-            >
-              <Plus className="size-4" aria-hidden />
-              {connected ? "Add from products" : "Add item"}
-            </Button>
-          ) : null}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div
-          className={cn(
-            DASHBOARD_SECTION_SURFACE,
-            "border-dashed bg-muted/15 py-10 text-center",
-          )}
-        >
-          <p className="text-sm text-muted-foreground">
-            {onlyUnlinked
-              ? "Everything on the list is linked to a product."
-              : `No items match “${query.trim()}”.`}
-          </p>
-        </div>
-      ) : (
-        <div className={DASHBOARD_TABLE_SURFACE}>
-          <table className="w-full text-left text-sm">
-            <thead className={DASHBOARD_TABLE_HEAD}>
-              <tr>
-                <th
-                  scope="col"
-                  className="px-3 py-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
-                >
-                  Name
-                </th>
-                {connected ? (
-                  <th
-                    scope="col"
-                    className="px-3 py-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
-                  >
-                    Product
-                  </th>
-                ) : null}
-                <th
-                  scope="col"
-                  className="px-3 py-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
-                >
-                  Barcode
-                </th>
-                <th
-                  scope="col"
-                  className="px-3 py-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
-                >
-                  Count
-                </th>
-                <th
-                  scope="col"
-                  className="px-3 py-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
-                >
-                  Expiry
-                </th>
-                <th
-                  scope="col"
-                  className="px-3 py-1.5 font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
-                >
-                  Buy price
-                </th>
-                {canWrite ? (
-                  <th
-                    scope="col"
-                    className="px-3 py-1.5 text-right font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-3.5"
-                  >
-                    Actions
-                  </th>
-                ) : null}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
-              {filtered.map((row) => (
-                <tr
-                  key={row.id}
-                  className="transition-colors hover:bg-muted/30"
-                >
-                  <td className="px-3 py-2 font-medium text-foreground sm:px-3.5">
-                    {row.name}
-                  </td>
-                  {connected ? (
-                    <td className="px-3 py-2 text-muted-foreground sm:px-3.5">
-                      {row.itemId ? (
-                        row.inventoryItemName ?? "Linked product"
-                      ) : (
-                        <span className="text-muted-foreground/70">
-                          Not linked
-                        </span>
-                      )}
-                    </td>
-                  ) : null}
-                  <td className="px-3 py-2 font-mono text-xs text-muted-foreground sm:px-3.5">
-                    {row.barcode || "—"}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums text-foreground sm:px-3.5">
-                    {connected && row.itemId ? (
-                      <span
-                        className="inline-flex items-center gap-1.5"
-                        title="Live from inventory"
-                      >
-                        <LiveDot />
-                        <span className="font-medium">
-                          {formatQuantity(row.inventoryQuantity)}
-                        </span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="font-medium">{row.quantity}</span>
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          manual
-                        </span>
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums text-muted-foreground sm:px-3.5">
-                    {row.expiryDate || "—"}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums text-muted-foreground sm:px-3.5">
-                    {row.buyingPrice == null || row.buyingPrice === ""
-                      ? "—"
-                      : formatMoney(row.buyingPrice, currency)}
-                  </td>
-                  {canWrite ? (
-                    <td className="px-3 py-2 text-right sm:px-3.5">
-                      <div className="flex items-center justify-end gap-1">
-                        {connected ? (
-                          row.itemId ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 gap-1.5 px-2 text-xs hover:bg-muted"
-                              disabled={rowBusyId === row.id}
-                              onClick={() => void unlinkRow(row)}
-                            >
-                              {rowBusyId === row.id ? (
-                                <Loader2
-                                  className="size-3.5 animate-spin"
-                                  aria-hidden
-                                />
-                              ) : (
-                                <Link2Off className="size-3.5" aria-hidden />
-                              )}
-                              Unlink
-                            </Button>
-                          ) : (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 gap-1.5 px-2 text-xs hover:bg-muted"
-                              onClick={() => openPickerForLink(row)}
-                            >
-                              <Link2 className="size-3.5" aria-hidden />
-                              Link
-                            </Button>
-                          )
-                        ) : null}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 gap-1.5 px-2 text-xs hover:bg-muted"
-                          onClick={() => openMovement(row, "out")}
-                        >
-                          <ArrowUpFromLine className="size-3.5" aria-hidden />
-                          Take out
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 gap-1.5 px-2 text-xs hover:bg-muted"
-                          onClick={() => openEdit(row)}
-                        >
-                          <Pencil className="size-3.5" aria-hidden />
-                          Edit
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => setDeleteRow(row)}
-                        >
-                          <Trash2 className="size-3.5" aria-hidden />
-                          Remove
-                        </Button>
-                      </div>
-                    </td>
-                  ) : null}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {connected && canWrite ? (
-        <button
-          type="button"
-          className={cn(
-            dashboardHintClass(),
-            "self-start text-left underline-offset-4 hover:text-foreground hover:underline",
-          )}
-          onClick={openCustomCreate}
-        >
-          Can&apos;t find it in your products? Add a back-room line instead.
-        </button>
-      ) : null}
+        }
+        query={query}
+        onQueryChange={setQuery}
+        onlyUnlinked={onlyUnlinked}
+        onToggleUnlinked={() => setOnlyUnlinked((prev) => !prev)}
+        unlinkedCount={settings.unlinkedCount}
+        filtered={filtered}
+        rowsTotal={rows.length}
+        selectedId={selectedId}
+        selectedRow={selectedRow}
+        maxCount={maxCount}
+        onSelect={selectRow}
+        onClearSelection={clearSelection}
+        mobileShowDetail={mobileShowDetail}
+        mobileDetailTab={mobileDetailTab}
+        onMobileDetailTab={setMobileDetailTab}
+        activityToken={activityToken}
+        onPutIn={() => openMovement(null, "in")}
+        onRecorded={refreshQuietly}
+        onTakeOut={(row) => openMovement(row, "out")}
+        onLink={openPickerForLink}
+        onUnlink={(row) => void unlinkRow(row)}
+        rowBusyId={rowBusyId}
+        draft={editDraft}
+        onDraftChange={setEditDraft}
+        editBusy={editBusy}
+        onSave={() => void handleEdit()}
+        onDelete={setDeleteRow}
+        onAddCustom={canWrite ? openCustomCreate : undefined}
+      />
 
       <StoreRoomMovementDrawer
         key={movementKey}
@@ -1188,32 +869,6 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         busy={createBusy}
         submitLabel="Add item"
         onSubmit={() => void handleCreate()}
-      />
-
-      <StoreItemFormDrawer
-        open={editRow != null}
-        onOpenChange={(open) => {
-          if (!open) setEditRow(null);
-        }}
-        title="Edit store item"
-        description={
-          connected && editRow?.itemId
-            ? "Rename it, restock notes, or unlink it to count by hand again."
-            : connected
-              ? "Update the back-room record. Link it to a product to have its count follow stock."
-              : "Update the store-room record. This does not change inventory stock."
-        }
-        draft={editDraft}
-        onDraftChange={setEditDraft}
-        busy={editBusy}
-        submitLabel="Save changes"
-        quantityLocked={connected && editRow?.itemId != null}
-        quantityHint={
-          connected && editRow?.itemId
-            ? "Count comes from inventory while this is linked."
-            : undefined
-        }
-        onSubmit={() => void handleEdit()}
       />
 
       <Dialog

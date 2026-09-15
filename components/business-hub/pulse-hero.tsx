@@ -15,8 +15,8 @@ export type PulseMetric = {
 };
 
 /**
- * Summary board: revenue leads, then a tidy stats grid.
- * Phone = 2-col tiles under the figure; desktop = figure + side metrics.
+ * Summary board: revenue leads, then a tight stats grid.
+ * Phone keeps the board compact — half the vertical footprint of the desk layout.
  */
 export function PulseHero({
   eyebrow: _eyebrow,
@@ -43,7 +43,7 @@ export function PulseHero({
   const a11y = [revenueLabel, revenue, headline].filter(Boolean).join(". ");
 
   return (
-    <section className="space-y-2" aria-label={a11y}>
+    <section className="space-y-1.5 sm:space-y-2" aria-label={a11y}>
       <HubSectionLabel title="Summary" className="px-0.5" />
 
       <div
@@ -54,32 +54,35 @@ export function PulseHero({
           aria-hidden
         />
 
-        {/* Row 1 — revenue figure */}
-        <div className="border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3.5 py-3 sm:px-4 sm:py-3">
-          <p className="text-[11px] font-medium text-[#6B6B6B]">
-            {revenueLabel ?? "Revenue"}
-          </p>
-          <div className="mt-1 flex flex-wrap items-end gap-x-2.5 gap-y-1">
-            <p
-              key={justUpdated ? `${revenue}-tick` : revenue}
-              className={cn(
-                "font-medium leading-none tracking-[-0.04em] text-[#141414] tabular-nums",
-                "text-[1.85rem] sm:text-[1.85rem]",
-                justUpdated && "hub-figure-pop",
-              )}
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {revenue}
-            </p>
+        {/* Revenue — single dense row on phone */}
+        <div className="border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-2 sm:px-4 sm:py-3">
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-[#6B6B6B] sm:normal-case sm:tracking-normal sm:text-[11px]">
+                {revenueLabel ?? "Revenue"}
+              </p>
+              <p
+                key={justUpdated ? `${revenue}-tick` : revenue}
+                className={cn(
+                  "mt-0.5 font-medium leading-none tracking-[-0.04em] text-[#141414] tabular-nums",
+                  "text-[1.45rem] sm:mt-1 sm:text-[1.85rem]",
+                  justUpdated && "hub-figure-pop",
+                )}
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                {revenue}
+              </p>
+            </div>
             {trend ? (
               <span
                 className={cn(
-                  "mb-0.5 inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
+                  "mb-0.5 inline-flex shrink-0 items-center px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
                   trendTone === "positive" &&
                     "bg-emerald-500/10 text-emerald-800",
                   trendTone === "warning" && "bg-[#C47A5A]/10 text-[#C47A5A]",
                   trendTone === "negative" && "bg-rose-500/10 text-rose-700",
-                  trendTone === "muted" && "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#5C5C5C]",
+                  trendTone === "muted" &&
+                    "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#5C5C5C]",
                 )}
               >
                 {trend}
@@ -87,31 +90,52 @@ export function PulseHero({
             ) : null}
           </div>
 
+          {/* Tender split — phone: one thin strip; desk: tiles */}
           {revenueBreakdown ? (
-            <div className="mt-3 grid grid-cols-3 gap-px overflow-hidden border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-[color-mix(in_srgb,#141414_8%,transparent)]">
-              {(
-                [
-                  ["Cash", revenueBreakdown.cash],
-                  ["M-Pesa", revenueBreakdown.mpesa],
-                  ["Credit", revenueBreakdown.credit],
-                ] as const
-              ).map(([label, value]) => (
-                <div
-                  key={label}
-                  className="bg-white px-2.5 py-2 text-center sm:text-left"
-                >
-                  <p className={cn("text-[10px] font-medium", HUB_MUTED)}>
-                    {label}
-                  </p>
-                  <p className="mt-0.5 text-[12px] font-semibold tabular-nums text-[#141414] sm:text-[13px]">
-                    {value}
-                  </p>
-                </div>
-              ))}
-            </div>
+            <>
+              <div className="mt-2 flex gap-px overflow-hidden border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-[color-mix(in_srgb,#141414_8%,transparent)] sm:hidden">
+                {(
+                  [
+                    ["Cash", revenueBreakdown.cash],
+                    ["M-Pesa", revenueBreakdown.mpesa],
+                    ["Credit", revenueBreakdown.credit],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="flex min-w-0 flex-1 items-baseline justify-center gap-1 bg-white px-1.5 py-1"
+                  >
+                    <span className={cn("text-[9px] font-medium", HUB_MUTED)}>
+                      {label}
+                    </span>
+                    <span className="truncate text-[11px] font-semibold tabular-nums text-[#141414]">
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 hidden grid-cols-3 gap-px overflow-hidden border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-[color-mix(in_srgb,#141414_8%,transparent)] sm:grid">
+                {(
+                  [
+                    ["Cash", revenueBreakdown.cash],
+                    ["M-Pesa", revenueBreakdown.mpesa],
+                    ["Credit", revenueBreakdown.credit],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div key={label} className="bg-white px-2.5 py-2 text-left">
+                    <p className={cn("text-[10px] font-medium", HUB_MUTED)}>
+                      {label}
+                    </p>
+                    <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[#141414]">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </>
           ) : headline ? (
             <p
-              className="mt-2 truncate text-[11px] text-[#7A7A7A]"
+              className="mt-1 truncate text-[10px] text-[#7A7A7A] sm:mt-2 sm:text-[11px]"
               title={headline}
             >
               {headline}
@@ -119,12 +143,13 @@ export function PulseHero({
           ) : null}
         </div>
 
-        {/* Row 2 — summary stats grid */}
+        {/* Stats — phone: 3-up compact cells; desk: wider grid */}
         {metrics.length > 0 ? (
           <div
             className={cn(
               "grid divide-x divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)]",
-              "grid-cols-2",
+              "grid-cols-3",
+              metrics.length === 2 && "sm:grid-cols-2",
               metrics.length === 3 && "sm:grid-cols-3",
               metrics.length === 4 && "sm:grid-cols-4",
               metrics.length >= 5 && "sm:grid-cols-3 lg:grid-cols-5",
@@ -132,17 +157,17 @@ export function PulseHero({
           >
             {metrics.map((metric) => {
               const body = (
-                <div className="flex h-full min-h-[3.75rem] flex-col justify-center gap-0.5 px-3 py-2.5 transition-colors hover:bg-white sm:min-h-[3.75rem]">
+                <div className="flex h-full min-h-0 flex-col justify-center gap-0 px-2 py-1.5 transition-colors hover:bg-white sm:min-h-[3.75rem] sm:gap-0.5 sm:px-3 sm:py-2.5">
                   <p
                     className={cn(
-                      "truncate text-[10px] font-medium",
+                      "truncate text-[9px] font-medium uppercase tracking-[0.04em] sm:normal-case sm:tracking-normal sm:text-[10px]",
                       HUB_MUTED,
                     )}
                   >
                     {metric.label}
                   </p>
                   <p
-                    className="truncate text-[15px] font-semibold leading-none tracking-[-0.025em] text-[#141414] tabular-nums sm:text-[14px]"
+                    className="truncate text-[13px] font-semibold leading-none tracking-[-0.025em] text-[#141414] tabular-nums sm:text-[14px]"
                     style={{ fontFamily: "var(--font-heading)" }}
                   >
                     {metric.value}
@@ -150,7 +175,7 @@ export function PulseHero({
                   {metric.hint ? (
                     <p
                       className={cn(
-                        "truncate text-[10px] leading-tight",
+                        "mt-0.5 hidden truncate text-[10px] leading-tight sm:block",
                         metric.tone === "positive" && "text-emerald-700",
                         metric.tone === "warning" && "text-[#C47A5A]",
                         metric.tone === "negative" && "text-rose-600",

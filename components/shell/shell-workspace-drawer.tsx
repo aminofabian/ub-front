@@ -5,6 +5,7 @@ import {
   ClipboardList,
   CreditCard,
   PackageCheck,
+  ScanLine,
   Settings2,
   ShoppingCart,
   SlidersHorizontal,
@@ -14,6 +15,7 @@ import { FormDrawer } from "@/components/form-drawer";
 import { BusinessSettingsForm } from "@/components/business/business-settings-form";
 import { BusinessConfigurationForm } from "@/components/business/business-configuration-form";
 import { CreditActivityPage } from "@/components/credits/credit-activity-page";
+import { QuickSaleWorkspace } from "@/components/cashier/quick-sale-workspace";
 import { useBusinessSettingsEditor } from "@/hooks/use-business-settings-editor";
 import { useDashboard } from "@/components/dashboard-provider";
 import { TenantOrderWorkspace } from "@/app/(dashboard)/order/_components/tenant-order-workspace";
@@ -51,6 +53,11 @@ const META: Record<
     title: "How the shop runs",
     description: "Inventory, till, and operations switches.",
     icon: SlidersHorizontal,
+  },
+  cashier: {
+    title: "Cashier",
+    description: "Ring up a sale without leaving the dashboard.",
+    icon: ScanLine,
   },
 };
 
@@ -266,6 +273,14 @@ export function ShellWorkspaceDrawer({
             <ConfigurationWorkspaceBody onClose={onClose} />
           </div>
         );
+      case "cashier":
+        return (
+          <Suspense fallback={<DrawerBodySkeleton />}>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <QuickSaleWorkspace variant="admin" />
+            </div>
+          </Suspense>
+        );
       default:
         return null;
     }
@@ -278,7 +293,7 @@ export function ShellWorkspaceDrawer({
         if (!next) onClose();
       }}
       title={meta?.title ?? "Workspace"}
-      description={meta?.description}
+      description={workspace === "cashier" ? undefined : meta?.description}
       icon={<Icon className="size-4" aria-hidden />}
       width="full"
       appearance="sharp"

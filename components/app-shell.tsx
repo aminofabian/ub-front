@@ -836,6 +836,7 @@ type BottomTab = {
   icon: LucideIcon;
   href?: string;
   matchSectionIds: string[];
+  workspace?: ShellWorkspaceId;
 };
 
 /** Stock manager: Home first; Order/Receive = Path A PO flow; Take stock = shelf qty. */
@@ -907,10 +908,11 @@ const BOTTOM_TABS: readonly BottomTab[] = [
   },
   {
     id: "ops",
-    label: "Prices",
-    icon: SlidersHorizontal,
-    href: APP_ROUTES.pricing,
-    matchSectionIds: ["ops"],
+    label: "Cashier",
+    icon: ScanLine,
+    href: APP_ROUTES.cashier,
+    workspace: "cashier",
+    matchSectionIds: ["ops", "sales"],
   },
   {
     id: "sales",
@@ -1196,6 +1198,14 @@ export function AppShell({ children }: AppShellProps) {
   const moreQuickLinks = useMemo(() => {
     const candidates: MoreQuickLink[] = [
       {
+        id: "cashier",
+        label: "Cashier",
+        hint: "Ring a sale",
+        icon: ScanLine,
+        workspace: "cashier",
+        href: APP_ROUTES.cashier,
+      },
+      {
         id: "order",
         label: "Order",
         hint: "Buy from suppliers",
@@ -1229,7 +1239,7 @@ export function AppShell({ children }: AppShellProps) {
       },
       {
         id: "configuration",
-        label: "How it runs",
+        label: "Config",
         hint: "Inventory & till",
         icon: SlidersHorizontal,
         workspace: "configuration",
@@ -1252,9 +1262,10 @@ export function AppShell({ children }: AppShellProps) {
     ];
     return candidates.filter((link) => {
       if (link.action === "support") return true;
+      if (link.workspace === "cashier") return canQuickSale;
       return Boolean(link.href && allowedHrefs.has(link.href));
     });
-  }, [allowedHrefs]);
+  }, [allowedHrefs, canQuickSale]);
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [shellWorkspace, setShellWorkspace] = useState<ShellWorkspaceId | null>(
@@ -1344,8 +1355,23 @@ export function AppShell({ children }: AppShellProps) {
     }
     if (roleKey === "cashier") {
       return BOTTOM_TABS.map((tab) => {
-        if (tab.id === "sales") return { ...tab, href: APP_ROUTES.cashier };
-        if (tab.id === "ops") return { ...tab, href: APP_ROUTES.shifts };
+        if (tab.id === "sales") {
+          return {
+            ...tab,
+            href: APP_ROUTES.cashier,
+            workspace: undefined,
+          };
+        }
+        if (tab.id === "ops") {
+          return {
+            ...tab,
+            label: "Shifts",
+            icon: SlidersHorizontal,
+            href: APP_ROUTES.shifts,
+            workspace: undefined,
+            matchSectionIds: ["ops"],
+          };
+        }
         return tab;
       }).filter(
         (tab) =>
@@ -1428,7 +1454,36 @@ export function AppShell({ children }: AppShellProps) {
       });
       return groceryClerkTabs;
     }
-    return BOTTOM_TABS;
+
+    // Owners / admins / managers: Cashier drawer when they can sell;
+    // otherwise fall back to Pricing when they can view prices.
+    return BOTTOM_TABS.map((tab) => {
+      if (tab.id !== "ops") return tab;
+      if (canQuickSale) {
+        return {
+          ...tab,
+          label: "Cashier",
+          icon: ScanLine,
+          href: APP_ROUTES.cashier,
+          workspace: "cashier" as const,
+          matchSectionIds: ["ops", "sales"],
+        };
+      }
+      if (canViewPricing) {
+        return {
+          ...tab,
+          label: "Prices",
+          icon: SlidersHorizontal,
+          href: APP_ROUTES.pricing,
+          workspace: undefined,
+          matchSectionIds: ["ops"],
+        };
+      }
+      return tab;
+    }).filter((tab) => {
+      if (tab.id !== "ops") return true;
+      return canQuickSale || canViewPricing;
+    });
   }, [
     me,
     business,
@@ -1439,10 +1494,18 @@ export function AppShell({ children }: AppShellProps) {
     stockManagerStockPage,
     stockManagerActivity,
     canViewOrderPad,
+    canQuickSale,
+    canViewPricing,
   ]);
 
   // Which bottom tab is currently "active"
   const activeBottomTabId = useMemo(() => {
+    if (shellWorkspace === "cashier") {
+      const cashierTab = visibleBottomTabs.find(
+        (tab) => tab.workspace === "cashier",
+      );
+      if (cashierTab) return cashierTab.id;
+    }
     for (const tab of visibleBottomTabs) {
       if (tab.href && isPathActive(pathname, tab.href)) {
         return tab.id;
@@ -1454,7 +1517,7 @@ export function AppShell({ children }: AppShellProps) {
       }
     }
     return null;
-  }, [pathname, visibleBottomTabs, activeSectionId, isPathActive]);
+  }, [pathname, visibleBottomTabs, activeSectionId, isPathActive, shellWorkspace]);
 
   // ── Phase 9: multi_branch gate ────────────────────────────────────────
   const multiBranch = mergedFeatureFlags.multi_branch !== false;
@@ -1869,6 +1932,7 @@ export function AppShell({ children }: AppShellProps) {
             tabs={visibleBottomTabs}
             activeTabId={activeBottomTabId}
             onMore={() => setMoreOpen(true)}
+            onOpenWorkspace={setShellWorkspace}
             layout={
               isStockManager && visibleBottomTabs.length >= 4
                 ? "compact"

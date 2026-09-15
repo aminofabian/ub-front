@@ -50,7 +50,7 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
 
       {visible.length > 1 ? (
         <div
-          className="flex gap-0.5 rounded-full border border-[color-mix(in_srgb,#141414_10%,transparent)] bg-[color-mix(in_srgb,#141414_4%,white)] p-0.5 sm:hidden"
+          className="flex gap-px border border-[color-mix(in_srgb,#141414_10%,transparent)] bg-[color-mix(in_srgb,#141414_10%,transparent)] p-px sm:hidden"
           role="tablist"
           aria-label="Open work boards"
         >
@@ -65,9 +65,9 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
                 onClick={() => setActiveId(column.id)}
                 className={cn(
                   HUB_BTN,
-                  "min-h-9 min-w-0 flex-1 rounded-full px-2 py-1.5 text-center",
+                  "min-h-9 min-w-0 flex-1 bg-white px-2 py-1.5 text-center",
                   selected
-                    ? "bg-[#0f766e] text-white shadow-sm"
+                    ? "bg-[#0f766e] text-white"
                     : "text-[#5C5C5C] hover:text-[#0f766e]",
                 )}
               >
@@ -90,10 +90,8 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
         </div>
       ) : null}
 
-      {/* Phone: active column only */}
       <div className="sm:hidden">{active?.panel}</div>
 
-      {/* Tablet+: all columns */}
       <div
         className={cn(
           "hidden gap-2 sm:grid",

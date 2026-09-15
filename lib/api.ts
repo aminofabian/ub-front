@@ -3964,6 +3964,8 @@ export type StoreRoomSettingsRecord = {
   connectedAt: string | null;
   /** Ask before more than this leaves stock; null = never ask. */
   approvalThreshold: number | string | null;
+  /** When true, nobody may approve a take-out they raised themselves. */
+  requireSeparateApprover: boolean;
   itemCount: number;
   linkedCount: number;
   unlinkedCount: number;
@@ -4152,6 +4154,7 @@ export async function updateStoreRoomSettings(patch: {
   mode?: StoreRoomMode;
   approvalThreshold?: number;
   clearApprovalThreshold?: boolean;
+  requireSeparateApprover?: boolean;
 }): Promise<StoreRoomSettingsRecord> {
   return request<StoreRoomSettingsRecord>(API_ROUTES.storeRoomSettings, {
     method: "PUT",

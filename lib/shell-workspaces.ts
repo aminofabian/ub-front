@@ -5,7 +5,8 @@ export type ShellWorkspaceId =
   | "receive"
   | "credits"
   | "settings"
-  | "configuration";
+  | "configuration"
+  | "cashier";
 
 /** Routes that open as shell drawers from More (stay on Business). */
 export const SHELL_WORKSPACE_BY_HREF: Readonly<
@@ -16,4 +17,6 @@ export const SHELL_WORKSPACE_BY_HREF: Readonly<
   [APP_ROUTES.creditsOnTab]: "credits",
   [APP_ROUTES.businessSettings]: "settings",
   [APP_ROUTES.businessConfiguration]: "configuration",
+  [APP_ROUTES.cashier]: "cashier",
+  [APP_ROUTES.salesQuick]: "cashier",
 };

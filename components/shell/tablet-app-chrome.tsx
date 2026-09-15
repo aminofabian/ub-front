@@ -49,6 +49,8 @@ export type TabletBottomTab = {
   icon: LucideIcon;
   href?: string;
   matchSectionIds: string[];
+  /** Open as a shell FormDrawer instead of navigating. */
+  workspace?: ShellWorkspaceId;
 };
 
 export type MoreQuickLink = {
@@ -203,15 +205,59 @@ export function TabletAppHeader({
         } as CSSProperties
       }
     >
-      <div className="tablet-header-fascia relative overflow-hidden border-b border-[var(--tablet-header-ink)]/15">
-        {/* Market-awning wash + hatch */}
+      {/* Phone: flat app bar. Sm+: market fascia. */}
+      <div className="relative border-b border-[var(--tablet-header-ink)]/12 bg-white sm:hidden">
+        <div className="flex h-12 items-center gap-2.5 px-3">
+          <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden bg-[var(--tablet-header-leaf)]">
+            <TenantLogo
+              brand={tenantTitle}
+              logoUrl={logoUrl}
+              faviconUrl={faviconUrl}
+              primaryColor={primaryColor}
+              variant="sidebar-mark"
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-heading text-[1.05rem] font-semibold leading-none tracking-tight text-[var(--tablet-header-ink)]">
+              {title}
+            </p>
+            {placeLine ? (
+              <p className="mt-0.5 truncate text-[10px] text-[var(--tablet-header-ink)]/50">
+                {placeLine}
+              </p>
+            ) : (
+              <p className="mt-0.5 truncate text-[10px] text-[var(--tablet-header-ink)]/50">
+                {tenantTitle}
+              </p>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center">
+            {headerTools}
+            <NotificationBell />
+            <button
+              type="button"
+              onClick={onOpenMore}
+              aria-label="Open menu"
+              className="ml-1 inline-flex size-9 items-center justify-center bg-[var(--tablet-header-ink)] font-mono text-xs font-bold text-white"
+            >
+              {userInitial}
+            </button>
+          </div>
+        </div>
+        <div
+          className="h-0.5 w-full"
+          style={{ background: accent }}
+          aria-hidden
+        />
+      </div>
+
+      <div className="tablet-header-fascia relative hidden overflow-hidden border-b border-[var(--tablet-header-ink)]/15 sm:block">
         <div className="tablet-header-wash pointer-events-none absolute inset-0" aria-hidden />
         <div className="tablet-header-hatch pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden />
 
-        <div className="relative flex min-h-[3.25rem] items-stretch sm:min-h-[3.75rem]">
-          {/* Brand stamp — mark only on phone so the aisle title owns the row */}
-          <div className="tablet-header-stamp flex shrink-0 items-center gap-2.5 bg-[var(--tablet-header-leaf)] px-2 py-2 text-[var(--tablet-header-paper)] sm:gap-3 sm:px-4 sm:py-2.5">
-            <div className="tablet-header-logo relative flex size-9 shrink-0 items-center justify-center overflow-hidden bg-[var(--tablet-header-paper)] sm:size-11">
+        <div className="relative flex min-h-[3.75rem] items-stretch">
+          <div className="tablet-header-stamp flex shrink-0 items-center gap-3 bg-[var(--tablet-header-leaf)] px-4 py-2.5 text-[var(--tablet-header-paper)]">
+            <div className="tablet-header-logo relative flex size-11 shrink-0 items-center justify-center overflow-hidden bg-[var(--tablet-header-paper)]">
               <TenantLogo
                 brand={tenantTitle}
                 logoUrl={logoUrl}
@@ -224,33 +270,30 @@ export function TabletAppHeader({
                 aria-hidden
               />
             </div>
-            <div className="hidden min-w-0 max-w-[16rem] sm:block">
+            <div className="min-w-0 max-w-[16rem]">
               <h1 className="tablet-header-brand truncate font-heading text-[1.55rem] font-semibold leading-[0.95] tracking-[-0.02em]">
                 {tenantTitle}
               </h1>
             </div>
-            <h1 className="sr-only sm:hidden">{tenantTitle}</h1>
           </div>
 
-          {/* Diagonal cut between stamp and deck */}
           <div
-            className="tablet-header-cut relative hidden w-4 shrink-0 bg-[var(--tablet-header-leaf)] sm:block"
+            className="tablet-header-cut relative w-4 shrink-0 bg-[var(--tablet-header-leaf)]"
             aria-hidden
           />
 
-          {/* Aisle deck */}
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1.5 sm:gap-3 sm:px-3 sm:py-2">
+          <div className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2">
             <div className="tablet-header-aisle min-w-0 flex-1">
               <div className="flex min-w-0 items-baseline gap-x-2 gap-y-0.5">
-                <span className="tablet-header-page hidden font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--tablet-header-accent)] sm:inline">
+                <span className="tablet-header-page font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--tablet-header-accent)]">
                   Aisle
                 </span>
-                <p className="truncate font-heading text-[1.05rem] font-semibold leading-none tracking-tight text-[var(--tablet-header-ink)] sm:text-[1.35rem]">
+                <p className="truncate font-heading text-[1.35rem] font-semibold leading-none tracking-tight text-[var(--tablet-header-ink)]">
                   {title}
                 </p>
               </div>
               {placeLine ? (
-                <p className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-[0.1em] text-[var(--tablet-header-ink)]/55 sm:mt-1 sm:text-[10px] sm:tracking-[0.12em]">
+                <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--tablet-header-ink)]/55">
                   {placeLine}
                   {businessName?.trim() && businessName !== tenantTitle
                     ? ` · ${businessName.trim()}`
@@ -260,18 +303,16 @@ export function TabletAppHeader({
             </div>
 
             <div className="flex shrink-0 items-stretch self-stretch border border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-paper)]/70">
-              <div className="hidden sm:contents">
-                <HeaderPosLinks links={posLinks} pathname={pathname} />
-              </div>
+              <HeaderPosLinks links={posLinks} pathname={pathname} />
               {headerTools}
-              <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-1 sm:px-1.5">
+              <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-1.5">
                 <NotificationBell />
               </span>
               <button
                 type="button"
                 onClick={onOpenMore}
                 aria-label="Open menu"
-                className="tablet-header-avatar inline-flex size-10 shrink-0 items-center justify-center border-l border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-ink)] font-mono text-sm font-bold text-[var(--tablet-header-paper)] transition-[letter-spacing,background-color] hover:tracking-widest sm:size-11"
+                className="tablet-header-avatar inline-flex size-11 shrink-0 items-center justify-center border-l border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-ink)] font-mono text-sm font-bold text-[var(--tablet-header-paper)] transition-[letter-spacing,background-color] hover:tracking-widest"
               >
                 {userInitial}
               </button>
@@ -279,7 +320,6 @@ export function TabletAppHeader({
           </div>
         </div>
 
-        {/* Shelf lip */}
         <div className="tablet-header-lip" aria-hidden>
           <span className="tablet-header-lip-fill" />
         </div>
@@ -292,6 +332,7 @@ type TabletBottomNavProps = {
   tabs: readonly TabletBottomTab[];
   activeTabId: string | null;
   onMore: () => void;
+  onOpenWorkspace?: (workspace: ShellWorkspaceId) => void;
   /** Equal-width grid tabs for kiosk roles with several direct destinations. */
   layout?: "default" | "compact";
 };
@@ -300,6 +341,7 @@ export function TabletBottomNav({
   tabs,
   activeTabId,
   onMore,
+  onOpenWorkspace,
   layout: _layout = "default",
 }: TabletBottomNavProps) {
   const linkTabs = tabs.filter((tab) => tab.id !== "more");
@@ -328,18 +370,13 @@ export function TabletBottomNav({
         {linkTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTabId === tab.id;
-
-          return (
-            <Link
-              key={tab.id}
-              href={tab.href ?? "#"}
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "tablet-nav-tab relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition-colors duration-150",
-                "active:bg-muted/60",
-                isActive && "tablet-nav-tab-active",
-              )}
-            >
+          const tabClass = cn(
+            "tablet-nav-tab relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition-colors duration-150",
+            "active:bg-muted/60",
+            isActive && "tablet-nav-tab-active",
+          );
+          const tabBody = (
+            <>
               {isActive ? (
                 <span
                   className="absolute inset-x-3 top-0 h-0.5 bg-primary"
@@ -362,6 +399,32 @@ export function TabletBottomNav({
               >
                 {tab.label}
               </span>
+            </>
+          );
+
+          if (tab.workspace && onOpenWorkspace) {
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => onOpenWorkspace(tab.workspace!)}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={tab.label}
+                className={tabClass}
+              >
+                {tabBody}
+              </button>
+            );
+          }
+
+          return (
+            <Link
+              key={tab.id}
+              href={tab.href ?? "#"}
+              aria-current={isActive ? "page" : undefined}
+              className={tabClass}
+            >
+              {tabBody}
             </Link>
           );
         })}
@@ -905,17 +968,17 @@ export function TabletMoreSheet({
             "color-mix(in srgb, var(--order-ink, #15231f) 10%, transparent)",
         }}
       >
-        <div className="mx-auto mb-2.5 flex justify-center sm:hidden" aria-hidden>
-          <span className="h-1 w-10 rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]" />
+        <div className="mx-auto mb-2 flex justify-center sm:hidden" aria-hidden>
+          <span className="h-0.5 w-8 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]" />
         </div>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
             <div
-              className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--order-ink,#15231f)] text-[15px] font-semibold tracking-[-0.02em] text-white"
+              className="relative flex size-10 shrink-0 items-center justify-center bg-[var(--order-ink,#15231f)] text-[14px] font-semibold tracking-[-0.02em] text-white"
               aria-hidden
             >
               {userInitial}
-              <span className="pointer-events-none absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center overflow-hidden rounded-full bg-white ring-2 ring-white">
+              <span className="pointer-events-none absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center overflow-hidden bg-white ring-2 ring-white">
                 <TenantLogo
                   brand={tenantTitle}
                   logoUrl={logoUrl}
@@ -926,21 +989,21 @@ export function TabletMoreSheet({
               </span>
             </div>
             <div className="min-w-0">
-              <p className={cn("text-[11px] tracking-[-0.01em]", mute)}>
-                {greeting}
-              </p>
               <p
                 className={cn(
-                  "truncate text-[1.05rem] font-semibold leading-tight tracking-[-0.02em]",
+                  "truncate text-[15px] font-semibold leading-tight tracking-[-0.02em]",
                   ink,
                 )}
               >
                 {userDisplayName}
               </p>
               <p className={cn("truncate text-[11px]", mute)}>
-                {userEmail?.trim() && userEmail !== userDisplayName
-                  ? userEmail
-                  : tenantTitle}
+                {currentItem
+                  ? currentItem.item.label
+                  : greeting}
+                {userEmail?.trim() && userEmail !== userDisplayName && !currentItem
+                  ? ` · ${tenantTitle}`
+                  : null}
               </p>
             </div>
           </div>
@@ -948,7 +1011,7 @@ export function TabletMoreSheet({
             type="button"
             onClick={onClose}
             className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-full border bg-white transition-colors",
+              "flex size-9 shrink-0 items-center justify-center border bg-white transition-colors",
               hair,
               mute,
               "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
@@ -959,25 +1022,6 @@ export function TabletMoreSheet({
             <X className="size-4" />
           </button>
         </div>
-
-        {currentItem ? (
-          <p
-            className={cn(
-              "mt-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-[12px]",
-              hair,
-              "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
-            )}
-          >
-            <span
-              className="size-1.5 shrink-0 rounded-full bg-[var(--pos-primary,#0f766e)]"
-              aria-hidden
-            />
-            <span className={mute}>Now on</span>
-            <span className={cn("truncate font-semibold", ink)}>
-              {currentItem.item.label}
-            </span>
-          </p>
-        ) : null}
       </header>
 
       {profileHref || myPayHref ? (
@@ -987,13 +1031,13 @@ export function TabletMoreSheet({
               href={profileHref}
               onClick={onClose}
               className={cn(
-                "group flex items-center gap-3 rounded-2xl border bg-white px-3.5 py-3 transition-colors",
+                "group flex items-center gap-3 border bg-white px-3.5 py-3 transition-colors",
                 hair,
                 "hover:border-[var(--pos-primary,#0f766e)]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
               )}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
+              <span className="flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
                 <UserRound className="size-4" strokeWidth={1.75} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
@@ -1001,7 +1045,7 @@ export function TabletMoreSheet({
                   My profile
                 </span>
                 <span className={cn("block text-[11px]", mute)}>
-                  Pay, advances, and raise a concern
+                  Pay & concerns
                 </span>
               </span>
               <ChevronRight
@@ -1017,13 +1061,13 @@ export function TabletMoreSheet({
               href={myPayHref}
               onClick={onClose}
               className={cn(
-                "group flex items-center gap-3 rounded-2xl border bg-white px-3.5 py-3 transition-colors",
+                "group flex items-center gap-3 border bg-white px-3.5 py-3 transition-colors",
                 hair,
                 "hover:border-[var(--pos-primary,#0f766e)]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
               )}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
+              <span className="flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
                 <Banknote className="size-4" strokeWidth={1.75} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
@@ -1031,7 +1075,7 @@ export function TabletMoreSheet({
                   My pay
                 </span>
                 <span className={cn("block text-[11px]", mute)}>
-                  Salary, advances, and payslips
+                  Advances & slips
                 </span>
               </span>
               <ChevronRight
@@ -1056,35 +1100,27 @@ export function TabletMoreSheet({
           >
             Jump to
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-px overflow-hidden border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]" style={{ borderColor: "color-mix(in srgb, var(--order-ink, #15231f) 12%, transparent)" }}>
             {quickLinks.map((link) => {
               const Icon = link.icon;
               const className = cn(
-                "group flex min-h-[4.25rem] flex-col justify-between rounded-2xl border bg-white px-3 py-2.5 text-left transition-colors",
-                hair,
-                "active:scale-[0.98] active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
-                "hover:border-[var(--pos-primary,#0f766e)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+                "group flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 bg-white px-1.5 py-2.5 text-center transition-colors",
+                "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
+                "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
               );
               const body = (
                 <>
-                  <Icon
-                    className="size-5 text-[var(--pos-primary,#0f766e)]"
-                    strokeWidth={1.75}
-                    aria-hidden
-                  />
-                  <span className="min-w-0">
-                    <span
-                      className={cn(
-                        "block text-[13px] font-semibold tracking-[-0.015em]",
-                        ink,
-                      )}
-                    >
-                      {link.label}
-                    </span>
-                    <span className={cn("mt-0.5 block text-[11px] leading-snug", mute)}>
-                      {link.hint}
-                    </span>
+                  <span className="flex size-8 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]">
+                    <Icon className="size-4" strokeWidth={1.9} aria-hidden />
+                  </span>
+                  <span
+                    className={cn(
+                      "max-w-full truncate text-[11px] font-semibold leading-tight tracking-[-0.02em]",
+                      ink,
+                    )}
+                  >
+                    {link.label}
                   </span>
                 </>
               );
@@ -1095,6 +1131,8 @@ export function TabletMoreSheet({
                     type="button"
                     onClick={() => runQuickLink(link)}
                     className={className}
+                    title={link.hint}
+                    aria-label={link.hint ? `${link.label}: ${link.hint}` : link.label}
                   >
                     {body}
                   </button>
@@ -1106,6 +1144,8 @@ export function TabletMoreSheet({
                   href={link.href ?? "#"}
                   onClick={onClose}
                   className={className}
+                  title={link.hint}
+                  aria-label={link.hint ? `${link.label}: ${link.hint}` : link.label}
                 >
                   {body}
                 </Link>

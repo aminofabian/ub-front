@@ -78,7 +78,7 @@ export function BusinessPageLayout({
           {showToolbar ? (
             <div
               className={cn(
-                "flex items-center gap-2 px-3 py-2 sm:px-2 sm:py-1.5",
+                "flex items-center gap-2 px-3 py-1.5 sm:px-2",
                 showNav &&
                   "sm:border-t sm:border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
                 toolbarLeading ? "justify-between" : "justify-end",

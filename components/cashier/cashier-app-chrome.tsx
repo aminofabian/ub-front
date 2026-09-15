@@ -9,7 +9,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import Link from "next/link";
 import {
+  Building2,
   ClipboardCheck,
   ClipboardList,
   LayoutGrid,
@@ -195,12 +197,15 @@ export function CashierMobileChromeProvider({
 }
 
 type CashierBottomNavProps = {
-  activeTab?: "sell" | "cart" | "more";
+  activeTab?: "sell" | "cart" | "more" | "admin";
+  /** When set, shows an Admin tab that navigates to the business hub. */
+  adminHref?: string | null;
   className?: string;
 };
 
 export function CashierBottomNav({
   activeTab = "sell",
+  adminHref = null,
   className,
 }: CashierBottomNavProps) {
   const chrome = useCashierMobileChrome();
@@ -209,9 +214,16 @@ export function CashierBottomNav({
     ? chrome.cartSummary.total.toFixed(0)
     : null;
 
-  const tabs = [
+  const tabs: Array<{
+    id: "sell" | "cart" | "more" | "admin";
+    label: string;
+    icon: LucideIcon;
+    badge?: number;
+    href?: string;
+    onClick?: () => void;
+  }> = [
     {
-      id: "sell" as const,
+      id: "sell",
       label: "Sell",
       icon: LayoutGrid,
       onClick: () => {
@@ -220,7 +232,7 @@ export function CashierBottomNav({
       },
     },
     {
-      id: "cart" as const,
+      id: "cart",
       label: itemCount > 0 && totalLabel ? `Cart · ${totalLabel}` : "Cart",
       icon: ShoppingCart,
       badge: itemCount,
@@ -229,16 +241,26 @@ export function CashierBottomNav({
         dispatchCashierOpenCart();
       },
     },
-    {
-      id: "more" as const,
-      label: "More",
-      icon: MoreHorizontal,
-      onClick: () => {
-        if (chrome?.moreOpen) chrome.setMoreOpen(false);
-        else dispatchCashierOpenMore();
-      },
-    },
   ];
+
+  if (adminHref) {
+    tabs.push({
+      id: "admin",
+      label: "Admin",
+      icon: Building2,
+      href: adminHref,
+    });
+  }
+
+  tabs.push({
+    id: "more",
+    label: "More",
+    icon: MoreHorizontal,
+    onClick: () => {
+      if (chrome?.moreOpen) chrome.setMoreOpen(false);
+      else dispatchCashierOpenMore();
+    },
+  });
 
   return (
     <nav
@@ -263,19 +285,14 @@ export function CashierBottomNav({
             tab.id === "more"
               ? Boolean(chrome?.moreOpen)
               : activeTab === tab.id && !chrome?.moreOpen;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={tab.onClick}
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "tablet-nav-tab relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition-colors",
-                "active:scale-[0.97]",
-                isActive &&
-                  "tablet-nav-tab-active bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]",
-              )}
-            >
+          const tabClass = cn(
+            "tablet-nav-tab relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition-colors",
+            "active:scale-[0.97]",
+            isActive &&
+              "tablet-nav-tab-active bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]",
+          );
+          const body = (
+            <>
               <span
                 className={cn(
                   "relative flex size-9 items-center justify-center sm:size-10",
@@ -311,6 +328,31 @@ export function CashierBottomNav({
               >
                 {tab.label}
               </span>
+            </>
+          );
+
+          if (tab.href) {
+            return (
+              <Link
+                key={tab.id}
+                href={tab.href}
+                aria-current={isActive ? "page" : undefined}
+                className={tabClass}
+              >
+                {body}
+              </Link>
+            );
+          }
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={tab.onClick}
+              aria-current={isActive ? "page" : undefined}
+              className={tabClass}
+            >
+              {body}
             </button>
           );
         })}

@@ -99,6 +99,10 @@ export function CashierShell({ children }: CashierShellProps) {
     hasPermission(me?.permissions, Permission.BusinessManageSettings) ||
     roleKey === "owner" ||
     roleKey === "admin";
+  const showAdminBusinessLink =
+    roleKey === "owner" ||
+    roleKey === "admin" ||
+    hasPermission(me?.permissions, Permission.BusinessManageSettings);
   const brandTheme = useMemo(
     () => posBrandThemeStyle(business?.branding ?? null),
     [business?.branding],
@@ -203,7 +207,22 @@ export function CashierShell({ children }: CashierShellProps) {
           </MoreRow>
         ) : null}
       </MoreSection>
-      {roleKey !== "cashier" ? (
+      {showAdminBusinessLink ? (
+        <MoreSection label="Admin">
+          <MoreRow icon={Building2} href={APP_ROUTES.business}>
+            Business hub
+          </MoreRow>
+          <MoreRow icon={BookOpen} href={APP_ROUTES.paymentsDayLedger}>
+            Ledger
+          </MoreRow>
+          <MoreRow icon={ShoppingBag} href={APP_ROUTES.sales}>
+            Sales
+          </MoreRow>
+          <MoreRow icon={FileText} href={APP_ROUTES.salesQuick} tone="leave">
+            Admin sale
+          </MoreRow>
+        </MoreSection>
+      ) : roleKey !== "cashier" ? (
         <MoreSection label="Pages">
           <MoreRow icon={BookOpen} href={APP_ROUTES.paymentsDayLedger}>
             Ledger
@@ -485,7 +504,11 @@ export function CashierShell({ children }: CashierShellProps) {
           {children}
         </main>
 
-        {!isLedger ? <CashierBottomNav /> : null}
+        {!isLedger ? (
+          <CashierBottomNav
+            adminHref={showAdminBusinessLink ? APP_ROUTES.business : null}
+          />
+        ) : null}
 
         {canManageCashierCapabilities ? (
           <CashierAdminCapabilitiesModal

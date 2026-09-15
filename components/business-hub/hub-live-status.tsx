@@ -116,7 +116,7 @@ export function HubLiveStatus({
   return (
     <span
       className={cn(
-        "relative inline-flex h-8 items-center gap-1.5 overflow-hidden rounded-full border px-2 text-[10px] font-semibold tracking-[-0.02em] sm:gap-2 sm:rounded-none sm:px-2.5",
+        "relative inline-flex h-8 items-center gap-1.5 overflow-hidden border px-2 text-[10px] font-semibold tracking-[-0.02em] sm:gap-2 sm:px-2.5",
         view.tone === "live" &&
           "border-emerald-300/80 bg-[#0B1F17] text-emerald-100",
         view.tone === "sync" && "border-amber-300 bg-amber-50 text-amber-950",
