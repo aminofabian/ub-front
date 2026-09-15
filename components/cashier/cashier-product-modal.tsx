@@ -209,6 +209,7 @@ export function CashierProductModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side={phone ? "bottom" : "center"}
+        sheetDrag={phone}
         showCloseButton={!phone}
         overlayClassName="bg-[rgba(0,0,0,0.55)] supports-[backdrop-filter]:bg-[rgba(0,0,0,0.45)]"
         className={cn(
@@ -220,11 +221,6 @@ export function CashierProductModal({
         )}
         style={brandTheme}
       >
-        {phone ? (
-          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
-            <span className="h-1 w-10 rounded-full bg-border" />
-          </div>
-        ) : null}
         <DialogHeader className="space-y-0 p-0 pr-0 text-left">
           <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted sm:aspect-[16/11]">
             {thumb ? (
@@ -291,6 +287,7 @@ export function CashierProductModal({
                   type="text"
                   inputMode="decimal"
                   aria-label="Quantity"
+                  data-keep-text
                   className={modalFieldClass(
                     "h-11 min-w-0 flex-1 py-0 text-center text-xl font-bold tabular-nums text-foreground",
                   )}
@@ -344,6 +341,7 @@ export function CashierProductModal({
                 autoFocus={allowPriceEdit}
                 readOnly={!allowPriceEdit}
                 placeholder={uiCopy.unitPricePlaceholder}
+                data-keep-text
                 className={modalFieldClass(
                   cn(
                     "h-11 w-full px-2.5 text-right text-lg font-semibold tabular-nums text-foreground",

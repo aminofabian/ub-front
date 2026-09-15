@@ -5018,6 +5018,20 @@ html:has([data-store-theme-id="daily-gazette"]) ::selection {
     }
 }
 
+/* ── Phone sheets: no viewport zoom when a field takes focus ───────────
+   iOS Safari zooms the whole viewport when a focused field renders under
+   16px, which makes a till drawer feel like a web page instead of an app.
+   Sheets marked data-phone-sheet bump their fields to 16px on phones only;
+   fields that must stay larger (e.g. the cash tender figure) opt out with
+   data-keep-text. */
+@media (max-width: 639px) {
+    [data-phone-sheet] input:not([data-keep-text]):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    [data-phone-sheet] select,
+    [data-phone-sheet] textarea {
+        font-size: 16px;
+    }
+}
+
 /* ── Grocery POS: horizontal scroll with snap & no scrollbar ─────── */
 .pos-snap-row {
     scroll-snap-type: x mandatory;

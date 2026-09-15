@@ -26,10 +26,13 @@ function weekdayInitial(isoDay: string): string {
 export function RevenueBarChart({
   points,
   ariaLabel,
+  bare = false,
 }: {
   points: DailyRevenuePoint[];
   ariaLabel: string;
   caption?: string;
+  /** Drop the panel chrome when the meter is nested inside another surface. */
+  bare?: boolean;
 }) {
   const { formatMoneyCompact } = useFormatMoney();
   const max = Math.max(...points.map((p) => p.value), 1);
@@ -65,7 +68,7 @@ export function RevenueBarChart({
   ] as const;
 
   return (
-    <section className={cn(HUB_SURFACE, "overflow-hidden")}>
+    <section className={cn(!bare && HUB_SURFACE, "overflow-hidden")}>
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-1.5 sm:justify-end">
         {summary.map((item) => (
           <p

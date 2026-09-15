@@ -972,6 +972,7 @@ export function CashierCreateProductModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side={desktop ? "right" : "bottom"}
+        sheetDrag={!desktop}
         showCloseButton={desktop}
         overlayClassName="bg-black/40 supports-[backdrop-filter]:backdrop-blur-[2px]"
         className={cn(
@@ -983,11 +984,6 @@ export function CashierCreateProductModal({
         )}
         style={brandTheme}
       >
-        {!desktop ? (
-          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
-            <span className="h-1 w-10 rounded-full bg-zinc-300" />
-          </div>
-        ) : null}
         <div className={styles.header}>
           <DialogHeader className="space-y-1 text-left">
             <DialogTitle className="flex items-center gap-2 text-lg">

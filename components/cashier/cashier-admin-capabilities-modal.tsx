@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { Settings2 } from "lucide-react";
+import { Settings2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -82,6 +83,21 @@ export function CashierAdminCapabilitiesModal({
   const [catalogHybrid, setCatalogHybrid] = useState(catalogHybridEnabled);
   const [saving, setSaving] = useState(false);
   const { preferred, setTemplate } = useCashierTemplate(branchId);
+  // Phones get the same panel as a bottom sheet — a right-edge slide-over is a
+  // desktop habit, and this drawer is opened from the till menu on a phone.
+  const [phone, setPhone] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 639px)").matches
+      : false,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setPhone(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -203,17 +219,26 @@ export function CashierAdminCapabilitiesModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side="right"
+        side={phone ? "bottom" : "right"}
+        sheetDrag={phone}
+        showCloseButton={!phone}
         overlayClassName="bg-black/45 backdrop-blur-[3px] dark:bg-black/55"
         className={cn(
           "gap-0 overflow-hidden p-0",
           "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,white)]",
           "dark:bg-background",
+          phone && "max-h-[min(92dvh,44rem)] rounded-t-[1.25rem]",
         )}
         style={brandTheme}
       >
-        <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-5 pb-4 pt-5 pr-12">
-          <DialogHeader className="space-y-1 text-left">
+        <div
+          className={cn(
+            "shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-5 pb-4",
+            phone ? "pt-1" : "pt-5 pr-12",
+          )}
+        >
+          <div className="flex items-start gap-3">
+          <DialogHeader className="min-w-0 flex-1 space-y-1 text-left">
             <DialogTitle className="flex items-center gap-2 text-[1.0625rem] tracking-[-0.02em]">
               <Settings2
                 className="size-4 text-[var(--pos-primary)]"
@@ -225,6 +250,18 @@ export function CashierAdminCapabilitiesModal({
               What cashiers may do on this shop, and how this register looks.
             </DialogDescription>
           </DialogHeader>
+          {phone ? (
+            <DialogClose asChild>
+              <button
+                type="button"
+                className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 dark:hover:bg-white/10"
+                aria-label="Close till settings"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </DialogClose>
+          ) : null}
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">

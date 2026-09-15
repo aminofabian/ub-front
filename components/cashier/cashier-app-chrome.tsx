@@ -24,6 +24,7 @@ import {
   Truck,
   Users,
   Wallet,
+  X,
   type LucideIcon,
 } from "lucide-react";
 
@@ -42,6 +43,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -134,31 +136,85 @@ export function CashierMobileChromeProvider({
     window.requestAnimationFrame(() => dispatchCashierRunTool(id));
   };
 
+  const openCart = () => {
+    setMoreOpen(false);
+    window.requestAnimationFrame(() => dispatchCashierOpenCart());
+  };
+
+  const cartItems = cartSummary?.itemCount ?? 0;
+
   return (
     <CashierMobileChromeContext.Provider value={value}>
       {children}
       <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
         <DialogContent
           side="bottom"
+          sheetDrag
           className="gap-0 p-0 lg:hidden"
           showCloseButton={false}
         >
-          <div
-            className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]"
-            aria-hidden
-          />
-          <DialogHeader className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 pb-3 pt-3 text-left">
-            <DialogTitle className="text-base">Till menu</DialogTitle>
-            <DialogDescription className="text-xs">
-              Tools, pages, and session controls.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[min(70dvh,32rem)] overflow-y-auto overscroll-contain px-1 pb-4 pt-1">
+          <div className="flex shrink-0 items-start justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 pb-2.5 pt-0.5">
+            <DialogHeader className="min-w-0 gap-0.5 pr-0">
+              <DialogTitle className="text-lg font-semibold tracking-tight text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+                Till menu
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Everything this till can do besides selling.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogClose asChild>
+              <button
+                type="button"
+                className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 dark:hover:bg-white/10"
+                aria-label="Close till menu"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </DialogClose>
+          </div>
+
+          {cartSummary && cartItems > 0 ? (
+            <button
+              type="button"
+              onClick={openCart}
+              className={cn(
+                "mx-3 mt-2 flex min-h-14 shrink-0 items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors",
+                "border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_7%,transparent)]",
+                "hover:bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+              )}
+            >
+              <span
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--pos-primary)] text-[var(--pos-primary-ink)]"
+                aria-hidden
+              >
+                <ShoppingCart className="size-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-semibold text-foreground">
+                  {cartSummary.label} · {cartItems} item
+                  {cartItems === 1 ? "" : "s"}
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  Tap to take payment
+                </span>
+              </span>
+              <span className="shrink-0 text-[15px] font-bold tabular-nums text-foreground">
+                {cartSummary.total.toFixed(2)}
+                <span className="ml-1 text-[10px] font-semibold tracking-[0.1em] text-muted-foreground">
+                  {cartSummary.currency.trim()}
+                </span>
+              </span>
+            </button>
+          ) : null}
+
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 pt-1">
             <MoreSection label="On this sale">
               {saleTools.map((tool) => (
                 <MoreRow
                   key={tool.id}
                   icon={TOOL_ICONS[tool.id]}
+                  hint={tool.hint}
                   onClick={() => runTool(tool.id)}
                 >
                   {tool.label}
@@ -170,6 +226,7 @@ export function CashierMobileChromeProvider({
                 <MoreRow
                   key={tool.id}
                   icon={TOOL_ICONS[tool.id]}
+                  hint={tool.hint}
                   onClick={() => runTool(tool.id)}
                 >
                   {tool.label}
@@ -181,6 +238,7 @@ export function CashierMobileChromeProvider({
                 <MoreRow
                   key={tool.id}
                   icon={TOOL_ICONS[tool.id]}
+                  hint={tool.hint}
                   tone={tool.tone === "danger" ? "leave" : "default"}
                   onClick={() => runTool(tool.id)}
                 >
@@ -272,11 +330,14 @@ export function CashierBottomNav({
     >
       <div
         className={cn(
-          "tablet-bottom-nav-dock pointer-events-auto flex w-full max-w-md items-stretch gap-1",
+          "tablet-bottom-nav-dock pointer-events-auto flex w-full max-w-md items-stretch gap-1 px-1.5 py-1.5",
           "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
-          "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] px-1.5 py-1.5",
+          // Solid first (older Chromium gets an opaque bar); the translucent
+          // blur is the progressive enhancement that reads as a native tab bar.
+          "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)]",
+          "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--card)_78%,transparent)] supports-[backdrop-filter]:backdrop-blur-xl supports-[backdrop-filter]:backdrop-saturate-150",
           "shadow-[0_10px_28px_-14px_rgba(28,25,21,0.45)]",
-          "dark:border-white/10 dark:bg-card/85",
+          "dark:border-white/10 dark:bg-card/85 dark:supports-[backdrop-filter]:bg-card/70",
         )}
       >
         {tabs.map((tab) => {

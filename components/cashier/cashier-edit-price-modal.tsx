@@ -119,6 +119,7 @@ export function CashierEditPriceModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side={phone ? "bottom" : "center"}
+        sheetDrag={phone}
         showCloseButton={!phone}
         className={cn(
           "gap-0 overflow-hidden p-0",
@@ -128,11 +129,6 @@ export function CashierEditPriceModal({
         )}
         style={brandTheme}
       >
-        {phone ? (
-          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
-            <span className="h-1 w-10 rounded-full bg-border" />
-          </div>
-        ) : null}
         <div className="border-b border-border/40 px-4 py-4">
           <DialogHeader className="space-y-1 text-left">
             <DialogTitle className="flex items-center gap-2 text-lg">

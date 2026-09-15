@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import {
   BarChart3,
   Boxes,
@@ -27,9 +26,10 @@ import { ShopOpenBoard } from "@/components/business-hub/shop-open-board";
 import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
 import {
-  CommandGrid,
-  type CommandLink,
-} from "@/components/business-hub/command-grid";
+  JumpInGrid,
+  type JumpInLink,
+} from "@/components/business-hub/jump-in-grid";
+import { BusinessHubMenuButton } from "@/components/business-hub/hub-menu";
 import { FloorTapeDrawer } from "@/components/business-hub/floor-tape-drawer";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
 import { HubLiveStatus } from "@/components/business-hub/hub-live-status";
@@ -929,31 +929,30 @@ export function BusinessHubWorkspace() {
     valuation?.totalExtensionValue,
   ]);
 
-  const commandLinks = useMemo(() => {
-    const links: CommandLink[] = [
+  const jumpInLinks = useMemo(() => {
+    // Board order = how often a busy shop reaches for it. The sheet regroups the
+    // same links by the job they do, so order here never costs discoverability.
+    const links: JumpInLink[] = [
       {
         href: APP_ROUTES.sales,
         label: "Sales",
-        hint: "Till, receipts, and today's floor",
+        hint: "Till, receipts, refunds",
         icon: ShoppingCart,
+        group: "Sell",
       },
       {
         href: APP_ROUTES.products,
         label: "Products",
-        hint: "Add items, prices, and barcodes",
+        hint: "Items, prices, barcodes",
         icon: Package,
+        group: "Stock",
       },
       {
         href: APP_ROUTES.inventoryStock,
         label: "Stock",
-        hint: "What's in the shop and what to restock",
+        hint: "On hand and to restock",
         icon: Boxes,
-      },
-      {
-        href: APP_ROUTES.analytics,
-        label: "Analytics",
-        hint: "Deeper trends and margins",
-        icon: BarChart3,
+        group: "Stock",
       },
       {
         href: canShowWebOrders
@@ -962,77 +961,94 @@ export function BusinessHubWorkspace() {
         label: canShowWebOrders ? "Web orders" : "Storefront",
         hint: canShowWebOrders
           ? "Online pickup orders"
-          : "Set up your public shop",
+          : "Set up your shop",
         icon: Store,
+        group: "Sell",
+      },
+      {
+        href: APP_ROUTES.analytics,
+        label: "Analytics",
+        hint: "Trends and margins",
+        icon: BarChart3,
+        group: "Insight",
       },
     ];
-    if (canApproveStockTake) {
-      links.splice(3, 0, {
-        href: APP_ROUTES.inventoryStockTakeDailyAuditReview,
-        label: "Audit review",
-        hint: "Approve stock-take findings",
-        icon: ClipboardCheck,
-      });
-    }
     if (canViewSalesIntelligence) {
       links.push({
         href: APP_ROUTES.creditsOnTab,
         label: "On tab",
-        hint: "Credit sales today",
+        hint: "Who owes you money",
         icon: CreditCard,
+        group: "Customers",
       });
     } else if (canViewCustomers) {
       links.push({
         href: APP_ROUTES.customers,
         label: "Customers",
-        hint: "Directory and purchase history",
+        hint: "Directory and history",
         icon: Users,
+        group: "Customers",
       });
     }
     if (canViewAnalytics) {
       links.push({
         href: APP_ROUTES.customerSegments,
         label: "Segments",
-        hint: "Shoppers who bought a product",
+        hint: "Shoppers who bought",
         icon: Users,
+        group: "Customers",
       });
     }
-    if (canViewCustomers && canViewSalesIntelligence) {
+    if (canApproveStockTake) {
       links.push({
-        href: APP_ROUTES.analyticsCustomers,
-        label: "Shoppers",
-        hint: "Spend and visit ranking",
-        icon: Users,
+        href: APP_ROUTES.inventoryStockTakeDailyAuditReview,
+        label: "Audit review",
+        hint: "Approve stock-take",
+        icon: ClipboardCheck,
+        group: "Stock",
       });
     }
     if (canListUsers) {
       links.push({
         href: APP_ROUTES.users,
         label: "Team",
-        hint: "Roles, access, and staff",
+        hint: "Roles, access, staff",
         icon: Users,
+        group: "Shop setup",
       });
     }
     if (showButcherCounter) {
       links.push({
         href: APP_ROUTES.butcher,
-        label: "Butcher counter",
+        label: "Butcher",
         hint: "Weigh, cut, and sell",
         icon: ScanLine,
+        group: "Sell",
       });
     }
     if (canManageBusinessSettings) {
       links.push({
         href: APP_ROUTES.businessConfiguration,
         label: "Configuration",
-        hint: "Inventory and till policies",
+        hint: "How the shop runs",
         icon: Settings,
+        group: "Shop setup",
       });
       links.push({
         href: `${APP_ROUTES.businessConfiguration}#settings-whatsapp-alerts`,
-        label: "WhatsApp alerts",
-        hint: "Owner order & shift notifications",
+        label: "Alerts",
+        hint: "WhatsApp order notices",
         icon: MessageCircle,
+        group: "Shop setup",
+      });
+    }
+    if (canViewCustomers && canViewSalesIntelligence) {
+      links.push({
+        href: APP_ROUTES.analyticsCustomers,
+        label: "Shoppers",
+        hint: "Spend and visits",
+        icon: Users,
+        group: "Customers",
       });
     }
     return links;
@@ -1041,6 +1057,7 @@ export function BusinessHubWorkspace() {
     canListUsers,
     canManageBusinessSettings,
     canShowWebOrders,
+    canViewAnalytics,
     canViewCustomers,
     canViewSalesIntelligence,
     showButcherCounter,
@@ -1132,6 +1149,22 @@ export function BusinessHubWorkspace() {
 
   const topMovers = ownerSummary?.topSkusLast30Days ?? [];
   const showMovers = canViewOwnerSummary && topMovers.length > 0;
+  const shopName =
+    business?.branding?.displayName?.trim() ||
+    business?.name?.trim() ||
+    "Your shop";
+  const shopHost =
+    business?.primaryDomain?.trim() ||
+    (business?.slug?.trim() ? `${business.slug.trim()}.${PLATFORM_DOMAIN}` : "");
+  const shopMeta = [shopHost, business?.currency?.trim().toUpperCase()]
+    .filter(Boolean)
+    .join(" · ");
+  const identity = {
+    name: shopName,
+    meta: shopMeta,
+    logoUrl: business?.branding?.logoUrl,
+    faviconUrl: business?.branding?.faviconUrl,
+  };
 
   return (
     <BusinessPageLayout
@@ -1142,6 +1175,8 @@ export function BusinessHubWorkspace() {
           : null
       }
       setupHome={shopNotReady}
+      identity={identity}
+      menu={<BusinessHubMenuButton identity={identity} setupHome={shopNotReady} />}
       toolbarLeading={
         shopNotReady ? null : (
           <PeriodToggle value={period} onChange={setPeriod} />
@@ -1166,15 +1201,6 @@ export function BusinessHubWorkspace() {
               aria-hidden
             />
           </button>
-          {canManageBusinessSettings ? (
-            <Link
-              href={APP_ROUTES.businessSettings}
-              className={cn(HUB_ICON_BTN, "hidden sm:inline-flex")}
-              aria-label="Business settings"
-            >
-              <Settings className="size-3.5" aria-hidden />
-            </Link>
-          ) : null}
         </>
       }
       stage={
@@ -1252,8 +1278,9 @@ export function BusinessHubWorkspace() {
               ) : null}
 
               {shopNotReady ? null : (
-                <div className="flex flex-col gap-4 sm:gap-5">
-                  {/* 1 — Summary */}
+                <div className="flex flex-col gap-3.5 sm:gap-4">
+                  {/* 1 — Summary: revenue, tenders, metrics, and the trend
+                      meter read as one panel rather than three sections. */}
                   {salesEmpty ? null : (
                     <PulseHero
                       eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
@@ -1267,10 +1294,18 @@ export function BusinessHubWorkspace() {
                       trendTone={revenueFooterTone}
                       metrics={pulseMetrics}
                       justUpdated={justUpdated}
+                      footer={
+                        <RevenueBarChart
+                          bare
+                          points={chartPoints}
+                          ariaLabel={chartAriaLabel}
+                          caption={chartCaption}
+                        />
+                      }
                     />
                   )}
 
-                  {/* 2 — Attention */}
+                  {/* 2 — Attention: the queue in front of everything else */}
                   {showAttentionSection ? (
                     actionItems.length > 0 ? (
                       <ActionItemsStrip items={actionItems} />
@@ -1279,7 +1314,10 @@ export function BusinessHubWorkspace() {
                     )
                   ) : null}
 
-                  {/* 3 — Open work (phone: column tabs; sm+: multi-column grid) */}
+                  {/* 3 — Jump in: the board a shop actually navigates with */}
+                  <JumpInGrid links={jumpInLinks} />
+
+                  {/* 4 — Open work (phone: column tabs; sm+: multi-column grid) */}
                   {(canViewSupplyBills &&
                     !(salesEmpty && todaySupplies.length === 0)) ||
                   (canViewCreditTabs &&
@@ -1378,32 +1416,42 @@ export function BusinessHubWorkspace() {
                     />
                   ) : null}
 
-                  {/* 4 — Floor tape (phone drawer; xl uses side column) */}
+                  {/* 5 — Floor tape: the last ticks, one thumb away. The desk
+                      reads the same tape in the lane rail beside this column. */}
                   {showTillStage && !galleryOpen ? (
-                    <FloorTapeDrawer
-                      lanes={tickLanes}
-                      currency={currency}
-                      justUpdated={justUpdated}
-                      dualLanes={dualLanes}
-                    />
-                  ) : null}
-
-                  {/* 5 — Trend */}
-                  {salesEmpty ? null : (
-                    <section className="space-y-1.5">
-                      <HubSectionLabel title="Trend" />
-                      <RevenueBarChart
-                        points={chartPoints}
-                        ariaLabel={chartAriaLabel}
-                        caption={chartCaption}
+                    <section className="space-y-1.5 xl:hidden">
+                      <HubSectionLabel
+                        title="Floor tape"
+                        meta={
+                          recentTicks.length > 0
+                            ? `${recentTicks.length} recent`
+                            : isToday
+                              ? "Today"
+                              : "This week"
+                        }
+                        className="px-0.5"
+                      />
+                      <FloorTapeDrawer
+                        lanes={tickLanes}
+                        currency={currency}
+                        justUpdated={justUpdated}
+                        dualLanes={dualLanes}
                       />
                     </section>
-                  )}
+                  ) : null}
 
-                  {/* 6 — Stock */}
+                  {/* 6 — Stock: the checks, then what is actually moving */}
                   {stockItems.length > 0 || showMovers ? (
                     <section className="space-y-1.5">
-                      <HubSectionLabel title="Stock" />
+                      <HubSectionLabel
+                        title="Stock"
+                        meta={
+                          stockItems.length > 0
+                            ? `${stockItems.length} checks`
+                            : undefined
+                        }
+                        className="px-0.5"
+                      />
                       <div
                         className={cn(
                           "grid gap-2",
@@ -1419,9 +1467,6 @@ export function BusinessHubWorkspace() {
                       </div>
                     </section>
                   ) : null}
-
-                  {/* 7 — Destinations */}
-                  <CommandGrid links={commandLinks} />
                 </div>
               )}
             </div>

@@ -82,17 +82,13 @@ export function CashierFirstSaleDrawer({
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent
         side={desktop ? "right" : "bottom"}
+        sheetDrag={!desktop}
         showCloseButton={desktop}
         className={cn(
           "gap-0 p-0",
           !desktop && "max-h-[min(92dvh,40rem)] rounded-t-[1.25rem] bg-[#FBF9F5]",
         )}
       >
-        {!desktop ? (
-          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
-            <span className="h-1 w-10 rounded-full bg-[#D1D5DB]" />
-          </div>
-        ) : null}
         <div className="flex min-h-0 flex-col overflow-y-auto p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <DialogHeader className={desktop ? "pr-10" : undefined}>
             <DialogTitle className="text-lg">

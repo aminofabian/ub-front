@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
@@ -14,9 +15,43 @@ export type PulseMetric = {
   href?: string;
 };
 
+const CELL_DIVIDE = "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]";
+const CELL_FILL = "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]";
+
 /**
- * Summary board: revenue leads, then a tight stats grid.
- * Phone keeps the board compact — half the vertical footprint of the desk layout.
+ * Column count per breakpoint, chosen so the common 3 / 4 / 5 metric sets fill
+ * their rows instead of trailing off — a half-empty row is what made the old
+ * board read as unbalanced.
+ */
+function metricGrid(count: number) {
+  const cols =
+    count <= 2
+      ? { phone: 2, sm: 2, xl: 2 }
+      : count === 3
+        ? { phone: 3, sm: 3, xl: 3 }
+        : count === 4
+          ? { phone: 2, sm: 4, xl: 4 }
+          : { phone: 2, sm: 3, xl: 5 };
+  const gridClass =
+    count <= 2
+      ? "grid-cols-2"
+      : count === 3
+        ? "grid-cols-3"
+        : count === 4
+          ? "grid-cols-2 sm:grid-cols-4"
+          : "grid-cols-2 sm:grid-cols-3 xl:grid-cols-5";
+  return {
+    gridClass,
+    phoneFill: (cols.phone - (count % cols.phone)) % cols.phone,
+    smFill: (cols.sm - (count % cols.sm)) % cols.sm,
+    xlFill: (cols.xl - (count % cols.xl)) % cols.xl,
+  };
+}
+
+/**
+ * Summary board: revenue leads, tenders split, then a metric matrix that always
+ * closes its rows. `footer` carries the trend meter so the whole "how are we
+ * doing" answer lives in one panel instead of three stacked sections.
  */
 export function PulseHero({
   eyebrow: _eyebrow,
@@ -28,6 +63,7 @@ export function PulseHero({
   trendTone = "muted",
   metrics,
   justUpdated = false,
+  footer,
 }: {
   eyebrow?: string;
   revenueLabel?: string;
@@ -38,9 +74,20 @@ export function PulseHero({
   trendTone?: "muted" | "positive" | "warning" | "negative";
   metrics: PulseMetric[];
   justUpdated?: boolean;
+  /** Rendered flush under the metrics, behind a hairline (the trend meter). */
+  footer?: ReactNode;
 }) {
   void _eyebrow;
   const a11y = [revenueLabel, revenue, headline].filter(Boolean).join(". ");
+  const grid = metricGrid(metrics.length);
+
+  const tenders = revenueBreakdown
+    ? ([
+        ["Cash", revenueBreakdown.cash],
+        ["M-Pesa", revenueBreakdown.mpesa],
+        ["Credit", revenueBreakdown.credit],
+      ] as const)
+    : null;
 
   return (
     <section className="space-y-1.5 sm:space-y-2" aria-label={a11y}>
@@ -54,7 +101,7 @@ export function PulseHero({
           aria-hidden
         />
 
-        {/* Revenue — single dense row on phone */}
+        {/* Revenue — one dense line on a phone */}
         <div className="border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-2 sm:px-4 sm:py-3">
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0">
@@ -90,38 +137,28 @@ export function PulseHero({
             ) : null}
           </div>
 
-          {/* Tender split — phone: one thin strip; desk: tiles */}
-          {revenueBreakdown ? (
+          {/* Tender split — phone keeps one thin strip, desk gets tiles */}
+          {tenders ? (
             <>
               <div className="mt-2 flex gap-px overflow-hidden border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-[color-mix(in_srgb,#141414_8%,transparent)] sm:hidden">
-                {(
-                  [
-                    ["Cash", revenueBreakdown.cash],
-                    ["M-Pesa", revenueBreakdown.mpesa],
-                    ["Credit", revenueBreakdown.credit],
-                  ] as const
-                ).map(([label, value]) => (
+                {tenders.map(([label, value]) => (
                   <div
                     key={label}
-                    className="flex min-w-0 flex-1 items-baseline justify-center gap-1 bg-white px-1.5 py-1"
+                    className="flex min-w-0 flex-1 flex-col gap-0.5 bg-white px-2 py-1"
                   >
-                    <span className={cn("text-[9px] font-medium", HUB_MUTED)}>
+                    <span className={cn("truncate text-[9px] font-medium", HUB_MUTED)}>
                       {label}
                     </span>
-                    <span className="truncate text-[11px] font-semibold tabular-nums text-[#141414]">
+                    {/* Stacked, not inline: a third of a 320px phone cannot hold
+                        "M-Pesa" and a six-figure tender on one line. */}
+                    <span className="truncate text-[11px] font-semibold leading-none tabular-nums text-[#141414]">
                       {value}
                     </span>
                   </div>
                 ))}
               </div>
               <div className="mt-3 hidden grid-cols-3 gap-px overflow-hidden border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-[color-mix(in_srgb,#141414_8%,transparent)] sm:grid">
-                {(
-                  [
-                    ["Cash", revenueBreakdown.cash],
-                    ["M-Pesa", revenueBreakdown.mpesa],
-                    ["Credit", revenueBreakdown.credit],
-                  ] as const
-                ).map(([label, value]) => (
+                {tenders.map(([label, value]) => (
                   <div key={label} className="bg-white px-2.5 py-2 text-left">
                     <p className={cn("text-[10px] font-medium", HUB_MUTED)}>
                       {label}
@@ -143,21 +180,18 @@ export function PulseHero({
           ) : null}
         </div>
 
-        {/* Stats — phone: 3-up compact cells; desk: wider grid */}
         {metrics.length > 0 ? (
           <div
             className={cn(
-              "grid divide-x divide-y divide-[color-mix(in_srgb,#141414_8%,transparent)]",
-              "grid-cols-3",
-              metrics.length === 2 && "sm:grid-cols-2",
-              metrics.length === 3 && "sm:grid-cols-3",
-              metrics.length === 4 && "sm:grid-cols-4",
-              metrics.length >= 5 && "sm:grid-cols-3 lg:grid-cols-5",
+              "grid gap-px",
+              footer && "border-b border-[color-mix(in_srgb,#141414_8%,transparent)]",
+              CELL_DIVIDE,
+              grid.gridClass,
             )}
           >
             {metrics.map((metric) => {
               const body = (
-                <div className="flex h-full min-h-0 flex-col justify-center gap-0 px-2 py-1.5 transition-colors hover:bg-white sm:min-h-[3.75rem] sm:gap-0.5 sm:px-3 sm:py-2.5">
+                <div className="flex h-full min-h-0 flex-col justify-center gap-0.5 bg-white px-2 py-1.5 transition-colors hover:bg-[color-mix(in_srgb,#0f766e_3%,white)] sm:min-h-[3.75rem] sm:px-3 sm:py-2.5">
                   <p
                     className={cn(
                       "truncate text-[9px] font-medium uppercase tracking-[0.04em] sm:normal-case sm:tracking-normal sm:text-[10px]",
@@ -203,8 +237,33 @@ export function PulseHero({
                 </div>
               );
             })}
+
+            {/* Keep every row closed, whatever the metric count. */}
+            {Array.from({ length: grid.phoneFill }).map((_, index) => (
+              <span
+                key={`phone-fill-${index}`}
+                aria-hidden
+                className={cn("sm:hidden", CELL_FILL)}
+              />
+            ))}
+            {Array.from({ length: grid.smFill }).map((_, index) => (
+              <span
+                key={`sm-fill-${index}`}
+                aria-hidden
+                className={cn("hidden sm:block xl:hidden", CELL_FILL)}
+              />
+            ))}
+            {Array.from({ length: grid.xlFill }).map((_, index) => (
+              <span
+                key={`xl-fill-${index}`}
+                aria-hidden
+                className={cn("hidden xl:block", CELL_FILL)}
+              />
+            ))}
           </div>
         ) : null}
+
+        {footer ? <div className="bg-white">{footer}</div> : null}
       </div>
     </section>
   );

@@ -526,6 +526,7 @@ export function CashierReceiveStockModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side={phone ? "bottom" : "center"}
+        sheetDrag={phone}
         showCloseButton={!phone}
         className={cn(
           "flex flex-col gap-0 overflow-hidden p-0",
@@ -535,11 +536,6 @@ export function CashierReceiveStockModal({
         )}
         style={brandTheme}
       >
-        {phone ? (
-          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
-            <span className="h-1 w-10 rounded-full bg-border" />
-          </div>
-        ) : null}
         <div className="relative overflow-hidden border-b border-border/40 px-4 pb-3 pt-4">
           <div
             className="pointer-events-none absolute inset-0 opacity-90"

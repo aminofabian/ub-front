@@ -649,6 +649,7 @@ export function CashierSuppliersModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side={phone ? "bottom" : "center"}
+        sheetDrag={phone}
         showCloseButton={!phone}
         className={cn(
           "gap-0 overflow-hidden p-0",
@@ -666,9 +667,6 @@ export function CashierSuppliersModal({
       >
         {phone ? (
           <>
-            <div className="flex shrink-0 justify-center pt-2" aria-hidden>
-              <span className="h-1 w-10 rounded-full bg-[#D1D5DB]" />
-            </div>
             <DialogHeader className="space-y-1 px-5 pb-3 pt-3 text-left">
               <DialogTitle className="text-lg font-semibold tracking-tight">
                 {title}

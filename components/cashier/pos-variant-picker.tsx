@@ -162,6 +162,7 @@ export function PosVariantPicker({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side={phone ? "bottom" : "center"}
+        sheetDrag={phone}
         showCloseButton={!phone}
         overlayClassName="bg-[rgba(0,0,0,0.55)] supports-[backdrop-filter]:bg-[rgba(0,0,0,0.45)]"
         className={cn(
@@ -172,11 +173,6 @@ export function PosVariantPicker({
         )}
         style={brandTheme}
       >
-        {phone ? (
-          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
-            <span className="h-1 w-10 rounded-full bg-border" />
-          </div>
-        ) : null}
         <DialogHeader className="border-b border-border bg-muted px-4 pb-3 pt-4 text-left">
           <DialogTitle className="truncate text-base font-semibold">
             {title || (parent ? cashierItemPrimaryLabel(parent) : "")}

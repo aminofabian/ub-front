@@ -41,6 +41,7 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
     <section className="space-y-1.5">
       <HubSectionLabel
         title="Open work"
+        className="px-0.5"
         meta={
           visible.length > 1
             ? `${visible.length} boards`

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { BusinessHubNav } from "@/components/business-hub/business-hub-nav";
+import { HubMark } from "@/components/business-hub/hub-mark";
 import { OnlineStoreHeaderSwitch } from "@/components/business-hub/online-store-header-switch";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,43 @@ export const BUSINESS_HUB_VARS = {
   ["--hub-rule" as string]: "color-mix(in srgb, #141414 8%, transparent)",
 } as const;
 
+const HUB_RULE_8 = "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]";
+
+/** Who the board belongs to — the shop, then the one line that places it. */
+export type BusinessIdentity = {
+  name: string;
+  /** Shop host, currency, branch — whatever reads as the shop's location. */
+  meta?: string | null;
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
+};
+
+function HubIdentity({ identity }: { identity: BusinessIdentity }) {
+  const name = identity.name.trim() || "Your shop";
+  const meta = identity.meta?.trim() || "";
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-2.5">
+      <HubMark
+        name={name}
+        logoUrl={identity.logoUrl}
+        faviconUrl={identity.faviconUrl}
+        className="size-7"
+      />
+      <span className="min-w-0">
+        <span className="block truncate font-heading text-[15px] font-semibold leading-none tracking-[-0.02em] text-[var(--hub-ink)] sm:text-[16px]">
+          {name}
+        </span>
+        {meta ? (
+          <span className="mt-1 block truncate text-[10px] leading-none text-[color-mix(in_srgb,var(--hub-ink)_62%,transparent)]">
+            {meta}
+          </span>
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
 export function BusinessPageLayout({
   children,
   headerActions,
@@ -25,13 +63,15 @@ export function BusinessPageLayout({
   description,
   showNav = true,
   setupHome = false,
+  identity,
+  menu,
 }: {
   children: ReactNode;
   /** Trailing toolbar controls (live, refresh, settings, …). */
   headerActions?: ReactNode;
-  /** Leading toolbar controls (period toggle). Renders left of trailing actions. */
+  /** The board's view lens (period). Leads the control line beside the store switch. */
   toolbarLeading?: ReactNode;
-  /** Optional stage/lane picker rendered under the toolbar inside the sticky chrome. */
+  /** Optional stage/lane picker rendered under the controls inside the sticky chrome. */
   stage?: ReactNode;
   className?: string;
   /** @deprecated Eyebrows removed for a quieter header; ignored. */
@@ -41,11 +81,17 @@ export function BusinessPageLayout({
   showNav?: boolean;
   /** First-run: the home tab is the shop, not the sales pulse. */
   setupHome?: boolean;
+  /** Shop name + placement line shown at the head of the board. */
+  identity?: BusinessIdentity;
+  /** Phone-only affordance for the hub pages, e.g. the shop menu trigger. */
+  menu?: ReactNode;
 }) {
   const heading = title?.trim() || "";
   const blurb = description?.trim() || "";
   const showCopy = Boolean(heading || blurb);
-  const showToolbar = Boolean(toolbarLeading || headerActions);
+  // The view lens earns its own line on phones; on wider screens it shares the
+  // identity row with the store switch and actions.
+  const showControlLine = Boolean(toolbarLeading);
 
   return (
     <div
@@ -61,57 +107,66 @@ export function BusinessPageLayout({
       <div className="relative flex min-h-0 flex-1 flex-col gap-2 sm:gap-3">
         <div
           className={cn(
-            "sticky top-0 z-20 shrink-0 overflow-hidden border-b bg-white/92",
+            "sticky top-0 z-20 shrink-0 border-b bg-white/92",
             "border-[color-mix(in_srgb,var(--hub-ink)_10%,transparent)]",
             "backdrop-blur-xl supports-[backdrop-filter]:bg-white/80",
             // Edge-flush under shell gutters on phone
             "-mx-3 sm:mx-0 sm:border",
           )}
         >
-          {/* Phone: Settings/Pay/Config/Users live under More → Jump to */}
+          {/* Tablet up: the hub's own pages. Phones use the identity row's menu. */}
           {showNav ? (
-            <div className="hidden p-0.5 sm:block">
+            <div className={cn("hidden border-b px-1 pt-1 sm:block", HUB_RULE_8)}>
               <BusinessHubNav setupHome={setupHome} />
             </div>
           ) : null}
 
-          {showToolbar ? (
+          {/*
+            Phones break this into two lines — shop, then the view lens — while
+            wider screens hold it on one: shop · lens · store · actions. The
+            order utilities keep the view lens beside the shop on a desk and
+            give it its own line on a phone without rendering it twice.
+          */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-1.5 sm:flex-nowrap sm:gap-x-3 sm:px-2 sm:py-2">
+            {identity ? (
+              <HubIdentity identity={identity} />
+            ) : (
+              <span className="min-w-0 flex-1" />
+            )}
+
             <div
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 sm:px-2",
-                showNav &&
-                  "sm:border-t sm:border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
-                toolbarLeading ? "justify-between" : "justify-end",
+                "ml-auto flex shrink-0 items-center gap-1 sm:ml-0",
+                showControlLine ? "order-2 sm:order-3" : "order-3",
               )}
             >
-              {toolbarLeading ? (
-                <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                  {toolbarLeading}
-                </div>
-              ) : null}
-              <div className="flex shrink-0 items-center gap-1">
-                <OnlineStoreHeaderSwitch />
-                {headerActions}
-              </div>
+              {headerActions}
+              {menu}
             </div>
-          ) : (
+
             <div
               className={cn(
-                "flex justify-end px-3 py-2 sm:px-2 sm:py-1.5",
-                showNav &&
-                  "sm:border-t sm:border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
+                "flex min-w-0 items-center gap-1.5",
+                showControlLine
+                  ? "order-3 w-full sm:order-2 sm:w-auto sm:shrink-0"
+                  : "order-2 shrink-0",
               )}
             >
+              {toolbarLeading}
+              {showControlLine ? (
+                <span className="min-w-0 flex-1 sm:hidden" aria-hidden />
+              ) : null}
               <OnlineStoreHeaderSwitch />
             </div>
-          )}
+          </div>
 
           {stage ? (
             <div
               className={cn(
-                "px-3 py-2 sm:px-2 sm:py-1.5",
-                "border-t border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
+                "px-3 py-1.5 sm:px-2",
                 "bg-[color-mix(in_srgb,var(--hub-ink)_2.5%,white)]",
+                HUB_RULE_8,
+                "border-t",
               )}
             >
               {stage}

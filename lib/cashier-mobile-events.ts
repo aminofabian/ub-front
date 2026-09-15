@@ -29,6 +29,8 @@ export type CashierMobileToolId =
 export type CashierMobileTool = {
   id: CashierMobileToolId;
   label: string;
+  /** One plain-language line on what the tool does, for the till menu. */
+  hint?: string;
   section: "sale" | "stock" | "shift";
   tone?: "default" | "danger";
 };

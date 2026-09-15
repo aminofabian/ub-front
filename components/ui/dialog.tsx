@@ -6,6 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { SheetGrabber, useSheetDragDismiss } from "@/components/ui/sheet-drag";
 
 const Dialog = RadixDialog.Root;
 const DialogTrigger = RadixDialog.Trigger;
@@ -83,31 +84,80 @@ type DialogContentProps = React.ComponentPropsWithoutRef<typeof RadixDialog.Cont
     showCloseButton?: boolean;
     /** Merged into `DialogOverlay` (e.g. lighter scrim for right-edge sheets). */
     overlayClassName?: string;
+    /**
+     * Phone sheet behaviour for `side="bottom"`: renders a draggable grabber
+     * handle and lets the guest swipe the sheet away. Opt in from the phone
+     * branch of a drawer so edge/center panels are unaffected.
+     */
+    sheetDrag?: boolean;
   };
 
 const DialogContent = React.forwardRef<
   React.ComponentRef<typeof RadixDialog.Content>,
   DialogContentProps
->(({ className, children, side = "center", showCloseButton = true, overlayClassName, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay className={overlayClassName} />
-    <RadixDialog.Content
-      ref={ref}
-      className={cn(dialogContentVariants({ side }), className)}
-      {...props}
-    >
-      {children}
-      {showCloseButton ? (
-        <RadixDialog.Close
-          aria-label="Close"
-          className="absolute right-3 top-3 z-50 inline-flex size-8 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+>(
+  (
+    {
+      className,
+      children,
+      side = "center",
+      showCloseButton = true,
+      overlayClassName,
+      sheetDrag = false,
+      ...props
+    },
+    ref,
+  ) => {
+    const dragEnabled = side === "bottom" && sheetDrag;
+    const closeRef = React.useRef<HTMLButtonElement | null>(null);
+    const { panelRef, grabberProps, dragging } = useSheetDragDismiss({
+      enabled: dragEnabled,
+      onDismiss: () => closeRef.current?.click(),
+    });
+    const setPanelRef = React.useCallback(
+      (node: HTMLDivElement | null) => {
+        panelRef.current = node;
+        if (typeof ref === "function") ref(node);
+        else if (ref) ref.current = node;
+      },
+      [panelRef, ref],
+    );
+
+    return (
+      <DialogPortal>
+        <DialogOverlay className={overlayClassName} />
+        <RadixDialog.Content
+          ref={setPanelRef}
+          {...(dragEnabled ? { "data-phone-sheet": "" } : {})}
+          className={cn(dialogContentVariants({ side }), className)}
+          {...props}
         >
-          <X className="size-4" />
-        </RadixDialog.Close>
-      ) : null}
-    </RadixDialog.Content>
-  </DialogPortal>
-));
+          {dragEnabled ? (
+            <>
+              <SheetGrabber {...grabberProps} dragging={dragging} />
+              {/* Lets the drag gesture use Radix's own close path. */}
+              <RadixDialog.Close
+                ref={closeRef}
+                tabIndex={-1}
+                aria-hidden
+                className="hidden"
+              />
+            </>
+          ) : null}
+          {children}
+          {showCloseButton ? (
+            <RadixDialog.Close
+              aria-label="Close"
+              className="absolute right-3 top-3 z-50 inline-flex size-8 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            >
+              <X className="size-4" />
+            </RadixDialog.Close>
+          ) : null}
+        </RadixDialog.Content>
+      </DialogPortal>
+    );
+  },
+);
 DialogContent.displayName = "DialogContent";
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

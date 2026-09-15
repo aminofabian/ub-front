@@ -247,6 +247,7 @@ export function CashierCreditTabsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side={phone ? "bottom" : "center"}
+        sheetDrag={phone}
         showCloseButton={false}
         style={brandTheme}
         className={cn(
@@ -256,11 +257,6 @@ export function CashierCreditTabsModal({
             : "max-h-[min(92vh,720px)] w-[min(96vw,34rem)] sm:max-w-lg",
         )}
       >
-        {phone ? (
-          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
-            <span className="h-1 w-10 rounded-full bg-border" />
-          </div>
-        ) : null}
         <DialogHeader className="relative shrink-0 space-y-0 border-b border-border/50 bg-[radial-gradient(120%_80%_at_0%_0%,color-mix(in_srgb,var(--pos-primary)_18%,transparent),transparent_55%)] px-4 pb-3 pt-4 text-left">
           <button
             type="button"

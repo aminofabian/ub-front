@@ -77,11 +77,13 @@ export function FloorTapeDrawer({
         className={cn(
           HUB_SURFACE,
           HUB_BTN,
-          "flex w-full items-center gap-3 px-3.5 py-3 text-left xl:hidden",
+          "flex w-full min-h-12 items-center gap-3 px-3 py-2.5 text-left xl:hidden",
+          "transition-colors hover:bg-[color-mix(in_srgb,#141414_2.5%,white)]",
+          "active:bg-[color-mix(in_srgb,#0f766e_6%,white)]",
           justUpdated && "hub-scan-sweep ring-1 ring-[#0f766e]/35",
         )}
       >
-        <span className="flex size-9 shrink-0 items-center justify-center border border-[color-mix(in_srgb,#141414_12%,transparent)] bg-white text-[#0f766e]">
+        <span className="flex size-8 shrink-0 items-center justify-center border border-[color-mix(in_srgb,#141414_12%,transparent)] bg-white text-[#0f766e]">
           <Receipt className="size-4" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">

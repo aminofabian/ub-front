@@ -6,6 +6,7 @@ import { Dialog } from "radix-ui";
 
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
+import { SheetGrabber, useSheetDragDismiss } from "@/components/ui/sheet-drag";
 import { dashboardBrandingAccentStops } from "@/lib/brand-theme";
 import type { OnboardingTargetId } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
@@ -151,6 +152,10 @@ export function FormDrawer({
     return () => mq.removeEventListener("change", sync);
   }, []);
   const sheetBottom = !inColumn && !isFull && phone;
+  const { panelRef, grabberProps, dragging } = useSheetDragDismiss({
+    enabled: sheetBottom,
+    onDismiss: () => onOpenChange(false),
+  });
   const dash = useOptionalDashboard();
   const brandStops = React.useMemo(
     () => dashboardBrandingAccentStops(dash?.business?.branding ?? null),
@@ -195,6 +200,8 @@ export function FormDrawer({
           />
         ) : null}
         <Dialog.Content
+          ref={panelRef}
+          {...(sheetBottom ? { "data-phone-sheet": "" } : {})}
           {...(onboardingTarget
             ? { "data-onboarding-target": onboardingTarget }
             : {})}
@@ -298,18 +305,18 @@ export function FormDrawer({
             )}
           >
             {sheetBottom ? (
-              <div className="flex shrink-0 justify-center pt-2" aria-hidden>
-                <span className="h-1 w-10 rounded-full bg-border" />
-              </div>
+              <SheetGrabber {...grabberProps} dragging={dragging} />
             ) : null}
             <header
               className={cn(
                 "relative shrink-0 overflow-hidden border-b border-border",
                 compactHeader
                   ? "px-3 py-1.5"
-                  : isFull
-                    ? "px-3 py-2 sm:px-6 sm:py-5"
-                    : "px-5 py-4 sm:px-6 sm:py-5",
+                  : sheetBottom
+                    ? "px-4 pb-3 pt-1"
+                    : isFull
+                      ? "px-3 py-2 sm:px-6 sm:py-5"
+                      : "px-5 py-4 sm:px-6 sm:py-5",
                 sharp
                   ? "bg-muted/30 shadow-none"
                   : cn(
@@ -396,7 +403,10 @@ export function FormDrawer({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="size-7 shrink-0 rounded-none border border-border bg-background text-foreground/50 shadow-none hover:bg-muted/70 hover:text-foreground"
+                        className={cn(
+                          "size-7 shrink-0 rounded-none border border-border bg-background text-foreground/50 shadow-none hover:bg-muted/70 hover:text-foreground",
+                          sheetBottom && "size-10 rounded-full sm:size-7",
+                        )}
                         aria-label="Close panel"
                       >
                         <X className="size-3.5" strokeWidth={2} />
@@ -409,7 +419,7 @@ export function FormDrawer({
                       {icon ? (
                         <span
                           className={cn(
-                            "flex size-9 shrink-0 items-center justify-center ring-offset-1 ring-offset-background max-sm:hidden sm:size-12",
+                            "flex size-9 shrink-0 items-center justify-center ring-offset-1 ring-offset-background sm:size-12",
                             sharp ? "rounded-none" : "rounded-2xl",
                             brandStops
                               ? cn(
@@ -456,7 +466,12 @@ export function FormDrawer({
                             </span>
                           ) : null}
                         </div>
-                        <Dialog.Title className="font-heading text-sm font-semibold tracking-tight text-foreground sm:text-xl">
+                        <Dialog.Title
+                          className={cn(
+                            "font-heading font-semibold tracking-tight text-foreground",
+                            sheetBottom ? "text-lg" : "text-sm sm:text-xl",
+                          )}
+                        >
                           {title}
                         </Dialog.Title>
                         {description ? (
@@ -469,7 +484,7 @@ export function FormDrawer({
                           </Dialog.Description>
                         )}
                         {!description ? (
-                          <p className="text-[11px] text-muted-foreground/80">
+                          <p className="hidden text-[11px] text-muted-foreground/80 sm:block">
                             Press Esc to close
                           </p>
                         ) : null}
@@ -484,6 +499,7 @@ export function FormDrawer({
                           "relative z-50 shrink-0 rounded-lg border border-border bg-background text-muted-foreground",
                           "hover:bg-muted/70 hover:text-foreground",
                           "shadow-none transition-[border-color,background-color,color] duration-150",
+                          sheetBottom && "size-10 rounded-full sm:size-8",
                         )}
                         aria-label="Close panel"
                       >

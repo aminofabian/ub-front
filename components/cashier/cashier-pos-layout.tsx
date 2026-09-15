@@ -18,12 +18,15 @@ import {
   ClipboardList,
   Loader2,
   LogOut,
+  Minus,
   Package,
+  Plus,
   PlusCircle,
   PackagePlus,
   ScanLine,
   Search,
   ShoppingCart,
+  Trash2,
   Truck,
   Users,
   Wallet,
@@ -387,6 +390,9 @@ export type CashierPosLayoutProps = {
   >;
 };
 
+/** Only the leading movers carry a rank chip — a ranked list of 24 is noise. */
+const TOP_SELLER_RANK_LIMIT = 3;
+
 function tileShelfLine(
   online: boolean,
   prices: Record<string, string>,
@@ -497,6 +503,73 @@ function KioskTileStockCue({ tone }: { tone: "out" | "low" | null }) {
 }
 
 /**
+ * Phone shelf stepper — change a line's quantity without leaving the shelf, so
+ * a repeat sale ("three more bread") never needs the cart drawer. It overlays
+ * the tile media with its own pointer events; the tap-to-add frame underneath
+ * still works everywhere else on the tile.
+ */
+function ShelfQtyStepper({
+  qty,
+  label,
+  onStep,
+}: {
+  qty: number;
+  label: string;
+  onStep: (delta: number) => void;
+}) {
+  const removing = qty <= 1;
+  const stepClass =
+    "flex w-8 shrink-0 items-center justify-center transition-colors hover:bg-white/15 active:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70";
+  return (
+    <div
+      className={cn(
+        "pointer-events-auto absolute inset-x-0 bottom-0 z-[3] flex h-8 items-stretch",
+        "bg-[var(--pos-ink,#1c1915)] text-[#f7f3eb] dark:bg-neutral-950 dark:text-white",
+      )}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        className={stepClass}
+        aria-label={
+          removing ? `Remove ${label} from the sale` : `One less ${label}`
+        }
+        title={removing ? "Remove line" : "One less"}
+        onClick={(e) => {
+          e.stopPropagation();
+          onStep(-1);
+        }}
+      >
+        {removing ? (
+          <Trash2 className="size-3.5" aria-hidden />
+        ) : (
+          <Minus className="size-3.5" aria-hidden />
+        )}
+      </button>
+      <span
+        className="flex min-w-0 flex-1 items-center justify-center text-[11px] font-semibold leading-none tabular-nums"
+        aria-label={`${qty} in the sale`}
+      >
+        {qty}
+      </span>
+      <button
+        type="button"
+        className={stepClass}
+        aria-label={`One more ${label}`}
+        title="One more"
+        onClick={(e) => {
+          e.stopPropagation();
+          onStep(1);
+        }}
+      >
+        <Plus className="size-3.5" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+/**
  * Camera control only — the file input lives on CashierPosLayout so search
  * result remounts cannot kill an in-flight picker, and so we can blur the
  * focused search field before opening it (iOS/Safari swallows hidden
@@ -506,11 +579,14 @@ function KioskTileAddPhotoButton({
   itemName,
   compact,
   uploading,
+  raised = false,
   onOpenPicker,
 }: {
   itemName: string;
   compact: boolean;
   uploading: boolean;
+  /** Lift above a shelf stepper parked on the media's bottom edge. */
+  raised?: boolean;
   onOpenPicker: () => void;
 }) {
   return (
@@ -525,9 +601,13 @@ function KioskTileAddPhotoButton({
       onPointerDown={(e) => e.stopPropagation()}
       className={cn(
         "pointer-events-auto absolute z-[3] flex items-center justify-center rounded-md border border-white/50 bg-black/55 text-white shadow-sm backdrop-blur-[1px] transition-colors hover:bg-black/70 disabled:opacity-70",
-        compact
-          ? "right-0.5 bottom-0.5 size-6"
-          : "right-1 bottom-1 size-7 sm:size-8",
+        raised
+          ? compact
+            ? "right-0.5 bottom-9 size-6"
+            : "right-1 bottom-10 size-7 sm:size-8"
+          : compact
+            ? "right-0.5 bottom-0.5 size-6"
+            : "right-1 bottom-1 size-7 sm:size-8",
       )}
       aria-label={`Add photo for ${itemName}`}
       title="Add photo"
@@ -589,6 +669,7 @@ function KioskTileMedia({
   canAddPhoto = false,
   itemId,
   photoUploading = false,
+  qtyStepper,
   onOpenPhotoPicker,
 }: {
   title: string;
@@ -600,6 +681,8 @@ function KioskTileMedia({
   canAddPhoto?: boolean;
   itemId?: string;
   photoUploading?: boolean;
+  /** Replaces the in-cart qty badge: a stepper that edits this line in place. */
+  qtyStepper?: ReactNode;
   onOpenPhotoPicker?: () => void;
 }) {
   const showAddPhoto =
@@ -628,7 +711,7 @@ function KioskTileMedia({
           fill
           sizes={
             compact
-              ? "(max-width: 640px) 22vw, (max-width: 1024px) 12vw, 90px"
+              ? "(max-width: 640px) 32vw, (max-width: 1024px) 20vw, 12vw"
               : "(max-width: 640px) 34vw, (max-width: 1024px) 18vw, 140px"
           }
           className={cn(
@@ -654,13 +737,16 @@ function KioskTileMedia({
           />
         </span>
       )}
-      <KioskTileCartQty cartQty={cartQty} justAdded={justAdded} />
+      {qtyStepper ?? (
+        <KioskTileCartQty cartQty={cartQty} justAdded={justAdded} />
+      )}
       <KioskTileStockCue tone={stockTone} />
       {showAddPhoto && !thumb ? (
         <KioskTileAddPhotoButton
           itemName={title}
           compact={compact}
           uploading={photoUploading}
+          raised={qtyStepper != null}
           onOpenPicker={onOpenPhotoPicker!}
         />
       ) : null}
@@ -673,6 +759,7 @@ function KioskTileTitle({
   option,
   fullTitle,
   shelfLine,
+  rank = null,
   highValue = false,
   compact = false,
 }: {
@@ -680,6 +767,8 @@ function KioskTileTitle({
   option: string | null;
   fullTitle: string;
   shelfLine: string;
+  /** 1-based place in a ranked shelf; only the leaders are badged. */
+  rank?: number | null;
   highValue?: boolean;
   compact?: boolean;
 }) {
@@ -708,6 +797,17 @@ function KioskTileTitle({
         </p>
       ) : null}
       <div className="flex min-w-0 flex-wrap items-center gap-1">
+        {rank != null ? (
+          <span
+            className={cn(
+              "shrink-0 font-semibold leading-none tabular-nums tracking-[0.02em] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)] dark:text-muted-foreground",
+              compact ? "text-[9px]" : "text-[10px]",
+            )}
+            title={`Number ${rank} seller here`}
+          >
+            #{rank}
+          </span>
+        ) : null}
         <KioskTileShelfPrice shelfLine={shelfLine} compact={compact} />
         {highValue ? (
           <span
@@ -740,23 +840,27 @@ function TopSellerTile({
   product,
   onPick,
   shelfLine,
+  rank = null,
   highValue = false,
   cartQty,
   justAdded,
   compact = false,
   canAddPhoto = false,
   photoUploading = false,
+  qtyStepper,
   onOpenPhotoPicker,
 }: {
   product: TopProductRecord;
   onPick: () => void;
   shelfLine: string;
+  rank?: number | null;
   highValue?: boolean;
   cartQty: number;
   justAdded: boolean;
   compact?: boolean;
   canAddPhoto?: boolean;
   photoUploading?: boolean;
+  qtyStepper?: ReactNode;
   onOpenPhotoPicker?: (itemId: string, itemName: string) => void;
 }) {
   const itemLike: ItemSummaryRecord = {
@@ -802,6 +906,7 @@ function TopSellerTile({
         canAddPhoto={canAddPhoto}
         itemId={product.id}
         photoUploading={photoUploading}
+        qtyStepper={qtyStepper}
         onOpenPhotoPicker={
           onOpenPhotoPicker
             ? () => onOpenPhotoPicker(product.id, title)
@@ -821,6 +926,7 @@ function TopSellerTile({
           option={option}
           fullTitle={title}
           shelfLine={shelfLine}
+          rank={rank}
           highValue={highValue}
           compact={compact}
         />
@@ -1282,6 +1388,28 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     return map;
   }, [cart.lines]);
 
+  /**
+   * Item id → the one line a shelf tile may step. Airtime and weighed lines
+   * stay in the cart drawer, where their units (credits, kg) have a keypad, and
+   * an item split across two lines (its price was edited) keeps the plain qty
+   * badge so one tap never changes the wrong line.
+   */
+  const shelfLineByItem = useMemo(() => {
+    const map = new Map<string, CashierCartDrawerProps["lines"][number]>();
+    const ambiguous = new Set<string>();
+    for (const line of cart.lines) {
+      if (line.kind === "airtime") continue;
+      if (line.item?.isWeighed === true) continue;
+      if (map.has(line.itemId)) {
+        ambiguous.add(line.itemId);
+        continue;
+      }
+      map.set(line.itemId, line);
+    }
+    for (const itemId of ambiguous) map.delete(itemId);
+    return map;
+  }, [cart.lines]);
+
   const shelfPeerAmounts = useMemo(() => {
     const amounts: number[] = [];
     for (const line of Object.values(tileShelfPrices)) {
@@ -1534,29 +1662,47 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       tools.push({
         id: "credit-tabs",
         label: "Credit tabs",
+        hint: "Put this sale on a customer's tab",
         section: "sale",
       });
     }
     if (allowAirtime) {
-      tools.push({ id: "airtime", label: "Airtime", section: "sale" });
+      tools.push({
+        id: "airtime",
+        label: "Airtime",
+        hint: "Sell M-Pesa airtime or data bundles",
+        section: "sale",
+      });
     }
     if (allowOrderPad) {
-      tools.push({ id: "order-pad", label: "Order pad", section: "sale" });
+      tools.push({
+        id: "order-pad",
+        label: "Order pad",
+        hint: "Jot what to buy — the whole branch sees it",
+        section: "sale",
+      });
     }
     if (allowCreateProduct) {
       tools.push({
         id: "add-product",
         label: "Add product",
+        hint: "Create an item that is not in the catalog yet",
         section: "stock",
       });
     }
     if (allowManageSuppliers) {
-      tools.push({ id: "suppliers", label: "Suppliers", section: "stock" });
+      tools.push({
+        id: "suppliers",
+        label: "Suppliers",
+        hint: "Vendors, contacts, and till deliveries",
+        section: "stock",
+      });
     }
     if (allowSupplierOrder) {
       tools.push({
         id: "supplier-order",
         label: "Supplier order",
+        hint: "Raise a purchase order for stock",
         section: "stock",
       });
     }
@@ -1564,17 +1710,24 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       tools.push({
         id: "order-confirm",
         label: "Confirm order",
+        hint: "Receive goods from an open supplier order",
         section: "stock",
       });
     }
     if (posShiftLinks?.branchSelected) {
       if (posShiftLinks.canDrawout && posShiftLinks.hasOpenShift) {
-        tools.push({ id: "drawout", label: "Drawout", section: "shift" });
+        tools.push({
+          id: "drawout",
+          label: "Drawout",
+          hint: "Take cash out of the till",
+          section: "shift",
+        });
       }
       if (posShiftLinks.canOpenShift && !posShiftLinks.hasOpenShift) {
         tools.push({
           id: "open-shift",
           label: "Open shift",
+          hint: "Start a shift and enter the opening float",
           section: "shift",
         });
       }
@@ -1582,6 +1735,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         tools.push({
           id: "close-shift",
           label: "Close shift",
+          hint: "Count the drawer and close the shift",
           section: "shift",
           tone: "danger",
         });
@@ -1663,6 +1817,38 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
 
   const mobilePhone = !isLg && !embeddedInDashboard;
   const tileCompact = compactShelf && !mobilePhone;
+
+  /**
+   * Phone shelf: step a line's quantity straight from its tile. `updateLine`
+   * clamps at 1, so the last tap down removes the line instead.
+   */
+  const onShelfStep = (
+    line: CashierCartDrawerProps["lines"][number],
+    delta: number,
+  ) => {
+    const current = Number(line.quantity);
+    const base = Number.isFinite(current) && current > 0 ? current : 1;
+    const next = Math.round(base + delta);
+    if (next <= 0) {
+      cart.removeLine(line.key);
+      return;
+    }
+    cart.updateLine(line.key, "quantity", String(next));
+  };
+
+  const shelfStepper = (itemId: string, label: string): ReactNode => {
+    if (!mobilePhone) return null;
+    const line = shelfLineByItem.get(itemId);
+    if (!line) return null;
+    const current = Number(line.quantity);
+    return (
+      <ShelfQtyStepper
+        qty={Number.isFinite(current) && current > 0 ? Math.round(current) : 1}
+        label={label}
+        onStep={(delta) => onShelfStep(line, delta)}
+      />
+    );
+  };
 
   const cartDockBottomClass =
     "bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] sm:bottom-6";
@@ -2256,7 +2442,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               className={cn(
                 "grid gap-1.5 sm:gap-2",
                 mobilePhone
-                  ? "min-h-[min(68dvh,36rem)] grid-cols-2 gap-2.5 content-start"
+                  ? "min-h-[min(68dvh,36rem)] grid-cols-3 content-start gap-2 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5"
                   : compactShelf
                     ? "grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
                     : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
@@ -2278,7 +2464,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   showCategory={!sharedCategoryLabel}
                   cartQty={cartQtyByItem.get(item.id) ?? 0}
                   justAdded={justAddedId === item.id}
-                  compact={tileCompact}
+                  compact={tileCompact || mobilePhone}
                   canAddPhoto={allowAddPhoto}
                   photoUploading={photoUploadingId === item.id}
                   onOpenPhotoPicker={
@@ -2344,25 +2530,27 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               className={cn(
                 "grid gap-1.5 sm:gap-2",
                 mobilePhone
-                  ? "min-h-[min(68dvh,36rem)] grid-cols-2 gap-2.5 content-start"
+                  ? "grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5"
                   : compactShelf
                     ? "grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
                     : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 lg:grid-cols-5",
               )}
             >
-              {topProducts.map((p) => {
+              {topProducts.map((p, index) => {
                 const shelfLine = tileShelfLine(online, tileShelfPrices, p.id, uiCopy);
                 return (
                 <TopSellerTile
                   key={p.id}
                   product={p}
                   shelfLine={shelfLine}
+                  rank={index < TOP_SELLER_RANK_LIMIT ? index + 1 : null}
                   highValue={isHighValueTile(shelfLine)}
                   cartQty={cartQtyByItem.get(p.id) ?? 0}
                   justAdded={justAddedId === p.id}
-                  compact={tileCompact}
+                  compact={tileCompact || mobilePhone}
                   canAddPhoto={allowAddPhoto}
                   photoUploading={photoUploadingId === p.id}
+                  qtyStepper={shelfStepper(p.id, p.name)}
                   onOpenPhotoPicker={
                     allowAddPhoto ? openProductPhotoPicker : undefined
                   }

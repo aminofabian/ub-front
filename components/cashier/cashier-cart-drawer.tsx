@@ -13,11 +13,13 @@ import {
   UserRound,
   Store,
   Wallet,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -579,6 +581,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side={desktop ? "right" : "bottom"}
+        sheetDrag={!desktop}
         overlayClassName="bg-black/45 backdrop-blur-[3px] dark:bg-black/55"
         className={cn(
           "gap-0 border-border/40 p-0 shadow-2xl",
@@ -590,11 +593,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
         style={brandTheme}
         showCloseButton={desktop}
       >
-        {!desktop ? (
-          <div className="flex shrink-0 justify-center pt-2" aria-hidden>
-            <span className="h-1 w-10 rounded-full bg-border" />
-          </div>
-        ) : null}
         {saleComplete ? (
           <>
             <div className="shrink-0 border-b border-border/50 px-4 py-3 print:hidden">
@@ -633,8 +631,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   "linear-gradient(135deg, color-mix(in srgb, var(--pos-primary) 12%, transparent) 0%, transparent 65%)",
               }}
             >
-              <DialogHeader className="relative min-w-0 pr-7">
-                <div className="flex items-center justify-between gap-2">
+              <DialogHeader className={cn("relative min-w-0", desktop && "pr-7")}>
+                <div className="flex items-center gap-2">
                   <DialogTitle
                     className={
                       desktop
@@ -644,6 +642,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   >
                     Checkout
                   </DialogTitle>
+                  <span className="ml-auto flex shrink-0 items-center gap-0.5">
                   {lines.length > 0 ? (
                     <button
                       type="button"
@@ -662,6 +661,18 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       />
                     </button>
                   ) : null}
+                  {!desktop ? (
+                    <DialogClose asChild>
+                      <button
+                        type="button"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                        aria-label="Close checkout"
+                      >
+                        <X className="size-4" aria-hidden />
+                      </button>
+                    </DialogClose>
+                  ) : null}
+                  </span>
                 </div>
                 <DialogDescription className="sr-only">
                   Pay for this cart and complete the sale
@@ -691,7 +702,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 ) : null}
               </div>
               {linesOpen && lines.length > 0 ? (
-                <ul className="mt-2 max-h-28 space-y-0.5 overflow-y-auto rounded-xl border border-border/40 bg-background/80 p-1">
+                <ul className="mt-2 max-h-48 space-y-0.5 overflow-y-auto overscroll-contain rounded-xl border border-border/40 bg-background/80 p-1 sm:max-h-28">
                   {lines.map((line) => {
                     const subtotal = lineSubtotal(line);
                     const full = cashierItemPrimaryLabel(line.item);
@@ -1043,6 +1054,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               ) : null}
                               {registerNeedsOtp && phoneVerificationSent ? (
                                 <input
+                                  data-keep-text
                                   className={fieldClass(
                                     "h-10 w-full text-center text-lg font-semibold tracking-[0.3em]",
                                   )}
@@ -1134,6 +1146,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           type="text"
                           inputMode="decimal"
                           aria-label={`Amount received in ${currency}`}
+                          data-keep-text
                           className={fieldClass(
                             "h-10 min-w-0 flex-1 text-right text-xl font-bold tabular-nums",
                           )}
