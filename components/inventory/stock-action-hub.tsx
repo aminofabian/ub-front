@@ -1,10 +1,21 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronRight, ClipboardList } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronRight,
+  ClipboardList,
+  LayoutGrid,
+  X,
+} from "lucide-react";
 
 import type { StockHubAction } from "@/lib/inventory-access";
 import { APP_ROUTES } from "@/lib/config";
+import {
+  SheetGrabber,
+  useSheetDragDismiss,
+} from "@/components/ui/sheet-drag";
 import { cn } from "@/lib/utils";
 
 const ink = "text-[var(--order-ink,#15231f)]";
@@ -34,9 +45,9 @@ type StockActionHubProps = {
 };
 
 /**
- * Soft washes for the services board, cycled by position so the grid reads as
- * one family (M-Pesa-style tiles) without rainbow noise. Each tone pairs a
- * fill with its own readable ink for the icon.
+ * Soft washes for the services tiles, cycled by position so the board reads as
+ * one calm family rather than a rainbow. Each tone pairs a fill with its own
+ * readable ink for the icon.
  */
 const TILE_TONES = [
   {
@@ -65,7 +76,187 @@ const TILE_TONES = [
   },
 ] as const;
 
-/** Stock Home — the jobs board: hero banner, attention pair, services grid. */
+/** One services tile: label top-left, icon bottom-right, tinted fill. */
+function ServicesTile({
+  action,
+  toneIndex,
+}: {
+  action: StockHubAction;
+  toneIndex: number;
+}) {
+  const tone = TILE_TONES[toneIndex % TILE_TONES.length]!;
+  return (
+    <Link
+      href={action.href}
+      className={cn(
+        "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 p-2.5 transition-colors",
+        "active:brightness-[0.96]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+        tone.bg,
+      )}
+    >
+      <span
+        className={cn(
+          "text-[12.5px] font-semibold leading-[1.2] tracking-[-0.01em]",
+          ink,
+        )}
+      >
+        {action.label}
+      </span>
+      <action.icon
+        className={cn("size-7 self-end", tone.icon)}
+        strokeWidth={1.5}
+        aria-hidden
+      />
+    </Link>
+  );
+}
+
+/** The full board — always a closed rectangle, whatever the action count. */
+function ServicesGrid({ actions }: { actions: readonly StockHubAction[] }) {
+  const fill = (3 - (actions.length % 3)) % 3;
+  return (
+    <div className="grid grid-cols-3 gap-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+      {actions.map((action, index) => (
+        <ServicesTile key={action.id} action={action} toneIndex={index} />
+      ))}
+      {Array.from({ length: fill }).map((_, index) => (
+        <span
+          key={`fill-${index}`}
+          aria-hidden
+          className="min-h-[5.75rem] bg-white dark:bg-[#0c1512]"
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Phone bottom sheet carrying the full tools board. Behaves like the platform
+ * ones: slides up, dims the page, drags down by the grabber, and Escape closes.
+ */
+function StockToolsSheet({
+  open,
+  onClose,
+  actions,
+}: {
+  open: boolean;
+  onClose: () => void;
+  actions: readonly StockHubAction[];
+}) {
+  const [render, setRender] = useState(open);
+  const [leaving, setLeaving] = useState(false);
+  const { panelRef, grabberProps } = useSheetDragDismiss({
+    enabled: open && !leaving,
+    onDismiss: onClose,
+  });
+
+  useEffect(() => {
+    if (open) {
+      setRender(true);
+      return;
+    }
+    if (!render) return;
+    setLeaving(true);
+    const timer = window.setTimeout(() => {
+      setRender(false);
+      setLeaving(false);
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [open, render]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  if (!render) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 sm:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Inventory tools"
+    >
+      <button
+        type="button"
+        aria-label="Close inventory tools"
+        onClick={onClose}
+        className={cn(
+          "absolute inset-0 cursor-default bg-[#141414]/45",
+          leaving
+            ? "animate-out fade-out duration-200"
+            : "animate-in fade-in duration-250",
+        )}
+      />
+
+      <div
+        ref={panelRef}
+        className={cn(
+          "absolute inset-x-0 bottom-0 z-10 flex max-h-[86dvh] flex-col",
+          "rounded-t-[1.25rem] bg-white shadow-[0_-16px_48px_-20px_rgba(0,0,0,0.28)]",
+          "pb-[env(safe-area-inset-bottom)] dark:bg-[#0c1512]",
+          leaving
+            ? "animate-out fade-out slide-out-to-bottom duration-200 ease-in"
+            : "animate-in fade-in slide-in-from-bottom duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        )}
+      >
+        <SheetGrabber {...grabberProps} />
+
+        <header
+          className={cn(
+            "flex shrink-0 items-center gap-3 border-b px-4 pb-2.5",
+            hair,
+          )}
+        >
+          <div className="min-w-0 flex-1">
+            <h2
+              className={cn(
+                "font-heading text-[1.05rem] font-semibold leading-none tracking-[-0.02em]",
+                ink,
+              )}
+            >
+              Inventory tools
+            </h2>
+            <p className={cn("mt-1 text-[11px] leading-none", mute)}>
+              {actions.length} jobs · drag down to close
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className={cn(
+              "inline-flex size-9 shrink-0 items-center justify-center border bg-white transition-colors",
+              hair,
+              ink,
+              "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+            )}
+            aria-label="Close"
+          >
+            <X className="size-4" aria-hidden />
+          </button>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-2">
+          <ServicesGrid actions={actions} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Stock Home — hero banner, attention pair, and the tools behind a sheet. */
 export function StockActionHub({
   actions,
   branchName,
@@ -81,6 +272,9 @@ export function StockActionHub({
   const list = actions.filter((a) => a.rank === "list");
   const services = [...pair, ...list];
 
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
+
   const placeLine = [branchName, departmentLabel].filter(Boolean).join(" · ");
   const countPct =
     fullCountProgress && fullCountProgress.total > 0
@@ -93,10 +287,15 @@ export function StockActionHub({
       : 0;
   const outN = outCount ?? 0;
   const lowN = lowCount ?? 0;
-  const phoneFill = (3 - (services.length % 3)) % 3;
+
+  // Phone home keeps a single closed row of teasers; the full board lives in
+  // the sheet. The last cell is the sheet trigger, so one tap reaches anything.
+  const teaser = services.slice(0, 2);
+  const teaserCells = teaser.length + 1;
+  const teaserFill = (3 - (teaserCells % 3)) % 3;
 
   return (
-    <div className="flex flex-col gap-3.5 px-0.5 pb-8 pt-1 sm:gap-5 sm:px-0 sm:pb-6">
+    <div className="flex flex-col gap-3 px-0.5 pb-8 pt-1 sm:gap-5 sm:px-0 sm:pb-6">
       <header className="min-w-0">
         <h1
           className={cn(
@@ -165,7 +364,7 @@ export function StockActionHub({
         </Link>
       ) : null}
 
-      {/* Attention strip — first things to fix */}
+      {/* Attention strip — the two numbers that can cost money today */}
       <div className={cn("grid grid-cols-2 gap-2")}>
         <button
           type="button"
@@ -260,7 +459,7 @@ export function StockActionHub({
           href={hero.href}
           className={cn(
             "group relative flex min-h-[6.5rem] items-end overflow-hidden border px-4 py-4 text-white sm:min-h-[6.5rem] sm:px-5 sm:py-5",
-            "transition-[transform,opacity] duration-150 ease-out active:scale-[0.985]",
+            "transition-transform duration-150 ease-out active:scale-[0.985]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)] focus-visible:ring-offset-2",
           )}
           style={{
@@ -290,61 +489,73 @@ export function StockActionHub({
         </Link>
       ) : null}
 
-      {/* Phone: services board — label top-left, icon bottom-right, tinted
-          fills, hairline dividers, square corners. */}
+      {/* Phone: a teaser row plus the sheet. Tablet up: the ranked desk. */}
       {services.length > 0 ? (
-        <section aria-label="Inventory tools" className="sm:hidden">
-          <p
-            className={cn(
-              "px-0.5 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em]",
-              mute,
-            )}
-          >
-            Inventory tools
-          </p>
-          <div
-            className={cn(
-              "grid grid-cols-3 gap-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
-            )}
-          >
-            {services.map((action, index) => {
-              const tone = TILE_TONES[index % TILE_TONES.length]!;
-              return (
-                <Link
+        <>
+          <section aria-label="Inventory tools" className="sm:hidden">
+            <p
+              className={cn(
+                "px-0.5 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em]",
+                mute,
+              )}
+            >
+              Inventory tools
+            </p>
+            <div className="grid grid-cols-3 gap-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+              {teaser.map((action, index) => (
+                <ServicesTile
                   key={action.id}
-                  href={action.href}
+                  action={action}
+                  toneIndex={index}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => setSheetOpen(true)}
+                aria-haspopup="dialog"
+                className={cn(
+                  "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 bg-white p-2.5 text-left transition-colors",
+                  "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+                )}
+              >
+                <span
                   className={cn(
-                    "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 p-2.5 transition-colors",
-                    "active:brightness-[0.96]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
-                    tone.bg,
+                    "text-[12.5px] font-semibold leading-[1.2] tracking-[-0.01em]",
+                    ink,
                   )}
                 >
-                  <span
-                    className={cn(
-                      "text-[12.5px] font-semibold leading-[1.2] tracking-[-0.01em]",
-                      ink,
-                    )}
-                  >
-                    {action.label}
-                  </span>
-                  <action.icon
-                    className={cn("size-7 self-end", tone.icon)}
-                    strokeWidth={1.5}
+                  All tools
+                </span>
+                <span
+                  className={cn(
+                    "inline-flex size-7 items-center justify-center self-end border bg-white",
+                    hair,
+                  )}
+                >
+                  <LayoutGrid
+                    className="size-4 text-[var(--pos-primary,#0f766e)]"
+                    strokeWidth={1.75}
                     aria-hidden
                   />
-                </Link>
-              );
-            })}
-            {Array.from({ length: phoneFill }).map((_, index) => (
-              <span
-                key={`fill-${index}`}
-                aria-hidden
-                className="min-h-[5.75rem] bg-white dark:bg-[#0c1512]"
-              />
-            ))}
-          </div>
-        </section>
+                </span>
+              </button>
+              {Array.from({ length: teaserFill }).map((_, index) => (
+                <span
+                  key={`fill-${index}`}
+                  aria-hidden
+                  className="min-h-[5.75rem] bg-white dark:bg-[#0c1512]"
+                />
+              ))}
+            </div>
+          </section>
+
+          <StockToolsSheet
+            open={sheetOpen}
+            onClose={closeSheet}
+            actions={services}
+          />
+        </>
       ) : null}
 
       {/* Tablet and up: ranked desk — pair cards, then the row list. */}

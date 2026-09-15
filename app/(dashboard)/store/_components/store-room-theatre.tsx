@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   ArrowUpFromLine,
+  ChevronRight,
   Link2,
   Link2Off,
   Loader2,
@@ -14,6 +15,7 @@ import {
   Search,
   ShieldCheck,
   Trash2,
+  Warehouse,
 } from "lucide-react";
 
 import {
@@ -22,6 +24,7 @@ import {
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
+import { FormDrawer } from "@/components/form-drawer";
 import { APP_ROUTES } from "@/lib/config";
 import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import type { StoreItemRecord } from "@/lib/api";
@@ -136,6 +139,10 @@ export function StoreRoomTheatre({
   onDelete: (row: StoreItemRecord) => void;
   onAddCustom?: () => void;
 }) {
+  /** Mobile: the roster and item detail live in one drawer, opened from a summary card. */
+  const [mobileBrowseOpen, setMobileBrowseOpen] = useState(false);
+  const mobileDetailOpen = mobileShowDetail && !!selectedRow;
+
   const roster = (
     <div className="flex min-h-0 flex-col bg-white">
       <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-2.5 sm:px-3.5">
@@ -364,66 +371,119 @@ export function StoreRoomTheatre({
         <div className="min-h-0">{inspect}</div>
       </div>
 
-      {/* Mobile / tablet */}
+      {/* Mobile / tablet: drawer-first. The page stays light — a summary card
+          opens the roster in a bottom sheet (phones) / side drawer (tablets). */}
       <div className="flex min-h-0 flex-col gap-2 lg:hidden">
-        {!mobileShowDetail || !selectedRow ? (
-          <div
-            className={cn(
-              DASHBOARD_SECTION_SURFACE,
-              "max-h-[min(70dvh,36rem)] overflow-hidden p-0",
-            )}
+        <button
+          type="button"
+          onClick={() => setMobileBrowseOpen(true)}
+          className={cn(
+            DASHBOARD_SECTION_SURFACE,
+            "flex items-center gap-3 text-left transition-colors duration-150",
+            "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
+          )}
+        >
+          <span
+            className="flex size-10 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] text-[var(--pos-primary,#0f766e)]"
+            aria-hidden
           >
-            {roster}
-          </div>
-        ) : (
-          <div className="flex min-h-0 flex-col overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-            <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 py-2">
-              <button
-                type="button"
-                onClick={onClearSelection}
-                className="inline-flex size-9 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-muted-foreground"
-                aria-label="Back to list"
-              >
-                <ArrowLeft className="size-4" aria-hidden />
-              </button>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[14px] font-semibold tracking-tight">
-                  {selectedRow.name}
-                </p>
-                <p className="truncate font-mono text-[10px] text-muted-foreground">
+            <Warehouse className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
+              In the room
+            </span>
+            <span className="mt-0.5 block truncate text-[15px] font-semibold tracking-tight text-foreground">
+              {mobileDetailOpen && selectedRow
+                ? selectedRow.name
+                : `${filtered.length} item${filtered.length !== 1 ? "s" : ""}`}
+            </span>
+            <span className={cn(dashboardHintClass(), "block truncate")}>
+              {mobileDetailOpen
+                ? "Tap to browse the full list"
+                : "Tap to browse, search, and edit"}
+            </span>
+          </span>
+          {connected && unlinkedCount > 0 ? (
+            <span className="inline-flex shrink-0 items-center gap-1 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+              <Link2Off className="size-3" aria-hidden />
+              {unlinkedCount}
+            </span>
+          ) : null}
+          <ChevronRight
+            className="size-4 shrink-0 text-muted-foreground"
+            aria-hidden
+          />
+        </button>
+      </div>
+
+      <FormDrawer
+        open={mobileBrowseOpen}
+        onOpenChange={setMobileBrowseOpen}
+        contextLabel="Store room"
+        title={
+          mobileDetailOpen && selectedRow
+            ? selectedRow.name
+            : "Browse the room"
+        }
+        description={
+          mobileDetailOpen
+            ? "This item's movements and details."
+            : "Search, take out, and edit what is in the back."
+        }
+        headerDensity="compact"
+        bodyLayout="fill"
+      >
+        {/* Phones: bottom sheet is auto-height, so give the body a definite
+            height. sm–lg renders as a right drawer and stretches instead. */}
+        <div className="flex h-[min(72dvh,40rem)] min-h-0 flex-col overflow-hidden bg-white sm:h-auto sm:flex-1">
+          {mobileDetailOpen && selectedRow ? (
+            <>
+              <div className="flex shrink-0 items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 py-2">
+                <button
+                  type="button"
+                  onClick={onClearSelection}
+                  className="inline-flex size-9 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-muted-foreground transition-colors active:bg-muted"
+                  aria-label="Back to list"
+                >
+                  <ArrowLeft className="size-4" aria-hidden />
+                </button>
+                <p className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted-foreground">
                   {selectedRow.barcode || "No barcode"} ·{" "}
                   {formatQuantity(displayCount(selectedRow, connected))}
                 </p>
+                <div className="flex shrink-0 gap-px border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+                  {(
+                    [
+                      { id: "history" as const, label: "History" },
+                      { id: "edit" as const, label: "Edit" },
+                    ] as const
+                  ).map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => onMobileDetailTab(tab.id)}
+                      className={cn(
+                        "h-8 px-2.5 text-[12px] font-semibold transition-colors",
+                        mobileDetailTab === tab.id
+                          ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                          : "bg-white text-muted-foreground active:bg-muted",
+                      )}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-px border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] p-px">
-              {(
-                [
-                  { id: "history" as const, label: "History" },
-                  { id: "edit" as const, label: "Edit" },
-                ] as const
-              ).map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => onMobileDetailTab(tab.id)}
-                  className={cn(
-                    "h-9 bg-white text-[12px] font-semibold",
-                    mobileDetailTab === tab.id
-                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-            <div className="min-h-[min(55dvh,28rem)]">
-              {mobileDetailTab === "history" ? history : inspect}
-            </div>
-          </div>
-        )}
-      </div>
+              <div className="min-h-0 flex-1 overflow-hidden">
+                {mobileDetailTab === "history" ? history : inspect}
+              </div>
+            </>
+          ) : (
+            roster
+          )}
+        </div>
+      </FormDrawer>
     </div>
   );
 }
