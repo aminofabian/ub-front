@@ -782,12 +782,12 @@ function LoginPageContent() {
                   Couldn&apos;t sign {apexNoShopEmail} in from here
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  If you signed up recently, your account may still be waiting on
-                  email verification — open the verification link we sent you; it
-                  takes you straight to your shop. We can&apos;t look your shop up
-                  from this page, because unverified accounts aren&apos;t listed
-                  here. If you shop as a customer rather than work the till, use
-                  the customer sign-in instead.
+                  An unverified signup is routed straight to your shop&apos;s
+                  verification page, so reaching this message means no shop could
+                  be matched to that email. If you signed up recently, open the
+                  verification link we emailed you — it takes you straight to your
+                  shop. If you shop as a customer rather than work the till, use
+                  the customer sign-in instead. New here? Use the button above.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                   <Link

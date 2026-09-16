@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Banknote, Loader2 } from "lucide-react";
+import {
+  Banknote,
+  Download,
+  Loader2,
+  MessageSquare,
+  Sparkles,
+} from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
@@ -44,10 +50,7 @@ import {
 } from "./_components/pay-confirm-drawer";
 import { PayrollCalendarPanel } from "./_components/payroll-calendar-panel";
 import { PayrollMonthNav } from "./_components/payroll-month-nav";
-import { PayrollRunHeader } from "./_components/payroll-run-header";
-import { PayrollRunPanel } from "./_components/payroll-run-panel";
-import { PayrollRunSidebar } from "./_components/payroll-run-sidebar";
-import { PayrollStaffDrawer } from "./_components/payroll-staff-drawer";
+import { PayrollRunTheatre } from "./_components/payroll-run-theatre";
 import { PayrollTabs } from "./_components/payroll-tabs";
 import { PayslipDrawer } from "./_components/payslip-drawer";
 import { PayslipHistoryPanel } from "./_components/payslip-history-panel";
@@ -214,6 +217,11 @@ export default function PayrollPage() {
   function openStaffDrawer(row: PayrollRunRow) {
     setSelectedRow(row);
     setStaffDrawerOpen(true);
+  }
+
+  function clearStaffSelection() {
+    setSelectedRow(null);
+    setStaffDrawerOpen(false);
   }
 
   function openProfile(row: PayrollRunRow) {
@@ -434,12 +442,57 @@ export default function PayrollPage() {
   const branchOptions = branches.map((b) => ({ id: b.id, name: b.name }));
 
   return (
-    <div className={DASHBOARD_MAX_WIDE}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
       <DashboardPageHero
         icon={Banknote}
         title="Payroll"
         description="Run monthly salaries with clarity — review each person, apply statutory, recover advances, and close the period."
-      />
+      >
+        {tab === "run" && !loading && !error && rows.length > 0 ? (
+          <>
+            {canRunPayroll && summary.pendingCount > 0 ? (
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 gap-1.5 shadow-none"
+                disabled={payingAll || payingId != null}
+                onClick={() => void onPayAll()}
+              >
+                {payingAll ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <Sparkles className="size-3.5" aria-hidden />
+                )}
+                Pay all ({summary.pendingCount})
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 shadow-none"
+              onClick={() =>
+                exportPayrollRunCsv(rows, year, month, applyStatutory)
+              }
+            >
+              <Download className="size-3.5" aria-hidden />
+              Export
+            </Button>
+            {canManagePayroll ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5 shadow-none"
+                onClick={openSmsBulk}
+              >
+                <MessageSquare className="size-3.5" aria-hidden />
+                SMS
+              </Button>
+            ) : null}
+          </>
+        ) : null}
+      </DashboardPageHero>
 
       <PayrollTabs tab={tab} onTabChange={setTab} />
 
@@ -457,21 +510,6 @@ export default function PayrollPage() {
 
       {tab === "run" ? (
         <>
-          {!loading && !error ? (
-            <PayrollRunHeader
-              year={year}
-              month={month}
-              summary={summary}
-              applyStatutory={applyStatutory}
-              totalStatutory={summary.totalStatutory}
-              onMonthChange={(y, m) => {
-                setYear(y);
-                setMonth(m);
-              }}
-              onRefresh={() => void load()}
-            />
-          ) : null}
-
           {feedback ? (
             <DashboardFeedback kind={feedback.kind} text={feedback.text} />
           ) : null}
@@ -485,67 +523,79 @@ export default function PayrollPage() {
               onRetry={() => void load()}
             />
           ) : (
-            <div className="grid gap-6 lg:grid-cols-[minmax(15rem,17rem)_1fr]">
-              <PayrollRunSidebar
-                branches={branchOptions}
-                branchFilter={branchFilter}
-                onBranchFilterChange={setBranchFilter}
-                applyStatutory={applyStatutory}
-                onApplyStatutoryChange={setApplyStatutory}
-                postExpenseDefault={postExpenseDefault}
-                onPostExpenseChange={setPostExpenseDefault}
-                paymentMethod={payAllMethod}
-                onPaymentMethodChange={setPayAllMethod}
-                pendingCount={summary.pendingCount}
-                canRunPayroll={canRunPayroll}
-                canManagePayroll={canManagePayroll}
-                payingAll={payingAll}
-                payingId={payingId}
-                onPayAll={() => void onPayAll()}
-                onOpenSms={canManagePayroll ? openSmsBulk : undefined}
-                onExport={() =>
-                  exportPayrollRunCsv(rows, year, month, applyStatutory)
-                }
-                hasRows={rows.length > 0}
-                onAutomationSaved={(text) =>
-                  setFeedback({ kind: "success", text })
-                }
-              />
-
-              <div className="min-w-0 space-y-4">
-                {!loading && !error && summary.onLeaveCount > 0 ? (
-                  <AlertBanner tone="sky">
-                    {summary.onLeaveCount} on leave — excluded from pay all
-                    until status updates.
-                  </AlertBanner>
-                ) : null}
-
-                {!loading &&
-                !error &&
-                summary.missingSalary > 0 &&
-                canManagePayroll ? (
-                  <AlertBanner tone="amber">
-                    {summary.missingSalary} without salary — open their row to
-                    set pay before marking paid.
-                  </AlertBanner>
-                ) : null}
-
-                {!loading && !error && summary.pendingUnlock > 0 ? (
-                  <AlertBanner tone="sky">
-                    Salaries for {payrollMonthLabel(year, month)} unlock on the
-                    25th — {summary.pendingUnlock} staff show zero until then.
-                  </AlertBanner>
-                ) : null}
-
-                <PayrollRunPanel
-                  rows={rows}
-                  year={year}
-                  month={month}
-                  applyStatutoryPreview={applyStatutory}
-                  onSelectRow={openStaffDrawer}
-                />
-              </div>
-            </div>
+            <PayrollRunTheatre
+              year={year}
+              month={month}
+              onMonthChange={(y, m) => {
+                setYear(y);
+                setMonth(m);
+              }}
+              onRefresh={() => void load()}
+              rows={rows}
+              summary={summary}
+              selectedRow={selectedRow}
+              staffDrawerOpen={staffDrawerOpen}
+              onSelectRow={openStaffDrawer}
+              onClearSelection={clearStaffSelection}
+              onStaffDrawerOpenChange={setStaffDrawerOpen}
+              applyStatutory={applyStatutory}
+              onApplyStatutoryChange={setApplyStatutory}
+              postExpenseDefault={postExpenseDefault}
+              onPostExpenseChange={setPostExpenseDefault}
+              paymentMethod={payAllMethod}
+              onPaymentMethodChange={setPayAllMethod}
+              branches={branchOptions}
+              branchFilter={branchFilter}
+              onBranchFilterChange={setBranchFilter}
+              canRunPayroll={canRunPayroll}
+              canManagePayroll={canManagePayroll}
+              canReadStaffProfile={canReadStaffProfile}
+              payingAll={payingAll}
+              payingId={payingId}
+              onPayAll={() => void onPayAll()}
+              onAutomationSaved={(text) =>
+                setFeedback({ kind: "success", text })
+              }
+              alerts={
+                <>
+                  {summary.onLeaveCount > 0 ? (
+                    <AlertBanner tone="sky">
+                      {summary.onLeaveCount} on leave — excluded from pay all
+                      until status updates.
+                    </AlertBanner>
+                  ) : null}
+                  {summary.missingSalary > 0 && canManagePayroll ? (
+                    <AlertBanner tone="amber">
+                      {summary.missingSalary} without salary — open their row to
+                      set pay before marking paid.
+                    </AlertBanner>
+                  ) : null}
+                  {summary.pendingUnlock > 0 ? (
+                    <AlertBanner tone="sky">
+                      Salaries for {payrollMonthLabel(year, month)} unlock on
+                      the 25th — {summary.pendingUnlock} staff show zero until
+                      then.
+                    </AlertBanner>
+                  ) : null}
+                </>
+              }
+              onOpenProfile={() => selectedRow && openProfile(selectedRow)}
+              onEditSalary={() => selectedRow && openSalary(selectedRow)}
+              onLogAdvance={() =>
+                selectedRow && openAdvanceForRow(selectedRow)
+              }
+              onOpenLedger={() => selectedRow && openLedger(selectedRow)}
+              onOpenPay={() => selectedRow && openPayConfirm(selectedRow)}
+              onOpenPayslip={() => selectedRow && openPayslip(selectedRow)}
+              onSendSms={
+                canManagePayroll && selectedRow
+                  ? () => openSmsForRow(selectedRow)
+                  : undefined
+              }
+              onProrationSettingChanged={() => {
+                void load();
+              }}
+            />
           )}
         </>
       ) : tab === "calendar" ? (
@@ -586,33 +636,6 @@ export default function PayrollPage() {
           />
         </div>
       )}
-
-      <PayrollStaffDrawer
-        open={staffDrawerOpen}
-        onOpenChange={setStaffDrawerOpen}
-        row={selectedRow}
-        year={year}
-        month={month}
-        applyStatutoryPreview={applyStatutory}
-        canReadStaffProfile={canReadStaffProfile}
-        canManagePayroll={canManagePayroll}
-        canRunPayroll={canRunPayroll}
-        paying={payingId === selectedRow?.userId}
-        onOpenProfile={() => selectedRow && openProfile(selectedRow)}
-        onEditSalary={() => selectedRow && openSalary(selectedRow)}
-        onLogAdvance={() => selectedRow && openAdvanceForRow(selectedRow)}
-        onOpenLedger={() => selectedRow && openLedger(selectedRow)}
-        onOpenPay={() => selectedRow && openPayConfirm(selectedRow)}
-        onOpenPayslip={() => selectedRow && openPayslip(selectedRow)}
-        onSendSms={
-          canManagePayroll && selectedRow
-            ? () => openSmsForRow(selectedRow)
-            : undefined
-        }
-        onProrationSettingChanged={() => {
-          void load();
-        }}
-      />
 
       <StaffSmsDrawer
         open={smsOpen}

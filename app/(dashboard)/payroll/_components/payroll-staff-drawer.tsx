@@ -57,6 +57,9 @@ type Props = {
   onOpenPayslip: () => void;
   onSendSms?: () => void;
   onProrationSettingChanged?: () => void;
+  /** When set on large layouts, fill the theatre dossier column. */
+  dockRoot?: HTMLElement | null;
+  docked?: boolean;
 };
 
 export function PayrollStaffDrawer({
@@ -78,6 +81,8 @@ export function PayrollStaffDrawer({
   onOpenPayslip,
   onSendSms,
   onProrationSettingChanged,
+  dockRoot = null,
+  docked = false,
 }: Props) {
   const [advances, setAdvances] = useState<SalaryAdvanceRecord[]>([]);
   const [loadingAdvances, setLoadingAdvances] = useState(false);
@@ -160,7 +165,12 @@ export function PayrollStaffDrawer({
       }
       contextLabel={`Payroll · ${payrollMonthLabel(year, month)}`}
       icon={<Banknote className="size-5 text-primary" aria-hidden />}
-      width="wide"
+      width={docked ? "default" : "wide"}
+      headerDensity={docked ? "compact" : "default"}
+      bodyLayout={docked ? "fill" : "scroll"}
+      appearance={docked ? "sharp" : "default"}
+      docked={docked}
+      dockRoot={dockRoot}
       footer={
         <div className="flex flex-wrap justify-between gap-2">
           <div className="flex flex-wrap gap-2">
@@ -215,7 +225,18 @@ export function PayrollStaffDrawer({
       }
     >
       <div
-        className={cn("mb-5 overflow-hidden rounded-none border", statusTone)}
+        className={cn(
+          docked
+            ? "flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain"
+            : null,
+        )}
+      >
+      <div
+        className={cn(
+          "overflow-hidden rounded-none border",
+          docked ? "mb-3" : "mb-5",
+          statusTone,
+        )}
       >
         <div className="flex items-center gap-3 px-4 py-3">
           <StaffAvatar name={row.displayName} paid={row.alreadyPaid} />
@@ -568,6 +589,7 @@ export function PayrollStaffDrawer({
           </p>
         ) : null}
       </FormDrawerFields>
+      </div>
     </FormDrawer>
   );
 }
