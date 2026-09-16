@@ -105,6 +105,7 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.purchasingIntelligence]: BarChart3,
   [APP_ROUTES.purchasingApAging]: Receipt,
   [APP_ROUTES.purchasingRecordPayment]: CreditCard,
+  [APP_ROUTES.store]: Warehouse,
   [APP_ROUTES.inventorySupplyBatches]: Warehouse,
   [APP_ROUTES.inventoryStock]: Warehouse,
   [APP_ROUTES.inventoryRestock]: Package,

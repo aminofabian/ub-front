@@ -55,6 +55,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.analytics]: "Trends",
     [APP_ROUTES.analyticsActivity]: "Who did what",
     [APP_ROUTES.analyticsCustomers]: "Shoppers",
+    [APP_ROUTES.store]: "Store",
     [APP_ROUTES.business]: "Business",
     [APP_ROUTES.businessBranding]: "Branding",
     [APP_ROUTES.businessThemes]: "Themes",

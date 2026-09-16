@@ -8,6 +8,7 @@ import {
   Settings,
   SlidersHorizontal,
   Users,
+  Warehouse,
   type LucideIcon,
 } from "lucide-react";
 
@@ -56,6 +57,14 @@ export const BUSINESS_HUB_TABS: BusinessHubTab[] = [
       p.startsWith(APP_ROUTES.businessThemes) ||
       p.startsWith(APP_ROUTES.businessMobile) ||
       p.startsWith(APP_ROUTES.businessDomains),
+  },
+  {
+    href: APP_ROUTES.store,
+    label: "Store",
+    hint: "Store room",
+    icon: Warehouse,
+    match: (p) =>
+      p === APP_ROUTES.store || p.startsWith(`${APP_ROUTES.store}/`),
   },
   {
     href: APP_ROUTES.users,

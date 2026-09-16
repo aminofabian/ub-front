@@ -50,8 +50,14 @@ import {
 import { resolveCurrencyCode } from "@/lib/money";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
+import { setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
 import { cn } from "@/lib/utils";
 
+import {
+  parseStoreCount,
+  storeItemCount,
+  storeItemCountInput,
+} from "../_lib/store-item-count";
 import { StoreRoomConnectionChooser } from "./store-room-connection-chooser";
 import { StoreRoomMovementDrawer } from "./store-room-movement-drawer";
 import { StoreRoomProductPicker } from "./store-room-product-picker";
@@ -87,26 +93,17 @@ const EMPTY_DRAFT: Draft = {
   buyingPrice: "",
 };
 
-function draftFromRow(row: StoreItemRecord): Draft {
+function draftFromRow(row: StoreItemRecord, connected: boolean): Draft {
   return {
     name: row.name,
     barcode: row.barcode ?? "",
-    quantity: String(row.quantity),
+    quantity: storeItemCountInput(storeItemCount(row, connected)),
     expiryDate: row.expiryDate ?? "",
     buyingPrice:
       row.buyingPrice == null || row.buyingPrice === ""
         ? ""
         : String(row.buyingPrice),
   };
-}
-
-function parseQuantity(raw: string): number | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  if (!/^\d+$/.test(trimmed)) return null;
-  const n = Number(trimmed);
-  if (!Number.isFinite(n) || n < 0) return null;
-  return n;
 }
 
 function parseBuyingPrice(raw: string): number | null | undefined {
@@ -126,7 +123,7 @@ function formatQuantity(value: number | string | null): string {
 }
 
 export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
-  const { business, me } = useDashboard();
+  const { business, me, branchId } = useDashboard();
   const currency = resolveCurrencyCode(business?.currency);
   // Approving a big take-out is where stock actually moves, so it needs the same key.
   const canDecide = hasPermission(me?.permissions, Permission.InventoryWrite);
@@ -285,9 +282,17 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setFeedback(null);
     try {
       const nextSettings = await updateStoreRoomSettings({ mode: next });
+      const nextRows = await fetchStoreItems();
       setSettings(nextSettings);
-      setRows(await fetchStoreItems());
+      setRows(nextRows);
       setOnlyUnlinked(false);
+      const focused = selectedId
+        ? nextRows.find((r) => r.id === selectedId)
+        : null;
+      if (focused) {
+        setEditRow(focused);
+        setEditDraft(draftFromRow(focused, next === "connected"));
+      }
       if (next === "connected") {
         setFeedback({
           kind: "success",
@@ -337,7 +342,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   const selectRow = (row: StoreItemRecord) => {
     setSelectedId(row.id);
     setEditRow(row);
-    setEditDraft(draftFromRow(row));
+    setEditDraft(draftFromRow(row, connected));
     setMobileShowDetail(true);
     setMobileDetailTab("history");
     setFeedback(null);
@@ -362,8 +367,8 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     const first = filtered[0]!;
     setSelectedId(first.id);
     setEditRow(first);
-    setEditDraft(draftFromRow(first));
-  }, [filtered, selectedId]);
+    setEditDraft(draftFromRow(first, connected));
+  }, [connected, filtered, selectedId]);
 
   const openMovement = (
     row: StoreItemRecord | null,
@@ -565,7 +570,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
 
   const handleCreate = async () => {
     const name = createDraft.name.trim();
-    const quantity = parseQuantity(createDraft.quantity);
+    const quantity = parseStoreCount(createDraft.quantity, true);
     const buyingPrice = parseBuyingPrice(createDraft.buyingPrice);
     if (!name) {
       setFeedback({ kind: "error", text: "Name is required." });
@@ -616,11 +621,9 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     if (!editRow) return;
     const name = editDraft.name.trim();
     const buyingPrice = parseBuyingPrice(editDraft.buyingPrice);
-    // A linked count belongs to inventory, so don't send a manual one for it.
-    const countLocked = connected && editRow.itemId != null;
-    const quantity = countLocked
-      ? editRow.quantity
-      : parseQuantity(editDraft.quantity);
+    const latest = rows.find((r) => r.id === editRow.id) ?? editRow;
+    const followsInventory = connected && latest.itemId != null;
+    const quantity = parseStoreCount(editDraft.quantity, !followsInventory);
     if (!name) {
       setFeedback({ kind: "error", text: "Name is required." });
       return;
@@ -628,7 +631,9 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     if (quantity == null) {
       setFeedback({
         kind: "error",
-        text: "Quantity must be a whole number ≥ 0.",
+        text: followsInventory
+          ? "Quantity must be a number ≥ 0."
+          : "Quantity must be a whole number ≥ 0.",
       });
       return;
     }
@@ -639,13 +644,40 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
       });
       return;
     }
+    const currentLive = storeItemCount(latest, connected);
+    const qtyChanged = Math.abs(quantity - currentLive) >= 0.0001;
+    if (followsInventory && qtyChanged) {
+      if (!canDecide) {
+        setFeedback({
+          kind: "error",
+          text: "You need inventory write access to change this count.",
+        });
+        return;
+      }
+      if (!branchId.trim()) {
+        setFeedback({
+          kind: "error",
+          text: "Select a branch to update on-hand.",
+        });
+        return;
+      }
+    }
     setEditBusy(true);
     setFeedback(null);
     try {
+      if (followsInventory && qtyChanged && latest.itemId) {
+        await setCatalogOnHandStock({
+          itemId: latest.itemId,
+          branchId,
+          targetDisplay: quantity,
+          unitCost: buyingPrice ?? 0,
+          notes: "Stock set from store room",
+        });
+      }
       const updated = await updateStoreItem(editRow.id, {
         name,
         barcode: editDraft.barcode.trim(),
-        quantity: countLocked ? undefined : quantity,
+        quantity: followsInventory ? undefined : quantity,
         expiryDate: editDraft.expiryDate.trim() || null,
         clearExpiryDate: !editDraft.expiryDate.trim(),
         buyingPrice: buyingPrice ?? undefined,
@@ -657,7 +689,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
           .sort((a, b) => a.name.localeCompare(b.name)),
       );
       setEditRow(updated);
-      setEditDraft(draftFromRow(updated));
+      setEditDraft(draftFromRow(updated, connected));
       setSelectedId(updated.id);
       setFeedback({ kind: "success", text: `Updated “${updated.name}”.` });
     } catch (err) {

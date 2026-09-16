@@ -30,6 +30,7 @@ import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import type { StoreItemRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import { storeItemCount } from "../_lib/store-item-count";
 import { StoreRoomActivity } from "./store-room-activity";
 
 function LiveDot() {
@@ -46,14 +47,6 @@ function formatQuantity(value: number | string | null): string {
   const n = typeof value === "string" ? Number(value) : value;
   if (!Number.isFinite(n)) return String(value);
   return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
-}
-
-function displayCount(row: StoreItemRecord, connected: boolean): number {
-  if (connected && row.itemId != null) {
-    const n = Number(row.inventoryQuantity ?? 0);
-    return Number.isFinite(n) ? n : 0;
-  }
-  return row.quantity;
 }
 
 export type StoreInspectDraft = {
@@ -218,7 +211,7 @@ export function StoreRoomTheatre({
         ) : (
           <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
             {filtered.map((row) => {
-              const count = displayCount(row, connected);
+              const count = storeItemCount(row, connected);
               const active = selectedId === row.id;
               const fill = Math.min(100, Math.round((count / maxCount) * 100));
               return (
@@ -450,7 +443,7 @@ export function StoreRoomTheatre({
                 </button>
                 <p className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted-foreground">
                   {selectedRow.barcode || "No barcode"} ·{" "}
-                  {formatQuantity(displayCount(selectedRow, connected))}
+                  {formatQuantity(storeItemCount(selectedRow, connected))}
                 </p>
                 <div className="flex shrink-0 gap-px border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
                   {(
@@ -517,9 +510,9 @@ function InspectPanel({
   onUnlink: () => void;
   onDelete: () => void;
 }) {
-  const count = displayCount(row, connected);
+  const count = storeItemCount(row, connected);
   const fill = Math.min(100, Math.round((count / maxCount) * 100));
-  const quantityLocked = connected && row.itemId != null;
+  const followsInventory = connected && row.itemId != null;
   const set = (key: keyof StoreInspectDraft) => (value: string) =>
     onDraftChange({ ...draft, [key]: value });
 
@@ -613,19 +606,18 @@ function InspectPanel({
             Number
           </span>
           <input
-            className={dashboardInputClass(quantityLocked)}
+            className={dashboardInputClass()}
             type="number"
             min={0}
-            step={1}
-            inputMode="numeric"
+            step={followsInventory ? "any" : 1}
+            inputMode={followsInventory ? "decimal" : "numeric"}
             value={draft.quantity}
             onChange={(e) => set("quantity")(e.target.value)}
-            disabled={quantityLocked}
             required
           />
-          {quantityLocked ? (
+          {followsInventory ? (
             <span className={cn(dashboardHintClass(), "block")}>
-              Count comes from inventory while linked.
+              Saving number updates inventory on-hand.
             </span>
           ) : null}
         </label>
