@@ -202,7 +202,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Mobile: which pane of the detail stack is showing. */
   const [mobileDetailTab, setMobileDetailTab] = useState<"history" | "edit">(
-    "history",
+    "edit",
   );
   /** Mobile: roster vs focused item. */
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
@@ -406,29 +406,25 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setFeedback(null);
   };
 
+  const clearSelection = () => {
+    setSelectedId(null);
+    setEditRow(null);
+    setMobileShowDetail(false);
+    setMobileDetailTab("edit");
+  };
+
   const selectRow = (row: StoreItemRecord) => {
-    // Clicking the active row again returns to the room pulse.
+    // Desktop: clicking the active row again returns to the room pulse.
     if (selectedId === row.id) {
-      setSelectedId(null);
-      setEditRow(null);
-      setMobileShowDetail(false);
-      setMobileDetailTab("history");
-      setFeedback(null);
+      clearSelection();
       return;
     }
     setSelectedId(row.id);
     setEditRow(row);
     setEditDraft(draftFromRow(row, connected));
     setMobileShowDetail(true);
-    setMobileDetailTab("history");
+    setMobileDetailTab("edit");
     setFeedback(null);
-  };
-
-  const clearSelection = () => {
-    setSelectedId(null);
-    setEditRow(null);
-    setMobileShowDetail(false);
-    setMobileDetailTab("history");
   };
 
   // Drop a selection that left the filtered list; don't auto-pick the first
@@ -436,9 +432,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   useEffect(() => {
     if (!selectedId) return;
     if (filtered.some((row) => row.id === selectedId)) return;
-    setSelectedId(null);
-    setEditRow(null);
-    setMobileShowDetail(false);
+    clearSelection();
   }, [filtered, selectedId]);
 
   const openMovement = (

@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
-  ArrowLeft,
   ArrowUpFromLine,
   ChevronRight,
   Link2,
@@ -14,11 +13,9 @@ import {
   Search,
   ShieldCheck,
   Trash2,
-  Warehouse,
 } from "lucide-react";
 
 import {
-  DASHBOARD_SECTION_SURFACE,
   dashboardHintClass,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
@@ -150,13 +147,24 @@ export function StoreRoomTheatre({
   onDelete: (row: StoreItemRecord) => void;
   onAddCustom?: () => void;
 }) {
-  /** Mobile: the roster and item detail live in one drawer, opened from a summary card. */
-  const [mobileBrowseOpen, setMobileBrowseOpen] = useState(false);
   const mobileDetailOpen = mobileShowDetail && !!selectedRow;
 
-  const roster = (
-    <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3">
+  const roster = (opts?: { fill?: boolean; denser?: boolean }) => {
+    const fill = opts?.fill ?? false;
+    const denser = opts?.denser ?? false;
+    return (
+    <div
+      className={cn(
+        "flex min-h-0 flex-col bg-white",
+        fill && "h-full",
+      )}
+    >
+      <div
+        className={cn(
+          "shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-2.5 py-2 sm:px-3",
+          !fill && "sticky top-0 z-[1]",
+        )}
+      >
         <div className="flex items-center gap-1.5">
           <label className="relative min-w-0 flex-1">
             <Search
@@ -164,10 +172,10 @@ export function StoreRoomTheatre({
               aria-hidden
             />
             <input
-              className={cn(dashboardInputClass(), "h-8 pl-7 text-[12px]")}
+              className={cn(dashboardInputClass(), "h-9 pl-7 text-[13px] lg:h-8 lg:text-[12px]")}
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
-              placeholder="Search…"
+              placeholder="Search name or barcode…"
               aria-label="Search store items"
             />
           </label>
@@ -178,7 +186,7 @@ export function StoreRoomTheatre({
               aria-pressed={onlyUnlinked}
               title="Show unlinked only"
               className={cn(
-                "inline-flex h-8 shrink-0 items-center gap-1 border px-1.5 text-[11px] font-semibold",
+                "inline-flex h-9 shrink-0 items-center gap-1 border px-2 text-[11px] font-semibold lg:h-8 lg:px-1.5",
                 onlyUnlinked
                   ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--pos-primary,#0f766e)]"
                   : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
@@ -196,9 +204,14 @@ export function StoreRoomTheatre({
         </p>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div
+        className={cn(
+          "min-h-0",
+          fill ? "flex-1 overflow-y-auto overscroll-contain" : null,
+        )}
+      >
         {rowsTotal === 0 ? (
-          <div className="px-3 py-8 text-center">
+          <div className="px-3 py-10 text-center">
             {connected ? (
               <PackageSearch
                 className="mx-auto size-7 text-muted-foreground/60"
@@ -210,17 +223,17 @@ export function StoreRoomTheatre({
                 aria-hidden
               />
             )}
-            <p className="mt-2 text-[13px] font-semibold text-foreground">
+            <p className="mt-2 text-[14px] font-semibold text-foreground">
               {connected ? "Nothing to follow yet" : "No store items yet"}
             </p>
-            <p className={cn(dashboardHintClass(), "mx-auto mt-1 max-w-[15rem]")}>
+            <p className={cn(dashboardHintClass(), "mx-auto mt-1 max-w-[16rem]")}>
               {connected
                 ? "Add products to watch — counts follow stock."
                 : "Add what’s in the back without touching inventory."}
             </p>
           </div>
         ) : filtered.length === 0 ? (
-          <p className={cn(dashboardHintClass(), "px-3 py-6 text-center")}>
+          <p className={cn(dashboardHintClass(), "px-3 py-8 text-center")}>
             {onlyUnlinked
               ? "Everything on the list is linked."
               : `No items match “${query.trim()}”.`}
@@ -230,27 +243,35 @@ export function StoreRoomTheatre({
             {filtered.map((row) => {
               const count = storeItemCount(row, connected);
               const active = selectedId === row.id;
-              const fill = Math.min(100, Math.round((count / maxCount) * 100));
+              const fillBar = Math.min(100, Math.round((count / maxCount) * 100));
               return (
                 <li key={row.id}>
                   <button
                     type="button"
                     onClick={() => onSelect(row)}
                     className={cn(
-                      "relative flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors sm:px-3",
+                      "relative flex w-full items-center gap-2.5 text-left transition-colors",
+                      denser
+                        ? "px-2.5 py-2 sm:px-3"
+                        : "min-h-[3.25rem] px-3 py-3",
                       active
                         ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]"
-                        : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
+                        : "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
                     )}
                   >
                     {active ? (
                       <span
-                        className="absolute inset-y-0 left-0 w-px bg-[var(--pos-primary,#0f766e)]"
+                        className="absolute inset-y-0 left-0 w-0.5 bg-[var(--pos-primary,#0f766e)]"
                         aria-hidden
                       />
                     ) : null}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12.5px] font-semibold tracking-[-0.015em] text-foreground">
+                      <p
+                        className={cn(
+                          "truncate font-semibold tracking-[-0.015em] text-foreground",
+                          denser ? "text-[12.5px]" : "text-[14px]",
+                        )}
+                      >
                         {row.name}
                       </p>
                       <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
@@ -269,15 +290,26 @@ export function StoreRoomTheatre({
                               ? "bg-[var(--pos-primary,#0f766e)]"
                               : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_30%,transparent)]",
                           )}
-                          style={{ width: `${fill}%` }}
+                          style={{ width: `${fillBar}%` }}
                         />
                       </div>
                     </div>
-                    <span className="inline-flex shrink-0 items-center gap-1 tabular-nums">
+                    <span className="inline-flex shrink-0 items-center gap-1.5 tabular-nums">
                       {connected && row.itemId ? <LiveDot /> : null}
-                      <span className="text-[14px] font-semibold leading-none tracking-[-0.03em] text-foreground">
+                      <span
+                        className={cn(
+                          "font-semibold leading-none tracking-[-0.03em] text-foreground",
+                          denser ? "text-[14px]" : "text-[16px]",
+                        )}
+                      >
                         {formatQuantity(count)}
                       </span>
+                      {!denser ? (
+                        <ChevronRight
+                          className="size-4 text-muted-foreground/70"
+                          aria-hidden
+                        />
+                      ) : null}
                     </span>
                   </button>
                 </li>
@@ -292,7 +324,7 @@ export function StoreRoomTheatre({
           type="button"
           className={cn(
             dashboardHintClass(),
-            "shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 text-left underline-offset-4 hover:text-foreground hover:underline sm:px-3",
+            "shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-2.5 text-left underline-offset-4 hover:text-foreground hover:underline sm:px-3",
           )}
           onClick={onAddCustom}
         >
@@ -300,7 +332,8 @@ export function StoreRoomTheatre({
         </button>
       ) : null}
     </div>
-  );
+    );
+  };
 
   const history = selectedRow ? (
     <StoreRoomActivity
@@ -390,7 +423,7 @@ export function StoreRoomTheatre({
         )}
       >
         <div className="flex h-full min-h-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
-          {roster}
+          {roster({ fill: true, denser: true })}
         </div>
         <div className="flex h-full min-h-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]">
           {history}
@@ -398,118 +431,62 @@ export function StoreRoomTheatre({
         <div className="flex h-full min-h-0 flex-col bg-white">{inspect}</div>
       </div>
 
-      {/* Mobile / tablet: drawer-first. The page stays light — a summary card
-          opens the roster in a bottom sheet (phones) / side drawer (tablets). */}
+      {/* Mobile: full item list on the page; tap opens an edit sheet. */}
       <div className="flex min-h-0 flex-col gap-2 lg:hidden">
-        <button
-          type="button"
-          onClick={() => setMobileBrowseOpen(true)}
-          className={cn(
-            DASHBOARD_SECTION_SURFACE,
-            "flex items-center gap-3 text-left transition-colors duration-150",
-            "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
-          )}
-        >
-          <span
-            className="flex size-10 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] text-[var(--pos-primary,#0f766e)]"
-            aria-hidden
-          >
-            <Warehouse className="size-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
-              In the room
-            </span>
-            <span className="mt-0.5 block truncate text-[15px] font-semibold tracking-tight text-foreground">
-              {mobileDetailOpen && selectedRow
-                ? selectedRow.name
-                : `${filtered.length} item${filtered.length !== 1 ? "s" : ""}`}
-            </span>
-            <span className={cn(dashboardHintClass(), "block truncate")}>
-              {mobileDetailOpen
-                ? "Tap to browse the full list"
-                : "Tap to browse, search, and edit"}
-            </span>
-          </span>
-          {connected && unlinkedCount > 0 ? (
-            <span className="inline-flex shrink-0 items-center gap-1 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-              <Link2Off className="size-3" aria-hidden />
-              {unlinkedCount}
-            </span>
-          ) : null}
-          <ChevronRight
-            className="size-4 shrink-0 text-muted-foreground"
-            aria-hidden
-          />
-        </button>
+        <div className="overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+          {roster({ fill: false, denser: false })}
+        </div>
       </div>
 
       <FormDrawer
-        open={mobileBrowseOpen}
-        onOpenChange={setMobileBrowseOpen}
-        contextLabel="Store room"
-        title={
-          mobileDetailOpen && selectedRow
-            ? selectedRow.name
-            : "Browse the room"
-        }
+        open={mobileDetailOpen}
+        onOpenChange={(open) => {
+          if (!open) onClearSelection();
+        }}
+        contextLabel="Store item"
+        title={selectedRow?.name ?? "Item"}
         description={
-          mobileDetailOpen
-            ? "This item's movements and details."
-            : "Search, take out, and edit what is in the back."
+          selectedRow
+            ? [
+                selectedRow.barcode || null,
+                `${formatQuantity(storeItemCount(selectedRow, connected))} on hand`,
+              ]
+                .filter(Boolean)
+                .join(" · ")
+            : undefined
         }
         headerDensity="compact"
         bodyLayout="fill"
       >
-        {/* Phones: bottom sheet is auto-height, so give the body a definite
-            height. sm–lg renders as a right drawer and stretches instead. */}
-        <div className="flex h-[min(72dvh,40rem)] min-h-0 flex-col overflow-hidden bg-white sm:h-auto sm:flex-1">
-          {mobileDetailOpen && selectedRow ? (
-            <>
-              <div className="flex shrink-0 items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 py-2">
+        {selectedRow ? (
+          <div className="flex h-[min(82dvh,42rem)] min-h-0 flex-col overflow-hidden bg-white sm:h-auto sm:min-h-0 sm:flex-1">
+            <div className="flex shrink-0 gap-px border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 py-2">
+              {(
+                [
+                  { id: "edit" as const, label: "Edit" },
+                  { id: "history" as const, label: "History" },
+                ] as const
+              ).map((tab) => (
                 <button
+                  key={tab.id}
                   type="button"
-                  onClick={onClearSelection}
-                  className="inline-flex size-9 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-muted-foreground transition-colors active:bg-muted"
-                  aria-label="Back to list"
+                  onClick={() => onMobileDetailTab(tab.id)}
+                  className={cn(
+                    "h-9 flex-1 text-[13px] font-semibold transition-colors",
+                    mobileDetailTab === tab.id
+                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                      : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] text-muted-foreground active:bg-muted",
+                  )}
                 >
-                  <ArrowLeft className="size-4" aria-hidden />
+                  {tab.label}
                 </button>
-                <p className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted-foreground">
-                  {selectedRow.barcode || "No barcode"} ·{" "}
-                  {formatQuantity(storeItemCount(selectedRow, connected))}
-                </p>
-                <div className="flex shrink-0 gap-px border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
-                  {(
-                    [
-                      { id: "history" as const, label: "History" },
-                      { id: "edit" as const, label: "Edit" },
-                    ] as const
-                  ).map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => onMobileDetailTab(tab.id)}
-                      className={cn(
-                        "h-8 px-2.5 text-[12px] font-semibold transition-colors",
-                        mobileDetailTab === tab.id
-                          ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                          : "bg-white text-muted-foreground active:bg-muted",
-                      )}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="min-h-0 flex-1 overflow-hidden">
-                {mobileDetailTab === "history" ? history : inspect}
-              </div>
-            </>
-          ) : (
-            roster
-          )}
-        </div>
+              ))}
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              {mobileDetailTab === "history" ? history : inspect}
+            </div>
+          </div>
+        ) : null}
       </FormDrawer>
     </div>
   );
