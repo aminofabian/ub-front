@@ -223,13 +223,14 @@ export function SupplierPayoutSettingsSection({
               <span
                 className={cn(
                   "mt-0.5 flex size-10 shrink-0 items-center justify-center",
-                  statusTone === "off" && "bg-muted text-muted-foreground",
+                  statusTone === "off" &&
+                    "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground",
                   statusTone === "warn" &&
-                    "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100",
+                    "border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_8%,white)] text-[#9a2e16]",
                   statusTone === "ready" &&
-                    "bg-teal-100 text-teal-900 dark:bg-teal-950 dark:text-teal-100",
+                    "border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]",
                   statusTone === "auto" &&
-                    "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100",
+                    "border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white",
                 )}
               >
                 <Truck className="size-5" aria-hidden />
@@ -260,7 +261,10 @@ export function SupplierPayoutSettingsSection({
                 <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-foreground">
                   {settings?.autoPayEnabled ? (
                     <>
-                      <CheckCircle2 className="size-3.5 text-emerald-600" aria-hidden />
+                      <CheckCircle2
+                        className="size-3.5 text-[var(--pos-primary,#0f766e)]"
+                        aria-hidden
+                      />
                       Scheduled
                     </>
                   ) : (
@@ -371,16 +375,16 @@ export function SupplierPayoutSettingsSection({
                   ))}
                 </select>
                 {activeSelectable.length === 0 ? (
-                  <p className="text-xs text-amber-800 dark:text-amber-200">
+                  <p className="text-xs text-[#9a2e16]">
                     No eligible gateway is active. Activate KopoKopo under Accept
                     payments first.
                   </p>
                 ) : settings?.gatewayReady && configId ? (
-                  <p className="text-xs text-emerald-800 dark:text-emerald-200">
+                  <p className="text-xs text-[var(--pos-primary,#0f766e)]">
                     Ready: {settings.gatewayLabel} ({settings.gatewayType})
                   </p>
                 ) : (
-                  <p className="text-xs text-amber-800 dark:text-amber-200">
+                  <p className="text-xs text-[#9a2e16]">
                     Select an active gateway and save.
                   </p>
                 )}

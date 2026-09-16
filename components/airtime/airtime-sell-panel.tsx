@@ -17,11 +17,12 @@ import { cn } from "@/lib/utils";
 
 /** Networks Instalipa reaches, in the order Kenyan tills see them. */
 const NETWORK_TINT: Record<string, string> = {
-  SAFARICOM: "bg-emerald-600/12 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-300",
-  AIRTEL: "bg-rose-600/12 text-rose-800 dark:bg-rose-400/15 dark:text-rose-300",
-  TELKOM: "bg-sky-600/12 text-sky-800 dark:bg-sky-400/15 dark:text-sky-300",
-  EQUITEL: "bg-indigo-600/12 text-indigo-800 dark:bg-indigo-400/15 dark:text-indigo-300",
-  JTL: "bg-amber-600/12 text-amber-900 dark:bg-amber-400/15 dark:text-amber-200",
+  SAFARICOM:
+    "border border-[#00A651]/40 bg-transparent text-[#007A3D]",
+  AIRTEL: "border border-[#ED1C24]/40 bg-transparent text-[#C4181E]",
+  TELKOM: "border border-[#0054A6]/40 bg-transparent text-[#0054A6]",
+  EQUITEL: "border border-[#FDB913]/50 bg-transparent text-[#8A6A00]",
+  JTL: "border border-[#FF6600]/40 bg-transparent text-[#CC5200]",
 };
 
 function money(n: number | null | undefined, currency = "KES") {
@@ -232,28 +233,31 @@ export function AirtimeSellPanel({
       <div className={cn("space-y-3", className)}>
         <div
           className={cn(
-            "flex items-start gap-3 rounded-lg border px-3 py-3",
+            "flex items-start gap-3 rounded-none border px-3 py-3",
             settled
-              ? "border-emerald-300/60 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30"
+              ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]"
               : failed
-                ? "border-rose-300/60 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30"
-                : "border-amber-300/60 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30",
+                ? "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)]"
+                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
           )}
         >
           <span className="mt-0.5 shrink-0">
             {settled ? (
-              <Check className="size-5 text-emerald-700 dark:text-emerald-300" aria-hidden />
+              <Check className="size-5 text-[var(--pos-primary,#0f766e)]" aria-hidden />
             ) : failed ? (
-              <X className="size-5 text-rose-700 dark:text-rose-300" aria-hidden />
+              <X className="size-5 text-[#9a2e16]" aria-hidden />
             ) : (
               <Loader2
-                className="size-5 animate-spin text-amber-700 dark:text-amber-300"
+                className="size-5 animate-spin text-muted-foreground"
                 aria-hidden
               />
             )}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="font-heading text-base font-semibold tracking-tight">
+            <p
+              className="text-base font-semibold tracking-[-0.02em]"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
               {money(order.amount, order.currency || currency)} to {order.phoneNumber}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -264,7 +268,7 @@ export function AirtimeSellPanel({
                   : "Sent to the telco. This usually lands in a few seconds."}
             </p>
             {settled && order.commission > 0 ? (
-              <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+              <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[var(--pos-primary,#0f766e)]">
                 <Sparkles className="size-3.5" aria-hidden />
                 You earned {money(order.commission, order.currency || currency)}
               </p>
@@ -280,7 +284,11 @@ export function AirtimeSellPanel({
           <p className="text-xs text-muted-foreground">
             Wallet now {money(availability?.walletBalance, currency)}
           </p>
-          <Button type="button" onClick={startNext}>
+          <Button
+            type="button"
+            className="h-8 rounded-none bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
+            onClick={startNext}
+          >
             Sell another
           </Button>
         </div>
@@ -290,34 +298,40 @@ export function AirtimeSellPanel({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/25 px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] px-3 py-2">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Wallet available
           </p>
-          <p className="font-heading text-lg font-semibold tabular-nums leading-tight">
+          <p
+            className="text-lg font-semibold tabular-nums leading-tight tracking-[-0.03em]"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
             {money(availability?.walletBalance, currency)}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Earned today
           </p>
-          <p className="font-heading text-lg font-semibold tabular-nums leading-tight text-emerald-700 dark:text-emerald-400">
+          <p
+            className="text-lg font-semibold tabular-nums leading-tight tracking-[-0.03em] text-[var(--pos-primary,#0f766e)]"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
             {money(availability?.commissionEarnedToday, currency)}
           </p>
         </div>
       </div>
 
       {blocked ? (
-        <p className="flex items-start gap-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+        <p className="flex items-start gap-2 rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-sm text-[#9a2e16]">
           <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
           {availability?.reason || "Airtime is not available right now."}
         </p>
       ) : null}
 
       <label className="block space-y-1.5">
-        <span className="text-xs font-medium text-muted-foreground">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           Customer phone
         </span>
         <div className="relative">
@@ -325,7 +339,8 @@ export function AirtimeSellPanel({
             type="tel"
             inputMode="tel"
             autoFocus
-            className="w-full rounded-lg border border-input bg-background px-3 py-2.5 pr-24 font-heading text-lg tabular-nums tracking-wide shadow-sm"
+            className="w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 pr-24 text-lg tabular-nums tracking-wide outline-none focus-visible:border-[var(--pos-primary,#0f766e)]"
+            style={{ fontFamily: "var(--font-heading)" }}
             placeholder="07…"
             value={phone}
             disabled={blocked}
@@ -337,8 +352,9 @@ export function AirtimeSellPanel({
           {quote?.network ? (
             <span
               className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]",
-                NETWORK_TINT[quote.network] ?? "bg-muted text-muted-foreground",
+                "absolute right-2 top-1/2 -translate-y-1/2 rounded-none px-2 py-1 text-[10px] font-semibold tracking-[-0.02em]",
+                NETWORK_TINT[quote.network] ??
+                  "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
               )}
             >
               {quote.network}
@@ -348,8 +364,10 @@ export function AirtimeSellPanel({
       </label>
 
       <div className="space-y-1.5">
-        <span className="text-xs font-medium text-muted-foreground">Amount</span>
-        <div className="flex flex-wrap gap-1.5">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+          Amount
+        </span>
+        <div className="flex flex-wrap gap-1">
           {quickAmounts.map((a) => (
             <button
               key={a}
@@ -357,10 +375,10 @@ export function AirtimeSellPanel({
               disabled={blocked}
               onClick={() => setAmount(String(a))}
               className={cn(
-                "rounded-md border px-2.5 py-1.5 text-sm font-semibold tabular-nums transition-colors disabled:opacity-40",
+                "rounded-none px-2.5 py-1.5 text-sm font-semibold tabular-nums transition-colors disabled:opacity-40",
                 Number(amount) === a
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border/70 text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                  ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                  : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
               )}
             >
               {whole(a)}
@@ -373,7 +391,8 @@ export function AirtimeSellPanel({
           inputMode="numeric"
           min={availability?.minAmount ?? 1}
           step="1"
-          className="w-full rounded-lg border border-input bg-background px-3 py-2.5 font-heading text-lg tabular-nums shadow-sm"
+          className="w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 text-lg tabular-nums outline-none focus-visible:border-[var(--pos-primary,#0f766e)]"
+          style={{ fontFamily: "var(--font-heading)" }}
           placeholder={`${whole(availability?.minAmount)}–${whole(availability?.maxSellableNow)}`}
           value={amount}
           disabled={blocked}
@@ -389,23 +408,23 @@ export function AirtimeSellPanel({
       </div>
 
       {overSellable ? (
-        <p className="text-xs font-medium text-rose-800 dark:text-rose-300">
+        <p className="text-xs font-medium text-[#9a2e16]">
           You can send up to {money(availability?.maxSellableNow, currency)} right now —
           top up the wallet to go higher.
         </p>
       ) : quote && !quote.sellable && quote.reason ? (
-        <p className="text-xs font-medium text-rose-800 dark:text-rose-300">
+        <p className="text-xs font-medium text-[#9a2e16]">
           {quote.reason}
         </p>
       ) : quote?.sellable ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-300/50 bg-emerald-50/70 px-3 py-2 text-xs dark:border-emerald-800/70 dark:bg-emerald-950/25">
-          <span className="text-emerald-900 dark:text-emerald-200">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_30%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-3 py-2 text-xs">
+          <span className="text-[var(--order-ink,#15231f)]">
             Wallet after this sale{" "}
             <strong className="font-semibold tabular-nums">
               {money(quote.walletBalanceAfter, currency)}
             </strong>
           </span>
-          <span className="inline-flex items-center gap-1 font-semibold text-emerald-800 dark:text-emerald-300">
+          <span className="inline-flex items-center gap-1 font-semibold text-[var(--pos-primary,#0f766e)]">
             <Sparkles className="size-3.5" aria-hidden />+
             {money(quote.commission, currency)} for you
           </span>
@@ -413,10 +432,15 @@ export function AirtimeSellPanel({
       ) : null}
 
       {error ? (
-        <p className="text-xs font-medium text-rose-800 dark:text-rose-300">{error}</p>
+        <p className="text-xs font-medium text-[#9a2e16]">{error}</p>
       ) : null}
 
-      <Button type="button" className="w-full" disabled={!canSell} onClick={() => void submit()}>
+      <Button
+        type="button"
+        className="h-10 w-full rounded-none bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
+        disabled={!canSell}
+        onClick={() => void submit()}
+      >
         {selling ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden />

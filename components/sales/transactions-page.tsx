@@ -16,12 +16,7 @@ import {
 } from "lucide-react";
 
 import {
-  DASHBOARD_MAX,
-  DASHBOARD_TABLE_HEAD,
-  DASHBOARD_TABLE_SURFACE,
   DashboardFeedback,
-  dashboardInputClass,
-  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { AdjustSalePaymentDialog } from "@/components/sales/adjust-sale-payment-dialog";

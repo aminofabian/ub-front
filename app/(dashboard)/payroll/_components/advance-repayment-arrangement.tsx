@@ -88,7 +88,7 @@ export function AdvanceRepaymentArrangement({
               className={cn(
                 "rounded-none border px-2.5 py-1 text-xs font-medium tabular-nums transition-colors",
                 mode === "percent_of_original" && parsedPercent === pct
-                  ? "border-primary/50 bg-primary/10 text-primary"
+                  ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
                   : "border-border/60 bg-muted/25 hover:bg-muted/45",
               )}
               onClick={() => selectPercent(pct)}
@@ -128,7 +128,7 @@ export function AdvanceRepaymentArrangement({
             className={cn(
               "rounded-none border px-3 py-2 text-left transition-colors",
               mode === option.value
-                ? "border-primary/40 bg-primary/5"
+                ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]"
                 : "border-border/60 bg-muted/20 hover:bg-muted/35",
             )}
             onClick={() => {
@@ -169,7 +169,7 @@ export function AdvanceRepaymentArrangement({
       ) : null}
 
       {preview.summary ? (
-        <div className="rounded-none border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs">
+        <div className="rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)] px-3 py-2.5 text-xs">
           <p className="font-medium text-foreground">{preview.summary}</p>
           {preview.perPay > 0 ? (
             <p className="mt-1 text-muted-foreground">

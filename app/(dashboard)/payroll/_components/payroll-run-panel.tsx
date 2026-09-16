@@ -135,18 +135,20 @@ export function PayrollRunPanel({
             key={id}
             type="button"
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-none border px-3 py-1 text-xs font-medium transition-colors",
               statusFilter === id
-                ? "border-primary/40 bg-primary/10 text-primary"
-                : "border-border/60 bg-background text-muted-foreground hover:text-foreground",
+                ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white text-muted-foreground hover:text-foreground",
             )}
             onClick={() => setStatusFilter(id)}
           >
             {label}
             <span
               className={cn(
-                "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
-                statusFilter === id ? "bg-primary/15" : "bg-muted",
+                "rounded-none px-1.5 py-0.5 text-[10px] tabular-nums",
+                statusFilter === id
+                  ? "bg-white/20 text-white"
+                  : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
               )}
             >
               {count}
@@ -249,14 +251,12 @@ export function PayrollRunPanel({
                           ) : null}
                         </span>
                       ) : (
-                        <span className="text-amber-700 dark:text-amber-300">
-                          —
-                        </span>
+                        <span className="text-[#9a2e16]">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
                       {(row.arrearPeriods?.length ?? 0) > 0 ? (
-                        <span className="font-medium text-violet-800 dark:text-violet-200">
+                        <span className="font-medium text-[#9a2e16]">
                           +{formatPayrollMoney(row.arrearsBaseTotal)}
                           <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
                             {row
@@ -272,7 +272,7 @@ export function PayrollRunPanel({
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
                       {row.advancesOutstanding > 0 ? (
-                        <span className="font-medium text-amber-800 dark:text-amber-200">
+                        <span className="font-medium text-[#9a2e16]">
                           −
                           {formatPayrollMoney(
                             row.advancesScheduledThisRun > 0
@@ -329,10 +329,10 @@ function StaffAvatar({ name, paid }: { name: string; paid: boolean }) {
   return (
     <span
       className={cn(
-        "flex size-9 items-center justify-center rounded-full text-xs font-semibold ring-1",
+        "flex size-9 items-center justify-center rounded-none border text-xs font-semibold tracking-[-0.02em]",
         paid
-          ? "bg-emerald-500/15 text-emerald-800 ring-emerald-500/20 dark:text-emerald-200"
-          : "bg-primary/10 text-primary ring-primary/15",
+          ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]"
+          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white text-[var(--order-ink,#15231f)]",
       )}
     >
       {initials || "?"}
@@ -374,7 +374,7 @@ function StaffRunCard({
         <p className="mt-1 text-sm font-semibold tabular-nums">
           Net {formatPayrollMoney(row.suggestedNet)}
           {(row.arrearPeriods?.length ?? 0) > 0 ? (
-            <span className="ml-2 text-xs font-normal text-violet-800 dark:text-violet-200">
+            <span className="ml-2 text-xs font-normal text-[#9a2e16]">
               incl. arrears
             </span>
           ) : null}
@@ -409,7 +409,7 @@ function RunStatusBadge({
   if (row.alreadyPaid) {
     return (
       <span className="inline-flex flex-col items-end gap-0.5 sm:items-start">
-        <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800 dark:text-emerald-300">
+        <span className="rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-white">
           Paid
         </span>
         {row.paidAt ? (
@@ -422,7 +422,7 @@ function RunStatusBadge({
   }
   if (row.employmentStatus === "on_leave") {
     return (
-      <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-medium text-sky-900 dark:text-sky-200">
+      <span className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
         On leave
       </span>
     );
@@ -430,7 +430,7 @@ function RunStatusBadge({
   if (row.salaryReleased === false) {
     // New starter before the 25th — zero by design, not a missing salary.
     return (
-      <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-medium text-sky-900 dark:text-sky-200">
+      <span className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
         Unlocks 25th
       </span>
     );
@@ -440,14 +440,14 @@ function RunStatusBadge({
     payrollIsJoinMonth(row.startDate, year, month)
   ) {
     return (
-      <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-medium text-sky-900 dark:text-sky-200">
+      <span className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
         Starts next payroll
       </span>
     );
   }
   if (row.baseSalary <= 0) {
     return (
-      <span className="rounded-full bg-red-500/15 px-2.5 py-0.5 text-[11px] font-medium text-red-900 dark:text-red-200">
+      <span className="rounded-none border border-[#9a2e16]/35 bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[#9a2e16]">
         No salary
       </span>
     );
@@ -456,7 +456,7 @@ function RunStatusBadge({
     const summary = payrollArrearSummary(row);
     return (
       <span className="inline-flex flex-col items-end gap-0.5 sm:items-start">
-        <span className="rounded-full bg-violet-500/15 px-2.5 py-0.5 text-[11px] font-medium text-violet-950 dark:text-violet-100">
+        <span className="rounded-none border border-[#9a2e16]/35 bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[#9a2e16]">
           Arrears
         </span>
         {summary ? (
@@ -469,13 +469,13 @@ function RunStatusBadge({
   }
   if (row.advancesOutstanding > 0) {
     return (
-      <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-medium text-amber-950 dark:text-amber-100">
+      <span className="rounded-none border border-[#9a2e16]/35 bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[#9a2e16]">
         Advance due
       </span>
     );
   }
   return (
-    <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+    <span className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
       Pending
     </span>
   );

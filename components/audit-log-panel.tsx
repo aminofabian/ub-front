@@ -50,11 +50,13 @@ const SEVERITIES: AuditEventSeverity[] = [
 ];
 
 const SEVERITY_BADGE: Record<AuditEventSeverity, string> = {
-  DEBUG: "border-border/70 bg-muted/40 text-muted-foreground",
-  INFO: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300",
-  WARN: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  ERROR: "border-red-500/25 bg-red-500/10 text-red-700 dark:text-red-300",
-  CRITICAL: "border-red-600/30 bg-red-600/15 text-red-800 dark:text-red-200",
+  DEBUG:
+    "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground",
+  INFO: "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-[var(--order-ink,#15231f)]",
+  WARN: "border-[#9a2e16]/35 bg-transparent text-[#9a2e16]",
+  ERROR:
+    "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_8%,white)] text-[#9a2e16]",
+  CRITICAL: "border-[#9a2e16]/50 bg-[#9a2e16] text-white",
 };
 
 /** Event types the backend can emit as failures/issues — quick filter help. */
@@ -188,7 +190,7 @@ function SeverityBadge({ severity }: { severity: AuditEventSeverity }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-semibold tracking-wide",
+        "inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
         SEVERITY_BADGE[severity],
       )}
     >
@@ -202,7 +204,7 @@ function SeverityBadge({ severity }: { severity: AuditEventSeverity }) {
 
 function CategoryChip({ category }: { category: AuditEventCategory }) {
   return (
-    <span className="rounded-md border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+    <span className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
       {CATEGORY_LABELS[category]}
     </span>
   );
@@ -219,7 +221,7 @@ function JsonBlock({ label, raw }: { label: string; raw: string | null }) {
   return (
     <div className="space-y-1.5">
       <p className={dashboardFilterFieldLabelClass()}>{label}</p>
-      <pre className="overflow-x-auto whitespace-pre-wrap wrap-break-word rounded-lg border border-border/50 bg-muted/30 p-3 font-mono text-[11px] leading-relaxed text-foreground">
+      <pre className="overflow-x-auto whitespace-pre-wrap wrap-break-word rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] p-3 font-mono text-[11px] leading-relaxed text-foreground">
         {pretty}
       </pre>
     </div>
@@ -299,15 +301,20 @@ function StatCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/70 bg-card p-4 shadow-sm ring-1 ring-black/2 dark:ring-white/4",
+        "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 shadow-none",
         accentClass,
         dim && "opacity-60",
       )}
     >
-      <p className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
+      <p
+        className="text-2xl font-semibold tabular-nums tracking-[-0.03em] text-[#141414]"
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
         {value.toLocaleString()}
       </p>
-      <p className="mt-1 text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+        {label}
+      </p>
     </div>
   );
 }
@@ -408,10 +415,10 @@ export function AuditLogPanel() {
                 setDraft((d) => ({ ...d, failuresOnly: option.value }))
               }
               className={cn(
-                "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                "rounded-none border px-3 py-1.5 text-xs font-semibold transition-colors",
                 draft.failuresOnly === option.value
-                  ? "border-primary/30 bg-primary/10 text-foreground"
-                  : "border-border/70 bg-card/60 text-muted-foreground hover:text-foreground",
+                  ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                  : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white text-muted-foreground hover:text-foreground",
               )}
             >
               {option.label}
@@ -570,19 +577,19 @@ export function AuditLogPanel() {
         <StatCard
           label="Warnings"
           value={summary?.bySeverity.WARN ?? 0}
-          accentClass="border-amber-500/20 bg-amber-500/[0.04]"
+          accentClass="border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_4%,white)]"
           dim={summaryLoading}
         />
         <StatCard
           label="Errors"
           value={summary?.bySeverity.ERROR ?? 0}
-          accentClass="border-red-500/25 bg-red-500/[0.05]"
+          accentClass="border-[#9a2e16]/40 bg-[color-mix(in_srgb,#9a2e16_6%,white)]"
           dim={summaryLoading}
         />
         <StatCard
           label="Critical"
           value={summary?.bySeverity.CRITICAL ?? 0}
-          accentClass="border-red-600/30 bg-red-600/[0.06]"
+          accentClass="border-[#9a2e16]/50 bg-[color-mix(in_srgb,#9a2e16_8%,white)]"
           dim={summaryLoading}
         />
       </div>
@@ -620,7 +627,7 @@ export function AuditLogPanel() {
 
           {rows.length === 0 && !loading ? (
             <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-              <span className="flex size-11 items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-muted-foreground">
+              <span className="flex size-11 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-muted-foreground">
                 <Inbox className="size-5" aria-hidden />
               </span>
               <p className="text-sm font-medium text-foreground">

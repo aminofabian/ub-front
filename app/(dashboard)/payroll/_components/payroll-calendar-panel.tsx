@@ -56,26 +56,26 @@ const STATUS_META: Record<
 > = {
   paid: {
     label: "Closed",
-    ring: "ring-emerald-500/30",
-    bg: "from-emerald-500/12 via-emerald-500/5 to-transparent",
-    text: "text-emerald-800 dark:text-emerald-200",
-    bar: "bg-emerald-500",
+    ring: "ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)]",
+    bg: "from-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] via-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,transparent)] to-transparent",
+    text: "text-[var(--pos-primary,#0f766e)]",
+    bar: "bg-[var(--pos-primary,#0f766e)]",
     icon: CheckCircle2,
   },
   pending: {
     label: "Open",
-    ring: "ring-amber-500/40",
-    bg: "from-amber-500/14 via-amber-500/5 to-transparent",
-    text: "text-amber-950 dark:text-amber-100",
-    bar: "bg-amber-500",
+    ring: "ring-[#9a2e16]/40",
+    bg: "from-[color-mix(in_srgb,#9a2e16_14%,transparent)] via-[color-mix(in_srgb,#9a2e16_5%,transparent)] to-transparent",
+    text: "text-[#9a2e16]",
+    bar: "bg-[#9a2e16]",
     icon: Clock,
   },
   missing_salary: {
     label: "Blocked",
-    ring: "ring-red-500/35",
-    bg: "from-red-500/12 via-red-500/5 to-transparent",
-    text: "text-red-900 dark:text-red-100",
-    bar: "bg-red-500",
+    ring: "ring-[#9a2e16]/35",
+    bg: "from-[color-mix(in_srgb,#9a2e16_12%,transparent)] via-[color-mix(in_srgb,#9a2e16_5%,transparent)] to-transparent",
+    text: "text-[#9a2e16]",
+    bar: "bg-[#9a2e16]",
     icon: AlertCircle,
   },
   future: {
@@ -244,9 +244,9 @@ export function PayrollCalendarPanel({
                 </span>
               </p>
             </div>
-            <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+            <div className="h-1.5 overflow-hidden rounded-none bg-muted">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
+                className="h-full rounded-none bg-gradient-to-r from-[var(--pos-primary,#0f766e)] to-[#0d6b63] transition-all duration-500"
                 style={{ width: `${summary.yearProgress}%` }}
               />
             </div>
@@ -299,7 +299,7 @@ export function PayrollCalendarPanel({
                 <span key={status} className="inline-flex items-center gap-1.5">
                   <span
                     className={cn(
-                      "size-2 rounded-full",
+                      "size-2 rounded-none",
                       STATUS_META[status].bar,
                     )}
                     aria-hidden
@@ -315,7 +315,7 @@ export function PayrollCalendarPanel({
       {grouped.needsAction.length > 0 ? (
         <section className="space-y-3">
           <header className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-none bg-amber-500/15 text-amber-700 dark:text-amber-300">
+            <span className="flex size-8 items-center justify-center rounded-none bg-[#9a2e16]/15 text-[#9a2e16]">
               <Clock className="size-4" aria-hidden />
             </span>
             <div>
@@ -343,7 +343,7 @@ export function PayrollCalendarPanel({
       {grouped.closed.length > 0 ? (
         <section className="space-y-3">
           <header className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-none bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+            <span className="flex size-8 items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)]/15 text-[var(--pos-primary,#0f766e)]">
               <CheckCircle2 className="size-4" aria-hidden />
             </span>
             <div>
@@ -416,11 +416,11 @@ function TimelineCell({
       className={cn(
         "group relative flex flex-col items-center gap-1 rounded-none border px-1 py-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         month.status === "paid" &&
-          "border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20",
+          "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,white)]",
         month.status === "pending" &&
-          "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20",
+          "border-[#9a2e16]/40 bg-[color-mix(in_srgb,#9a2e16_8%,white)] hover:bg-[color-mix(in_srgb,#9a2e16_14%,white)]",
         month.status === "missing_salary" &&
-          "border-red-500/35 bg-red-500/10 hover:bg-red-500/20",
+          "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] hover:bg-[color-mix(in_srgb,#9a2e16_14%,white)]",
         month.status === "future" &&
           "border-border/50 bg-muted/20 hover:bg-muted/30",
         month.status === "empty" &&
@@ -437,10 +437,10 @@ function TimelineCell({
       </span>
       <span
         className={cn(
-          "flex size-6 items-center justify-center rounded-full text-[10px] font-bold",
-          month.status === "paid" && "bg-emerald-500 text-white",
-          month.status === "pending" && "bg-amber-500 text-white",
-          month.status === "missing_salary" && "bg-red-500 text-white",
+          "flex size-6 items-center justify-center rounded-none text-[10px] font-bold",
+          month.status === "paid" && "bg-[var(--pos-primary,#0f766e)] text-white",
+          month.status === "pending" && "bg-[#9a2e16] text-white",
+          month.status === "missing_salary" && "bg-[#9a2e16] text-white",
           (month.status === "future" || month.status === "empty") &&
             "bg-muted text-muted-foreground",
         )}
@@ -512,7 +512,7 @@ function MonthCard({
       onClick={onSelect}
       className={cn(
         "relative overflow-hidden rounded-none border text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        emphasis ? "border-amber-500/30 p-5" : "border-border/60 p-4",
+        emphasis ? "border-[#9a2e16]/35 p-5" : "border-border/60 p-4",
         isCurrent && "ring-2 ring-primary/35",
       )}
     >
@@ -536,13 +536,13 @@ function MonthCard({
           </div>
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
+              "inline-flex items-center gap-1 rounded-none px-1.5 py-1 text-[11px] font-medium",
               month.status === "paid" &&
-                "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200",
+                "bg-[var(--pos-primary,#0f766e)]/20 text-[var(--pos-primary,#0f766e)]",
               month.status === "pending" &&
-                "bg-amber-500/20 text-amber-950 dark:text-amber-100",
+                "bg-[#9a2e16]/20 text-[#9a2e16]",
               month.status === "missing_salary" &&
-                "bg-red-500/20 text-red-900 dark:text-red-100",
+                "bg-[#9a2e16]/20 text-[#9a2e16]",
               (month.status === "future" || month.status === "empty") &&
                 "bg-muted text-muted-foreground",
             )}
@@ -553,7 +553,7 @@ function MonthCard({
         </div>
 
         {isCurrent ? (
-          <span className="inline-block rounded-none bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-primary">
+          <span className="inline-block rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
             This month
           </span>
         ) : null}
@@ -570,9 +570,9 @@ function MonthCard({
                 {month.paidCount}/{month.headcount}
               </span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-background/60">
+            <div className="h-1.5 overflow-hidden rounded-none bg-background/60">
               <div
-                className={cn("h-full rounded-full transition-all", meta.bar)}
+                className={cn("h-full rounded-none transition-all", meta.bar)}
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -616,8 +616,8 @@ function StatTile({
       <dd
         className={cn(
           "mt-0.5 text-sm font-semibold tabular-nums",
-          warn && "text-amber-800 dark:text-amber-200",
-          success && "text-emerald-700 dark:text-emerald-300",
+          warn && "text-[#9a2e16]",
+          success && "text-[var(--pos-primary,#0f766e)]",
         )}
       >
         {value}

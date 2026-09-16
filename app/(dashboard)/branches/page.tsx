@@ -34,7 +34,6 @@ import {
   dashboardInputClass,
   dashboardTextareaClass,
 } from "@/components/dashboard-page-ui";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -313,12 +312,12 @@ export default function BranchesPage() {
           role="status"
           aria-live="polite"
           className={cn(
-            "flex items-start gap-3 rounded-none border border-emerald-500/25 bg-emerald-500/[0.07] px-4 py-3.5 text-sm shadow-none",
-            "text-emerald-950 dark:text-emerald-50",
+            "flex items-start gap-3 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-4 py-3.5 text-sm shadow-none",
+            "text-[var(--order-ink,#15231f)]",
           )}
         >
           <CheckCircle2
-            className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400"
+            className="mt-0.5 size-5 shrink-0 text-[var(--pos-primary,#0f766e)]"
             aria-hidden
           />
           <div className="min-w-0 space-y-0.5">
@@ -328,7 +327,7 @@ export default function BranchesPage() {
             <p
               className={cn(
                 dashboardHintClass(),
-                "text-emerald-900/85 dark:text-emerald-100/85",
+                "text-[color-mix(in_srgb,var(--order-ink,#15231f)_72%,transparent)]",
               )}
             >
               Tune address, status, and receipt details in the table — expand
@@ -346,15 +345,15 @@ export default function BranchesPage() {
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-border/70 shadow-none transition-shadow ">
+        <Card className="rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
               Total locations
             </CardTitle>
             <Store className="size-4 text-muted-foreground/70" aria-hidden />
           </CardHeader>
           <CardContent>
-            <p className="font-heading text-3xl font-semibold tabular-nums tracking-tight">
+            <p className="font-heading text-3xl font-semibold tabular-nums tracking-[-0.03em]">
               {stats.total}
             </p>
             <p className={cn(dashboardHintClass(), "mt-1")}>
@@ -362,18 +361,18 @@ export default function BranchesPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="border-border/70 shadow-none transition-shadow ">
+        <Card className="rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
               Active
             </CardTitle>
             <CheckCircle2
-              className="size-4 text-emerald-600/80 dark:text-emerald-400/90"
+              className="size-4 text-[var(--pos-primary,#0f766e)]"
               aria-hidden
             />
           </CardHeader>
           <CardContent>
-            <p className="font-heading text-3xl font-semibold tabular-nums tracking-tight">
+            <p className="font-heading text-3xl font-semibold tabular-nums tracking-[-0.03em] text-[var(--pos-primary,#0f766e)]">
               {stats.active}
             </p>
             <p className={cn(dashboardHintClass(), "mt-1")}>
@@ -381,18 +380,28 @@ export default function BranchesPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="border-border/70 shadow-none transition-shadow ">
+        <Card className="rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
               Inactive
             </CardTitle>
             <AlertCircle
-              className="size-4 text-muted-foreground/70"
+              className={cn(
+                "size-4",
+                stats.inactive > 0
+                  ? "text-[#9a2e16]"
+                  : "text-muted-foreground/70",
+              )}
               aria-hidden
             />
           </CardHeader>
           <CardContent>
-            <p className="font-heading text-3xl font-semibold tabular-nums tracking-tight">
+            <p
+              className={cn(
+                "font-heading text-3xl font-semibold tabular-nums tracking-[-0.03em]",
+                stats.inactive > 0 ? "text-[#9a2e16]" : undefined,
+              )}
+            >
               {stats.inactive}
             </p>
             <p className={cn(dashboardHintClass(), "mt-1")}>
@@ -519,7 +528,11 @@ export default function BranchesPage() {
                   type="button"
                   size="sm"
                   variant={filterActive === value ? "default" : "outline"}
-                  className="rounded-full"
+                  className={cn(
+                    "rounded-none shadow-none",
+                    filterActive === value &&
+                      "bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]",
+                  )}
                   onClick={() => setFilterActive(value)}
                 >
                   {label}
@@ -651,11 +664,16 @@ export default function BranchesPage() {
                         <td className="px-5 py-3.5 align-top sm:px-6">
                           {canManage && row ? (
                             <label className="relative inline-flex cursor-pointer items-center gap-3">
-                              <Badge
-                                variant={row.active ? "default" : "secondary"}
+                              <span
+                                className={cn(
+                                  "inline-flex items-center rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                                  row.active
+                                    ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white"
+                                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
+                                )}
                               >
                                 {row.active ? "Active" : "Inactive"}
-                              </Badge>
+                              </span>
                               <span className="relative inline-flex h-7 w-12 shrink-0 items-center">
                                 <input
                                   type="checkbox"
@@ -674,8 +692,8 @@ export default function BranchesPage() {
                                 <span
                                   className={cn(
                                     "absolute inset-0 rounded-full bg-muted-foreground/25 transition-colors",
-                                    "peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
-                                    "peer-checked:bg-primary",
+                                    "peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--pos-primary,#0f766e)] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+                                    "peer-checked:bg-[var(--pos-primary,#0f766e)]",
                                   )}
                                   aria-hidden
                                 />
@@ -689,11 +707,16 @@ export default function BranchesPage() {
                               </span>
                             </label>
                           ) : (
-                            <Badge
-                              variant={branch.active ? "success" : "secondary"}
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                                branch.active
+                                  ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white"
+                                  : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
+                              )}
                             >
                               {branch.active ? "Active" : "Inactive"}
-                            </Badge>
+                            </span>
                           )}
                         </td>
                         {canManage ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   CheckCircle2,
   Copy,
@@ -34,7 +34,6 @@ import {
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -87,19 +86,59 @@ function messageFor(error: unknown, fallback: string): string {
 
 function statusMeta(row: DomainRecord): {
   text: string;
-  variant: "success" | "warning" | "destructive" | "secondary" | "default";
+  className: string;
 } {
   const status = (
     row.status || (row.active ? "active" : "pending")
   ).toLowerCase();
   const source = (row.source || "").toLowerCase();
   if (status === "active" && row.active)
-    return { text: "Live", variant: "success" };
-  if (status === "verifying") return { text: "Verifying", variant: "warning" };
-  if (status === "failed") return { text: "Failed", variant: "destructive" };
+    return {
+      text: "Live",
+      className:
+        "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white",
+    };
+  if (status === "verifying")
+    return {
+      text: "Verifying",
+      className:
+        "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
+    };
+  if (status === "failed")
+    return {
+      text: "Failed",
+      className: "border-[#9a2e16]/35 text-[#9a2e16]",
+    };
   if (source === "hostafrica_purchase")
-    return { text: "Provisioning", variant: "default" };
-  return { text: "Pending DNS", variant: "secondary" };
+    return {
+      text: "Provisioning",
+      className:
+        "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]",
+    };
+  return {
+    text: "Pending DNS",
+    className:
+      "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
+  };
+}
+
+function DomainChip({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-none border bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
 }
 
 function sourceLabel(row: DomainRecord): string {
@@ -125,7 +164,7 @@ function LockedNotice() {
       )}
     >
       <div className={cn(DASHBOARD_SECTION_SURFACE, "max-w-md text-center")}>
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-border/60 bg-muted/50 text-muted-foreground">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white text-muted-foreground">
           <Lock className="size-5" aria-hidden />
         </div>
         <h1 className="mt-4 text-lg font-semibold tracking-tight">
@@ -161,24 +200,27 @@ function StatCard({
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "rounded-none border border-border/70 bg-card p-4 text-left shadow-none ring-1 ring-black/[0.02] transition-all dark:ring-white/[0.04]",
+        "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 text-left shadow-none transition-colors",
         onClick &&
-          "hover:-translate-y-0.5 hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+          "hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+          <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
             {label}
           </p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">
+          <p
+            className="mt-2 text-2xl font-semibold tracking-[-0.03em] tabular-nums text-[#141414]"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
             {value}
           </p>
           {hint ? (
             <p className={cn(dashboardHintClass(), "mt-1")}>{hint}</p>
           ) : null}
         </div>
-        <span className="flex size-9 items-center justify-center rounded-none border border-border/60 bg-muted/40 text-muted-foreground">
+        <span className="flex size-9 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-muted-foreground">
           <Icon className="size-4" aria-hidden />
         </span>
       </div>
@@ -271,7 +313,7 @@ function DomainDetailDrawer({
             variant="outline"
             size="sm"
             disabled={busy || row.primary || isPlatform}
-            className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="gap-1.5 text-[#9a2e16] hover:bg-[color-mix(in_srgb,#9a2e16_8%,white)] hover:text-[#9a2e16]"
             onClick={() => onDelete(row)}
           >
             <Trash2 className="size-3.5" aria-hidden />
@@ -282,9 +324,15 @@ function DomainDetailDrawer({
     >
       <div className="space-y-5">
         <div className="flex flex-wrap gap-2">
-          {row.primary ? <Badge>Primary</Badge> : null}
-          <Badge variant={badge.variant}>{badge.text}</Badge>
-          <Badge variant="secondary">{sourceLabel(row)}</Badge>
+          {row.primary ? (
+            <DomainChip className="border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]">
+              Primary
+            </DomainChip>
+          ) : null}
+          <DomainChip className={badge.className}>{badge.text}</DomainChip>
+          <DomainChip className="border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground">
+            {sourceLabel(row)}
+          </DomainChip>
         </div>
 
         {isPlatform ? (
@@ -300,7 +348,7 @@ function DomainDetailDrawer({
           </p>
         ) : null}
         {row.lastError ? (
-          <div className="rounded-none border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
+          <div className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2.5 text-sm text-[#9a2e16]">
             {row.lastError}
           </div>
         ) : null}
@@ -499,7 +547,7 @@ function RowActionsMenu({
             <button
               type="button"
               disabled={row.primary || isPlatform}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-destructive hover:bg-destructive/5 disabled:opacity-40"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[#9a2e16] hover:bg-[color-mix(in_srgb,#9a2e16_5%,white)] disabled:opacity-40"
               onClick={() => {
                 setOpen(false);
                 onDelete();
@@ -733,9 +781,9 @@ export default function DomainsPage() {
       </div>
 
       {platformRow ? (
-        <div className="flex flex-col gap-3 rounded-none border border-border/70 bg-gradient-to-br from-muted/35 via-card to-card px-4 py-4 shadow-none sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex flex-col gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-none border border-border/60 bg-background text-emerald-600 shadow-none dark:text-emerald-400">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]">
               <CheckCircle2 className="size-4" aria-hidden />
             </span>
             <div className="min-w-0">
@@ -769,7 +817,7 @@ export default function DomainsPage() {
         <div
           role="tablist"
           aria-label="Domains sections"
-          className="flex flex-wrap gap-1 rounded-none border border-border/60 bg-muted/30 p-1"
+          className="flex flex-wrap gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-1"
         >
           {tabs.map(({ id, label, icon: Icon, count }) => {
             const active = tab === id;
@@ -782,15 +830,22 @@ export default function DomainsPage() {
                 className={cn(
                   "inline-flex items-center gap-2 rounded-none px-3.5 py-2 text-sm font-medium transition-all",
                   active
-                    ? "bg-background text-foreground shadow-none"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                    : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                 )}
                 onClick={() => setTab(id)}
               >
                 <Icon className="size-3.5" aria-hidden />
                 {label}
                 {count != null && count > 0 ? (
-                  <span className="rounded-full bg-primary/12 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-primary">
+                  <span
+                    className={cn(
+                      "rounded-none px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                      active
+                        ? "bg-white/20 text-white"
+                        : "border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]",
+                    )}
+                  >
                     {count}
                   </span>
                 ) : null}
@@ -946,8 +1001,8 @@ export default function DomainsPage() {
                 ))}
               </div>
             ) : loadFailed ? (
-              <div className="rounded-none border border-destructive/30 bg-destructive/5 p-8 text-center">
-                <p className="text-sm font-medium text-destructive">
+              <div className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] p-8 text-center">
+                <p className="text-sm font-medium text-[#9a2e16]">
                   Could not load domains
                 </p>
                 <Button
@@ -1043,8 +1098,9 @@ export default function DomainsPage() {
                           <tr
                             key={row.id}
                             className={cn(
-                              "transition-colors hover:bg-muted/25",
-                              row.primary && "bg-primary/[0.03]",
+                              "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
+                              row.primary &&
+                                "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]",
                             )}
                           >
                             <td className="px-4 py-3">
@@ -1056,11 +1112,11 @@ export default function DomainsPage() {
                                   setDetailOpen(true);
                                 }}
                               >
-                                <span className="font-mono text-sm font-semibold tracking-tight group-hover:text-primary">
+                                <span className="font-mono text-sm font-semibold tracking-tight group-hover:text-[var(--pos-primary,#0f766e)]">
                                   {row.domain}
                                 </span>
                                 {row.primary ? (
-                                  <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+                                  <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--pos-primary,#0f766e)]">
                                     <Star className="size-3" aria-hidden />
                                     Primary
                                   </span>
@@ -1068,9 +1124,9 @@ export default function DomainsPage() {
                               </button>
                             </td>
                             <td className="px-4 py-3">
-                              <Badge variant={badge.variant}>
+                              <DomainChip className={badge.className}>
                                 {badge.text}
-                              </Badge>
+                              </DomainChip>
                             </td>
                             <td className="px-4 py-3 text-muted-foreground">
                               {sourceLabel(row)}

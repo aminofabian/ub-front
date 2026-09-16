@@ -234,7 +234,7 @@ export function StaffSmsDrawer({
                 className={cn(
                   "rounded-none border px-3 py-2 text-left text-xs transition-colors",
                   templateKey === template.key
-                    ? "border-primary/40 bg-primary/5"
+                    ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]"
                     : "border-border/60 bg-muted/20 hover:bg-muted/35",
                 )}
                 onClick={() => {

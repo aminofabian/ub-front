@@ -159,7 +159,7 @@ export function LogAdvanceDrawer({
       }
     >
       {outstandingTotal > 0 ? (
-        <p className="mb-4 rounded-none border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+        <p className="mb-4 rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-sm text-[#9a2e16]">
           Outstanding balance:{" "}
           <span className="font-semibold tabular-nums">
             {formatPayrollMoney(outstandingTotal)}

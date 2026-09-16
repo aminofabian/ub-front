@@ -152,14 +152,14 @@ export function AirtimeSettingsSection() {
       ) : (
         <div className={cn(HUB_SURFACE, "space-y-4 p-4")}>
           {!platformReady ? (
-            <p className="rounded-none border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            <p className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-sm text-[#9a2e16]">
               Airtime is not switched on for this platform yet. Ask your platform admin
               to configure the airtime provider.
             </p>
           ) : null}
 
           {platformReady && !walletReady ? (
-            <p className="rounded-none border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            <p className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-sm text-[#9a2e16]">
               Activate Kiosk Pay first — airtime is funded from that wallet.{" "}
               <Link
                 href="#kiosk-pay"
@@ -172,7 +172,7 @@ export function AirtimeSettingsSection() {
           ) : null}
 
           {platformReady && walletReady && settings?.blockedReason ? (
-            <p className="rounded-none border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            <p className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-sm text-[#9a2e16]">
               {settings.blockedReason}
             </p>
           ) : null}
@@ -198,7 +198,10 @@ export function AirtimeSettingsSection() {
               </p>
               <p className="mt-1 flex items-baseline gap-1 font-heading text-xl font-semibold tabular-nums">
                 {settings?.commissionPercent ?? 0}%
-                <Sparkles className="size-3.5 text-amber-500" aria-hidden />
+                <Sparkles
+                  className="size-3.5 text-[var(--pos-primary,#0f766e)]"
+                  aria-hidden
+                />
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {money(settings?.commissionPercent ?? 0, currency)} on a{" "}

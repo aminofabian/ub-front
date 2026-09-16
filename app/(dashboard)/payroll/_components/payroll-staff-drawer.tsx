@@ -143,12 +143,12 @@ export function PayrollStaffDrawer({
         Math.max(0, Number(row.baseSalary) - advanceDeductionPreview));
 
   const statusTone = row.alreadyPaid
-    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
+    ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--pos-primary,#0f766e)]"
     : row.employmentStatus === "on_leave"
-      ? "border-sky-500/30 bg-sky-500/10 text-sky-900 dark:text-sky-100"
+      ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] text-[var(--order-ink,#15231f)]"
       : Number(row.baseSalary) <= 0
-        ? "border-red-500/30 bg-red-500/10 text-red-900 dark:text-red-100"
-        : "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100";
+        ? "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] text-[#9a2e16]"
+        : "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] text-[#9a2e16]";
 
   return (
     <FormDrawer
@@ -331,8 +331,8 @@ export function PayrollStaffDrawer({
               </div>
             ) : null}
             {(row.arrearPeriods?.length ?? 0) > 0 ? (
-              <div className="rounded-none border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs">
-                <div className="flex justify-between gap-3 font-medium text-violet-950 dark:text-violet-100">
+              <div className="rounded-none border border-[#9a2e16]/25 bg-[color-mix(in_srgb,#9a2e16_4%,white)] px-3 py-2 text-xs">
+                <div className="flex justify-between gap-3 font-medium text-[#9a2e16]">
                   <span>Arrears</span>
                   <span className="tabular-nums">
                     + {formatPayrollMoney(row.arrearsBaseTotal)}
@@ -389,7 +389,7 @@ export function PayrollStaffDrawer({
             {!row.alreadyPaid && advanceDeductionPreview > 0 ? (
               <div className="flex justify-between gap-3 text-xs">
                 <dt className="text-muted-foreground">Advances this pay</dt>
-                <dd className="tabular-nums text-amber-800 dark:text-amber-200">
+                <dd className="tabular-nums text-[#9a2e16]">
                   − {formatPayrollMoney(advanceDeductionPreview)}
                 </dd>
               </div>
@@ -425,7 +425,7 @@ export function PayrollStaffDrawer({
             <span className="text-sm text-muted-foreground">Balance owed</span>
             <button
               type="button"
-              className="text-lg font-semibold tabular-nums text-amber-800 underline-offset-2 hover:underline dark:text-amber-200"
+              className="text-lg font-semibold tabular-nums text-[#9a2e16] underline-offset-2 hover:underline"
               onClick={onOpenLedger}
             >
               {formatPayrollMoney(
@@ -489,7 +489,7 @@ export function PayrollStaffDrawer({
                     </div>
                     <div className="shrink-0 text-right tabular-nums">
                       {!row.alreadyPaid && line.allocatedThisRun > 0 ? (
-                        <span className="block text-sm font-semibold text-amber-800 dark:text-amber-200">
+                        <span className="block text-sm font-semibold text-[#9a2e16]">
                           −{formatPayrollMoney(line.allocatedThisRun)}
                         </span>
                       ) : !row.alreadyPaid && line.balanceOutstanding > 0 ? (
@@ -582,10 +582,10 @@ function StaffAvatar({ name, paid }: { name: string; paid: boolean }) {
   return (
     <span
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1",
+        "flex size-10 shrink-0 items-center justify-center rounded-none text-xs font-semibold ring-1",
         paid
-          ? "bg-emerald-500/15 text-emerald-800 ring-emerald-500/20 dark:text-emerald-200"
-          : "bg-primary/10 text-primary ring-primary/15",
+          ? "border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]"
+          : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white text-[var(--order-ink,#15231f)]",
       )}
     >
       {initials || "?"}

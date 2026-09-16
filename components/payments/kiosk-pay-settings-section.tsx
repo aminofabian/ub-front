@@ -159,7 +159,7 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
       ) : (
         <div className={cn(HUB_SURFACE, "space-y-4 p-4")}>
           {!platformOn ? (
-            <p className="rounded-none border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            <p className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-sm text-[#9a2e16]">
               Kiosk Pay is not enabled on this platform yet. Ask your platform admin to
               turn it on and configure credentials.
             </p>
@@ -190,7 +190,9 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
                 <Wallet className="size-4 text-muted-foreground" aria-hidden />
                 <span
                   className={cn(
-                    active ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground",
+                    active
+                      ? "text-[var(--pos-primary,#0f766e)]"
+                      : "text-muted-foreground",
                   )}
                 >
                   {active ? "Active" : "Off"}

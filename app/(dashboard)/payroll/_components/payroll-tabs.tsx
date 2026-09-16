@@ -39,13 +39,13 @@ export function PayrollTabs({ tab, onTabChange }: Props) {
             className={cn(
               "flex min-w-0 flex-1 items-center justify-center gap-2 rounded-none px-3 py-2.5 text-sm font-medium transition-all",
               active
-                ? "border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                ? "bg-[var(--pos-primary,#0f766e)] text-white"
                 : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
             )}
             onClick={() => onTabChange(id)}
           >
             <Icon
-              className={cn("size-4 shrink-0", active && "text-primary")}
+              className={cn("size-4 shrink-0", active && "text-white")}
               aria-hidden
             />
             <span className="hidden truncate sm:inline">{label}</span>

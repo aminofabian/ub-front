@@ -64,7 +64,7 @@ export function PayrollRunSidebar({
       {canRunPayroll && pendingCount > 0 ? (
         <div className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-white p-4">
           <div className="flex items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-none bg-primary/15 text-primary">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-none bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
               <Sparkles className="size-5" aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
@@ -229,7 +229,7 @@ function SettingToggle({
         className={cn(
           "flex size-8 shrink-0 items-center justify-center rounded-none",
           active
-            ? "bg-primary/15 text-primary"
+            ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]"
             : "bg-muted text-muted-foreground",
         )}
       >
@@ -250,7 +250,7 @@ function SettingToggle({
       >
         <span
           className={cn(
-            "absolute top-0.5 size-4 rounded-full bg-white shadow transition-transform",
+            "absolute top-0.5 size-4 rounded-none bg-white shadow transition-transform",
             active ? "translate-x-4" : "translate-x-0.5",
           )}
         />

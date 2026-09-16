@@ -72,18 +72,28 @@ function Seg({
   onClick,
   children,
   title,
+  tone,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
   title?: string;
+  /** Owed / refund selection uses rust instead of teal. */
+  tone?: "default" | "owed";
 }) {
   return (
     <button
       type="button"
       title={title}
       onClick={onClick}
-      className={cn(SEGMENT, active ? SEGMENT_ACTIVE : SEGMENT_IDLE)}
+      className={cn(
+        SEGMENT,
+        active
+          ? tone === "owed"
+            ? "bg-[#9a2e16] text-white"
+            : SEGMENT_ACTIVE
+          : SEGMENT_IDLE,
+      )}
     >
       {children}
     </button>
@@ -170,7 +180,7 @@ export function SalesFeedFilters({
         >
           <FilterCluster label="When">
             <div role="group" aria-label="Period">
-              <div className="flex flex-wrap items-center gap-0.5">
+              <div className="inline-flex flex-wrap items-center gap-0.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
                 {DATE_FILTER_OPTIONS.map(({ id, label }) => (
                   <Seg
                     key={id}
@@ -204,7 +214,7 @@ export function SalesFeedFilters({
       {datePreset === "custom" ? (
         <div
           className={cn(
-            "flex flex-wrap items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-2.5 py-1.5",
+            "flex flex-wrap items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1.5",
             compact && "border-b-0 bg-transparent px-0 py-1",
           )}
         >
@@ -214,7 +224,10 @@ export function SalesFeedFilters({
               type="date"
               value={customFrom}
               onChange={(e) => onCustomFromChange(e.target.value)}
-              className={cn(dashboardInputClass(), "h-8 w-auto py-1 text-xs")}
+              className={cn(
+                dashboardInputClass(),
+                "h-8 w-auto rounded-none py-1 text-xs focus-visible:border-[var(--pos-primary,#0f766e)]",
+              )}
             />
           </label>
           <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -223,7 +236,10 @@ export function SalesFeedFilters({
               type="date"
               value={customTo}
               onChange={(e) => onCustomToChange(e.target.value)}
-              className={cn(dashboardInputClass(), "h-8 w-auto py-1 text-xs")}
+              className={cn(
+                dashboardInputClass(),
+                "h-8 w-auto rounded-none py-1 text-xs focus-visible:border-[var(--pos-primary,#0f766e)]",
+              )}
             />
           </label>
         </div>
@@ -238,7 +254,7 @@ export function SalesFeedFilters({
         {showChannelFilter ? (
           <FilterCluster label="Channel">
             <div role="group" aria-label="Channel">
-              <div className="flex flex-wrap items-center gap-0.5">
+              <div className="inline-flex flex-wrap items-center gap-0.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
                 {CHANNEL_FILTER_OPTIONS.map(({ id, label, short }) => {
                   const Icon =
                     id === "online_store"
@@ -267,12 +283,13 @@ export function SalesFeedFilters({
 
         <FilterCluster label="Status">
           <div role="group" aria-label="Status">
-            <div className="flex flex-wrap items-center gap-0.5">
+            <div className="inline-flex flex-wrap items-center gap-0.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
               {STATUS_OPTIONS.map(({ id, label }) => (
                 <Seg
                   key={id}
                   active={statusFilter === id}
                   onClick={() => onStatusFilterChange(id)}
+                  tone={id === "refunded" ? "owed" : "default"}
                 >
                   {label}
                 </Seg>
@@ -284,7 +301,7 @@ export function SalesFeedFilters({
         {showTender ? (
           <FilterCluster label="Pay">
             <div role="group" aria-label="Payment">
-              <div className="flex flex-wrap items-center gap-0.5">
+              <div className="inline-flex flex-wrap items-center gap-0.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
                 {PAYMENT_METHOD_CHIPS.map(({ id, label, short }) => {
                   const active = paymentFilter === id;
                   const Icon = PAYMENT_ICONS[id];

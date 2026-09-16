@@ -133,7 +133,7 @@ export function PayrollAutomationPanel({
     <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-none bg-violet-500/15 text-violet-700 dark:text-violet-300">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-none bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
             <CalendarClock className="size-4" aria-hidden />
           </span>
           <div>
@@ -184,7 +184,7 @@ export function PayrollAutomationPanel({
             className={cn(
               "flex w-full items-center justify-between rounded-none border px-3 py-2.5 text-left text-sm",
               enabled
-                ? "border-violet-500/35 bg-violet-500/10"
+                ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
                 : "border-border/60 bg-muted/20",
             )}
             onClick={() => setEnabled((v) => !v)}
@@ -199,7 +199,7 @@ export function PayrollAutomationPanel({
               className={cn(
                 "text-xs font-medium",
                 enabled
-                  ? "text-violet-700 dark:text-violet-300"
+                  ? "text-[var(--pos-primary,#0f766e)]"
                   : "text-muted-foreground",
               )}
             >

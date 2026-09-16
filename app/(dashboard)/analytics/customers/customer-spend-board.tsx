@@ -178,22 +178,12 @@ function sortRows(rows: CustomerSpendRow[], key: SortKey): CustomerSpendRow[] {
 function BoardSkeleton() {
   return (
     <div
-      className="mx-auto w-full max-w-[1280px] px-2 py-4 sm:px-4"
+      className="mx-auto w-full max-w-[1400px] px-3 pt-1 sm:px-5 sm:pt-1.5"
       aria-busy
       aria-label="Loading shoppers"
     >
-      <div className="mb-6 h-10 w-64 animate-pulse rounded-none bg-muted" />
-      <div className="mb-4 h-8 w-full max-w-xl animate-pulse rounded-none bg-muted" />
-      <div className="grid gap-3 md:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-none bg-muted" />
-        ))}
-      </div>
-      <div className="mt-4 space-y-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-20 animate-pulse rounded-none bg-muted" />
-        ))}
-      </div>
+      <div className="mb-1.5 h-11 w-full animate-pulse border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white" />
+      <div className="h-[min(80dvh,52rem)] animate-pulse border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]" />
     </div>
   );
 }
@@ -209,8 +199,10 @@ function StreakTicks({ count }: { count: number }) {
         <span
           key={i}
           className={cn(
-            "inline-block size-2 rounded-sm",
-            i < shown ? "bg-foreground" : "bg-muted",
+            "inline-block size-2 rounded-none",
+            i < shown
+              ? "bg-[var(--pos-primary,#0f766e)]"
+              : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
           )}
         />
       ))}
@@ -431,9 +423,9 @@ export function CustomerSpendBoard() {
   if (loading) return <BoardSkeleton />;
 
   return (
-    <div className="mx-auto w-full max-w-[1320px] px-2 pb-14 pt-1 sm:px-3 sm:pt-2">
+    <div className="relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col bg-transparent px-3 pt-1 sm:px-5 sm:pt-1.5">
       {error ? (
-        <div className="mb-2">
+        <div className="mb-1.5">
           <DashboardFeedback kind="error" text={error} />
         </div>
       ) : null}
@@ -455,7 +447,7 @@ export function CustomerSpendBoard() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1 rounded-none text-xs"
+                  className="h-8 gap-1 rounded-none px-2.5 text-[12px] shadow-none"
                   onClick={() => setSmsOpen(true)}
                 >
                   <MessageSquare className="size-3.5" />
@@ -465,7 +457,7 @@ export function CustomerSpendBoard() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1 rounded-none text-xs"
+                  className="h-8 gap-1 rounded-none px-2.5 text-[12px] shadow-none"
                   onClick={() => {
                     router.push(
                       `${APP_ROUTES.customerEmailCampaignNew}?customerIds=${messageableIds.map(encodeURIComponent).join(",")}`,
@@ -481,7 +473,7 @@ export function CustomerSpendBoard() {
               type="button"
               size="icon"
               variant="outline"
-              className="size-8"
+              className="size-8 rounded-none shadow-none"
               onClick={() => {
                 setRefreshing(true);
                 void load();
@@ -499,7 +491,7 @@ export function CustomerSpendBoard() {
       />
 
       <div className={cn(directoryFrameClass, refreshing && "opacity-90")}>
-        <div className="grid min-h-0 flex-1 divide-y lg:grid-cols-[minmax(0,1fr)_12.5rem] lg:divide-x lg:divide-y-0 divide-border/60">
+        <div className="grid min-h-0 flex-1 divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:grid-cols-[minmax(0,1fr)_12.5rem] lg:divide-x lg:divide-y-0">
           <DirectoryColumn
             title="Ranking"
             hint={rangeLabel || "Pick a period"}
@@ -508,7 +500,7 @@ export function CustomerSpendBoard() {
           >
             <div className="flex min-h-0 flex-col gap-2">
               <div
-                className="flex flex-wrap gap-1"
+                className="inline-flex flex-wrap border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5"
                 role="group"
                 aria-label="Sort shoppers"
               >
@@ -523,7 +515,7 @@ export function CustomerSpendBoard() {
                 ))}
               </div>
               <div
-                className="flex flex-wrap gap-1"
+                className="flex flex-wrap gap-0.5"
                 role="group"
                 aria-label="Filter by shopping pattern"
               >
@@ -549,7 +541,10 @@ export function CustomerSpendBoard() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Name, C-number, phone mask"
-                  className={dashboardInputClass(false, "h-8 pl-8 text-sm")}
+                  className={cn(
+                    dashboardInputClass(false, "h-8 pl-8 text-sm"),
+                    "rounded-none focus-visible:border-[var(--pos-primary,#0f766e)]",
+                  )}
                 />
               </label>
 
@@ -572,24 +567,27 @@ export function CustomerSpendBoard() {
                           <WhiteCard
                             className={cn(
                               "flex h-full flex-col justify-between px-3 py-3",
-                              lead ? "min-h-[7.5rem]" : "min-h-[6.5rem]",
+                              lead
+                                ? "min-h-[7.5rem] border-[var(--pos-primary,#0f766e)]/35 bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)]"
+                                : "min-h-[6.5rem]",
                             )}
                           >
                             <div className="flex items-start gap-2.5">
                               <p
                                 className={cn(
-                                  "tabular-nums font-bold tracking-tight text-foreground",
+                                  "tabular-nums font-semibold tracking-[-0.04em]",
                                   lead
-                                    ? "text-2xl leading-none"
-                                    : "text-xl leading-none",
+                                    ? "text-2xl leading-none text-[var(--pos-primary,#0f766e)]"
+                                    : "text-xl leading-none text-muted-foreground",
                                 )}
+                                style={{ fontFamily: "var(--font-heading)" }}
                               >
                                 {index + 1}
                               </p>
                               <div className="min-w-0">
                                 <p
                                   className={cn(
-                                    "truncate font-semibold tracking-tight text-foreground",
+                                    "truncate font-semibold tracking-[-0.02em] text-foreground",
                                     lead
                                       ? "text-base leading-tight"
                                       : "text-sm leading-tight",
@@ -597,7 +595,10 @@ export function CustomerSpendBoard() {
                                 >
                                   {row.name}
                                 </p>
-                                <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-foreground">
+                                <p
+                                  className="mt-0.5 text-lg font-semibold tabular-nums tracking-[-0.03em] text-foreground"
+                                  style={{ fontFamily: "var(--font-heading)" }}
+                                >
                                   {money(row.spend)}
                                 </p>
                                 <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -617,7 +618,7 @@ export function CustomerSpendBoard() {
                             {href ? (
                               <Link
                                 href={href}
-                                className="block h-full rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                className="block h-full rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]"
                               >
                                 {card}
                               </Link>
@@ -648,7 +649,7 @@ export function CustomerSpendBoard() {
                             </p>
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-                                <p className="truncate text-sm font-semibold tracking-tight text-foreground">
+                                <p className="truncate text-sm font-semibold tracking-[-0.02em] text-foreground">
                                   {row.name}
                                 </p>
                                 {no ? (
@@ -663,7 +664,7 @@ export function CustomerSpendBoard() {
                                 ) : null}
                                 {row.origin === "mpesa_inferred" &&
                                 !row.phoneVerified ? (
-                                  <span className="text-[11px] font-medium text-muted-foreground">
+                                  <span className="text-[11px] font-semibold text-[#9a2e16]">
                                     Unverified number
                                   </span>
                                 ) : null}
@@ -703,7 +704,10 @@ export function CustomerSpendBoard() {
                               </p>
                             </div>
                             <div className="text-left sm:text-right">
-                              <p className="text-base font-bold tabular-nums tracking-tight text-foreground">
+                              <p
+                                className="text-base font-semibold tabular-nums tracking-[-0.03em] text-foreground"
+                                style={{ fontFamily: "var(--font-heading)" }}
+                              >
                                 {moneyFull(row.spend)}
                               </p>
                               <p className="text-[10px] tabular-nums text-muted-foreground">
@@ -723,7 +727,7 @@ export function CustomerSpendBoard() {
                             {href ? (
                               <Link
                                 href={href}
-                                className={`${rowClass} transition-colors duration-150 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring`}
+                                className={`${rowClass} transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]`}
                               >
                                 {body}
                               </Link>
@@ -757,7 +761,13 @@ export function CustomerSpendBoard() {
                   <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                     Named tills
                   </p>
-                  <p className="text-lg font-bold tabular-nums tracking-tight text-foreground">
+                  <p
+                    className={cn(
+                      "text-lg font-semibold tabular-nums tracking-[-0.03em]",
+                      linkedPct < 40 ? "text-[#9a2e16]" : "text-foreground",
+                    )}
+                    style={{ fontFamily: "var(--font-heading)" }}
+                  >
                     {linkedPct}%
                   </p>
                   <CrmBar pct={linkedPct} warn={linkedPct < 40} />
@@ -767,7 +777,7 @@ export function CustomerSpendBoard() {
                     window have a name. Walk-ins stay anonymous on purpose.
                   </p>
                   {tenderSplits.length > 0 ? (
-                    <ul className="space-y-1 border-t border-border/50 pt-1.5">
+                    <ul className="space-y-1 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] pt-1.5">
                       {tenderSplits.map((split) => {
                         const pct = Math.round(toNum(split.identifiedPct));
                         const label =
@@ -796,7 +806,7 @@ export function CustomerSpendBoard() {
                   {showCaptureCta ? (
                     <Link
                       href={`${APP_ROUTES.businessSettings}#settings-checkout`}
-                      className="block text-[11px] font-semibold text-foreground underline-offset-2 hover:underline"
+                      className="block text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
                     >
                       Offer customer on cash & M-Pesa
                     </Link>

@@ -36,7 +36,7 @@ export default function BusinessLogsPage() {
       />
       <AuditLogPanel />
       <details className="group">
-        <summary className="cursor-pointer list-none rounded-none border border-border/60 bg-card/50 px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
+        <summary className="cursor-pointer list-none rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-[var(--order-ink,#15231f)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]">
           Device diagnostics — this browser only
         </summary>
         <div className="mt-4">

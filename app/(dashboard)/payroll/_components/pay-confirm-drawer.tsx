@@ -292,27 +292,27 @@ export function PayConfirmDrawer({
       }
     >
       {row.employmentStatus === "on_leave" ? (
-        <p className="mb-4 rounded-none border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+        <p className="mb-4 rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-sm text-[#9a2e16]">
           This employee is on leave. Update their status before paying.
         </p>
       ) : null}
 
       {salaryLocked ? (
-        <p className="mb-4 rounded-none border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-sm text-sky-950 dark:text-sky-100">
+        <p className="mb-4 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] px-3 py-2 text-sm text-[var(--order-ink,#15231f)]">
           Salaries for {payrollMonthLabel(year, month)} unlock on the 25th —
           this month shows zero until then.
         </p>
       ) : null}
 
       {deferredJoinMonth ? (
-        <p className="mb-4 rounded-none border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-sm text-sky-950 dark:text-sky-100">
+        <p className="mb-4 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] px-3 py-2 text-sm text-[var(--order-ink,#15231f)]">
           Their first month is set to “no salary until next payroll” — salary
           starts from the next cycle.
         </p>
       ) : null}
 
       {row.arrearPeriods?.length ? (
-        <p className="mb-4 rounded-none border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-sm text-violet-950 dark:text-violet-100">
+        <p className="mb-4 rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-sm text-[#9a2e16]">
           Includes arrears from{" "}
           <span className="font-medium">
             {payrollArrearMonthsLabel(row.arrearPeriods)}
@@ -332,7 +332,7 @@ export function PayConfirmDrawer({
             className={cn(
               "flex w-full items-start gap-3 rounded-none border px-3 py-2.5 text-left transition-colors",
               applyStatutory
-                ? "border-primary/40 bg-primary/5"
+                ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]"
                 : "border-border/60 bg-muted/20",
             )}
             onClick={() => setApplyStatutory((v) => !v)}
@@ -392,7 +392,7 @@ export function PayConfirmDrawer({
                       <span className="font-medium">
                         {formatPayrollDateShort(line.advancedOn)}
                       </span>
-                      <span className="tabular-nums font-semibold text-amber-800 dark:text-amber-200">
+                      <span className="tabular-nums font-semibold text-[#9a2e16]">
                         {applied > 0
                           ? `− ${formatPayrollMoney(applied)}`
                           : line.balanceOutstanding > 0
@@ -436,7 +436,7 @@ export function PayConfirmDrawer({
                 className={cn(
                   "rounded-none border px-2 py-0.5 text-xs transition-colors",
                   deductionPreset === preset.key
-                    ? "border-primary/40 bg-primary/10 text-primary"
+                    ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
                     : "border-border/60 hover:bg-muted/50",
                 )}
                 onClick={() => applyPreset(preset.key)}
@@ -529,7 +529,7 @@ export function PayConfirmDrawer({
                 <dt className="text-muted-foreground">
                   Arrears · {payrollArrearMonthsLabel(row.arrearPeriods!)}
                 </dt>
-                <dd className="tabular-nums font-medium text-violet-800 dark:text-violet-200">
+                <dd className="tabular-nums font-medium text-[#9a2e16]">
                   + {formatPayrollMoney(row.arrearsBaseTotal)}
                 </dd>
               </div>
@@ -550,12 +550,12 @@ export function PayConfirmDrawer({
             ) : null}
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Advances</dt>
-              <dd className="tabular-nums text-amber-800 dark:text-amber-200">
+              <dd className="tabular-nums text-[#9a2e16]">
                 − {formatPayrollMoney(advancesApplied)}
               </dd>
             </div>
             {advancesApplied > 0 && allocationPreview.length > 0 ? (
-              <div className="space-y-1 border-l-2 border-amber-500/30 pl-3 text-xs text-muted-foreground">
+              <div className="space-y-1 border-l-2 border-[#9a2e16]/35 pl-3 text-xs text-muted-foreground">
                 {allocationPreview
                   .filter((line) => line.amount > 0)
                   .map((line) => (

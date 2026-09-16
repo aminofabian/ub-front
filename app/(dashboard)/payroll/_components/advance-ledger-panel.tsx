@@ -187,15 +187,15 @@ export function AdvanceLedgerPanel({
                     </td>
                     <td className="px-4 py-3">
                       {row.status === "repaid" ? (
-                        <span className="rounded-none bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
+                        <span className="rounded-none bg-[var(--pos-primary,#0f766e)]/15 px-2 py-0.5 text-xs text-[var(--pos-primary,#0f766e)]">
                           Repaid
                         </span>
                       ) : Number(row.amountRepaid) > 0 ? (
-                        <span className="rounded-none bg-sky-500/15 px-2 py-0.5 text-xs text-sky-900 dark:text-sky-200">
+                        <span className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
                           Partial
                         </span>
                       ) : (
-                        <span className="rounded-none bg-amber-500/15 px-2 py-0.5 text-xs text-amber-900 dark:text-amber-200">
+                        <span className="rounded-none bg-[#9a2e16]/15 px-2 py-0.5 text-xs text-[#9a2e16]">
                           Outstanding
                         </span>
                       )}

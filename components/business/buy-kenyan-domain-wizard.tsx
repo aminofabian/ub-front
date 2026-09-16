@@ -19,7 +19,6 @@ import {
   dashboardHintClass,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -99,11 +98,11 @@ function ProvisioningStepper({ order }: { order: DomainOrder }) {
             <div className="flex min-w-0 flex-col items-center gap-1">
               <span
                 className={cn(
-                  "flex size-6 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors",
-                  done && "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-                  active && "border-primary/40 bg-primary/10 text-primary",
-                  isFail && "border-destructive/40 bg-destructive/10 text-destructive",
-                  !done && !active && !isFail && "border-border/70 bg-muted/40 text-muted-foreground",
+                  "flex size-6 items-center justify-center rounded-none border text-[10px] font-semibold transition-colors",
+                  done && "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white",
+                  active && "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]",
+                  isFail && "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_8%,white)] text-[#9a2e16]",
+                  !done && !active && !isFail && "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white text-muted-foreground",
                 )}
               >
                 {done ? <Check className="size-3" aria-hidden /> : null}
@@ -116,7 +115,7 @@ function ProvisioningStepper({ order }: { order: DomainOrder }) {
               <div
                 className={cn(
                   "mx-0.5 mb-4 h-px min-w-[0.4rem] flex-1",
-                  idx < currentIdx && !failed ? "bg-emerald-500/40" : "bg-border/70",
+                  idx < currentIdx && !failed ? "bg-[var(--pos-primary,#0f766e)]" : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
                 )}
                 aria-hidden
               />
@@ -128,15 +127,41 @@ function ProvisioningStepper({ order }: { order: DomainOrder }) {
   );
 }
 
-function orderBadge(order: DomainOrder): { text: string; variant: "success" | "warning" | "destructive" | "secondary" | "default" } {
-  if (order.paymentSkippedByStub) return { text: "Test mode", variant: "warning" };
+function orderBadge(order: DomainOrder): { text: string; className: string } {
+  if (order.paymentSkippedByStub)
+    return {
+      text: "Test mode",
+      className:
+        "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
+    };
   const s = order.status.toLowerCase();
-  if (s === "live") return { text: "Live", variant: "success" };
-  if (s === "failed") return { text: "Failed", variant: "destructive" };
-  if (s === "awaiting_payment" || s === "quoted") return { text: "Awaiting payment", variant: "warning" };
-  if (s === "registering") return { text: "Registering", variant: "warning" };
-  if (s === "owned" || s === "provisioning") return { text: "Provisioning", variant: "default" };
-  return { text: order.status, variant: "secondary" };
+  if (s === "live")
+    return {
+      text: "Live",
+      className:
+        "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white",
+    };
+  if (s === "failed")
+    return { text: "Failed", className: "border-[#9a2e16]/35 text-[#9a2e16]" };
+  if (s === "awaiting_payment" || s === "quoted")
+    return { text: "Awaiting payment", className: "border-[#9a2e16]/35 text-[#9a2e16]" };
+  if (s === "registering")
+    return {
+      text: "Registering",
+      className:
+        "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
+    };
+  if (s === "owned" || s === "provisioning")
+    return {
+      text: "Provisioning",
+      className:
+        "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]",
+    };
+  return {
+    text: order.status,
+    className:
+      "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
+  };
 }
 
 function merchantSafeMessage(order: DomainOrder): string {
@@ -231,7 +256,7 @@ function PayDomainModal({
       <DialogContent side="center" className="max-w-md gap-5 sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className="flex size-9 items-center justify-center rounded-xl border border-border/60 bg-muted/40">
+            <span className="flex size-9 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
               <CreditCard className="size-4 text-foreground" aria-hidden />
             </span>
             Pay for domain
@@ -461,9 +486,9 @@ export function BuyKenyanDomainWizard({
 
   if (unavailable) {
     return (
-      <div className={cn(!embedded && DASHBOARD_SECTION_SURFACE, "rounded-2xl border border-dashed border-border/70 bg-muted/15 p-5")}>
+      <div className={cn(!embedded && DASHBOARD_SECTION_SURFACE, "rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white p-5")}>
         <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background text-muted-foreground">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-muted-foreground">
             <WifiOff className="size-4" aria-hidden />
           </span>
           <div>
@@ -498,8 +523,8 @@ export function BuyKenyanDomainWizard({
                 Search, pay with M-Pesa, and we register it and bring your shop live.
               </p>
             </div>
-            <div className="hidden items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-[11px] font-medium text-muted-foreground sm:inline-flex">
-              <Sparkles className="size-3.5 text-primary" aria-hidden />
+            <div className="hidden items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5 text-[11px] font-medium text-muted-foreground sm:inline-flex">
+              <Sparkles className="size-3.5 text-[var(--pos-primary,#0f766e)]" aria-hidden />
               .co.ke · .or.ke · .me.ke · .ke
             </div>
           </div>
@@ -537,7 +562,7 @@ export function BuyKenyanDomainWizard({
         {searching ? (
           <div className="mt-6 space-y-3" aria-busy="true">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-xl border border-border/50 bg-muted/30" />
+              <div key={i} className="h-16 animate-pulse rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]" />
             ))}
           </div>
         ) : null}
@@ -545,15 +570,15 @@ export function BuyKenyanDomainWizard({
         {showResults && quotes.length > 0 ? (
           <div className="mt-6 space-y-4">
             {primaryTaken && primaryQuote ? (
-              <div className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.07] px-4 py-4">
-                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border border-amber-500/25 bg-background/80 text-amber-800 dark:text-amber-200">
+              <div className="flex items-start gap-3 rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-4 py-4">
+                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-none border border-[#9a2e16]/35 bg-white text-[#9a2e16]">
                   <CircleDashed className="size-4" aria-hidden />
                 </span>
                 <div>
-                  <p className="font-semibold tracking-tight text-amber-950 dark:text-amber-50">
+                  <p className="font-semibold tracking-tight text-[#9a2e16]">
                     Oops — you were a little late
                   </p>
-                  <p className="mt-1 text-sm leading-relaxed text-amber-950/80 dark:text-amber-100/80">
+                  <p className="mt-1 text-sm leading-relaxed text-[#9a2e16]/90">
                     <span className="font-mono font-medium">{primaryQuote.domain}</span> is already taken and in use.
                     {alternativeQuotes.length > 0
                       ? " These alternatives are still free."
@@ -564,9 +589,9 @@ export function BuyKenyanDomainWizard({
             ) : null}
 
             {primaryQuote && canBuyQuote(primaryQuote) ? (
-              <div className="flex flex-col gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800/80 dark:text-emerald-300/90">
+                  <p className="text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
                     Available
                   </p>
                   <p className="mt-0.5 font-mono text-base font-semibold">{primaryQuote.domain}</p>
@@ -589,9 +614,9 @@ export function BuyKenyanDomainWizard({
             ) : null}
 
             {alternativeQuotes.length > 0 ? (
-              <div className="overflow-hidden rounded-2xl border border-border/70 shadow-sm">
+              <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] shadow-none">
                 <div className="flex items-center gap-2 border-b border-border/50 bg-muted/30 px-4 py-2.5">
-                  <Sparkles className="size-3.5 text-primary" aria-hidden />
+                  <Sparkles className="size-3.5 text-[var(--pos-primary,#0f766e)]" aria-hidden />
                   <p className="text-sm font-semibold">
                     {primaryTaken ? "Great alternatives" : "Other Kenyan options"}
                   </p>
@@ -626,7 +651,7 @@ export function BuyKenyanDomainWizard({
         ) : null}
 
         {showResults && quotes.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-10 text-center">
+          <div className="mt-6 rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-4 py-10 text-center">
             <p className="text-sm font-medium">No Kenyan matches</p>
             <p className={cn(dashboardHintClass(), "mx-auto mt-1.5 max-w-sm")}>
               Try a shorter shop name, or include the TLD (e.g. mybrand.co.ke).
@@ -647,7 +672,7 @@ export function BuyKenyanDomainWizard({
               </p>
             </div>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+          <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none">
             <ul className="divide-y divide-border/50">
               {orders.map((order) => {
                 const badge = orderBadge(order);
@@ -661,7 +686,7 @@ export function BuyKenyanDomainWizard({
                       <div className="min-w-0 flex-1 space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-mono text-sm font-semibold">{order.fqdn}</p>
-                          <Badge variant={badge.variant}>{badge.text}</Badge>
+                          <span className={cn("inline-flex items-center rounded-none border bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]", badge.className)}>{badge.text}</span>
                           {order.priceCents != null ? (
                             <span className="text-xs text-muted-foreground">
                               {formatPrice(order.priceCents, order.currency)}

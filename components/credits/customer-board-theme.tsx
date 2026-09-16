@@ -62,11 +62,11 @@ export function BoardFilterButton({
       onClick={onClick}
       aria-pressed={ariaPressed ?? selected}
       className={cn(
-        "rounded-none font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+        "rounded-none font-semibold tracking-[-0.02em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
         compact ? "h-7 px-2 text-[11px]" : "h-8 px-2.5 text-xs",
         selected
-          ? "border border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-          : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+          ? "bg-[var(--pos-primary,#0f766e)] text-white"
+          : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
       )}
     >
       {children}
@@ -86,7 +86,7 @@ export function NavySidebarSection({
       <p className="px-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
         {title}
       </p>
-      <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto rounded-none border border-border/60 bg-muted/20 p-1">
+      <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] p-1">
         {children}
       </div>
     </section>
@@ -120,8 +120,8 @@ export function NavyRadioOption({
           "flex h-8 cursor-pointer items-center rounded-none px-2 text-xs font-medium transition-colors",
           "peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--pos-primary,#0f766e)] peer-focus-visible:ring-offset-1",
           checked
-            ? "border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
-            : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+            ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--pos-primary,#0f766e)]"
+            : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] hover:text-foreground",
         )}
       >
         {label}

@@ -137,7 +137,7 @@ export function PayrollRunHeader({
                 : ""}
             </p>
             {summary.totalArrears > 0 ? (
-              <p className="mt-2 rounded-none border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-950 dark:text-violet-100">
+              <p className="mt-2 rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-xs text-[#9a2e16]">
                 {formatPayrollMoney(summary.totalArrears)} in unpaid prior
                 months is rolled into this run — paying now clears those periods
                 too.
@@ -154,20 +154,20 @@ export function PayrollRunHeader({
                 className={cn(
                   "font-semibold tabular-nums",
                   complete
-                    ? "text-emerald-600 dark:text-emerald-400"
+                    ? "text-[var(--pos-primary,#0f766e)]"
                     : "text-foreground",
                 )}
               >
                 {summary.paidCount}/{summary.headcount} paid · {progress}%
               </span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div className="h-1.5 overflow-hidden rounded-none bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
               <div
                 className={cn(
-                  "h-full rounded-full transition-all duration-500",
+                  "h-full rounded-none transition-all duration-500",
                   complete
-                    ? "bg-emerald-500"
-                    : "bg-gradient-to-r from-primary to-primary/70",
+                    ? "bg-[var(--pos-primary,#0f766e)]"
+                    : "bg-[var(--pos-primary,#0f766e)]",
                 )}
                 style={{ width: `${progress}%` }}
               />
@@ -224,16 +224,17 @@ function MetricTile({
   muted?: boolean;
 }) {
   return (
-    <div className="rounded-none border border-border/50 bg-background/70 px-3 py-2.5">
+    <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-3 py-2.5">
       <dt className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
         {label}
       </dt>
       <dd
         className={cn(
-          "mt-0.5 truncate text-sm font-semibold tabular-nums",
-          warn && "text-amber-800 dark:text-amber-200",
+          "mt-0.5 truncate text-sm font-semibold tabular-nums tracking-[-0.02em]",
+          warn && "text-[#9a2e16]",
           muted && "text-muted-foreground",
         )}
+        style={{ fontFamily: "var(--font-heading)" }}
       >
         {value}
       </dd>

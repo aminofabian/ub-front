@@ -148,7 +148,7 @@ export function PayslipHistoryPanel({
                     <td className="px-4 py-3 text-right tabular-nums">
                       {formatPayrollMoney(Number(row.baseSalary))}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-amber-800 dark:text-amber-200">
+                    <td className="px-4 py-3 text-right tabular-nums text-[#9a2e16]">
                       {formatPayrollMoney(Number(row.advancesDeducted))}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">

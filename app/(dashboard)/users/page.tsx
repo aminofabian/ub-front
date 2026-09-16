@@ -123,66 +123,11 @@ function userInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-const AVATAR_PALETTES = [
-  {
-    bg: "from-slate-500/25 via-slate-500/15 to-slate-500/5",
-    text: "text-slate-700 dark:text-slate-200",
-    ring: "ring-slate-500/30",
-  },
-  {
-    bg: "from-sky-500/25 via-sky-500/15 to-sky-500/5",
-    text: "text-sky-700 dark:text-sky-200",
-    ring: "ring-sky-500/30",
-  },
-  {
-    bg: "from-emerald-500/25 via-emerald-500/15 to-emerald-500/5",
-    text: "text-emerald-700 dark:text-emerald-200",
-    ring: "ring-emerald-500/30",
-  },
-  {
-    bg: "from-amber-500/25 via-amber-500/15 to-amber-500/5",
-    text: "text-amber-800 dark:text-amber-200",
-    ring: "ring-amber-500/30",
-  },
-  {
-    bg: "from-rose-500/25 via-rose-500/15 to-rose-500/5",
-    text: "text-rose-700 dark:text-rose-200",
-    ring: "ring-rose-500/30",
-  },
-  {
-    bg: "from-lime-500/25 via-lime-500/15 to-lime-500/5",
-    text: "text-lime-800 dark:text-lime-200",
-    ring: "ring-lime-500/30",
-  },
-  {
-    bg: "from-teal-500/25 via-teal-500/15 to-teal-500/5",
-    text: "text-teal-700 dark:text-teal-200",
-    ring: "ring-teal-500/30",
-  },
-  {
-    bg: "from-orange-500/25 via-orange-500/15 to-orange-500/5",
-    text: "text-orange-800 dark:text-orange-200",
-    ring: "ring-orange-500/30",
-  },
-] as const;
-
-function avatarPalette(seed: string) {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  }
-  return AVATAR_PALETTES[hash % AVATAR_PALETTES.length];
-}
-
 function UserAvatar({ name, className }: { name: string; className?: string }) {
-  const palette = avatarPalette(name);
   return (
     <span
       className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[10px] font-bold tracking-tight ring-1",
-        palette.bg,
-        palette.text,
-        palette.ring,
+        "flex size-8 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white text-[10px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]",
         className,
       )}
       aria-hidden
@@ -195,15 +140,15 @@ function UserAvatar({ name, className }: { name: string; className?: string }) {
 function statusBadgeClass(status: string): string {
   switch (status) {
     case "active":
-      return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300";
+      return "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white";
     case "invited":
-      return "bg-sky-500/15 text-sky-900 dark:text-sky-200";
+      return "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground";
     case "suspended":
-      return "bg-amber-500/15 text-amber-950 dark:text-amber-200";
+      return "border-[#9a2e16]/35 bg-transparent text-[#9a2e16]";
     case "locked":
-      return "bg-rose-500/15 text-rose-900 dark:text-rose-200";
+      return "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_8%,white)] text-[#9a2e16]";
     default:
-      return "bg-muted text-muted-foreground";
+      return "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground";
   }
 }
 
@@ -403,14 +348,14 @@ function UserDepartmentsControl({
           assigned.map((id) => (
             <span
               key={id}
-              className="inline-flex max-w-[7rem] truncate rounded border border-border/45 bg-muted/35 px-1.5 py-0.5 text-[10px] font-medium text-foreground"
+              className="inline-flex max-w-[7rem] truncate rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-foreground"
               title={labelById.get(id) ?? id}
             >
               {labelById.get(id) ?? id}
             </span>
           ))
         ) : (
-          <span className="text-[10px] text-amber-700 dark:text-amber-300">
+          <span className="text-[10px] text-[#9a2e16]">
             None
           </span>
         )}
@@ -1150,7 +1095,7 @@ export default function UsersPage() {
         {!canCreate ? (
           <p
             role="note"
-            className="rounded-none border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2 text-xs leading-relaxed text-amber-950 dark:text-amber-50"
+            className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-xs leading-relaxed text-[#9a2e16]"
           >
             You need <span className="font-mono text-[11px]">users.create</span>{" "}
             to invite users.
@@ -1677,14 +1622,10 @@ export default function UsersPage() {
                           <div className="flex items-center gap-1.5">
                             <span
                               className={cn(
-                                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize tabular-nums",
+                                "inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-[10px] font-semibold capitalize tracking-[-0.02em] tabular-nums",
                                 statusBadgeClass(user.status),
                               )}
                             >
-                              <span
-                                className="size-1 shrink-0 rounded-full bg-current opacity-70"
-                                aria-hidden
-                              />
                               {user.status}
                             </span>
                             {user.hasPin ? (

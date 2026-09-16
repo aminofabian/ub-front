@@ -808,8 +808,8 @@ function AlertBanner({
 }) {
   const cls =
     tone === "sky"
-      ? "border-sky-500/25 bg-sky-500/10 text-sky-950 dark:text-sky-100"
-      : "border-amber-500/25 bg-amber-500/10 text-amber-950 dark:text-amber-100";
+      ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] text-[var(--order-ink,#15231f)]"
+      : "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] text-[#9a2e16]";
   return (
     <p className={cn("rounded-none border px-3 py-2 text-sm", cls)}>{children}</p>
   );

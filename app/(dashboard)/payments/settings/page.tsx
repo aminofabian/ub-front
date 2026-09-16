@@ -149,16 +149,16 @@ function providerDashboardUrl(
 function CheckoutStatusBadge({ status }: { status: string | null }) {
   const tone =
     status === "success"
-      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+      ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]"
       : status === "failed"
-        ? "bg-destructive/10 text-destructive"
+        ? "border-[#9a2e16]/35 text-[#9a2e16]"
         : status === "cancelled"
-          ? "bg-muted text-muted-foreground"
-          : "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+          ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground"
+          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground";
   return (
     <span
       className={cn(
-        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+        "shrink-0 rounded-none border bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
         tone,
       )}
     >
@@ -552,7 +552,10 @@ export default function PaymentGatewaySettingsPage() {
             <dt className="text-[10px] font-semibold tracking-[-0.02em] text-[#8A8A8A]">
               Methods
             </dt>
-            <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-[#141414]">
+            <dd
+              className="mt-1 text-lg font-semibold tabular-nums tracking-[-0.03em] text-[#141414]"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
               {loading ? "—" : configs.length}
             </dd>
           </div>
@@ -560,7 +563,10 @@ export default function PaymentGatewaySettingsPage() {
             <dt className="text-[10px] font-semibold tracking-[-0.02em] text-[#8A8A8A]">
               Active
             </dt>
-            <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-emerald-700">
+            <dd
+              className="mt-1 text-lg font-semibold tabular-nums tracking-[-0.03em] text-[var(--pos-primary,#0f766e)]"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
               {loading ? "—" : activeCount}
             </dd>
           </div>
@@ -570,9 +576,10 @@ export default function PaymentGatewaySettingsPage() {
             </dt>
             <dd
               className={cn(
-                "mt-1 font-mono text-lg font-semibold tabular-nums",
-                draftOrErrorCount > 0 ? "text-amber-700" : "text-[#141414]",
+                "mt-1 text-lg font-semibold tabular-nums tracking-[-0.03em]",
+                draftOrErrorCount > 0 ? "text-[#9a2e16]" : "text-[#141414]",
               )}
+              style={{ fontFamily: "var(--font-heading)" }}
             >
               {loading ? "—" : draftOrErrorCount}
             </dd>
@@ -600,7 +607,7 @@ export default function PaymentGatewaySettingsPage() {
           {kopokopoNeedsAttention ? (
             <div
               role="status"
-              className="rounded-none border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+              className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-4 py-3 text-sm text-[#9a2e16]"
             >
               <p className="font-semibold">KopoKopo is not active yet</p>
               <p className="mt-1 text-xs leading-relaxed opacity-90">
@@ -669,8 +676,8 @@ export default function PaymentGatewaySettingsPage() {
                           config.status === "ACTIVE"
                             ? "bg-[var(--pos-primary,#0f766e)] text-white"
                             : config.status === "ERROR"
-                              ? "bg-destructive/15 text-destructive"
-                              : "bg-white text-[#666666]",
+                              ? "border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_8%,white)] text-[#9a2e16]"
+                              : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666]",
                         )}
                         aria-hidden
                       >
@@ -683,7 +690,7 @@ export default function PaymentGatewaySettingsPage() {
                           </p>
                           <GatewayStatusBadge status={config.status} />
                           {config.isDefault ? (
-                            <span className="bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-primary">
+                            <span className="rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
                               Default
                             </span>
                           ) : null}
@@ -703,7 +710,7 @@ export default function PaymentGatewaySettingsPage() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="gap-1.5"
+                          className="h-8 gap-1.5 rounded-none shadow-none"
                           disabled={busy}
                           onClick={() => void openEdit(config)}
                         >
@@ -714,7 +721,7 @@ export default function PaymentGatewaySettingsPage() {
                       <Button
                         type="button"
                         size="sm"
-                        className="gap-1.5"
+                        className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
                         disabled={busy}
                         onClick={() => setDrawer({ kind: "manage", config })}
                       >
@@ -831,7 +838,7 @@ export default function PaymentGatewaySettingsPage() {
             <div className="flex flex-wrap items-center gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3.5 py-3">
               <GatewayStatusBadge status={manageConfig.status} />
               {manageConfig.isDefault ? (
-                <span className="bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-primary">
+                <span className="rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
                   Default
                 </span>
               ) : null}
