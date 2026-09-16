@@ -62,6 +62,12 @@ import {
   notifyPosGuidanceResolved,
 } from "@/lib/pos-guidance";
 import {
+  ensureTillRegisteredForBranch,
+  FIRST_SALE_ACTIVATE_PARAM,
+  isFirstSaleActivateParam,
+  stripFirstSaleActivateFromUrl,
+} from "@/lib/first-sale-activate";
+import {
   clearStaleShiftContinued,
   isOpenShiftStatus,
   isStaleShiftContinued,
@@ -345,6 +351,7 @@ export function QuickSaleWorkspace({
   const cartScopeUserIdRef = useRef<string | null>(null);
   const resumeDraftHandledRef = useRef(false);
   const invoiceParamHandledRef = useRef(false);
+  const firstSaleActivateHandledRef = useRef(false);
   const wasOfflineRef = useRef(false);
   const searchParams = useSearchParams();
   // Catalog search/browse is scoped to the header department. On the cashier
@@ -4430,6 +4437,8 @@ export function QuickSaleWorkspace({
   const [closeShiftModal, setCloseShiftModal] = useState(false);
   const [openShiftGate, setOpenShiftGate] = useState(false);
   const [staleClosePrompt, setStaleClosePrompt] = useState(false);
+  /** Hub / setup-progress deep link: allow empty opening float. */
+  const [firstSaleFloatMode, setFirstSaleFloatMode] = useState(false);
   const [drawoutModal, setDrawoutModal] = useState(false);
   const openingPromptSessionRef = useRef<string | null>(null);
   const branchOpenShiftRef = useRef<ShiftRecord | null>(null);
@@ -4500,6 +4509,94 @@ export function QuickSaleWorkspace({
     return () =>
       window.removeEventListener(OPEN_POS_SHIFT_EVENT, onOpenShiftRequest);
   }, []);
+
+  /**
+   * Deep link: /cashier?activate=first-sale
+   * Register this browser as a till if needed, then open the shift gate
+   * (empty float allowed) so stocked owners can ring a real first sale.
+   */
+  useEffect(() => {
+    const activate = searchParams.get(FIRST_SALE_ACTIVATE_PARAM);
+    if (!isFirstSaleActivateParam(activate)) {
+      firstSaleActivateHandledRef.current = false;
+      return;
+    }
+    if (firstSaleActivateHandledRef.current) {
+      return;
+    }
+    if (
+      !isCashier ||
+      tillLocked ||
+      !online ||
+      branchShiftLoading ||
+      !branchShiftSettled ||
+      !branchId?.trim()
+    ) {
+      return;
+    }
+
+    firstSaleActivateHandledRef.current = true;
+    const bid = branchId.trim();
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const tillResult = await ensureTillRegisteredForBranch(bid);
+        if (cancelled) {
+          return;
+        }
+        if (tillResult === "registered") {
+          toast.success("This computer is now a till.");
+        }
+
+        if (branchOpenShiftRef.current) {
+          setFirstSaleFloatMode(false);
+          toast.success("Till is open — ring your first sale.");
+          stripFirstSaleActivateFromUrl();
+          return;
+        }
+
+        if (!canOpenShift) {
+          toast.message(
+            "Ask an owner or manager to open a shift on this till.",
+          );
+          stripFirstSaleActivateFromUrl();
+          return;
+        }
+
+        setFirstSaleFloatMode(true);
+        setError("");
+        setStaleClosePrompt(false);
+        setCloseShiftModal(false);
+        setOpenShiftGate(true);
+        setOpenShiftModal(true);
+        stripFirstSaleActivateFromUrl();
+      } catch (e) {
+        if (cancelled) {
+          return;
+        }
+        firstSaleActivateHandledRef.current = false;
+        toast.error(
+          e instanceof Error
+            ? e.message
+            : "Could not prepare the till. Try again.",
+        );
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    searchParams,
+    isCashier,
+    tillLocked,
+    online,
+    branchShiftLoading,
+    branchShiftSettled,
+    branchId,
+    canOpenShift,
+  ]);
 
   useEffect(() => {
     if (!isCashier) {
@@ -4948,17 +5045,28 @@ export function QuickSaleWorkspace({
             onClose={() => {
               setOpenShiftModal(false);
               setOpenShiftGate(false);
+              setFirstSaleFloatMode(false);
             }}
             requireAction={openShiftGate}
+            allowZeroFloat={firstSaleFloatMode}
             branches={branches.filter((b) => b.active)}
             preferredBranchId={branchId?.trim() || null}
             lockBranchSelectionTo={
               branchLockedRole ? (me?.branchId ?? null) : null
             }
             onOpened={() => {
+              const wasFirstSale = firstSaleFloatMode;
               setOpenShiftModal(false);
               setOpenShiftGate(false);
-              setNotice("Shift opened successfully.");
+              setFirstSaleFloatMode(false);
+              setNotice(
+                wasFirstSale
+                  ? "Shift open — tap a product to take your first sale."
+                  : "Shift opened successfully.",
+              );
+              if (wasFirstSale) {
+                toast.success("Shift open — tap a product to sell.");
+              }
               notifyPosGuidanceResolved("open-shift");
               refetchBranchOpenShift();
             }}

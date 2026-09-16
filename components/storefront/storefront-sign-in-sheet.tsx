@@ -36,7 +36,9 @@ import {
   loginWithPassword,
   loginWithPin,
   registerAccount,
+  resendVerificationEmail,
   sendShopperPhoneCode,
+  verifyEmailAddress,
   verifyShopperPhoneCode,
 } from "@/lib/api";
 import { hasAccessSession, hasSessionPresenceCookie } from "@/lib/auth";
@@ -49,10 +51,12 @@ import {
 import { setPageSealUnlock } from "@/lib/page-seal";
 import {
   applyShopperTabHint,
+  buyerStaysOnPage,
   isShopNextPath,
   resolvePostAuthDestination,
   type PostAuthMe,
 } from "@/lib/post-auth-destination";
+import { isEmailNotVerifiedError } from "@/lib/problem";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { isBuyerAccount, isCustomerTabPath } from "@/lib/buyer-role";
 import { cn } from "@/lib/utils";
@@ -343,9 +347,11 @@ function StorefrontSignInSheet({
       if (
         keepShoppersOnPage &&
         isBuyerAccount(enriched) &&
-        (!destination ||
-          destination === pathname ||
-          destination === APP_ROUTES.shop)
+        buyerStaysOnPage({
+          destination,
+          pathname,
+          requestedNext: rawNext,
+        })
       ) {
         if (rawNext && isShopNextPath(rawNext) && rawNext !== pathname) {
           router.push(rawNext);
@@ -515,10 +521,19 @@ export function UnifiedSignInForm({
   const [helloName, setHelloName] = useState<string | null>(null);
   const [maskedPhone, setMaskedPhone] = useState("");
   const [phase, setPhase] = useState<
-    "credentials" | "code" | "new-pin" | "signup"
+    "credentials" | "code" | "new-pin" | "signup" | "verify"
   >("credentials");
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  /**
+   * Email of a just-created account that cannot sign in until it is verified.
+   * The password stays in `secret` so the verify step can fall back to
+   * `loginWithPassword` when the API does not mint a session.
+   */
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyNotice, setVerifyNotice] = useState("");
+  const [verifyLink, setVerifyLink] = useState<string | null>(null);
 
   const kind = detectIdentityKind(identity);
   const localPhone = toKenyanLocal07(identity) || identity.replace(/\D/g, "");
@@ -571,6 +586,20 @@ export function UnifiedSignInForm({
         }
         onSignedIn();
       } catch (error) {
+        if (isEmailNotVerifiedError(error)) {
+          // The account exists but is still INVITED. The 403 tells them to "use
+          // resend verification" — which exists nowhere on this surface — so
+          // route them into the verify step instead of a dead-end error. The
+          // password stays in `secret` for the post-verify fallback login.
+          setPendingEmail(email);
+          setVerifyCode("");
+          setVerifyLink(null);
+          setVerifyNotice(
+            `Your account is not verified yet. Enter the 6-digit code we sent to ${email}, or resend a new one.`,
+          );
+          setPhase("verify");
+          return;
+        }
         setErrorMessage(
           error instanceof Error ? error.message : "Could not sign in.",
         );
@@ -615,6 +644,8 @@ export function UnifiedSignInForm({
   const onSignupSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage("");
+    setVerifyNotice("");
+    setVerifyLink(null);
     const email = identity.trim().toLowerCase();
     if (!email.includes("@")) {
       setErrorMessage("Create an account with an email address.");
@@ -630,12 +661,111 @@ export function UnifiedSignInForm({
     }
     setBusy(true);
     try {
-      await registerAccount(displayName.trim(), email, secret);
-      await loginWithPassword(email, secret);
-      onSignedIn();
+      // NOTE: do not call markOnboardingQuestionnairePending() here. That flags
+      // merchant business onboarding; the shopper sheet must never open it.
+      const result = await registerAccount(displayName.trim(), email, secret);
+      if (result.status.toLowerCase() === "active") {
+        await loginWithPassword(email, secret);
+        onSignedIn();
+        return;
+      }
+      // Email verification is required (the API default): the account exists
+      // but cannot sign in yet. Stay in the sheet and collect the code instead
+      // of bouncing the shopper into a login error they have no way to act on.
+      setPendingEmail(email);
+      setVerifyCode("");
+      // When the API cannot deliver mail it returns the link instead. Show it:
+      // the 6-digit code needs an inbox too, so without this the shopper would
+      // have no way in at all.
+      const link = result.verificationUrl?.trim();
+      if (link) {
+        setVerifyLink(link);
+        setVerifyNotice(
+          `Email delivery is unavailable, so open the link below to activate ${email}.`,
+        );
+      }
+      setPhase("verify");
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Could not create account.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onVerifySubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErrorMessage("");
+    setVerifyNotice("");
+    const code = verifyCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setErrorMessage("Enter the 6-digit code from your email.");
+      return;
+    }
+    if (!pendingEmail) {
+      setPhase("credentials");
+      return;
+    }
+    setBusy(true);
+    try {
+      const signedIn = await verifyEmailAddress(code, {
+        toast: false,
+        email: pendingEmail,
+      });
+      if (!signedIn) {
+        // The API accepted the code but minted no session (older build) — the
+        // password is still in state, so finish the sign-in ourselves.
+        try {
+          await loginWithPassword(pendingEmail, secret);
+        } catch {
+          // Verified, but no session and the fallback failed (e.g. a staff PIN
+          // was typed rather than the password). Send them to the sign-in step
+          // instead of claiming success.
+          setErrorMessage(
+            "Your email is verified. Sign in with your password to continue.",
+          );
+          setPendingEmail("");
+          setPhase("credentials");
+          return;
+        }
+      }
+      onSignedIn();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "That code did not work. Check your email, or resend a new one.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onResendVerification = async () => {
+    if (!pendingEmail) {
+      return;
+    }
+    setBusy(true);
+    setErrorMessage("");
+    setVerifyNotice("");
+    setVerifyLink(null);
+    try {
+      const out = await resendVerificationEmail(pendingEmail);
+      const link = out.verificationUrl?.trim();
+      if (link) {
+        // Shown when the API is configured to return it (no mail provider).
+        setVerifyNotice(`A new code is on its way to ${pendingEmail}.`);
+        setVerifyLink(link);
+      } else {
+        setVerifyNotice(
+          `If ${pendingEmail} has a pending signup, we sent a fresh code. Check your inbox and spam folder.`,
+        );
+      }
+      setVerifyCode("");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Could not resend the code.",
       );
     } finally {
       setBusy(false);
@@ -837,6 +967,78 @@ export function UnifiedSignInForm({
         >
           ← Back to sign in
         </button>
+      </form>
+    );
+  }
+
+  if (phase === "verify") {
+    return (
+      <form className="space-y-4" onSubmit={(e) => void onVerifySubmit(e)}>
+        <p className="text-[14px] text-muted-foreground">
+          Almost there. We sent a 6-digit code to{" "}
+          <span className="font-medium text-foreground">
+            {pendingEmail || "your email"}
+          </span>
+          . Enter it here, or open the link in the email.
+        </p>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className={labelClass}>Code from email</span>
+          <input
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={verifyCode}
+            onChange={(e) =>
+              setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            className={cn(
+              fieldClass,
+              "text-center text-[1.35rem] font-semibold tracking-[0.35em]",
+            )}
+            autoFocus
+            required
+          />
+        </label>
+        {verifyNotice ? (
+          <p className="text-[13px] leading-relaxed text-muted-foreground">
+            {verifyNotice}
+          </p>
+        ) : null}
+        {verifyLink ? (
+          <a
+            href={verifyLink}
+            className="block break-all text-[13px] font-medium text-primary underline underline-offset-2"
+          >
+            Open your verification link
+          </a>
+        ) : null}
+        {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
+        <button type="submit" disabled={busy} className={ctaClass}>
+          {busy ? "Checking…" : "Verify & continue"}
+        </button>
+        <div className="flex items-center justify-between gap-3 text-[13px]">
+          <button
+            type="button"
+            className="font-medium text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50"
+            disabled={busy}
+            onClick={() => void onResendVerification()}
+          >
+            Resend code
+          </button>
+          <button
+            type="button"
+            className="font-medium text-muted-foreground underline-offset-2 hover:underline"
+            onClick={() => {
+              setPhase("credentials");
+              setErrorMessage("");
+              setVerifyNotice("");
+              setVerifyLink(null);
+              setVerifyCode("");
+            }}
+          >
+            ← Back to sign in
+          </button>
+        </div>
       </form>
     );
   }

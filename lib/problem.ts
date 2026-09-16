@@ -168,6 +168,35 @@ export function isItemNotFoundProblem(payload: unknown): boolean {
 }
 
 /**
+ * Backend {@code AuthService.LOGIN_EMAIL_NOT_VERIFIED_DETAIL}.
+ *
+ * Matched loosely on purpose: the response carries no machine-readable `code`
+ * for this case, so 403 + this phrase is the only signal we have, and matching
+ * the whole sentence would break recovery routing on any copy change.
+ */
+const EMAIL_NOT_VERIFIED_DETAIL = /email not verified/i;
+
+/**
+ * True when a sign-in was refused because the account exists but has not
+ * verified its email yet.
+ *
+ * The API's 403 tells the user to "use resend verification", which until now
+ * existed nowhere they could reach — so callers should route them into a
+ * verification step (code entry + resend) instead of surfacing a dead-end
+ * error. Accepts an {@code ApiRequestError} or a raw problem payload.
+ */
+export function isEmailNotVerifiedError(error: unknown): boolean {
+  const err = error as { status?: unknown; payload?: unknown } | null | undefined;
+  const payload = err?.payload ?? error;
+  const problem = parseProblem(payload);
+  if (!problem) {
+    return false;
+  }
+  const status = typeof err?.status === "number" ? err.status : problem.status;
+  return status === 403 && EMAIL_NOT_VERIFIED_DETAIL.test(problem.detail ?? "");
+}
+
+/**
  * Whether an API failure means the stored session is unusable and the client should
  * clear auth data and redirect to login. Skips public/unauthenticated calls (e.g. login).
  *

@@ -97,6 +97,40 @@ export function destinationForShopAccountSignIn(
 }
 
 /**
+ * Whether a buyer who just signed in should remain on the page they came from
+ * rather than follow {@link resolvePostAuthDestination}'s answer.
+ *
+ * `/shop/account` is a sign-in *door* there, so buyers are forwarded off it to
+ * `/`. That is right for a door, but wrong once the shopper has arrived: the
+ * account hub is where their orders, store credit, points and tab live. A
+ * shopper standing on the hub — or whose `?next=` was the hub — must stay so
+ * the hub can render instead of bouncing them back to the catalog.
+ */
+export function buyerStaysOnPage(params: {
+  destination: string | null | undefined;
+  pathname: string;
+  /** The allowlisted `?next=` the shopper signed in from, if any. */
+  requestedNext?: string | null;
+}): boolean {
+  const { destination, pathname, requestedNext } = params;
+  if (
+    !destination ||
+    destination === pathname ||
+    destination === APP_ROUTES.shop
+  ) {
+    return true;
+  }
+  // A credit-tab path is more specific than the hub — the shopper asked for
+  // their tab, so let the destination win.
+  if (isCustomerTabPath(destination)) {
+    return false;
+  }
+  return (
+    isShopAccountPath(requestedNext) && pathname === APP_ROUTES.shopAccount
+  );
+}
+
+/**
  * Attach a credit-tab path when the shopper hub shows a directory customer
  * (or an open balance) with a usable Kenyan mobile.
  */

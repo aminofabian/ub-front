@@ -17,6 +17,9 @@ import { useSetupProgress } from "@/hooks/use-setup-progress";
 import { dismissSetupProgress, snoozeSetupProgress } from "@/lib/api";
 import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
 import type { SetupProgressStepRecord } from "@/lib/api";
+import {
+  resolveSetupProgressActionUrl,
+} from "@/lib/first-sale-activate";
 import { cn } from "@/lib/utils";
 
 type SetupProgressBannerProps = {
@@ -40,8 +43,17 @@ export function SetupProgressBanner({
 
   const current = data.steps.find((s) => s.status === "current") ?? null;
   const currentLabel = current?.label ?? "Getting your shop ready";
-  const actionUrl = current?.actionUrl ?? "/business";
+  const actionUrl = resolveSetupProgressActionUrl(
+    data.currentStepKey,
+    current?.actionUrl,
+  );
   const isPhoneStep = data.currentStepKey === "phone_verified";
+  const isFirstSaleStep = data.currentStepKey === "first_sale";
+  const primaryLabel = isPhoneStep
+    ? "Add phone"
+    : isFirstSaleStep
+      ? "Open till"
+      : "Go";
 
   const openPrimaryAction = () => {
     if (isPhoneStep) {
@@ -127,12 +139,12 @@ export function SetupProgressBanner({
                   className={primaryCtaClass}
                   onClick={openPrimaryAction}
                 >
-                  <span className="hidden sm:inline">Add phone</span>
+                  <span className="hidden sm:inline">{primaryLabel}</span>
                   <ArrowRight className="size-3.5" aria-hidden />
                 </button>
               ) : (
                 <Link href={actionUrl} className={primaryCtaClass}>
-                  <span className="hidden sm:inline">Go</span>
+                  <span className="hidden sm:inline">{primaryLabel}</span>
                   <ArrowRight className="size-3.5" aria-hidden />
                 </Link>
               )}
@@ -214,7 +226,7 @@ export function SetupProgressBanner({
                     href={actionUrl}
                     className="inline-flex h-8 items-center gap-1 bg-[#141414] px-3 text-xs font-semibold text-[#F5E6C8] hover:bg-[#2A2A2A]"
                   >
-                    Do this
+                    {isFirstSaleStep ? "Open till & sell" : "Do this"}
                     <ArrowRight className="size-3.5" aria-hidden />
                   </Link>
                 )}

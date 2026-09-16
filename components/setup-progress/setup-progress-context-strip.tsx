@@ -7,6 +7,7 @@ import { useState } from "react";
 import { SetupProgressGuideDrawer } from "@/components/setup-progress/setup-progress-guide-drawer";
 import { SetupProgressPhoneModal } from "@/components/setup-progress/setup-progress-phone-modal";
 import { useSetupProgress } from "@/hooks/use-setup-progress";
+import { resolveSetupProgressActionUrl } from "@/lib/first-sale-activate";
 import { setupStepMatchesPath } from "@/lib/setup-progress-routes";
 import { cn } from "@/lib/utils";
 
@@ -36,9 +37,18 @@ export function SetupProgressContextStrip({
   }
 
   const current = data.steps.find((s) => s.status === "current");
-  const actionUrl = current?.actionUrl ?? "/business";
+  const actionUrl = resolveSetupProgressActionUrl(
+    data.currentStepKey,
+    current?.actionUrl,
+  );
   const label = current?.label ?? "Continue setup";
   const isPhoneStep = data.currentStepKey === "phone_verified";
+  const isFirstSaleStep = data.currentStepKey === "first_sale";
+  const primaryLabel = isPhoneStep
+    ? "Add phone"
+    : isFirstSaleStep
+      ? "Open till"
+      : "Continue";
 
   return (
     <>
@@ -93,7 +103,7 @@ export function SetupProgressContextStrip({
                 "decoration-[#0f766e]/50 hover:decoration-[#0f766e]",
               )}
             >
-              Continue →
+              {primaryLabel} →
             </Link>
           )}
         </div>

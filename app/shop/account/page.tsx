@@ -140,8 +140,13 @@ export default function ShopAccountPage() {
                   setState("routing");
                   try {
                     const profile = await fetchMe();
-                    const left = await leaveForRole(profile);
-                    if (left) return;
+                    // This page *is* the buyer's account hub — it is a
+                    // destination, not a sign-in door. Only staff roles are
+                    // forwarded on (same guard as loadMe).
+                    if (!isBuyerAccount(profile)) {
+                      const left = await leaveForRole(profile);
+                      if (left) return;
+                    }
                     routingRef.current = false;
                     setMe(profile);
                     setState("ready");

@@ -524,6 +524,7 @@ export function OpenShiftModal({
   preferredBranchId,
   lockBranchSelectionTo,
   requireAction = false,
+  allowZeroFloat = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -535,6 +536,11 @@ export function OpenShiftModal({
   lockBranchSelectionTo?: string | null;
   /** Till-opening gate: ignore overlay / Escape so a mis-tap doesn't skip the count. */
   requireAction?: boolean;
+  /**
+   * First-sale activation: API allows openingCash 0; UI normally blocks it.
+   * When true, empty float is allowed so new owners aren't stuck before selling.
+   */
+  allowZeroFloat?: boolean;
 }) {
   const featureFlags = useFeatureFlags();
   const dashboard = useOptionalDashboard();
@@ -713,7 +719,7 @@ export function OpenShiftModal({
       setError("Please select a branch/register.");
       return;
     }
-    if (totalCash <= 0) {
+    if (totalCash < 0 || (!allowZeroFloat && totalCash <= 0)) {
       setError(
         useDenomBreakdown
           ? "Please enter at least one denomination quantity."
@@ -747,11 +753,36 @@ export function OpenShiftModal({
     quantities,
     totalCash,
     useDenomBreakdown,
+    allowZeroFloat,
     businessId,
     userId,
     onOpened,
     onClose,
   ]);
+
+  const openWithEmptyFloat = useCallback(async () => {
+    if (!branchId) {
+      setError("Please select a branch/register.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const shift = await postOpenShift({
+        branchId,
+        openingCash: 0,
+        notes: notes.trim() || "First sale — empty opening float",
+        denominations: undefined,
+      });
+      clearOpenShiftDraft(businessId, userId);
+      onOpened(shift);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to open shift.");
+    } finally {
+      setLoading(false);
+    }
+  }, [branchId, notes, businessId, userId, onOpened, onClose]);
 
   return (
     <Dialog
@@ -779,16 +810,18 @@ export function OpenShiftModal({
             </span>
             <div className="min-w-0 flex-1 space-y-0.5 pr-9">
               <DialogTitle className="font-heading text-[15px] font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-base">
-                Open New Shift
+                {allowZeroFloat ? "Open till for first sale" : "Open New Shift"}
               </DialogTitle>
               <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
-                {requireAction
-                  ? "No shift is open on this till. Count the float before selling."
-                  : useDenomBreakdown
-                    ? prefillFromLastClose
-                      ? "Review the opening float (pre-filled from last close). Adjust any note or coin if needed."
-                      : "Count notes, then coins."
-                    : `Enter the opening cash total in ${currency}. Note/coin breakdown is only available for KES.`}
+                {allowZeroFloat
+                  ? "Count what's in the drawer, or start with an empty float — then ring your first sale."
+                  : requireAction
+                    ? "No shift is open on this till. Count the float before selling."
+                    : useDenomBreakdown
+                      ? prefillFromLastClose
+                        ? "Review the opening float (pre-filled from last close). Adjust any note or coin if needed."
+                        : "Count notes, then coins."
+                      : `Enter the opening cash total in ${currency}. Note/coin breakdown is only available for KES.`}
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -880,13 +913,26 @@ export function OpenShiftModal({
                 {requireAction ? "Later" : "Cancel"}
               </Button>
             </DialogClose>
+            {allowZeroFloat ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading || prefillBusy || !branchId}
+                onClick={() => void openWithEmptyFloat()}
+                className={SHIFT_MODAL_BTN_OUTLINE}
+              >
+                Empty float
+              </Button>
+            ) : null}
             <Button
               type="button"
               disabled={loading || prefillBusy}
               onClick={handleOpen}
               className={SHIFT_MODAL_BTN_PRIMARY}
             >
-              {loading ? "Opening..." : `Open Shift (${moneyStr(totalCash, currency)})`}
+              {loading
+                ? "Opening..."
+                : `Open Shift (${moneyStr(totalCash, currency)})`}
             </Button>
           </DialogFooter>
       </DialogContent>

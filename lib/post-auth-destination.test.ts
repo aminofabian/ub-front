@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import { APP_ROUTES } from "@/lib/config";
 import {
   applyShopperTabHint,
+  buyerStaysOnPage,
   destinationForShopAccountSignIn,
   isShopNextPath,
   resolvePostAuthDestination,
@@ -422,6 +423,71 @@ describe("destinationForShopAccountSignIn", () => {
         completedOnboarding,
       ),
     ).toBe(APP_ROUTES.business);
+  });
+});
+
+describe("buyerStaysOnPage", () => {
+  const hub = APP_ROUTES.shopAccount;
+
+  it("keeps a shopper on their account hub when the hub was the sign-in target", () => {
+    // resolvePostAuthDestination forwards /shop/account to "/" (door
+    // semantics); the shopper signed in *from* the hub, so stay put.
+    expect(
+      buyerStaysOnPage({
+        destination: "/",
+        pathname: hub,
+        requestedNext: hub,
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps a shopper on the hub when the hub was the next with a query string", () => {
+    expect(
+      buyerStaysOnPage({
+        destination: "/",
+        pathname: hub,
+        requestedNext: `${hub}?tab=history`,
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps a shopper put when there is nowhere to go", () => {
+    expect(
+      buyerStaysOnPage({ destination: null, pathname: hub }),
+    ).toBe(true);
+  });
+
+  it("keeps a shopper put when the destination is the page they are on", () => {
+    expect(
+      buyerStaysOnPage({ destination: "/shop/cart", pathname: "/shop/cart" }),
+    ).toBe(true);
+  });
+
+  it("keeps a shopper put when the destination is the storefront home", () => {
+    expect(
+      buyerStaysOnPage({ destination: APP_ROUTES.shop, pathname: "/shop/cart" }),
+    ).toBe(true);
+  });
+
+  it("does not keep a shopper on a non-hub page asking for the hub", () => {
+    // Signing in from /shop must still honour the requested hop to the hub.
+    expect(
+      buyerStaysOnPage({
+        destination: "/",
+        pathname: APP_ROUTES.shop,
+        requestedNext: hub,
+      }),
+    ).toBe(false);
+  });
+
+  it("does not keep a shopper on the hub when a credit-tab path was requested", () => {
+    expect(
+      buyerStaysOnPage({
+        destination: "/0714282874",
+        pathname: hub,
+        requestedNext: hub,
+      }),
+    ).toBe(false);
   });
 });
 

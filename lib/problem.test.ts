@@ -6,6 +6,7 @@ import {
   getPosGuidanceKind,
   isAuthRecoveryUserMessage,
   isBareRequestFailureMessage,
+  isEmailNotVerifiedError,
   isItemNotFoundProblem,
   isSessionRelatedProblem,
   isTenantContextMissingProblem,
@@ -404,5 +405,55 @@ describe("problem formatting never emits raw 'Request failed'", () => {
     expect(formatApiProblemMessage({})).toBe(
       "Something went wrong. Please try again.",
     );
+  });
+});
+
+describe("isEmailNotVerifiedError", () => {
+  const problem = {
+    type: "about:blank",
+    title: "Forbidden",
+    status: 403,
+    detail:
+      "Email not verified. Open the link we sent you or use resend verification, then try again.",
+  };
+
+  it("matches the documented 403 detail on an ApiRequestError-shaped error", () => {
+    expect(isEmailNotVerifiedError({ status: 403, payload: problem })).toBe(true);
+  });
+
+  it("keeps matching when only the trailing copy changes", () => {
+    expect(
+      isEmailNotVerifiedError({
+        status: 403,
+        payload: { ...problem, detail: "Email not verified. Try again later." },
+      }),
+    ).toBe(true);
+  });
+
+  it("accepts a raw payload with no error wrapper", () => {
+    expect(isEmailNotVerifiedError(problem)).toBe(true);
+  });
+
+  it("does not match a different 403", () => {
+    expect(
+      isEmailNotVerifiedError({
+        status: 403,
+        payload: { ...problem, detail: "You do not have permission for this." },
+      }),
+    ).toBe(false);
+  });
+
+  it("does not match the same detail on a non-403 status", () => {
+    expect(isEmailNotVerifiedError({ status: 400, payload: problem })).toBe(
+      false,
+    );
+  });
+
+  it("ignores unrelated failures", () => {
+    expect(isEmailNotVerifiedError(new Error("Network unreachable"))).toBe(
+      false,
+    );
+    expect(isEmailNotVerifiedError(null)).toBe(false);
+    expect(isEmailNotVerifiedError(undefined)).toBe(false);
   });
 });
