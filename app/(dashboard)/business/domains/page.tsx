@@ -1,33 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CheckCircle2,
   Copy,
   ExternalLink,
   Globe,
   Link2,
   Loader2,
   Lock,
-  MoreHorizontal,
   Plus,
-  RefreshCw,
-  Search,
   ShieldCheck,
-  ShoppingCart,
   Star,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  BuyKenyanDomainWizard,
-  useDomainOrderStats,
-} from "@/components/business/buy-kenyan-domain-wizard";
+import { useDomainOrderStats } from "@/components/business/buy-kenyan-domain-wizard";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   DASHBOARD_MAX,
+  DASHBOARD_MAX_WIDE,
   DASHBOARD_SECTION_SURFACE,
   DashboardPageHero,
   dashboardHintClass,
@@ -43,6 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useMediaLg } from "@/hooks/use-media-lg";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import {
@@ -54,99 +48,28 @@ import {
   type DomainRecord,
 } from "@/lib/api";
 
-type TabId = "buy" | "manage" | "connect";
+import {
+  DomainChip,
+  sortDomains,
+  sourceLabel,
+  statusMeta,
+  type SortKey,
+} from "./_components/domain-helpers";
+import {
+  DomainsTheatre,
+  type TabId,
+} from "./_components/domains-theatre";
+
 type Busy =
   | { kind: "idle" }
   | { kind: "save" }
   | { kind: "row"; id: string; action: string };
-type SortKey = "domain" | "status" | "source";
 type DnsRecord = { type?: string; name?: string; value?: string };
-
-function sortDomains(
-  rows: DomainRecord[],
-  key: SortKey,
-  dir: "asc" | "desc",
-): DomainRecord[] {
-  const mul = dir === "asc" ? 1 : -1;
-  return [...rows].sort((a, b) => {
-    if (key === "domain") return mul * a.domain.localeCompare(b.domain);
-    if (key === "source")
-      return mul * (a.source || "").localeCompare(b.source || "");
-    const sa = (a.status || (a.active ? "active" : "pending")).toLowerCase();
-    const sb = (b.status || (b.active ? "active" : "pending")).toLowerCase();
-    return mul * sa.localeCompare(sb);
-  });
-}
 
 function messageFor(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.trim()
     ? error.message
     : fallback;
-}
-
-function statusMeta(row: DomainRecord): {
-  text: string;
-  className: string;
-} {
-  const status = (
-    row.status || (row.active ? "active" : "pending")
-  ).toLowerCase();
-  const source = (row.source || "").toLowerCase();
-  if (status === "active" && row.active)
-    return {
-      text: "Live",
-      className:
-        "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white",
-    };
-  if (status === "verifying")
-    return {
-      text: "Verifying",
-      className:
-        "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
-    };
-  if (status === "failed")
-    return {
-      text: "Failed",
-      className: "border-[#9a2e16]/35 text-[#9a2e16]",
-    };
-  if (source === "hostafrica_purchase")
-    return {
-      text: "Provisioning",
-      className:
-        "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]",
-    };
-  return {
-    text: "Pending DNS",
-    className:
-      "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
-  };
-}
-
-function DomainChip({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-none border bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-function sourceLabel(row: DomainRecord): string {
-  const source = (row.source || "").toLowerCase();
-  if (source === "platform_subdomain") return "Platform";
-  if (source === "hostafrica_purchase") return "Purchased";
-  if (source === "manual_connect") return "Connected";
-  return "Domain";
 }
 
 function recommendedRecords(row: DomainRecord): DnsRecord[] {
@@ -181,53 +104,6 @@ function LockedNotice() {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  hint,
-  icon: Icon,
-  onClick,
-}: {
-  label: string;
-  value: string | number;
-  hint?: string;
-  icon: typeof Globe;
-  onClick?: () => void;
-}) {
-  const Comp = onClick ? "button" : "div";
-  return (
-    <Comp
-      type={onClick ? "button" : undefined}
-      onClick={onClick}
-      className={cn(
-        "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 text-left shadow-none transition-colors",
-        onClick &&
-          "hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-            {label}
-          </p>
-          <p
-            className="mt-2 text-2xl font-semibold tracking-[-0.03em] tabular-nums text-[#141414]"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            {value}
-          </p>
-          {hint ? (
-            <p className={cn(dashboardHintClass(), "mt-1")}>{hint}</p>
-          ) : null}
-        </div>
-        <span className="flex size-9 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-muted-foreground">
-          <Icon className="size-4" aria-hidden />
-        </span>
-      </div>
-    </Comp>
-  );
-}
-
 function DomainDetailDrawer({
   row,
   open,
@@ -236,6 +112,8 @@ function DomainDetailDrawer({
   onMakePrimary,
   onVerify,
   onDelete,
+  docked = false,
+  dockRoot = null,
 }: {
   row: DomainRecord | null;
   open: boolean;
@@ -244,6 +122,8 @@ function DomainDetailDrawer({
   onMakePrimary: (row: DomainRecord) => void;
   onVerify: (row: DomainRecord) => void;
   onDelete: (row: DomainRecord) => void;
+  docked?: boolean;
+  dockRoot?: HTMLElement | null;
 }) {
   if (!row) return null;
   const badge = statusMeta(row);
@@ -273,7 +153,12 @@ function DomainDetailDrawer({
       title={row.domain}
       description={`${sourceLabel(row)} · ${badge.text}`}
       icon={<Globe className="size-4" aria-hidden />}
-      width="wide"
+      width={docked ? "default" : "wide"}
+      appearance="sharp"
+      headerDensity={docked ? "compact" : "default"}
+      bodyLayout={docked ? "fill" : "scroll"}
+      docked={docked}
+      dockRoot={dockRoot}
       footer={
         <div className="flex flex-wrap gap-2">
           {row.active ? (
@@ -420,6 +305,7 @@ function ConnectDomainDrawer({
       title="Connect a domain you own"
       description="Point DNS at Vercel, then verify. Your free platform URL stays the default login host."
       icon={<Link2 className="size-4" aria-hidden />}
+      appearance="sharp"
       footer={
         <div className="flex gap-2">
           <Button
@@ -467,104 +353,10 @@ function ConnectDomainDrawer({
   );
 }
 
-function RowActionsMenu({
-  row,
-  busy,
-  onOpen,
-  onMakePrimary,
-  onVerify,
-  onDelete,
-}: {
-  row: DomainRecord;
-  busy: boolean;
-  onOpen: () => void;
-  onMakePrimary: () => void;
-  onVerify: () => void;
-  onDelete: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const isPlatform = (row.source || "").toLowerCase() === "platform_subdomain";
-  const isPurchase = (row.source || "").toLowerCase() === "hostafrica_purchase";
-  const needsVerify = !isPlatform && !isPurchase && !row.active;
-
-  return (
-    <div className="relative">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="size-8 p-0"
-        disabled={busy}
-        aria-label="Row actions"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <MoreHorizontal className="size-4" aria-hidden />
-      </Button>
-      {open ? (
-        <>
-          <button
-            type="button"
-            className="fixed inset-0 z-40 cursor-default"
-            aria-label="Close menu"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute right-0 z-50 mt-1 min-w-[11rem] overflow-hidden rounded-none border border-border/70 bg-background py-1 shadow-none">
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/50"
-              onClick={() => {
-                setOpen(false);
-                onOpen();
-              }}
-            >
-              View details
-            </button>
-            {needsVerify ? (
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/50"
-                onClick={() => {
-                  setOpen(false);
-                  onVerify();
-                }}
-              >
-                <ShieldCheck className="size-3.5" aria-hidden />
-                Verify
-              </button>
-            ) : null}
-            <button
-              type="button"
-              disabled={row.primary || !row.active}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/50 disabled:opacity-40"
-              onClick={() => {
-                setOpen(false);
-                onMakePrimary();
-              }}
-            >
-              <Star className="size-3.5" aria-hidden />
-              Make primary
-            </button>
-            <button
-              type="button"
-              disabled={row.primary || isPlatform}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[#9a2e16] hover:bg-[color-mix(in_srgb,#9a2e16_5%,white)] disabled:opacity-40"
-              onClick={() => {
-                setOpen(false);
-                onDelete();
-              }}
-            >
-              <Trash2 className="size-3.5" aria-hidden />
-              Remove
-            </button>
-          </div>
-        </>
-      ) : null}
-    </div>
-  );
-}
-
 export default function DomainsPage() {
   const { canManageBusinessSettings } = useDashboard();
+  const isLg = useMediaLg();
+  const [dockRoot, setDockRoot] = useState<HTMLDivElement | null>(null);
   const [tab, setTab] = useState<TabId>("buy");
   const [rows, setRows] = useState<DomainRecord[]>([]);
   const [busy, setBusy] = useState<Busy>({ kind: "idle" });
@@ -574,8 +366,6 @@ export default function DomainsPage() {
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("domain");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(0);
-  const pageSize = 8;
   const [detailRow, setDetailRow] = useState<DomainRecord | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
@@ -691,13 +481,6 @@ export default function DomainsPage() {
     return sortDomains(list, sortKey, sortDir);
   }, [rows, query, sourceFilter, sortKey, sortDir]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const pageRows = filtered.slice(page * pageSize, page * pageSize + pageSize);
-
-  useEffect(() => {
-    setPage(0);
-  }, [query, sourceFilter]);
-
   if (!canManageBusinessSettings) return <LockedNotice />;
 
   const rowBusyId = busy.kind === "row" ? busy.id : null;
@@ -708,516 +491,66 @@ export default function DomainsPage() {
   const liveCount = rows.filter((r) => r.active).length;
   const pendingCount = rows.filter((r) => !r.active).length;
 
-  const tabs: {
-    id: TabId;
-    label: string;
-    icon: typeof Globe;
-    count?: number;
-  }[] = [
-    {
-      id: "buy",
-      label: "Buy .ke",
-      icon: ShoppingCart,
-      count: orderStats.awaitingPay || undefined,
-    },
-    {
-      id: "manage",
-      label: "Your domains",
-      icon: Globe,
-      count: rows.length || undefined,
-    },
-    { id: "connect", label: "Connect own", icon: Link2 },
-  ];
-
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
+  const clearSelection = () => {
+    setDetailRow(null);
+    setDetailOpen(false);
   };
 
   return (
-    <div className={DASHBOARD_MAX}>
-      <DashboardPageHero
-        icon={Globe}
-        eyebrow="Connectivity"
-        title="Domains"
-        description="Buy a Kenyan domain, manage mapped hostnames, or connect one you already own — customers shop on custom domains; staff login stays on your free platform URL."
-      />
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Live"
-          value={liveCount}
-          hint="Active hostnames"
-          icon={CheckCircle2}
-          onClick={() => setTab("manage")}
-        />
-        <StatCard
-          label="Pending"
-          value={pendingCount}
-          hint="Awaiting DNS / SSL"
-          icon={ShieldCheck}
-          onClick={() => setTab("manage")}
-        />
-        <StatCard
-          label="Purchases"
-          value={orderStats.open}
-          hint={
-            orderStats.awaitingPay
-              ? `${orderStats.awaitingPay} awaiting pay`
-              : "Open orders"
-          }
-          icon={ShoppingCart}
-          onClick={() => setTab("buy")}
-        />
-        <StatCard
-          label="Free URL"
-          value={platformRow ? "On" : "—"}
-          hint={platformRow?.domain || "Platform subdomain"}
+    <>
+      <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+        <DashboardPageHero
           icon={Globe}
+          eyebrow="Connectivity"
+          title="Domains"
+          description="Buy a Kenyan domain, manage mapped hostnames, or connect one you already own — customers shop on custom domains; staff login stays on your free platform URL."
         />
-      </div>
 
-      {platformRow ? (
-        <div className="flex flex-col gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <div className="flex min-w-0 items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]">
-              <CheckCircle2 className="size-4" aria-hidden />
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold tracking-tight">
-                Your free shop URL is live
-              </p>
-              <p className="mt-0.5 truncate font-mono text-sm text-muted-foreground">
-                {platformRow.domain}
-              </p>
-            </div>
-          </div>
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="shrink-0 gap-1.5"
-          >
-            <a
-              href={`https://${platformRow.domain}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Visit shop
-              <ExternalLink className="size-3.5" aria-hidden />
-            </a>
-          </Button>
-        </div>
-      ) : null}
-
-      <div className="space-y-5">
-        <div
-          role="tablist"
-          aria-label="Domains sections"
-          className="flex flex-wrap gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-1"
-        >
-          {tabs.map(({ id, label, icon: Icon, count }) => {
-            const active = tab === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-none px-3.5 py-2 text-sm font-medium transition-all",
-                  active
-                    ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                    : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
-                )}
-                onClick={() => setTab(id)}
-              >
-                <Icon className="size-3.5" aria-hidden />
-                {label}
-                {count != null && count > 0 ? (
-                  <span
-                    className={cn(
-                      "rounded-none px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
-                      active
-                        ? "bg-white/20 text-white"
-                        : "border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]",
-                    )}
-                  >
-                    {count}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-
-        {tab === "buy" ? (
-          <div role="tabpanel" className="animate-in fade-in-0 duration-200">
-            <div className={cn(DASHBOARD_SECTION_SURFACE, "space-y-6")}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 max-w-xl">
-                  <p className="font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                    Kenyan TLDs
-                  </p>
-                  <h2 className="mt-1.5 text-xl font-semibold tracking-tight">
-                    Find and buy your .ke name
-                  </h2>
-                  <p className={cn(dashboardHintClass(), "mt-2")}>
-                    Search availability, pay with M-Pesa in a focused modal, and
-                    we register and provision it for you.
-                  </p>
-                </div>
-              </div>
-              <BuyKenyanDomainWizard
-                embedded
-                onLive={() => {
-                  void reload();
-                  void orderStats.reload().catch(() => undefined);
-                }}
-              />
-            </div>
-          </div>
-        ) : null}
-
-        {tab === "connect" ? (
-          <div role="tabpanel" className="animate-in fade-in-0 duration-200">
-            <div className={cn(DASHBOARD_SECTION_SURFACE, "max-w-2xl")}>
-              <div className="flex items-start gap-4">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-none border border-border/60 bg-muted/40 text-muted-foreground">
-                  <Link2 className="size-4" aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-lg font-semibold tracking-tight">
-                    Already own a domain?
-                  </h2>
-                  <p className={cn(dashboardHintClass(), "mt-2")}>
-                    Connect a hostname you manage elsewhere. We&apos;ll show the
-                    DNS records to point at us, then you verify when
-                    they&apos;ve propagated. Your free platform URL remains the
-                    default staff login host.
-                  </p>
-                  <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
-                    <li className="flex gap-2">
-                      <span className="font-semibold text-foreground">1.</span>
-                      Enter the apex or subdomain you want to map.
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold text-foreground">2.</span>
-                      Update DNS at your registrar with the recommended records.
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold text-foreground">3.</span>
-                      Open the domain details and tap Verify.
-                    </li>
-                  </ol>
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      className="gap-1.5"
-                      onClick={() => setConnectOpen(true)}
-                    >
-                      <Plus className="size-3.5" aria-hidden />
-                      Connect domain
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setTab("manage")}
-                    >
-                      View your domains
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {tab === "manage" ? (
-          <div
-            role="tabpanel"
-            className="space-y-4 animate-in fade-in-0 duration-200"
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="relative min-w-0 flex-1 sm:max-w-sm">
-                <Search
-                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                  aria-hidden
-                />
-                <input
-                  className={dashboardInputClass(false, "h-10 pl-9")}
-                  placeholder="Search domains…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  className={dashboardInputClass(
-                    false,
-                    "h-10 w-auto cursor-pointer py-2",
-                  )}
-                  value={sourceFilter}
-                  onChange={(e) => setSourceFilter(e.target.value)}
-                  aria-label="Filter by source"
-                >
-                  <option value="all">All sources</option>
-                  <option value="platform_subdomain">Platform</option>
-                  <option value="hostafrica_purchase">Purchased</option>
-                  <option value="manual_connect">Connected</option>
-                </select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => void reload()}
-                >
-                  <RefreshCw className="size-3.5" aria-hidden />
-                  Reload
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => setConnectOpen(true)}
-                >
-                  <Plus className="size-3.5" aria-hidden />
-                  Connect
-                </Button>
-              </div>
-            </div>
-
-            {showListLoading ? (
-              <div className="space-y-2">
-                {[0, 1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-14 animate-pulse rounded-none border border-border/50 bg-muted/30"
-                  />
-                ))}
-              </div>
-            ) : loadFailed ? (
-              <div className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] p-8 text-center">
-                <p className="text-sm font-medium text-[#9a2e16]">
-                  Could not load domains
-                </p>
-                <Button
-                  className="mt-4 gap-2"
-                  variant="outline"
-                  onClick={() => void reload()}
-                >
-                  <RefreshCw className="size-4" aria-hidden />
-                  Try again
-                </Button>
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="rounded-none border border-dashed border-border/70 bg-muted/15 px-6 py-14 text-center">
-                <Globe
-                  className="mx-auto size-9 text-muted-foreground/55"
-                  aria-hidden
-                />
-                <p className="mt-3 text-sm font-medium">No domains match</p>
-                <p
-                  className={cn(dashboardHintClass(), "mx-auto mt-1 max-w-sm")}
-                >
-                  Buy a .ke name or connect a hostname you already own.
-                </p>
-                <div className="mt-4 flex justify-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setTab("buy")}
-                  >
-                    Buy .ke
-                  </Button>
-                  <Button size="sm" onClick={() => setConnectOpen(true)}>
-                    Connect own
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="overflow-hidden rounded-none border border-border/70 bg-card shadow-none">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[640px] text-left text-sm">
-                    <thead className="border-b border-border/50 bg-muted/35 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                      <tr>
-                        <th className="px-4 py-3">
-                          <button
-                            type="button"
-                            className="hover:text-foreground"
-                            onClick={() => toggleSort("domain")}
-                          >
-                            Domain{" "}
-                            {sortKey === "domain"
-                              ? sortDir === "asc"
-                                ? "↑"
-                                : "↓"
-                              : ""}
-                          </button>
-                        </th>
-                        <th className="px-4 py-3">
-                          <button
-                            type="button"
-                            className="hover:text-foreground"
-                            onClick={() => toggleSort("status")}
-                          >
-                            Status{" "}
-                            {sortKey === "status"
-                              ? sortDir === "asc"
-                                ? "↑"
-                                : "↓"
-                              : ""}
-                          </button>
-                        </th>
-                        <th className="px-4 py-3">
-                          <button
-                            type="button"
-                            className="hover:text-foreground"
-                            onClick={() => toggleSort("source")}
-                          >
-                            Source{" "}
-                            {sortKey === "source"
-                              ? sortDir === "asc"
-                                ? "↑"
-                                : "↓"
-                              : ""}
-                          </button>
-                        </th>
-                        <th className="px-4 py-3 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/50">
-                      {pageRows.map((row) => {
-                        const badge = statusMeta(row);
-                        const busyRow = rowBusyId === row.id;
-                        return (
-                          <tr
-                            key={row.id}
-                            className={cn(
-                              "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
-                              row.primary &&
-                                "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]",
-                            )}
-                          >
-                            <td className="px-4 py-3">
-                              <button
-                                type="button"
-                                className="group flex min-w-0 flex-col text-left"
-                                onClick={() => {
-                                  setDetailRow(row);
-                                  setDetailOpen(true);
-                                }}
-                              >
-                                <span className="font-mono text-sm font-semibold tracking-tight group-hover:text-[var(--pos-primary,#0f766e)]">
-                                  {row.domain}
-                                </span>
-                                {row.primary ? (
-                                  <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--pos-primary,#0f766e)]">
-                                    <Star className="size-3" aria-hidden />
-                                    Primary
-                                  </span>
-                                ) : null}
-                              </button>
-                            </td>
-                            <td className="px-4 py-3">
-                              <DomainChip className={badge.className}>
-                                {badge.text}
-                              </DomainChip>
-                            </td>
-                            <td className="px-4 py-3 text-muted-foreground">
-                              {sourceLabel(row)}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {row.active ? (
-                                  <Button
-                                    asChild
-                                    variant="ghost"
-                                    size="sm"
-                                    className="size-8 p-0"
-                                  >
-                                    <a
-                                      href={`https://${row.domain}`}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      aria-label="Open site"
-                                    >
-                                      <ExternalLink
-                                        className="size-3.5"
-                                        aria-hidden
-                                      />
-                                    </a>
-                                  </Button>
-                                ) : null}
-                                <RowActionsMenu
-                                  row={row}
-                                  busy={busyRow}
-                                  onOpen={() => {
-                                    setDetailRow(row);
-                                    setDetailOpen(true);
-                                  }}
-                                  onMakePrimary={() =>
-                                    void handleMakePrimary(row)
-                                  }
-                                  onVerify={() => void handleVerify(row)}
-                                  onDelete={() => setDeleteRow(row)}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {pageCount > 1 ? (
-                  <div className="flex items-center justify-between border-t border-border/50 px-4 py-3 text-xs text-muted-foreground">
-                    <span>
-                      {filtered.length} domain{filtered.length === 1 ? "" : "s"}{" "}
-                      · page {page + 1} of {pageCount}
-                    </span>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={page === 0}
-                        onClick={() => setPage((p) => Math.max(0, p - 1))}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={page >= pageCount - 1}
-                        onClick={() =>
-                          setPage((p) => Math.min(pageCount - 1, p + 1))
-                        }
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </div>
-        ) : null}
+        <DomainsTheatre
+          tab={tab}
+          onTabChange={setTab}
+          rows={rows}
+          filtered={filtered}
+          query={query}
+          onQueryChange={setQuery}
+          sourceFilter={sourceFilter}
+          onSourceFilterChange={setSourceFilter}
+          showListLoading={showListLoading}
+          loadFailed={loadFailed}
+          onReload={() => void reload()}
+          liveCount={liveCount}
+          pendingCount={pendingCount}
+          orderStats={orderStats}
+          platformRow={platformRow}
+          selectedRow={detailRow}
+          detailOpen={detailOpen}
+          onSelect={(row) => {
+            setDetailRow(row);
+            setDetailOpen(true);
+          }}
+          onConnectOpen={() => setConnectOpen(true)}
+          onBuyLive={() => {
+            void reload();
+            void orderStats.reload().catch(() => undefined);
+          }}
+          rowBusyId={rowBusyId}
+          dockRef={setDockRoot}
+        />
       </div>
 
       <DomainDetailDrawer
         row={detailRow}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
+        open={detailOpen && !!detailRow}
+        onOpenChange={(open) => {
+          setDetailOpen(open);
+          if (!open) clearSelection();
+        }}
         busy={!!detailRow && rowBusyId === detailRow.id}
         onMakePrimary={(r) => void handleMakePrimary(r)}
         onVerify={(r) => void handleVerify(r)}
         onDelete={(r) => setDeleteRow(r)}
+        docked={isLg}
+        dockRoot={dockRoot}
       />
 
       <ConnectDomainDrawer
@@ -1265,6 +598,6 @@ export default function DomainsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

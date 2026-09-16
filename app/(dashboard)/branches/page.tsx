@@ -1,30 +1,21 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  AlertCircle,
   Building2,
   CheckCircle2,
-  ChevronDown,
   Globe,
   Loader2,
   MapPin,
   Palette,
   Plus,
   RefreshCw,
-  Save,
-  SlidersHorizontal,
-  Store,
 } from "lucide-react";
-import { Collapsible } from "radix-ui";
 
-import { CupsPrinterPicker } from "@/components/cups-printer-picker";
 import { useDashboard } from "@/components/dashboard-provider";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import {
-  DASHBOARD_MAX,
-  DASHBOARD_TABLE_HEAD,
-  DASHBOARD_TABLE_SURFACE,
+  DASHBOARD_MAX_WIDE,
   DashboardFeedback,
   DashboardLoadError,
   DashboardLoading,
@@ -32,11 +23,8 @@ import {
   DashboardQuickLinks,
   dashboardHintClass,
   dashboardInputClass,
-  dashboardTextareaClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { branchReceiptDraft, branchReceiptPayload } from "@/lib/branch-receipt";
@@ -48,14 +36,12 @@ import {
 } from "@/lib/api";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 
+import { BranchesTheatre } from "./_components/branches-theatre";
+import type { BranchEditRow } from "./_components/branch-detail-drawer";
+
 type BranchDraft = {
   name: string;
   address: string;
-};
-
-type BranchEditRow = BranchDraft & {
-  active: boolean;
-  receipt: ReturnType<typeof branchReceiptDraft>;
 };
 
 const EMPTY_DRAFT: BranchDraft = { name: "", address: "" };
@@ -78,12 +64,12 @@ export default function BranchesPage() {
   );
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterActive, setFilterActive] = useState<
     "all" | "active" | "inactive"
   >("all");
-  const [receiptOpen, setReceiptOpen] = useState<Record<string, boolean>>({});
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
   const canManage = canManageBusinessSettings;
 
@@ -150,6 +136,33 @@ export default function BranchesPage() {
 
   const activeFilterCount =
     (search.trim() ? 1 : 0) + (filterActive !== "all" ? 1 : 0);
+
+  const selectedBranch = useMemo(
+    () => rows.find((b) => b.id === selectedId) ?? null,
+    [rows, selectedId],
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectedId(null);
+    setMobileShowDetail(false);
+  }, []);
+
+  const selectBranch = useCallback(
+    (branch: BranchRecord) => {
+      if (selectedId === branch.id) {
+        clearSelection();
+        return;
+      }
+      setSelectedId(branch.id);
+      setMobileShowDetail(true);
+    },
+    [selectedId, clearSelection],
+  );
+
+  const clearFilters = useCallback(() => {
+    setSearch("");
+    setFilterActive("all");
+  }, []);
 
   const onCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -226,7 +239,7 @@ export default function BranchesPage() {
   }
 
   return (
-    <div className={DASHBOARD_MAX}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
       <DashboardPageHero
         icon={MapPin}
         eyebrow="Locations"
@@ -264,21 +277,6 @@ export default function BranchesPage() {
             },
           ]}
         />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 rounded-none"
-          onClick={() => setFiltersOpen(true)}
-        >
-          <SlidersHorizontal className="size-3.5" aria-hidden />
-          Filters
-          {activeFilterCount > 0 ? (
-            <span className="ml-0.5 inline-flex min-w-5 justify-center rounded-none border border-[var(--pos-primary,#0f766e)] px-1.5 text-[10px] font-semibold text-[var(--pos-primary,#0f766e)]">
-              {activeFilterCount}
-            </span>
-          ) : null}
-        </Button>
         <Button
           type="button"
           variant="outline"
@@ -330,8 +328,8 @@ export default function BranchesPage() {
                 "text-[color-mix(in_srgb,var(--order-ink,#15231f)_72%,transparent)]",
               )}
             >
-              Tune address, status, and receipt details in the table — expand
-              &ldquo;Receipt details&rdquo; per row.
+              Select it in the list to tune address, status, and receipt
+              details in the dossier.
             </p>
           </div>
         </div>
@@ -344,78 +342,36 @@ export default function BranchesPage() {
         />
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-              Total locations
-            </CardTitle>
-            <Store className="size-4 text-muted-foreground/70" aria-hidden />
-          </CardHeader>
-          <CardContent>
-            <p className="font-heading text-3xl font-semibold tabular-nums tracking-[-0.03em]">
-              {stats.total}
-            </p>
-            <p className={cn(dashboardHintClass(), "mt-1")}>
-              Branches on this workspace
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-              Active
-            </CardTitle>
-            <CheckCircle2
-              className="size-4 text-[var(--pos-primary,#0f766e)]"
-              aria-hidden
-            />
-          </CardHeader>
-          <CardContent>
-            <p className="font-heading text-3xl font-semibold tabular-nums tracking-[-0.03em] text-[var(--pos-primary,#0f766e)]">
-              {stats.active}
-            </p>
-            <p className={cn(dashboardHintClass(), "mt-1")}>
-              Available for assignment &amp; POS
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-              Inactive
-            </CardTitle>
-            <AlertCircle
-              className={cn(
-                "size-4",
-                stats.inactive > 0
-                  ? "text-[#9a2e16]"
-                  : "text-muted-foreground/70",
-              )}
-              aria-hidden
-            />
-          </CardHeader>
-          <CardContent>
-            <p
-              className={cn(
-                "font-heading text-3xl font-semibold tabular-nums tracking-[-0.03em]",
-                stats.inactive > 0 ? "text-[#9a2e16]" : undefined,
-              )}
-            >
-              {stats.inactive}
-            </p>
-            <p className={cn(dashboardHintClass(), "mt-1")}>
-              Hidden from active pickers
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <BranchesTheatre
+        rows={rows}
+        filteredRows={filteredRows}
+        edits={edits}
+        onEditChange={(branchId, next) =>
+          setEdits((previous) => ({ ...previous, [branchId]: next }))
+        }
+        search={search}
+        onSearchChange={setSearch}
+        filterActive={filterActive}
+        onFilterActive={setFilterActive}
+        activeFilterCount={activeFilterCount}
+        onClearFilters={clearFilters}
+        stats={stats}
+        canManage={canManage}
+        selectedId={selectedId}
+        selectedBranch={selectedBranch}
+        onSelect={selectBranch}
+        onClearSelection={clearSelection}
+        mobileShowDetail={mobileShowDetail}
+        savingId={savingId}
+        onSave={(branchId) => void onSaveRow(branchId)}
+        onAddBranch={canManage ? () => setCreateOpen(true) : undefined}
+      />
 
       <FormDrawer
         open={createOpen}
         onOpenChange={setCreateOpen}
         title="Add branch"
-        description="Create a location, then refine address, activation, and receipt copy in the table."
+        description="Create a location, then refine address, activation, and receipt copy in the dossier."
         icon={<Plus className="size-5" aria-hidden />}
         width="default"
       >
@@ -492,535 +448,6 @@ export default function BranchesPage() {
           </div>
         </form>
       </FormDrawer>
-
-      <FormDrawer
-        open={filtersOpen}
-        onOpenChange={setFiltersOpen}
-        title="Filter branches"
-        description="Narrow the list by text or activation state. Filters apply in the browser only."
-        icon={<SlidersHorizontal className="size-5" aria-hidden />}
-      >
-        <div className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="branch-filter-q">
-              Search
-            </label>
-            <input
-              id="branch-filter-q"
-              className={dashboardInputClass()}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Name, address, or ID"
-            />
-          </div>
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">Status</legend>
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  ["all", "All"],
-                  ["active", "Active"],
-                  ["inactive", "Inactive"],
-                ] as const
-              ).map(([value, label]) => (
-                <Button
-                  key={value}
-                  type="button"
-                  size="sm"
-                  variant={filterActive === value ? "default" : "outline"}
-                  className={cn(
-                    "rounded-none shadow-none",
-                    filterActive === value &&
-                      "bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]",
-                  )}
-                  onClick={() => setFilterActive(value)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
-          </fieldset>
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full"
-            onClick={() => {
-              setSearch("");
-              setFilterActive("all");
-            }}
-          >
-            Reset filters
-          </Button>
-        </div>
-      </FormDrawer>
-
-      <section className={DASHBOARD_TABLE_SURFACE}>
-        <div
-          className={cn(
-            DASHBOARD_TABLE_HEAD,
-            "flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between",
-          )}
-        >
-          <div>
-            <h2 className="text-sm font-semibold tracking-tight text-foreground">
-              All branches
-            </h2>
-            <p className={cn(dashboardHintClass(), "mt-0.5")}>
-              Showing{" "}
-              <span className="font-medium text-foreground tabular-nums">
-                {filteredRows.length}
-              </span>{" "}
-              of{" "}
-              <span className="font-medium text-foreground tabular-nums">
-                {rows.length}
-              </span>
-              {canManage
-                ? " · Save persists name, address, status, and receipt block together."
-                : null}
-            </p>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="border-b border-border/60 bg-muted/25 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-              <tr>
-                <th className="px-5 py-3.5 font-medium sm:px-6">Name</th>
-                <th className="px-5 py-3.5 font-medium sm:px-6">Address</th>
-                <th className="px-5 py-3.5 font-medium sm:px-6">Status</th>
-                {canManage ? (
-                  <th className="w-36 px-5 py-3.5 text-right font-medium sm:px-6">
-                    Actions
-                  </th>
-                ) : null}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {filteredRows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={canManage ? 4 : 3}
-                    className="px-5 py-14 text-center text-sm text-muted-foreground sm:px-6"
-                  >
-                    {rows.length === 0
-                      ? "No branches yet."
-                      : "No branches match your filters."}
-                    {rows.length === 0 && canManage
-                      ? " Use Add branch to create one."
-                      : ""}
-                  </td>
-                </tr>
-              ) : (
-                filteredRows.map((branch) => {
-                  const row = edits[branch.id];
-                  const colSpan = canManage ? 4 : 3;
-                  const receiptExpanded = receiptOpen[branch.id] ?? false;
-                  return (
-                    <Fragment key={branch.id}>
-                      <tr className="transition-colors hover:bg-muted/30">
-                        <td className="px-5 py-3.5 align-top sm:px-6">
-                          {canManage && row ? (
-                            <input
-                              className={cn(dashboardInputClass(), "text-sm")}
-                              value={row.name}
-                              onChange={(event) =>
-                                setEdits((previous) => ({
-                                  ...previous,
-                                  [branch.id]: {
-                                    ...row,
-                                    name: event.target.value,
-                                  },
-                                }))
-                              }
-                              aria-label={`Edit name for ${branch.name}`}
-                            />
-                          ) : (
-                            <span className="font-medium text-foreground">
-                              {branch.name}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-5 py-3.5 align-top sm:px-6">
-                          {canManage && row ? (
-                            <input
-                              className={cn(dashboardInputClass(), "text-sm")}
-                              value={row.address}
-                              onChange={(event) =>
-                                setEdits((previous) => ({
-                                  ...previous,
-                                  [branch.id]: {
-                                    ...row,
-                                    address: event.target.value,
-                                  },
-                                }))
-                              }
-                              aria-label={`Edit address for ${branch.name}`}
-                            />
-                          ) : (
-                            <span className="text-muted-foreground">
-                              {branch.address ?? "—"}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-5 py-3.5 align-top sm:px-6">
-                          {canManage && row ? (
-                            <label className="relative inline-flex cursor-pointer items-center gap-3">
-                              <span
-                                className={cn(
-                                  "inline-flex items-center rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
-                                  row.active
-                                    ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white"
-                                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
-                                )}
-                              >
-                                {row.active ? "Active" : "Inactive"}
-                              </span>
-                              <span className="relative inline-flex h-7 w-12 shrink-0 items-center">
-                                <input
-                                  type="checkbox"
-                                  className="peer sr-only"
-                                  checked={row.active}
-                                  onChange={(event) =>
-                                    setEdits((previous) => ({
-                                      ...previous,
-                                      [branch.id]: {
-                                        ...row,
-                                        active: event.target.checked,
-                                      },
-                                    }))
-                                  }
-                                />
-                                <span
-                                  className={cn(
-                                    "absolute inset-0 rounded-full bg-muted-foreground/25 transition-colors",
-                                    "peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--pos-primary,#0f766e)] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
-                                    "peer-checked:bg-[var(--pos-primary,#0f766e)]",
-                                  )}
-                                  aria-hidden
-                                />
-                                <span
-                                  className={cn(
-                                    "absolute left-0.5 top-0.5 z-10 size-6 rounded-full bg-background shadow-none transition-transform",
-                                    "peer-checked:translate-x-5",
-                                  )}
-                                  aria-hidden
-                                />
-                              </span>
-                            </label>
-                          ) : (
-                            <span
-                              className={cn(
-                                "inline-flex items-center rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
-                                branch.active
-                                  ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white"
-                                  : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
-                              )}
-                            >
-                              {branch.active ? "Active" : "Inactive"}
-                            </span>
-                          )}
-                        </td>
-                        {canManage ? (
-                          <td className="px-5 py-3.5 text-right align-top sm:px-6">
-                            <Button
-                              size="sm"
-                              type="button"
-                              className="gap-1.5 font-semibold shadow-none"
-                              disabled={savingId === branch.id}
-                              onClick={() => void onSaveRow(branch.id)}
-                            >
-                              {savingId === branch.id ? (
-                                <Loader2
-                                  className="size-3.5 animate-spin"
-                                  aria-hidden
-                                />
-                              ) : (
-                                <Save className="size-3.5" aria-hidden />
-                              )}
-                              Save
-                            </Button>
-                          </td>
-                        ) : null}
-                      </tr>
-                      {canManage && row ? (
-                        <tr className="bg-muted/[0.18] last:border-0">
-                          <td colSpan={colSpan} className="px-5 py-2 sm:px-6">
-                            <Collapsible.Root
-                              open={receiptExpanded}
-                              onOpenChange={(open) =>
-                                setReceiptOpen((prev) => ({
-                                  ...prev,
-                                  [branch.id]: open,
-                                }))
-                              }
-                            >
-                              <Collapsible.Trigger
-                                type="button"
-                                className={cn(
-                                  "flex w-full items-center justify-between gap-3 rounded-none border border-border/50 bg-background/80 px-3 py-2.5 text-left text-sm font-medium",
-                                  "transition-[background-color,box-shadow] hover:bg-muted/40 ",
-                                  "outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-                                )}
-                              >
-                                <span className="flex items-center gap-2 text-foreground">
-                                  Receipt details
-                                  <span className="text-xs font-normal text-muted-foreground">
-                                    (checkout footer &amp; contact)
-                                  </span>
-                                </span>
-                                <ChevronDown
-                                  className={cn(
-                                    "size-4 shrink-0 text-muted-foreground transition-transform duration-200",
-                                    receiptExpanded && "rotate-180",
-                                  )}
-                                  aria-hidden
-                                />
-                              </Collapsible.Trigger>
-                              <Collapsible.Content className="overflow-hidden data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0">
-                                <div className="mt-2 space-y-3 rounded-none border border-border/40 bg-background/60 p-4 shadow-inner sm:p-5">
-                                  <div className="grid gap-3 sm:grid-cols-2">
-                                    <input
-                                      className={cn(
-                                        dashboardInputClass(),
-                                        "text-sm",
-                                      )}
-                                      placeholder="Phone (e.g. 254712345678)"
-                                      value={row.receipt.phone}
-                                      onChange={(e) =>
-                                        setEdits((prev) => ({
-                                          ...prev,
-                                          [branch.id]: {
-                                            ...row,
-                                            receipt: {
-                                              ...row.receipt,
-                                              phone: e.target.value,
-                                            },
-                                          },
-                                        }))
-                                      }
-                                      aria-label={`Receipt phone for ${branch.name}`}
-                                    />
-                                    <input
-                                      className={cn(
-                                        dashboardInputClass(),
-                                        "text-sm",
-                                      )}
-                                      placeholder="Email"
-                                      type="email"
-                                      value={row.receipt.email}
-                                      onChange={(e) =>
-                                        setEdits((prev) => ({
-                                          ...prev,
-                                          [branch.id]: {
-                                            ...row,
-                                            receipt: {
-                                              ...row.receipt,
-                                              email: e.target.value,
-                                            },
-                                          },
-                                        }))
-                                      }
-                                      aria-label={`Receipt email for ${branch.name}`}
-                                    />
-                                    <input
-                                      className={cn(
-                                        dashboardInputClass(),
-                                        "text-sm sm:col-span-2",
-                                      )}
-                                      placeholder="Website (https://yourshop.com)"
-                                      value={row.receipt.website}
-                                      onChange={(e) =>
-                                        setEdits((prev) => ({
-                                          ...prev,
-                                          [branch.id]: {
-                                            ...row,
-                                            receipt: {
-                                              ...row.receipt,
-                                              website: e.target.value,
-                                            },
-                                          },
-                                        }))
-                                      }
-                                      aria-label={`Receipt website for ${branch.name}`}
-                                    />
-                                    <input
-                                      className={cn(
-                                        dashboardInputClass(),
-                                        "text-sm sm:col-span-2",
-                                      )}
-                                      placeholder="M-Pesa Till (e.g. 3502582)"
-                                      inputMode="numeric"
-                                      value={row.receipt.tillNumber}
-                                      onChange={(e) =>
-                                        setEdits((prev) => ({
-                                          ...prev,
-                                          [branch.id]: {
-                                            ...row,
-                                            receipt: {
-                                              ...row.receipt,
-                                              tillNumber: e.target.value,
-                                            },
-                                          },
-                                        }))
-                                      }
-                                      aria-label={`M-Pesa till for ${branch.name}`}
-                                    />
-                                    <div className="flex flex-col gap-1.5 sm:col-span-2">
-                                      <input
-                                        className={cn(
-                                          dashboardInputClass(),
-                                          "text-sm",
-                                        )}
-                                        placeholder="Receipt printer name (e.g. Caysn_CN811_UB)"
-                                        value={row.receipt.printerCupsName}
-                                        onChange={(e) =>
-                                          setEdits((prev) => ({
-                                            ...prev,
-                                            [branch.id]: {
-                                              ...row,
-                                              receipt: {
-                                                ...row.receipt,
-                                                printerCupsName: e.target.value,
-                                              },
-                                            },
-                                          }))
-                                        }
-                                        aria-label={`Receipt printer name for ${branch.name}`}
-                                      />
-                                      {canManage ? (
-                                        <CupsPrinterPicker
-                                          value={row.receipt.printerCupsName}
-                                          onSelect={(cupsName) =>
-                                            setEdits((prev) => ({
-                                              ...prev,
-                                              [branch.id]: {
-                                                ...row,
-                                                receipt: {
-                                                  ...row.receipt,
-                                                  printerCupsName: cupsName,
-                                                },
-                                              },
-                                            }))
-                                          }
-                                        />
-                                      ) : null}
-                                    </div>
-                                    <textarea
-                                      className={cn(
-                                        dashboardTextareaClass(),
-                                        "text-sm sm:col-span-2",
-                                      )}
-                                      placeholder="Footer message on receipt (optional)"
-                                      value={row.receipt.footerNote}
-                                      onChange={(e) =>
-                                        setEdits((prev) => ({
-                                          ...prev,
-                                          [branch.id]: {
-                                            ...row,
-                                            receipt: {
-                                              ...row.receipt,
-                                              footerNote: e.target.value,
-                                            },
-                                          },
-                                        }))
-                                      }
-                                      aria-label={`Receipt footer for ${branch.name}`}
-                                    />
-                                    <label className="flex items-start justify-between gap-3 rounded-none border border-border/50 bg-muted/20 px-3 py-2.5 sm:col-span-2">
-                                      <span className="min-w-0 space-y-0.5">
-                                        <span className="block text-sm font-medium text-foreground">
-                                          WhatsApp receipt
-                                        </span>
-                                        <span className="block text-xs leading-snug text-muted-foreground">
-                                          Let cashiers send a presentable
-                                          digital receipt to customers on
-                                          WhatsApp after checkout.
-                                        </span>
-                                      </span>
-                                      <Switch
-                                        size="sm"
-                                        checked={Boolean(
-                                          row.receipt.whatsappReceiptEnabled,
-                                        )}
-                                        onCheckedChange={(checked) =>
-                                          setEdits((prev) => ({
-                                            ...prev,
-                                            [branch.id]: {
-                                              ...row,
-                                              receipt: {
-                                                ...row.receipt,
-                                                whatsappReceiptEnabled: checked,
-                                              },
-                                            },
-                                          }))
-                                        }
-                                        aria-label={`WhatsApp receipt for ${branch.name}`}
-                                      />
-                                    </label>
-                                  </div>
-                                  <p className={dashboardHintClass()}>
-                                    <strong className="font-medium text-foreground">
-                                      Cloud cashier + receipt printer:
-                                    </strong>{" "}
-                                    on the till PC open Cashier and click{" "}
-                                    <strong className="font-medium text-foreground">
-                                      Download for macOS / Windows / Linux
-                                    </strong>
-                                    , unzip, run the installer once (Windows:
-                                    Install-Palmart-Print-Bridge.cmd — runs
-                                    hidden at sign-in, no window to leave open),
-                                    then{" "}
-                                    <strong className="font-medium text-foreground">
-                                      Detect printers
-                                    </strong>{" "}
-                                    above and{" "}
-                                    <strong className="font-medium text-foreground">
-                                      Save
-                                    </strong>
-                                    . Direct zips:{" "}
-                                    <a
-                                      className="underline"
-                                      href="/downloads/palmart-till-print-bridge-macos.zip"
-                                    >
-                                      macOS
-                                    </a>
-                                    {" · "}
-                                    <a
-                                      className="underline"
-                                      href="/downloads/palmart-till-print-bridge-windows.zip"
-                                    >
-                                      Windows 10/11
-                                    </a>
-                                    {" · "}
-                                    <a
-                                      className="underline"
-                                      href="/downloads/palmart-till-print-bridge-windows7.zip"
-                                    >
-                                      Windows 7
-                                    </a>
-                                    {" · "}
-                                    <a
-                                      className="underline"
-                                      href="/downloads/palmart-till-print-bridge-linux.zip"
-                                    >
-                                      Linux
-                                    </a>
-                                    . Network printers also supported (TCP
-                                    9100).
-                                  </p>
-                                </div>
-                              </Collapsible.Content>
-                            </Collapsible.Root>
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
 
       <p
         className={cn(
