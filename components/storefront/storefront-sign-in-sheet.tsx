@@ -58,6 +58,12 @@ import {
 } from "@/lib/post-auth-destination";
 import { isEmailNotVerifiedError } from "@/lib/problem";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
+import {
+  buildStorefrontSignInHref,
+  signInPhaseForDoor,
+  type StorefrontSignInDoor,
+  type StorefrontSignInPhase,
+} from "@/lib/storefront-sign-in-href";
 import { isBuyerAccount, isCustomerTabPath } from "@/lib/buyer-role";
 import { cn } from "@/lib/utils";
 
@@ -67,7 +73,11 @@ export type StorefrontSignInReason = "header" | "landing" | "cart" | "apex";
 /** Which surface mounted the provider: storefront chrome vs landing branch. */
 export type StorefrontSignInSurface = "storefront" | "landing";
 
-export type StorefrontSignInDoor = "staff" | "shopper";
+// Re-exported so the many existing consumers can keep importing the href builder
+// and the door/phase types from the sheet. The implementation lives in `lib` so
+// it is unit-testable without loading the theme fonts.
+export { buildStorefrontSignInHref };
+export type { StorefrontSignInDoor, StorefrontSignInPhase };
 
 type StorefrontSignInEntry = {
   reason: StorefrontSignInReason;
@@ -78,6 +88,11 @@ type StorefrontSignInEntry = {
   initialEmail?: string | null;
   /** Staff till/office vs shopper account — defaults to shopper. */
   door?: StorefrontSignInDoor | null;
+  /**
+   * Open on the create-account form instead of the sign-in form. Only honoured
+   * for the shopper door — staff signup is its own page, not this sheet.
+   */
+  initialPhase?: StorefrontSignInPhase | null;
 };
 
 type StorefrontSignInContextValue = {
@@ -111,30 +126,6 @@ const NOOP_SIGN_IN: StorefrontSignInContextValue = {
 /**
  * Shop-host URL that opens the sign-in sheet (no `/login` page). Used by apex
  * forwards and progressive-enhancement fallbacks.
- */
-export function buildStorefrontSignInHref(opts?: {
-  path?: string;
-  email?: string | null;
-  phone?: string | null;
-  door?: StorefrontSignInDoor | null;
-  next?: string | null;
-}): string {
-  const path = (opts?.path?.trim() || APP_ROUTES.shop).split("?")[0] || APP_ROUTES.shop;
-  const params = new URLSearchParams({ signin: "1" });
-  const email = opts?.email?.trim();
-  const phone = opts?.phone?.replace(/\D/g, "");
-  if (email?.includes("@")) params.set("email", email.toLowerCase());
-  if (phone && phone.length >= 9) params.set("phone", phone);
-  if (opts?.door === "staff") params.set("door", "staff");
-  const next = opts?.next?.trim();
-  if (next && isShopNextPath(next)) params.set("next", next);
-  return `${path}?${params.toString()}`;
-}
-
-/**
- * Progressive-enhancement hook for account affordances (D2). When the provider
- * is mounted and hydrated, `ready` is true and callers may intercept the click
- * and `open()` the sheet; otherwise the plain `<a href>` fallback wins.
  */
 export function useStorefrontSignIn(): StorefrontSignInContextValue {
   return useContext(StorefrontSignInContext) ?? NOOP_SIGN_IN;
@@ -199,6 +190,10 @@ export function StorefrontSignInProvider({
       initialEmail: email,
       initialPhone: phone,
       door,
+      initialPhase: signInPhaseForDoor(
+        url.searchParams.get("signup") === "1" ? "signup" : "credentials",
+        door,
+      ),
       next:
         nextParam && isShopNextPath(nextParam)
           ? nextParam
@@ -210,6 +205,7 @@ export function StorefrontSignInProvider({
     url.searchParams.delete("email");
     url.searchParams.delete("phone");
     url.searchParams.delete("door");
+    url.searchParams.delete("signup");
     url.searchParams.delete("next");
     const cleaned = `${url.pathname}${url.search}${url.hash}`;
     router.replace(cleaned);
@@ -473,10 +469,11 @@ function StorefrontSignInSheet({
         >
           {open ? (
             <UnifiedSignInForm
-              key={`${entry?.initialPhone ?? ""}:${entry?.initialEmail ?? ""}:${door}:${open}`}
+              key={`${entry?.initialPhone ?? ""}:${entry?.initialEmail ?? ""}:${door}:${entry?.initialPhase ?? ""}:${open}`}
               initialPhone={entry?.initialPhone ?? ""}
               initialEmail={entry?.initialEmail ?? ""}
               door={door}
+              initialPhase={entry?.initialPhase ?? "credentials"}
               onSignedIn={() => void finishSignedIn()}
             />
           ) : null}
@@ -495,11 +492,14 @@ export function UnifiedSignInForm({
   initialPhone,
   initialEmail,
   door = "shopper",
+  initialPhase = "credentials",
   onSignedIn,
 }: {
   initialPhone?: string;
   initialEmail?: string;
   door?: StorefrontSignInDoor;
+  /** `"signup"` opens the create-account form. Ignored for the staff door. */
+  initialPhase?: StorefrontSignInPhase;
   onSignedIn: () => void;
 }) {
   const tenant = useOptionalTenant();
@@ -520,9 +520,9 @@ export function UnifiedSignInForm({
   const [phoneToken, setPhoneToken] = useState("");
   const [helloName, setHelloName] = useState<string | null>(null);
   const [maskedPhone, setMaskedPhone] = useState("");
-  const [phase, setPhase] = useState<
-    "credentials" | "code" | "new-pin" | "signup" | "verify"
-  >("credentials");
+  const [phase, setPhase] = useState<StorefrontSignInPhase>(() =>
+    signInPhaseForDoor(initialPhase, door),
+  );
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   /**

@@ -127,7 +127,8 @@ function GazetteDesk({
   compact?: boolean;
   onNavigate?: () => void;
 }) {
-  const { signedIn, href, signUpHref, onActivate } = useStorefrontAccountLink();
+  const { signedIn, href, signUpHref, onActivate, onSignUpActivate } =
+    useStorefrontAccountLink();
 
   const onSignOut = async () => {
     onNavigate?.();
@@ -139,6 +140,12 @@ function GazetteDesk({
   const handleActivate = (event: MouseEvent<HTMLAnchorElement>) => {
     onNavigate?.();
     onActivate(event);
+  };
+
+  // "Get a pass" is the signup door: same navigation hint, create-account phase.
+  const handleSignUpActivate = (event: MouseEvent<HTMLAnchorElement>) => {
+    onNavigate?.();
+    onSignUpActivate(event);
   };
 
   return (
@@ -185,7 +192,7 @@ function GazetteDesk({
             <Link
               href={signUpHref}
               className={cn(styles.deskBtn, styles.deskBtnFill)}
-              onClick={handleActivate}
+              onClick={handleSignUpActivate}
             >
               Get a pass
             </Link>

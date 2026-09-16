@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { MouseEvent, ReactNode } from "react";
 
 import styles from "@/components/storefront/storefront-account-link.module.css";
-import { useStorefrontSignIn, buildStorefrontSignInHref } from "@/components/storefront/storefront-sign-in-sheet";
+import { useStorefrontSignIn, buildStorefrontSignInHref, type StorefrontSignInPhase } from "@/components/storefront/storefront-sign-in-sheet";
 import {
   useClientHasSession,
   useClientSessionReady,
@@ -19,6 +19,7 @@ export const STOREFRONT_LOGIN_HREF = buildStorefrontSignInHref({
 });
 export const STOREFRONT_SIGNUP_HREF = buildStorefrontSignInHref({
   next: APP_ROUTES.shopAccount,
+  signup: true,
 });
 
 /**
@@ -41,6 +42,12 @@ export function useStorefrontAccountLink(): {
    * when it is available; a no-op otherwise so the `<a href>` fallback wins.
    */
   onActivate: (event: MouseEvent<HTMLAnchorElement>) => void;
+  /**
+   * Click handler for the sign-up link. Same contract, but opens the sheet on
+   * the create-account form — the two doors used to be the same URL, so a
+   * shopper who tapped "Sign up" got a sign-in form.
+   */
+  onSignUpActivate: (event: MouseEvent<HTMLAnchorElement>) => void;
 } {
   const ready = useClientSessionReady();
   const hasSession = useClientHasSession();
@@ -56,7 +63,10 @@ export function useStorefrontAccountLink(): {
 
   const next = isShopNextPath(pathname) ? pathname : APP_ROUTES.shopAccount;
 
-  const onActivate = (event: MouseEvent<HTMLAnchorElement>) => {
+  const openFor = (
+    event: MouseEvent<HTMLAnchorElement>,
+    phase: StorefrontSignInPhase,
+  ) => {
     // Signed-in shoppers go straight to the account page — no sheet. The
     // optimistic presence hint is not enough: clicks during the restore window
     // open the sheet, which is the right door for a possibly-stale hint.
@@ -67,7 +77,7 @@ export function useStorefrontAccountLink(): {
       return;
     }
     event.preventDefault();
-    open({ reason: "header", next });
+    open({ reason: "header", next, initialPhase: phase });
   };
 
   return {
@@ -76,8 +86,9 @@ export function useStorefrontAccountLink(): {
       ? APP_ROUTES.shopAccount
       : buildStorefrontSignInHref({ path: next, next }),
     label: signedIn ? "Account" : "Sign in",
-    signUpHref: buildStorefrontSignInHref({ path: next, next }),
-    onActivate,
+    signUpHref: buildStorefrontSignInHref({ path: next, next, signup: true }),
+    onActivate: (event) => openFor(event, "credentials"),
+    onSignUpActivate: (event) => openFor(event, "signup"),
   };
 }
 
@@ -94,7 +105,7 @@ export function StorefrontAccountLink({
   /** Theme glyph rendered instead of the text label. */
   children?: ReactNode;
 }) {
-  const { href, label, signedIn, signUpHref, onActivate } =
+  const { href, label, signedIn, signUpHref, onActivate, onSignUpActivate } =
     useStorefrontAccountLink();
 
   return (
@@ -104,7 +115,11 @@ export function StorefrontAccountLink({
       </Link>
       {signUpClassName && !signedIn ? (
         <span className={styles.signUpWrap}>
-          <Link href={signUpHref} className={signUpClassName}>
+          <Link
+            href={signUpHref}
+            className={signUpClassName}
+            onClick={onSignUpActivate}
+          >
             {signUpLabel}
           </Link>
         </span>

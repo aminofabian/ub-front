@@ -84,6 +84,11 @@ function LoginPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pinSetup, setPinSetup] = useState(false);
   const [verifyRecovery, setVerifyRecovery] = useState(false);
+  /**
+   * Email that could not be signed in from an unmapped (apex) host, and has no
+   * active destination. Drives recovery copy — never the signup form.
+   */
+  const [apexNoShopEmail, setApexNoShopEmail] = useState<string | null>(null);
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [pinSaving, setPinSaving] = useState(false);
@@ -227,8 +232,11 @@ function LoginPageContent() {
     event.preventDefault();
     setIsSubmitting(true);
     setErrorMessage("");
+    setApexNoShopEmail(null);
 
     let navigatedAway = false;
+    // Declared outside the try: the catch needs it to decide the recovery copy.
+    let apexHostUnresolved = false;
     const usePin = looksLikeStaffPin(secret);
     try {
       if (!usePin && secret.length < passwordMinLength) {
@@ -243,18 +251,26 @@ function LoginPageContent() {
       // itself, so a bare 127.0.0.1 host must NOT fall through to the
       // cloud's email → subdomain redirect (which would bounce the webview
       // to test.kiosk.ke and appear as a logout loop).
+      //
+      // `{kind:"none"}` must NOT be read as "this person has no account". It
+      // also covers "one destination, but we could not mint a tenant id", and
+      // every email lookup behind it filters `status='active'`
+      // (UserRepository.findFirstActiveByEmail / findAllActiveByEmail), so an
+      // unverified (INVITED) signup is invisible. Jumping straight to a signup
+      // form both loses real accounts and manufactures duplicate tenants — so
+      // let the API adjudicate from the email, and handle the failure below.
       if (!tenantId && !IS_DESKTOP) {
         const resolution = await resolveApexStaffTenant(email);
-        if (resolution.kind === "none") {
-          setShowOnboarding(true);
-          return;
-        }
         if (resolution.kind === "multiple") {
           setShopPickerRows(resolution.destinations);
           setShopPickerOpen(true);
           return;
         }
-        tenantId = resolution.tenantId;
+        if (resolution.kind === "single") {
+          tenantId = resolution.tenantId;
+        } else {
+          apexHostUnresolved = true;
+        }
       }
 
       await completeStaffSignIn(tenantId);
@@ -264,6 +280,12 @@ function LoginPageContent() {
         setVerifyRecovery(true);
         setErrorMessage("");
         return;
+      }
+      if (apexHostUnresolved) {
+        // Unmapped host AND the API could not sign this email in. Offer the real
+        // next steps instead of a bare credentials error; the existing
+        // "New business?" affordance stays available as the secondary door.
+        setApexNoShopEmail(email.trim().toLowerCase());
       }
       setErrorMessage(
         formatTillAccessDeniedMessage(
@@ -744,6 +766,29 @@ function LoginPageContent() {
               >
                 {errorMessage}
               </AuthAlert>
+            ) : null}
+            {apexNoShopEmail ? (
+              <div className="rounded-2xl border border-[var(--auth-accent)]/30 bg-[color-mix(in_srgb,var(--auth-accent)_6%,white)] p-4 text-left dark:bg-[color-mix(in_srgb,var(--auth-accent)_10%,#18181b)]">
+                <p className="text-sm font-semibold text-foreground">
+                  Couldn&apos;t sign {apexNoShopEmail} in from here
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  If you signed up recently, your account may still be waiting on
+                  email verification — open the verification link we sent you; it
+                  takes you straight to your shop. We can&apos;t look your shop up
+                  from this page, because unverified accounts aren&apos;t listed
+                  here. If you shop as a customer rather than work the till, use
+                  the customer sign-in instead.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                  <Link
+                    href={`${APP_ROUTES.login}?email=${encodeURIComponent(apexNoShopEmail)}`}
+                    className="font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
+                  >
+                    Customer sign-in
+                  </Link>
+                </div>
+              </div>
             ) : null}
             <button
               type="submit"

@@ -120,7 +120,7 @@ function ComilmartHeaderView({
 }: ComilmartHeaderProps & { listing: boolean }) {
   const pathname = usePathname();
   const { itemCount, openDrawer } = useShopCart();
-  const { signedIn, href, label, signUpHref, onActivate } =
+  const { signedIn, href, label, signUpHref, onActivate, onSignUpActivate } =
     useStorefrontAccountLink();
   const [menuOpen, setMenuOpen] = useState(false);
   const [types, setTypes] = useState<PublicCatalogType[]>([]);
@@ -309,7 +309,7 @@ function ComilmartHeaderView({
           <Link
             href={signUpHref}
             className={styles.sidebarSignup}
-            onClick={closeThen(onActivate)}
+            onClick={closeThen(onSignUpActivate)}
           >
             Sign up free
           </Link>

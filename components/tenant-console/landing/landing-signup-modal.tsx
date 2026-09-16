@@ -18,6 +18,11 @@ import {
 } from "@/lib/auth";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
+import {
+  clearPendingOnboardDraft,
+  readPendingOnboardDraft,
+  savePendingOnboardDraft,
+} from "@/lib/pending-onboard-draft";
 import { businessNameToSlug } from "@/lib/shop-lookup";
 import { handleRegistrationResult } from "@/lib/post-registration-auth";
 import { isAccountExistsError } from "@/lib/problem";
@@ -68,13 +73,7 @@ export function LandingSignupModal({
   const { countries } = useSelfServeCountries();
   const resendCooldown = useResendCooldown();
 
-  const resetState = () => {
-    setStep(1);
-    setBusinessName("");
-    setShopSlug("");
-    setSlugLocked(false);
-    setCountryCode(DEFAULT_SELFSERVE_COUNTRY_CODE);
-    setTenantSlug("");
+  const clearEphemeralFields = () => {
     setName("");
     setEmail("");
     setPassword("");
@@ -87,10 +86,51 @@ export function LandingSignupModal({
     resendCooldown.reset();
   };
 
+  const hydrateFromDraft = () => {
+    const draft = readPendingOnboardDraft();
+    if (!draft) {
+      return false;
+    }
+    setBusinessName(draft.name);
+    setShopSlug(draft.slug);
+    setSlugLocked(true);
+    setCountryCode(draft.countryCode || DEFAULT_SELFSERVE_COUNTRY_CODE);
+    setTenantSlug(draft.slug);
+    setSessionTenantId(draft.tenantId);
+    const createdShopUrl = slugDerivedShopUrl(draft.slug);
+    if (createdShopUrl) {
+      try {
+        persistSessionTenantHost(new URL(createdShopUrl).hostname);
+      } catch {
+        /* ignore */
+      }
+    }
+    setStep(2);
+    return true;
+  };
+
+  const resetToFreshSignup = () => {
+    clearPendingOnboardDraft();
+    setStep(1);
+    setBusinessName("");
+    setShopSlug("");
+    setSlugLocked(false);
+    setCountryCode(DEFAULT_SELFSERVE_COUNTRY_CODE);
+    setTenantSlug("");
+    clearEphemeralFields();
+  };
+
   useEffect(() => {
     if (!open) {
-      resetState();
+      // Keep the pending shop draft — closing mid-flow must not orphan the tenant.
+      clearEphemeralFields();
+      return;
     }
+    if (!hydrateFromDraft()) {
+      setStep(1);
+      clearEphemeralFields();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open-only hydrate
   }, [open]);
 
   const shopUrl = tenantSlug ? slugDerivedShopUrl(tenantSlug) : null;
@@ -131,6 +171,12 @@ export function LandingSignupModal({
 
       setSessionTenantId(result.tenantId);
       setTenantSlug(result.slug);
+      savePendingOnboardDraft({
+        tenantId: result.tenantId,
+        slug: result.slug,
+        name: businessName.trim() || result.tenantName || result.slug,
+        countryCode: result.countryCode || countryCode,
+      });
 
       const createdShopUrl = slugDerivedShopUrl(result.slug);
       if (createdShopUrl) {
@@ -162,6 +208,7 @@ export function LandingSignupModal({
     try {
       const result = await registerAccount(name.trim(), email.trim(), password);
       markOnboardingQuestionnairePending();
+      clearPendingOnboardDraft();
 
       const flow = await handleRegistrationResult({
         result,
@@ -183,6 +230,8 @@ export function LandingSignupModal({
     } catch (error) {
       if (isAccountExistsError(error)) {
         setAccountExists(true);
+        // Shop already has this email — draft is no longer useful.
+        clearPendingOnboardDraft();
       }
       setErrorMessage(
         error instanceof Error ? error.message : "Sign up failed.",
@@ -333,7 +382,7 @@ export function LandingSignupModal({
                   <DialogDescription className="text-sm leading-relaxed text-[#5F5D58] sm:text-[15px]">
                     {shopHostLabel ? (
                       <>
-                        You&apos;re setting up{" "}
+                        Continue setting up{" "}
                         <span className="font-medium text-[#141412]">
                           {businessName.trim() || "your shop"}
                         </span>{" "}
@@ -441,11 +490,10 @@ export function LandingSignupModal({
                   type="button"
                   className="mt-5 w-full text-center text-sm text-[#8A8782] transition-colors hover:text-[#5F5D58]"
                   onClick={() => {
-                    setStep(1);
-                    setErrorMessage("");
+                    resetToFreshSignup();
                   }}
                 >
-                  &larr; Back
+                  Start over with a different shop name
                 </button>
 
                 {errorMessage ? (

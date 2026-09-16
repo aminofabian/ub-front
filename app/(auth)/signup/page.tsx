@@ -35,6 +35,10 @@ import {
   handleRegistrationResult,
   resolveDestinationAfterAuth,
 } from "@/lib/post-registration-auth";
+import {
+  clearPendingOnboardDraft,
+  savePendingOnboardDraft,
+} from "@/lib/pending-onboard-draft";
 import { isAccountExistsError } from "@/lib/problem";
 import { cn } from "@/lib/utils";
 
@@ -111,8 +115,10 @@ function SignupPageContent() {
         tenantSlug: tenant?.slug,
       });
       if (flow === "signed_in" || flow === "verify_redirect") {
+        clearPendingOnboardDraft();
         return;
       }
+      clearPendingOnboardDraft();
       const link = result.verificationUrl?.trim();
       if (link) {
         setSuccessMessage(
@@ -202,6 +208,12 @@ function SignupPageContent() {
           /* ignore */
         }
       }
+      savePendingOnboardDraft({
+        tenantId: result.tenantId,
+        slug: result.slug,
+        name: businessName.trim(),
+        countryCode,
+      });
 
       // If the signup form fields are filled, proceed to register and redirect.
       // Otherwise just hide onboarding — the tenant is now in session, so the
@@ -226,6 +238,7 @@ function SignupPageContent() {
           shopUrl: shopUrl ?? undefined,
         });
         if (flow === "signed_in" || flow === "verify_redirect") {
+          clearPendingOnboardDraft();
           return;
         }
 
@@ -288,8 +301,10 @@ function SignupPageContent() {
         No need to sign in again.
       </p>
 
-      {/* Always-visible onboarding CTA — no need to fail first */}
-      {!showOnboarding ? (
+      {/* Onboarding CTA for the platform apex only.
+          A mapped shop host always has a tenant, so pitching "create a business"
+          there invites a shopper to spin up a second shop (F6). */}
+      {!showOnboarding && !tenant ? (
         <div className="mt-6 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--auth-accent)_33%,transparent)] bg-[color-mix(in_srgb,var(--auth-accent)_4%,white)] p-4 dark:bg-[color-mix(in_srgb,var(--auth-accent)_7%,#18181b)]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="flex items-start gap-3">
