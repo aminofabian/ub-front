@@ -63,9 +63,9 @@ import {
 } from "../_lib/store-item-count";
 import {
   catalogDisplayToPacks,
-  catalogNativePack,
   isPacked,
   packsToCatalogDisplay,
+  packStockEach,
   retargetCount,
   storePackCatalogFromItem,
   type StorePackCatalog,
@@ -295,7 +295,14 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         if (cancelled) return;
         const next = storePackCatalogFromItem(linkedItemId, detail, options);
         setPackCatalog(next);
-        setPackMode(catalogNativePack(next));
+        setPackMode(null);
+        setEditDraft((prev) => {
+          const typed = parseStoreCount(prev.quantity, false) ?? 0;
+          return {
+            ...prev,
+            quantity: storeItemCountInput(packStockEach(typed, next)),
+          };
+        });
       })
       .catch(() => {
         if (cancelled) return;

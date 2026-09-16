@@ -8,6 +8,7 @@ import {
   packsToCatalogDisplay,
   packStockEach,
   retargetCount,
+  countSaveHint,
   storePackCatalogFromItem,
 } from "./store-item-pack";
 import type { ItemDetailRecord } from "@/lib/api";
@@ -127,10 +128,22 @@ describe("packCountPreview", () => {
   });
 });
 
-describe("packBreakdownLabel", () => {
-  test("formats 56 each in packs of 30", () => {
+describe("countSaveHint", () => {
+  test("explains a piece count", () => {
+    expect(countSaveHint(6, null, "set")).toBe(
+      "Save sets on-hand to 6 pieces.",
+    );
+  });
+
+  test("explains a pack count as pieces", () => {
     expect(
-      packBreakdownLabel(56, { unitsPerPack: 30, packUnit: "pack" }),
-    ).toBe("1 pack(s), 26 singles");
+      countSaveHint(2, { unitsPerPack: 100, packUnit: "pack" }, "set"),
+    ).toBe("Save sets on-hand to 200 pieces (2 × 100).");
+  });
+
+  test("uses move copy for take-out", () => {
+    expect(
+      countSaveHint(1, { unitsPerPack: 12, packUnit: "pack" }, "move"),
+    ).toBe("This is 12 pieces (1 × 12).");
   });
 });

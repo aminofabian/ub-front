@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   ArrowUpFromLine,
   ChevronRight,
@@ -21,6 +21,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { FormDrawer } from "@/components/form-drawer";
+import { useMediaLg } from "@/hooks/use-media-lg";
 import { APP_ROUTES } from "@/lib/config";
 import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import type { StoreItemRecord } from "@/lib/api";
@@ -37,6 +38,7 @@ import {
 } from "../_lib/store-item-pack";
 import { StorePackCountField } from "./store-pack-count-field";
 import { StoreRoomActivity } from "./store-room-activity";
+import { StoreRoomFocus } from "./store-room-focus";
 import { StoreRoomPulse } from "./store-room-pulse";
 
 function LiveDot() {
@@ -148,6 +150,8 @@ export function StoreRoomTheatre({
   onAddCustom?: () => void;
 }) {
   const mobileDetailOpen = mobileShowDetail && !!selectedRow;
+  const isLg = useMediaLg();
+  const [dockRoot, setDockRoot] = useState<HTMLDivElement | null>(null);
 
   const roster = (opts?: { fill?: boolean; denser?: boolean }) => {
     const fill = opts?.fill ?? false;
@@ -342,18 +346,16 @@ export function StoreRoomTheatre({
     );
   };
 
-  const history = selectedRow ? (
-    <StoreRoomActivity
+  const room = selectedRow ? (
+    <StoreRoomFocus
+      key={selectedRow.id}
+      row={selectedRow}
+      rows={rows}
+      connected={connected}
+      currency={currency}
+      packCatalog={packCatalog}
+      packMode={packMode}
       reloadToken={activityToken}
-      canWrite={canWrite}
-      canDecide={canDecide}
-      requireSeparateApprover={requireSeparateApprover}
-      currentUserId={currentUserId}
-      onPutIn={undefined}
-      onRecorded={onRecorded}
-      focusStoreItemId={selectedRow.id}
-      focusLabel={selectedRow.name}
-      variant="theatre"
       className="h-full min-h-0"
     />
   ) : (
@@ -373,6 +375,22 @@ export function StoreRoomTheatre({
       className="h-full min-h-0"
     />
   );
+
+  const itemHistory = selectedRow ? (
+    <StoreRoomActivity
+      reloadToken={activityToken}
+      canWrite={canWrite}
+      canDecide={canDecide}
+      requireSeparateApprover={requireSeparateApprover}
+      currentUserId={currentUserId}
+      onPutIn={undefined}
+      onRecorded={onRecorded}
+      focusStoreItemId={selectedRow.id}
+      focusLabel={selectedRow.name}
+      variant="theatre"
+      className="h-full min-h-0"
+    />
+  ) : null;
 
   const inspect =
     selectedRow && canWrite ? (
@@ -447,10 +465,13 @@ export function StoreRoomTheatre({
           >
             The store room
           </p>
-          {history}
+          {room}
         </div>
-        <div className="flex h-full min-h-0 flex-col border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-          {inspect}
+        <div
+          ref={setDockRoot}
+          className="relative flex h-full min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
+        >
+          {isLg && selectedRow ? null : inspect}
         </div>
       </div>
 
@@ -480,33 +501,45 @@ export function StoreRoomTheatre({
         }
         headerDensity="compact"
         bodyLayout="fill"
+        appearance="sharp"
+        docked={isLg}
+        dockRoot={dockRoot}
       >
         {selectedRow ? (
-          <div className="flex h-[min(82dvh,42rem)] min-h-0 flex-col overflow-hidden bg-white sm:h-auto sm:min-h-0 sm:flex-1">
-            <div className="flex shrink-0 gap-px border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 py-2">
-              {(
-                [
-                  { id: "edit" as const, label: "Edit" },
-                  { id: "history" as const, label: "History" },
-                ] as const
-              ).map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => onMobileDetailTab(tab.id)}
-                  className={cn(
-                    "h-9 flex-1 text-[13px] font-semibold transition-colors",
-                    mobileDetailTab === tab.id
-                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                      : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] text-muted-foreground active:bg-muted",
-                  )}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          <div
+            className={cn(
+              "flex min-h-0 flex-col overflow-hidden bg-white",
+              isLg
+                ? "h-full"
+                : "h-[min(82dvh,42rem)] sm:h-auto sm:min-h-0 sm:flex-1",
+            )}
+          >
+            {isLg ? null : (
+              <div className="flex shrink-0 gap-px border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 py-2">
+                {(
+                  [
+                    { id: "edit" as const, label: "Edit" },
+                    { id: "history" as const, label: "History" },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => onMobileDetailTab(tab.id)}
+                    className={cn(
+                      "h-9 flex-1 text-[13px] font-semibold transition-colors",
+                      mobileDetailTab === tab.id
+                        ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                        : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] text-muted-foreground active:bg-muted",
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="min-h-0 flex-1 overflow-hidden">
-              {mobileDetailTab === "history" ? history : inspect}
+              {!isLg && mobileDetailTab === "history" ? itemHistory : inspect}
             </div>
           </div>
         ) : null}
@@ -653,7 +686,6 @@ function InspectPanel({
           onPackModeChange={onPackModeChange}
           catalog={packCatalog}
           followsInventory={followsInventory}
-          onHandEach={followsInventory ? onHandEach : null}
           disabled={busy}
         />
         <div className="grid grid-cols-2 gap-1.5">

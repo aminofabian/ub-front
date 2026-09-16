@@ -209,3 +209,68 @@ export function retargetCount(
   const display = packsToCatalogDisplay(typed, from, displayToHolderFactor);
   return catalogDisplayToPacks(display, to, displayToHolderFactor);
 }
+
+/** Size to start with when the user switches from pieces to packs. */
+export function defaultPackMode(
+  catalog: StorePackCatalog | null,
+): SupplyPackMode {
+  const native = catalogNativePack(catalog);
+  if (native) return native;
+  const option = catalog?.options[0];
+  if (option && option.unitsPerPack > 1) {
+    return {
+      unitsPerPack: option.unitsPerPack,
+      packUnit: option.packUnit || "pack",
+    };
+  }
+  return { unitsPerPack: 12, packUnit: "pack" };
+}
+
+export function packSizeChoices(
+  catalog: StorePackCatalog | null,
+): { units: number; label: string }[] {
+  const seen = new Set<number>();
+  const choices: { units: number; label: string }[] = [];
+  const add = (units: number, label: string) => {
+    if (!(units > 1) || seen.has(units)) return;
+    seen.add(units);
+    choices.push({ units, label });
+  };
+  if (catalog && catalog.displayToHolderFactor > 1) {
+    add(
+      catalog.displayToHolderFactor,
+      catalog.catalogPackUnit || "pack",
+    );
+  }
+  for (const option of catalog?.options ?? []) {
+    add(option.unitsPerPack, option.packUnit || option.label || "pack");
+  }
+  return choices;
+}
+
+/** One sentence for what the typed count will do. */
+export function countSaveHint(
+  typed: number | null,
+  pack: SupplyPackMode | null | undefined,
+  intent: "set" | "move",
+): string {
+  if (typed == null) {
+    return isPacked(pack)
+      ? "Enter how many packs."
+      : "Enter how many pieces.";
+  }
+  if (!isPacked(pack)) {
+    const pieces = formatSupplyQty(typed);
+    return intent === "move"
+      ? `This is ${pieces} pieces.`
+      : `Save sets on-hand to ${pieces} pieces.`;
+  }
+  const size = pack!.unitsPerPack;
+  const each = roundQty(typed * size);
+  const packs = formatSupplyQty(typed);
+  const pieces = formatSupplyQty(each);
+  const sizeLabel = formatSupplyQty(size);
+  return intent === "move"
+    ? `This is ${pieces} pieces (${packs} × ${sizeLabel}).`
+    : `Save sets on-hand to ${pieces} pieces (${packs} × ${sizeLabel}).`;
+}

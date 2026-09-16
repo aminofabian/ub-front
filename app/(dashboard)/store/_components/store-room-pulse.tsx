@@ -369,7 +369,7 @@ export function StoreRoomPulse({
             Nothing needs a glance
           </p>
           <p className={cn(dashboardHintClass(), "mt-1")}>
-            Pick a line on the left to see what moved.
+            Pick a line on the left to pin it here.
           </p>
         </article>
       ) : null}

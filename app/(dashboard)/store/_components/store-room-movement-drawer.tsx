@@ -29,7 +29,6 @@ import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
 import { cn } from "@/lib/utils";
 
 import {
-  catalogNativePack,
   isPacked,
   packsToCatalogDisplay,
   retargetCount,
@@ -256,7 +255,7 @@ export function StoreRoomMovementDrawer({
         if (cancelled) return;
         const next = storePackCatalogFromItem(itemId, detail, options);
         setPackCatalog(next);
-        setPackMode(catalogNativePack(next));
+        setPackMode(null);
       })
       .catch(() => {
         if (cancelled) return;
@@ -476,6 +475,7 @@ export function StoreRoomMovementDrawer({
           }}
           catalog={packCatalog}
           followsInventory={Boolean(linked)}
+          intent="move"
           disabled={busy}
         />
 

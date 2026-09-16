@@ -1,27 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { Package } from "lucide-react";
-
-import { WholesalePackStamp } from "@/components/pack/wholesale-pack-stamp";
 import {
   dashboardHintClass,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { cn } from "@/lib/utils";
 import { formatSupplyQty, type SupplyPackMode } from "@/lib/supply-pack-math";
-import { SupplyPackQtyModal } from "@/app/(dashboard)/supplies/_components/supply-pack-qty-modal";
 
 import {
+  countSaveHint,
+  defaultPackMode,
   isPacked,
-  packBreakdownLabel,
-  packCountPreview,
-  packOffersFromOptions,
-  splitPacksAndSingles,
+  packSizeChoices,
   type StorePackCatalog,
 } from "../_lib/store-item-pack";
 import { parseStoreCount } from "../_lib/store-item-count";
 
+/**
+ * Count in pieces, or in packs. One number, one sentence for what Save does.
+ */
 export function StorePackCountField({
   value,
   onChange,
@@ -29,8 +26,8 @@ export function StorePackCountField({
   onPackModeChange,
   catalog,
   followsInventory,
-  onHandEach = null,
   disabled = false,
+  intent = "set",
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -38,104 +35,122 @@ export function StorePackCountField({
   onPackModeChange: (next: SupplyPackMode | null) => void;
   catalog: StorePackCatalog | null;
   followsInventory: boolean;
-  /** Absolute each on hand — used so 56 @ 30 shows remainder singles. */
-  onHandEach?: number | null;
   disabled?: boolean;
+  intent?: "set" | "move";
 }) {
-  const [sheetOpen, setSheetOpen] = useState(false);
   const packed = isPacked(packMode);
   const parsed = parseStoreCount(value, !followsInventory && !packed);
-  const typedPreview = packCountPreview(parsed, packMode);
-  const stockBreakdown =
-    packed && packMode && onHandEach != null && onHandEach >= 0
-      ? packBreakdownLabel(onHandEach, packMode)
-      : null;
-  const floorPacks =
-    packed && packMode && onHandEach != null
-      ? splitPacksAndSingles(onHandEach, packMode.unitsPerPack).packs
-      : null;
-  const typedMatchesStock =
-    floorPacks != null &&
-    parsed != null &&
-    Math.abs(parsed - floorPacks) < 0.0001;
-  const preview =
-    stockBreakdown && (typedMatchesStock || parsed == null)
-      ? `${stockBreakdown} · ${formatSupplyQty(onHandEach!)} each`
-      : typedPreview;
-  const offers = catalog ? packOffersFromOptions(catalog.options) : [];
-  const stampPackCount =
-    stockBreakdown && typedMatchesStock && floorPacks != null && floorPacks > 0
-      ? floorPacks
-      : parsed != null && parsed > 0
-        ? parsed
-        : 1;
+  const hint = followsInventory
+    ? countSaveHint(parsed, packMode, intent)
+    : null;
+  const sizes = packSizeChoices(catalog);
+  const sizeValue = packed && packMode ? packMode.unitsPerPack : 0;
 
-  const togglePack = () => {
-    if (packed) {
-      onPackModeChange(null);
-      return;
-    }
-    if (catalog && catalog.displayToHolderFactor > 1) {
-      onPackModeChange({
-        unitsPerPack: catalog.displayToHolderFactor,
-        packUnit: catalog.catalogPackUnit,
-      });
-      return;
-    }
-    if (catalog?.options[0]) {
-      const option = catalog.options[0];
-      onPackModeChange({
-        unitsPerPack: option.unitsPerPack,
-        packUnit: option.packUnit,
-      });
-      return;
-    }
-    setSheetOpen(true);
+  const setPieces = () => {
+    if (!packed) return;
+    onPackModeChange(null);
+  };
+
+  const setPacks = () => {
+    if (packed) return;
+    onPackModeChange(defaultPackMode(catalog));
+  };
+
+  const setSize = (units: number) => {
+    if (!(units > 1)) return;
+    const unit =
+      sizes.find((choice) => choice.units === units)?.label ||
+      packMode?.packUnit ||
+      catalog?.catalogPackUnit ||
+      "pack";
+    onPackModeChange({ unitsPerPack: units, packUnit: unit });
   };
 
   return (
-    <div className="space-y-0.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-          {packed ? "Packs" : "Number"}
-        </span>
-        {followsInventory ? (
+    <div className="space-y-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+        Count
+      </span>
+
+      {followsInventory ? (
+        <div className="grid grid-cols-2 gap-px border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]">
           <button
             type="button"
-            className={cn(
-              "inline-flex h-6 items-center gap-1 px-1.5 text-[10px] font-bold uppercase tracking-[0.05em]",
-              packed
-                ? "bg-amber-200/90 text-amber-950"
-                : "text-muted-foreground hover:bg-amber-100 hover:text-amber-950",
-            )}
             disabled={disabled}
-            onClick={togglePack}
+            onClick={setPieces}
+            className={cn(
+              "h-8 text-[12px] font-semibold",
+              packed
+                ? "bg-white text-muted-foreground hover:text-foreground"
+                : "bg-[var(--pos-primary,#0f766e)] text-white",
+            )}
           >
-            <Package className="size-3" aria-hidden />
-            {packed ? "Packs" : "Pack"}
+            Pieces
           </button>
-        ) : null}
-      </div>
-      <div
-        className={cn(
-          "flex items-stretch gap-1",
-          packed && "bg-amber-50/90 ring-1 ring-amber-800/25",
-        )}
-      >
-        {packed && packMode ? (
-          <WholesalePackStamp
-            units={packMode.unitsPerPack}
-            packCount={stampPackCount}
-            packUnit={packMode.packUnit}
-            className="shrink-0 px-1 py-1"
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={setPacks}
+            className={cn(
+              "h-8 text-[12px] font-semibold",
+              packed
+                ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                : "bg-white text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Packs
+          </button>
+        </div>
+      ) : null}
+
+      {followsInventory && packed ? (
+        <label className="block space-y-1">
+          <span className="text-[11px] text-muted-foreground">
+            Pieces in one pack
+          </span>
+          <input
+            className={cn(dashboardInputClass(), "h-8 text-[13px]")}
+            type="number"
+            min={2}
+            step={1}
+            inputMode="numeric"
+            value={sizeValue || ""}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (Number.isFinite(n) && n > 1) setSize(n);
+            }}
+            disabled={disabled}
           />
-        ) : null}
+          {sizes.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {sizes.map((choice) => (
+                <button
+                  key={choice.units}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => setSize(choice.units)}
+                  className={cn(
+                    "h-7 px-2 text-[11px] font-semibold tabular-nums",
+                    choice.units === sizeValue
+                      ? "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,white)] text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                    "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+                  )}
+                >
+                  {formatSupplyQty(choice.units)}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </label>
+      ) : null}
+
+      <label className="block space-y-1">
+        <span className="text-[11px] text-muted-foreground">
+          {packed ? "How many packs" : "How many pieces"}
+        </span>
         <input
-          className={cn(
-            dashboardInputClass(),
-            "h-8 min-w-0 flex-1 text-[13px]",
-            packed && "border-0 bg-transparent shadow-none",
-          )}
+          className={cn(dashboardInputClass(), "h-8 text-[13px]")}
           type="number"
           min={0}
           step={followsInventory || packed ? "any" : 1}
@@ -145,45 +160,10 @@ export function StorePackCountField({
           disabled={disabled}
           required
         />
-        {packed && packMode ? (
-          <button
-            type="button"
-            className="shrink-0 px-2 font-mono text-[11px] font-black tabular-nums text-amber-950"
-            disabled={disabled}
-            onClick={() => setSheetOpen(true)}
-            aria-label={`Pack of ${packMode.unitsPerPack}, click to change size`}
-          >
-            ×{formatSupplyQty(packMode.unitsPerPack)}
-          </button>
-        ) : null}
-      </div>
-      {preview ? (
-        <span className={cn(dashboardHintClass(), "block")}>{preview}</span>
-      ) : followsInventory ? (
-        <span className={cn(dashboardHintClass(), "block")}>
-          Saving number updates inventory on-hand.
-        </span>
-      ) : null}
+      </label>
 
-      {followsInventory ? (
-        <SupplyPackQtyModal
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
-          defaults={{
-            packUnit: packMode?.packUnit || catalog?.catalogPackUnit || "pack",
-            packSize:
-              packMode?.unitsPerPack || catalog?.displayToHolderFactor || 12,
-            productLabel: null,
-          }}
-          initialUnitsPerPack={packMode?.unitsPerPack ?? null}
-          savedOptions={offers}
-          onApply={(result) => {
-            onPackModeChange({
-              unitsPerPack: result.unitsPerPack,
-              packUnit: result.packUnit,
-            });
-          }}
-        />
+      {hint ? (
+        <p className={cn(dashboardHintClass(), "leading-snug")}>{hint}</p>
       ) : null}
     </div>
   );
