@@ -4,9 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
-  Clock,
   Link2Off,
-  Package,
   PackageX,
   TriangleAlert,
 } from "lucide-react";
@@ -46,18 +44,17 @@ function daysUntil(iso: string | null): number | null {
   return Math.round((day.getTime() - start.getTime()) / 86_400_000);
 }
 
-type PulseTile = {
+type AttentionRow = {
   id: string;
   label: string;
-  value: string;
-  hint: string;
-  tone: "ink" | "teal" | "amber" | "rose" | "muted";
-  icon: typeof Package;
+  detail: string;
+  tone: "amber" | "rose" | "muted";
+  icon: typeof PackageX;
   onClick?: () => void;
 };
 
 /**
- * Middle-column overview when nothing is selected — a quick read of the room
+ * Middle-column overview when nothing is selected — a quiet read of the room
  * before you dig into one product's history.
  */
 export function StoreRoomPulse({
@@ -159,125 +156,89 @@ export function StoreRoomPulse({
     };
   }, [rows, connected, activity]);
 
-  const tiles: PulseTile[] = [
-    {
-      id: "lines",
-      label: "Lines",
-      value: formatQty(pulse.lines),
-      hint: "products in the room",
-      tone: "ink",
-      icon: Package,
-    },
-    {
-      id: "units",
-      label: "On hand",
-      value: formatQty(pulse.units),
-      hint: "units counted live",
-      tone: "teal",
-      icon: Package,
-    },
-    {
-      id: "out",
-      label: "Taken today",
-      value: loadingActivity ? "…" : formatQty(pulse.takeOuts),
-      hint: "moves out of the room",
-      tone: "ink",
-      icon: ArrowUpFromLine,
-    },
-    {
-      id: "in",
-      label: "Put back",
-      value: loadingActivity ? "…" : formatQty(pulse.putIns),
-      hint: "returned to the room",
-      tone: "teal",
-      icon: ArrowDownToLine,
-    },
-    {
+  const attention: AttentionRow[] = [];
+  if (pulse.empty + pulse.low > 0) {
+    attention.push({
       id: "restock",
       label: "Need restock",
-      value: formatQty(pulse.empty + pulse.low),
-      hint:
+      detail:
         pulse.empty > 0
-          ? `${pulse.empty} empty · ${pulse.low} running low`
-          : pulse.low > 0
-            ? "at three or fewer"
-            : "everything has stock",
-      tone: pulse.empty + pulse.low > 0 ? "amber" : "muted",
+          ? `${pulse.empty} empty · ${pulse.low} low`
+          : `${pulse.low} at three or fewer`,
+      tone: "amber",
       icon: PackageX,
       onClick:
         pulse.emptyRows[0] != null
           ? () => onSelect(pulse.emptyRows[0]!)
           : undefined,
-    },
-    {
+    });
+  }
+  if (pulse.pending > 0) {
+    attention.push({
       id: "pending",
       label: "Awaiting OK",
-      value: loadingActivity ? "…" : formatQty(pulse.pending),
-      hint: "take-outs held for approval",
-      tone: pulse.pending > 0 ? "amber" : "muted",
-      icon: Clock,
-    },
-  ];
-
+      detail: `${formatQty(pulse.pending)} take-out${
+        pulse.pending === 1 ? "" : "s"
+      }`,
+      tone: "amber",
+      icon: ArrowUpFromLine,
+    });
+  }
   if (connected && pulse.unlinked > 0) {
-    tiles.push({
+    attention.push({
       id: "unlinked",
       label: "Unlinked",
-      value: formatQty(pulse.unlinked),
-      hint: "not following a product yet",
+      detail: `${formatQty(pulse.unlinked)} not on a product`,
       tone: "amber",
       icon: Link2Off,
       onClick: onShowUnlinked,
     });
   }
-
   if (pulse.expired + pulse.expiring > 0) {
-    tiles.push({
+    attention.push({
       id: "expiry",
       label: pulse.expired > 0 ? "Expired" : "Expiring",
-      value: formatQty(pulse.expired + pulse.expiring),
-      hint:
+      detail:
         pulse.expired > 0
-          ? `${pulse.expired} past date · ${pulse.expiring} within a week`
-          : "dated within 7 days",
+          ? `${pulse.expired} past · ${pulse.expiring} this week`
+          : `${pulse.expiring} within 7 days`,
       tone: pulse.expired > 0 ? "rose" : "amber",
       icon: TriangleAlert,
     });
   }
-
   if (pulse.loss > 0) {
-    tiles.push({
+    attention.push({
       id: "loss",
       label: "Written off",
-      value: formatQty(pulse.loss),
-      hint: "spoilage, theft, staff use today",
+      detail: `${formatQty(pulse.loss)} today`,
       tone: "rose",
       icon: TriangleAlert,
     });
   }
 
-  const toneClass: Record<PulseTile["tone"], string> = {
-    ink: "text-foreground",
-    teal: "text-[var(--pos-primary,#0f766e)]",
-    amber: "text-amber-700",
-    rose: "text-rose-700",
+  const toneText = {
+    amber: "text-amber-800 dark:text-amber-300",
+    rose: "text-rose-700 dark:text-rose-400",
     muted: "text-muted-foreground",
-  };
+  } as const;
 
   return (
-    <div className={cn("flex h-full min-h-0 flex-col bg-white", className)}>
-      <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3">
+    <div
+      className={cn(
+        "flex h-full min-h-0 flex-col bg-transparent",
+        className,
+      )}
+    >
+      <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2.5 py-2 sm:px-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h2 className="text-[13px] font-semibold tracking-tight text-foreground">
-              Room pulse
+              Room
             </h2>
             <p className={cn(dashboardHintClass(), "mt-0.5")}>
               {pulse.needsAttention > 0
-                ? `${pulse.needsAttention} thing${
-                    pulse.needsAttention === 1 ? "" : "s"
-                  } to glance at`
-                : "Quiet day — pick a line on the left to dig in"}
+                ? `${pulse.needsAttention} to glance at`
+                : "Quiet — pick a line to dig in"}
             </p>
           </div>
           {onPutIn ? (
@@ -285,7 +246,7 @@ export function StoreRoomPulse({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-1.5 text-[11px]"
+              className="h-7 gap-1 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
               onClick={onPutIn}
             >
               <ArrowDownToLine className="size-3.5" aria-hidden />
@@ -296,103 +257,147 @@ export function StoreRoomPulse({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-2.5 sm:px-3">
-        <div className="grid grid-cols-2 gap-px overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
-          {tiles.map((tile) => {
-            const Icon = tile.icon;
-            const body = (
-              <>
-                <span className="flex items-center justify-between gap-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-                    {tile.label}
-                  </span>
-                  <Icon
-                    className={cn("size-3.5 shrink-0", toneClass[tile.tone])}
-                    aria-hidden
-                  />
-                </span>
-                <span
-                  className={cn(
-                    "mt-1.5 block text-[1.45rem] font-semibold leading-none tracking-[-0.03em] tabular-nums",
-                    toneClass[tile.tone],
-                  )}
-                >
-                  {tile.value}
-                </span>
-                <span className={cn(dashboardHintClass(), "mt-1 block leading-snug")}>
-                  {tile.hint}
-                </span>
-              </>
-            );
-            return tile.onClick ? (
-              <button
-                key={tile.id}
-                type="button"
-                onClick={tile.onClick}
-                className="bg-white px-2.5 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)]"
-              >
-                {body}
-              </button>
-            ) : (
-              <div key={tile.id} className="bg-white px-2.5 py-2.5">
-                {body}
-              </div>
-            );
-          })}
-        </div>
-
-        {pulse.heaviest && pulse.heaviestCount > 0 ? (
-          <button
-            type="button"
-            onClick={() => onSelect(pulse.heaviest!)}
-            className="mt-2 flex w-full items-center justify-between gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] px-2.5 py-2 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)]"
-          >
-            <span className="min-w-0">
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-                Heaviest line
+        <div className="space-y-3">
+          <div>
+            <p className="text-[1.35rem] font-semibold leading-none tracking-[-0.03em] tabular-nums text-foreground">
+              {formatQty(pulse.units)}
+              <span className="ml-1.5 text-[11px] font-medium tracking-normal text-muted-foreground">
+                on hand
               </span>
-              <span className="mt-0.5 block truncate text-[12.5px] font-semibold text-foreground">
-                {pulse.heaviest.name}
-              </span>
-            </span>
-            <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
-              {formatQty(pulse.heaviestCount)}
-            </span>
-          </button>
-        ) : null}
-
-        {pulse.emptyRows.length > 0 ? (
-          <div className="mt-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
-            <p className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-              Empty — restock these
             </p>
-            <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
-              {pulse.emptyRows.slice(0, 6).map((row) => (
-                <li key={row.id}>
+            <p className={cn(dashboardHintClass(), "mt-1.5")}>
+              {formatQty(pulse.lines)} line{pulse.lines === 1 ? "" : "s"}
+              {pulse.heaviest && pulse.heaviestCount > 0 ? (
+                <>
+                  {" · "}
                   <button
                     type="button"
-                    onClick={() => onSelect(row)}
-                    className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left text-[12px] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]"
+                    onClick={() => onSelect(pulse.heaviest!)}
+                    className="underline-offset-2 hover:text-foreground hover:underline"
                   >
-                    <span className="min-w-0 truncate font-medium text-foreground">
-                      {row.name}
-                    </span>
-                    <span className="shrink-0 font-mono text-[10px] text-amber-700">
-                      0
-                    </span>
+                    {pulse.heaviest.name}
                   </button>
-                </li>
-              ))}
-            </ul>
-            {pulse.emptyRows.length > 6 ? (
-              <p className={cn(dashboardHintClass(), "px-2.5 py-1.5")}>
-                +{pulse.emptyRows.length - 6} more empty
-              </p>
+                  {` heaviest (${formatQty(pulse.heaviestCount)})`}
+                </>
+              ) : null}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] py-2 text-[12px] tabular-nums text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <ArrowUpFromLine className="size-3 opacity-70" aria-hidden />
+              <span className="font-semibold text-foreground">
+                {loadingActivity ? "…" : formatQty(pulse.takeOuts)}
+              </span>
+              <span>out</span>
+            </span>
+            <span
+              className="h-3 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
+              aria-hidden
+            />
+            <span className="inline-flex items-center gap-1">
+              <ArrowDownToLine className="size-3 opacity-70" aria-hidden />
+              <span className="font-semibold text-foreground">
+                {loadingActivity ? "…" : formatQty(pulse.putIns)}
+              </span>
+              <span>in</span>
+            </span>
+            {!loadingActivity && pulse.pending > 0 ? (
+              <>
+                <span
+                  className="h-3 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
+                  aria-hidden
+                />
+                <span className="font-medium text-amber-800 dark:text-amber-300">
+                  {formatQty(pulse.pending)} waiting
+                </span>
+              </>
             ) : null}
           </div>
-        ) : null}
 
-        <p className={cn(dashboardHintClass(), "mt-3 text-center")}>
-          Select a product on the left to see its moves.
+          {attention.length > 0 ? (
+            <ul className="space-y-0.5">
+              {attention.map((row) => {
+                const Icon = row.icon;
+                const body = (
+                  <>
+                    <Icon
+                      className={cn(
+                        "mt-0.5 size-3.5 shrink-0",
+                        toneText[row.tone],
+                      )}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className={cn(
+                          "block text-[12px] font-medium leading-snug",
+                          toneText[row.tone],
+                        )}
+                      >
+                        {row.label}
+                      </span>
+                      <span className="block text-[11px] leading-snug text-muted-foreground">
+                        {row.detail}
+                      </span>
+                    </span>
+                  </>
+                );
+                return (
+                  <li key={row.id}>
+                    {row.onClick ? (
+                      <button
+                        type="button"
+                        onClick={row.onClick}
+                        className="flex w-full items-start gap-2 px-1 py-1.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3.5%,transparent)]"
+                      >
+                        {body}
+                      </button>
+                    ) : (
+                      <div className="flex items-start gap-2 px-1 py-1.5">
+                        {body}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+
+          {pulse.emptyRows.length > 0 ? (
+            <div>
+              <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                Empty
+              </p>
+              <ul className="mt-1">
+                {pulse.emptyRows.slice(0, 5).map((row) => (
+                  <li key={row.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSelect(row)}
+                      className="flex w-full items-center justify-between gap-2 px-1 py-1 text-left text-[12px] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3.5%,transparent)]"
+                    >
+                      <span className="min-w-0 truncate font-medium text-foreground">
+                        {row.name}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-[11px] text-amber-800 dark:text-amber-300">
+                        0
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {pulse.emptyRows.length > 5 ? (
+                <p className={cn(dashboardHintClass(), "px-1 pt-0.5")}>
+                  +{pulse.emptyRows.length - 5} more
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <p className={cn(dashboardHintClass(), "mt-4 px-1")}>
+          Select a product to see its moves.
         </p>
       </div>
     </div>

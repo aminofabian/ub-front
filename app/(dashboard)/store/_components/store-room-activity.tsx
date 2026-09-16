@@ -190,10 +190,10 @@ export function StoreRoomActivity({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-col bg-white",
+        "flex min-h-0 flex-col",
         theatre
-          ? "h-full border-0"
-          : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+          ? "h-full border-0 bg-transparent"
+          : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
         className,
       )}
     >
@@ -201,7 +201,7 @@ export function StoreRoomActivity({
         className={cn(
           "flex shrink-0 items-center justify-between gap-2",
           theatre
-            ? "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3"
+            ? "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2.5 py-2 sm:px-3"
             : "px-3 pt-3 sm:px-3.5",
         )}
       >
@@ -227,7 +227,7 @@ export function StoreRoomActivity({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-1.5 text-[11px]"
+              className="h-7 gap-1 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
               onClick={onPutIn}
             >
               <ArrowDownToLine className="size-3.5" aria-hidden />
@@ -238,7 +238,7 @@ export function StoreRoomActivity({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-7"
+            className="size-7 text-muted-foreground hover:text-foreground"
             aria-label="Refresh activity"
             disabled={loading}
             onClick={load}
@@ -252,26 +252,51 @@ export function StoreRoomActivity({
         </div>
       </div>
 
-      <div className={cn("shrink-0", theatre ? "px-2.5 pt-1.5 sm:px-3" : "px-3 sm:px-3.5")}>
+      <div
+        className={cn(
+          "shrink-0",
+          theatre ? "px-2.5 pt-1.5 sm:px-3" : "px-3 sm:px-3.5",
+        )}
+      >
         {summary && summary.pending > 0 ? (
-          <p className="mb-2 flex items-start gap-2 border border-amber-500/40 bg-amber-500/5 px-2.5 py-1.5 text-[12px] leading-snug text-amber-800 dark:text-amber-300">
+          <p
+            className={cn(
+              "mb-2 flex items-start gap-2 px-2 py-1.5 text-[12px] leading-snug text-amber-800 dark:text-amber-300",
+              theatre
+                ? "bg-amber-500/[0.08]"
+                : "border border-amber-500/40 bg-amber-500/5",
+            )}
+          >
             <Clock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
             <span>
-              {summary.pending} take-out{summary.pending === 1 ? "" : "s"} waiting on a
-              decision. Stock has not moved for {summary.pending === 1 ? "it" : "them"} yet.
+              {summary.pending} take-out{summary.pending === 1 ? "" : "s"} waiting
+              on a decision. Stock has not moved for{" "}
+              {summary.pending === 1 ? "it" : "them"} yet.
             </span>
           </p>
         ) : null}
 
         {summary && Number(summary.stockLossQuantity) > 0 && !focusStoreItemId ? (
-          <p className="mb-2 border border-rose-500/30 bg-rose-500/5 px-2.5 py-1.5 text-[12px] leading-snug text-rose-700 dark:text-rose-400">
+          <p
+            className={cn(
+              "mb-2 px-2 py-1.5 text-[12px] leading-snug text-rose-700 dark:text-rose-400",
+              theatre
+                ? "bg-rose-500/[0.07]"
+                : "border border-rose-500/30 bg-rose-500/5",
+            )}
+          >
             {formatQuantity(summary.stockLossQuantity)} item
             {Number(summary.stockLossQuantity) === 1 ? "" : "s"} left the shop
             (spoilage, expiry, theft, staff use and the like).
           </p>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+        <div
+          className={cn(
+            "grid gap-1",
+            theatre ? "grid-cols-1" : "grid-cols-2 gap-1.5 sm:grid-cols-3",
+          )}
+        >
           <select
             className={cn(dashboardSelectClass(), "h-8 text-xs")}
             value={range}
@@ -282,7 +307,11 @@ export function StoreRoomActivity({
             <option value="week">Last 7 days</option>
           </select>
           <select
-            className={cn(dashboardSelectClass(), "h-8 text-xs")}
+            className={cn(
+              dashboardSelectClass(),
+              "h-8 text-xs",
+              theatre && "bg-white/70",
+            )}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             aria-label="Filter by reason"
@@ -295,7 +324,11 @@ export function StoreRoomActivity({
             ))}
           </select>
           <select
-            className={cn(dashboardSelectClass(), "h-8 text-xs col-span-2 sm:col-span-1")}
+            className={cn(
+              dashboardSelectClass(),
+              "h-8 text-xs",
+              theatre ? "bg-white/70" : "col-span-2 sm:col-span-1",
+            )}
             value={actor}
             onChange={(event) => setActor(event.target.value)}
             aria-label="Filter by person"
@@ -342,7 +375,9 @@ export function StoreRoomActivity({
           <p
             className={cn(
               dashboardHintClass(),
-              "mt-6 border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] py-8 text-center",
+              theatre
+                ? "mt-5 py-6 text-center"
+                : "mt-6 border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] py-8 text-center",
             )}
           >
             {filtersActive
@@ -350,12 +385,13 @@ export function StoreRoomActivity({
               : "Nothing has moved yet."}
           </p>
         ) : (
-          <ol className="relative mt-3 space-y-0">
-            {/* Timeline rail */}
-            <span
-              className="pointer-events-none absolute bottom-2 left-[0.7rem] top-2 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
-              aria-hidden
-            />
+          <ol className={cn("relative", theatre ? "mt-1.5" : "mt-3")}>
+            {!theatre ? (
+              <span
+                className="pointer-events-none absolute bottom-2 left-[0.7rem] top-2 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
+                aria-hidden
+              />
+            ) : null}
             {movements.map((movement) => {
               const loss = isStockLoss(movement.stockEffect);
               const incoming = movement.direction === "in";
@@ -374,25 +410,50 @@ export function StoreRoomActivity({
               return (
                 <li
                   key={movement.id}
-                  className="relative flex items-start gap-2.5 py-2.5 pl-0"
+                  className={cn(
+                    "relative flex items-start gap-2",
+                    theatre
+                      ? "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] py-2 last:border-b-0"
+                      : "gap-2.5 py-2.5 pl-0",
+                  )}
                 >
                   <span
                     className={cn(
-                      "relative z-[1] mt-0.5 inline-flex size-6 shrink-0 items-center justify-center border bg-white",
-                      pending
-                        ? "border-amber-500/50 text-amber-600 dark:text-amber-400"
-                        : rejected
-                          ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_15%,transparent)] text-muted-foreground/60"
-                          : loss
-                            ? "border-rose-500/40 text-rose-600 dark:text-rose-400"
-                            : incoming
-                              ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
-                              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_15%,transparent)] text-muted-foreground",
+                      "relative z-[1] mt-0.5 inline-flex shrink-0 items-center justify-center",
+                      theatre
+                        ? "size-5 text-muted-foreground"
+                        : "size-6 border bg-white",
+                      !theatre &&
+                        (pending
+                          ? "border-amber-500/50 text-amber-600 dark:text-amber-400"
+                          : rejected
+                            ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_15%,transparent)] text-muted-foreground/60"
+                            : loss
+                              ? "border-rose-500/40 text-rose-600 dark:text-rose-400"
+                              : incoming
+                                ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_15%,transparent)] text-muted-foreground"),
+                      theatre &&
+                        (pending
+                          ? "text-amber-700 dark:text-amber-400"
+                          : rejected
+                            ? "text-muted-foreground/55"
+                            : loss
+                              ? "text-rose-600 dark:text-rose-400"
+                              : incoming
+                                ? "text-[var(--pos-primary,#0f766e)]"
+                                : "text-muted-foreground"),
                     )}
                   >
-                    <Icon className="size-3.5" aria-hidden />
+                    <Icon className={theatre ? "size-3" : "size-3.5"} aria-hidden />
                   </span>
-                  <div className="min-w-0 flex-1 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] px-2.5 py-2">
+                  <div
+                    className={cn(
+                      "min-w-0 flex-1",
+                      !theatre &&
+                        "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] px-2.5 py-2",
+                    )}
+                  >
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="text-[12.5px] leading-snug">
                         <span className="font-semibold tabular-nums text-foreground">
@@ -415,7 +476,7 @@ export function StoreRoomActivity({
                           </>
                         ) : null}
                         {pending ? (
-                          <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                          <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
                             waiting
                           </span>
                         ) : null}
@@ -425,13 +486,15 @@ export function StoreRoomActivity({
                           </span>
                         ) : null}
                       </p>
-                      <time className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
+                      <time className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
                         {formatWhen(movement.createdAt, range)}
                       </time>
                     </div>
                     <p className={cn(dashboardHintClass(), "mt-0.5")}>
                       {storeRoomReasonLabel(movement.reason)}
-                      {movement.createdByName ? ` · ${movement.createdByName}` : ""}
+                      {movement.createdByName
+                        ? ` · ${movement.createdByName}`
+                        : ""}
                       {loss && movement.movementCount > 1
                         ? ` · ${movement.movementCount} stock batches`
                         : ""}

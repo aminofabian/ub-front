@@ -155,7 +155,7 @@ export function StoreRoomTheatre({
   const mobileDetailOpen = mobileShowDetail && !!selectedRow;
 
   const roster = (
-    <div className="flex min-h-0 flex-col bg-white">
+    <div className="flex h-full min-h-0 flex-col bg-white">
       <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3">
         <div className="flex items-center gap-1.5">
           <label className="relative min-w-0 flex-1">
@@ -385,17 +385,17 @@ export function StoreRoomTheatre({
       {/* Desktop theatre */}
       <div
         className={cn(
-          "hidden min-h-[min(72dvh,44rem)] overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white lg:grid",
-          "lg:grid-cols-[minmax(15rem,20rem)_minmax(0,1.2fr)_minmax(17rem,22rem)]",
+          "hidden h-[min(72dvh,44rem)] overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white lg:grid",
+          "lg:grid-cols-[minmax(15rem,18rem)_minmax(12.5rem,15rem)_minmax(17rem,1fr)]",
         )}
       >
-        <div className="min-h-0 border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+        <div className="flex h-full min-h-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
           {roster}
         </div>
-        <div className="min-h-0 border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+        <div className="flex h-full min-h-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]">
           {history}
         </div>
-        <div className="min-h-0">{inspect}</div>
+        <div className="flex h-full min-h-0 flex-col bg-white">{inspect}</div>
       </div>
 
       {/* Mobile / tablet: drawer-first. The page stays light — a summary card
