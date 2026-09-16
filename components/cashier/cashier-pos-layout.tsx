@@ -2111,7 +2111,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     type="button"
                     aria-current={isActive ? "true" : undefined}
                     onClick={() => onSwitchCart(tab.id)}
-                    className="flex min-w-0 flex-col items-start gap-0.5 text-left"
+                    className={cn(
+                      "flex min-w-0 items-start text-left",
+                      mobilePhone ? "flex-row items-center gap-1.5" : "flex-col gap-0.5",
+                    )}
                     title={
                       hasItems
                         ? `${role} ${tab.label} · ${tab.itemCount} items · ${totalLabel} ${currency}`
@@ -2168,10 +2171,19 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       ) : null}
                     </span>
                     {hasItems ? (
-                      <span className="pl-3 text-[10px] tabular-nums text-muted-foreground">
-                        {tab.itemCount}{" "}
-                        {tab.itemCount === 1 ? "item" : "items"} · {totalLabel}{" "}
-                        {currency}
+                      <span
+                        className={cn(
+                          "tabular-nums text-muted-foreground",
+                          mobilePhone
+                            ? "text-[10px]"
+                            : "pl-3 text-[10px]",
+                        )}
+                      >
+                        {mobilePhone
+                          ? `${tab.itemCount} · ${totalLabel}`
+                          : `${tab.itemCount} ${
+                              tab.itemCount === 1 ? "item" : "items"
+                            } · ${totalLabel} ${currency}`}
                       </span>
                     ) : null}
                   </button>
@@ -2236,7 +2248,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             <button
               type="button"
               onClick={() => setShowScanner(true)}
-              className="flex size-11 shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors hover:text-foreground dark:text-muted-foreground"
+              className={cn(
+                "flex shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors hover:text-foreground dark:text-muted-foreground",
+                mobilePhone ? "size-10" : "size-11",
+              )}
               aria-label="Scan barcode with phone camera"
               title="Scan barcode with camera"
             >
@@ -2272,9 +2287,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               }
               className={cn(
                 "flex-1 bg-transparent outline-none placeholder:text-muted-foreground/55",
-                compactShelf
-                  ? "h-9 text-sm"
-                  : "h-12 text-[15px] sm:h-[3.25rem] sm:text-base",
+                mobilePhone
+                  ? "h-10 text-[15px]"
+                  : compactShelf
+                    ? "h-9 text-sm"
+                    : "h-12 text-[15px] sm:h-[3.25rem] sm:text-base",
               )}
               autoComplete="off"
               enterKeyHint="search"

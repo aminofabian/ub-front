@@ -93,10 +93,7 @@ export const SearchableSelect = forwardRef<
     const rows = options.filter((o) =>
       matchesSearchableSelectQuery(o, query),
     );
-    if (
-      noneLabel &&
-      matchesSearchableSelectQuery({ value: "", label: noneLabel }, query)
-    ) {
+    if (noneLabel && matchesSearchableSelectQuery({ label: noneLabel }, query)) {
       return [{ value: "", label: noneLabel }, ...rows];
     }
     return rows;
