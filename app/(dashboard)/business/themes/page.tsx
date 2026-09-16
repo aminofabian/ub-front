@@ -6,6 +6,7 @@ import { ArrowLeft, Brush, LayoutTemplate, Palette } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
+  DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
   DashboardLoadError,
   DashboardPageHero,
@@ -14,10 +15,7 @@ import { StorefrontThemesStudio } from "@/components/business/storefront-themes-
 import { Button } from "@/components/ui/button";
 import { fetchBusiness, type BusinessRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
-
-/** The try-it-on atelier needs more width than the standard dashboard column. */
-const STUDIO_WRAPPER =
-  "relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col gap-1 bg-white px-0 pb-4";
+import { cn } from "@/lib/utils";
 
 export default function BusinessThemesPage() {
   const { canManageBusinessSettings } = useDashboard();
@@ -61,7 +59,7 @@ export default function BusinessThemesPage() {
 
   if (!business && !loadFailed) {
     return (
-      <div className={STUDIO_WRAPPER}>
+      <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
         <ThemesPageHeader />
         <ThemesStudioSkeleton />
       </div>
@@ -81,14 +79,12 @@ export default function BusinessThemesPage() {
   }
 
   return (
-    <div className={STUDIO_WRAPPER}>
-      <div className="space-y-3">
-        <ThemesPageHeader />
-        <StorefrontThemesStudio
-          business={business}
-          onSaved={(next) => setBusiness(next)}
-        />
-      </div>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+      <ThemesPageHeader />
+      <StorefrontThemesStudio
+        business={business}
+        onSaved={(next) => setBusiness(next)}
+      />
     </div>
   );
 }
@@ -105,7 +101,7 @@ function ThemesPageHeader() {
         asChild
         variant="outline"
         size="sm"
-        className="rounded-none shadow-none"
+        className="h-8 gap-1.5 rounded-none shadow-none"
       >
         <Link href={APP_ROUTES.businessDesign}>
           <Brush className="size-3.5" aria-hidden />
@@ -116,14 +112,19 @@ function ThemesPageHeader() {
         asChild
         variant="outline"
         size="sm"
-        className="rounded-none shadow-none"
+        className="h-8 gap-1.5 rounded-none shadow-none"
       >
         <Link href={APP_ROUTES.businessBranding}>
           <Palette className="size-3.5" aria-hidden />
           Branding
         </Link>
       </Button>
-      <Button asChild variant="ghost" size="sm" className="rounded-none">
+      <Button
+        asChild
+        variant="ghost"
+        size="sm"
+        className="h-8 gap-1.5 rounded-none"
+      >
         <Link href={APP_ROUTES.businessSettings}>
           <ArrowLeft className="size-3.5" aria-hidden />
           Settings
@@ -135,47 +136,42 @@ function ThemesPageHeader() {
 
 function ThemesStudioSkeleton() {
   return (
-    <div className="space-y-3" aria-busy="true" aria-label="Loading shop looks">
-      <div className="grid items-start gap-4 xl:grid-cols-[10.75rem_minmax(0,1fr)_17.5rem] xl:gap-5">
-        <div className="hidden space-y-3 xl:block">
-          <div className="h-3 w-16 animate-pulse bg-muted" />
-          <div className="h-14 animate-pulse bg-muted" />
-          <div className="h-14 animate-pulse bg-muted/70" />
-          <div className="mt-4 space-y-1.5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-7 animate-pulse bg-muted/60" />
-            ))}
-          </div>
+    <div
+      className="flex min-h-0 flex-col gap-1.5"
+      aria-busy="true"
+      aria-label="Loading shop looks"
+    >
+      <div className="h-9 animate-pulse border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40" />
+      <div
+        className={cn(
+          "hidden h-[min(80dvh,52rem)] overflow-hidden border lg:grid",
+          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]",
+          "lg:grid-cols-[minmax(15.5rem,17.5rem)_minmax(0,1fr)_minmax(20rem,23.5rem)]",
+        )}
+      >
+        <div className="space-y-2 border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] p-3">
+          <div className="h-8 animate-pulse bg-muted/70" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-10 animate-pulse bg-muted/50" />
+          ))}
         </div>
-        <div className="min-w-0 space-y-3">
-          <div className="space-y-1.5">
-            <div className="h-4 w-48 animate-pulse bg-muted" />
-            <div className="h-3 w-72 animate-pulse bg-muted/70" />
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
-              >
-                <div className="h-40 animate-pulse bg-muted/50" />
-                <div className="space-y-1.5 border-t p-2.5">
-                  <div className="h-3.5 w-1/2 animate-pulse bg-muted" />
-                  <div className="h-3 w-16 animate-pulse bg-muted/70" />
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="flex items-center justify-center p-6">
+          <div className="h-72 w-36 animate-pulse rounded-[1.4rem] bg-muted/60" />
         </div>
-        <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
-          <div className="space-y-3 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3.5%,white)] p-4">
-            <div className="mx-auto h-52 w-28 animate-pulse rounded-[1.4rem] bg-muted" />
-            <div className="mx-auto h-4 w-28 animate-pulse bg-muted" />
-          </div>
-          <div className="space-y-2 p-3">
-            <div className="h-3 w-full animate-pulse bg-muted/60" />
-            <div className="h-3 w-4/5 animate-pulse bg-muted/40" />
-          </div>
+        <div className="space-y-3 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4">
+          <div className="h-5 w-28 animate-pulse bg-muted" />
+          <div className="h-3 w-full animate-pulse bg-muted/60" />
+          <div className="h-3 w-4/5 animate-pulse bg-muted/40" />
+          <div className="h-3 w-3/5 animate-pulse bg-muted/40" />
+        </div>
+      </div>
+      <div className="overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white lg:hidden">
+        <div className="space-y-2 p-3">
+          <div className="h-8 animate-pulse bg-muted/70" />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-12 animate-pulse bg-muted/50" />
+          ))}
         </div>
       </div>
     </div>

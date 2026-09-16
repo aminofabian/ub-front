@@ -42,18 +42,17 @@ import {
 } from "@/lib/payroll-utils";
 
 import { AdvanceLedgerDrawer } from "./_components/advance-ledger-drawer";
-import { AdvanceLedgerPanel } from "./_components/advance-ledger-panel";
 import { LogAdvanceDrawer } from "./_components/log-advance-drawer";
 import {
   PayConfirmDrawer,
   type PayConfirmPayload,
 } from "./_components/pay-confirm-drawer";
-import { PayrollCalendarPanel } from "./_components/payroll-calendar-panel";
-import { PayrollMonthNav } from "./_components/payroll-month-nav";
+import { PayrollAdvancesTheatre } from "./_components/payroll-advances-theatre";
+import { PayrollCalendarTheatre } from "./_components/payroll-calendar-theatre";
+import { PayrollPayslipsTheatre } from "./_components/payroll-payslips-theatre";
 import { PayrollRunTheatre } from "./_components/payroll-run-theatre";
 import { PayrollTabs } from "./_components/payroll-tabs";
 import { PayslipDrawer } from "./_components/payslip-drawer";
-import { PayslipHistoryPanel } from "./_components/payslip-history-panel";
 import { StaffSmsDrawer } from "./_components/staff-sms-drawer";
 
 type Tab = "run" | "calendar" | "advances" | "history";
@@ -86,7 +85,6 @@ export default function PayrollPage() {
   const [applyStatutory, setApplyStatutory] = useState(false);
   const [postExpenseDefault, setPostExpenseDefault] = useState(false);
   const [payAllMethod, setPayAllMethod] = useState("mpesa_manual");
-  const [historyTick, setHistoryTick] = useState(0);
 
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [profileUserLabel, setProfileUserLabel] = useState("");
@@ -311,16 +309,6 @@ export default function PayrollPage() {
     setPayslipOpen(true);
   }
 
-  function openPayslipRecord(payslip: PayslipRecord) {
-    setPayslipUserId(payslip.userId);
-    setPayslipName(payslip.displayName);
-    setPayslipId(payslip.id);
-    setPayslipInitial(payslip);
-    // Deliberately no year/month change here — the drawer shows the initial
-    // payslip directly and mutating the global period had run-tab side effects.
-    setPayslipOpen(true);
-  }
-
   async function onConfirmPay(payload: PayConfirmPayload) {
     if (!payRow || !canRunPayroll) return;
     setPayingId(payRow.userId);
@@ -496,18 +484,6 @@ export default function PayrollPage() {
 
       <PayrollTabs tab={tab} onTabChange={setTab} />
 
-      {tab === "history" ? (
-        <PayrollMonthNav
-          year={year}
-          month={month}
-          onChange={(y, m) => {
-            setYear(y);
-            setMonth(m);
-          }}
-          onRefresh={() => setHistoryTick((t) => t + 1)}
-        />
-      ) : null}
-
       {tab === "run" ? (
         <>
           {feedback ? (
@@ -599,42 +575,52 @@ export default function PayrollPage() {
           )}
         </>
       ) : tab === "calendar" ? (
-        <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 sm:p-5">
-          <PayrollCalendarPanel
-            year={year}
-            branchFilter={branchFilter}
-            branches={branchOptions}
-            onYearChange={setYear}
-            onBranchFilterChange={setBranchFilter}
-            onSelectMonth={(y, m) => {
-              setYear(y);
-              setMonth(m);
-              setTab("run");
+        <PayrollCalendarTheatre
+          year={year}
+          branchFilter={branchFilter}
+          branches={branchOptions}
+          onYearChange={setYear}
+          onBranchFilterChange={setBranchFilter}
+          onSelectMonth={(y, m) => {
+            setYear(y);
+            setMonth(m);
+            setTab("run");
+          }}
+        />
+      ) : tab === "advances" ? (
+        <>
+          {feedback ? (
+            <DashboardFeedback kind={feedback.kind} text={feedback.text} />
+          ) : null}
+          <PayrollAdvancesTheatre
+            canReadStaffProfile={canReadStaffProfile}
+            canManagePayroll={canManagePayroll}
+            onOpenStaff={openProfileById}
+            onLogAdvance={(userId, name, outstanding) => {
+              setAdvanceUserId(userId);
+              setAdvanceName(name);
+              setAdvanceOutstanding(outstanding);
+              setAdvanceOpen(true);
+            }}
+            onUpdated={() => {
+              void load();
             }}
           />
-        </div>
-      ) : tab === "advances" ? (
-        <div className="space-y-4 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 sm:p-5">
-          {feedback ? (
-            <DashboardFeedback kind={feedback.kind} text={feedback.text} />
-          ) : null}
-          <AdvanceLedgerPanel
-            canReadStaffProfile={canReadStaffProfile}
-            onOpenStaff={openProfileById}
-          />
-        </div>
+        </>
       ) : (
-        <div className="space-y-4 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 sm:p-5">
+        <>
           {feedback ? (
             <DashboardFeedback kind={feedback.kind} text={feedback.text} />
           ) : null}
-          <PayslipHistoryPanel
+          <PayrollPayslipsTheatre
             year={year}
             month={month}
-            reloadToken={historyTick}
-            onOpenPayslip={openPayslipRecord}
+            onMonthChange={(y, m) => {
+              setYear(y);
+              setMonth(m);
+            }}
           />
-        </div>
+        </>
       )}
 
       <StaffSmsDrawer

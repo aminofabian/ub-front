@@ -31,6 +31,8 @@ type Props = {
   month: number;
   payslipId?: string | null;
   initialPayslip?: PayslipRecord | null;
+  dockRoot?: HTMLElement | null;
+  docked?: boolean;
 };
 
 function paymentMethodLabel(method: string | null): string {
@@ -85,6 +87,8 @@ export function PayslipDrawer({
   month,
   payslipId,
   initialPayslip,
+  dockRoot = null,
+  docked = false,
 }: Props) {
   const { business } = useDashboard();
   const [loading, setLoading] = useState(false);
@@ -226,6 +230,11 @@ export function PayslipDrawer({
       description={`${displayName} · ${payrollMonthLabel(periodYear, periodMonth)}`}
       contextLabel="Payroll"
       icon={<Receipt className="size-5 text-primary" aria-hidden />}
+      headerDensity={docked ? "compact" : "default"}
+      bodyLayout={docked ? "fill" : "scroll"}
+      appearance={docked ? "sharp" : "default"}
+      docked={docked}
+      dockRoot={dockRoot}
       footer={
         <div className="flex justify-end gap-2">
           {payslip ? (
@@ -259,6 +268,13 @@ export function PayslipDrawer({
         </div>
       }
     >
+      <div
+        className={
+          docked
+            ? "h-full min-h-0 overflow-y-auto overscroll-contain"
+            : undefined
+        }
+      >
       {loading ? (
         <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -424,6 +440,7 @@ export function PayslipDrawer({
           </p>
         </FormDrawerFields>
       ) : null}
+      </div>
     </FormDrawer>
   );
 }

@@ -9,17 +9,15 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
-  type ReactNode,
 } from "react";
 import {
   Check,
-  ChevronDown,
   Columns2,
   DoorClosed,
   ExternalLink,
-  Filter,
   Loader2,
   Save,
+  Search,
   Sparkles,
   Store,
   X,
@@ -29,6 +27,7 @@ import {
 import {
   DashboardFeedback,
   dashboardHintClass,
+  dashboardInputClass,
   dashboardLabelClass,
 } from "@/components/dashboard-page-ui";
 import { ThemeLiveFrame } from "@/components/business/theme-live-frame";
@@ -36,8 +35,10 @@ import {
   MilkRunWhatsAppDialog,
   milkRunNeedsWhatsApp,
 } from "@/components/storefront/milk-run-whatsapp-dialog";
+import { FormDrawer } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { ShopCartPreviewProvider } from "@/hooks/use-shop-cart";
+import { useMediaLg } from "@/hooks/use-media-lg";
 import {
   fetchBusiness,
   fetchItemsPage,
@@ -116,7 +117,10 @@ export function StorefrontThemesStudio({
   );
   const [tryOnProducts, setTryOnProducts] = useState<ThemeTryOnProduct[]>([]);
   const [catalogTokens, setCatalogTokens] = useState<string[]>([]);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const isLg = useMediaLg();
+  const [dockRoot, setDockRoot] = useState<HTMLDivElement | null>(null);
   const openedAtRef = useRef(Date.now());
   const shortlistCandidateRef = useRef<string | null>(null);
 
@@ -240,9 +244,19 @@ export function StorefrontThemesStudio({
           .map((id) => items.find((item) => item.id === id))
           .filter((item): item is StorefrontTemplateMeta => Boolean(item))
       : items;
-    if (showShortlist || activeVibe === "All") return pool;
-    return pool.filter((item) => item.vibes.includes(activeVibe));
-  }, [items, activeVibe, showShortlist, shortlistIds]);
+    const vibeFiltered =
+      showShortlist || activeVibe === "All"
+        ? pool
+        : pool.filter((item) => item.vibes.includes(activeVibe));
+    const q = query.trim().toLowerCase();
+    if (!q) return vibeFiltered;
+    return vibeFiltered.filter(
+      (item) =>
+        item.name.toLowerCase().includes(q) ||
+        item.blurb.toLowerCase().includes(q) ||
+        item.vibes.some((v) => v.toLowerCase().includes(q)),
+    );
+  }, [items, activeVibe, showShortlist, shortlistIds, query]);
 
   const pinned = pinnedByMode[mode];
 
@@ -288,6 +302,7 @@ export function StorefrontThemesStudio({
       } else {
         setLandingTemplateId(normalizeLandingTemplateId(id));
       }
+      setMobileDetailOpen(true);
       trackStorefrontEditEvent("themes_try_on", { id, source, mode });
       shortlistCandidateRef.current = source === "shortlist" ? id : null;
     },
@@ -368,20 +383,11 @@ export function StorefrontThemesStudio({
     const index = visibleItems.findIndex((item) => item.id === selectedId);
     if (index < 0) return;
 
-    const cols =
-      typeof window !== "undefined" &&
-      window.matchMedia("(min-width: 640px)").matches
-        ? 2
-        : 1;
-
     let next = index;
     if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-      next = Math.min(
-        visibleItems.length - 1,
-        index + (event.key === "ArrowDown" ? cols : 1),
-      );
+      next = Math.min(visibleItems.length - 1, index + 1);
     } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-      next = Math.max(0, index - (event.key === "ArrowUp" ? cols : 1));
+      next = Math.max(0, index - 1);
     } else if (event.key === "Home") {
       next = 0;
     } else if (event.key === "End") {
@@ -401,7 +407,7 @@ export function StorefrontThemesStudio({
     setMode(next);
     setSeeAllLooks(false);
     setActiveVibe("All");
-    setFiltersOpen(false);
+    setQuery("");
   };
 
   const tryOnShared = {
@@ -417,192 +423,78 @@ export function StorefrontThemesStudio({
     design,
   };
 
-  const vibeFilters = (
-    <VibeFilterList
-      vibes={vibes}
-      activeVibe={activeVibe}
-      onChange={setActiveVibe}
-      disabled={showShortlist}
-    />
-  );
-
   const showMilkRunWhatsApp =
     mode === "store" && selected.id === "milk-run" && !landingWhatsapp;
 
-  return (
-    <ShopCartPreviewProvider>
-    <div className="space-y-3">
-      {!storefrontOn ? (
+  const roster = (opts?: { fill?: boolean; denser?: boolean }) => {
+    const fill = opts?.fill ?? false;
+    const denser = opts?.denser ?? false;
+    return (
+      <div
+        className={cn(
+          "flex min-h-0 flex-col",
+          fill ? "h-full bg-transparent" : "bg-white",
+        )}
+      >
         <div
-          role="status"
           className={cn(
-            "border bg-white px-3 py-2 text-sm leading-relaxed",
-            LINE,
-            "border-amber-700/40 text-amber-800",
+            "shrink-0 space-y-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3",
+            fill ? "bg-transparent" : "sticky top-0 z-[1] bg-white",
           )}
         >
-          The shop is not selling online yet, so visitors see the closed-sign
-          page. You can still dress the open shop. Customers only walk into it
-          after you{" "}
-          <Link
-            href={APP_ROUTES.businessSettings}
-            className="font-medium underline underline-offset-2"
-          >
-            turn selling on
-          </Link>
-          .
-        </div>
-      ) : null}
-
-      {error ? <DashboardFeedback kind="error" text={error} /> : null}
-      {feedback && !dirty ? (
-        <DashboardFeedback kind="success" text={feedback} />
-      ) : null}
-
-      <div className="flex flex-col gap-2 xl:hidden">
-        <ModeSwitch
-          mode={mode}
-          storefrontOn={storefrontOn}
-          onChange={switchLookMode}
-        />
-        {vibes.length > 0 && !showShortlist ? (
-          <StudioDrawer
-            id="filters-mobile"
-            title="Filter by shop type"
-            open={filtersOpen}
-            onToggle={() => setFiltersOpen((open) => !open)}
-            badge={activeVibe === "All" ? undefined : activeVibe}
-            icon={<Filter className="size-3.5" aria-hidden />}
-          >
-            {vibeFilters}
-          </StudioDrawer>
-        ) : null}
-      </div>
-
-      <div className="grid items-start gap-4 xl:grid-cols-[10.75rem_minmax(0,1fr)_17.5rem] xl:gap-5">
-        <aside className="sticky top-24 hidden self-start xl:block">
-          <div className="space-y-5">
-            <div>
-              <p className={dashboardLabelClass()}>Which page</p>
-              <ModeSwitch
-                mode={mode}
-                storefrontOn={storefrontOn}
-                onChange={switchLookMode}
-                stacked
-                className="mt-1.5"
-              />
-            </div>
-
-            {vibes.length > 0 ? (
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <p className={dashboardLabelClass()}>Shop type</p>
-                  {activeVibe !== "All" && !showShortlist ? (
-                    <button
-                      type="button"
-                      onClick={() => setActiveVibe("All")}
-                      className={cn(
-                        "text-[11px] font-medium underline-offset-2 hover:underline",
-                        MUTED,
-                        FOCUS,
-                      )}
-                    >
-                      Clear
-                    </button>
-                  ) : null}
-                </div>
-                <div className="mt-1.5">{vibeFilters}</div>
-                {showShortlist ? (
-                  <p className={cn("mt-2 leading-relaxed", dashboardHintClass())}>
-                    Filters unlock after you open all looks.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            <p className={cn("leading-relaxed", dashboardHintClass())}>
-              Your logo, colours, and words stay. Only the layout and typeface
-              change when you save.
-            </p>
-          </div>
-        </aside>
-
-        <div className="min-w-0 space-y-3">
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <div className="min-w-0">
-              <h2
-                className={cn(
-                  "text-[15px] font-semibold tracking-[-0.02em]",
-                  INK,
-                )}
-              >
-                {showShortlist
-                  ? "Start with one of these"
-                  : mode === "store"
-                    ? "Looks for the customer shop"
-                    : storefrontOn
-                      ? "Looks for the closed-sign page"
-                      : "Looks for the page visitors see today"}
-              </h2>
-              <p className={cn("mt-0.5 text-[13px]", MUTED)}>
-                {showShortlist
-                  ? "Tap a look. The phone is your shop in that layout."
-                  : currentModeDirty
-                    ? `${selected.name} is not live yet.`
-                    : mode === "store"
-                      ? `Customers see ${selected.name} when they open your shop.`
-                      : `Visitors see ${selected.name} until the shop is open for buying.`}
-              </p>
-            </div>
-            <p className={cn("text-[11px] tabular-nums", MUTED)}>
-              {visibleItems.length}{" "}
-              {visibleItems.length === 1 ? "look" : "looks"}
-              {activeVibe !== "All" && !showShortlist
-                ? ` in ${activeVibe}`
-                : null}
-            </p>
-          </div>
-
-          {showRecommendation ? (
-            <p
-              role="note"
+          <label className="relative block min-w-0">
+            <Search
+              className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <input
               className={cn(
-                "flex flex-wrap items-center gap-x-3 gap-y-1 border bg-white px-3 py-2 text-[13px]",
-                LINE,
-                INK,
+                dashboardInputClass(),
+                "h-9 pl-7 text-[13px] lg:h-8 lg:text-[12px]",
               )}
-            >
-              <span className="min-w-0">
-                Shops like yours usually start with{" "}
-                <span className="font-semibold">{recommendedMeta.name}</span>
-                {recommendedMeta.vibes[0]
-                  ? ` (${recommendedMeta.vibes[0].toLowerCase()})`
-                  : null}
-                .
-              </span>
-              <button
-                type="button"
-                onClick={() => pick(recommendedId, "recommend")}
-                className={cn(
-                  "shrink-0 text-[13px] font-semibold underline-offset-2 hover:underline",
-                  TEAL,
-                  FOCUS,
-                )}
-              >
-                Try it on
-              </button>
-            </p>
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search looks…"
+              aria-label="Search shop looks"
+            />
+          </label>
+          {vibes.length > 0 && !showShortlist ? (
+            <div className="flex flex-wrap gap-1">
+              {["All", ...vibes].map((vibe) => (
+                <button
+                  key={vibe}
+                  type="button"
+                  aria-pressed={activeVibe === vibe}
+                  onClick={() => setActiveVibe(vibe)}
+                  className={cn(
+                    "inline-flex h-7 items-center rounded-none border px-1.5 text-[10px] font-semibold",
+                    FOCUS,
+                    activeVibe === vibe
+                      ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                      : cn(LINE, MUTED),
+                  )}
+                >
+                  {vibe === "All" ? "All" : vibe}
+                </button>
+              ))}
+            </div>
           ) : null}
+          <p className={cn(dashboardHintClass(), "tabular-nums")}>
+            {visibleItems.length}{" "}
+            {visibleItems.length === 1 ? "look" : "looks"}
+            {showShortlist ? " · starter shortlist" : ""}
+          </p>
+        </div>
 
+        <div
+          className={cn(
+            "min-h-0",
+            fill ? "flex-1 overflow-y-auto overscroll-contain" : null,
+          )}
+        >
           {visibleItems.length === 0 ? (
-            <p
-              className={cn(
-                "border border-dashed bg-white px-4 py-8 text-center text-sm",
-                LINE,
-                MUTED,
-              )}
-            >
-              No looks match this filter. Try another shop type.
+            <p className={cn(dashboardHintClass(), "px-3 py-8 text-center")}>
+              No looks match this filter.
             </p>
           ) : (
             <div
@@ -619,156 +511,460 @@ export function StorefrontThemesStudio({
                   : undefined
               }
               onKeyDown={onGridKeyDown}
-              className="grid gap-2 sm:grid-cols-2"
             >
-              {visibleItems.map((item) => {
-                const isSelected = item.id === selectedId;
-                const isLive = item.id === liveId;
-                const isPinned = pinned.includes(item.id);
+              <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+                {visibleItems.map((item) => {
+                  const isSelected = item.id === selectedId;
+                  const isLive = item.id === liveId;
+                  const isPinned = pinned.includes(item.id);
+                  return (
+                    <li key={item.id}>
+                      <div
+                        id={`${listId}-${item.id}`}
+                        ref={(node) => {
+                          if (node) cardRefs.current.set(item.id, node);
+                          else cardRefs.current.delete(item.id);
+                        }}
+                        role="option"
+                        aria-selected={isSelected}
+                        tabIndex={isSelected ? 0 : -1}
+                        onClick={() =>
+                          pick(item.id, showShortlist ? "shortlist" : "gallery")
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            pick(
+                              item.id,
+                              showShortlist ? "shortlist" : "gallery",
+                            );
+                          }
+                        }}
+                        className={cn(
+                          "group relative flex w-full cursor-pointer items-center gap-2.5 text-left transition-colors",
+                          denser
+                            ? "px-2.5 py-2 sm:px-3"
+                            : "min-h-[3.25rem] px-3 py-3",
+                          FOCUS,
+                          isSelected
+                            ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
+                            : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "grid size-7 shrink-0 place-items-center border text-[10px] font-bold uppercase",
+                            isSelected || isLive
+                              ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]"
+                              : cn(LINE, MUTED),
+                          )}
+                          aria-hidden
+                        >
+                          {item.name.slice(0, 1)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className={cn(
+                              "truncate font-semibold tracking-[-0.015em]",
+                              denser ? "text-[12.5px]" : "text-[14px]",
+                              isSelected ? TEAL : INK,
+                            )}
+                          >
+                            {item.name}
+                          </p>
+                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                            {item.vibes[0] ?? item.blurb}
+                          </p>
+                        </div>
+                        <LookMark
+                          live={isLive}
+                          selected={isSelected && !isLive}
+                          recommended={
+                            !isLive &&
+                            !isSelected &&
+                            item.id === recommendedId
+                          }
+                        />
+                        <button
+                          type="button"
+                          aria-label={`Compare ${item.name} side by side`}
+                          aria-pressed={isPinned}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            togglePin(item.id);
+                          }}
+                          className={cn(
+                            "flex size-7 shrink-0 items-center justify-center border transition-colors",
+                            LINE,
+                            FOCUS,
+                            isPinned
+                              ? cn(TEAL_BORDER, TEAL)
+                              : cn(MUTED, "opacity-60 hover:opacity-100"),
+                          )}
+                        >
+                          <Columns2 className="size-3.5" aria-hidden />
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
 
-                return (
-                  <div
-                    key={item.id}
-                    id={`${listId}-${item.id}`}
-                    ref={(node) => {
-                      if (node) cardRefs.current.set(item.id, node);
-                      else cardRefs.current.delete(item.id);
-                    }}
-                    role="option"
-                    aria-selected={isSelected}
-                    tabIndex={isSelected ? 0 : -1}
-                    onClick={() =>
-                      pick(item.id, showShortlist ? "shortlist" : "gallery")
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        pick(
-                          item.id,
-                          showShortlist ? "shortlist" : "gallery",
-                        );
-                      }
-                    }}
-                    className={cn(
-                      "group flex cursor-pointer flex-col bg-white text-left",
-                      "rounded-none border",
-                      LINE,
-                      FOCUS,
-                      isSelected
-                        ? TEAL_BORDER
-                        : "hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)]",
-                    )}
+        {showShortlist ? (
+          <button
+            type="button"
+            onClick={() => {
+              setSeeAllLooks(true);
+              trackStorefrontEditEvent("themes_see_all");
+            }}
+            className={cn(
+              dashboardHintClass(),
+              "shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-2.5 text-left underline-offset-4 hover:text-foreground hover:underline",
+            )}
+          >
+            See all {items.length} looks
+          </button>
+        ) : null}
+      </div>
+    );
+  };
+
+  const stage = (
+    <div className="relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden px-4 py-6">
+      <div
+        key={`${mode}-${selected.id}`}
+        className="w-full max-w-[14rem] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200"
+      >
+        <ThemeLiveFrame item={selected} kind={mode} {...tryOnShared} />
+      </div>
+      <div className="mt-4 text-center">
+        <p
+          className="text-[1.15rem] font-semibold tracking-[-0.03em]"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          {selected.name}
+        </p>
+        <p className={cn(dashboardHintClass(), "mt-1.5 max-w-[16rem]")}>
+          {selected.id === liveId
+            ? "Live for customers"
+            : `${selected.name} is on the stage — save when it feels right.`}
+        </p>
+      </div>
+    </div>
+  );
+
+  const dossier = (
+    <div className="flex h-full min-h-0 flex-col bg-white">
+      <div className={cn("space-y-3 border-b px-4 py-4", LINE)}>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3
+            className={cn(
+              "text-[1.15rem] font-semibold leading-none tracking-[-0.03em]",
+              INK,
+            )}
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {selected.name}
+          </h3>
+          {selected.id === liveId ? <LookMark live /> : <LookMark selected />}
+        </div>
+        {dirty ? (
+          <LookCommit
+            currentModeDirty={currentModeDirty}
+            selectedName={selected.name}
+            liveName={liveMeta.name}
+            saving={saving}
+            onCancel={revert}
+            onSave={() => void save()}
+          />
+        ) : null}
+        <p className={cn("text-[13px] leading-relaxed", MUTED)}>
+          {selected.blurb}
+        </p>
+        <ul className="space-y-1">
+          {selected.points.slice(0, 3).map((point) => (
+            <li
+              key={point}
+              className={cn(
+                "flex items-start gap-2 text-[12px] leading-relaxed",
+                MUTED,
+              )}
+            >
+              <Check
+                className={cn("mt-0.5 size-3.5 shrink-0", TEAL)}
+                aria-hidden
+              />
+              <span>{point}</span>
+            </li>
+          ))}
+        </ul>
+        {tryOnProducts.length === 0 ? (
+          <p className={dashboardHintClass()}>
+            Add product photos in your catalogue. They will show up here.
+          </p>
+        ) : null}
+        <ColourDots selected={selected} brandPrimary={brandPrimary} />
+      </div>
+
+      {pinned.length > 0 ? (
+        <div className={cn("border-b px-4 py-3", LINE)}>
+          <p className={dashboardLabelClass()}>Compare</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {pinned.map((id) => {
+              const meta = items.find((m) => m.id === id);
+              if (!meta) return null;
+              const isThis = meta.id === selectedId;
+              return (
+                <div key={meta.id} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => pick(meta.id, "pin")}
+                    aria-pressed={isThis}
+                    className={cn("block w-full text-left", FOCUS)}
                   >
                     <div
                       className={cn(
-                        "flex justify-center px-3 pb-2 pt-3",
-                        STAGE,
+                        "overflow-hidden border",
+                        isThis ? TEAL_BORDER : LINE,
                       )}
                     >
-                      <div className="pointer-events-none w-[8.25rem]">
-                        <ThemeLiveFrame
-                          item={item}
-                          kind={mode}
-                          {...tryOnShared}
-                          size="tile"
-                          lazy
-                        />
-                      </div>
+                      <ThemeLiveFrame
+                        item={meta}
+                        kind={mode}
+                        {...tryOnShared}
+                        size="tile"
+                        lazy
+                      />
                     </div>
-                    <div
+                    <span
                       className={cn(
-                        "flex items-start justify-between gap-2 border-t px-2.5 py-2",
-                        LINE,
+                        "mt-1.5 block truncate text-[12px] font-semibold",
+                        isThis ? TEAL : MUTED,
                       )}
                     >
-                      <div className="min-w-0">
-                        <p
-                          className={cn(
-                            "flex items-center gap-1.5 text-[13px] font-semibold leading-tight tracking-[-0.02em]",
-                            isSelected ? TEAL : INK,
-                          )}
-                        >
-                          {isSelected ? (
-                            <Check
-                              className="size-3.5 shrink-0"
-                              aria-hidden
-                            />
-                          ) : null}
-                          <span className="truncate">{item.name}</span>
-                        </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <LookMark
-                            live={isLive}
-                            selected={isSelected && !isLive}
-                            recommended={
-                              !isLive &&
-                              !isSelected &&
-                              item.id === recommendedId
-                            }
-                          />
-                          {item.vibes[0] ? (
-                            <span className={cn("text-[11px]", MUTED)}>
-                              {item.vibes[0]}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label={`Compare ${item.name} side by side`}
-                        aria-pressed={isPinned}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          togglePin(item.id);
-                        }}
-                        className={cn(
-                          "flex size-7 shrink-0 items-center justify-center border transition-colors",
-                          LINE,
-                          FOCUS,
-                          isPinned
-                            ? cn(TEAL_BORDER, TEAL)
-                            : cn(
-                                MUTED,
-                                "opacity-0 hover:text-[var(--order-ink,#15231f)] group-hover:opacity-100 group-focus-within:opacity-100",
-                              ),
-                          isPinned && "opacity-100",
-                        )}
-                      >
-                        <Columns2 className="size-3.5" aria-hidden />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                      {meta.name}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Stop comparing ${meta.name}`}
+                    onClick={() => togglePin(meta.id)}
+                    className={cn(
+                      "absolute right-1 top-1 flex size-5 items-center justify-center border bg-white",
+                      LINE,
+                      MUTED,
+                      FOCUS,
+                      "hover:text-[var(--order-ink,#15231f)]",
+                    )}
+                  >
+                    <X className="size-3" aria-hidden />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
-          {showShortlist ? (
+      <div className="mt-auto flex flex-col gap-1 p-3">
+        {previewUrl ? (
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className={cn(SQUARE_BTN, "justify-start gap-1.5")}
+          >
+            <a
+              href={previewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() =>
+                trackStorefrontEditEvent("themes_live_preview_clicked", {
+                  id: selectedId,
+                  mode,
+                })
+              }
+            >
+              <ExternalLink className="size-3.5" aria-hidden />
+              See it as a customer
+            </a>
+          </Button>
+        ) : null}
+        <Button
+          asChild
+          size="sm"
+          variant="ghost"
+          className={cn(SQUARE_BTN, "justify-start gap-1.5")}
+        >
+          <Link
+            href={designHref}
+            onClick={() =>
+              trackStorefrontEditEvent("themes_design_bridge_clicked", {
+                id: selectedId,
+                mode,
+              })
+            }
+          >
+            <Sparkles className="size-3.5" aria-hidden />
+            Fine-tune in Design
+          </Link>
+        </Button>
+        {showMilkRunWhatsApp ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className={cn(SQUARE_BTN, "justify-start")}
+            onClick={() => setWaPromptOpen(true)}
+          >
+            Add WhatsApp
+          </Button>
+        ) : null}
+        <p className={cn("mt-2 leading-relaxed", dashboardHintClass())}>
+          Your logo, colours, and words stay. Only the layout and typeface
+          change when you save.
+        </p>
+      </div>
+    </div>
+  );
+
+  return (
+    <ShopCartPreviewProvider>
+      <div className="flex min-h-0 flex-col gap-1.5">
+        {!storefrontOn ? (
+          <div
+            role="status"
+            className={cn(
+              "border bg-white px-3 py-2 text-sm leading-relaxed",
+              LINE,
+              "border-amber-700/40 text-amber-800",
+            )}
+          >
+            The shop is not selling online yet, so visitors see the closed-sign
+            page. You can still dress the open shop. Customers only walk into it
+            after you{" "}
+            <Link
+              href={APP_ROUTES.businessSettings}
+              className="font-medium underline underline-offset-2"
+            >
+              turn selling on
+            </Link>
+            .
+          </div>
+        ) : null}
+
+        {error ? <DashboardFeedback kind="error" text={error} /> : null}
+        {feedback && !dirty ? (
+          <DashboardFeedback kind="success" text={feedback} />
+        ) : null}
+
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
+            LINE,
+          )}
+        >
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <ModeSwitch
+              mode={mode}
+              storefrontOn={storefrontOn}
+              onChange={switchLookMode}
+            />
+            <p className={cn("text-[12px] tabular-nums", MUTED)}>
+              <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--order-ink,#15231f)]">
+                <span
+                  className="inline-block size-1.5 shrink-0 bg-[var(--pos-primary,#0f766e)]"
+                  aria-hidden
+                />
+                {selected.name}
+              </span>
+              {" · "}
+              {visibleItems.length}{" "}
+              {visibleItems.length === 1 ? "look" : "looks"}
+              {activeVibe !== "All" && !showShortlist
+                ? ` in ${activeVibe}`
+                : null}
+            </p>
+          </div>
+          {showRecommendation ? (
             <button
               type="button"
-              onClick={() => {
-                setSeeAllLooks(true);
-                trackStorefrontEditEvent("themes_see_all");
-              }}
+              onClick={() => pick(recommendedId, "recommend")}
               className={cn(
-                "text-[13px] font-medium underline underline-offset-2 hover:no-underline",
-                INK,
+                "h-7 px-1.5 text-[11px] font-semibold underline-offset-2 hover:underline",
+                TEAL,
                 FOCUS,
               )}
             >
-              See all {items.length} looks
+              Try {recommendedMeta.name}
             </button>
           ) : null}
         </div>
 
-        <aside className="order-first xl:sticky xl:top-24 xl:order-none xl:self-start">
+        <div
+          className={cn(
+            "hidden h-[min(80dvh,52rem)] overflow-hidden border lg:grid",
+            "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
+            "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]",
+            "lg:grid-cols-[minmax(15.5rem,17.5rem)_minmax(0,1fr)_minmax(20rem,23.5rem)]",
+          )}
+        >
+          <div className="flex h-full min-h-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]">
+            {roster({ fill: true, denser: true })}
+          </div>
+          <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+            <p
+              className="pointer-events-none absolute bottom-3 left-4 z-[1] text-[10px] font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]"
+              aria-hidden
+            >
+              The look
+            </p>
+            {stage}
+          </div>
+          <div
+            ref={setDockRoot}
+            className="relative flex h-full min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
+          >
+            {isLg ? null : dossier}
+          </div>
+        </div>
+
+        <div className="flex min-h-0 flex-col gap-2 lg:hidden">
           <div className={cn("overflow-hidden border bg-white", LINE)}>
-            <div className={cn("border-b px-3 pb-3 pt-3 sm:px-4", LINE, STAGE)}>
-              <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-start gap-3 xl:block">
-                <div
-                  key={`${mode}-${selected.id}-m`}
-                  className="w-[7.5rem] shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200 xl:mx-auto xl:hidden"
-                >
+            {roster({ fill: false, denser: false })}
+          </div>
+        </div>
+
+        <FormDrawer
+          open={isLg || mobileDetailOpen}
+          onOpenChange={(open) => {
+            if (!isLg) setMobileDetailOpen(open);
+          }}
+          contextLabel={mode === "store" ? "Shop look" : "Closed-sign look"}
+          title={selected.name}
+          description={
+            selected.id === liveId
+              ? "Live for customers"
+              : "Trying on — not saved yet"
+          }
+          headerDensity="compact"
+          bodyLayout="fill"
+          appearance="sharp"
+          docked={isLg}
+          dockRoot={dockRoot}
+        >
+          <div
+            className={cn(
+              "flex min-h-0 flex-col overflow-hidden bg-white",
+              isLg ? "h-full" : "h-[min(82dvh,42rem)]",
+            )}
+          >
+            {isLg ? null : (
+              <div className={cn("shrink-0 border-b px-4 py-3", LINE, STAGE)}>
+                <div className="mx-auto w-[7.5rem]">
                   <ThemeLiveFrame
                     item={selected}
                     kind={mode}
@@ -776,213 +972,29 @@ export function StorefrontThemesStudio({
                     size="sm"
                   />
                 </div>
-                <div
-                  key={`${mode}-${selected.id}`}
-                  className="mx-auto hidden w-full max-w-[11.25rem] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200 xl:block"
-                >
-                  <ThemeLiveFrame
-                    item={selected}
-                    kind={mode}
-                    {...tryOnShared}
-                  />
-                </div>
-                <div className="min-w-0 xl:mt-3 xl:text-center">
-                  <div className="flex flex-wrap items-center gap-2 xl:justify-center">
-                    <h3
-                      className={cn(
-                        "text-[15px] font-semibold tracking-[-0.02em]",
-                        INK,
-                      )}
-                    >
-                      {selected.name}
-                    </h3>
-                    {selected.id === liveId ? (
-                      <LookMark live />
-                    ) : (
-                      <LookMark selected />
-                    )}
-                  </div>
-                  {dirty ? (
-                    <LookCommit
-                      currentModeDirty={currentModeDirty}
-                      selectedName={selected.name}
-                      liveName={liveMeta.name}
-                      saving={saving}
-                      onCancel={revert}
-                      onSave={() => void save()}
-                    />
-                  ) : null}
-                </div>
               </div>
-            </div>
-
-            <div className={cn("space-y-3 border-b px-3 py-3 sm:px-4", LINE)}>
-              <p className={cn("text-[13px] leading-relaxed", MUTED)}>
-                {selected.blurb}
-              </p>
-              <ul className="space-y-1">
-                {selected.points.slice(0, 3).map((point) => (
-                  <li
-                    key={point}
-                    className={cn(
-                      "flex items-start gap-2 text-[12px] leading-relaxed",
-                      MUTED,
-                    )}
-                  >
-                    <Check
-                      className={cn("mt-0.5 size-3.5 shrink-0", TEAL)}
-                      aria-hidden
-                    />
-                    <span>{point}</span>
-                  </li>
-                ))}
-              </ul>
-              {tryOnProducts.length === 0 ? (
-                <p className={dashboardHintClass()}>
-                  Add product photos in your catalogue. They will show up here.
-                </p>
-              ) : null}
-              <ColourDots
-                selected={selected}
-                brandPrimary={brandPrimary}
-              />
-            </div>
-
-            {pinned.length > 0 ? (
-              <div className={cn("border-b px-3 py-3 sm:px-4", LINE)}>
-                <p className={dashboardLabelClass()}>Compare</p>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {pinned.map((id) => {
-                    const meta = items.find((m) => m.id === id);
-                    if (!meta) return null;
-                    const isThis = meta.id === selectedId;
-                    return (
-                      <div key={meta.id} className="relative">
-                        <button
-                          type="button"
-                          onClick={() => pick(meta.id, "pin")}
-                          aria-pressed={isThis}
-                          className={cn("block w-full text-left", FOCUS)}
-                        >
-                          <div
-                            className={cn(
-                              "overflow-hidden border",
-                              isThis ? TEAL_BORDER : LINE,
-                            )}
-                          >
-                            <ThemeLiveFrame
-                              item={meta}
-                              kind={mode}
-                              {...tryOnShared}
-                              size="tile"
-                              lazy
-                            />
-                          </div>
-                          <span
-                            className={cn(
-                              "mt-1.5 block truncate text-[12px] font-semibold",
-                              isThis ? TEAL : MUTED,
-                            )}
-                          >
-                            {meta.name}
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Stop comparing ${meta.name}`}
-                          onClick={() => togglePin(meta.id)}
-                          className={cn(
-                            "absolute right-1 top-1 flex size-5 items-center justify-center border bg-white",
-                            LINE,
-                            MUTED,
-                            FOCUS,
-                            "hover:text-[var(--order-ink,#15231f)]",
-                          )}
-                        >
-                          <X className="size-3" aria-hidden />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-
-            <div className="flex flex-col gap-1 p-2.5 sm:p-3">
-              {previewUrl ? (
-                <Button
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  className={cn(SQUARE_BTN, "justify-start gap-1.5")}
-                >
-                  <a
-                    href={previewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() =>
-                      trackStorefrontEditEvent(
-                        "themes_live_preview_clicked",
-                        { id: selectedId, mode },
-                      )
-                    }
-                  >
-                    <ExternalLink className="size-3.5" aria-hidden />
-                    See it as a customer
-                  </a>
-                </Button>
-              ) : null}
-              <Button
-                asChild
-                size="sm"
-                variant="ghost"
-                className={cn(SQUARE_BTN, "justify-start gap-1.5")}
-              >
-                <Link
-                  href={designHref}
-                  onClick={() =>
-                    trackStorefrontEditEvent(
-                      "themes_design_bridge_clicked",
-                      { id: selectedId, mode },
-                    )
-                  }
-                >
-                  <Sparkles className="size-3.5" aria-hidden />
-                  Fine-tune in Design
-                </Link>
-              </Button>
-              {showMilkRunWhatsApp ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className={cn(SQUARE_BTN, "justify-start")}
-                  onClick={() => setWaPromptOpen(true)}
-                >
-                  Add WhatsApp
-                </Button>
-              ) : null}
+            )}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              {dossier}
             </div>
           </div>
-        </aside>
-      </div>
+        </FormDrawer>
 
-      <MilkRunWhatsAppDialog
-        open={waPromptOpen}
-        onOpenChange={setWaPromptOpen}
-        initialWhatsapp={landingWhatsapp}
-        existingLandingContent={business?.storefront?.landingContent ?? null}
-        onSaved={async () => {
-          const next = await fetchBusiness();
-          onSaved?.(next);
-          setFeedback("WhatsApp is now on the Milk Run customer website.");
-        }}
-      />
-    </div>
+        <MilkRunWhatsAppDialog
+          open={waPromptOpen}
+          onOpenChange={setWaPromptOpen}
+          initialWhatsapp={landingWhatsapp}
+          existingLandingContent={business?.storefront?.landingContent ?? null}
+          onSaved={async () => {
+            const next = await fetchBusiness();
+            onSaved?.(next);
+            setFeedback("WhatsApp is now on the Milk Run customer website.");
+          }}
+        />
+      </div>
     </ShopCartPreviewProvider>
   );
 }
-
 function LookCommit({
   currentModeDirty,
   selectedName,
@@ -1197,124 +1209,6 @@ function ModeSwitch({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function VibeFilterList({
-  vibes,
-  activeVibe,
-  onChange,
-  disabled,
-}: {
-  vibes: string[];
-  activeVibe: string;
-  onChange: (vibe: string) => void;
-  disabled?: boolean;
-}) {
-  const all = ["All", ...vibes];
-  return (
-    <div
-      role="group"
-      aria-label="Filter looks by type of shop"
-      className={cn(
-        "flex flex-col gap-px",
-        disabled && "pointer-events-none opacity-50",
-      )}
-    >
-      {all.map((vibe) => {
-        const active = activeVibe === vibe;
-        return (
-          <button
-            key={vibe}
-            type="button"
-            aria-pressed={active}
-            disabled={disabled}
-            onClick={() => onChange(vibe)}
-            className={cn(
-              "rounded-none px-2 py-1.5 text-left text-[12px] font-medium transition-colors",
-              FOCUS,
-              active
-                ? cn(TEAL, "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]")
-                : cn(MUTED, "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-[var(--order-ink,#15231f)]"),
-            )}
-          >
-            {vibe === "All" ? "All looks" : vibe}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function StudioDrawer({
-  id,
-  title,
-  open,
-  onToggle,
-  children,
-  badge,
-  icon,
-}: {
-  id: string;
-  title: string;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-  badge?: string;
-  icon?: ReactNode;
-}) {
-  return (
-    <div className={cn("border bg-white", LINE)}>
-      <button
-        type="button"
-        id={`${id}-trigger`}
-        aria-expanded={open}
-        aria-controls={`${id}-panel`}
-        onClick={onToggle}
-        className={cn(
-          "flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3.5%,white)]",
-          FOCUS,
-        )}
-      >
-        {icon ? <span className={MUTED}>{icon}</span> : null}
-        <span
-          className={cn(
-            "min-w-0 flex-1 text-[12px] font-semibold",
-            INK,
-          )}
-        >
-          {title}
-        </span>
-        {badge ? (
-          <span
-            className={cn(
-              "border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
-              LINE,
-              MUTED,
-            )}
-          >
-            {badge}
-          </span>
-        ) : null}
-        <ChevronDown
-          className={cn(
-            "size-3.5 shrink-0 transition-transform duration-200",
-            MUTED,
-            open && "rotate-180",
-          )}
-          aria-hidden
-        />
-      </button>
-      <div
-        id={`${id}-panel`}
-        role="region"
-        aria-labelledby={`${id}-trigger`}
-        hidden={!open}
-        className={cn(open && "border-t px-3 pb-3 pt-2", LINE)}
-      >
-        {open ? children : null}
-      </div>
     </div>
   );
 }

@@ -30,6 +30,8 @@ type Props = {
   canManage: boolean;
   onLogAdvance?: () => void;
   onUpdated?: () => void;
+  dockRoot?: HTMLElement | null;
+  docked?: boolean;
 };
 
 export function AdvanceLedgerDrawer({
@@ -40,6 +42,8 @@ export function AdvanceLedgerDrawer({
   canManage,
   onLogAdvance,
   onUpdated,
+  dockRoot = null,
+  docked = false,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -152,7 +156,12 @@ export function AdvanceLedgerDrawer({
       description={staffName}
       contextLabel="Payroll"
       icon={<Wallet className="size-5 text-primary" aria-hidden />}
-      width="wide"
+      width={docked ? "default" : "wide"}
+      headerDensity={docked ? "compact" : "default"}
+      bodyLayout={docked ? "fill" : "scroll"}
+      appearance={docked ? "sharp" : "default"}
+      docked={docked}
+      dockRoot={dockRoot}
       footer={
         <div className="flex flex-wrap justify-end gap-2">
           <Button
@@ -170,6 +179,13 @@ export function AdvanceLedgerDrawer({
         </div>
       }
     >
+      <div
+        className={
+          docked
+            ? "flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain"
+            : undefined
+        }
+      >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-muted-foreground">
           <p>
@@ -364,6 +380,7 @@ export function AdvanceLedgerDrawer({
           )}
         </FormDrawerFields>
       )}
+      </div>
     </FormDrawer>
   );
 }
