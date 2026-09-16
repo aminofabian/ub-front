@@ -33,6 +33,10 @@ import {
   supplyPaymentStatusBadge,
 } from "./supplies-shared";
 import type { SupplyBillFilterId } from "./supplies-bill-filters";
+import {
+  HAIRLINE,
+  ROSTER,
+} from "../../suppliers/_components/supplier-ui-tokens";
 
 export type UnpaidSupplierGroup = {
   supplierId: string;
@@ -113,7 +117,7 @@ export function UnpaidSettleWorkspace({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2 sm:px-3.5">
+      <div className={cn("flex shrink-0 flex-wrap items-center gap-2 border-b bg-white px-3 py-2 sm:px-3.5", HAIRLINE)}>
         <div className="min-w-0 flex-1">
           <h2
             className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground"
@@ -139,7 +143,10 @@ export function UnpaidSettleWorkspace({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Vendor or invoice…"
-            className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-8 pr-2.5 text-sm outline-none focus-visible:border-[var(--pos-primary,#0f766e)]"
+            className={cn(
+              "h-8 w-full rounded-none border bg-white pl-8 pr-2.5 text-sm outline-none focus-visible:border-[var(--pos-primary,#0f766e)]",
+              HAIRLINE,
+            )}
           />
         </label>
 
@@ -156,7 +163,7 @@ export function UnpaidSettleWorkspace({
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1">
-        <aside className="hidden w-[10.5rem] shrink-0 flex-col overflow-y-auto border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] p-2.5 lg:flex">
+        <aside className={cn("hidden w-[10.5rem] shrink-0 flex-col overflow-y-auto border-r p-2.5 lg:flex", HAIRLINE, ROSTER)}>
           <SuppliesFilterPanel
             layout="rail"
             value={billFilter}
@@ -166,8 +173,8 @@ export function UnpaidSettleWorkspace({
           />
         </aside>
 
-        <aside className="flex w-full min-w-0 shrink-0 flex-col border-r-0 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] md:w-[15.5rem] md:border-r md:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:w-[17rem]">
-          <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-1.5">
+        <aside className={cn("flex w-full min-w-0 shrink-0 flex-col border-r-0 md:w-[15.5rem] md:border-r lg:w-[17rem]", HAIRLINE, ROSTER)}>
+          <div className={cn("shrink-0 border-b px-3 py-1.5", HAIRLINE)}>
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Vendors
             </p>
@@ -182,7 +189,8 @@ export function UnpaidSettleWorkspace({
                     type="button"
                     onClick={() => selectVendor(key)}
                     className={cn(
-                      "flex w-full items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-2.5 text-left transition-colors duration-150",
+                      "flex w-full items-center gap-2 border-b px-3 py-2.5 text-left transition-colors duration-150",
+                      "border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
                       active
                         ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
                         : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
@@ -408,9 +416,12 @@ function VendorBillsPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-3 py-2.5 sm:px-3.5">
+      <div className={cn("flex shrink-0 flex-wrap items-center justify-between gap-2 border-b bg-white px-3 py-2.5 sm:px-3.5", HAIRLINE)}>
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+          <p
+            className="truncate text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
             <SupplierDisplayName
               name={group.supplierName}
               fallback="Supplier"

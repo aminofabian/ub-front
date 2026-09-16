@@ -130,7 +130,7 @@ export function SuppliesHeaderActions({
         <Button
           type="button"
           size="sm"
-          className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-semibold shadow-none"
+          className="h-8 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[12px] font-semibold text-white shadow-none hover:bg-[#0d6b63]"
           onClick={onNewSupply}
         >
           <PackagePlus className="size-3" aria-hidden />

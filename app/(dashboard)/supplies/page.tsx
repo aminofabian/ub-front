@@ -345,14 +345,17 @@ export default function SuppliesPage() {
               className={cn(
                 "rounded-none px-1.5 py-0.5 tabular-nums transition",
                 isUnpaid
-                  ? "font-semibold text-[var(--pos-primary,#0f766e)]"
-                  : "hover:text-[var(--pos-primary,#0f766e)]",
+                  ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
+                  : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
               )}
             >
               <span className="font-semibold text-foreground">
                 {summary.unpaidCount}
               </span>{" "}
-              unpaid · {formatSupplyMoney(summary.openBalance, currency)}
+              unpaid ·{" "}
+              <span className="font-semibold text-[#9a2e16]">
+                {formatSupplyMoney(summary.openBalance, currency)}
+              </span>
             </button>
           ) : (
             <span>All caught up</span>

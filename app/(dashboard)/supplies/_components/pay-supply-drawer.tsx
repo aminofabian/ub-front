@@ -1112,7 +1112,7 @@ export function PaySupplyDrawer({
           canPay &&
           (openInvoices.length > 1 || openInvoicesLoading) ? (
             <section
-              className="rounded-none border border-amber-700/40 bg-white p-3"
+              className="rounded-none border border-[#9a2e16]/40 bg-white p-3"
               aria-labelledby="open-balances-heading"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -1188,7 +1188,7 @@ export function PaySupplyDrawer({
                                   Current
                                 </span>
                               ) : (
-                                <span className="rounded-none border border-amber-700/40 bg-white px-1 py-px text-[11px] font-semibold tracking-[-0.02em] text-amber-800 dark:text-amber-200">
+                                <span className="rounded-none border border-[#9a2e16]/40 bg-white px-1 py-px text-[11px] font-semibold tracking-[-0.02em] text-[#9a2e16]">
                                   Prev
                                 </span>
                               )}
@@ -1294,7 +1294,7 @@ export function PaySupplyDrawer({
             </div>
 
             {supplierDeleted ? (
-              <p className="mt-3 flex items-start gap-2 rounded-none border border-amber-700/40 bg-white px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+              <p className="mt-3 flex items-start gap-2 rounded-none border border-[#9a2e16]/40 bg-white px-3 py-2 text-xs text-[#9a2e16]">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                 This supplier was deleted.
                 {!paidFull
@@ -1314,7 +1314,7 @@ export function PaySupplyDrawer({
                 You need supplier read access to view remittance details.
               </p>
             ) : supplierError ? (
-              <p className="mt-3 flex items-start gap-2 rounded-none border border-amber-700/40 bg-white px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+              <p className="mt-3 flex items-start gap-2 rounded-none border border-[#9a2e16]/40 bg-white px-3 py-2 text-xs text-[#9a2e16]">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                 {supplierError}
                 {canClearUnpaid
@@ -1346,7 +1346,7 @@ export function PaySupplyDrawer({
                     ) : !paidFull &&
                       payOptions &&
                       !payOptions.supplierPayoutEnabled ? (
-                      <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+                      <p className="mt-1 text-xs text-[#9a2e16]">
                         Supplier payouts are off.{" "}
                         <Link
                           href={APP_ROUTES.paymentsSettings}
@@ -1359,7 +1359,7 @@ export function PaySupplyDrawer({
                     ) : !paidFull &&
                       payOptions &&
                       !payOptions.supplierPayoutGatewayReady ? (
-                      <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+                      <p className="mt-1 text-xs text-[#9a2e16]">
                         Choose an active payout gateway in{" "}
                         <Link
                           href={APP_ROUTES.paymentsSettings}
@@ -1488,7 +1488,7 @@ export function PaySupplyDrawer({
                         </Button>
                       </div>
                     ) : (
-                      <p className="mt-2 text-xs text-amber-800 dark:text-amber-200">
+                      <p className="mt-2 text-xs text-[#9a2e16]">
                         Ask someone with supplier edit access to set{" "}
                         <span className="font-semibold">KopoKopo payout</span>{" "}
                         (phone, till, or paybill) on this supplier, or open{" "}
@@ -1526,7 +1526,7 @@ export function PaySupplyDrawer({
                 ) : null}
               </div>
             ) : (
-              <p className="mt-3 flex items-start gap-2 rounded-none border border-dashed border-amber-700/40 bg-white px-3 py-2.5 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
+              <p className="mt-3 flex items-start gap-2 rounded-none border border-dashed border-[#9a2e16]/40 bg-white px-3 py-2.5 text-xs leading-relaxed text-[#9a2e16]">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                 No payment details on file for this supplier. Add paybill, till,
                 or bank info under{" "}
@@ -1544,8 +1544,8 @@ export function PaySupplyDrawer({
           {!paidFull && canPay ? (
             <>
               {kopokopoPhase === "pending" ? (
-                <p className="rounded-none border border-amber-700/40 bg-white px-3 py-2.5 text-center text-sm text-[var(--order-ink,#15231f)]">
-                  <span className="inline-flex items-center gap-1.5 font-semibold tracking-[-0.02em] text-amber-800 dark:text-amber-200">
+                <p className="rounded-none border border-[#9a2e16]/40 bg-white px-3 py-2.5 text-center text-sm text-[var(--order-ink,#15231f)]">
+                  <span className="inline-flex items-center gap-1.5 font-semibold tracking-[-0.02em] text-[#9a2e16]">
                     <Loader2 className="size-3.5 animate-spin" aria-hidden />
                     Pending
                   </span>
@@ -1559,7 +1559,7 @@ export function PaySupplyDrawer({
                   </span>
                 </p>
               ) : kopokopoPhase === "failed" && kopokopoMessage ? (
-                <p className="rounded-none border border-rose-500/40 bg-white px-3 py-2.5 text-center text-sm text-rose-800 dark:text-rose-200">
+                <p className="rounded-none border border-[#9a2e16]/40 bg-white px-3 py-2.5 text-center text-sm text-[#9a2e16]">
                   <span className="block text-[11px] font-semibold tracking-[-0.02em]">
                     Failed
                   </span>

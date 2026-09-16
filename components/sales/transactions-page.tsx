@@ -76,8 +76,15 @@ import {
 } from "./transactions-column-widths";
 import { useTxColumnWidths } from "./use-tx-column-widths";
 
-const SURFACE = DASHBOARD_TABLE_SURFACE;
+const HAIRLINE =
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+const PAPER =
+  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]";
+const ROSTER =
+  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]";
+const SURFACE = cn("overflow-hidden rounded-none border bg-white", HAIRLINE);
 const MUTED = "text-muted-foreground";
+const RUST = "text-[#9a2e16]";
 
 /** Drag handle on the right edge of a transactions header cell. */
 const txColResizeHandleClass = cn(
@@ -185,17 +192,25 @@ function Metric({
   label,
   value,
   hint,
+  tone,
 }: {
   label: string;
   value: string;
   hint?: string;
+  tone?: "ink" | "owed";
 }) {
   return (
     <div className="min-w-0 px-3 py-1.5">
-      <p className="text-[9px] font-medium tracking-[-0.02em] text-muted-foreground">
+      <p className="text-[9px] font-semibold tracking-[-0.02em] text-muted-foreground">
         {label}
       </p>
-      <p className="truncate text-sm font-semibold tabular-nums tracking-tight text-foreground">
+      <p
+        className={cn(
+          "truncate text-sm font-semibold tabular-nums tracking-[-0.03em]",
+          tone === "owed" ? RUST : "text-foreground",
+        )}
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
         {value}
       </p>
       {hint ? (
@@ -247,12 +262,12 @@ function TransactionRow({
         ? "Refunded"
         : "Completed";
   const statusClass = isOnline
-    ? "bg-sky-50 text-sky-800"
+    ? "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-[var(--order-ink,#15231f)]"
     : voided
-      ? "bg-muted text-muted-foreground"
+      ? "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground"
       : refunded
-        ? "bg-destructive/10 text-destructive"
-        : "bg-emerald-50 text-emerald-800";
+        ? "rounded-none border border-[#9a2e16]/35 bg-transparent text-[#9a2e16]"
+        : "rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent text-[var(--pos-primary,#0f766e)]";
 
   const onDownloadReceipt = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -275,14 +290,16 @@ function TransactionRow({
   return (
     <article
       className={cn(
-        "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0 transition-colors",
-        refunded && "bg-destructive/[0.03]",
+        "border-b last:border-0 transition-colors",
+        HAIRLINE,
+        refunded && "bg-[color-mix(in_srgb,#9a2e16_4%,white)]",
+        expanded && "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)]",
       )}
     >
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-muted/40 md:hidden"
+        className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] md:hidden"
         aria-expanded={expanded}
       >
         <span className="mt-0.5 text-muted-foreground">
@@ -299,7 +316,7 @@ function TransactionRow({
             </span>
             <span
               className={cn(
-                "rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                "px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                 statusClass,
               )}
             >
@@ -307,7 +324,7 @@ function TransactionRow({
             </span>
             {tx.mpesaVerified && !refunded ? (
               <span
-                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] bg-sky-50 text-sky-800"
+                className="inline-flex items-center gap-0.5 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]"
                 title="M-Pesa confirmed by KopoKopo webhook"
               >
                 <BadgeCheck className="size-3" aria-hidden />
@@ -318,7 +335,7 @@ function TransactionRow({
             !tx.customerPhoneVerified &&
             tx.customerMaskedHint ? (
               <span
-                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] bg-amber-50 text-amber-800"
+                className="inline-flex items-center rounded-none border border-[#9a2e16]/35 px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[#9a2e16]"
                 title="M-Pesa number is still masked until the customer fills the missing digits"
               >
                 Unverified number
@@ -340,9 +357,10 @@ function TransactionRow({
         <div className="shrink-0 text-right">
           <p
             className={cn(
-              "text-base font-semibold tabular-nums tracking-tight",
-              refunded ? "text-[#C47A5A]" : "text-foreground",
+              "text-base font-semibold tabular-nums tracking-[-0.03em]",
+              refunded ? RUST : "text-foreground",
             )}
+            style={{ fontFamily: "var(--font-heading)" }}
           >
             {refunded && tx.total > 0 ? "−" : ""}
             {fmtKes(Math.abs(tx.total))}
@@ -358,7 +376,7 @@ function TransactionRow({
         onClick={onToggle}
         className={cn(
           sheetStyles.row,
-          "hidden w-full items-center text-left text-xs transition-colors hover:bg-muted/40 md:grid",
+          "hidden w-full items-center text-left text-xs transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] md:grid",
         )}
         aria-expanded={expanded}
       >
@@ -386,7 +404,7 @@ function TransactionRow({
             <Link
               href={APP_ROUTES.customer(tx.customerId)}
               onClick={(e) => e.stopPropagation()}
-              className="text-primary hover:underline"
+              className="text-[var(--pos-primary,#0f766e)] hover:underline"
             >
               {person}
             </Link>
@@ -400,7 +418,7 @@ function TransactionRow({
         <span>
           <span
             className={cn(
-              "inline-flex max-w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[-0.02em]",
+              "inline-flex max-w-full items-center gap-1 truncate px-1.5 py-0.5 text-[9px] font-semibold tracking-[-0.02em]",
               statusClass,
             )}
           >
@@ -412,9 +430,10 @@ function TransactionRow({
         </span>
         <span
           className={cn(
-            "pr-4 text-right text-[13px] font-semibold tabular-nums tracking-tight",
-            refunded ? "text-[#C47A5A]" : "text-foreground",
+            "pr-4 text-right text-[13px] font-semibold tabular-nums tracking-[-0.03em]",
+            refunded ? RUST : "text-foreground",
           )}
+          style={{ fontFamily: "var(--font-heading)" }}
         >
           {refunded && tx.total > 0 ? "−" : ""}
           {fmtKes(Math.abs(tx.total))}
@@ -422,7 +441,7 @@ function TransactionRow({
       </button>
 
       {expanded ? (
-        <div className="border-t border-border/25 bg-muted/15 px-4 py-2 md:pl-11 md:pr-4">
+        <div className={cn("border-t px-4 py-2 md:pl-11 md:pr-4", HAIRLINE, ROSTER)}>
           <ul className="space-y-0.5">
             {tx.lines.map((line, i) => {
               const lineRefunded = isRefunded(line.status);
@@ -455,7 +474,7 @@ function TransactionRow({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                className="h-7 gap-1 rounded-none px-2 text-[11px] text-muted-foreground hover:text-foreground"
                 disabled={receiptLoading}
                 onClick={onDownloadReceipt}
               >
@@ -467,7 +486,7 @@ function TransactionRow({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                  className="h-7 gap-1 rounded-none px-2 text-[11px] text-muted-foreground hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
                     onAdjustPayment();
@@ -482,7 +501,7 @@ function TransactionRow({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1 px-2 text-[11px] text-destructive/80 hover:text-destructive"
+                  className="h-7 gap-1 rounded-none px-2 text-[11px] text-[#9a2e16] hover:bg-[color-mix(in_srgb,#9a2e16_6%,white)] hover:text-[#7a2412]"
                   onClick={(e) => {
                     e.stopPropagation();
                     onVoid();
@@ -498,7 +517,7 @@ function TransactionRow({
               Online order — manage in{" "}
               <Link
                 href={APP_ROUTES.storefrontWebOrders}
-                className="font-medium text-[#0f766e] hover:underline"
+                className="font-medium text-[var(--pos-primary,#0f766e)] hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 Web orders
@@ -513,17 +532,20 @@ function TransactionRow({
 
 function ListSkeleton() {
   return (
-    <div className={SURFACE}>
-      <div className={DASHBOARD_TABLE_HEAD}>
-        <div className="h-3.5 w-28 animate-pulse rounded bg-muted" />
+    <div className={cn(SURFACE, PAPER)}>
+      <div className={cn("border-b bg-white px-4 py-2.5", HAIRLINE)}>
+        <div className="h-3.5 w-28 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]" />
       </div>
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="space-y-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-3 last:border-0 sm:px-5"
+          className={cn(
+            "space-y-2 border-b bg-white px-4 py-3 last:border-0 sm:px-5",
+            HAIRLINE,
+          )}
         >
-          <div className="h-3.5 w-36 animate-pulse rounded bg-muted" />
-          <div className="h-3 w-52 animate-pulse rounded bg-muted" />
+          <div className="h-3.5 w-36 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]" />
+          <div className="h-3 w-52 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]" />
         </div>
       ))}
     </div>
@@ -822,29 +844,45 @@ export function TransactionsPage() {
     .join(" · ");
 
   return (
-    <div className={cn(DASHBOARD_MAX, "space-y-3")}>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h1 className="font-sans text-lg font-bold tracking-tight text-foreground">
-              Transactions
-            </h1>
-            <ActiveScopeSubtitle className="text-[11px] text-muted-foreground" />
+    <div className="relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col gap-1.5 bg-transparent px-3 pt-1 sm:px-5 sm:pt-1.5">
+      <header
+        className={cn(
+          "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
+          HAIRLINE,
+        )}
+      >
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="inline-flex size-7 shrink-0 items-center justify-center border bg-[var(--pos-primary,#0f766e)] text-white">
+              <List className="size-3.5" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <h1
+                className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                Transactions
+              </h1>
+              <p className="hidden truncate text-[10px] text-muted-foreground sm:block">
+                {statusLine || "Receipts for the selected period."}
+              </p>
+            </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            {statusLine || "Receipts for the selected period."}
-          </p>
+          <span
+            aria-hidden
+            className="hidden h-3.5 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:block"
+          />
+          <ActiveScopeSubtitle className="text-[11px] text-muted-foreground" />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-1">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="gap-1.5"
+            className="h-8 gap-1.5 rounded-none px-2.5 text-[12px] shadow-none"
             asChild
           >
             <Link href={APP_ROUTES.sales}>
-              <List className="size-3.5" aria-hidden />
               Activity
             </Link>
           </Button>
@@ -852,7 +890,7 @@ export function TransactionsPage() {
             type="button"
             variant="outline"
             size="sm"
-            className="gap-1.5"
+            className="h-8 gap-1.5 rounded-none px-2.5 text-[12px] shadow-none"
             onClick={() => void load({ silent: true })}
             disabled={loading}
           >
@@ -866,7 +904,7 @@ export function TransactionsPage() {
             type="button"
             variant="outline"
             size="sm"
-            className="gap-1.5"
+            className="h-8 gap-1.5 rounded-none px-2.5 text-[12px] shadow-none"
             onClick={downloadPdf}
             disabled={loading || !dateRange || pdfLoading}
           >
@@ -880,8 +918,9 @@ export function TransactionsPage() {
         <section
           aria-label="Period summary"
           className={cn(
-            SURFACE,
-            "grid divide-y divide-border/50 overflow-hidden sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4",
+            "grid divide-y overflow-hidden border bg-white sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4",
+            HAIRLINE,
+            "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
           )}
         >
           <Metric label="Revenue" value={fmtKes(summary.revenue)} />
@@ -912,15 +951,27 @@ export function TransactionsPage() {
                 ? `${summary.refundCount} refunded`
                 : undefined
             }
+            tone={summary.refundCount > 0 ? "owed" : undefined}
           />
         </section>
       ) : null}
 
-      <section className="space-y-2" aria-label="Filters">
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col overflow-hidden border",
+          HAIRLINE,
+          PAPER,
+          "lg:h-[min(80dvh,52rem)]",
+        )}
+      >
+      <section
+        className={cn("shrink-0 space-y-2 border-b bg-white px-2.5 py-2 sm:px-3", HAIRLINE)}
+        aria-label="Filters"
+      >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
             <input
@@ -928,14 +979,20 @@ export function TransactionsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Receipt, product, SKU, barcode…"
-              className={cn(dashboardInputClass(), "h-9 py-2 pl-9 text-sm")}
+              className={cn(
+                "h-8 w-full rounded-none border bg-white py-0 pl-8 pr-2.5 text-sm outline-none focus-visible:border-[var(--pos-primary,#0f766e)]",
+                HAIRLINE,
+              )}
               aria-label="Search transactions"
             />
           </div>
           <select
             value={branchId}
             onChange={(e) => onChangeBranch(e.target.value)}
-            className={cn(dashboardSelectClass(), "h-9 py-1.5 sm:w-48")}
+            className={cn(
+              "h-8 rounded-none border bg-white px-2.5 py-0 text-sm outline-none focus-visible:border-[var(--pos-primary,#0f766e)] sm:w-48",
+              HAIRLINE,
+            )}
             aria-label="Branch"
             disabled={branchLocked}
           >
@@ -968,24 +1025,24 @@ export function TransactionsPage() {
         />
 
         {feedFiltered && filtered.length !== transactions.length ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground">
             Showing {filtered.length.toLocaleString("en-KE")} of{" "}
             {transactions.length.toLocaleString("en-KE")} transactions.
           </p>
         ) : null}
       </section>
 
-      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      {error ? (
+        <div className="px-3 py-2">
+          <DashboardFeedback kind="error" text={error} />
+        </div>
+      ) : null}
 
+      <div className={cn("min-h-0 flex-1 overflow-hidden", ROSTER)}>
       {loading ? (
         <ListSkeleton />
       ) : filtered.length === 0 ? (
-        <div
-          className={cn(
-            SURFACE,
-            "px-6 py-16 text-center text-sm text-muted-foreground",
-          )}
-        >
+        <div className="px-6 py-16 text-center text-sm text-muted-foreground">
           {!dateRange
             ? "Pick a from and to date above."
             : feedFiltered
@@ -994,20 +1051,23 @@ export function TransactionsPage() {
         </div>
       ) : (
         <section
-          className={cn(SURFACE, "rounded-none")}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white"
           aria-label="Transactions"
         >
           <div
             className={cn(
-              DASHBOARD_TABLE_HEAD,
-              "flex flex-wrap items-center justify-between gap-2 px-4 py-2.5",
+              "flex flex-wrap items-center justify-between gap-2 border-b bg-white px-3 py-1.5 sm:px-4",
+              HAIRLINE,
             )}
           >
             <div>
-              <h2 className="font-sans text-sm font-semibold tracking-tight text-foreground">
+              <h2
+                className="text-[13px] font-semibold tracking-[-0.02em] text-foreground"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
                 Receipts
               </h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
                 {feedFiltered
                   ? `Showing ${filtered.length.toLocaleString("en-KE")} of ${transactions.length.toLocaleString("en-KE")}`
                   : `${filtered.length.toLocaleString("en-KE")} transaction${filtered.length === 1 ? "" : "s"}`}
@@ -1017,7 +1077,7 @@ export function TransactionsPage() {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+              className="h-7 gap-1.5 rounded-none px-2 text-xs text-muted-foreground hover:text-foreground"
               onClick={downloadPdf}
               disabled={pdfLoading}
             >
@@ -1025,7 +1085,7 @@ export function TransactionsPage() {
               {pdfLoading ? "Preparing…" : "Download PDF"}
             </Button>
           </div>
-          <div ref={shellRef} className={sheetStyles.shell}>
+          <div ref={shellRef} className={cn(sheetStyles.shell, "min-h-0 flex-1")}>
             {/* Restores persisted widths before the sheet's first paint. */}
             <script
               dangerouslySetInnerHTML={{
@@ -1043,7 +1103,8 @@ export function TransactionsPage() {
                 <div
                   className={cn(
                     sheetStyles.row,
-                    "hidden items-center border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 text-[9px] font-semibold tracking-[-0.02em] text-muted-foreground md:grid",
+                    "hidden items-center border-b bg-transparent text-[9px] font-semibold tracking-[-0.02em] text-muted-foreground md:grid",
+                    HAIRLINE,
                   )}
                 >
                   <span className="group/tx-col relative">
@@ -1105,6 +1166,8 @@ export function TransactionsPage() {
           </div>
         </section>
       )}
+      </div>
+      </div>
 
       <AdjustSalePaymentDialog
         open={adjustSaleId != null}
