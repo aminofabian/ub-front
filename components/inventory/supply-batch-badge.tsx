@@ -13,7 +13,7 @@ export function SupplyBatchBadge({ supplyBatchId, batchNumber, batchName }: Prop
     <Link
       href={`/inventory/supply-batches/${supplyBatchId}`}
       title={batchName || batchNumber}
-      className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+      className="inline-flex items-center rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-px text-[11px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
     >
       {batchNumber}
     </Link>

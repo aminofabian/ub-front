@@ -25,8 +25,6 @@ import {
 import {
   DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
-  DashboardPageHero,
-  DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -48,6 +46,10 @@ import { filterInventoryQuickLinksForUser } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 
 import {
+  HAIRLINE,
+  PAPER,
+  ROSTER,
+  statusBadgeClass,
   supFieldLabel,
   supFilterRail,
   supFormCellInput,
@@ -57,7 +59,6 @@ import {
   supTableCell,
   supTableHead,
   supTableRow,
-  supWorkspaceShell,
 } from "@/app/(dashboard)/suppliers/_components/supplier-ui-tokens";
 
 // ── Formatters ──────────────────────────────────────────────────────────
@@ -84,33 +85,31 @@ function statusBadge(status: string): { label: string; className: string } {
   if (s === "active") {
     return {
       label: "Active",
-      className:
-        "border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100",
+      className: statusBadgeClass("active"),
     };
   }
   if (s === "soldout" || s === "sold_out" || s === "sold out") {
     return {
       label: "Sold out",
       className:
-        "border-blue-500/30 bg-blue-500/10 text-blue-900 dark:text-blue-100",
+        "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-[var(--order-ink,#15231f)]",
     };
   }
-  if (s === "partial") {
+  if (s === "partial" || s === "clearing") {
     return {
-      label: "Partial",
-      className:
-        "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100",
+      label: s === "clearing" ? "Clearing" : "Partial",
+      className: statusBadgeClass("blocked"),
     };
   }
   if (s === "closed") {
     return {
       label: "Closed",
-      className: "border-border bg-muted/50 text-muted-foreground",
+      className: statusBadgeClass("inactive"),
     };
   }
   return {
     label: status,
-    className: "border-border bg-muted/50 text-muted-foreground",
+    className: statusBadgeClass("inactive"),
   };
 }
 
@@ -122,9 +121,9 @@ function soldPct(pct: number | string) {
       className={cn(
         "font-mono tabular-nums text-xs",
         val >= 90
-          ? "font-semibold text-emerald-700 dark:text-emerald-400"
+          ? "font-semibold text-[var(--pos-primary,#0f766e)]"
           : val >= 50
-            ? "text-amber-700 dark:text-amber-400"
+            ? "text-[color-mix(in_srgb,var(--order-ink,#15231f)_72%,transparent)]"
             : "text-muted-foreground",
       )}
     >
@@ -153,19 +152,21 @@ function StatusFilterBtn({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 items-center gap-2 px-2.5 text-left text-[11px] font-semibold transition-colors",
+        "inline-flex h-8 items-center gap-2 rounded-none px-2.5 text-left text-[11px] font-semibold tracking-[-0.02em] transition-colors",
         active
-          ? "bg-primary text-primary-foreground"
-          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+          ? "bg-[var(--pos-primary,#0f766e)] text-white"
+          : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
       )}
     >
       <span>{label}</span>
       <span
         className={cn(
           "font-mono tabular-nums",
-          !active && tone === "success" && "text-emerald-700 dark:text-emerald-400",
-          !active && tone === "info" && "text-blue-700 dark:text-blue-400",
-          !active && tone === "muted" && "text-muted-foreground",
+          active
+            ? "text-white/85"
+            : tone === "success"
+              ? "text-[var(--pos-primary,#0f766e)]"
+              : "text-muted-foreground",
         )}
       >
         {value.toLocaleString("en-KE")}
@@ -517,26 +518,89 @@ export function SupplyBatchListPage() {
   // ── Render ───────────────────────────────────────────────────────────
 
   return (
-    <div className={DASHBOARD_MAX_WIDE}>
-      <div className="flex min-h-0 flex-col overflow-hidden border border-border bg-white">
-        <header className="space-y-1">
-          <DashboardPageHero
-            compact
-            showActiveScope
-            icon={Layers}
-            eyebrow="Inventory"
-            title="Supply batches"
-            description="Deliveries and cost layers — click a batch # for details."
-          />
-          {quickLinks.length > 0 ? (
-            <DashboardQuickLinks compact links={quickLinks} />
-          ) : null}
+    <div className={cn(DASHBOARD_MAX_WIDE, "px-3 pt-1 sm:px-5 sm:pt-1.5")}>
+      <div className="relative flex min-h-0 flex-1 flex-col gap-1.5">
+        <header
+          className={cn(
+            "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
+            HAIRLINE,
+          )}
+        >
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="inline-flex size-7 shrink-0 items-center justify-center border bg-[var(--pos-primary,#0f766e)] text-white">
+                <Layers className="size-3.5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <h1
+                  className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground"
+                  style={{ fontFamily: "var(--font-heading)" }}
+                >
+                  Deliveries
+                </h1>
+                <p className="hidden truncate text-[10px] text-muted-foreground sm:block">
+                  Cost layers · sold % · write-offs
+                </p>
+              </div>
+            </div>
+            {quickLinks.length > 0 ? (
+              <>
+                <span
+                  aria-hidden
+                  className="hidden h-3.5 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:block"
+                />
+                <nav className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                  {quickLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="truncate text-muted-foreground hover:text-[var(--pos-primary,#0f766e)]"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </nav>
+              </>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 gap-1.5 rounded-none px-2.5 text-[12px]"
+              disabled={loading}
+              onClick={load}
+            >
+              <RefreshCw
+                className={cn("size-3.5", loading && "animate-spin")}
+              />
+              {loading ? "…" : "Refresh"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 gap-1.5 rounded-none px-2.5 text-[12px]"
+              onClick={exportCSV}
+              disabled={filtered.length === 0}
+            >
+              <Download className="size-3.5" />
+              CSV
+            </Button>
+          </div>
         </header>
 
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col overflow-hidden border",
+            HAIRLINE,
+            PAPER,
+          )}
+        >
         <div className={cn(supFilterRail, "flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end")}>
           {(batches.length > 0 || loading) && (
             <div
-              className="inline-flex flex-wrap border border-border bg-background p-0.5"
+              className={cn("inline-flex flex-wrap border bg-white p-0.5", HAIRLINE)}
               role="group"
               aria-label="Batch summary"
             >
@@ -578,7 +642,7 @@ export function SupplyBatchListPage() {
                 <input
                   type="search"
                   placeholder="Batch #, name, supplier…"
-                  className={cn(supInput, "h-8 w-full bg-background py-0 pl-8 text-xs")}
+                  className={cn(supInput, "h-8 w-full bg-white py-0 pl-8 text-xs")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   aria-label="Search batches"
@@ -590,7 +654,7 @@ export function SupplyBatchListPage() {
               <select
                 className={cn(
                   supSelect,
-                  "h-8 bg-background py-0 text-xs disabled:cursor-not-allowed disabled:opacity-60",
+                  "h-8 bg-white py-0 text-xs disabled:cursor-not-allowed disabled:opacity-60",
                 )}
                 value={branchFilter}
                 onChange={(e) => setBranchFilter(e.target.value)}
@@ -610,7 +674,7 @@ export function SupplyBatchListPage() {
             <label className="flex min-w-[9rem] flex-1 flex-col gap-1 sm:max-w-[10rem]">
               <span className={supFieldLabel}>Supplier</span>
               <select
-                className={cn(supSelect, "h-8 bg-background py-0 text-xs")}
+                className={cn(supSelect, "h-8 bg-white py-0 text-xs")}
                 value={supplierFilter}
                 onChange={(e) => setSupplierFilter(e.target.value)}
                 aria-label="Supplier filter"
@@ -640,29 +704,6 @@ export function SupplyBatchListPage() {
                 Clear
               </Button>
             ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 shrink-0 gap-1.5 rounded-none px-3"
-              disabled={loading}
-              onClick={load}
-            >
-              <RefreshCw
-                className={cn("size-3.5", loading && "animate-spin")}
-              />
-              {loading ? "…" : "Refresh"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 shrink-0 gap-1.5 rounded-none px-3"
-              onClick={exportCSV}
-              disabled={filtered.length === 0}
-            >
-              <Download className="size-3.5" />
-              CSV
-            </Button>
           </div>
         </div>
 
@@ -672,8 +713,8 @@ export function SupplyBatchListPage() {
           </p>
         ) : null}
         {clearResult ? (
-          <div className="flex items-center justify-between gap-2 border-b border-emerald-600/30 bg-emerald-500/10 px-3 py-2">
-            <p className="text-xs text-emerald-800 dark:text-emerald-300">
+          <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] px-3 py-2">
+            <p className="text-xs text-[var(--pos-primary,#0f766e)]">
               {clearResult}
             </p>
             <Button
@@ -688,8 +729,13 @@ export function SupplyBatchListPage() {
           </div>
         ) : null}
 
-        <section className={cn(supWorkspaceShell, "border-0 border-t")}>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
+        <section className={cn("relative flex min-h-0 flex-1 flex-col overflow-hidden border-t", HAIRLINE, ROSTER)}>
+          <div
+            className={cn(
+              "flex flex-wrap items-center justify-between gap-2 border-b bg-white px-2.5 py-1.5",
+              HAIRLINE,
+            )}
+          >
             <h2 className="text-xs font-semibold tracking-tight text-foreground">
               {loading ? (
                 <span className="inline-flex items-center gap-1.5 text-muted-foreground">
@@ -835,7 +881,7 @@ export function SupplyBatchListPage() {
                     <td className={supTableCell}>
                       <Link
                         href={`/inventory/supply-batches/${b.id}`}
-                        className="font-medium text-foreground hover:text-primary hover:underline"
+                        className="font-medium text-[var(--order-ink,#15231f)] hover:text-[var(--pos-primary,#0f766e)] hover:underline"
                       >
                         {b.batchNumber}
                       </Link>
@@ -843,7 +889,7 @@ export function SupplyBatchListPage() {
 
                     <td className={supTableCell}>
                       {editingId === b.id ? (
-                        <div className="flex items-center gap-0 border border-border">
+                        <div className={cn("flex items-center gap-0 border", HAIRLINE)}>
                           <input
                             className={cn(
                               supFormCellInput,
@@ -859,7 +905,7 @@ export function SupplyBatchListPage() {
                           />
                           <button
                             type="button"
-                            className="inline-flex size-8 items-center justify-center border-l border-border bg-primary text-primary-foreground disabled:opacity-40"
+                            className="inline-flex size-8 items-center justify-center border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white disabled:opacity-40"
                             onClick={() => handleSaveName(b.id)}
                             disabled={savingId === b.id}
                           >
@@ -867,7 +913,7 @@ export function SupplyBatchListPage() {
                           </button>
                           <button
                             type="button"
-                            className="inline-flex size-8 items-center justify-center border-l border-border text-muted-foreground hover:bg-muted/40"
+                            className="inline-flex size-8 items-center justify-center border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]"
                             onClick={() => setEditingId(null)}
                           >
                             <X className="size-3.5" />
@@ -908,7 +954,7 @@ export function SupplyBatchListPage() {
                       {formatMoneyShort(b.totalCost)}
                     </td>
 
-                    <td className={cn(supTableCell, "text-right font-mono tabular-nums font-medium text-emerald-700 dark:text-emerald-300")}>
+                    <td className={cn(supTableCell, "text-right font-mono tabular-nums font-medium text-[var(--pos-primary,#0f766e)]")}>
                       {formatMoneyShort(b.totalRevenue)}
                     </td>
 
@@ -931,7 +977,7 @@ export function SupplyBatchListPage() {
                     <td className={supTableCell}>
                       <span
                         className={cn(
-                          "inline-flex items-center border px-1.5 py-px text-[10px] font-semibold tracking-[-0.02em]",
+                          "inline-flex items-center px-1.5 py-px text-[10px] font-semibold tracking-[-0.02em]",
                           st.className,
                         )}
                       >
@@ -981,7 +1027,7 @@ export function SupplyBatchListPage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-7 gap-1 rounded-none px-2 text-xs text-rose-600 hover:text-rose-700"
+                            className="h-7 gap-1 rounded-none px-2 text-xs text-[#9a2e16] hover:text-[#7a2412]"
                             onClick={() =>
                               setClearDialog({
                                 id: b.id,
@@ -1009,7 +1055,7 @@ export function SupplyBatchListPage() {
         </table>
         </div>
 
-        <div className="flex flex-col divide-y divide-border sm:hidden">
+        <div className={cn("flex flex-col divide-y sm:hidden", "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]")}>
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1038,13 +1084,13 @@ export function SupplyBatchListPage() {
                   <div className="flex items-center justify-between gap-2">
                     <Link
                       href={`/inventory/supply-batches/${b.id}`}
-                      className="font-medium text-foreground hover:text-primary hover:underline"
+                      className="font-medium text-[var(--order-ink,#15231f)] hover:text-[var(--pos-primary,#0f766e)] hover:underline"
                     >
                       {b.batchNumber}
                     </Link>
                     <span
                       className={cn(
-                        "inline-flex border px-1.5 py-px text-[10px] font-semibold tracking-[-0.02em]",
+                        "inline-flex px-1.5 py-px text-[10px] font-semibold tracking-[-0.02em]",
                         st.className,
                       )}
                     >
@@ -1057,7 +1103,7 @@ export function SupplyBatchListPage() {
                   </div>
 
                   <div className="mt-2 flex items-center justify-between gap-3">
-                    <span className="font-mono tabular-nums font-medium text-emerald-700 dark:text-emerald-300">
+                    <span className="font-mono tabular-nums font-medium text-[var(--pos-primary,#0f766e)]">
                       {formatMoneyShort(b.totalRevenue)}
                     </span>
                     {soldPct(b.soldPercentage)}
@@ -1098,7 +1144,7 @@ export function SupplyBatchListPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 gap-1 rounded-none px-2 text-xs text-rose-600 hover:text-rose-700"
+                        className="h-8 gap-1 rounded-none px-2 text-xs text-[#9a2e16] hover:text-[#7a2412]"
                         onClick={() =>
                           setClearDialog({
                             id: b.id,
@@ -1124,7 +1170,12 @@ export function SupplyBatchListPage() {
         </div>
 
         {!loading && filtered.length > 0 ? (
-          <div className="border-t border-border bg-[#eef2f7] px-2.5 py-1.5 text-[10px] text-muted-foreground dark:bg-muted/25">
+          <div
+            className={cn(
+              "border-t bg-white px-2.5 py-1.5 text-[10px] text-muted-foreground",
+              HAIRLINE,
+            )}
+          >
             <span className={supKicker}>Tip</span>
             <span className="ml-2">
               Click column headers to sort. Export CSV for spreadsheet analysis.
@@ -1132,12 +1183,16 @@ export function SupplyBatchListPage() {
           </div>
         ) : null}
       </section>
+        </div>
 
       {clearDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg overflow-hidden border border-border bg-white shadow-lg">
-            <div className="border-b border-border bg-[#e8eef5] px-4 py-3 dark:bg-muted/40">
-              <h2 className="text-base font-semibold tracking-tight">
+          <div className={cn("w-full max-w-lg overflow-hidden border bg-white shadow-lg", HAIRLINE)}>
+            <div className={cn("border-b bg-white px-4 py-3", HAIRLINE)}>
+              <h2
+                className="text-base font-semibold tracking-tight"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
                 {clearDialog.hasRemaining
                   ? "Clear Supply Batch?"
                   : "Close Supply Batch?"}
@@ -1153,7 +1208,7 @@ export function SupplyBatchListPage() {
                 <label className="flex flex-col gap-1">
                   <span className={supFieldLabel}>Reason for write-off</span>
                   <select
-                    className={cn(supSelect, "h-8 bg-background text-sm")}
+                    className={cn(supSelect, "h-8 bg-white text-sm")}
                     value={clearReason}
                     onChange={(e) => setClearReason(e.target.value)}
                   >
@@ -1167,7 +1222,7 @@ export function SupplyBatchListPage() {
                 <label className="flex flex-col gap-1">
                   <span className={supFieldLabel}>Notes</span>
                   <input
-                    className={cn(supInput, "h-8 bg-background text-sm")}
+                    className={cn(supInput, "h-8 bg-white text-sm")}
                     value={clearNotes}
                     onChange={(e) => setClearNotes(e.target.value)}
                     placeholder="Optional notes…"
@@ -1178,7 +1233,7 @@ export function SupplyBatchListPage() {
               <div className="px-4 py-4" />
             )}
 
-            <div className="flex justify-end gap-2 border-t border-border bg-[#eef2f7] px-4 py-3 dark:bg-muted/25">
+            <div className={cn("flex justify-end gap-2 border-t bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-4 py-3", HAIRLINE)}>
               <Button
                 variant="outline"
                 className="rounded-none"
@@ -1188,8 +1243,7 @@ export function SupplyBatchListPage() {
                 Cancel
               </Button>
               <Button
-                variant="destructive"
-                className="rounded-none"
+                className="rounded-none bg-[#9a2e16] text-white hover:bg-[#7a2412]"
                 onClick={handleClear}
                 disabled={clearing}
               >
