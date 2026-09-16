@@ -3,19 +3,20 @@
 import { ScrollText } from "lucide-react";
 
 import { AuditLogPanel } from "@/components/audit-log-panel";
-import { OpsClientLogsPanel } from "@/components/ops-client-logs-panel";
 import {
-  DASHBOARD_MAX,
+  DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
+  DashboardLoading,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
+import { cn } from "@/lib/utils";
 
 export default function BusinessLogsPage() {
   const { loading, canViewAuditLog } = useDashboard();
 
   if (loading) {
-    return null;
+    return <DashboardLoading label="Loading activity log…" />;
   }
   if (!canViewAuditLog) {
     return (
@@ -27,22 +28,14 @@ export default function BusinessLogsPage() {
   }
 
   return (
-    <div className={DASHBOARD_MAX}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "flex flex-col gap-1.5 pb-8")}>
       <DashboardPageHero
         icon={ScrollText}
         eyebrow="Organization"
         title="Activity log"
-        description="Every auditable event across the business — sales, shifts, security, inventory, and system failures. Filter by severity, category, or time, and switch to failures-only to spot problems fast."
+        description="Auditable events across sales, shifts, security, inventory, and failures."
       />
       <AuditLogPanel />
-      <details className="group">
-        <summary className="cursor-pointer list-none rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-[var(--order-ink,#15231f)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]">
-          Device diagnostics — this browser only
-        </summary>
-        <div className="mt-4">
-          <OpsClientLogsPanel />
-        </div>
-      </details>
     </div>
   );
 }
