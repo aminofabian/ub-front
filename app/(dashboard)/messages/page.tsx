@@ -5,8 +5,9 @@ import { MessageSquare } from "lucide-react";
 
 import { ContactMessagesInbox } from "@/components/contact/contact-messages-inbox";
 import {
-  DASHBOARD_MAX,
+  DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
+  DashboardLoading,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -15,6 +16,7 @@ import {
   fetchContactMessages,
   replyToContactMessage,
 } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 export default function MessagesPage() {
   const { loading, canViewMessages, canReplyMessages } = useDashboard();
@@ -33,7 +35,7 @@ export default function MessagesPage() {
   );
 
   if (loading) {
-    return null;
+    return <DashboardLoading label="Loading messages…" />;
   }
   if (!canViewMessages) {
     return (
@@ -45,7 +47,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className={DASHBOARD_MAX}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "flex flex-col gap-1.5 pb-8")}>
       <DashboardPageHero
         icon={MessageSquare}
         eyebrow="Inbox"

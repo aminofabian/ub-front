@@ -51,6 +51,8 @@ type PromoCreateDrawerProps = {
   errorText: string | null;
   onSaveDraft: () => void;
   onSchedule: () => void;
+  docked?: boolean;
+  dockRoot?: HTMLElement | null;
 };
 
 export function PromoCreateDrawer({
@@ -65,6 +67,8 @@ export function PromoCreateDrawer({
   errorText,
   onSaveDraft,
   onSchedule,
+  docked = false,
+  dockRoot = null,
 }: PromoCreateDrawerProps) {
   const scopeNeedsBranch = form.recipientScope === "BRANCH_ACTIVE_BUYERS_90D";
   const notificationType =
@@ -90,11 +94,16 @@ export function PromoCreateDrawer({
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      width="large"
+      width={docked ? "default" : "large"}
       contextLabel="Promotions"
       title="Create promotion"
       description="Shoppers see a short alert in their account — clear, friendly, and on-brand."
       icon={<Megaphone className="size-5 text-primary" aria-hidden />}
+      appearance="sharp"
+      headerDensity={docked ? "compact" : "default"}
+      bodyLayout={docked ? "fill" : "scroll"}
+      docked={docked}
+      dockRoot={dockRoot}
       banner={errorText ? <FormDrawerMessageBanner text={errorText} /> : null}
       footer={
         <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -134,7 +143,12 @@ export function PromoCreateDrawer({
         </div>
       }
     >
-      <div className="space-y-5 pb-2">
+      <div
+        className={cn(
+          "space-y-5 pb-2",
+          docked && "min-h-0 overflow-y-auto overscroll-contain px-1",
+        )}
+      >
         <SupWorkflowRail
           steps={[
             { n: 1, label: "Audience" },

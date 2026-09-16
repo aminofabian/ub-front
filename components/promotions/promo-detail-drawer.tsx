@@ -74,6 +74,8 @@ export function PromoDetailDrawer({
   onSendNow,
   onCancelSchedule,
   onDuplicateEdit,
+  docked = false,
+  dockRoot = null,
 }: {
   row: NotificationCampaign | null;
   open: boolean;
@@ -83,6 +85,8 @@ export function PromoDetailDrawer({
   onSendNow: (id: string) => void;
   onCancelSchedule: (id: string) => void;
   onDuplicateEdit: (row: NotificationCampaign) => void;
+  docked?: boolean;
+  dockRoot?: HTMLElement | null;
 }) {
   if (!row) {
     return null;
@@ -102,7 +106,7 @@ export function PromoDetailDrawer({
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      width="wide"
+      width={docked ? "default" : "wide"}
       contextLabel="Promotion details"
       title={row.title}
       description={
@@ -137,6 +141,11 @@ export function PromoDetailDrawer({
           <TypeIcon className="size-4" aria-hidden />
         </span>
       }
+      appearance="sharp"
+      headerDensity={docked ? "compact" : "default"}
+      bodyLayout={docked ? "fill" : "scroll"}
+      docked={docked}
+      dockRoot={dockRoot}
       footer={
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
           {canPause ? (
@@ -177,7 +186,12 @@ export function PromoDetailDrawer({
         </div>
       }
     >
-      <div className="space-y-5 pb-2">
+      <div
+        className={cn(
+          "space-y-5 pb-2",
+          docked && "min-h-0 overflow-y-auto overscroll-contain px-1",
+        )}
+      >
         <div
           className={cn(
             "h-1 w-full rounded-full",

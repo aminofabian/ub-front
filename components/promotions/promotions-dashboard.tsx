@@ -1,10 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Megaphone, Plus } from "lucide-react";
+import { Megaphone } from "lucide-react";
 
-import { DashboardFeedback } from "@/components/dashboard-page-ui";
-import { Button } from "@/components/ui/button";
+import { PromotionsTheatre } from "@/app/(dashboard)/business/promotions/_components/promotions-theatre";
+import {
+  DASHBOARD_MAX_WIDE,
+  DashboardFeedback,
+  DashboardPageHero,
+} from "@/components/dashboard-page-ui";
+import { useMediaLg } from "@/hooks/use-media-lg";
 import {
   createNotificationCampaign,
   cancelNotificationCampaign,
@@ -25,25 +30,10 @@ import {
 import { cn } from "@/lib/utils";
 
 import {
-  PromoCampaignCard,
-  PromoCampaignCardSkeleton,
-} from "./promo-campaign-card";
-import {
   PromoCreateDrawer,
   type PromoFormState,
 } from "./promo-create-drawer";
 import { PromoDetailDrawer } from "./promo-detail-drawer";
-import { PromoEmptyCreateButton, PromoEmptyState } from "./promo-empty-state";
-import { PromoStatsStrip, PromoStatsStripSkeleton } from "./promo-stats-strip";
-import { PromoWorkspaceToolbar } from "./promo-workspace-toolbar";
-import { PromotionsPageHeader } from "./PromotionsPageHeader";
-import {
-  promoMobileFab,
-  supMotionIn,
-  supPageRoot,
-  supWorkspaceInner,
-  supWorkspaceShell,
-} from "./promotions-ui-tokens";
 
 const EMPTY_FORM: PromoFormState = {
   name: "",
@@ -77,30 +67,10 @@ function campaignToForm(row: NotificationCampaign): PromoFormState {
   };
 }
 
-const EMPTY_COPY: Record<PromoStatusTab, { title: string; body: string }> = {
-  all: {
-    title: "No promotions yet",
-    body: "Create your first flash sale or weekly deals alert. Shoppers see a short, friendly message in their shop account — you control who receives it and when it sends.",
-  },
-  active: {
-    title: "Nothing sending right now",
-    body: "When you launch a promotion, it appears here while delivery is in progress. Draft and scheduled campaigns live in their own tabs.",
-  },
-  scheduled: {
-    title: "No scheduled promotions",
-    body: "Pick a future date when creating a promotion to queue an automatic send. You can cancel or edit before the send time.",
-  },
-  drafts: {
-    title: "No drafts saved",
-    body: "Save a promotion as a draft when you are not ready to send. Come back anytime to review, edit, and launch.",
-  },
-  past: {
-    title: "No past promotions",
-    body: "Completed and cancelled campaigns appear here so you can review reach and delivery for past sends.",
-  },
-};
-
 export function PromotionsDashboard() {
+  const isLg = useMediaLg();
+  const [dockRoot, setDockRoot] = useState<HTMLDivElement | null>(null);
+
   const [rows, setRows] = useState<NotificationCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; text: string } | null>(
@@ -120,6 +90,7 @@ export function PromotionsDashboard() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [detailRow, setDetailRow] = useState<NotificationCampaign | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const branchName = useCallback(
     (id: string | null | undefined) => branches.find((b) => b.id === id)?.name ?? id ?? "—",
@@ -140,6 +111,12 @@ export function PromotionsDashboard() {
       }
     },
     [branchName],
+  );
+
+  const scopeLabelForRow = useCallback(
+    (row: NotificationCampaign) =>
+      scopeLabel(row.recipientScope, row.catalogBranchId),
+    [scopeLabel],
   );
 
   const load = useCallback(async () => {
@@ -209,12 +186,24 @@ export function PromotionsDashboard() {
     setSortKey("newest");
   };
 
+  const clearDetail = () => {
+    setDetailRow(null);
+    setDetailOpen(false);
+  };
+
   const openCreate = (prefill?: PromoFormState) => {
+    clearDetail();
     setForm(prefill ?? EMPTY_FORM);
     setUsingExample(false);
     setCreateError(null);
     setFeedback(null);
     setCreateOpen(true);
+  };
+
+  const selectCampaign = (row: NotificationCampaign) => {
+    setCreateOpen(false);
+    setDetailRow(row);
+    setDetailOpen(true);
   };
 
   const buildPayload = (
@@ -297,7 +286,7 @@ export function PromotionsDashboard() {
     try {
       await runNotificationCampaign(id);
       await load();
-      setDetailRow(null);
+      clearDetail();
       setFeedback({ kind: "success", text: "Promotion is sending to your shoppers now." });
     } catch (e) {
       setFeedback({
@@ -314,7 +303,7 @@ export function PromotionsDashboard() {
     try {
       await cancelNotificationCampaign(id);
       await load();
-      setDetailRow(null);
+      clearDetail();
       setFeedback({ kind: "success", text: "Scheduled promotion paused — moved to your history." });
     } catch (e) {
       setFeedback({
@@ -326,96 +315,59 @@ export function PromotionsDashboard() {
     }
   };
 
-  const showCreateCta =
-    (statusTab === "all" || statusTab === "drafts") && !search && !typeFilter;
+  // Detail and create share the dock — only one docks at a time.
+  const detailDocked = isLg && detailOpen && !createOpen;
+  const createDocked = isLg && createOpen;
 
   return (
-    <div className={cn(supPageRoot, supMotionIn)}>
-      <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-5 pb-20 sm:pb-16">
-        <PromotionsPageHeader
-          loading={loading}
-          onRefresh={() => void load()}
-          onCreate={() => openCreate()}
+    <>
+      <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+        <DashboardPageHero
+          icon={Megaphone}
+          eyebrow="Business"
+          title="Promotions"
+          description="Reach registered shoppers with flash sales and weekly deals — schedule, pause, and review delivery."
         />
 
-        {feedback ? <DashboardFeedback kind={feedback.kind} text={feedback.text} /> : null}
+        {feedback ? (
+          <DashboardFeedback kind={feedback.kind} text={feedback.text} />
+        ) : null}
 
-        {loading ? (
-          <PromoStatsStripSkeleton />
-        ) : (
-          <PromoStatsStrip stats={stats} totalCampaigns={rows.length} />
-        )}
-
-        <section className={supWorkspaceShell}>
-          <div className={supWorkspaceInner}>
-            <PromoWorkspaceToolbar
-              statusTab={statusTab}
-              onStatusTab={setStatusTab}
-              tabCounts={tabCounts}
-              search={search}
-              onSearch={setSearch}
-              typeFilter={typeFilter}
-              onTypeFilter={setTypeFilter}
-              sortKey={sortKey}
-              onSortKey={setSortKey}
-              hasActiveFilters={hasActiveFilters}
-              onClearFilters={clearFilters}
-              shownCount={filteredRows.length}
-              totalCount={rows.length}
-            />
-
-            {loading ? (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <PromoCampaignCardSkeleton key={i} />
-                ))}
-              </div>
-            ) : filteredRows.length === 0 ? (
-              <PromoEmptyState
-                icon={Megaphone}
-                title={emptyCopyForTab(statusTab, search, typeFilter).title}
-                description={emptyCopyForTab(statusTab, search, typeFilter).body}
-                action={
-                  showCreateCta ? (
-                    <PromoEmptyCreateButton onClick={() => openCreate()} />
-                  ) : hasActiveFilters ? (
-                    <Button type="button" variant="outline" onClick={clearFilters}>
-                      Clear filters
-                    </Button>
-                  ) : undefined
-                }
-              />
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredRows.map((row, i) => (
-                  <PromoCampaignCard
-                    key={row.id}
-                    row={row}
-                    scopeLabel={scopeLabel(row.recipientScope, row.catalogBranchId)}
-                    onOpen={() => setDetailRow(row)}
-                    busy={busy}
-                    style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+        <PromotionsTheatre
+          rows={rows}
+          filtered={filteredRows}
+          loading={loading}
+          statusTab={statusTab}
+          onStatusTab={setStatusTab}
+          tabCounts={tabCounts}
+          search={search}
+          onSearch={setSearch}
+          typeFilter={typeFilter}
+          onTypeFilter={setTypeFilter}
+          sortKey={sortKey}
+          onSortKey={setSortKey}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={clearFilters}
+          stats={stats}
+          selectedRow={detailRow}
+          detailOpen={detailOpen && !createOpen}
+          createOpen={createOpen}
+          onSelect={selectCampaign}
+          onCreate={() => openCreate()}
+          onReload={() => void load()}
+          scopeLabel={scopeLabelForRow}
+          dockRef={setDockRoot}
+        />
       </div>
-
-      <Button
-        type="button"
-        className={promoMobileFab}
-        onClick={() => openCreate()}
-        aria-label="Create new promotion"
-      >
-        <Plus className="size-4" aria-hidden />
-        New
-      </Button>
 
       <PromoCreateDrawer
         open={createOpen}
-        onOpenChange={setCreateOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) {
+            setCreateError(null);
+          }
+        }}
         form={form}
         setForm={setForm}
         usingExample={usingExample}
@@ -425,12 +377,17 @@ export function PromotionsDashboard() {
         errorText={createError}
         onSaveDraft={() => void onCreate(false)}
         onSchedule={() => void onCreate(true)}
+        docked={createDocked}
+        dockRoot={createDocked ? dockRoot : null}
       />
 
       <PromoDetailDrawer
         row={detailRow}
-        open={detailRow != null}
-        onOpenChange={(open) => !open && setDetailRow(null)}
+        open={detailOpen && !!detailRow && !createOpen}
+        onOpenChange={(open) => {
+          if (!open) clearDetail();
+          else setDetailOpen(true);
+        }}
         scopeLabel={
           detailRow
             ? scopeLabel(detailRow.recipientScope, detailRow.catalogBranchId)
@@ -440,27 +397,15 @@ export function PromotionsDashboard() {
         onSendNow={(id) => void runCampaign(id)}
         onCancelSchedule={(id) => void cancelCampaign(id)}
         onDuplicateEdit={(row) => {
-          setDetailRow(null);
+          clearDetail();
           setForm(campaignToForm(row));
           setUsingExample(false);
           setCreateError(null);
           setCreateOpen(true);
         }}
+        docked={detailDocked}
+        dockRoot={detailDocked ? dockRoot : null}
       />
-    </div>
+    </>
   );
-}
-
-function emptyCopyForTab(
-  statusTab: PromoStatusTab,
-  search: string,
-  typeFilter: string,
-): { title: string; body: string } {
-  if (search || typeFilter) {
-    return {
-      title: "No matches",
-      body: "Try a different search term or clear your filters to see more promotions.",
-    };
-  }
-  return EMPTY_COPY[statusTab];
 }
