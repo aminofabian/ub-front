@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpFromLine,
   Loader2,
@@ -63,10 +63,8 @@ import {
 } from "../_lib/store-item-count";
 import {
   catalogDisplayToPacks,
-  isPacked,
   packsToCatalogDisplay,
   packStockEach,
-  retargetCount,
   storePackCatalogFromItem,
   type StorePackCatalog,
 } from "../_lib/store-item-pack";
@@ -108,13 +106,12 @@ const EMPTY_DRAFT: Draft = {
 function draftFromRow(
   row: StoreItemRecord,
   connected: boolean,
-  pack?: SupplyPackMode | null,
   displayToHolderFactor = 1,
 ): Draft {
   const live = storeItemCount(row, connected);
   const typed =
-    connected && row.itemId != null && isPacked(pack)
-      ? catalogDisplayToPacks(live, pack, displayToHolderFactor)
+    connected && row.itemId != null
+      ? catalogDisplayToPacks(live, null, displayToHolderFactor)
       : live;
   return {
     name: row.name,
@@ -206,6 +203,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   );
   /** Mobile: roster vs focused item. */
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
+  const autoFollowed = useRef(false);
 
   const mode = settings?.mode ?? null;
   const connected = mode === "connected";
@@ -315,16 +313,6 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   }, [branchId, linkedItemId]);
 
   const applyPackMode = (next: SupplyPackMode | null) => {
-    const factor = packCatalog?.displayToHolderFactor ?? 1;
-    const typed = parseStoreCount(editDraft.quantity, false);
-    if (typed != null) {
-      setEditDraft((prev) => ({
-        ...prev,
-        quantity: storeItemCountInput(
-          retargetCount(typed, packMode, next, factor),
-        ),
-      }));
-    }
     setPackMode(next);
   };
 
@@ -384,6 +372,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         });
       }
     } catch (err) {
+      autoFollowed.current = false;
       setFeedback({
         kind: "error",
         text: mutationError(err, "Could not change how this store room works."),
@@ -392,6 +381,14 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
       setModeBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (autoFollowed.current) return;
+    if (loading || loadFailed || !settings || settings.mode != null) return;
+    if (!canWrite) return;
+    autoFollowed.current = true;
+    void chooseMode("connected");
+  }, [loading, loadFailed, settings, canWrite]);
 
   const openCustomCreate = () => {
     setCreateDraft(EMPTY_DRAFT);
@@ -748,8 +745,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     const buyingPrice = parseBuyingPrice(editDraft.buyingPrice);
     const latest = rows.find((r) => r.id === editRow.id) ?? editRow;
     const followsInventory = connected && latest.itemId != null;
-    const packed = followsInventory && isPacked(packMode);
-    const quantity = parseStoreCount(editDraft.quantity, !followsInventory && !packed);
+    const quantity = parseStoreCount(editDraft.quantity, !followsInventory);
     if (!name) {
       setFeedback({ kind: "error", text: "Name is required." });
       return;
@@ -758,7 +754,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
       setFeedback({
         kind: "error",
         text:
-          followsInventory || packed
+          followsInventory
             ? "Quantity must be a number ≥ 0."
             : "Quantity must be a whole number ≥ 0.",
       });
@@ -774,7 +770,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     const currentLive = storeItemCount(latest, connected);
     const factor = packCatalog?.displayToHolderFactor ?? 1;
     const targetDisplay = followsInventory
-      ? packsToCatalogDisplay(quantity, packMode, factor)
+      ? packsToCatalogDisplay(quantity, null, factor)
       : quantity;
     let qtyChanged = Math.abs(targetDisplay - currentLive) >= 0.0001;
     if (followsInventory && qtyChanged) {
@@ -852,7 +848,6 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         draftFromRow(
           fresh,
           connected,
-          packMode,
           packCatalog?.displayToHolderFactor ?? 1,
         ),
       );
@@ -934,6 +929,9 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   }
 
   if (settings.mode == null) {
+    if (canWrite && (!feedback || feedback.kind !== "error")) {
+      return <DashboardLoading label="Following inventory…" />;
+    }
     return (
       <div className={cn(DASHBOARD_MAX_WIDE, "gap-3")}>
         <DashboardPageHero

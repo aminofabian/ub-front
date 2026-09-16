@@ -8,16 +8,19 @@ import { cn } from "@/lib/utils";
 import { formatSupplyQty, type SupplyPackMode } from "@/lib/supply-pack-math";
 
 import {
+  composePackEach,
   countSaveHint,
   defaultPackMode,
   isPacked,
   packSizeChoices,
+  splitPacksAndSingles,
   type StorePackCatalog,
 } from "../_lib/store-item-pack";
-import { parseStoreCount } from "../_lib/store-item-count";
+import { parseStoreCount, storeItemCountInput } from "../_lib/store-item-count";
 
 /**
- * Count in pieces, or in packs. One number, one sentence for what Save does.
+ * Count in pieces, or as full packs plus leftover pieces. The value is always
+ * total pieces — switching the toggle does not convert stock.
  */
 export function StorePackCountField({
   value,
@@ -45,6 +48,10 @@ export function StorePackCountField({
     : null;
   const sizes = packSizeChoices(catalog);
   const sizeValue = packed && packMode ? packMode.unitsPerPack : 0;
+  const split =
+    packed && packMode
+      ? splitPacksAndSingles(parsed ?? 0, packMode.unitsPerPack)
+      : null;
 
   const setPieces = () => {
     if (!packed) return;
@@ -64,6 +71,15 @@ export function StorePackCountField({
       catalog?.catalogPackUnit ||
       "pack";
     onPackModeChange({ unitsPerPack: units, packUnit: unit });
+  };
+
+  const emitSplit = (packs: number, leftover: number) => {
+    if (!packMode) return;
+    onChange(
+      storeItemCountInput(
+        composePackEach(packs, leftover, packMode.unitsPerPack),
+      ),
+    );
   };
 
   return (
@@ -145,22 +161,75 @@ export function StorePackCountField({
         </label>
       ) : null}
 
-      <label className="block space-y-1">
-        <span className="text-[11px] text-muted-foreground">
-          {packed ? "How many packs" : "How many pieces"}
-        </span>
-        <input
-          className={cn(dashboardInputClass(), "h-8 text-[13px]")}
-          type="number"
-          min={0}
-          step={followsInventory || packed ? "any" : 1}
-          inputMode={followsInventory || packed ? "decimal" : "numeric"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          required
-        />
-      </label>
+      {packed && split && packMode ? (
+        <div className="grid grid-cols-2 gap-1.5">
+          <label className="block space-y-1">
+            <span className="text-[11px] text-muted-foreground">Full packs</span>
+            <input
+              className={cn(dashboardInputClass(), "h-8 text-[13px]")}
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              value={parsed == null && value.trim() === "" ? "" : String(split.packs)}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw.trim() === "") {
+                  emitSplit(0, split.singles);
+                  return;
+                }
+                const n = Number(raw);
+                if (!Number.isFinite(n) || n < 0) return;
+                emitSplit(n, split.singles);
+              }}
+              disabled={disabled}
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-[11px] text-muted-foreground">
+              Extra pieces
+            </span>
+            <input
+              className={cn(dashboardInputClass(), "h-8 text-[13px]")}
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              value={
+                parsed == null && value.trim() === "" ? "" : String(split.singles)
+              }
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw.trim() === "") {
+                  emitSplit(split.packs, 0);
+                  return;
+                }
+                const n = Number(raw);
+                if (!Number.isFinite(n) || n < 0) return;
+                emitSplit(split.packs, n);
+              }}
+              disabled={disabled}
+            />
+          </label>
+        </div>
+      ) : (
+        <label className="block space-y-1">
+          <span className="text-[11px] text-muted-foreground">
+            How many pieces
+          </span>
+          <input
+            className={cn(dashboardInputClass(), "h-8 text-[13px]")}
+            type="number"
+            min={0}
+            step={followsInventory ? "any" : 1}
+            inputMode={followsInventory ? "decimal" : "numeric"}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            required
+          />
+        </label>
+      )}
 
       {hint ? (
         <p className={cn(dashboardHintClass(), "leading-snug")}>{hint}</p>

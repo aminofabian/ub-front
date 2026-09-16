@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   catalogDisplayToPacks,
   catalogNativePack,
+  composePackEach,
   packBreakdownLabel,
   packCountPreview,
   packsToCatalogDisplay,
@@ -67,6 +68,18 @@ describe("packStockEach", () => {
         holderEach: 56,
       }),
     ).toBe(56);
+  });
+
+  test("does not let a zero pool wipe a live display count", () => {
+    expect(
+      packStockEach(6, {
+        itemId: "p1",
+        displayToHolderFactor: 100,
+        catalogPackUnit: "pack",
+        options: [],
+        holderEach: 0,
+      }),
+    ).toBe(600);
   });
 });
 
@@ -161,15 +174,25 @@ describe("countSaveHint", () => {
     );
   });
 
-  test("explains a pack count as pieces", () => {
+  test("explains packs plus leftover pieces", () => {
     expect(
-      countSaveHint(2, { unitsPerPack: 100, packUnit: "pack" }, "set"),
-    ).toBe("Save sets on-hand to 200 pieces (2 × 100).");
+      countSaveHint(306, { unitsPerPack: 100, packUnit: "pack" }, "set"),
+    ).toBe("Save sets on-hand to 3 packs and 6 pieces (306 pieces).");
   });
 
   test("uses move copy for take-out", () => {
     expect(
-      countSaveHint(1, { unitsPerPack: 12, packUnit: "pack" }, "move"),
-    ).toBe("This is 12 pieces (1 × 12).");
+      countSaveHint(12, { unitsPerPack: 12, packUnit: "pack" }, "move"),
+    ).toBe("This is 1 pack (12 pieces).");
+  });
+});
+
+describe("composePackEach", () => {
+  test("keeps full packs and leftover pieces", () => {
+    expect(composePackEach(3, 6, 100)).toBe(306);
+  });
+
+  test("carries leftover that fills another pack", () => {
+    expect(composePackEach(3, 106, 100)).toBe(406);
   });
 });

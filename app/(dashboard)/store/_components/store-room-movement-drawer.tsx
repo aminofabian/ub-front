@@ -29,13 +29,11 @@ import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
 import { cn } from "@/lib/utils";
 
 import {
-  isPacked,
   packsToCatalogDisplay,
-  retargetCount,
   storePackCatalogFromItem,
   type StorePackCatalog,
 } from "../_lib/store-item-pack";
-import { parseStoreCount, storeItemCountInput } from "../_lib/store-item-count";
+import { parseStoreCount } from "../_lib/store-item-count";
 import { StorePackCountField } from "./store-pack-count-field";
 
 /**
@@ -274,7 +272,7 @@ export function StoreRoomMovementDrawer({
 
   const meta = STORE_ROOM_REASONS.find((option) => option.value === reason);
   const changesStock = meta?.changesStock ?? false;
-  const wholeOnly = changesStock && !linked && !isPacked(packMode);
+  const wholeOnly = changesStock && !linked;
   const parsed = parseQuantity(quantity, wholeOnly);
   const noteRequired = reason === "other";
   const factor = packCatalog?.displayToHolderFactor ?? 1;
@@ -282,14 +280,9 @@ export function StoreRoomMovementDrawer({
     parsed == null
       ? null
       : linked
-        ? packsToCatalogDisplay(parsed, packMode, factor)
+        ? packsToCatalogDisplay(parsed, null, factor)
         : parsed;
-  const baseQty =
-    parsed == null
-      ? null
-      : isPacked(packMode)
-        ? parsed * packMode!.unitsPerPack
-        : parsed * factor;
+  const baseQty = parsed;
   const needsApproval =
     changesStock &&
     linked &&
@@ -462,17 +455,7 @@ export function StoreRoomMovementDrawer({
           value={quantity}
           onChange={setQuantity}
           packMode={packMode}
-          onPackModeChange={(next) => {
-            const typed = parseStoreCount(quantity, false);
-            if (typed != null) {
-              setQuantity(
-                storeItemCountInput(
-                  retargetCount(typed, packMode, next, factor),
-                ),
-              );
-            }
-            setPackMode(next);
-          }}
+          onPackModeChange={setPackMode}
           catalog={packCatalog}
           followsInventory={Boolean(linked)}
           intent="move"

@@ -71,7 +71,10 @@ export function packStockEach(
   displayCount: number,
   catalog: StorePackCatalog | null,
 ): number {
-  if (catalog?.holderEach != null) return catalog.holderEach;
+  const held = catalog?.holderEach;
+  // A reported 0 pool must not wipe a live display count (package SKUs often
+  // expose baseStockQty as 0 while the branch still has packages on hand).
+  if (held != null && !(held === 0 && displayCount > 0)) return held;
   const factor = catalog?.displayToHolderFactor ?? 1;
   if (factor > 1) return roundQty(displayCount * factor);
   return displayCount;
@@ -143,6 +146,21 @@ export function splitPacksAndSingles(
   const packs = Math.floor(each / size + 1e-9);
   const singles = roundQty(each - packs * size);
   return { packs, singles, each };
+}
+
+/** Packs plus leftover pieces, carrying overflow into extra packs. */
+export function composePackEach(
+  packs: number,
+  leftover: number,
+  unitsPerPack: number,
+): number {
+  const size =
+    Number.isFinite(unitsPerPack) && unitsPerPack > 1 ? unitsPerPack : 1;
+  const p = Number.isFinite(packs) && packs > 0 ? packs : 0;
+  const raw = Number.isFinite(leftover) && leftover > 0 ? leftover : 0;
+  const extra = size > 1 ? Math.floor(raw / size + 1e-9) : 0;
+  const singles = size > 1 ? roundQty(raw - extra * size) : raw;
+  return roundQty((p + extra) * size + singles);
 }
 
 /**
@@ -252,7 +270,7 @@ export function packSizeChoices(
   return choices;
 }
 
-/** One sentence for what the typed count will do. */
+/** One sentence for what the typed count will do. `typed` is always pieces. */
 export function countSaveHint(
   typed: number | null,
   pack: SupplyPackMode | null | undefined,
@@ -260,21 +278,28 @@ export function countSaveHint(
 ): string {
   if (typed == null) {
     return isPacked(pack)
-      ? "Enter how many packs."
+      ? "Enter full packs and any leftover pieces."
       : "Enter how many pieces.";
   }
+  const pieces = formatSupplyQty(typed);
   if (!isPacked(pack)) {
-    const pieces = formatSupplyQty(typed);
     return intent === "move"
       ? `This is ${pieces} pieces.`
       : `Save sets on-hand to ${pieces} pieces.`;
   }
-  const size = pack!.unitsPerPack;
-  const each = roundQty(typed * size);
-  const packs = formatSupplyQty(typed);
-  const pieces = formatSupplyQty(each);
-  const sizeLabel = formatSupplyQty(size);
+  const { packs, singles } = splitPacksAndSingles(typed, pack!.unitsPerPack);
+  const packWord = (pack!.packUnit.trim() || "pack").toLowerCase();
+  const packBit =
+    packs > 0
+      ? `${formatSupplyQty(packs)} ${packWord}${packs === 1 ? "" : "s"}`
+      : null;
+  const pieceBit =
+    singles > 0.0001
+      ? `${formatSupplyQty(singles)} piece${singles === 1 ? "" : "s"}`
+      : null;
+  const split =
+    [packBit, pieceBit].filter(Boolean).join(" and ") || `0 ${packWord}s`;
   return intent === "move"
-    ? `This is ${pieces} pieces (${packs} × ${sizeLabel}).`
-    : `Save sets on-hand to ${pieces} pieces (${packs} × ${sizeLabel}).`;
+    ? `This is ${split} (${pieces} pieces).`
+    : `Save sets on-hand to ${split} (${pieces} pieces).`;
 }

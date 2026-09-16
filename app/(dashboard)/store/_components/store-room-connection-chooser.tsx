@@ -21,18 +21,6 @@ const OPTIONS: readonly {
   cta: string;
 }[] = [
   {
-    mode: "standalone",
-    icon: Boxes,
-    title: "Back-room only",
-    blurb: "A shelf list you keep by hand.",
-    points: [
-      "For anything — cleaning cloths, bags, spares",
-      "Counts stay exactly as you type them",
-      "Never touches the products you sell",
-    ],
-    cta: "Use back-room only",
-  },
-  {
     mode: "connected",
     icon: RefreshCcw,
     title: "Follow inventory",
@@ -44,6 +32,18 @@ const OPTIONS: readonly {
     ],
     recommended: true,
     cta: "Follow inventory",
+  },
+  {
+    mode: "standalone",
+    icon: Boxes,
+    title: "Back-room only",
+    blurb: "A shelf list you keep by hand.",
+    points: [
+      "For anything — cleaning cloths, bags, spares",
+      "Counts stay exactly as you type them",
+      "Never touches the products you sell",
+    ],
+    cta: "Use back-room only",
   },
 ];
 
@@ -64,7 +64,7 @@ export function StoreRoomConnectionChooser({
   busy: boolean;
   onChoose: (mode: StoreRoomMode) => void;
 }) {
-  const [picked, setPicked] = useState<StoreRoomMode | null>(null);
+  const [picked, setPicked] = useState<StoreRoomMode | null>("connected");
 
   return (
     <div className={cn(DASHBOARD_SECTION_SURFACE, "p-4 sm:p-6")}>
