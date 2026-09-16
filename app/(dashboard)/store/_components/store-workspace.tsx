@@ -543,37 +543,74 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     }
   };
 
-  const createFromProduct = async (item: ItemSummaryRecord) => {
+  const createFromProducts = async (items: ItemSummaryRecord[]) => {
+    const unique: ItemSummaryRecord[] = [];
+    const seen = new Set<string>();
+    for (const item of items) {
+      if (!item.id || seen.has(item.id) || takenItemIds.has(item.id)) continue;
+      seen.add(item.id);
+      unique.push(item);
+    }
+    if (unique.length === 0) {
+      setFeedback({
+        kind: "warning",
+        text: "Those products are already in the store room.",
+      });
+      return;
+    }
     setPickBusy(true);
     setFeedback(null);
+    const created: StoreItemRecord[] = [];
+    const failed: string[] = [];
     try {
-      // No barcode sent: the server copies the product's own when it is free.
-      const created = await createStoreItem({
-        name: item.name,
-        quantity: 0,
-        itemId: item.id,
-      });
-      setRows((prev) =>
-        [...prev, created].sort((a, b) => a.name.localeCompare(b.name)),
-      );
-      setPickOpen(false);
-      // Item counts moved, so re-read the census behind the banner.
-      refreshQuietly();
-      setFeedback({
-        kind: "success",
-        text: `“${created.name}” now follows inventory.`,
-      });
-      // Scanned but untracked: the operator's intent was clearly to take it out.
-      if (scanAddThenTakeOut) {
+      for (const item of unique) {
+        try {
+          const cost = Number(item.buyingPrice);
+          const row = await createStoreItem({
+            name: item.name,
+            quantity: 0,
+            itemId: item.id,
+            ...(Number.isFinite(cost) && cost >= 0 ? { buyingPrice: cost } : {}),
+          });
+          created.push(row);
+        } catch {
+          failed.push(item.name);
+        }
+      }
+      if (created.length > 0) {
+        setRows((prev) =>
+          [...prev, ...created].sort((a, b) => a.name.localeCompare(b.name)),
+        );
+        setPickOpen(false);
+        refreshQuietly();
+      }
+      if (created.length > 0 && failed.length === 0) {
+        setFeedback({
+          kind: "success",
+          text:
+            created.length === 1
+              ? `“${created[0]!.name}” now follows inventory.`
+              : `Added ${created.length} products. They follow inventory.`,
+        });
+      } else if (created.length > 0) {
+        setFeedback({
+          kind: "warning",
+          text: `Added ${created.length}. Could not add ${failed.length}: ${failed.slice(0, 3).join(", ")}${failed.length > 3 ? "…" : ""}.`,
+        });
+      } else {
+        setFeedback({
+          kind: "error",
+          text: "Could not add those products.",
+        });
+      }
+      if (scanAddThenTakeOut && created.length === 1) {
         setScanAddThenTakeOut(false);
         setPickerQuery(undefined);
-        openMovement(created, "out");
+        openMovement(created[0]!, "out");
+      } else {
+        setScanAddThenTakeOut(false);
+        setPickerQuery(undefined);
       }
-    } catch (err) {
-      setFeedback({
-        kind: "error",
-        text: mutationError(err, "Could not add that product."),
-      });
     } finally {
       setPickBusy(false);
     }
@@ -962,14 +999,13 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         description={
           linkRow
             ? `“${linkRow.name}” will follow the product you pick, so its count updates as that product sells.`
-            : "Pick a product and this store room will track its stock from now on."
+            : "Search, tick several products — or a supplier’s whole list — and add them in one go."
         }
         takenItemIds={takenItemIds}
         initialQuery={pickerQuery}
         busy={pickBusy}
-        onPick={(item) =>
-          void (linkRow ? linkProduct(item) : createFromProduct(item))
-        }
+        onPick={linkRow ? (item) => void linkProduct(item) : undefined}
+        onAdd={linkRow ? undefined : (items) => void createFromProducts(items)}
         onCreateCustom={linkRow ? undefined : openCustomCreate}
       />
 
