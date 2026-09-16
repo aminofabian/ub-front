@@ -67,16 +67,16 @@ export function StorePackCountField({
   };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-0.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           {packed ? "Packs" : "Number"}
         </span>
         {followsInventory ? (
           <button
             type="button"
             className={cn(
-              "inline-flex h-6 items-center gap-1 px-1.5 text-[10px] font-bold uppercase tracking-[0.06em]",
+              "inline-flex h-6 items-center gap-1 px-1.5 text-[10px] font-bold uppercase tracking-[0.05em]",
               packed
                 ? "bg-amber-200/90 text-amber-950"
                 : "text-muted-foreground hover:bg-amber-100 hover:text-amber-950",
@@ -106,7 +106,7 @@ export function StorePackCountField({
         <input
           className={cn(
             dashboardInputClass(),
-            "min-w-0 flex-1",
+            "h-8 min-w-0 flex-1 text-[13px]",
             packed && "border-0 bg-transparent shadow-none",
           )}
           type="number"

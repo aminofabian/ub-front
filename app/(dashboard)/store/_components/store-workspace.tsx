@@ -407,6 +407,15 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   };
 
   const selectRow = (row: StoreItemRecord) => {
+    // Clicking the active row again returns to the room pulse.
+    if (selectedId === row.id) {
+      setSelectedId(null);
+      setEditRow(null);
+      setMobileShowDetail(false);
+      setMobileDetailTab("history");
+      setFeedback(null);
+      return;
+    }
     setSelectedId(row.id);
     setEditRow(row);
     setEditDraft(draftFromRow(row, connected));
@@ -422,20 +431,15 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setMobileDetailTab("history");
   };
 
-  // Keep a focused row so history + inspect aren't empty shells on desktop.
+  // Drop a selection that left the filtered list; don't auto-pick the first
+  // row so the middle column can show the room pulse.
   useEffect(() => {
-    if (selectedId && filtered.some((row) => row.id === selectedId)) return;
-    if (filtered.length === 0) {
-      setSelectedId(null);
-      setEditRow(null);
-      setMobileShowDetail(false);
-      return;
-    }
-    const first = filtered[0]!;
-    setSelectedId(first.id);
-    setEditRow(first);
-    setEditDraft(draftFromRow(first, connected));
-  }, [connected, filtered, selectedId]);
+    if (!selectedId) return;
+    if (filtered.some((row) => row.id === selectedId)) return;
+    setSelectedId(null);
+    setEditRow(null);
+    setMobileShowDetail(false);
+  }, [filtered, selectedId]);
 
   const openMovement = (
     row: StoreItemRecord | null,
@@ -947,15 +951,14 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-2.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
       <DashboardPageHero
         icon={Warehouse}
-        eyebrow="Stock"
         title="Store room"
         description={
           connected
-            ? "Pick a product — see what moved, then edit the details."
-            : "Back-room register: name, barcode, count. Separate from till stock."
+            ? "Pick a product, check what moved, edit the count."
+            : "Back-room register — separate from till stock."
         }
       >
         {canWrite ? (
@@ -963,40 +966,44 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
             {rows.length > 0 ? (
               <Button
                 type="button"
-                className="gap-2 shadow-none"
+                size="sm"
+                className="h-8 gap-1.5 shadow-none"
                 onClick={() => openMovement(null, "out")}
               >
-                <ArrowUpFromLine className="size-4" aria-hidden />
+                <ArrowUpFromLine className="size-3.5" aria-hidden />
                 Take out
               </Button>
             ) : null}
             <Button
               type="button"
+              size="sm"
               variant="outline"
-              className="gap-2 shadow-none"
+              className="h-8 gap-1.5 shadow-none"
               onClick={() => setScannerOpen(true)}
             >
-              <ScanLine className="size-4" aria-hidden />
+              <ScanLine className="size-3.5" aria-hidden />
               Scan
             </Button>
             {connected ? (
               <Button
                 type="button"
+                size="sm"
                 variant={rows.length > 0 ? "outline" : "default"}
-                className="gap-2 shadow-none"
+                className="h-8 gap-1.5 shadow-none"
                 onClick={openPickerForCreate}
               >
-                <Plus className="size-4" aria-hidden />
-                Add from products
+                <Plus className="size-3.5" aria-hidden />
+                Add product
               </Button>
             ) : (
               <Button
                 type="button"
+                size="sm"
                 variant={rows.length > 0 ? "outline" : "default"}
-                className="gap-2 shadow-none"
+                className="h-8 gap-1.5 shadow-none"
                 onClick={openCustomCreate}
               >
-                <Plus className="size-4" aria-hidden />
+                <Plus className="size-3.5" aria-hidden />
                 Add item
               </Button>
             )}
@@ -1036,6 +1043,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         onToggleUnlinked={() => setOnlyUnlinked((prev) => !prev)}
         unlinkedCount={settings.unlinkedCount}
         filtered={filtered}
+        rows={rows}
         rowsTotal={rows.length}
         selectedId={selectedId}
         selectedRow={selectedRow}

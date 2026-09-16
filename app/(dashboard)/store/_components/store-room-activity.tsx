@@ -199,38 +199,35 @@ export function StoreRoomActivity({
     >
       <div
         className={cn(
-          "flex shrink-0 items-start justify-between gap-2",
+          "flex shrink-0 items-center justify-between gap-2",
           theatre
-            ? "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-2.5 sm:px-4"
+            ? "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3"
             : "px-3 pt-3 sm:px-3.5",
         )}
       >
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
-            Stock history
-          </p>
-          <h2 className="mt-0.5 truncate text-[13px] font-semibold tracking-tight text-foreground">
+          <h2 className="truncate text-[13px] font-semibold tracking-tight text-foreground">
             {focusLabel
               ? focusLabel
               : range === "today"
-                ? "Today in the room"
+                ? "Today"
                 : "Last 7 days"}
           </h2>
           <p className={cn(dashboardHintClass(), "mt-0.5")}>
             {summary
               ? focusStoreItemId
-                ? `${movements.length} move${movements.length === 1 ? "" : "s"} in view`
+                ? `${movements.length} move${movements.length === 1 ? "" : "s"}`
                 : `${summary.takeOuts} out · ${summary.putIns} in`
               : "Loading…"}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
           {canWrite && onPutIn && !focusStoreItemId ? (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 px-2 text-xs"
+              className="h-7 gap-1 px-1.5 text-[11px]"
               onClick={onPutIn}
             >
               <ArrowDownToLine className="size-3.5" aria-hidden />
@@ -241,7 +238,7 @@ export function StoreRoomActivity({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-8"
+            className="size-7"
             aria-label="Refresh activity"
             disabled={loading}
             onClick={load}
@@ -255,7 +252,7 @@ export function StoreRoomActivity({
         </div>
       </div>
 
-      <div className={cn("shrink-0", theatre ? "px-3 pt-2 sm:px-4" : "px-3 sm:px-3.5")}>
+      <div className={cn("shrink-0", theatre ? "px-2.5 pt-1.5 sm:px-3" : "px-3 sm:px-3.5")}>
         {summary && summary.pending > 0 ? (
           <p className="mb-2 flex items-start gap-2 border border-amber-500/40 bg-amber-500/5 px-2.5 py-1.5 text-[12px] leading-snug text-amber-800 dark:text-amber-300">
             <Clock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
@@ -334,7 +331,7 @@ export function StoreRoomActivity({
       <div
         className={cn(
           "min-h-0 flex-1 overflow-y-auto overscroll-contain",
-          theatre ? "px-3 pb-3 sm:px-4" : "px-3 pb-3 sm:px-3.5",
+          theatre ? "px-2.5 pb-2.5 sm:px-3" : "px-3 pb-3 sm:px-3.5",
         )}
       >
         {failed ? (
