@@ -33,7 +33,6 @@ import {
   DashboardPageHero,
   DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
-import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
@@ -79,39 +78,21 @@ import { DrawoutApprovalActions } from "@/components/shifts/drawout-approval-act
 
 const HAIRLINE =
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+const PAPER =
+  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]";
+const ROSTER =
+  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]";
 const SHIFT_CHIP = cn(
-  "inline-flex h-8 shrink-0 items-center rounded-none border bg-white px-2.5",
-  "text-[12px] font-semibold tracking-[-0.02em]",
+  "inline-flex h-8 shrink-0 items-center rounded-none px-2.5",
+  "text-[12px] font-semibold tracking-[-0.02em] transition-colors duration-150",
 );
 const SHIFT_CHIP_ACTIVE =
-  "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]";
+  "bg-[var(--pos-primary,#0f766e)] text-white";
 const SHIFT_CHIP_IDLE = cn(
-  HAIRLINE,
-  "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+  "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
 );
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * THE SHIFTS BOARD — direction contract (marketplace shelf grammar)
- *
- * THESIS: one till board arranged like the supplier marketplace shelf —
- * passport header → search → chips → teal section bar → list rail + detail.
- * Refuses the three-panel console and soft dashboard cards.
- *
- * OWN-WORLD: marketplace paper/ink/teal tokens (sharp corners, pos-primary
- * rails, chip filters); ledger figures stay mono.
- *
- * STORY: the manager scans status chips, picks a shift from the board rail,
- * and the detail shelf shows the cash story.
- *
- * FIRST VIEWPORT: title + Products-style status tabs; search; branch chips;
- * teal "Board / Detail" bar; list + pane.
- *
- * FORM: marketplace shelf arrangement applied to shifts Operate task;
- * inherits live palmart.co.ke/marketplace chrome.
- *
- * FINISH: unreviewed and undocumented is unfinished; this build ends with the
- * finish review, the verdict, and DESIGN.md.
- * ═══════════════════════════════════════════════════════════════════════════ */
+/* Store-room theatre — roster | dossier. Same ink / teal / paper as sales. */
 
 const STATUS_OPTIONS = [
   { value: "", label: "All shifts" },
@@ -123,12 +104,12 @@ const STATUS_OPTIONS = [
 
 const DRAWOUT_STATUS_BADGE: Record<string, string> = {
   PENDING_APPROVAL:
-    "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/20",
+    "border-amber-700/30 text-amber-900 bg-[color-mix(in_srgb,#b45309_6%,white)]",
   APPROVED:
-    "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
-  REJECTED: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/20",
-  VOIDED: "bg-muted text-muted-foreground border-border/50 line-through",
-  EXPIRED: "bg-gray-500/15 text-gray-700 dark:text-gray-300 border-gray-500/20",
+    "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
+  REJECTED: "border-destructive/30 text-destructive bg-destructive/[0.04]",
+  VOIDED: "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground line-through",
+  EXPIRED: "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
 };
 
 /** Ledger convention: money renders in monospace tabular figures. */
@@ -179,10 +160,11 @@ function varianceBgColor(v: number | string | null | undefined): string {
   const n = typeof v === "number" ? v : Number(v);
   if (!Number.isFinite(n)) return "";
   const abs = Math.abs(n);
-  if (abs === 0) return "bg-emerald-500/10 border-emerald-500/20";
+  if (abs === 0)
+    return "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]";
   if (abs < VARIANCE_THRESHOLD_RED)
-    return "bg-amber-500/10 border-amber-500/20";
-  return "bg-red-500/10 border-red-500/20";
+    return "border-amber-700/30 text-amber-900";
+  return "border-[#9a2e16]/35 text-[#9a2e16]";
 }
 
 function liveDrawoutTotals(drawouts: DrawoutRecord[]) {
@@ -222,15 +204,15 @@ function signedMoney(v: number): string {
 function statusBadgeClass(status: string): string {
   switch (status) {
     case "open":
-      return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/20";
+      return "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]";
     case "suspended":
-      return "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/20";
+      return "border-amber-700/30 text-amber-900";
     case "closed":
-      return "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/20";
+      return "border-[#9a2e16]/35 text-[#9a2e16]";
     case "reconciled":
-      return "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/20";
+      return "border-[color-mix(in_srgb,var(--order-ink,#15231f)_25%,transparent)] text-foreground";
     default:
-      return "bg-muted text-muted-foreground";
+      return "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground";
   }
 }
 
@@ -249,44 +231,28 @@ function statusLabel(status: string): string {
   }
 }
 
-/** Severity dot hue for a variance figure — shared with the legend. */
+/** Severity square for a variance figure — shared with the legend. */
 function varianceDot(v: number | null | undefined): string | null {
   if (v == null) return null;
   const abs = Math.abs(v);
-  if (abs === 0) return "bg-emerald-500";
-  if (abs < VARIANCE_THRESHOLD_RED) return "bg-amber-500";
-  return "bg-red-500";
+  if (abs === 0) return "bg-[var(--pos-primary,#0f766e)]";
+  if (abs < VARIANCE_THRESHOLD_RED) return "bg-amber-700";
+  return "bg-[#9a2e16]";
 }
 
-/** Status dot hue — the board's row-state vocabulary. */
+/** Status square — the board's row-state vocabulary. */
 function statusDotClass(status: string): string {
   switch (status) {
     case "open":
-      return "bg-emerald-500";
+      return "bg-[var(--pos-primary,#0f766e)]";
     case "suspended":
-      return "bg-amber-500";
+      return "bg-amber-700";
     case "closed":
-      return "bg-red-500";
+      return "bg-[#9a2e16]";
     case "reconciled":
-      return "bg-blue-500";
+      return "bg-[var(--order-ink,#15231f)]";
     default:
       return "bg-muted-foreground";
-  }
-}
-
-/** Status rail hue — the 2px left rail on board rows and banners. */
-function statusRailClass(status: string): string {
-  switch (status) {
-    case "open":
-      return "bg-emerald-500";
-    case "suspended":
-      return "bg-amber-500";
-    case "closed":
-      return "bg-red-500";
-    case "reconciled":
-      return "bg-blue-500";
-    default:
-      return "bg-border";
   }
 }
 
@@ -305,12 +271,12 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 border px-2 py-0.5 text-[11px] font-semibold",
+        "inline-flex items-center gap-1.5 border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
         statusBadgeClass(status),
       )}
     >
       <span
-        className={cn("size-1.5 rounded-full", statusDotClass(status))}
+        className={cn("size-1.5 shrink-0", statusDotClass(status))}
         aria-hidden
       />
       {statusLabel(status)}
@@ -321,9 +287,9 @@ function StatusBadge({ status }: { status: string }) {
 /** Compact key explaining the variance colour scale. */
 function VarianceLegend({ className }: { className?: string }) {
   const items = [
-    { dot: "bg-emerald-500", label: "Balanced" },
-    { dot: "bg-amber-500", label: `Minor · <${VARIANCE_THRESHOLD_RED}` },
-    { dot: "bg-red-500", label: `Review · ≥${VARIANCE_THRESHOLD_RED}` },
+    { dot: "bg-[var(--pos-primary,#0f766e)]", label: "Balanced" },
+    { dot: "bg-amber-700", label: `Minor · <${VARIANCE_THRESHOLD_RED}` },
+    { dot: "bg-[#9a2e16]", label: `Review · ≥${VARIANCE_THRESHOLD_RED}` },
   ];
   return (
     <div
@@ -334,7 +300,7 @@ function VarianceLegend({ className }: { className?: string }) {
     >
       {items.map((it) => (
         <span key={it.label} className="inline-flex items-center gap-1.5">
-          <span className={cn("size-1.5 rounded-full", it.dot)} aria-hidden />
+          <span className={cn("size-1.5 shrink-0", it.dot)} aria-hidden />
           <span className="tabular-nums">{it.label}</span>
         </span>
       ))}
@@ -481,26 +447,27 @@ function KpiCard({
   dotClassName?: string | null;
 }) {
   return (
-    <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3">
+    <div className={cn("border bg-white p-3", HAIRLINE)}>
       <div className="flex items-center justify-between gap-2">
-        <p className="font-sans text-[10px] font-semibold tracking-[-0.02em] text-foreground/70">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {label}
         </p>
         {dotClassName ? (
           <span
-            className={cn("size-2 shrink-0 rounded-full", dotClassName)}
+            className={cn("size-1.5 shrink-0", dotClassName)}
             aria-hidden
           />
         ) : Icon ? (
-          <Icon className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
+          <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
         ) : null}
       </div>
       <p
         className={cn(
-          "mt-1.5 text-lg font-bold leading-tight tracking-tight sm:text-xl",
+          "mt-1.5 text-lg font-semibold leading-none tracking-[-0.03em] sm:text-xl",
           NUM,
           valueClassName || "text-foreground",
         )}
+        style={{ fontFamily: "var(--font-heading)" }}
       >
         {value}
       </p>
@@ -508,12 +475,11 @@ function KpiCard({
   );
 }
 
-// ─── Board row (departure-board grammar) ───────────────────────────────────
+// ─── Board row ─────────────────────────────────────────────────────────────
 
 /**
- * One shift as a row on the board. Fixed columns that never move; the 2px
- * status rail and dot carry the row's state; the variance chip signals the
- * close-out. Selected rows lift with a primary rail and soft fill.
+ * One shift on the roster. Selected fills teal like the store directory;
+ * variance stamps use ink / amber / rust.
  */
 function ShiftRow({
   shift,
@@ -537,25 +503,14 @@ function ShiftRow({
       onClick={onSelect}
       aria-pressed={isSelected}
       className={cn(
-        "group relative w-full overflow-hidden border text-left transition-[border-color,background-color,box-shadow] duration-150",
-        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+        "group w-full border text-left transition-colors duration-150",
+        HAIRLINE,
         isSelected
-          ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
-          : "bg-white hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_24%,transparent)]",
+          ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
+          : "bg-white hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
         compact && "p-2.5",
       )}
     >
-      <span
-        className={cn(
-          "absolute inset-y-0 left-0 w-1 transition-opacity duration-150",
-          isSelected
-            ? "bg-[var(--pos-primary,#0f766e)] opacity-100"
-            : "opacity-0 group-hover:opacity-70",
-          !isSelected && statusRailClass(shift.status),
-        )}
-        aria-hidden
-      />
-
       <div
         className={cn(
           "flex items-start justify-between gap-2",
@@ -565,10 +520,10 @@ function ShiftRow({
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <span
             className={cn(
-              "flex size-9 shrink-0 items-center justify-center border font-sans text-[11px] font-bold tracking-tight",
+              "flex size-8 shrink-0 items-center justify-center border text-[11px] font-bold tracking-tight",
               isSelected
-                ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
-                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--order-ink,#15231f)]",
+                ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                : cn(HAIRLINE, "bg-white text-foreground"),
             )}
             aria-hidden
           >
@@ -578,77 +533,34 @@ function ShiftRow({
             <span
               className={cn(
                 "block truncate text-sm font-semibold",
-                isSelected
-                  ? "text-[var(--pos-primary,#0f766e)]"
-                  : "text-[var(--order-ink,#15231f)]",
+                isSelected ? "text-[var(--pos-primary,#0f766e)]" : "text-foreground",
               )}
             >
               {shift.cashierName}
             </span>
-            <span
-              className={cn(
-                "mt-0.5 flex items-center gap-1 truncate text-xs",
-                isSelected
-                  ? "text-[var(--pos-primary,#0f766e)]"
-                  : "text-muted-foreground",
-              )}
-            >
+            <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
               <MapPin className="size-3 shrink-0" aria-hidden />
               <span className="truncate">{shift.branchName}</span>
             </span>
           </div>
         </div>
-        {isSelected ? (
-          <span className="inline-flex items-center border border-[var(--pos-primary,#0f766e)] bg-white px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
-            {statusLabel(shift.status)}
-          </span>
-        ) : (
-          <StatusBadge status={shift.status} />
-        )}
+        <StatusBadge status={shift.status} />
       </div>
 
       <div
         className={cn(
-          "flex items-center gap-2 text-xs",
-          compact ? "mt-2" : "mt-2.5 px-3",
+          "flex items-center gap-2 text-xs text-muted-foreground",
+          compact ? "mt-2" : "mt-0 px-3 pb-3",
         )}
       >
-        <span
-          className={cn(
-            "inline-flex shrink-0 items-center gap-1",
-            isSelected
-              ? "text-[var(--pos-primary,#0f766e)]"
-              : "text-muted-foreground",
-          )}
-        >
+        <span className="inline-flex shrink-0 items-center gap-1">
           <Clock className="size-3" aria-hidden />
           <span className={NUM}>{fmtShortDate(shift.openedAt)}</span>
         </span>
-        <span
-          className={cn(
-            "h-3 w-px",
-            isSelected ? "bg-white/30" : "bg-border/70",
-          )}
-          aria-hidden
-        />
-        <span
-          className={cn(
-            "inline-flex shrink-0 items-baseline gap-0.5",
-            isSelected
-              ? "text-[var(--pos-primary,#0f766e)]"
-              : "text-muted-foreground",
-          )}
-        >
+        <span className="h-3 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]" aria-hidden />
+        <span className="inline-flex shrink-0 items-baseline gap-0.5">
           <span>Float</span>
-          <span
-            className={cn(
-              "font-medium",
-              NUM,
-              isSelected
-                ? "text-[var(--pos-primary,#0f766e)]"
-                : "text-foreground",
-            )}
-          >
+          <span className={cn("font-medium text-foreground", NUM)}>
             {moneyStrCompact(shift.openingFloat)}
           </span>
         </span>
@@ -660,17 +572,12 @@ function ShiftRow({
               className={cn(
                 "inline-flex shrink-0 items-center gap-1 border px-1.5 py-0.5 font-medium",
                 NUM,
-                isSelected
-                  ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
-                  : cn(
-                      varianceBgColor(v),
-                      needsReview && "text-red-700 dark:text-red-300",
-                    ),
+                varianceBgColor(v),
               )}
             >
-              {needsReview && !isSelected ? (
+              {needsReview ? (
                 <AlertTriangle
-                  className="size-3 text-red-600 dark:text-red-400"
+                  className="size-3 text-[#9a2e16]"
                   aria-label="Needs review"
                 />
               ) : null}
@@ -682,12 +589,7 @@ function ShiftRow({
           <>
             <span className="ml-auto" aria-hidden />
             <ChevronRight
-              className={cn(
-                "size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5",
-                isSelected
-                  ? "text-[var(--pos-primary,#0f766e)]"
-                  : "text-muted-foreground/50",
-              )}
+              className="size-3.5 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5"
               aria-hidden
             />
           </>
@@ -1062,10 +964,10 @@ function ExpectedDrawerCard({ balances }: { balances: DrawerBalanceRecord }) {
         </span>
         <span
           className={cn(
-            "rounded px-1.5 py-px text-[10px] font-semibold",
+            "border px-1.5 py-px text-[10px] font-semibold",
             balances.consistent
-              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-              : "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+              ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]"
+              : "border-amber-700/30 text-amber-900",
           )}
         >
           {balances.consistent ? "Reconciled" : "Ledger drift"}
@@ -1565,7 +1467,7 @@ function ShiftDetail({
                   aria-hidden
                 />
                 <div className="relative flex items-center gap-2.5">
-                  <span className="z-10 size-2 rounded-full bg-emerald-500 ring-2 ring-background" />
+                  <span className="z-10 size-1.5 bg-[var(--pos-primary,#0f766e)] ring-2 ring-background" />
                   <span className="text-muted-foreground">Opened</span>
                   <span
                     className={cn("ml-auto font-medium text-foreground", NUM)}
@@ -1575,7 +1477,7 @@ function ShiftDetail({
                 </div>
                 {detail.closedAt ? (
                   <div className="relative flex items-center gap-2.5">
-                    <span className="z-10 size-2 rounded-full bg-red-500 ring-2 ring-background" />
+                    <span className="z-10 size-1.5 bg-[#9a2e16] ring-2 ring-background" />
                     <span className="text-muted-foreground">Closed</span>
                     <span
                       className={cn("ml-auto font-medium text-foreground", NUM)}
@@ -2084,11 +1986,11 @@ export default function ShiftsPage() {
   ];
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
       <DashboardPageHero
         icon={Clock}
         title="Shifts"
-        description="Branch → board → count"
+        description="Open the till, watch the board, close the count."
         showActiveScope
       >
         <DashboardQuickLinks
@@ -2104,7 +2006,7 @@ export default function ShiftsPage() {
           <Button
             type="button"
             size="sm"
-            className="h-8 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 text-[11px] font-semibold tracking-[-0.02em] text-white"
+            className="h-8 gap-1.5 rounded-none shadow-none"
             onClick={() => setOpenModal(true)}
           >
             Open shift
@@ -2117,7 +2019,12 @@ export default function ShiftsPage() {
           {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
           {error ? <DashboardFeedback kind="error" text={error} /> : null}
           {canApproveDrawouts && pendingDrawouts.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 border border-amber-700/20 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-400/25 dark:bg-amber-950/35 dark:text-amber-100">
+            <div
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-2 border bg-[color-mix(in_srgb,#b45309_6%,white)] px-3 py-2 text-sm text-amber-950",
+                "border-amber-700/25",
+              )}
+            >
               <p>
                 {pendingDrawouts.length === 1
                   ? "1 drawout is waiting for your approval."
@@ -2128,7 +2035,7 @@ export default function ShiftsPage() {
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-7 rounded-none"
+                className="h-7 rounded-none shadow-none"
                 onClick={() => {
                   const first = pendingDrawouts[0];
                   if (!first) return;
@@ -2143,31 +2050,23 @@ export default function ShiftsPage() {
         </div>
       ) : null}
 
-      {/* Live open shift — teal strip like marketplace section bars */}
       {currentOpenShift ? (
         <section
           aria-label="Open shift"
           className={cn(
-            "relative flex flex-wrap items-center gap-x-4 gap-y-2 overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-            "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,var(--card))] px-3 py-2.5 sm:px-4",
+            "flex flex-wrap items-center gap-x-4 gap-y-2 border bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-3 py-2.5 sm:px-4",
+            HAIRLINE,
           )}
         >
-          <span
-            className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary,#0f766e)]"
-            aria-hidden
-          />
-          <span className="relative flex items-center gap-2.5 pl-1">
-            <span className="relative flex size-2.5">
-              <span
-                className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--pos-primary,#0f766e)] opacity-60"
-                aria-hidden
-              />
-              <span
-                className="relative inline-flex size-2.5 rounded-full bg-[var(--pos-primary,#0f766e)]"
-                aria-hidden
-              />
-            </span>
-            <p className="text-sm font-semibold text-[var(--pos-ink,#1c1915)]">
+          <span className="relative flex items-center gap-2.5">
+            <span
+              className="size-1.5 bg-[var(--pos-primary,#0f766e)]"
+              aria-hidden
+            />
+            <p
+              className="text-sm font-semibold tracking-[-0.02em] text-foreground"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
               {currentOpenShift.openedByName || "Cashier"}
               <span className="font-normal text-muted-foreground"> at </span>
               {humanTillLabel(currentOpenShift.tillLabel) ||
@@ -2184,9 +2083,7 @@ export default function ShiftsPage() {
           <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Wallet className="size-3.5" aria-hidden />
             Float{" "}
-            <span
-              className={cn("font-semibold text-[var(--pos-ink,#1c1915)]", NUM)}
-            >
+            <span className={cn("font-semibold text-foreground", NUM)}>
               {moneyStr(currentOpenShift.openingCash)}
             </span>
           </p>
@@ -2197,7 +2094,7 @@ export default function ShiftsPage() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="rounded-none"
+                  className="h-8 rounded-none shadow-none"
                   onClick={() => setDrawoutModal(true)}
                 >
                   New drawout
@@ -2206,7 +2103,7 @@ export default function ShiftsPage() {
                   type="button"
                   size="sm"
                   variant="destructive"
-                  className="rounded-none"
+                  className="h-8 rounded-none shadow-none"
                   onClick={() => setCloseModal(true)}
                 >
                   Close shift
@@ -2217,7 +2114,7 @@ export default function ShiftsPage() {
                 type="button"
                 size="sm"
                 variant="destructive"
-                className="rounded-none"
+                className="h-8 rounded-none shadow-none"
                 onClick={() => setCloseModal(true)}
               >
                 Close shift
@@ -2227,22 +2124,25 @@ export default function ShiftsPage() {
         </section>
       ) : null}
 
-      {/* Marketplace-style POS shell: header → search → chips → board */}
+      {/* Theatre — roster | dossier */}
       <div
         className={cn(
-          "relative flex min-h-0 min-h-[min(82dvh,52rem)] flex-1 flex-col overflow-hidden rounded-none border bg-white",
+          "hidden overflow-hidden border lg:grid",
+          "h-[min(80dvh,52rem)]",
           HAIRLINE,
+          PAPER,
+          "lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]",
         )}
       >
-        <section className={cn("relative shrink-0 border-b bg-white px-2.5 py-2 sm:px-3", HAIRLINE)}>
-          <div className="space-y-2">
+        <div className={cn("flex min-h-0 flex-col border-r", HAIRLINE, ROSTER)}>
+          <div className={cn("shrink-0 space-y-2 border-b px-2.5 py-2 sm:px-3", HAIRLINE)}>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
-                <h2 className="text-[15px] font-semibold leading-tight text-[var(--order-ink,#15231f)]">
-                  {branchFilter
-                    ? (branches.find((b) => b.id === branchFilter)?.name ??
-                      "Shifts")
-                    : "All shifts"}
+                <h2
+                  className="text-[15px] font-semibold tracking-[-0.02em] text-foreground"
+                  style={{ fontFamily: "var(--font-heading)" }}
+                >
+                  Board
                 </h2>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
                   {loading
@@ -2251,60 +2151,26 @@ export default function ShiftsPage() {
                   {statusFilter
                     ? ` · ${STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label ?? statusFilter}`
                     : ""}
-                  {totalCount > filteredShifts.length
-                    ? ` · ${totalCount} total`
-                    : ""}
                 </p>
-                <ActiveScopeSubtitle className="mt-0.5 text-[11px]" />
               </div>
-              <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                {currentOpenShift && canRecordDrawout ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-8 rounded-none px-3 text-[11px] font-semibold tracking-[-0.02em]"
-                    onClick={() => setDrawoutModal(true)}
-                  >
-                    Drawout
-                  </Button>
-                ) : null}
-                <div
-                  role="tablist"
-                  aria-label="Shift status"
-                  className={cn("flex rounded-none border bg-white", HAIRLINE)}
+              {currentOpenShift && canRecordDrawout ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 rounded-none px-3 text-[11px] font-semibold shadow-none"
+                  onClick={() => setDrawoutModal(true)}
                 >
-                  {STATUS_OPTIONS.filter((o) =>
-                    ["", "open", "closed", "reconciled"].includes(o.value),
-                  ).map((opt) => {
-                    const active = statusFilter === opt.value;
-                    return (
-                      <button
-                        key={opt.value || "all"}
-                        type="button"
-                        role="tab"
-                        aria-selected={active}
-                        className={cn(
-                          "inline-flex h-8 items-center rounded-none px-2.5 text-[11px] font-semibold tracking-[-0.02em] transition sm:px-3",
-                          active
-                            ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
-                            : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
-                        )}
-                        onClick={() => setStatusFilter(opt.value)}
-                      >
-                        {opt.value === "" ? "All" : opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                  Drawout
+                </Button>
+              ) : null}
             </div>
 
-            <div className={cn("relative rounded-none border bg-white", HAIRLINE)}>
+            <div className={cn("relative border bg-white", HAIRLINE)}>
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
-                className="h-9 w-full rounded-none bg-transparent pl-8 pr-9 text-[13px] outline-none placeholder:text-muted-foreground/50"
-                placeholder="Find a cashier or branch…"
+                className="h-8 w-full bg-transparent pl-8 pr-9 text-[13px] outline-none placeholder:text-muted-foreground/50"
+                placeholder="Cashier or branch…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Search shifts"
@@ -2312,7 +2178,7 @@ export default function ShiftsPage() {
               {search ? (
                 <button
                   type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-[var(--pos-ink,#1c1915)]"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
                   onClick={() => setSearch("")}
                   aria-label="Clear search"
                 >
@@ -2321,238 +2187,263 @@ export default function ShiftsPage() {
               ) : null}
             </div>
 
-            {/* Branch chips — marketplace Area row */}
-            {!isBranchLockedRole && branches.length > 0 ? (
-              <div className="flex flex-col gap-1.5 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2">
-                <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
-                  <span className="shrink-0 text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
-                    Branch
-                  </span>
-                  <button
-                    type="button"
-                    className={cn(
-                      SHIFT_CHIP,
-                      !branchFilter ? SHIFT_CHIP_ACTIVE : SHIFT_CHIP_IDLE,
-                    )}
-                    onClick={() => setBranchFilter("")}
-                  >
-                    All
-                  </button>
-                  {branches
-                    .filter((b) => b.active !== false)
-                    .map((b) => (
-                      <button
-                        key={b.id}
-                        type="button"
-                        className={cn(
-                          SHIFT_CHIP,
-                          branchFilter === b.id
-                            ? SHIFT_CHIP_ACTIVE
-                            : SHIFT_CHIP_IDLE,
-                        )}
-                        onClick={() =>
-                          setBranchFilter((cur) => (cur === b.id ? "" : b.id))
-                        }
-                      >
-                        {b.name}
-                      </button>
-                    ))}
-                </div>
-                {statusFilter === "suspended" ? null : (
-                  <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
-                    <span className="shrink-0 text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
-                      Status
-                    </span>
-                    {STATUS_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value || "all-status"}
-                        type="button"
-                        className={cn(
-                          SHIFT_CHIP,
-                          statusFilter === opt.value
-                            ? SHIFT_CHIP_ACTIVE
-                            : SHIFT_CHIP_IDLE,
-                        )}
-                        onClick={() => setStatusFilter(opt.value)}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 overflow-x-auto border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2 pb-0.5">
-                <span className="shrink-0 text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
-                  Status
-                </span>
-                {STATUS_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value || "all-status"}
-                    type="button"
-                    className={cn(
-                      SHIFT_CHIP,
-                      statusFilter === opt.value
-                        ? SHIFT_CHIP_ACTIVE
-                        : SHIFT_CHIP_IDLE,
-                    )}
-                    onClick={() => setStatusFilter(opt.value)}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Teal section bar — marketplace "2 · Supplier | Shelf" */}
-        <div
-          className={cn(
-            "flex h-8 shrink-0 items-center justify-between gap-2 border-b bg-white px-2.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
-            HAIRLINE,
-          )}
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <span>Board</span>
-            <span className="font-mono font-normal tabular-nums opacity-80">
-              {filteredShifts.length}
-            </span>
-          </span>
-          <span className="hidden min-w-0 truncate font-sans text-[11px] font-semibold normal-case tracking-normal opacity-95 sm:inline">
-            {selectedShift
-              ? `${selectedShift.cashierName} · ${selectedShift.branchName}`
-              : "Select a shift"}
-          </span>
-          <VarianceLegend className="ml-auto hidden sm:flex" />
-        </div>
-
-        {/* Board: list rail + detail shelf */}
-        <div className="grid min-h-0 flex-1 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-          <section
-            aria-label="Shift board"
-            className="flex min-h-0 flex-col border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] md:border-r"
-          >
-            <div className="flex-1 space-y-1 overflow-y-auto p-2">
-              {filteredShifts.map((s) => (
-                <ShiftRow
-                  key={s.id}
-                  shift={s}
-                  isSelected={selectedShiftId === s.id}
-                  onSelect={() =>
-                    setSelectedShiftId((cur) =>
-                      cur === s.id &&
-                      typeof window !== "undefined" &&
-                      window.matchMedia("(max-width: 767px)").matches
-                        ? null
-                        : s.id,
-                    )
-                  }
-                />
-              ))}
-              {filteredShifts.length === 0 && !loading ? (
-                <div className="flex flex-col items-center gap-2 py-10 text-center">
-                  <Search
-                    className="size-5 text-muted-foreground/50"
-                    aria-hidden
-                  />
-                  <p className="text-sm font-medium text-[var(--pos-ink,#1c1915)]">
-                    {shifts.length === 0 ? "No shifts yet" : "No shifts match"}
-                  </p>
-                  <p className="max-w-[16rem] text-xs leading-relaxed text-muted-foreground">
-                    {shifts.length === 0
-                      ? "Open a shift to begin tracking cash for the day."
-                      : "Broaden your search or clear the filters."}
-                  </p>
-                </div>
-              ) : null}
-              {hasMore ? (
-                <div className="pt-1 text-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="rounded-none"
-                    disabled={loading}
-                    onClick={() => loadShifts(page + 1, true)}
-                  >
-                    {loading ? "Loading…" : "Load more"}
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          </section>
-
-          <section
-            aria-label="Shift details"
-            className="hidden min-h-0 flex-col overflow-hidden md:flex"
-          >
-            {selectedShift ? (
-              <div className="flex items-center gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 py-2.5">
-                <span
+            <div className="flex flex-wrap items-center gap-0.5">
+              {STATUS_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value || "all-status"}
+                  type="button"
                   className={cn(
-                    "flex size-9 shrink-0 items-center justify-center border bg-white font-sans text-[11px] font-bold tracking-tight text-[var(--order-ink,#15231f)]",
-                    HAIRLINE,
+                    SHIFT_CHIP,
+                    statusFilter === opt.value
+                      ? SHIFT_CHIP_ACTIVE
+                      : SHIFT_CHIP_IDLE,
                   )}
-                  aria-hidden
+                  onClick={() => setStatusFilter(opt.value)}
                 >
-                  {initials(selectedShift.cashierName)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-sm font-semibold leading-tight tracking-tight text-[var(--pos-ink,#1c1915)]">
-                    {selectedShift.cashierName}
-                  </h3>
-                  <p className="flex items-center gap-1 truncate text-[11px] leading-tight text-muted-foreground">
-                    <MapPin className="size-3 shrink-0" aria-hidden />
-                    <span className="truncate">{selectedShift.branchName}</span>
-                    <span aria-hidden>·</span>
-                    <span className={NUM}>
-                      {fmtShortDate(selectedShift.openedAt)}
-                    </span>
-                  </p>
-                </div>
-                <StatusBadge status={selectedShift.status} />
+                  {opt.value === "" ? "All" : opt.label}
+                </button>
+              ))}
+            </div>
+
+            {!isBranchLockedRole && branches.length > 0 ? (
+              <div className="flex items-center gap-0.5 overflow-x-auto pb-0.5">
+                <button
+                  type="button"
+                  className={cn(
+                    SHIFT_CHIP,
+                    !branchFilter ? SHIFT_CHIP_ACTIVE : SHIFT_CHIP_IDLE,
+                  )}
+                  onClick={() => setBranchFilter("")}
+                >
+                  All branches
+                </button>
+                {branches
+                  .filter((b) => b.active !== false)
+                  .map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      className={cn(
+                        SHIFT_CHIP,
+                        branchFilter === b.id
+                          ? SHIFT_CHIP_ACTIVE
+                          : SHIFT_CHIP_IDLE,
+                      )}
+                      onClick={() =>
+                        setBranchFilter((cur) => (cur === b.id ? "" : b.id))
+                      }
+                    >
+                      {b.name}
+                    </button>
+                  ))}
               </div>
-            ) : (
-              <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 py-2.5">
-                <h3 className="text-sm font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
-                  Shift details
-                </h3>
-                <p className="text-[11px] text-muted-foreground">
-                  Pick a shift from the board
+            ) : null}
+          </div>
+
+          <div className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
+            {filteredShifts.map((s) => (
+              <ShiftRow
+                key={s.id}
+                shift={s}
+                isSelected={selectedShiftId === s.id}
+                onSelect={() => setSelectedShiftId(s.id)}
+              />
+            ))}
+            {filteredShifts.length === 0 && !loading ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <p className="text-sm font-medium text-foreground">
+                  {shifts.length === 0 ? "No shifts yet" : "No shifts match"}
+                </p>
+                <p className="max-w-[16rem] text-xs leading-relaxed text-muted-foreground">
+                  {shifts.length === 0
+                    ? "Open a shift to begin tracking cash for the day."
+                    : "Broaden your search or clear the filters."}
                 </p>
               </div>
-            )}
-            <div className="min-h-0 flex-1 overflow-hidden">
-              <ShiftDetail
-                shiftId={selectedShiftId}
-                canUpdateOpening={canUpdateOpening}
-                canApproveDrawouts={canApproveDrawouts}
-                highlightDrawoutId={highlightDrawoutId}
-                refreshKey={detailRefreshKey}
-                onDrawoutsChanged={() => {
-                  setDetailRefreshKey((n) => n + 1);
-                  void refreshOpenShift();
-                  void loadShifts(page, false);
-                }}
-                onOpeningUpdated={() => {
-                  setNotice("Opening count updated.");
-                  setDetailRefreshKey((n) => n + 1);
-                  void loadShifts(page, false);
-                }}
-              />
+            ) : null}
+            {hasMore ? (
+              <div className="pt-1 text-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-none shadow-none"
+                  disabled={loading}
+                  onClick={() => loadShifts(page + 1, true)}
+                >
+                  {loading ? "Loading…" : "Load more"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="relative flex min-h-0 flex-col overflow-hidden bg-white">
+          {selectedShift ? (
+            <div className={cn("flex items-center gap-3 border-b px-4 py-2.5", HAIRLINE)}>
+              <span
+                className={cn(
+                  "flex size-8 shrink-0 items-center justify-center border bg-[var(--pos-primary,#0f766e)] text-[11px] font-bold tracking-tight text-white",
+                  HAIRLINE,
+                )}
+                aria-hidden
+              >
+                {initials(selectedShift.cashierName)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3
+                  className="truncate text-sm font-semibold leading-tight tracking-[-0.02em] text-foreground"
+                  style={{ fontFamily: "var(--font-heading)" }}
+                >
+                  {selectedShift.cashierName}
+                </h3>
+                <p className="flex items-center gap-1 truncate text-[11px] leading-tight text-muted-foreground">
+                  <MapPin className="size-3 shrink-0" aria-hidden />
+                  <span className="truncate">{selectedShift.branchName}</span>
+                  <span aria-hidden>·</span>
+                  <span className={NUM}>
+                    {fmtShortDate(selectedShift.openedAt)}
+                  </span>
+                </p>
+              </div>
+              <StatusBadge status={selectedShift.status} />
             </div>
-          </section>
+          ) : (
+            <div className={cn("border-b px-4 py-2.5", HAIRLINE)}>
+              <h3
+                className="text-sm font-semibold tracking-[-0.02em] text-foreground"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                Shift details
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                Pick a shift from the board
+              </p>
+            </div>
+          )}
+          <div className="absolute bottom-3 left-4 z-[1] pointer-events-none">
+            <VarianceLegend />
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <ShiftDetail
+              shiftId={selectedShiftId}
+              canUpdateOpening={canUpdateOpening}
+              canApproveDrawouts={canApproveDrawouts}
+              highlightDrawoutId={highlightDrawoutId}
+              refreshKey={detailRefreshKey}
+              onDrawoutsChanged={() => {
+                setDetailRefreshKey((n) => n + 1);
+                void refreshOpenShift();
+                void loadShifts(page, false);
+              }}
+              onOpeningUpdated={() => {
+                setNotice("Opening count updated.");
+                setDetailRefreshKey((n) => n + 1);
+                void loadShifts(page, false);
+              }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Mobile detail sheet */}
-      <div className="space-y-3 md:hidden">
+      {/* Mobile: stacked roster + detail */}
+      <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
+        <div className={cn("border", HAIRLINE, ROSTER)}>
+          <div className={cn("space-y-2 border-b px-2.5 py-2", HAIRLINE)}>
+            <div className="flex flex-wrap items-center gap-0.5">
+              {STATUS_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value || "all-m"}
+                  type="button"
+                  className={cn(
+                    SHIFT_CHIP,
+                    statusFilter === opt.value
+                      ? SHIFT_CHIP_ACTIVE
+                      : SHIFT_CHIP_IDLE,
+                  )}
+                  onClick={() => setStatusFilter(opt.value)}
+                >
+                  {opt.value === "" ? "All" : opt.label}
+                </button>
+              ))}
+            </div>
+            <div className={cn("relative border bg-white", HAIRLINE)}>
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="h-8 w-full bg-transparent pl-8 pr-9 text-[13px] outline-none placeholder:text-muted-foreground/50"
+                placeholder="Cashier or branch…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Search shifts"
+              />
+            </div>
+            {!isBranchLockedRole && branches.length > 0 ? (
+              <div className="flex items-center gap-0.5 overflow-x-auto">
+                <button
+                  type="button"
+                  className={cn(
+                    SHIFT_CHIP,
+                    !branchFilter ? SHIFT_CHIP_ACTIVE : SHIFT_CHIP_IDLE,
+                  )}
+                  onClick={() => setBranchFilter("")}
+                >
+                  All branches
+                </button>
+                {branches
+                  .filter((b) => b.active !== false)
+                  .map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      className={cn(
+                        SHIFT_CHIP,
+                        branchFilter === b.id
+                          ? SHIFT_CHIP_ACTIVE
+                          : SHIFT_CHIP_IDLE,
+                      )}
+                      onClick={() =>
+                        setBranchFilter((cur) => (cur === b.id ? "" : b.id))
+                      }
+                    >
+                      {b.name}
+                    </button>
+                  ))}
+              </div>
+            ) : null}
+          </div>
+          <div className="max-h-[40dvh] space-y-1 overflow-y-auto p-2">
+            {filteredShifts.map((s) => (
+              <ShiftRow
+                key={s.id}
+                shift={s}
+                isSelected={selectedShiftId === s.id}
+                onSelect={() =>
+                  setSelectedShiftId((cur) => (cur === s.id ? null : s.id))
+                }
+              />
+            ))}
+            {hasMore ? (
+              <div className="pt-1 text-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-none shadow-none"
+                  disabled={loading}
+                  onClick={() => loadShifts(page + 1, true)}
+                >
+                  {loading ? "Loading…" : "Load more"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
         {selectedShiftId ? (
           <div className={cn(CARD, "overflow-hidden")}>
             <div
               className={cn(
-                "flex h-8 items-center justify-between border-b bg-white px-2.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+                "flex h-8 items-center justify-between border-b bg-white px-2.5 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground",
                 HAIRLINE,
               )}
             >
@@ -2561,7 +2452,7 @@ export default function ShiftsPage() {
                 type="button"
                 onClick={() => setSelectedShiftId(null)}
                 aria-label="Close shift details"
-                className="p-0.5 text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]"
+                className="p-0.5 hover:text-foreground"
               >
                 <X className="size-4" />
               </button>

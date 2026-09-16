@@ -33,7 +33,9 @@ export function SuppliesFilterPanel({
   return (
     <div
       className={cn(
-        isStack ? "flex flex-col gap-3" : "flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4",
+        isStack
+          ? "flex flex-col gap-3"
+          : "flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4",
         className,
       )}
       role="toolbar"
@@ -88,12 +90,12 @@ function FilterGroup({
         vertical ? "flex-col gap-1.5" : "items-center gap-2",
       )}
     >
-      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
         {label}
       </span>
       <div
         className={cn(
-          "flex min-w-0 gap-1",
+          "flex min-w-0 gap-0.5",
           vertical
             ? "flex-col"
             : "-mx-0.5 overflow-x-auto px-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
@@ -111,14 +113,14 @@ function FilterGroup({
               aria-pressed={active}
               onClick={() => onChange(f.id)}
               className={cn(
-                "inline-flex h-8 shrink-0 items-center gap-1 rounded-none border px-2.5 text-[12px] font-semibold tracking-[-0.02em] tabular-nums transition-colors",
+                "inline-flex h-8 shrink-0 items-center gap-1 rounded-none px-2.5 text-[12px] font-semibold tracking-[-0.02em] tabular-nums transition-colors duration-150",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
                 vertical && "w-full justify-between",
                 active
-                  ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--pos-primary,#0f766e)]"
+                  ? "bg-[var(--pos-primary,#0f766e)] text-white"
                   : emphasize
-                    ? "border-amber-700/40 bg-white text-amber-800"
-                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                    ? "border border-[#9a2e16]/35 bg-white text-[#9a2e16]"
+                    : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
                 disabled && "pointer-events-none opacity-50",
               )}
             >
@@ -128,10 +130,10 @@ function FilterGroup({
                   className={cn(
                     "font-mono text-[10px]",
                     active
-                      ? "text-[var(--pos-primary,#0f766e)]"
+                      ? "text-white/85"
                       : emphasize
-                        ? "text-amber-800/80"
-                        : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]",
+                        ? "text-[#9a2e16]/80"
+                        : "text-muted-foreground/80",
                   )}
                 >
                   {count}

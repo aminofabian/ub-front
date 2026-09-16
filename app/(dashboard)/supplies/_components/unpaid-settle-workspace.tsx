@@ -112,15 +112,18 @@ export function UnpaidSettleWorkspace({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-2 sm:px-3.5">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2 sm:px-3.5">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-sm font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+          <h2
+            className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
             Open payables
           </h2>
-          <p className="mt-0.5 text-[11px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+          <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
             {groups.length} vendor{groups.length === 1 ? "" : "s"} ·{" "}
-            <span className="font-semibold text-amber-800">
+            <span className="font-semibold text-[#9a2e16]">
               {formatSupplyMoney(openTotal, currency)}
             </span>
           </p>
@@ -129,7 +132,7 @@ export function UnpaidSettleWorkspace({
         <label className="relative block w-full max-w-[14rem] sm:w-[14rem]">
           <span className="sr-only">Search vendors</span>
           <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]"
+            className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
             aria-hidden
           />
           <input
@@ -144,7 +147,7 @@ export function UnpaidSettleWorkspace({
           type="button"
           size="sm"
           variant="outline"
-          className="h-8 gap-1 rounded-none px-2.5 text-[11px] font-semibold lg:hidden"
+          className="h-8 gap-1 rounded-none px-2.5 text-[11px] font-semibold shadow-none lg:hidden"
           onClick={() => setFilterOpen(true)}
         >
           <Filter className="size-3" aria-hidden />
@@ -153,7 +156,7 @@ export function UnpaidSettleWorkspace({
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1">
-        <aside className="hidden w-[10.5rem] shrink-0 flex-col overflow-y-auto border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] p-2.5 lg:flex">
+        <aside className="hidden w-[10.5rem] shrink-0 flex-col overflow-y-auto border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] p-2.5 lg:flex">
           <SuppliesFilterPanel
             layout="rail"
             value={billFilter}
@@ -163,9 +166,9 @@ export function UnpaidSettleWorkspace({
           />
         </aside>
 
-        <aside className="flex w-full min-w-0 shrink-0 flex-col border-r-0 md:w-[15.5rem] md:border-r md:border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] lg:w-[17rem]">
-          <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+        <aside className="flex w-full min-w-0 shrink-0 flex-col border-r-0 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] md:w-[15.5rem] md:border-r md:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:w-[17rem]">
+          <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Vendors
             </p>
           </div>
@@ -179,10 +182,10 @@ export function UnpaidSettleWorkspace({
                     type="button"
                     onClick={() => selectVendor(key)}
                     className={cn(
-                      "flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors",
+                      "flex w-full items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-2.5 text-left transition-colors duration-150",
                       active
                         ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
-                        : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
+                        : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
                     )}
                   >
                     <span className="min-w-0 flex-1">
@@ -191,7 +194,7 @@ export function UnpaidSettleWorkspace({
                           "block truncate text-[13px] font-semibold tracking-[-0.02em]",
                           active
                             ? "text-[var(--pos-primary,#0f766e)]"
-                            : "text-[var(--order-ink,#15231f)]",
+                            : "text-foreground",
                         )}
                       >
                         <SupplierDisplayName
@@ -204,7 +207,10 @@ export function UnpaidSettleWorkspace({
                       </span>
                     </span>
                     <span className="shrink-0 text-right">
-                      <span className="block font-heading text-[13px] font-semibold tabular-nums tracking-[-0.03em] text-amber-800">
+                      <span
+                        className="block text-[13px] font-semibold tabular-nums tracking-[-0.03em] text-[#9a2e16]"
+                        style={{ fontFamily: "var(--font-heading)" }}
+                      >
                         {formatSupplyMoney(g.total, currency)}
                       </span>
                       <ChevronRight
@@ -219,7 +225,7 @@ export function UnpaidSettleWorkspace({
           </ul>
         </aside>
 
-        <section className="hidden min-h-0 min-w-0 flex-1 flex-col md:flex">
+        <section className="hidden min-h-0 min-w-0 flex-1 flex-col bg-white md:flex">
           {selected ? (
             <VendorBillsPanel
               group={selected}
@@ -412,7 +418,7 @@ function VendorBillsPanel({
           </p>
           <p className="mt-0.5 text-[11px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
             {group.count} open ·{" "}
-            <span className="font-semibold text-amber-800">
+            <span className="font-semibold text-[#9a2e16]">
               {formatSupplyMoney(group.total, currency)}
             </span>
           </p>
@@ -488,7 +494,7 @@ function VendorBillsPanel({
                   </p>
                 </div>
 
-                <p className="min-w-[5.5rem] text-right font-heading text-[13px] font-semibold tabular-nums tracking-[-0.03em] text-amber-800">
+                <p className="min-w-[5.5rem] text-right text-[13px] font-semibold tabular-nums tracking-[-0.03em] text-[#9a2e16]" style={{ fontFamily: "var(--font-heading)" }}>
                   {formatSupplyMoney(bal, currency)}
                 </p>
 

@@ -65,7 +65,7 @@ export function SupplyReceiptCard({
         className={cn(
           "rounded-none border bg-white px-3 py-2.5",
           needsPay
-            ? "border-amber-700/35"
+            ? "border-[#9a2e16]/35"
             : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
         )}
       >
@@ -92,7 +92,7 @@ export function SupplyReceiptCard({
             <p
               className={cn(
                 "font-heading text-[14px] font-semibold tabular-nums tracking-[-0.03em]",
-                needsPay ? "text-amber-800" : "text-[var(--order-ink,#15231f)]",
+                needsPay ? "text-[#9a2e16]" : "text-[var(--order-ink,#15231f)]",
               )}
             >
               {formatSupplyMoney(bal)}
@@ -152,7 +152,7 @@ export function SupplyReceiptCard({
       className={cn(
         "rounded-none border bg-white px-3 py-2.5",
         needsPay
-          ? "border-amber-700/40"
+          ? "border-[#9a2e16]/40"
           : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
       )}
     >
@@ -172,7 +172,7 @@ export function SupplyReceiptCard({
             {row.lineCount} ln
           </p>
           {showPayAll ? (
-            <p className="mt-0.5 text-[10px] font-medium text-amber-800">
+            <p className="mt-0.5 text-[10px] font-medium text-[#9a2e16]">
               {payAllCount} unpaid · {formatSupplyMoney(payAllTotal ?? 0)}
             </p>
           ) : null}
@@ -208,7 +208,7 @@ export function SupplyReceiptCard({
           className={cn(
             "rounded-none border bg-white px-2 py-1.5 text-center",
             needsPay
-              ? "border-amber-700/40"
+              ? "border-[#9a2e16]/40"
               : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
           )}
         >
@@ -218,7 +218,7 @@ export function SupplyReceiptCard({
           <dd
             className={cn(
               "font-mono text-[12px] font-semibold tabular-nums",
-              needsPay ? "text-amber-800" : "text-[var(--order-ink,#15231f)]",
+              needsPay ? "text-[#9a2e16]" : "text-[var(--order-ink,#15231f)]",
             )}
           >
             {formatSupplyMoney(bal)}

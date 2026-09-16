@@ -113,19 +113,19 @@ export function VirtualizedSupplierList({
           compact ? "px-2 py-1" : "px-2.5 py-1",
         )}
       >
-        <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
           Directory
         </span>
         {totalElements > 0 ? (
-          <span className="shrink-0 text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-            <span className="font-semibold text-[var(--order-ink,#15231f)]">
+          <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+            <span className="font-semibold text-foreground">
               {totalLoaded}
             </span>
             {totalElements > totalLoaded ? (
               <>
                 {" "}
                 /{" "}
-                <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                <span className="font-semibold text-foreground">
                   {totalElements}
                 </span>
               </>
@@ -183,7 +183,7 @@ export function VirtualizedSupplierList({
           />
         ) : (
           <div
-            className="relative w-full min-w-0 border-l border-border/40"
+            className="relative w-full min-w-0"
             style={{ height: virtualizer.getTotalSize() }}
             role="rowgroup"
           >
@@ -236,7 +236,9 @@ export function VirtualizedSupplierList({
                     className={cn(
                       supTableCell,
                       "flex min-w-0 items-center truncate font-medium",
-                      active ? "text-foreground" : "text-foreground",
+                      active
+                        ? "text-[var(--pos-primary,#0f766e)]"
+                        : "text-foreground",
                     )}
                   >
                     <SupplierDisplayName

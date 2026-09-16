@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -14,12 +14,15 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
+  Wallet,
 } from "lucide-react";
 
-import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import {
-  DASHBOARD_TABLE_SURFACE,
+  DASHBOARD_MAX_WIDE,
+  DashboardAccessDenied,
   DashboardFeedback,
+  DashboardPageHero,
+  dashboardHintClass,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { OneOffExpenseDrawer } from "@/components/payments/one-off-expense-drawer";
@@ -53,55 +56,28 @@ const METHOD_CHIPS: {
   id: MethodChipId;
   label: string;
   short: string;
-  bar: string;
-  chip: string;
 }[] = [
-  {
-    id: "cash",
-    label: "Cash",
-    short: "Cash",
-    bar: "bg-emerald-600",
-    chip: "text-emerald-800 bg-emerald-50",
-  },
-  {
-    id: "mpesa",
-    label: "M-Pesa",
-    short: "M-Pesa",
-    bar: "bg-teal-600",
-    chip: "text-teal-800 bg-teal-50",
-  },
-  {
-    id: "credit",
-    label: "Credit",
-    short: "Credit",
-    bar: "bg-amber-600",
-    chip: "text-amber-900 bg-amber-50",
-  },
-  {
-    id: "card",
-    label: "Card",
-    short: "Card",
-    bar: "bg-slate-600",
-    chip: "text-slate-800 bg-slate-100",
-  },
-  {
-    id: "wallet",
-    label: "Wallet",
-    short: "Wallet",
-    bar: "bg-sky-600",
-    chip: "text-sky-900 bg-sky-50",
-  },
-  {
-    id: "loyalty",
-    label: "Loyalty",
-    short: "Loyalty",
-    bar: "bg-rose-600",
-    chip: "text-rose-900 bg-rose-50",
-  },
+  { id: "cash", label: "Cash", short: "Cash" },
+  { id: "mpesa", label: "M-Pesa", short: "M-Pesa" },
+  { id: "credit", label: "Credit", short: "Credit" },
+  { id: "card", label: "Card", short: "Card" },
+  { id: "wallet", label: "Wallet", short: "Wallet" },
+  { id: "loyalty", label: "Loyalty", short: "Loyalty" },
 ];
 
-/** Primary filters the user asked for — always shown when present. */
+/** Primary filters — always shown when present. */
 const PRIMARY_CHIPS: MethodChipId[] = ["cash", "mpesa", "credit"];
+
+const INK_RULE =
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+const PAPER =
+  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]";
+
+const SEGMENT =
+  "inline-flex shrink-0 items-center gap-1 rounded-none px-2 py-1 text-[11px] font-semibold transition-colors duration-150";
+const SEGMENT_IDLE =
+  "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground";
+const SEGMENT_ACTIVE = "bg-[var(--pos-primary,#0f766e)] text-white";
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -185,22 +161,6 @@ function hourKey(iso: string): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
 }
 
-function methodAccent(method: string): { bar: string; chip: string } {
-  const cats = salePaymentCategories(method, method);
-  for (const chip of METHOD_CHIPS) {
-    if (chip.id === "card") {
-      if (method.trim().toLowerCase() === "card") {
-        return { bar: chip.bar, chip: chip.chip };
-      }
-      continue;
-    }
-    if (cats.has(chip.id)) {
-      return { bar: chip.bar, chip: chip.chip };
-    }
-  }
-  return { bar: "bg-stone-500", chip: "text-stone-800 bg-stone-100" };
-}
-
 function matchesMethodChip(method: string, chip: MethodChipId): boolean {
   if (chip === "card") {
     return method.trim().toLowerCase() === "card";
@@ -233,6 +193,96 @@ function rowSearchBlob(row: PaymentLedgerRow): string {
   ]
     .join(" ")
     .toLowerCase();
+}
+
+function PulseCard({
+  label,
+  value,
+  hint,
+  tone,
+  className,
+  children,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "ink" | "owed" | "warn";
+  className?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <article
+      className={cn(
+        "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] border bg-white p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
+        INK_RULE,
+        className,
+      )}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-2 font-semibold leading-none tracking-[-0.04em] tabular-nums",
+          tone === "owed"
+            ? "text-[#9a2e16]"
+            : tone === "warn"
+              ? "text-amber-900"
+              : "text-foreground",
+          value.length > 18 ? "text-[1.35rem]" : "text-[2.05rem]",
+        )}
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
+        {value}
+      </p>
+      {hint ? (
+        <p className={cn(dashboardHintClass(), "mt-2")}>{hint}</p>
+      ) : null}
+      {children}
+    </article>
+  );
+}
+
+function TenderMixBars({
+  chips,
+  totals,
+  grand,
+  methodFilters,
+  onSelect,
+}: {
+  chips: typeof METHOD_CHIPS;
+  totals: Record<MethodChipId, { count: number; total: number }>;
+  grand: number;
+  methodFilters: Set<MethodChipId>;
+  onSelect: (id: MethodChipId) => void;
+}) {
+  return (
+    <div
+      className="mt-2 flex h-8 items-end gap-px"
+      role="img"
+      aria-label="Tender mix"
+    >
+      {chips.map((chip) => {
+        const share = pctOf(totals[chip.id].total, grand);
+        if (share <= 0) return null;
+        const dim =
+          methodFilters.size > 0 && !methodFilters.has(chip.id);
+        return (
+          <button
+            key={chip.id}
+            type="button"
+            title={`${chip.label} ${share}%`}
+            onClick={() => onSelect(chip.id)}
+            className="min-w-0 flex-1 bg-[var(--pos-primary,#0f766e)] transition-opacity hover:opacity-90"
+            style={{
+              height: `${Math.max(18, share)}%`,
+              opacity: dim ? 0.22 : 0.28 + (share / 100) * 0.72,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
 }
 
 export function DayLedgerPage() {
@@ -306,7 +356,9 @@ export function DayLedgerPage() {
         const [data, pulse] = await Promise.all([
           fetchPaymentLedger(day, day, branchId.trim() || undefined),
           canReadFinanceExpenses
-            ? fetchFinancePulse(day, branchId.trim() || undefined).catch(() => null)
+            ? fetchFinancePulse(day, branchId.trim() || undefined).catch(
+                () => null,
+              )
             : Promise.resolve(null),
         ]);
         setRows(Array.isArray(data) ? data : []);
@@ -459,12 +511,12 @@ export function DayLedgerPage() {
 
   if (!allowed) {
     return (
-      <div className="mx-auto w-full max-w-4xl space-y-4 pb-16">
-        <DashboardFeedback
-          kind="warning"
-          text="You need sales intelligence access to view the day payment ledger."
-        />
-      </div>
+      <DashboardAccessDenied
+        title="Day ledger"
+        description="You need sales intelligence access to view the day payment ledger."
+        backHref={APP_ROUTES.sales}
+        backLabel="Sales"
+      />
     );
   }
 
@@ -473,433 +525,258 @@ export function DayLedgerPage() {
     rows.length === 0 ? 0 : Math.round((reviewedCount / rows.length) * 100);
   const openCount = rows.length - reviewedCount;
 
-  return (
-    <div className="mx-auto w-full max-w-4xl space-y-3 pb-16">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
-              Day ledger
-            </h1>
-            <span className="text-xs tabular-nums text-muted-foreground">
-              {rows.length} · {fmtKes(grandTotal)}
-            </span>
-          </div>
-          <ActiveScopeSubtitle className="text-[11px] text-muted-foreground" />
-        </div>
+  const dayNav = (
+    <div className="flex items-center gap-1">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-8 rounded-none"
+        onClick={() => setDay((d) => shiftDay(d, -1))}
+        aria-label="Previous day"
+      >
+        <ChevronLeft className="size-4" />
+      </Button>
+      <label className="relative">
+        <span className="sr-only">Pick day</span>
+        <input
+          type="date"
+          value={day}
+          max={todayIsoLocal()}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v) setDay(v);
+          }}
+          className="absolute inset-0 cursor-pointer opacity-0"
+        />
+        <span
+          className={cn(
+            "inline-flex min-w-[7.5rem] items-center justify-center border bg-white px-2.5 py-1.5 text-sm font-semibold tabular-nums",
+            INK_RULE,
+          )}
+        >
+          {formatDayShort(day)}
+        </span>
+      </label>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-8 rounded-none"
+        disabled={isToday}
+        onClick={() => setDay((d) => shiftDay(d, 1))}
+        aria-label="Next day"
+      >
+        <ChevronRight className="size-4" />
+      </Button>
+      {!isToday ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-none px-2 text-xs shadow-none"
+          onClick={() => setDay(todayIsoLocal())}
+        >
+          Today
+        </Button>
+      ) : null}
+    </div>
+  );
 
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            onClick={() => setDay((d) => shiftDay(d, -1))}
-            aria-label="Previous day"
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <label className="relative">
-            <span className="sr-only">Pick day</span>
-            <input
-              type="date"
-              value={day}
-              max={todayIsoLocal()}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v) setDay(v);
-              }}
-              className="absolute inset-0 cursor-pointer opacity-0"
-            />
-            <span className="inline-flex min-w-[7.5rem] items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1.5 text-sm font-semibold tabular-nums">
-              {formatDayShort(day)}
-            </span>
-          </label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            disabled={isToday}
-            onClick={() => setDay((d) => shiftDay(d, 1))}
-            aria-label="Next day"
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-          {!isToday ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="h-8 px-2 text-xs"
-              onClick={() => setDay(todayIsoLocal())}
-            >
-              Today
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => void load({ silent: true })}
-            disabled={refreshing || loading}
-            aria-label="Refresh"
-          >
-            {refreshing ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="size-3.5" />
-            )}
-          </Button>
-        </div>
-      </header>
+  const pulse = (
+    <div className="relative h-full min-h-[22rem] overflow-hidden">
+      <svg
+        className="pointer-events-none absolute inset-0 h-full w-full text-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)]"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <path
+          d="M22 42 C 38 28, 58 22, 72 28"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="0.35"
+          strokeDasharray="1.4 1.6"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M28 48 C 48 58, 62 52, 74 62"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="0.35"
+          strokeDasharray="1.4 1.6"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M24 52 C 30 72, 48 78, 38 86"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="0.35"
+          strokeDasharray="1.4 1.6"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
 
-      {error ? <DashboardFeedback kind="error" text={error} /> : null}
-      {expenseFeedback ? (
-        <DashboardFeedback kind={expenseFeedback.kind} text={expenseFeedback.text} />
+      <div className="absolute left-3 top-3 z-[2]">{dayNav}</div>
+
+      {isToday ? (
+        <span className="absolute right-3 top-3 z-[2] inline-flex items-center gap-1.5 bg-white/90 px-2 py-1 text-[11px] font-medium text-muted-foreground">
+          <span
+            className="size-1.5 bg-[var(--pos-primary,#0f766e)]"
+            aria-hidden
+          />
+          Live day
+        </span>
       ) : null}
 
-      {canReadFinanceExpenses && expensesTotal != null && expensesTotal > 0 ? (
-        <section className="flex flex-wrap items-center justify-between gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 shadow-none">
-          <div>
-            <p className="text-sm font-medium">Expenses recorded today</p>
-            <p className="text-xs text-muted-foreground">
-              {fmtKes(expensesTotal)} posted to finance — rent, bills, and petty cash.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" asChild>
-              <Link href={`${APP_ROUTES.fixedCosts}?tab=history`}>View expenses</Link>
-            </Button>
-            {canWriteFinanceExpenses ? (
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setExpenseDrawerOpen(true)}
-              >
-                <Plus className="mr-1.5 size-3.5" aria-hidden />
-                Record expense
-              </Button>
+      <p
+        className="pointer-events-none absolute bottom-3 left-4 z-[1] text-[10px] font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]"
+        aria-hidden
+      >
+        The day
+      </p>
+
+      {loading ? (
+        <div className="absolute left-[8%] top-[26%] h-36 w-56 animate-pulse bg-white/80" />
+      ) : rows.length === 0 ? (
+        <p
+          className={cn(
+            dashboardHintClass(),
+            "absolute left-[8%] top-[36%] max-w-[16rem]",
+          )}
+        >
+          Nothing on the ledger for this day yet.
+        </p>
+      ) : (
+        <>
+          <PulseCard
+            className="left-[8%] top-[24%]"
+            label="Taken"
+            value={fmtKes(grandTotal)}
+            hint={`${rows.length} payment${rows.length === 1 ? "" : "s"} · ${formatDayShort(day)}`}
+          >
+            {mixChips.length > 0 ? (
+              <TenderMixBars
+                chips={mixChips}
+                totals={chipTotals}
+                grand={grandTotal}
+                methodFilters={methodFilters}
+                onSelect={selectOnlyMethod}
+              />
             ) : null}
-          </div>
-        </section>
-      ) : canWriteFinanceExpenses ? (
-        <div className="flex justify-end">
-          <Button type="button" variant="outline" size="sm" onClick={() => setExpenseDrawerOpen(true)}>
-            <Plus className="mr-1.5 size-3.5" aria-hidden />
-            Record expense
-          </Button>
-        </div>
-      ) : null}
+          </PulseCard>
 
-      {/* Ledger mix — share of day by tender */}
-      {rows.length > 0 ? (
-        <section className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3 shadow-none">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-              Tender mix
-            </p>
-            <p className="text-[11px] tabular-nums text-muted-foreground">
-              {fmtKes(grandTotal)} total
-            </p>
-          </div>
-
-          <div
-            className="flex h-2.5 overflow-hidden rounded-full bg-muted"
-            role="img"
-            aria-label="Payment method mix"
+          <PulseCard
+            className="right-[7%] top-[14%] !w-[min(13.5rem,calc(100%-1.5rem))]"
+            label="Reviewed"
+            value={`${progress}%`}
+            hint={
+              flaggedCount > 0
+                ? `${reviewedCount}/${rows.length} · ${flaggedCount} flagged`
+                : `${reviewedCount} of ${rows.length} checked`
+            }
           >
-            {mixChips.map((chip) => {
-              const share = pctOf(chipTotals[chip.id].total, grandTotal);
-              if (share <= 0) return null;
-              return (
-                <button
-                  key={chip.id}
-                  type="button"
-                  title={`${chip.label} ${share}%`}
-                  onClick={() => selectOnlyMethod(chip.id)}
-                  className={cn(
-                    "h-full min-w-[2px] transition-opacity hover:opacity-90",
-                    chip.bar,
-                    methodFilters.size > 0 &&
-                      !methodFilters.has(chip.id) &&
-                      "opacity-30",
-                  )}
-                  style={{ width: `${share}%` }}
-                />
-              );
-            })}
-          </div>
-
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {PRIMARY_CHIPS.map((id) => {
-              const chip = METHOD_CHIPS.find((c) => c.id === id)!;
-              const stats = chipTotals[id];
-              const share = pctOf(stats.total, grandTotal);
-              const selected = methodFilters.has(id);
-              const inactive =
-                methodFilters.size > 0 && !selected && stats.count === 0;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  disabled={stats.count === 0}
-                  onClick={() => toggleMethod(id)}
-                  className={cn(
-                    "rounded-none border px-3 py-2.5 text-left transition-colors",
-                    stats.count === 0
-                      ? "cursor-not-allowed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 opacity-50"
-                      : selected
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background hover:border-foreground/30",
-                    inactive && "opacity-60",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-1.5 text-sm font-semibold">
-                      <span
-                        className={cn(
-                          "size-2 rounded-full",
-                          selected ? "bg-background/80" : chip.bar,
-                        )}
-                        aria-hidden
-                      />
-                      {chip.label}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-sm font-bold tabular-nums",
-                        selected ? "text-background" : "text-foreground",
-                      )}
-                    >
-                      {share}%
-                    </span>
-                  </div>
-                  <p
-                    className={cn(
-                      "mt-1 text-[11px] tabular-nums",
-                      selected ? "text-background/75" : "text-muted-foreground",
-                    )}
-                  >
-                    {fmtKes(stats.total)} · {stats.count} payment
-                    {stats.count === 1 ? "" : "s"}
-                  </p>
-                  {id === "mpesa" && stats.count > 0 ? (
-                    <p
-                      className={cn(
-                        "mt-1.5 text-[11px] font-medium",
-                        selected
-                          ? unverifiedMpesa.length > 0
-                            ? "text-amber-200"
-                            : "text-emerald-200"
-                          : unverifiedMpesa.length > 0
-                            ? "text-amber-800"
-                            : "text-emerald-800",
-                      )}
-                    >
-                      {unverifiedMpesa.length === 0
-                        ? `${mpesaRows.length} verified`
-                        : `${unverifiedMpesa.length} of ${mpesaRows.length} unverified`}
-                    </p>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Secondary methods */}
-          {METHOD_CHIPS.some(
-            (c) => !PRIMARY_CHIPS.includes(c.id) && chipTotals[c.id].count > 0,
-          ) ? (
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              {METHOD_CHIPS.filter(
-                (c) =>
-                  !PRIMARY_CHIPS.includes(c.id) && chipTotals[c.id].count > 0,
-              ).map((chip) => {
-                const stats = chipTotals[chip.id];
-                const share = pctOf(stats.total, grandTotal);
-                const selected = methodFilters.has(chip.id);
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    onClick={() => toggleMethod(chip.id)}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-none border px-2 py-1 text-xs transition-colors",
-                      selected
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background text-foreground hover:border-foreground/25",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "size-1.5 rounded-full",
-                        selected ? "bg-background/80" : chip.bar,
-                      )}
-                      aria-hidden
-                    />
-                    <span className="font-medium">{chip.short}</span>
-                    <span
-                      className={cn(
-                        "tabular-nums",
-                        selected ? "text-background/75" : "text-muted-foreground",
-                      )}
-                    >
-                      {share}% · {fmtAmt(stats.total)}
-                    </span>
-                  </button>
-                );
-              })}
-              {methodFilters.size > 0 ? (
-                <button
-                  type="button"
-                  className="px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
-                  onClick={() => setMethodFilters(new Set())}
-                >
-                  Clear filters
-                </button>
-              ) : null}
-            </div>
-          ) : methodFilters.size > 0 ? (
-            <div className="mt-2">
-              <button
-                type="button"
-                className="text-[11px] text-muted-foreground hover:text-foreground"
-                onClick={() => setMethodFilters(new Set())}
-              >
-                Clear filters
-              </button>
-            </div>
-          ) : null}
-
-          {/* Unverified M-Pesa reveal */}
-          {mpesaRows.length > 0 ? (
-            <div className="mt-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-3">
-              <button
-                type="button"
-                onClick={() => {
-                  if (unverifiedMpesa.length === 0) return;
-                  setShowUnverifiedList((v) => !v);
-                  if (!methodFilters.has("mpesa")) {
-                    setMethodFilters(new Set(["mpesa"]));
-                  }
-                }}
-                disabled={unverifiedMpesa.length === 0}
-                className={cn(
-                  "flex w-full items-center justify-between gap-2 rounded-none border px-3 py-2 text-left transition-colors",
-                  unverifiedMpesa.length === 0
-                    ? "cursor-default border-emerald-200/80 bg-emerald-50/60"
-                    : "border-amber-200 bg-amber-50/70 hover:bg-amber-50",
-                )}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  {unverifiedMpesa.length === 0 ? (
-                    <ShieldCheck className="size-4 shrink-0 text-emerald-700" />
-                  ) : (
-                    <ShieldAlert className="size-4 shrink-0 text-amber-700" />
-                  )}
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-foreground">
-                      {unverifiedMpesa.length === 0
-                        ? "All M-Pesa payments verified"
-                        : `${unverifiedMpesa.length} unverified M-Pesa payment${unverifiedMpesa.length === 1 ? "" : "s"}`}
-                    </span>
-                    <span className="block text-[11px] text-muted-foreground">
-                      {unverifiedMpesa.length === 0
-                        ? "Gateway receipt on every M-Pesa tender today."
-                        : `${fmtKes(unverifiedMpesaTotal)} without gateway verification — tap to list them.`}
-                    </span>
-                  </span>
-                </span>
-                {unverifiedMpesa.length > 0 ? (
-                  <ChevronDown
-                    className={cn(
-                      "size-4 shrink-0 text-amber-800 transition-transform",
-                      showUnverifiedList && "rotate-180",
-                    )}
-                  />
-                ) : null}
-              </button>
-
-              {showUnverifiedList && unverifiedMpesa.length > 0 ? (
-                <ul className="mt-2 max-h-64 overflow-y-auto rounded-none border border-amber-200/80 bg-background">
-                  {unverifiedMpesa.map((row) => (
-                    <li
-                      key={row.paymentId}
-                      className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2 text-xs last:border-0"
-                    >
-                      <span className="w-[4.25rem] shrink-0 font-mono tabular-nums text-muted-foreground">
-                        {formatTime(row.soldAt)}
-                      </span>
-                      <span className="w-[5.5rem] shrink-0 text-right font-semibold tabular-nums">
-                        {fmtAmt(row.amount)}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                        {[
-                          receiptLabel(row),
-                          row.cashierName?.trim() || null,
-                          row.customerName?.trim() || null,
-                          row.reference?.trim()
-                            ? `ref ${row.reference.trim()}`
-                            : "no ref",
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </span>
-                      <button
-                        type="button"
-                        className="shrink-0 text-[11px] font-medium text-teal-800 hover:underline"
-                        onClick={() => {
-                          setMethodFilters(new Set(["mpesa"]));
-                          setSearch(receiptLabel(row));
-                          setShowUnverifiedList(false);
-                        }}
-                      >
-                        Find
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {/* Toolbar: progress + search + status filters */}
-      <div className="flex flex-col gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-2 sm:flex-row sm:items-center sm:gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <div className="min-w-[4.5rem] shrink-0">
-            <p className="text-[10px] font-medium tabular-nums text-muted-foreground">
-              {reviewedCount}/{rows.length}
-              {flaggedCount > 0 ? (
-                <span className="text-amber-700"> · {flaggedCount}⚑</span>
-              ) : null}
-            </p>
-            <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-muted">
+            <div className="mt-2 h-1.5 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
               <div
-                className="h-full rounded-full bg-emerald-600 transition-[width] duration-300"
+                className="h-full bg-[var(--pos-primary,#0f766e)] transition-[width] duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
+          </PulseCard>
+
+          {PRIMARY_CHIPS.map((id, index) => {
+            const chip = METHOD_CHIPS.find((c) => c.id === id)!;
+            const stats = chipTotals[id];
+            if (stats.count === 0) return null;
+            const share = pctOf(stats.total, grandTotal);
+            const selected = methodFilters.has(id);
+            const place =
+              index === 0
+                ? "right-[10%] top-[46%] !w-[min(13.5rem,calc(100%-1.5rem))]"
+                : index === 1
+                  ? "left-[12%] bottom-[10%] !w-[min(14rem,calc(100%-1.5rem))]"
+                  : "right-[18%] bottom-[8%] !w-[min(13.5rem,calc(100%-1.5rem))]";
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => toggleMethod(id)}
+                className={cn(
+                  "absolute z-[1] border bg-white p-3 text-left shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)] transition-colors",
+                  INK_RULE,
+                  place,
+                  selected
+                    ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
+                    : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]",
+                )}
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  {chip.label}
+                </p>
+                <p
+                  className="mt-1.5 text-[1.35rem] font-semibold leading-none tracking-[-0.03em] tabular-nums"
+                  style={{ fontFamily: "var(--font-heading)" }}
+                >
+                  {fmtKes(stats.total)}
+                </p>
+                <p className={cn(dashboardHintClass(), "mt-1.5")}>
+                  {share}% · {stats.count} payment
+                  {stats.count === 1 ? "" : "s"}
+                  {id === "mpesa" && unverifiedMpesa.length > 0
+                    ? ` · ${unverifiedMpesa.length} unverified`
+                    : id === "mpesa"
+                      ? " · verified"
+                      : ""}
+                </p>
+              </button>
+            );
+          })}
+        </>
+      )}
+    </div>
+  );
+
+  const feed = (
+    <div className="flex h-full min-h-0 flex-col bg-white">
+      <div className={cn("shrink-0 space-y-2 border-b px-3 py-2 sm:px-3.5", INK_RULE)}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2
+              className="text-[15px] font-semibold tracking-[-0.02em]"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              Payments
+            </h2>
+            <p className={dashboardHintClass()}>
+              {loading
+                ? "Loading…"
+                : `${filtered.length}${filtered.length !== rows.length ? ` / ${rows.length}` : ""} · ${fmtKes(filteredTotal)}`}
+            </p>
           </div>
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Receipt, cashier, ref…"
-              className={cn(
-                dashboardInputClass(),
-                "h-8 border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] py-1 pl-7 text-xs",
-              )}
-            />
-          </div>
+          <Link
+            href={APP_ROUTES.salesTransactions}
+            className="text-[11px] font-medium text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+          >
+            Transactions
+          </Link>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1">
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Receipt, cashier, ref…"
+            className={cn(dashboardInputClass(), "h-8 py-1.5 pl-8 text-sm")}
+            aria-label="Search payments"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-0.5">
           {(
             [
               ["all", "All"],
@@ -913,10 +790,8 @@ export function DayLedgerPage() {
               type="button"
               onClick={() => setMarkFilter(id)}
               className={cn(
-                "rounded px-2 py-1 text-[11px] font-medium transition-colors",
-                markFilter === id
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                SEGMENT,
+                markFilter === id ? SEGMENT_ACTIVE : SEGMENT_IDLE,
               )}
             >
               {label}
@@ -926,283 +801,485 @@ export function DayLedgerPage() {
             type="button"
             disabled={filtered.length === 0}
             onClick={markAllVisibleReviewed}
-            className="ml-0.5 rounded px-2 py-1 text-[11px] font-medium text-emerald-800 hover:bg-emerald-50 disabled:opacity-40"
+            className={cn(SEGMENT, SEGMENT_IDLE, "ml-auto disabled:opacity-40")}
           >
             Mark all
           </button>
         </div>
+
+        {mixChips.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-0.5">
+            {mixChips.map((chip) => {
+              const selected = methodFilters.has(chip.id);
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => toggleMethod(chip.id)}
+                  className={cn(
+                    SEGMENT,
+                    selected ? SEGMENT_ACTIVE : SEGMENT_IDLE,
+                  )}
+                >
+                  {chip.short}
+                </button>
+              );
+            })}
+            {methodFilters.size > 0 ? (
+              <button
+                type="button"
+                className={cn(SEGMENT, SEGMENT_IDLE)}
+                onClick={() => setMethodFilters(new Set())}
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {mpesaRows.length > 0 ? (
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                if (unverifiedMpesa.length === 0) return;
+                setShowUnverifiedList((v) => !v);
+                if (!methodFilters.has("mpesa")) {
+                  setMethodFilters(new Set(["mpesa"]));
+                }
+              }}
+              disabled={unverifiedMpesa.length === 0}
+              className={cn(
+                "flex w-full items-center justify-between gap-2 border px-2.5 py-1.5 text-left",
+                INK_RULE,
+                unverifiedMpesa.length === 0
+                  ? "cursor-default bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]"
+                  : "bg-[color-mix(in_srgb,#b45309_6%,white)] hover:bg-[color-mix(in_srgb,#b45309_10%,white)]",
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                {unverifiedMpesa.length === 0 ? (
+                  <ShieldCheck className="size-3.5 shrink-0 text-[var(--pos-primary,#0f766e)]" />
+                ) : (
+                  <ShieldAlert className="size-3.5 shrink-0 text-amber-800" />
+                )}
+                <span className="min-w-0">
+                  <span className="block text-[12px] font-semibold text-foreground">
+                    {unverifiedMpesa.length === 0
+                      ? "All M-Pesa verified"
+                      : `${unverifiedMpesa.length} unverified M-Pesa`}
+                  </span>
+                  <span className={cn(dashboardHintClass(), "block")}>
+                    {unverifiedMpesa.length === 0
+                      ? "Gateway receipt on every tender."
+                      : `${fmtKes(unverifiedMpesaTotal)} without gateway check.`}
+                  </span>
+                </span>
+              </span>
+              {unverifiedMpesa.length > 0 ? (
+                <ChevronDown
+                  className={cn(
+                    "size-4 shrink-0 text-amber-900 transition-transform",
+                    showUnverifiedList && "rotate-180",
+                  )}
+                />
+              ) : null}
+            </button>
+
+            {showUnverifiedList && unverifiedMpesa.length > 0 ? (
+              <ul className={cn("mt-1 max-h-40 overflow-y-auto border", INK_RULE)}>
+                {unverifiedMpesa.map((row) => (
+                  <li
+                    key={row.paymentId}
+                    className={cn(
+                      "flex items-center gap-2 border-b px-2.5 py-1.5 text-xs last:border-0",
+                      INK_RULE,
+                    )}
+                  >
+                    <span className="w-[4.25rem] shrink-0 tabular-nums text-muted-foreground">
+                      {formatTime(row.soldAt)}
+                    </span>
+                    <span className="w-[5.5rem] shrink-0 text-right font-semibold tabular-nums">
+                      {fmtAmt(row.amount)}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                      {receiptLabel(row)}
+                    </span>
+                    <button
+                      type="button"
+                      className="shrink-0 text-[11px] font-medium text-[var(--pos-primary,#0f766e)] hover:underline"
+                      onClick={() => {
+                        setMethodFilters(new Set(["mpesa"]));
+                        setSearch(receiptLabel(row));
+                        setShowUnverifiedList(false);
+                      }}
+                    >
+                      Find
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
-      {/* Dense tender list */}
-      <section className={DASHBOARD_TABLE_SURFACE}>
-        <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-1.5">
-          <p className="text-[11px] text-muted-foreground">
-            <span className="font-medium text-foreground">
-              {filtered.length}
-            </span>
-            {filtered.length !== rows.length ? ` / ${rows.length}` : ""}{" "}
-            payments · {fmtKes(filteredTotal)}
-            {methodFilters.size > 0 ? (
-              <span className="ml-1 text-foreground/70">
-                ·{" "}
-                {[...methodFilters]
-                  .map(
-                    (id) =>
-                      METHOD_CHIPS.find((c) => c.id === id)?.short ?? id,
-                  )
-                  .join(", ")}
-              </span>
-            ) : null}
-          </p>
-          <Link
-            href={APP_ROUTES.salesTransactions}
-            className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
-          >
-            Transactions
-          </Link>
-        </div>
-
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" />
             Loading…
           </div>
         ) : filtered.length === 0 ? (
-          <div className="px-3 py-10 text-center">
+          <div className="px-3 py-16 text-center">
             <p className="text-sm font-medium text-foreground">No payments</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
+            <p className={cn(dashboardHintClass(), "mt-0.5")}>
               {rows.length === 0
                 ? "Nothing recorded for this day yet."
                 : "Clear filters to see more."}
             </p>
           </div>
         ) : (
-          <div>
-            {hourGroups.map((group) => {
-              const hourTotal = group.rows.reduce(
-                (s, r) => s + toNum(r.amount),
-                0,
-              );
-              return (
-                <div key={group.key}>
-                  <div className="sticky top-0 z-[1] flex items-center justify-between gap-2 bg-muted/80 px-3 py-1 backdrop-blur-sm">
-                    <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                      {group.label}
-                    </p>
-                    <p className="text-[10px] tabular-nums text-muted-foreground">
-                      {group.rows.length} · {fmtAmt(hourTotal)}
-                    </p>
-                  </div>
-                  <ul>
-                    {group.rows.map((row) => {
-                      const mark = getMark(marks, row.paymentId);
-                      const accent = methodAccent(row.method);
-                      const refunded = (row.status ?? "")
-                        .toLowerCase()
-                        .includes("refund");
-                      const noteOpen = noteDraftId === row.paymentId;
-                      const mpesa = isMpesaRow(row);
-                      const verified = mpesa && isMpesaVerified(row);
-                      const unverified = mpesa && !isMpesaVerified(row);
-                      const meta = [
-                        receiptLabel(row),
-                        row.cashierName?.trim() || null,
-                        row.customerName?.trim() || null,
-                        row.reference?.trim()
-                          ? `ref ${row.reference.trim()}`
-                          : null,
-                        toNum(row.saleGrandTotal) !== toNum(row.amount)
-                          ? `of ${fmtAmt(row.saleGrandTotal)}`
-                          : null,
-                      ].filter(Boolean);
+          hourGroups.map((group) => {
+            const hourTotal = group.rows.reduce(
+              (s, r) => s + toNum(r.amount),
+              0,
+            );
+            return (
+              <div key={group.key}>
+                <div
+                  className={cn(
+                    "sticky top-0 z-[1] flex items-center justify-between gap-2 border-b bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,#faf8f4)] px-3 py-1",
+                    INK_RULE,
+                  )}
+                >
+                  <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                    {group.label}
+                  </p>
+                  <p className="text-[10px] tabular-nums text-muted-foreground">
+                    {group.rows.length} · {fmtAmt(hourTotal)}
+                  </p>
+                </div>
+                <ul>
+                  {group.rows.map((row) => {
+                    const mark = getMark(marks, row.paymentId);
+                    const refunded = (row.status ?? "")
+                      .toLowerCase()
+                      .includes("refund");
+                    const noteOpen = noteDraftId === row.paymentId;
+                    const mpesa = isMpesaRow(row);
+                    const verified = mpesa && isMpesaVerified(row);
+                    const unverified = mpesa && !isMpesaVerified(row);
+                    const meta = [
+                      receiptLabel(row),
+                      row.cashierName?.trim() || null,
+                      row.customerName?.trim() || null,
+                      row.reference?.trim()
+                        ? `ref ${row.reference.trim()}`
+                        : null,
+                      toNum(row.saleGrandTotal) !== toNum(row.amount)
+                        ? `of ${fmtAmt(row.saleGrandTotal)}`
+                        : null,
+                    ].filter(Boolean);
 
-                      return (
-                        <li
-                          key={row.paymentId}
-                          className={cn(
-                            "group relative border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0",
-                            mark.reviewed && "bg-emerald-50/35",
-                            mark.flagged && !mark.reviewed && "bg-amber-50/40",
-                            unverified && !mark.reviewed && "bg-amber-50/25",
-                          )}
-                        >
+                    return (
+                      <li
+                        key={row.paymentId}
+                        className={cn(
+                          "group border-b last:border-0",
+                          INK_RULE,
+                          mark.reviewed &&
+                            "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]",
+                          mark.flagged &&
+                            !mark.reviewed &&
+                            "bg-[color-mix(in_srgb,#b45309_6%,white)]",
+                          unverified &&
+                            !mark.reviewed &&
+                            "bg-[color-mix(in_srgb,#b45309_4%,white)]",
+                        )}
+                      >
+                        <div className="flex items-center gap-2 py-1.5 pr-2 pl-2.5 sm:gap-2.5 sm:pr-3 sm:pl-3">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              patchMark(row.paymentId, {
+                                reviewed: !mark.reviewed,
+                              })
+                            }
+                            className={cn(
+                              "flex size-5 shrink-0 items-center justify-center border transition-colors",
+                              mark.reviewed
+                                ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white text-transparent hover:border-[var(--pos-primary,#0f766e)]",
+                            )}
+                            aria-label={
+                              mark.reviewed
+                                ? "Mark as not reviewed"
+                                : "Mark as reviewed"
+                            }
+                            aria-pressed={mark.reviewed}
+                          >
+                            <Check className="size-3" strokeWidth={3} />
+                          </button>
+
+                          <span className="w-[4.25rem] shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                            {formatTime(row.soldAt)}
+                          </span>
+
                           <span
                             className={cn(
-                              "absolute top-0 bottom-0 left-0 w-[2px]",
-                              accent.bar,
+                              "w-[5.5rem] shrink-0 text-right text-sm font-semibold tabular-nums tracking-[-0.02em] sm:w-[6.25rem] sm:text-[15px]",
+                              refunded
+                                ? "text-[#9a2e16]"
+                                : mark.reviewed
+                                  ? "text-foreground/45 line-through decoration-foreground/20"
+                                  : "text-foreground",
                             )}
-                            aria-hidden
-                          />
-                          <div className="flex items-center gap-2 py-1.5 pr-2 pl-2.5 sm:gap-2.5 sm:pr-3 sm:pl-3">
+                            style={{ fontFamily: "var(--font-heading)" }}
+                          >
+                            {fmtAmt(row.amount)}
+                          </span>
+
+                          <span
+                            className={cn(
+                              "shrink-0 border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                              INK_RULE,
+                              "text-muted-foreground",
+                            )}
+                          >
+                            {formatPaymentMethodLabel(row.method)}
+                          </span>
+
+                          {verified ? (
+                            <span
+                              className="inline-flex shrink-0 items-center gap-0.5 border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] px-1 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]"
+                              title="Gateway verified"
+                            >
+                              <ShieldCheck className="size-2.5" />
+                              Verified
+                            </span>
+                          ) : null}
+                          {unverified ? (
+                            <span
+                              className="inline-flex shrink-0 items-center gap-0.5 border border-amber-700/30 px-1 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-amber-900"
+                              title="No gateway receipt"
+                            >
+                              <ShieldAlert className="size-2.5" />
+                              Unverified
+                            </span>
+                          ) : null}
+                          {refunded ? (
+                            <span className="shrink-0 border border-destructive/30 px-1 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-destructive">
+                              Refund
+                            </span>
+                          ) : null}
+
+                          <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+                            {meta.join(" · ")}
+                          </p>
+
+                          <div className="flex shrink-0 items-center gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setNoteDraftId(
+                                  noteOpen ? null : row.paymentId,
+                                )
+                              }
+                              className={cn(
+                                "px-1 py-0.5 text-[10px] font-medium transition-colors",
+                                mark.note || noteOpen
+                                  ? "text-foreground"
+                                  : "text-transparent group-hover:text-muted-foreground hover:!text-foreground",
+                              )}
+                            >
+                              Note
+                            </button>
                             <button
                               type="button"
                               onClick={() =>
                                 patchMark(row.paymentId, {
-                                  reviewed: !mark.reviewed,
+                                  flagged: !mark.flagged,
                                 })
                               }
                               className={cn(
-                                "flex size-5 shrink-0 items-center justify-center rounded border transition-colors",
-                                mark.reviewed
-                                  ? "border-emerald-600 bg-emerald-600 text-white"
-                                  : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background text-transparent hover:border-emerald-600/70",
+                                "flex size-6 items-center justify-center transition-colors",
+                                mark.flagged
+                                  ? "text-amber-800"
+                                  : "text-muted-foreground/35 hover:text-amber-800",
                               )}
                               aria-label={
-                                mark.reviewed
-                                  ? "Mark as not reviewed"
-                                  : "Mark as reviewed"
+                                mark.flagged
+                                  ? "Remove flag"
+                                  : "Flag for follow-up"
                               }
-                              aria-pressed={mark.reviewed}
+                              aria-pressed={mark.flagged}
                             >
-                              <Check className="size-3" strokeWidth={3} />
+                              <Flag
+                                className="size-3"
+                                fill={mark.flagged ? "currentColor" : "none"}
+                              />
                             </button>
+                          </div>
+                        </div>
 
-                            <span className="w-[4.25rem] shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
-                              {formatTime(row.soldAt)}
-                            </span>
-
-                            <span
-                              className={cn(
-                                "w-[5.5rem] shrink-0 text-right text-sm font-semibold tabular-nums tracking-tight sm:w-[6.25rem] sm:text-[15px]",
-                                mark.reviewed
-                                  ? "text-foreground/45 line-through decoration-foreground/20"
-                                  : "text-foreground",
-                              )}
-                            >
-                              {fmtAmt(row.amount)}
-                            </span>
-
-                            <span
-                              className={cn(
-                                "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
-                                accent.chip,
-                              )}
-                            >
-                              {formatPaymentMethodLabel(row.method)}
-                            </span>
-
-                            {verified ? (
-                              <span
-                                className="inline-flex shrink-0 items-center gap-0.5 rounded-none bg-emerald-100 px-1 py-0.5 text-[11px] font-semibold tracking-[-0.02em] text-emerald-800"
-                                title="Gateway verified"
-                              >
-                                <ShieldCheck className="size-2.5" />
-                                Verified
-                              </span>
-                            ) : null}
-                            {unverified ? (
-                              <span
-                                className="inline-flex shrink-0 items-center gap-0.5 rounded-none bg-amber-100 px-1 py-0.5 text-[11px] font-semibold tracking-[-0.02em] text-amber-900"
-                                title="No gateway receipt"
-                              >
-                                <ShieldAlert className="size-2.5" />
-                                Unverified
-                              </span>
-                            ) : null}
-
-                            {refunded ? (
-                              <span className="shrink-0 rounded-none bg-destructive/10 px-1 py-0.5 text-[11px] font-semibold tracking-[-0.02em] text-destructive">
-                                Refund
-                              </span>
-                            ) : null}
-
-                            <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
-                              {meta.join(" · ")}
-                            </p>
-
-                            <div className="flex shrink-0 items-center gap-0.5">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setNoteDraftId(
-                                    noteOpen ? null : row.paymentId,
-                                  )
-                                }
-                                className={cn(
-                                  "rounded px-1 py-0.5 text-[10px] font-medium transition-colors",
-                                  mark.note || noteOpen
-                                    ? "text-foreground"
-                                    : "text-transparent group-hover:text-muted-foreground hover:!text-foreground",
-                                )}
-                              >
-                                Note
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
+                        {noteOpen || mark.note ? (
+                          <div
+                            className={cn(
+                              "border-t bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] px-3 py-1.5 pl-9",
+                              INK_RULE,
+                            )}
+                          >
+                            {noteOpen ? (
+                              <input
+                                autoFocus
+                                type="text"
+                                value={mark.note}
+                                placeholder="Note…"
+                                onChange={(e) =>
                                   patchMark(row.paymentId, {
-                                    flagged: !mark.flagged,
+                                    note: e.target.value,
                                   })
                                 }
-                                className={cn(
-                                  "flex size-6 items-center justify-center rounded transition-colors",
-                                  mark.flagged
-                                    ? "text-amber-700"
-                                    : "text-muted-foreground/35 hover:text-amber-700",
-                                )}
-                                aria-label={
-                                  mark.flagged
-                                    ? "Remove flag"
-                                    : "Flag for follow-up"
-                                }
-                                aria-pressed={mark.flagged}
-                              >
-                                <Flag
-                                  className="size-3"
-                                  fill={mark.flagged ? "currentColor" : "none"}
-                                />
-                              </button>
-                            </div>
-                          </div>
-
-                          {noteOpen || mark.note ? (
-                            <div className="border-t border-border/20 bg-muted/20 px-3 py-1.5 pl-9">
-                              {noteOpen ? (
-                                <input
-                                  autoFocus
-                                  type="text"
-                                  value={mark.note}
-                                  placeholder="Note…"
-                                  onChange={(e) =>
-                                    patchMark(row.paymentId, {
-                                      note: e.target.value,
-                                    })
+                                onBlur={() => setNoteDraftId(null)}
+                                onKeyDown={(e) => {
+                                  if (
+                                    e.key === "Enter" ||
+                                    e.key === "Escape"
+                                  ) {
+                                    setNoteDraftId(null);
                                   }
-                                  onBlur={() => setNoteDraftId(null)}
-                                  onKeyDown={(e) => {
-                                    if (
-                                      e.key === "Enter" ||
-                                      e.key === "Escape"
-                                    ) {
-                                      setNoteDraftId(null);
-                                    }
-                                  }}
-                                  className={cn(
-                                    dashboardInputClass(),
-                                    "h-7 py-1 text-xs",
-                                  )}
-                                />
-                              ) : (
-                                <button
-                                  type="button"
-                                  className="w-full text-left text-[11px] text-muted-foreground italic hover:text-foreground"
-                                  onClick={() => setNoteDraftId(row.paymentId)}
-                                >
-                                  {mark.note}
-                                </button>
-                              )}
-                            </div>
-                          ) : null}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
+                                }}
+                                className={cn(
+                                  dashboardInputClass(),
+                                  "h-7 py-1 text-xs",
+                                )}
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                className="w-full text-left text-[11px] text-muted-foreground italic hover:text-foreground"
+                                onClick={() => setNoteDraftId(row.paymentId)}
+                              >
+                                {mark.note}
+                              </button>
+                            )}
+                          </div>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })
         )}
-      </section>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+      <DashboardPageHero
+        icon={Wallet}
+        title="Day ledger"
+        description={`${formatDayShort(day)} · check every tender.`}
+        showActiveScope
+      >
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 rounded-none shadow-none"
+          onClick={() => void load({ silent: true })}
+          disabled={refreshing || loading}
+        >
+          {refreshing ? (
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          ) : (
+            <RefreshCw className="size-3.5" aria-hidden />
+          )}
+          Refresh
+        </Button>
+        {canWriteFinanceExpenses ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 rounded-none shadow-none"
+            onClick={() => setExpenseDrawerOpen(true)}
+          >
+            <Plus className="size-3.5" aria-hidden />
+            Expense
+          </Button>
+        ) : null}
+      </DashboardPageHero>
+
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      {expenseFeedback ? (
+        <DashboardFeedback
+          kind={expenseFeedback.kind}
+          text={expenseFeedback.text}
+        />
+      ) : null}
+
+      {canReadFinanceExpenses &&
+      expensesTotal != null &&
+      expensesTotal > 0 ? (
+        <div
+          className={cn(
+            "flex flex-wrap items-center justify-between gap-3 border bg-white px-3 py-2.5",
+            INK_RULE,
+          )}
+        >
+          <div>
+            <p
+              className="text-sm font-semibold tracking-[-0.02em]"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {fmtKes(expensesTotal)} in expenses
+            </p>
+            <p className={dashboardHintClass()}>
+              Rent, bills, and petty cash posted to finance.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 rounded-none shadow-none"
+            asChild
+          >
+            <Link href={`${APP_ROUTES.fixedCosts}?tab=history`}>
+              View expenses
+            </Link>
+          </Button>
+        </div>
+      ) : null}
+
+      <div className="flex min-h-0 flex-col gap-1.5">
+        <div
+          className={cn(
+            "hidden overflow-hidden border lg:grid",
+            "h-[min(80dvh,52rem)]",
+            INK_RULE,
+            PAPER,
+            "lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)]",
+          )}
+        >
+          <div className={cn("min-h-0 overflow-hidden border-r", INK_RULE)}>
+            {feed}
+          </div>
+          <div className="relative min-h-0 overflow-hidden">{pulse}</div>
+        </div>
+
+        <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
+          <div className={cn("min-h-[22rem] border", INK_RULE, PAPER)}>
+            {pulse}
+          </div>
+          <div className={cn("border", INK_RULE)}>{feed}</div>
+        </div>
+      </div>
 
       <OneOffExpenseDrawer
         open={expenseDrawerOpen}

@@ -18,13 +18,12 @@ import { cn } from "@/lib/utils";
 import { SupplierGuideDrawer } from "../../suppliers/_components/SupplierGuideDrawer";
 
 const chip = cn(
-  "inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[12px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
-  "transition-colors hover:text-[var(--order-ink,#15231f)]",
+  "inline-flex h-8 items-center gap-1 rounded-none px-2 text-[12px] font-semibold tracking-[-0.02em] text-muted-foreground",
+  "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
 );
 
 const chipActive = cn(
-  chip,
-  "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
+  "inline-flex h-8 items-center gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2 text-[12px] font-semibold tracking-[-0.02em] text-white",
 );
 
 export function SuppliesHeaderActions({
@@ -104,8 +103,8 @@ export function SuppliesHeaderActions({
         disabled={listLoading}
         onClick={onRefresh}
         className={cn(
-          "inline-flex size-8 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
-          "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]",
+          "inline-flex size-8 items-center justify-center rounded-none text-muted-foreground",
+          "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
           "disabled:cursor-not-allowed disabled:opacity-60",
         )}
         aria-label="Refresh supplies"
@@ -120,7 +119,7 @@ export function SuppliesHeaderActions({
           type="button"
           size="sm"
           variant="outline"
-          className="h-8 gap-1 rounded-none border-[var(--pos-primary,#0f766e)] px-2.5 text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] shadow-none"
+          className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-semibold shadow-none"
           onClick={onPayAdvance}
         >
           <Wallet className="size-3" aria-hidden />
@@ -131,7 +130,7 @@ export function SuppliesHeaderActions({
         <Button
           type="button"
           size="sm"
-          className="h-8 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[12px] font-semibold text-white shadow-none hover:bg-[#0d6b63]"
+          className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-semibold shadow-none"
           onClick={onNewSupply}
         >
           <PackagePlus className="size-3" aria-hidden />

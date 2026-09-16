@@ -41,7 +41,10 @@ import {
   type SupplyBillFilterId,
 } from "./_components/supplies-bill-filters";
 import { SuppliesHeaderActions } from "./_components/supplies-header-actions";
-import { SuppliesPageLayout } from "./_components/supplies-page-layout";
+import {
+  SuppliesPageLayout,
+  SUPPLIES_THEATRE,
+} from "./_components/supplies-page-layout";
 import { SuppliesReceiptWorkspace } from "./_components/supplies-receipt-workspace";
 import {
   formatSupplyMoney,
@@ -346,7 +349,7 @@ export default function SuppliesPage() {
                   : "hover:text-[var(--pos-primary,#0f766e)]",
               )}
             >
-              <span className="font-semibold text-[var(--order-ink,#15231f)]">
+              <span className="font-semibold text-foreground">
                 {summary.unpaidCount}
               </span>{" "}
               unpaid · {formatSupplyMoney(summary.openBalance, currency)}
@@ -376,7 +379,7 @@ export default function SuppliesPage() {
         {listError ? <DashboardFeedback kind="error" text={listError} /> : null}
 
         {isUnpaid ? (
-          <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+          <section className={cn(SUPPLIES_THEATRE, "flex min-h-0 flex-1 flex-col")}>
             {listLoading && rows.length === 0 ? (
               <SupLoadingBlock label="Loading supplies…" />
             ) : displayRows.length === 0 ? (
@@ -398,7 +401,7 @@ export default function SuppliesPage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-8 rounded-none text-xs"
+                      className="h-8 rounded-none text-xs shadow-none"
                       onClick={() => setQuery("")}
                     >
                       Clear search
@@ -408,7 +411,7 @@ export default function SuppliesPage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-8 rounded-none text-xs"
+                      className="h-8 rounded-none text-xs shadow-none"
                       onClick={() => setBillFilter("all")}
                     >
                       Show all
@@ -441,7 +444,7 @@ export default function SuppliesPage() {
             )}
           </section>
         ) : (
-          <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+          <section className={cn(SUPPLIES_THEATRE, "flex min-h-0 flex-1 flex-col")}>
             {listLoading && rows.length === 0 ? (
               <SupLoadingBlock label="Loading supplies…" />
             ) : displayRows.length === 0 ? (

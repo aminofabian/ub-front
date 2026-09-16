@@ -18,7 +18,7 @@ import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 import { SupplierGuideDrawer } from "./SupplierGuideDrawer";
-import { supBtnPrimary } from "./supplier-ui-tokens";
+import { HAIRLINE, supBtnPrimary } from "./supplier-ui-tokens";
 
 const RELATED_LINKS: {
   href: string;
@@ -60,45 +60,54 @@ export function SupplierPageHeader({
   onNewSupply: () => void;
 }) {
   return (
-    <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1 sm:px-3">
+    <header
+      className={cn(
+        "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-none border bg-white px-2.5 py-1.5 sm:px-3",
+        HAIRLINE,
+      )}
+    >
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]">
+          <span
+            className={cn(
+              "inline-flex size-7 shrink-0 items-center justify-center rounded-none border bg-[var(--pos-primary,#0f766e)] text-white",
+              HAIRLINE,
+            )}
+          >
             <Truck className="size-3.5" aria-hidden />
           </span>
-          <h1 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-            Suppliers
-          </h1>
-        </div>
-
-        <span
-          aria-hidden
-          className="hidden h-3.5 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:block"
-        />
-
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-          <ActiveScopeSubtitle className="text-[11px]" />
-          {totalCount != null && totalCount > 0 ? (
-            <p>
-              <span className="tabular-nums font-semibold text-[var(--order-ink,#15231f)]">
-                {totalCount.toLocaleString()}
-              </span>{" "}
-              vendors
-            </p>
-          ) : null}
+          <div className="min-w-0">
+            <h1
+              className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              Suppliers
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+              <ActiveScopeSubtitle className="text-[11px]" />
+              {totalCount != null && totalCount > 0 ? (
+                <p>
+                  <span className="tabular-nums font-semibold text-foreground">
+                    {totalCount.toLocaleString()}
+                  </span>{" "}
+                  vendors
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
 
         <nav
           aria-label="Related pages"
-          className="flex min-w-0 flex-wrap items-center gap-1"
+          className="flex min-w-0 flex-wrap items-center gap-0.5"
         >
           {RELATED_LINKS.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
               className={cn(
-                "inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[12px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
-                "transition-colors hover:text-[var(--order-ink,#15231f)]",
+                "inline-flex h-8 items-center gap-1 rounded-none px-2 text-[12px] font-semibold tracking-[-0.02em] text-muted-foreground",
+                "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
               )}
             >
               <Icon className="size-3 shrink-0 opacity-70" aria-hidden />
@@ -110,8 +119,8 @@ export function SupplierPageHeader({
               <button
                 type="button"
                 className={cn(
-                  "inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[12px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
-                  "transition-colors hover:text-[var(--order-ink,#15231f)]",
+                  "inline-flex h-8 items-center gap-1 rounded-none px-2 text-[12px] font-semibold tracking-[-0.02em] text-muted-foreground",
+                  "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
                 )}
                 title="The complete supplier flow — summary + full guide"
               >
@@ -130,7 +139,7 @@ export function SupplierPageHeader({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-medium"
+              className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-medium shadow-none"
               asChild
             >
               <Link href={receiveTillHref}>
@@ -144,7 +153,7 @@ export function SupplierPageHeader({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-medium"
+              className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-medium shadow-none"
               onClick={onNewSupply}
             >
               <PackagePlus className="size-3.5" aria-hidden />
@@ -155,10 +164,7 @@ export function SupplierPageHeader({
             <Button
               type="button"
               size="sm"
-              className={cn(
-                supBtnPrimary,
-                "h-8 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[12px] hover:bg-[#0d6b63]",
-              )}
+              className={cn(supBtnPrimary, "h-8 px-2.5 text-[12px]")}
               disabled={listLoadingInitial}
               onClick={onNewSupplier}
             >

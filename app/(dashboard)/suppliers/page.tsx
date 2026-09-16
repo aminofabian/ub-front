@@ -85,6 +85,10 @@ import { SupplierWorkspaceEmpty } from "./_components/SupplierWorkspaceEmpty";
 import { AdvanceDepositDrawer } from "../supplies/_components/advance-deposit-drawer";
 import { NewSupplyDrawer } from "../supplies/_components/new-supply-drawer";
 import {
+  HAIRLINE,
+  ROSTER,
+  supChipActive,
+  supChipIdle,
   supFieldLabel,
   supInput,
   supPanelBodyFill,
@@ -974,7 +978,7 @@ export default function SuppliersPage() {
     <SupplierPageLayout>
       <div
         className={cn(
-          "relative flex min-h-0 w-full min-w-0 flex-col gap-3 pb-20",
+          "relative flex min-h-0 w-full min-w-0 flex-col gap-1.5 pb-20",
           isLg && "h-full min-h-0 flex-1 overflow-hidden pb-0",
         )}
       >
@@ -1015,25 +1019,27 @@ export default function SuppliersPage() {
               className={cn(
                 "flex min-h-0 min-w-0 flex-col",
                 isLg
-                  ? "overflow-hidden border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
+                  ? cn("overflow-hidden border-r", HAIRLINE, ROSTER)
                   : "max-h-[min(70dvh,32rem)] sm:max-h-[calc(100dvh-12rem)]",
               )}
             >
               <div
                 className={cn(
-                  "flex shrink-0 flex-col gap-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5",
+                  "flex shrink-0 flex-col gap-1.5 border-b px-3 py-1.5",
+                  HAIRLINE,
+                  "bg-transparent",
                 )}
               >
                 <div className="relative">
                   <Search
-                    className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
+                    className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
                     aria-hidden
                   />
                   <input
                     id="supplier-directory-search"
                     className={cn(
                       dashboardInputClass(listLoadingInitial),
-                      "h-8 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 text-sm focus-visible:ring-0 focus-visible:border-[var(--pos-primary,#0f766e)]",
+                      "h-8 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 text-sm focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-0",
                     )}
                     placeholder="Search name or code…"
                     value={listSearch}
@@ -1043,7 +1049,7 @@ export default function SuppliersPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div
-                    className="flex min-w-0 flex-1 flex-wrap gap-1"
+                    className="flex min-w-0 flex-1 flex-wrap gap-0.5"
                     role="group"
                     aria-label="Filter by status"
                   >
@@ -1056,10 +1062,7 @@ export default function SuppliersPage() {
                           disabled={listLoadingInitial}
                           onClick={() => setStatusFilter(opt.value)}
                           className={cn(
-                            "h-8 rounded-none border px-2.5 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
-                            active
-                              ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
-                              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                            active ? supChipActive : supChipIdle,
                           )}
                         >
                           {opt.label}
@@ -1072,7 +1075,7 @@ export default function SuppliersPage() {
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                      "shrink-0 rounded-none text-muted-foreground hover:text-foreground",
                       isLg ? "size-8" : "h-8 gap-1 px-2.5 text-xs",
                     )}
                     disabled={listLoadingInitial}
