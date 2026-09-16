@@ -33,7 +33,7 @@ export function DraftConflictModal({
         aria-hidden
       />
       <div
-        className="fixed inset-x-4 top-1/2 z-[90] mx-auto max-w-md -translate-y-1/2 rounded-xl border border-border bg-card p-5 shadow-xl sm:inset-x-auto"
+        className="fixed inset-x-4 top-1/2 z-[90] mx-auto max-w-md -translate-y-1/2 rounded-none border border-border bg-card p-5 shadow-xl sm:inset-x-auto"
         style={brandTheme}
         role="dialog"
         aria-labelledby="draft-conflict-title"

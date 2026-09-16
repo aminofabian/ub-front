@@ -224,10 +224,10 @@ export function CashierAdminCapabilitiesModal({
         showCloseButton={!phone}
         overlayClassName="bg-black/45 backdrop-blur-[3px] dark:bg-black/55"
         className={cn(
-          "gap-0 overflow-hidden p-0",
+          "gap-0 overflow-hidden p-0 [&>button]:rounded-none",
           "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,white)]",
           "dark:bg-background",
-          phone && "max-h-[min(92dvh,44rem)] rounded-t-[1.25rem]",
+          phone && "max-h-[min(92dvh,44rem)] rounded-t-none",
         )}
         style={brandTheme}
       >
@@ -254,7 +254,7 @@ export function CashierAdminCapabilitiesModal({
             <DialogClose asChild>
               <button
                 type="button"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 dark:hover:bg-white/10"
+                className="flex size-9 shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 dark:hover:bg-white/10"
                 aria-label="Close till settings"
               >
                 <X className="size-4" aria-hidden />
@@ -335,7 +335,7 @@ export function CashierAdminCapabilitiesModal({
                         No cashiers to pick yet. Add a cashier user first.
                       </p>
                     ) : (
-                      <ul className="max-h-56 overflow-y-auto rounded-lg border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/60">
+                      <ul className="max-h-56 overflow-y-auto rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/60">
                         {selectableStaff.map((user) => {
                           const checked = drawoutUserIds.some(
                             (id) => id.toLowerCase() === user.id.toLowerCase(),
@@ -506,7 +506,7 @@ function SettingSection({
       ) : null}
       <div
         className={cn(
-          "overflow-hidden rounded-xl border",
+          "overflow-hidden rounded-none border",
           "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
           "bg-[color-mix(in_srgb,var(--card)_86%,white)]",
           "dark:border-border/60 dark:bg-card",
@@ -599,7 +599,7 @@ function Choice({
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        "rounded-lg px-3 py-2.5 text-left transition-colors duration-150",
+        "rounded-none px-3 py-2.5 text-left transition-colors duration-150",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
         selected
           ? "bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--pos-primary)_38%,transparent)]"

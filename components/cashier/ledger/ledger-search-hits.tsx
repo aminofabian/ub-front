@@ -68,14 +68,14 @@ function HitRow({
       onClick={onPick}
       disabled={!isPosSellableSku(item)}
       className={cn(
-        "flex w-full items-center gap-3 border-b border-zinc-100 px-3 py-2 text-left",
-        "hover:bg-zinc-50",
-        "focus-visible:outline-none focus-visible:bg-[color-mix(in_srgb,var(--pos-primary)_10%,white)]",
+        "flex w-full items-center gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-3 py-2 text-left",
+        "hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
+        "focus-visible:outline-none focus-visible:bg-[color-mix(in_srgb,var(--pos-primary)_10%,var(--card))]",
         "disabled:cursor-not-allowed disabled:opacity-40",
-        active && "bg-[color-mix(in_srgb,var(--pos-primary)_10%,white)]",
+        active && "bg-[color-mix(in_srgb,var(--pos-primary)_10%,var(--card))]",
         cartQty > 0 &&
           !active &&
-          "bg-[color-mix(in_srgb,var(--pos-primary)_6%,white)]",
+          "bg-[color-mix(in_srgb,var(--pos-primary)_6%,var(--card))]",
       )}
       aria-label={
         cartQty > 0
@@ -84,7 +84,7 @@ function HitRow({
       }
     >
       <span className="min-w-0 flex-1">
-        <span className="block whitespace-normal break-words text-[13px] font-medium leading-snug text-zinc-900">
+        <span className="block whitespace-normal break-words text-[13px] font-medium leading-snug text-[var(--pos-ink,#1c1915)]">
           {label}
         </span>
         <span className="mt-0.5 flex min-w-0 items-baseline gap-2 text-[11px] leading-snug">
@@ -96,25 +96,25 @@ function HitRow({
                   ? "font-medium text-red-700"
                   : tone === "low"
                     ? "font-medium text-amber-800"
-                    : "text-zinc-500",
+                    : "text-muted-foreground",
               )}
             >
               Stock {stock}
             </span>
           ) : null}
           {sku ? (
-            <span className="min-w-0 truncate font-mono text-zinc-400" title={sku}>
+            <span className="min-w-0 truncate font-mono text-muted-foreground/70" title={sku}>
               {sku}
             </span>
           ) : null}
         </span>
       </span>
-      <span className="shrink-0 font-mono text-[13px] font-semibold tabular-nums text-zinc-900">
+      <span className="shrink-0 font-mono text-[13px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
         {shelfLine}
       </span>
       <span className="flex w-9 shrink-0 justify-end">
         {cartQty > 0 ? (
-          <span className="tabular-nums text-[11px] font-semibold text-zinc-700">
+          <span className="tabular-nums text-[11px] font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_80%,transparent)]">
             ×{cartQty}
           </span>
         ) : (
@@ -172,31 +172,41 @@ export function LedgerSearchHits({
 
   if (blocks.length === 0) return null;
 
-  let rowIndex = -1;
+  /**
+   * Row offset of each block within `flat` — groups expand in place, so the
+   * running index is derived, never accumulated during render.
+   */
+  const rowStarts = blocks.reduce<number[]>((starts, _block, i) => {
+    if (i === 0) return [0];
+    const prev = blocks[i - 1];
+    const span = prev.kind === "variantGroup" ? prev.variants.length : 1;
+    return [...starts, starts[i - 1] + span];
+  }, []);
 
   return (
     <div>
-      <div className="sticky top-0 z-20 flex h-8 items-center justify-between gap-2 border-b border-zinc-200 bg-white px-3">
-        <p className="text-[11px] font-medium text-zinc-500">
+      <div className="sticky top-0 z-20 flex h-8 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card px-3">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           {flat.length} {flat.length === 1 ? "match" : "matches"}
         </p>
-        <p className="text-[11px] text-zinc-400">Up/down to choose</p>
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+          Up/down to choose
+        </p>
       </div>
-      {blocks.map((block) => {
+      {blocks.map((block, blockIndex) => {
         if (block.kind === "variantGroup") {
           return (
             <section key={`g-${block.parentId}`}>
-              <div className="sticky top-8 z-10 flex items-baseline justify-between gap-2 border-b border-zinc-200 bg-zinc-100 px-3 py-1.5">
-                <h3 className="min-w-0 whitespace-normal break-words text-[13px] font-semibold leading-snug text-zinc-900">
+              <div className="sticky top-8 z-10 flex items-baseline justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)] px-3 py-1.5">
+                <h3 className="min-w-0 whitespace-normal break-words text-[13px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
                   {block.title}
                 </h3>
-                <span className="shrink-0 tabular-nums text-[11px] text-zinc-500">
+                <span className="shrink-0 font-mono tabular-nums text-[11px] text-muted-foreground">
                   {block.variants.length}
                 </span>
               </div>
-              {block.variants.map((item) => {
-                rowIndex += 1;
-                const index = rowIndex;
+              {block.variants.map((item, variantIndex) => {
+                const index = rowStarts[blockIndex] + variantIndex;
                 return (
                   <HitRow
                     key={item.id}
@@ -212,8 +222,7 @@ export function LedgerSearchHits({
             </section>
           );
         }
-        rowIndex += 1;
-        const index = rowIndex;
+        const index = rowStarts[blockIndex];
         const item = block.item;
         return (
           <HitRow

@@ -41,13 +41,13 @@ import { CashierCurrencySuffix } from "./cashier-currency-inline";
 const QUICK_QTYS = [1, 2, 5, 10] as const;
 
 const MODAL_SECTION_LABEL = cn(
-  "text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground",
+  "text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
 );
 
 const modalFieldClass = (extra?: string) =>
   cn(
     // Solid fill + border — avoid translucent / color-mix focus rings (Win7 Chrome 109).
-    "rounded-xl border border-border bg-background shadow-sm transition-[border-color,box-shadow]",
+    "rounded-none border border-border bg-background shadow-sm transition-[border-color,box-shadow]",
     "focus:outline-none focus-visible:border-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)]",
     extra,
   );
@@ -57,7 +57,7 @@ function ModalShelfBadge({ children }: { children: string }) {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-3 left-3 z-[1] max-w-[calc(100%-1.5rem)] truncate rounded-lg border border-border/80",
+        "pointer-events-none absolute bottom-3 left-3 z-[1] max-w-[calc(100%-1.5rem)] truncate rounded-none border border-border/80",
         "bg-background px-2.5 py-1.5 text-[11px] font-bold tabular-nums leading-none text-foreground shadow-md sm:text-xs",
       )}
     >
@@ -213,29 +213,29 @@ export function CashierProductModal({
         showCloseButton={!phone}
         overlayClassName="bg-[rgba(0,0,0,0.55)] supports-[backdrop-filter]:bg-[rgba(0,0,0,0.45)]"
         className={cn(
-          "gap-0 overflow-hidden border border-border bg-background p-0 shadow-2xl",
+          "gap-0 overflow-hidden border border-border bg-background p-0 shadow-2xl rounded-none",
           phone
-            ? "max-h-[min(92dvh,44rem)] w-full max-w-none rounded-t-[1.25rem]"
+            ? "max-h-[min(92dvh,44rem)] w-full max-w-none rounded-t-none"
             : "w-[calc(100vw-1.25rem)] max-w-[min(26rem,calc(100vw-1.25rem))] sm:max-w-lg",
           "[&>button]:right-3 [&>button]:top-3 [&>button]:size-9 [&>button]:border [&>button]:border-border [&>button]:bg-background [&>button]:text-foreground [&>button]:shadow-md",
         )}
         style={brandTheme}
       >
         <DialogHeader className="space-y-0 p-0 pr-0 text-left">
-          <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted sm:aspect-[16/11]">
+          <div className="relative aspect-[16/6] w-full overflow-hidden bg-muted sm:aspect-[16/11]">
             {thumb ? (
               <Image
                 src={thumb}
                 alt=""
                 fill
                 sizes="(max-width: 640px) 92vw, 28rem"
-                className="object-contain p-5 sm:p-7"
+                className="object-contain p-3 sm:p-7"
                 unoptimized
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <span
-                  className="text-7xl font-bold tracking-tight text-[var(--pos-primary)] sm:text-8xl"
+                  className="text-6xl font-bold tracking-tight text-[var(--pos-primary)] sm:text-8xl"
                   aria-hidden
                 >
                   {headerTitle.trim().charAt(0).toUpperCase() || "?"}
@@ -247,8 +247,8 @@ export function CashierProductModal({
             </ModalShelfBadge>
           </div>
 
-          <div className="space-y-1 border-b border-border px-4 pb-3.5 pt-3.5">
-            <DialogTitle className="text-balance line-clamp-2 text-[1.25rem] font-semibold leading-snug tracking-tight text-foreground sm:text-[1.35rem]">
+          <div className="space-y-1 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 pb-3 pt-3 dark:border-border/40">
+            <DialogTitle className="text-balance line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-foreground sm:text-[1.35rem]">
               {item ? headerTitle : "Item"}
             </DialogTitle>
             <DialogDescription
@@ -276,7 +276,7 @@ export function CashierProductModal({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-12 w-12 shrink-0 rounded-xl border-border bg-background sm:h-11 sm:w-11"
+                  className="h-11 w-11 shrink-0 rounded-none border-border bg-background"
                   aria-label="Decrease quantity"
                   disabled={quantity <= 1}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -289,7 +289,7 @@ export function CashierProductModal({
                   aria-label="Quantity"
                   data-keep-text
                   className={modalFieldClass(
-                    "h-11 min-w-0 flex-1 py-0 text-center text-xl font-bold tabular-nums text-foreground",
+                    "h-11 min-w-0 flex-1 py-0 text-center text-lg font-bold tabular-nums text-foreground",
                   )}
                   value={quantity}
                   onChange={(e) => {
@@ -307,7 +307,7 @@ export function CashierProductModal({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-12 w-12 shrink-0 rounded-xl border-border bg-background sm:h-11 sm:w-11"
+                  className="h-11 w-11 shrink-0 rounded-none border-border bg-background"
                   aria-label="Increase quantity"
                   disabled={maxPackages != null && quantity >= maxPackages}
                   onClick={() =>
@@ -375,7 +375,7 @@ export function CashierProductModal({
                   type="button"
                   disabled={overMax}
                   className={cn(
-                    "min-w-[2.75rem] rounded-lg border px-2.5 py-1.5 text-xs font-semibold tracking-tight transition-[transform,box-shadow,border-color]",
+                    "min-w-[2.75rem] rounded-none border px-2.5 py-1.5 text-xs font-semibold tracking-tight transition-[transform,box-shadow,border-color]",
                     "active:scale-[0.97]",
                     overMax && "cursor-not-allowed opacity-40",
                     quantity === q
@@ -407,7 +407,7 @@ export function CashierProductModal({
 
           <DialogFooter className="flex-row flex-wrap items-stretch justify-stretch gap-2 border-t border-border pt-3 sm:flex-row sm:justify-stretch">
             {subtotalNum != null && subtotalNum > 0 ? (
-              <div className="flex min-w-[5.5rem] flex-col justify-center rounded-xl border border-border bg-muted px-3 py-2">
+              <div className="flex min-w-[5.5rem] flex-col justify-center rounded-none border border-border bg-muted px-3 py-2">
                 <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Line
                 </p>
@@ -421,7 +421,7 @@ export function CashierProductModal({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="h-12 shrink-0 rounded-xl border-border bg-background"
+              className="h-12 shrink-0 rounded-none border-border bg-background"
             >
               Cancel
             </Button>
@@ -434,7 +434,7 @@ export function CashierProductModal({
                   onSubmit({ item, quantity, unitPrice });
                 }
               }}
-              className="h-12 min-w-0 flex-1 gap-2 rounded-xl text-[15px] font-semibold shadow-md transition-[transform,opacity,box-shadow] active:scale-[0.99] bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:bg-[var(--pos-primary)] hover:opacity-[0.92] hover:shadow-lg"
+              className="h-12 min-w-0 flex-1 gap-2 rounded-none text-[15px] font-semibold shadow-md transition-[transform,opacity,box-shadow] active:scale-[0.99] bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:bg-[var(--pos-primary)] hover:opacity-[0.92] hover:shadow-lg"
             >
               <ShoppingCart className="size-4 shrink-0" />
               Add to cart

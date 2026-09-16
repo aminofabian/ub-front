@@ -230,7 +230,7 @@ export function CashierReceiptShopModal({
   };
 
   const inputClass = cn(
-    "h-10 w-full rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+    "h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
     "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] px-3 text-sm text-foreground shadow-none",
     "outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
     "disabled:opacity-50 dark:bg-card/80",
@@ -247,7 +247,7 @@ export function CashierReceiptShopModal({
         side="center"
         overlayClassName="bg-black/45 backdrop-blur-[3px] dark:bg-black/55"
         className={cn(
-          "max-h-[min(92dvh,40rem)] max-w-lg gap-0 overflow-hidden p-0",
+          "max-h-[min(92dvh,40rem)] max-w-lg gap-0 overflow-hidden p-0 [&>button]:rounded-none",
           "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,white)]",
           "dark:bg-background",
         )}
@@ -271,7 +271,7 @@ export function CashierReceiptShopModal({
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
           {!branchId?.trim() ? (
-            <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12.5px] text-amber-950 dark:text-amber-100">
+            <p className="rounded-none border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12.5px] text-amber-950 dark:text-amber-100">
               Select a branch on the till first — contact details are saved per
               branch.
             </p>
@@ -367,7 +367,7 @@ export function CashierReceiptShopModal({
 
           <div
             className={cn(
-              "flex items-start justify-between gap-3 rounded-md border px-3 py-3",
+              "flex items-start justify-between gap-3 rounded-none border px-3 py-3",
               "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
               "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]",
             )}

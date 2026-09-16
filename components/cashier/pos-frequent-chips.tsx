@@ -74,7 +74,7 @@ export function PosFrequentChips({
     return (
       <section
         aria-label={title}
-        className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-2 dark:border-border/40"
+        className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-2.5 dark:border-border/40"
       >
         <Header title={title} subtitle={subtitle} />
         <p className="mt-2 text-xs text-muted-foreground">Loading…</p>
@@ -86,7 +86,7 @@ export function PosFrequentChips({
     return (
       <section
         aria-label={title}
-        className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-2 dark:border-border/40"
+        className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-2.5 dark:border-border/40"
       >
         <Header title={title} subtitle={subtitle} />
         <p className="mt-2 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] px-3 py-4 text-center text-xs text-muted-foreground">
@@ -99,10 +99,10 @@ export function PosFrequentChips({
   return (
     <section
       aria-label={title}
-      className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-2 dark:border-border/40"
+      className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-2.5 dark:border-border/40"
     >
       <Header title={title} subtitle={subtitle} />
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
         {visible.map((product) => {
           const { primary, sku } = chipLabels(product);
           const qty = cartQtyByItem.get(product.id) ?? 0;

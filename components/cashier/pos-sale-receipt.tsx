@@ -110,7 +110,7 @@ export function PosSaleReceipt({
           <Button
             type="button"
             size="sm"
-            className="h-9 w-full gap-2 rounded-sm text-sm font-semibold shadow-sm bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90"
+            className="h-9 w-full gap-2 rounded-none text-sm font-semibold shadow-sm bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90"
             onClick={() => {
               if (saleId) {
                 const tender =

@@ -13,26 +13,25 @@ import {
   Building2,
   Camera,
   CircleHelp,
-  ClipboardCheck,
-  ClipboardList,
   Clock,
   CreditCard,
   Lock,
   LockKeyhole,
+  LayoutGrid,
   LogOut,
   MapPin,
   MoreHorizontal,
-  PackagePlus,
   PlusCircle,
   Receipt,
+  RotateCcw,
   ScanLine,
   Settings2,
   ShoppingBag,
   Smartphone,
   Store,
-  Truck,
+  Table2,
+  Trash2,
   UserRound,
-  Users,
   Wallet,
   Wifi,
   WifiOff,
@@ -82,6 +81,16 @@ import { tillDeviceDisplayName } from "@/lib/till-device";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
 import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
+import { useMediaLg } from "@/hooks/use-media-lg";
+import { useMediaMd } from "@/hooks/use-media-md";
+import { useCashierTemplate } from "@/hooks/use-cashier-template";
+import { CASHIER_TEMPLATES } from "@/lib/cashier-templates";
+import type { CashierMobileToolId } from "@/lib/cashier-mobile-events";
+import {
+  buildCashierTools,
+  CASHIER_TOOL_ICONS,
+  CASHIER_TOOL_SECTIONS,
+} from "../cashier-pos-tools";
 import { cn } from "@/lib/utils";
 
 import type { CashierPosLayoutProps } from "../cashier-pos-layout";
@@ -128,7 +137,7 @@ function backspaceAmount(current: string): string {
 const CASH_QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const;
 
 const HEADER_SELECT = cn(
-  "h-7 max-w-[9.5rem] rounded-md border border-white/25 bg-white/10 px-2 text-[11px] font-medium",
+  "h-7 max-w-[9.5rem] rounded-none border border-white/25 bg-card/10 px-2 text-[11px] font-medium",
   "text-inherit outline-none focus-visible:ring-2 focus-visible:ring-white/70",
   "disabled:opacity-50",
 );
@@ -210,6 +219,34 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   const [activeField, setActiveField] = useState<LedgerCellField>("code");
   const [keyTarget, setKeyTarget] = useState<KeyTarget>("sheet");
   const [moreOpen, setMoreOpen] = useState(false);
+  /** Phone: the till column slides up as a panel over the line sheet. */
+  const [payOpen, setPayOpen] = useState(false);
+  const isMd = useMediaMd();
+  const isLg = useMediaLg();
+  const compactLines = !isMd;
+  /**
+   * The ledger hides the shelf's bottom nav, so this menu is the only route
+   * back — the template switch lives here as well as in the shelf's More sheet.
+   */
+  const { preferred: templatePreference, setTemplate } =
+    useCashierTemplate(branchId);
+  /** True between tapping Complete and the request settling — closes the phone panel only on success. */
+  const payAttemptRef = useRef(false);
+  useEffect(() => {
+    if (!payAttemptRef.current || cart.loading) return;
+    payAttemptRef.current = false;
+    if (!isLg && !cart.error) setPayOpen(false);
+  }, [cart.loading, cart.error, isLg]);
+
+  // Escape closes the phone payment panel, matching the sheets elsewhere in the till.
+  useEffect(() => {
+    if (isLg || !payOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPayOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isLg, payOpen]);
   const [firstSaleOpen, setFirstSaleOpen] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [discPctByKey, setDiscPctByKey] = useState<Record<string, string>>({});
@@ -236,6 +273,79 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   const moreRef = useRef<HTMLDivElement>(null);
   const barcodeBusyRef = useRef(false);
   const parentCheckCache = useRef(new Map<string, boolean>());
+
+  /**
+   * The shelf renders this same list as tiles in its till menu; the ledger
+   * renders it as rows, so an action can never exist in one chrome and be
+   * missing from the other.
+   */
+  const tillTools = useMemo(
+    () =>
+      buildCashierTools({
+        allowCreditTabs,
+        allowAirtime,
+        allowOrderPad,
+        allowCreateProduct,
+        allowManageSuppliers:
+          allowCreateSupplier || allowLinkSupplierProducts || allowReceiveSupply,
+        allowSupplierOrder,
+        allowOrderConfirm,
+        posShiftLinks: posShiftLinks ?? null,
+      }),
+    [
+      allowCreditTabs,
+      allowAirtime,
+      allowOrderPad,
+      allowCreateProduct,
+      allowCreateSupplier,
+      allowLinkSupplierProducts,
+      allowReceiveSupply,
+      allowSupplierOrder,
+      allowOrderConfirm,
+      posShiftLinks,
+    ],
+  );
+
+  const runTillTool = useCallback(
+    (id: CashierMobileToolId) => {
+      setMoreOpen(false);
+      switch (id) {
+        case "add-product":
+          setCreateProductOpen(true);
+          break;
+        case "suppliers":
+          setSuppliersOpen(true);
+          break;
+        case "credit-tabs":
+          setCreditTabsOpen(true);
+          break;
+        case "order-pad":
+          setOrderPadOpen(true);
+          break;
+        case "supplier-order":
+          setSupplierOrderOpen(true);
+          break;
+        case "order-confirm":
+          setOrderConfirmOpen(true);
+          break;
+        case "airtime":
+          window.dispatchEvent(new Event("ub:open-airtime"));
+          break;
+        case "drawout":
+          posShiftLinks?.onShortcut("new-drawout");
+          break;
+        case "open-shift":
+          posShiftLinks?.onShortcut("open-shift");
+          break;
+        case "close-shift":
+          posShiftLinks?.onShortcut("close-shift");
+          break;
+        default:
+          break;
+      }
+    },
+    [posShiftLinks],
+  );
   const topIdsKey = topProducts.map((p) => p.id).join(",");
   const hitIdsKey = hits.map((h) => h.id).join(",");
 
@@ -761,20 +871,22 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
 
   return (
     <div
-      className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-zinc-100 text-zinc-900"
+      className="pos-ledger relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[var(--pos-paper,#f1ece3)] text-[var(--pos-ink,#1c1915)] dark:bg-background dark:text-foreground"
       style={brandTheme}
     >
       <header className="flex shrink-0 flex-wrap items-center gap-2 bg-[var(--pos-primary)] px-3 py-1.5 text-[var(--pos-primary-ink,#fff)]">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold tracking-tight">{shopName}</p>
-          <p className="truncate text-[11px] opacity-90">
+          <p className="pos-market-section-label truncate text-[1.05rem] leading-none">
+            {shopName}
+          </p>
+          <p className="truncate text-[9px] font-semibold uppercase tracking-[0.14em] opacity-80">
             {[tillLabel, cashierName].filter(Boolean).join(" · ")}
           </p>
         </div>
         {branchLocked ? (
           currentBranch ? (
             <span
-              className="inline-flex h-7 max-w-[9.5rem] items-center gap-1 truncate rounded-md border border-white/25 bg-white/10 px-2 text-[11px] font-medium"
+              className="inline-flex h-7 max-w-[9.5rem] items-center gap-1 truncate rounded-none border border-white/25 bg-card/10 px-2 text-[11px] font-medium"
               title="Branch switching is disabled for your role"
             >
               <Lock className="size-3 shrink-0" aria-hidden />
@@ -825,7 +937,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
             </>
           )}
         </select>
-        <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium">
+        <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold">
           {online ? <Wifi className="size-3.5" aria-hidden /> : <WifiOff className="size-3.5" aria-hidden />}
           {online ? "Online" : "Offline"}
         </span>
@@ -833,7 +945,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           type="button"
           disabled={tillLocked}
           onClick={() => tillLock?.lock({ reason: "manual" })}
-          className="inline-flex h-7 items-center gap-1 rounded-md border border-white/25 bg-white/10 px-2 text-[11px] font-medium hover:bg-white/20 disabled:opacity-40"
+          className="inline-flex h-7 items-center gap-1 rounded-none border border-white/25 bg-card/10 px-2 text-[11px] font-medium hover:bg-card/20 disabled:opacity-40"
         >
           <LockKeyhole className="size-3.5" aria-hidden />
           Lock
@@ -841,20 +953,22 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
       </header>
 
       {offlineBanner ? (
-        <p className="shrink-0 bg-amber-100 px-3 py-1 text-[11px] text-amber-950">{offlineBanner}</p>
+        <p className="shrink-0 bg-amber-100 px-3 py-1 text-[11px] text-amber-950 dark:bg-amber-950/40 dark:text-amber-100">
+          {offlineBanner}
+        </p>
       ) : null}
 
       {toolbarExtras ? (
-        <div className="flex shrink-0 items-center justify-end gap-2 border-b border-zinc-200 bg-white px-3 py-1">
+        <div className="flex shrink-0 items-center justify-end gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card px-3 py-1 dark:border-border/40">
           {toolbarExtras}
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1">
-        <section className="relative flex min-w-0 flex-1 flex-col gap-2 p-2">
+      <div className={cn("flex min-h-0 flex-1", isLg ? "flex-row" : "flex-col")}>
+        <section className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-2 p-2">
           <div className="relative flex items-center gap-2">
-            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-zinc-300 bg-white px-2.5 py-2">
-              <ScanLine className="size-4 shrink-0 text-zinc-400" aria-hidden />
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-card px-2.5 py-2 focus-within:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] dark:border-border/40">
+              <ScanLine className="size-4 shrink-0 text-muted-foreground/70" aria-hidden />
               <input
                 ref={searchInputRef}
                 value={search}
@@ -873,7 +987,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 }}
                 placeholder="Scan barcode or type item name"
                 aria-label="Find item"
-                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-400"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
               />
               {search ? (
                 <button
@@ -883,7 +997,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                     setSearch("");
                     focusSearch();
                   }}
-                  className="flex size-6 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                  className="flex size-6 items-center justify-center rounded-none text-muted-foreground/70 hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)] hover:text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_80%,transparent)]"
                 >
                   <X className="size-3.5" aria-hidden />
                 </button>
@@ -892,14 +1006,14 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 type="button"
                 aria-label="Open camera scanner"
                 onClick={() => setShowScanner(true)}
-                className="flex size-7 items-center justify-center rounded text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+                className="flex size-7 items-center justify-center rounded-none text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)] hover:text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_92%,transparent)]"
               >
                 <Camera className="size-4" aria-hidden />
               </button>
             </div>
             <nav
               aria-label="Sale views"
-              className="flex shrink-0 rounded-md border border-zinc-300 bg-zinc-100 p-0.5"
+              className="flex shrink-0 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] dark:border-border/40"
             >
               {(
                 [
@@ -912,21 +1026,28 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   key={id}
                   type="button"
                   onClick={() => setTab(id)}
+                  aria-current={tab === id ? "true" : undefined}
                   className={cn(
-                    "rounded px-2.5 py-1.5 text-xs font-medium",
+                    "relative px-2.5 py-1.5 text-[12px] font-semibold tracking-tight transition-colors",
                     tab === id
-                      ? "bg-white text-zinc-900 shadow-sm"
-                      : "text-zinc-500 hover:text-zinc-800",
+                      ? "bg-card text-[var(--pos-ink,#1c1915)]"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
+                  {tab === id ? (
+                    <span
+                      className="absolute inset-x-0 top-0 h-[2px] bg-[var(--pos-primary)]"
+                      aria-hidden
+                    />
+                  ) : null}
                   {label}
                 </button>
               ))}
             </nav>
             {search.trim() ? (
-              <div className="absolute left-0 top-full z-20 mt-1 max-h-[min(56vh,32rem)] w-full overflow-auto rounded-md border border-zinc-200 bg-white shadow-[0_8px_28px_rgba(24,24,27,0.14)]">
+                <div className="pos-scroll absolute left-0 top-full z-20 mt-1 max-h-[min(56vh,32rem)] w-full overflow-auto border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-card shadow-[0_12px_34px_-14px_color-mix(in_srgb,var(--pos-ink,#1c1915)_45%,transparent)] dark:border-border/40">
                 {searchBanner ? (
-                  <p className="border-b border-zinc-100 px-3 py-1.5 text-[11px] text-zinc-500">
+                  <p className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-3 py-1.5 text-[11px] text-muted-foreground">
                     {searchBanner}
                   </p>
                 ) : null}
@@ -939,8 +1060,8 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                     onPick={pickItem}
                   />
                 ) : (
-                  <p className="px-3 py-3 text-sm text-zinc-500">
-                    No item matches "{search.trim()}". Press Enter to look up as a
+                  <p className="px-3 py-3 text-sm text-muted-foreground">
+                    No item matches “{search.trim()}”. Press Enter to look up as a
                     barcode.
                   </p>
                 )}
@@ -966,6 +1087,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 selectedKey={selectedKey}
                 activeField={activeField}
                 allowPriceEdit={allowPriceEdit}
+                compact={compactLines}
                 onSelect={(key, field) => {
                   setSelectedKey(key);
                   setActiveField(field);
@@ -979,9 +1101,9 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           ) : null}
 
           {tab === "held" ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-auto border border-zinc-300 bg-white">
+            <div className="flex min-h-0 flex-1 flex-col overflow-auto border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card dark:border-border/40">
               {heldTabs.length === 0 ? (
-                <p className="p-6 text-sm text-zinc-500">
+                <p className="p-6 text-sm text-muted-foreground">
                   No held sales. Hold parks this sale so you can start another.
                 </p>
               ) : (
@@ -993,10 +1115,10 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                       onSwitchCart(t.id);
                       setTab("sale");
                     }}
-                    className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 text-left hover:bg-zinc-50"
+                    className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-4 py-3 text-left hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
                   >
                     <span className="text-sm font-medium">{t.label}</span>
-                    <span className="text-sm tabular-nums text-zinc-600">
+                    <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
                       {t.itemCount} · {t.grandTotal.toFixed(2)} {currency}
                     </span>
                   </button>
@@ -1006,7 +1128,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           ) : null}
 
           {tab === "receipts" ? (
-            <div className="min-h-0 flex-1 overflow-auto border border-zinc-300 bg-white p-3">
+            <div className="pos-scroll min-h-0 flex-1 overflow-auto border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card p-3 dark:border-border/40">
               {cart.lastSale && cart.lastReceipt ? (
                 <PosSaleCompletePanel
                   sale={cart.lastSale}
@@ -1025,7 +1147,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   whatsappReceiptEnabled={cart.whatsappReceiptEnabled}
                 />
               ) : (
-                <p className="p-4 text-sm text-zinc-500">
+                <p className="p-4 text-sm text-muted-foreground">
                   Complete a sale to reprint the last receipt here.
                 </p>
               )}
@@ -1033,22 +1155,86 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           ) : null}
         </section>
 
-        <aside className="flex min-h-0 w-[19.5rem] shrink-0 flex-col border-l border-zinc-200 bg-white">
-          <div className="shrink-0 px-3 pt-3">
+        {/* Phone: the till column is the second half of the job, so it gets a
+            sticky total + pay bar instead of a permanent 19.5rem rail. */}
+        {!isLg ? (
+          <div className="flex shrink-0 items-stretch gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,var(--pos-paper,#f1ece3))] px-2 py-2 dark:border-border/40 dark:bg-card">
+            <div className="flex min-w-0 flex-1 flex-col justify-center">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {saleLabel} · {cart.lines.length}{" "}
+                {cart.lines.length === 1 ? "line" : "lines"}
+              </span>
+              <span className="pos-market-section-label text-[1.5rem] leading-none tabular-nums">
+                {cart.payableTotal.toFixed(2)}
+                <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  {currency}
+                </span>
+              </span>
+            </div>
+            {!completeIdle ? (
+              <button
+                type="button"
+                disabled={cart.lines.length === 0}
+                onClick={() => setPayOpen(true)}
+                className={cn(
+                  "flex min-h-12 shrink-0 items-center gap-1.5 px-4 text-[14px] font-bold tracking-tight",
+                  "bg-[var(--pos-primary)] text-[var(--pos-primary-ink,#fff)] disabled:opacity-40",
+                )}
+              >
+                <Wallet className="size-4" aria-hidden />
+                Pay
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        <aside
+          className={cn(
+            "flex min-h-0 flex-col",
+            isLg
+              ? "w-[19.5rem] shrink-0 border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,var(--pos-paper,#f1ece3))] dark:border-border/40 dark:bg-card"
+              : cn(
+                  "pos-scroll fixed inset-x-0 bottom-0 z-40 flex max-h-[86dvh] flex-col border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[var(--pos-paper,#f1ece3)] shadow-[0_-14px_40px_-18px_color-mix(in_srgb,var(--pos-ink,#1c1915)_45%,transparent)] dark:border-border/40 dark:bg-background",
+                  payOpen ? "pos-sheet-in block" : "hidden",
+                ),
+          )}
+          aria-hidden={!isLg && !payOpen}
+        >
+          {!isLg ? (
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 py-2 dark:border-border/40">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Payment
+              </span>
+              <button
+                type="button"
+                onClick={() => setPayOpen(false)}
+                aria-label="Close payment panel"
+                className="flex size-8 items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
+          ) : null}
+          <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 py-2.5 dark:border-border/40">
             <div className="flex items-baseline justify-between gap-2">
-              <p className="text-[11px] font-medium text-zinc-500">{saleLabel}</p>
-              <p className="text-[11px] tabular-nums text-zinc-400">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {saleLabel}
+              </p>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] tabular-nums text-muted-foreground/70">
                 {cart.lines.length === 0
                   ? "Empty"
                   : `${cart.lines.length} ${cart.lines.length === 1 ? "line" : "lines"}`}
               </p>
             </div>
-            <p className="font-mono text-[1.65rem] font-semibold leading-tight tabular-nums tracking-tight">
-              {currency} {cart.payableTotal.toFixed(2)}
+            <p className="pos-market-section-label mt-0.5 text-[2rem] leading-none tabular-nums">
+              {cart.payableTotal.toFixed(2)}
+              <span className="ml-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {currency}
+              </span>
             </p>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
+          <div className="pos-scroll min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
           <div
             className={cn(
               "grid gap-1",
@@ -1080,10 +1266,10 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                     if (m.id === "cash") focusPay();
                   }}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-md border px-1 py-2 text-[11px] font-medium",
+                    "flex flex-col items-center gap-1 rounded-none border px-1 py-2 text-[11px] font-semibold transition-colors",
                     active
-                      ? "border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_16%,white)] text-zinc-900"
-                      : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50",
+                      ? "border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_16%,var(--card))] text-[var(--pos-ink,#1c1915)]"
+                      : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-card text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
                     m.disabled && "cursor-not-allowed opacity-40",
                   )}
                 >
@@ -1131,7 +1317,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           cart.payMethod === "mpesa_manual" ||
           cart.payMethod === "card" ? (
             <div className="grid grid-cols-2 gap-2">
-              <label className="space-y-1 text-[11px] font-medium text-zinc-600">
+              <label className="space-y-1 text-[11px] font-medium text-muted-foreground">
                 Received
                 <input
                   value={cart.cashTenderStr}
@@ -1141,22 +1327,22 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   inputMode="decimal"
                   aria-label={`Amount received in ${currency}`}
                   className={cn(
-                    "h-10 w-full rounded-md border border-zinc-300 px-2 text-right font-mono text-sm outline-none",
+                    "h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2 text-right font-mono text-sm outline-none",
                     "focus:ring-2 focus:ring-[var(--pos-primary)]",
                     keyTarget === "tender" && "ring-2 ring-[var(--pos-primary)]",
                   )}
                 />
               </label>
-              <div className="space-y-1 text-[11px] font-medium text-zinc-600">
+              <div className="space-y-1 text-[11px] font-medium text-muted-foreground">
                 Change
                 <p
                   className={cn(
-                    "flex h-10 items-center justify-end rounded-md border px-2 font-mono text-sm tabular-nums",
+                    "flex h-10 items-center justify-end rounded-none border px-2 font-mono text-sm tabular-nums",
                     changeDue > 0
                       ? "border-emerald-200 bg-emerald-50 font-semibold text-emerald-900"
                       : cashShort
                         ? "border-amber-200 bg-amber-50 text-amber-950"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-800",
+                        : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_92%,transparent)]",
                   )}
                 >
                   {currency} {changeDue.toFixed(2)}
@@ -1173,7 +1359,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   focusPay();
                   cart.setCashTenderStr(cart.payableTotal.toFixed(2));
                 }}
-                className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-50"
+                className="rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2 py-1 text-[11px] font-medium text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_80%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
               >
                 Exact
               </button>
@@ -1185,7 +1371,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                     focusPay();
                     cart.setCashTenderStr(n.toFixed(2));
                   }}
-                  className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-semibold tabular-nums text-zinc-700 hover:bg-zinc-50"
+                  className="rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2 py-1 text-[11px] font-semibold tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_80%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
                 >
                   {n}
                 </button>
@@ -1199,14 +1385,14 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 <input
                   value={cart.stkAreaCode}
                   onChange={(e) => cart.setStkAreaCode(e.target.value)}
-                  className="h-8 w-14 rounded-md border border-zinc-300 px-1.5 text-xs"
+                  className="h-8 w-14 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-1.5 text-xs"
                   aria-label="Area code"
                 />
                 <input
                   value={cart.stkPhone}
                   onChange={(e) => cart.setStkPhone(e.target.value)}
                   placeholder="7XX XXX XXX"
-                  className="h-8 min-w-0 flex-1 rounded-md border border-zinc-300 px-2 text-xs"
+                  className="h-8 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2 text-xs"
                 />
               </div>
               <button
@@ -1215,7 +1401,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 onClick={() =>
                   cart.onStkPush(buildStkPhoneNumber(cart.stkAreaCode, cart.stkPhone))
                 }
-                className="h-8 w-full rounded-md border border-zinc-200 text-xs font-medium hover:bg-zinc-50 disabled:opacity-40"
+                className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] text-xs font-medium hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] disabled:opacity-40"
               >
                 {cart.stkPushStatus === "sending" ? "Sending…" : "Send STK"}
               </button>
@@ -1239,17 +1425,18 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           {cart.notice ? <p className="text-[11px] text-emerald-800">{cart.notice}</p> : null}
           </div>
 
-          <div className="shrink-0 border-t border-zinc-100 p-3">
+          <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] p-3 dark:border-border/40">
           {allowClearSale && cart.onClearSale && cart.lines.length > 0 && !completeIdle ? (
             <button
               type="button"
               disabled={cart.loading || tillLocked}
               onClick={cart.onClearSale}
               className={cn(
-                "mb-2 h-10 w-full rounded-md border border-red-200 bg-white text-sm font-semibold text-red-700",
-                "hover:bg-red-50 active:scale-[0.99] disabled:opacity-40",
+                "mb-2 inline-flex h-8 items-center gap-1.5 rounded-none text-[11px] font-semibold text-muted-foreground",
+                "hover:text-red-700 disabled:opacity-40",
               )}
             >
+              <Trash2 className="size-3" aria-hidden />
               Clear sale
             </button>
           ) : null}
@@ -1260,9 +1447,13 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 ? tillLocked
                 : !cart.canCompleteSale || cart.loading || tillLocked
             }
-            onClick={() => (completeIdle ? newSale() : cart.onComplete())}
+            onClick={() => {
+              payAttemptRef.current = true;
+              if (completeIdle) newSale();
+              else cart.onComplete();
+            }}
             className={cn(
-              "h-12 w-full rounded-md bg-[var(--pos-primary)] text-sm font-semibold text-[var(--pos-primary-ink,#fff)]",
+              "h-12 w-full rounded-none bg-[var(--pos-primary)] text-sm font-bold tracking-tight text-[var(--pos-primary-ink,#fff)]",
               "hover:opacity-95 active:scale-[0.99] disabled:opacity-40",
             )}
           >
@@ -1274,8 +1465,77 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
 
       <footer
         ref={moreRef}
-        className="relative flex shrink-0 items-center gap-1 border-t border-zinc-200 bg-zinc-50 px-2 py-1.5"
+        className={cn(
+          "relative flex shrink-0 items-center gap-1 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] px-2 py-1.5 dark:border-border/40",
+          !isLg && "pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]",
+        )}
       >
+        {isLg ? (
+          <LedgerFunctionBar
+            keys={[
+              { code: "F1", label: "New", onPress: newSale },
+              {
+                code: "F2",
+                label: "Hold",
+                onPress: holdSale,
+                disabled: cart.lines.length === 0,
+              },
+              {
+                code: "F3",
+                label: "Remove",
+                onPress: () => voidLine(),
+                disabled: !selectedKey,
+              },
+              { code: "F4", label: "Find", onPress: focusSearch },
+              { code: "F5", label: "Pay", onPress: focusPay },
+              {
+                code: "F6",
+                label: "Recall",
+                hint: heldTabs.length ? `${heldTabs.length}` : undefined,
+                onPress: recallSale,
+                attention: heldTabs.length > 0,
+              },
+            ]}
+          />
+        ) : (
+          /* Phone: keyboard shortcuts mean nothing on glass, so the per-sale
+             actions become full touch targets instead. */
+          <div className="flex min-w-0 flex-1 items-stretch gap-1">
+            <button
+              type="button"
+              onClick={newSale}
+              className="flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-card text-muted-foreground active:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)] dark:border-border/40"
+            >
+              <PlusCircle className="size-4" aria-hidden />
+              <span className="text-[10px] font-semibold">New</span>
+            </button>
+            <button
+              type="button"
+              disabled={cart.lines.length === 0}
+              onClick={holdSale}
+              className="flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-card text-muted-foreground active:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)] disabled:opacity-40 dark:border-border/40"
+            >
+              <Clock className="size-4" aria-hidden />
+              <span className="text-[10px] font-semibold">Hold</span>
+            </button>
+            <button
+              type="button"
+              disabled={heldTabs.length === 0}
+              onClick={recallSale}
+              className={cn(
+                "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 border bg-card text-muted-foreground active:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)] disabled:opacity-40",
+                heldTabs.length > 0
+                  ? "border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] text-[var(--pos-primary)]"
+                  : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] dark:border-border/40",
+              )}
+            >
+              <RotateCcw className="size-4" aria-hidden />
+              <span className="text-[10px] font-semibold">
+                Recall{heldTabs.length > 0 ? ` ${heldTabs.length}` : ""}
+              </span>
+            </button>
+          </div>
+        )}
         <LedgerFunctionBar
           keys={[
             { code: "F1", label: "New", onPress: newSale },
@@ -1306,77 +1566,64 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           type="button"
           onClick={() => setMoreOpen((v) => !v)}
           aria-expanded={moreOpen}
-          className="ml-1 inline-flex h-10 items-center gap-1 rounded-md border border-zinc-200 bg-white px-2.5 text-xs font-medium"
+          aria-label="Open the till menu"
+          className={cn(
+            "ml-1 inline-flex h-[2.6rem] shrink-0 items-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-card px-2.5 text-[12px] font-semibold tracking-tight hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] dark:border-border/40",
+            !isLg && "flex-1 justify-center",
+          )}
         >
           <MoreHorizontal className="size-4" aria-hidden />
-          More
+          {isLg ? "More" : "Till menu"}
         </button>
         {moreOpen ? (
-          <div className="absolute bottom-full right-2 z-30 mb-1 w-[17.5rem] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-[0_8px_28px_rgba(24,24,27,0.14)]">
-            <div className="flex items-center justify-between border-b border-zinc-100 px-2.5 py-2">
-              <p className="text-[13px] font-semibold text-zinc-900">More</p>
-              <span className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-[10px] font-semibold text-zinc-500">
+          <div className="absolute bottom-full right-2 z-30 mb-1 w-[17.5rem] overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-card shadow-[0_12px_34px_-14px_color-mix(in_srgb,var(--pos-ink,#1c1915)_45%,transparent)] dark:border-border/40">
+            <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-2.5 py-2">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                More
+              </p>
+              <span className="border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] px-1 py-0.5 font-mono text-[9px] font-bold leading-none text-muted-foreground">
                 F12
               </span>
             </div>
-            <div className="max-h-[min(70vh,28rem)] overflow-y-auto">
-              <MoreSection label="On this sale">
-                {allowCreditTabs ? (
-                  <MoreRow
-                    icon={Users}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      setCreditTabsOpen(true);
-                    }}
-                  >
-                    Credit tabs
-                  </MoreRow>
-                ) : null}
-                {allowAirtime ? (
-                  <AirtimeQuickAction
-                    triggerClassName={MORE_ROW}
-                    currency={currency}
-                    channel="POS"
-                    onTrigger={() => setMoreOpen(false)}
-                    onAddToCart={(payload) => {
-                      setMoreOpen(false);
-                      return onAddAirtimeToCart?.(payload) ?? false;
-                    }}
-                  />
-                ) : null}
-                {allowOrderPad ? (
-                  <MoreRow
-                    icon={ClipboardList}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      setOrderPadOpen(true);
-                    }}
-                  >
-                    Order pad
-                  </MoreRow>
-                ) : null}
-                {allowSupplierOrder ? (
-                  <MoreRow
-                    icon={ShoppingBag}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      setSupplierOrderOpen(true);
-                    }}
-                  >
-                    Order
-                  </MoreRow>
-                ) : null}
-                {allowOrderConfirm ? (
-                  <MoreRow
-                    icon={ClipboardCheck}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      setOrderConfirmOpen(true);
-                    }}
-                  >
-                    Confirm orders
-                  </MoreRow>
-                ) : null}
+            <div className="pos-scroll max-h-[min(70vh,28rem)] overflow-y-auto">
+              {/* One source of truth for "what this till can do besides
+                  selling" — the same list the shelf's till menu renders, so the
+                  two templates cannot drift apart. */}
+              {CASHIER_TOOL_SECTIONS.map((section) => {
+                const items = tillTools.filter((t) => t.section === section.id);
+                if (items.length === 0) return null;
+                return (
+                  <MoreSection key={section.id} label={section.label}>
+                    {items.map((tool) =>
+                      tool.id === "airtime" ? (
+                        <AirtimeQuickAction
+                          key={tool.id}
+                          triggerClassName={MORE_ROW}
+                          currency={currency}
+                          channel="POS"
+                          onTrigger={() => setMoreOpen(false)}
+                          onAddToCart={(payload) => {
+                            setMoreOpen(false);
+                            return onAddAirtimeToCart?.(payload) ?? false;
+                          }}
+                        />
+                      ) : (
+                        <MoreRow
+                          key={tool.id}
+                          icon={CASHIER_TOOL_ICONS[tool.id]}
+                          hint={tool.hint}
+                          tone={tool.tone === "danger" ? "leave" : "default"}
+                          onClick={() => runTillTool(tool.id)}
+                        >
+                          {tool.label}
+                        </MoreRow>
+                      ),
+                    )}
+                  </MoreSection>
+                );
+              })}
+
+              <MoreSection label="Till">
                 <MoreRow
                   icon={Camera}
                   onClick={() => {
@@ -1396,67 +1643,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   Checkout details
                 </MoreRow>
               </MoreSection>
-              <MoreSection label="Stock">
-                {allowCreateProduct ? (
-                  <MoreRow
-                    icon={PackagePlus}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      setCreateProductOpen(true);
-                    }}
-                  >
-                    New product
-                  </MoreRow>
-                ) : null}
-                {allowCreateSupplier ||
-                allowLinkSupplierProducts ||
-                allowReceiveSupply ? (
-                  <MoreRow
-                    icon={Truck}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      setSuppliersOpen(true);
-                    }}
-                  >
-                    Receive supply
-                  </MoreRow>
-                ) : null}
-              </MoreSection>
-              <MoreSection label="Shift">
-                {posShiftLinks?.canOpenShift && !posShiftLinks.hasOpenShift ? (
-                  <MoreRow
-                    icon={PlusCircle}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      posShiftLinks.onShortcut("open-shift");
-                    }}
-                  >
-                    Open shift
-                  </MoreRow>
-                ) : null}
-                {posShiftLinks?.canDrawout && posShiftLinks.hasOpenShift ? (
-                  <MoreRow
-                    icon={Wallet}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      posShiftLinks.onShortcut("new-drawout");
-                    }}
-                  >
-                    Drawout
-                  </MoreRow>
-                ) : null}
-                {posShiftLinks?.canCloseShift && posShiftLinks.hasOpenShift ? (
-                  <MoreRow
-                    icon={Clock}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      posShiftLinks.onShortcut("close-shift");
-                    }}
-                  >
-                    Close shift
-                  </MoreRow>
-                ) : null}
-              </MoreSection>
+
               {showOwnerNav ? (
                 <MoreSection label="Records">
                   <MoreRow
@@ -1498,6 +1685,24 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   </MoreRow>
                 </MoreSection>
               ) : null}
+              <MoreSection label="Template">
+                {CASHIER_TEMPLATES.map((t) => {
+                  const current = templatePreference === t.id;
+                  return (
+                    <MoreRow
+                      key={t.id}
+                      icon={t.id === "ledger" ? Table2 : LayoutGrid}
+                      hint={t.blurb}
+                      onClick={() => {
+                        setMoreOpen(false);
+                        void setTemplate(t.id);
+                      }}
+                    >
+                      {current ? `${t.name} · Current` : t.name}
+                    </MoreRow>
+                  );
+                })}
+              </MoreSection>
               <MoreSection label="This till">
                 <MoreRow
                   icon={Settings2}

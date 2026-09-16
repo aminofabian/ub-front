@@ -41,15 +41,15 @@ export function LedgerBestSellers({
   return (
     <section aria-label={title} className="shrink-0">
       <div className="flex items-center gap-2">
-        <p className="shrink-0 text-[11px] font-medium text-zinc-500">
+        <p className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Best sellers
         </p>
-        <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+        <div className="pos-scroll flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5">
           {loading && products.length === 0
             ? Array.from({ length: 6 }).map((_, i) => (
                 <span
                   key={i}
-                  className="h-8 w-28 shrink-0 animate-pulse rounded-md bg-zinc-200"
+                  className="h-8 w-28 shrink-0 animate-pulse rounded-none bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]"
                 />
               ))
             : products.map((product) => {
@@ -65,19 +65,19 @@ export function LedgerBestSellers({
                     onClick={() => onPick(product)}
                     title={productLabel(product)}
                     className={cn(
-                      "flex h-8 max-w-[11rem] shrink-0 items-center gap-1.5 rounded-md border px-2 text-left",
-                      "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50",
+                      "flex h-8 max-w-[11rem] shrink-0 items-center gap-1.5 rounded-none border px-2 text-left",
+                      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)]",
                       "active:scale-[0.99] disabled:opacity-40",
                       qty > 0 &&
-                        "border-[color-mix(in_srgb,var(--pos-primary)_32%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,white)]",
+                        "border-[color-mix(in_srgb,var(--pos-primary)_32%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,var(--card))]",
                     )}
                   >
-                    <span className="min-w-0 truncate text-[12px] font-medium text-zinc-900">
+                    <span className="min-w-0 truncate text-[12px] font-semibold text-[var(--pos-ink,#1c1915)]">
                       {productLabel(product)}
                     </span>
                     {price ? (
-                      <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500">
+                      <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
                         {amount || price}
                         {code ? (
                           <span className="ml-0.5 text-[9px] tracking-wide">
@@ -87,7 +87,7 @@ export function LedgerBestSellers({
                       </span>
                     ) : null}
                     {qty > 0 ? (
-                      <span className="shrink-0 text-[10px] font-semibold tabular-nums text-zinc-700">
+                      <span className="shrink-0 text-[10px] font-semibold tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_80%,transparent)]">
                         ×{qty}
                       </span>
                     ) : null}

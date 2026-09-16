@@ -163,7 +163,7 @@ export function PosReadinessBanner() {
               className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 sm:px-4"
             >
               <Icon className="size-3.5 shrink-0 opacity-80" aria-hidden />
-              <p className="min-w-0 flex-1 text-[11px] leading-snug sm:text-xs">
+              <p className="min-w-0 flex-1 truncate text-[11px] leading-snug sm:text-xs">
                 {message}
               </p>
               {kind === "register-till" ? (

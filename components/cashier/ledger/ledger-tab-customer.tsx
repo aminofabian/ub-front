@@ -129,12 +129,12 @@ export function LedgerTabCustomer({
           type="button"
           disabled={!online}
           onClick={() => setFinderOpen(true)}
-          className="flex h-8 w-full items-center justify-between rounded-md border border-dashed border-zinc-300 px-2.5 text-left text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-40"
+          className="flex h-8 w-full items-center justify-between rounded-none border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2.5 text-left text-[11px] font-medium text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] disabled:opacity-40"
         >
           <span>Link customer</span>
-          <span className="font-normal text-zinc-400">Optional</span>
+          <span className="font-normal text-muted-foreground/70">Optional</span>
         </button>
-        <p className="text-[11px] text-zinc-500">
+        <p className="text-[11px] text-muted-foreground">
           Walk-ins stay quick. Repeat sales build who-buys-what history.
         </p>
       </div>
@@ -143,7 +143,7 @@ export function LedgerTabCustomer({
 
   return (
     <div className="space-y-1.5">
-      <p className="text-[11px] font-medium text-zinc-600">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         {optional ? "Customer (optional)" : "Customer"}
       </p>
       <div className="flex gap-1">
@@ -164,13 +164,13 @@ export function LedgerTabCustomer({
           aria-label={
             optional ? "Find customer for this sale" : "Find customer for tab"
           }
-          className="h-8 min-w-0 flex-1 rounded-md border border-zinc-300 px-2 text-xs outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
+          className="h-8 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2 text-xs outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
         />
         <button
           type="button"
           disabled={findDisabled}
           onClick={onSearchCustomers}
-          className="h-8 shrink-0 rounded-md border border-zinc-200 px-2.5 text-xs font-medium hover:bg-zinc-50 disabled:opacity-40"
+          className="h-8 shrink-0 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2.5 text-xs font-medium hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] disabled:opacity-40"
         >
           {customerSearchBusy ? "…" : "Find"}
         </button>
@@ -181,7 +181,7 @@ export function LedgerTabCustomer({
               setCustomerPhoneQuery("");
               setFinderOpen(false);
             }}
-            className="h-8 shrink-0 px-1.5 text-[11px] font-medium text-zinc-500 hover:text-zinc-800"
+            className="h-8 shrink-0 px-1.5 text-[11px] font-medium text-muted-foreground hover:text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_92%,transparent)]"
           >
             Skip
           </button>
@@ -194,7 +194,7 @@ export function LedgerTabCustomer({
         </p>
       ) : null}
       {customerHits.length > 0 ? (
-        <ul className="max-h-24 space-y-0.5 overflow-y-auto rounded-md border border-zinc-200">
+        <ul className="pos-scroll max-h-24 space-y-0.5 overflow-y-auto border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40">
           {customerHits.map((c) => {
             const hitPhone = customerPrimaryPhone(c.phones);
             const active = selectedCustomer?.id === c.id;
@@ -206,13 +206,13 @@ export function LedgerTabCustomer({
                   className={cn(
                     "w-full px-2 py-1.5 text-left text-[12px]",
                     active
-                      ? "bg-[color-mix(in_srgb,var(--pos-primary)_14%,white)] font-semibold"
-                      : "hover:bg-zinc-50",
+                      ? "bg-[color-mix(in_srgb,var(--pos-primary)_14%,var(--card))] font-semibold"
+                      : "hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
                   )}
                 >
                   {c.name}
                   {hitPhone ? (
-                    <span className="ml-1 font-normal text-zinc-500">
+                    <span className="ml-1 font-normal text-muted-foreground">
                       {hitPhone}
                     </span>
                   ) : null}
@@ -228,13 +228,13 @@ export function LedgerTabCustomer({
       !isValidCustomerPhone(customerPhoneQuery) &&
       !optional &&
       allowSearchCustomersByName ? (
-        <p className="text-[11px] text-zinc-500">
+        <p className="text-[11px] text-muted-foreground">
           No match — try a phone number to register.
         </p>
       ) : null}
       {showRegister ? (
-        <div className="space-y-1.5 rounded-md border border-zinc-200 bg-zinc-50 p-2">
-          <p className="text-[11px] font-semibold text-zinc-800">
+        <div className="space-y-1.5 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] p-2">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             {optional ? "Add new customer" : "Register new number"}
           </p>
           {canManageCustomers ? (
@@ -248,7 +248,7 @@ export function LedgerTabCustomer({
                   customerRegisterBusy ||
                   (registerNeedsOtp && phoneVerificationSent)
                 }
-                className="h-8 w-full rounded-md border border-zinc-300 px-2 text-xs outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
+                className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2 text-xs outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
               />
               {optional &&
               setCustomerRegisterPhone &&
@@ -259,7 +259,7 @@ export function LedgerTabCustomer({
                   inputMode="tel"
                   placeholder="Phone (optional)"
                   disabled={!online || customerRegisterBusy}
-                  className="h-8 w-full rounded-md border border-zinc-300 px-2 text-xs outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
+                  className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2 text-xs outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
                 />
               ) : null}
               {registerPhoneInvalid ? (
@@ -280,7 +280,7 @@ export function LedgerTabCustomer({
                   placeholder="••••"
                   aria-label="4-digit verification code"
                   disabled={!online || customerRegisterBusy}
-                  className="h-8 w-full rounded-md border border-zinc-300 px-2 text-center text-sm font-semibold tracking-[0.3em] outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
+                  className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2 text-center text-sm font-semibold tracking-[0.3em] outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
                 />
               ) : null}
               <button
@@ -302,7 +302,7 @@ export function LedgerTabCustomer({
                     ? onSendPhoneVerification
                     : onRegisterCustomer
                 }
-                className="h-8 w-full rounded-md border border-zinc-200 bg-white text-xs font-medium hover:bg-zinc-50 disabled:opacity-40"
+                className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card text-xs font-medium hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] disabled:opacity-40"
               >
                 {customerRegisterBusy
                   ? "Working…"
@@ -314,19 +314,19 @@ export function LedgerTabCustomer({
               </button>
             </>
           ) : (
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-[11px] text-muted-foreground">
               No permission to register customers.
             </p>
           )}
         </div>
       ) : null}
       {selectedCustomer ? (
-        <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5">
+        <div className="rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] px-2 py-1.5">
           <div className="flex items-start justify-between gap-2">
-            <p className="min-w-0 truncate text-[12px] font-semibold text-zinc-900">
+            <p className="min-w-0 truncate text-[12px] font-semibold text-[var(--pos-ink,#1c1915)]">
               {selectedCustomer.name}
               {selectedPhone ? (
-                <span className="font-normal text-zinc-500">
+                <span className="font-normal text-muted-foreground">
                   {" "}
                   {selectedPhone}
                 </span>
@@ -338,13 +338,13 @@ export function LedgerTabCustomer({
                 setSelectedCustomer(null);
                 if (optional) setFinderOpen(false);
               }}
-              className="shrink-0 text-[11px] font-medium text-zinc-500 hover:text-zinc-800"
+              className="shrink-0 text-[11px] font-medium text-muted-foreground hover:text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_92%,transparent)]"
             >
               Clear
             </button>
           </div>
           {optional ? (
-            <p className="mt-0.5 text-[11px] text-zinc-600">
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
               Linked for purchase history
               {Number.isFinite(owed) && owed > 0.001
                 ? ` · tab owes ${owed.toFixed(2)}`
@@ -355,7 +355,7 @@ export function LedgerTabCustomer({
               Tab suspended — they cannot take more credit.
             </p>
           ) : (
-            <p className="mt-0.5 text-[11px] text-zinc-600">
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
               {currency} {payableTotal.toFixed(2)} on tab
               {Number.isFinite(owed) && owed > 0.001
                 ? ` · owes ${owed.toFixed(2)}`
@@ -365,7 +365,7 @@ export function LedgerTabCustomer({
           <TillLastBasketHint customerId={selectedCustomer.id} />
         </div>
       ) : (
-        <p className="text-[11px] text-zinc-500">
+        <p className="text-[11px] text-muted-foreground">
           {optional
             ? "Find a regular to attach this sale. Leave empty for a walk-in."
             : "Find a customer to put this sale on a tab."}

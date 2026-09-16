@@ -56,7 +56,9 @@ function SummaryRow({
 }) {
   return (
     <li className="flex items-baseline justify-between gap-3 text-[11px]">
-      <span className="text-muted-foreground">{label}</span>
+      <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </span>
       <span className={cn("text-right font-medium tabular-nums text-foreground", valueClassName)}>
         {children}
       </span>
@@ -149,11 +151,11 @@ export function PosSaleCompletePanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2.5">
+      <div className="pos-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2.5">
         <div className="flex items-start gap-2">
           <span
             className={cn(
-              "inline-flex size-7 shrink-0 items-center justify-center rounded-sm",
+              "inline-flex size-7 shrink-0 items-center justify-center rounded-none",
               voided
                 ? "bg-destructive/10 text-destructive"
                 : "bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-[var(--pos-primary)]",
@@ -187,7 +189,7 @@ export function PosSaleCompletePanel({
         </div>
 
         <section
-          className="mt-2.5 border border-border/50 bg-muted/15 px-2 py-1.5"
+          className="mt-2.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-muted/15 px-2 py-1.5 dark:border-border/40"
           aria-label="Sale summary"
         >
           <ul className="space-y-1">
@@ -260,12 +262,12 @@ export function PosSaleCompletePanel({
           </div>
         ) : null}
 
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border/40 pt-2 print:hidden">
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-2.5 print:hidden dark:border-border/40">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-7 rounded-sm px-2 text-[11px]"
+            className="h-7 rounded-none px-2 text-[11px]"
             disabled={receiptLoading}
             onClick={onDownloadReceiptPdf}
           >
@@ -276,7 +278,7 @@ export function PosSaleCompletePanel({
               type="button"
               variant="outline"
               size="sm"
-              className="h-7 gap-1 rounded-sm px-2 text-[11px] border-[#25D366]/40 text-[#128C7E] hover:bg-[#25D366]/10"
+              className="h-7 gap-1 rounded-none border-[#25D366]/40 px-2 text-[11px] text-[#128C7E] hover:bg-[#25D366]/10"
               disabled={waBusy}
               onClick={() => {
                 const known = receipt.customerPhone?.trim();
@@ -295,7 +297,7 @@ export function PosSaleCompletePanel({
           {canVoid && !voided ? (
             <>
               <input
-                className="h-7 min-w-[6rem] flex-1 rounded-sm border border-border/60 bg-background px-2 text-[11px]"
+                className="h-7 min-w-[6rem] flex-1 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-background px-2 text-[11px] disabled:opacity-40 dark:border-border/40 focus:outline-none focus-visible:border-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)]"
                 value={voidNotes}
                 onChange={(e) => setVoidNotes(e.target.value)}
                 placeholder="Void notes"
@@ -305,7 +307,7 @@ export function PosSaleCompletePanel({
                 type="button"
                 variant="destructive"
                 size="sm"
-                className="h-7 rounded-sm px-2 text-[11px]"
+                className="h-7 rounded-none px-2 text-[11px]"
                 disabled={voidLoading}
                 onClick={onVoidLastSale}
               >
@@ -316,7 +318,7 @@ export function PosSaleCompletePanel({
         </div>
 
         {whatsappReceiptEnabled && waOpen && !voided ? (
-          <div className="mt-2 space-y-2 rounded-sm border border-[#25D366]/25 bg-[color-mix(in_srgb,#25D366_6%,transparent)] px-2.5 py-2 print:hidden">
+          <div className="mt-2.5 space-y-2 rounded-none border border-[#25D366]/25 bg-[color-mix(in_srgb,#25D366_6%,transparent)] px-2.5 py-2 print:hidden">
             <p className="text-[11px] font-medium text-foreground">
               Send a digital receipt
             </p>
@@ -326,7 +328,7 @@ export function PosSaleCompletePanel({
             </p>
             <div className="flex gap-1.5">
               <input
-                className="h-8 min-w-0 flex-1 rounded-sm border border-border/60 bg-background px-2 text-[12px]"
+                className="h-8 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-background px-2 text-[12px] disabled:opacity-40 dark:border-border/40 focus:outline-none focus-visible:border-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)]"
                 value={waPhone}
                 onChange={(e) => setWaPhone(e.target.value)}
                 placeholder="0712 345 678"
@@ -343,7 +345,7 @@ export function PosSaleCompletePanel({
               <Button
                 type="button"
                 size="sm"
-                className="h-8 shrink-0 rounded-sm bg-[#128C7E] px-3 text-[11px] font-semibold text-white hover:bg-[#0E7A6E]"
+                className="h-8 shrink-0 rounded-none bg-[#128C7E] px-3 text-[11px] font-semibold text-white hover:bg-[#0E7A6E]"
                 disabled={waBusy}
                 onClick={() => void sendWhatsApp(waPhone)}
               >
@@ -361,13 +363,13 @@ export function PosSaleCompletePanel({
         ) : null}
       </div>
 
-      <div className="shrink-0 border-t border-border/50 px-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2.5 print:hidden">
+      <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2.5 print:hidden dark:border-border/40">
         <div className="flex gap-1.5">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-9 min-w-0 flex-1 gap-1.5 rounded-sm border-[var(--pos-primary)] text-sm font-semibold text-[var(--pos-primary)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+            className="h-9 min-w-0 flex-1 gap-1.5 rounded-none border-[var(--pos-primary)] text-sm font-semibold text-[var(--pos-primary)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
             onClick={() => {
               void printPosReceipt(
                 sale.id,
@@ -383,7 +385,7 @@ export function PosSaleCompletePanel({
           <Button
             type="button"
             size="sm"
-            className="h-9 min-w-0 flex-1 rounded-sm text-sm font-semibold bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90"
+            className="h-9 min-w-0 flex-1 rounded-none bg-[var(--pos-primary)] text-sm font-semibold text-[var(--pos-primary-ink)] hover:opacity-90"
             onClick={onStartNewSale}
           >
             New sale

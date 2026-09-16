@@ -95,6 +95,8 @@ export async function patchTillDevice(
 export async function patchTillDeviceMe(opts: {
   branchId: string;
   cashierTemplate: CashierTemplateId;
+  /** Off by default: callers explain the outcome in place instead of a toast. */
+  toast?: boolean;
 }): Promise<TillDeviceRecord> {
   const sp = new URLSearchParams({ branchId: opts.branchId });
   const row = await apiRequest<TillDeviceRecord>(
@@ -102,6 +104,7 @@ export async function patchTillDeviceMe(opts: {
     {
       method: "PATCH",
       body: { cashierTemplate: opts.cashierTemplate },
+      toast: opts.toast ?? false,
     },
   );
   return normalizeTillDevice(row);

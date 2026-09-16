@@ -5032,6 +5032,17 @@ html:has([data-store-theme-id="daily-gazette"]) ::selection {
     }
 }
 
+/* The ledger keeps its own compact field sizes below `lg`, which iOS would
+   read as "zoom the viewport on focus". Lift every ledger field to 16px at
+   those widths so focus never rescales the till. */
+@media (max-width: 1023px) {
+    .pos-ledger input,
+    .pos-ledger textarea,
+    .pos-ledger select {
+        font-size: 16px;
+    }
+}
+
 /* ── Grocery POS: horizontal scroll with snap & no scrollbar ─────── */
 .pos-snap-row {
     scroll-snap-type: x mandatory;
@@ -5045,6 +5056,81 @@ html:has([data-store-theme-id="daily-gazette"]) ::selection {
 
 .pos-snap-row > * {
     scroll-snap-align: start;
+}
+
+/* ── Ledger on a phone: the till column rises as a panel ─────────────── */
+@keyframes pos-sheet-in {
+    from {
+        opacity: 0;
+        transform: translateY(1.25rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pos-sheet-in {
+    animation: pos-sheet-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pos-sheet-in {
+        animation: none;
+    }
+}
+
+/* ── POS surfaces: the browser chrome belongs to the paper world too ────
+   Tap flash, text selection, the caret and scrollbars ship with browser
+   defaults that belong to no design system; theme them once, scoped to the
+   POS shells, instead of leaving a web page inside an app frame. */
+.pos-market-paper {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.pos-market-paper ::selection {
+    background: color-mix(in srgb, var(--pos-primary) 26%, transparent);
+    color: var(--pos-ink, var(--foreground));
+}
+
+.pos-market-paper input,
+.pos-market-paper textarea {
+    caret-color: var(--pos-primary);
+}
+
+/* Thin ink scrollbars for POS scrollers — the shelf, the cart, the sheets. */
+.pos-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--pos-ink, #1c1915) 16%, transparent) transparent;
+}
+
+.pos-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.pos-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pos-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--pos-ink, #1c1915) 16%, transparent);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.pos-scroll::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--pos-ink, #1c1915) 28%, transparent);
+    background-clip: padding-box;
+}
+
+.dark .pos-scroll {
+    scrollbar-color: color-mix(in srgb, var(--foreground) 20%, transparent) transparent;
+}
+
+.dark .pos-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--foreground) 20%, transparent);
+    background-clip: padding-box;
 }
 
 /* ── Grocery POS: subtle line item slide-in on add ────────────────── */

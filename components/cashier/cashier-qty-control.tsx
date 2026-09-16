@@ -204,7 +204,7 @@ function PortionPie({
   return (
     <span
       className={cn(
-        "inline-block size-3.5 shrink-0 rounded-full border border-current/30",
+        "inline-block size-3.5 shrink-0 rounded-none border border-current/30",
         className,
       )}
       style={{
@@ -560,7 +560,7 @@ export function CashierQtyControl({
             className={cn(
               "fixed z-[80] w-[min(21.25rem,calc(100vw-1.25rem))]",
               "origin-top animate-in fade-in-0 zoom-in-95 duration-200",
-              "overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+              "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
               "bg-[color-mix(in_srgb,var(--popover)_96%,var(--pos-primary)_4%)] text-popover-foreground",
               "shadow-[0_18px_40px_-18px_rgba(0,0,0,0.45),0_8px_16px_-10px_rgba(0,0,0,0.2)]",
               "dark:border-border/50",
@@ -590,7 +590,7 @@ export function CashierQtyControl({
                 </div>
                 <button
                   type="button"
-                  className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
                   aria-label="Close scale"
                   onClick={closePanel}
                 >
@@ -611,7 +611,7 @@ export function CashierQtyControl({
                     });
                   }}
                   className={cn(
-                    "rounded-xl border px-2.5 py-2 text-left transition-all duration-200",
+                    "rounded-none border px-2.5 py-2 text-left transition-all duration-200",
                     drive === "weight" && tab !== "cut"
                       ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] shadow-[0_6px_16px_-10px_color-mix(in_srgb,var(--pos-primary)_55%,transparent)]"
                       : "border-border/45 bg-card/80 hover:border-border",
@@ -631,7 +631,7 @@ export function CashierQtyControl({
                 <div className="flex flex-col items-center justify-center gap-1 px-0.5">
                   <span
                     key={livePulse}
-                    className="flex size-8 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)] animate-pos-scale-tick"
+                    className="flex size-8 items-center justify-center rounded-none bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)] animate-pos-scale-tick"
                   >
                     <ArrowLeftRight className="size-3.5" strokeWidth={2.5} />
                   </span>
@@ -651,7 +651,7 @@ export function CashierQtyControl({
                     });
                   }}
                   className={cn(
-                    "rounded-xl border px-2.5 py-2 text-left transition-all duration-200",
+                    "rounded-none border px-2.5 py-2 text-left transition-all duration-200",
                     drive === "spend" && tab !== "cut"
                       ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] shadow-[0_6px_16px_-10px_color-mix(in_srgb,var(--pos-primary)_55%,transparent)]"
                       : "border-border/45 bg-card/80 hover:border-border",
@@ -680,7 +680,7 @@ export function CashierQtyControl({
 
             <div className="p-2.5">
               <div
-                className="mb-2.5 grid grid-cols-3 gap-0.5 rounded-xl bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] p-0.5 dark:bg-muted/40"
+                className="mb-2.5 grid grid-cols-3 gap-0.5 rounded-none bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] p-0.5 dark:bg-muted/40"
                 role="tablist"
                 aria-label="Entry mode"
               >
@@ -718,7 +718,7 @@ export function CashierQtyControl({
                     <span className="sr-only">Kilograms</span>
                     <div
                       className={cn(
-                        "flex items-center gap-2 rounded-2xl border bg-card px-3 transition-shadow",
+                        "flex items-center gap-2 rounded-none border bg-card px-3 transition-shadow",
                         drive === "weight"
                           ? "border-[var(--pos-primary)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--pos-primary)_18%,transparent)]"
                           : "border-border/50",
@@ -780,7 +780,7 @@ export function CashierQtyControl({
                           key={w}
                           type="button"
                           className={cn(
-                            "h-10 rounded-xl border text-[12px] font-bold tabular-nums transition-colors active:scale-[0.98]",
+                            "h-10 rounded-none border text-[12px] font-bold tabular-nums transition-colors active:scale-[0.98]",
                             active
                               ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)]"
                               : "border-border/45 bg-card hover:border-border hover:bg-muted/30",
@@ -798,7 +798,7 @@ export function CashierQtyControl({
               {tab === "spend" ? (
                 <div className="space-y-2.5">
                   {!hasPrice && shelfRate <= 0 ? (
-                    <p className="rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5 text-[11px] leading-snug text-muted-foreground">
+                    <p className="rounded-none border border-border/50 bg-muted/20 px-3 py-2.5 text-[11px] leading-snug text-muted-foreground">
                       Set a unit price on this line before spending by amount.
                     </p>
                   ) : (
@@ -809,7 +809,7 @@ export function CashierQtyControl({
                         </span>
                         <div
                           className={cn(
-                            "flex items-center gap-2 rounded-2xl border bg-card px-3 transition-shadow",
+                            "flex items-center gap-2 rounded-none border bg-card px-3 transition-shadow",
                             drive === "spend"
                               ? "border-[var(--pos-primary)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--pos-primary)_18%,transparent)]"
                               : "border-border/50",
@@ -861,7 +861,7 @@ export function CashierQtyControl({
                               key={a}
                               type="button"
                               className={cn(
-                                "h-11 rounded-xl border text-[13px] font-bold tabular-nums transition-colors active:scale-[0.98]",
+                                "h-11 rounded-none border text-[13px] font-bold tabular-nums transition-colors active:scale-[0.98]",
                                 active
                                   ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)]"
                                   : "border-border/45 bg-card hover:border-border hover:bg-muted/30",
@@ -891,7 +891,7 @@ export function CashierQtyControl({
                           key={v}
                           type="button"
                           className={cn(
-                            "flex flex-col items-center gap-1 rounded-xl border px-1 py-2.5 transition-colors active:scale-[0.98]",
+                            "flex flex-col items-center gap-1 rounded-none border px-1 py-2.5 transition-colors active:scale-[0.98]",
                             active
                               ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)]"
                               : "border-border/50 bg-card hover:border-border hover:bg-muted/30",
@@ -933,7 +933,7 @@ export function CashierQtyControl({
                                   type="button"
                                   title={p.hint}
                                   className={cn(
-                                    "inline-flex min-w-[2.4rem] items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-[12px] font-bold tabular-nums transition-colors",
+                                    "inline-flex min-w-[2.4rem] items-center justify-center gap-1 rounded-none border px-2 py-1.5 text-[12px] font-bold tabular-nums transition-colors",
                                     active
                                       ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-[var(--pos-primary)]"
                                       : "border-border/45 bg-card hover:border-border hover:bg-muted/30",
@@ -960,7 +960,7 @@ export function CashierQtyControl({
 
               <button
                 type="button"
-                className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[var(--pos-primary)] text-[12px] font-semibold text-[var(--pos-primary-ink,#fff)] transition-[filter,transform] hover:brightness-105 active:scale-[0.99]"
+                className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-none bg-[var(--pos-primary)] text-[12px] font-semibold text-[var(--pos-primary-ink,#fff)] transition-[filter,transform] hover:brightness-105 active:scale-[0.99]"
                 onClick={closePanel}
               >
                 <Check className="size-3.5" strokeWidth={2.75} />
@@ -986,7 +986,7 @@ export function CashierQtyControl({
         className={cn(
           "inline-flex items-center border",
           "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] dark:border-border/40",
-          size === "sm" && "rounded-lg border-border/55 bg-muted/10",
+          size === "sm" && "rounded-none border-border/55 bg-muted/10",
           open &&
             "border-[color-mix(in_srgb,var(--pos-primary)_45%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]",
         )}
@@ -1034,7 +1034,7 @@ export function CashierQtyControl({
           className={cn(
             "min-w-[2.75rem] max-w-[4.5rem] bg-transparent px-0.5 text-center text-xs font-bold tabular-nums leading-none outline-none",
             "text-foreground selection:bg-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
-            "focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)] focus-visible:ring-offset-1",
+            "focus-visible:rounded-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)] focus-visible:ring-offset-1",
             open && "text-[var(--pos-primary)]",
             size === "sm" ? "h-9" : "h-10",
           )}

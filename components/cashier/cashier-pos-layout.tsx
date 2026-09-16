@@ -99,6 +99,7 @@ import { AirtimeQuickAction } from "@/components/airtime/airtime-quick-action";
 import type { AirtimeCartPayload } from "@/lib/airtime-cart-line";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { CashierCreateProductModal } from "./cashier-create-product-modal";
+import { buildCashierTools } from "./cashier-pos-tools";
 import { CashierEditPriceModal } from "./cashier-edit-price-modal";
 import { CashierCreditTabsModal } from "./cashier-credit-tabs-modal";
 import { CashierReceiveTillDrawer } from "./cashier-receive-till-drawer";
@@ -109,12 +110,11 @@ import {
   CASHIER_RUN_TOOL_EVENT,
   dispatchCashierCartSummary,
   dispatchCashierTools,
-  type CashierMobileTool,
   type CashierMobileToolId,
 } from "@/lib/cashier-mobile-events";
 
 const POS_SHIFT_CHIP_CLASS = cn(
-  "inline-flex items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-transparent px-2.5 py-1.5 text-xs font-medium tracking-tight text-foreground",
+  "inline-flex items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-transparent px-2.5 py-1.5 text-xs font-medium tracking-tight text-foreground",
   "transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
   "active:scale-[0.98]",
@@ -130,6 +130,11 @@ const POS_SECONDARY_CHIP_CLASS = cn(
   POS_SHIFT_CHIP_CLASS,
   "border-transparent text-muted-foreground",
   "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] hover:text-foreground",
+);
+
+/** Micro label: counts, roles, section kickers inside the shelf. */
+const POS_MICRO_LABEL = cn(
+  "text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
 );
 
 const KIOSK_TILE_SHELL = cn(
@@ -387,6 +392,7 @@ export type CashierPosLayoutProps = {
     | "receiptLoading"
     | "onStartNewSale"
     | "onClearSale"
+    | "onOpenShift"
     | "receiptPrinter"
     | "whatsappReceiptEnabled"
   >;
@@ -431,13 +437,13 @@ function KioskTileShelfPrice({
   return (
     <p
       className={cn(
-        "inline-flex max-w-full items-baseline gap-0.5 truncate tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_72%,transparent)] dark:text-muted-foreground",
-        compact ? "text-[10px]" : "text-[11px]",
+        "inline-flex max-w-full items-baseline gap-0.5 truncate font-semibold tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_90%,transparent)] dark:text-foreground",
+        compact ? "text-[11px]" : "text-[12px]",
       )}
     >
-      <span className="font-semibold leading-none">{amount}</span>
+      <span className="leading-none">{amount}</span>
       {code ? (
-        <span className="text-[8px] font-medium uppercase tracking-[0.12em] opacity-70">
+        <span className="text-[8px] font-medium uppercase tracking-[0.12em] opacity-60">
           {code}
         </span>
       ) : null}
@@ -602,7 +608,7 @@ function KioskTileAddPhotoButton({
       }}
       onPointerDown={(e) => e.stopPropagation()}
       className={cn(
-        "pointer-events-auto absolute z-[3] flex items-center justify-center rounded-md border border-white/50 bg-black/55 text-white shadow-sm backdrop-blur-[1px] transition-colors hover:bg-black/70 disabled:opacity-70",
+        "pointer-events-auto absolute z-[3] flex items-center justify-center rounded-none border border-white/50 bg-black/55 text-white shadow-sm backdrop-blur-[1px] transition-colors hover:bg-black/70 disabled:opacity-70",
         raised
           ? compact
             ? "right-0.5 bottom-9 size-6"
@@ -668,6 +674,7 @@ function KioskTileMedia({
   justAdded,
   stockTone,
   compact = false,
+  phone = false,
   canAddPhoto = false,
   itemId,
   photoUploading = false,
@@ -680,6 +687,8 @@ function KioskTileMedia({
   justAdded: boolean;
   stockTone: "out" | "low" | null;
   compact?: boolean;
+  /** Phone shelf: slightly shorter media so 3 seller rows clear the fold. */
+  phone?: boolean;
   canAddPhoto?: boolean;
   itemId?: string;
   photoUploading?: boolean;
@@ -694,7 +703,7 @@ function KioskTileMedia({
     <div
       className={cn(
         "relative w-full shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] dark:border-border/40 dark:from-muted/30 dark:to-muted/50",
-        compact ? "aspect-square" : "aspect-[4/3]",
+        compact ? (phone ? "aspect-[5/4]" : "aspect-square") : "aspect-[4/3]",
       )}
     >
       <span
@@ -780,7 +789,7 @@ function KioskTileTitle({
         className={cn(
           "text-left leading-snug tracking-tight text-[var(--pos-ink,#1c1915)] dark:text-neutral-50",
           compact
-            ? "line-clamp-3 text-[11px] font-semibold sm:text-[12px]"
+            ? "line-clamp-2 text-[11px] font-semibold leading-tight sm:text-[12px]"
             : "line-clamp-3 text-[12px] font-semibold sm:text-[13px]",
         )}
       >
@@ -791,26 +800,28 @@ function KioskTileTitle({
           className={cn(
             "text-left font-bold leading-snug text-[var(--pos-ink,#1c1915)] dark:text-neutral-100",
             compact
-              ? "line-clamp-2 text-[10px] sm:text-[11px]"
+              ? "line-clamp-1 text-[10px] sm:text-[11px]"
               : "line-clamp-2 text-[11px] sm:text-[12px]",
           )}
         >
           {option}
         </p>
       ) : null}
-      <div className="flex min-w-0 flex-wrap items-center gap-1">
-        {rank != null ? (
-          <span
-            className={cn(
-              "shrink-0 font-semibold leading-none tabular-nums tracking-[0.02em] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)] dark:text-muted-foreground",
-              compact ? "text-[9px]" : "text-[10px]",
-            )}
-            title={`Number ${rank} seller here`}
-          >
-            #{rank}
-          </span>
-        ) : null}
-        <KioskTileShelfPrice shelfLine={shelfLine} compact={compact} />
+      <div className="flex min-w-0 items-baseline justify-between gap-1">
+        <span className="flex min-w-0 items-baseline gap-1">
+          {rank != null ? (
+            <span
+              className={cn(
+                "shrink-0 font-semibold leading-none tabular-nums tracking-[0.02em] text-muted-foreground",
+                compact ? "text-[9px]" : "text-[10px]",
+              )}
+              title={`Number ${rank} seller here`}
+            >
+              #{rank}
+            </span>
+          ) : null}
+          <KioskTileShelfPrice shelfLine={shelfLine} compact={compact} />
+        </span>
         {highValue ? (
           <span
             className={cn(
@@ -847,6 +858,7 @@ function TopSellerTile({
   cartQty,
   justAdded,
   compact = false,
+  phone = false,
   canAddPhoto = false,
   photoUploading = false,
   qtyStepper,
@@ -860,6 +872,7 @@ function TopSellerTile({
   cartQty: number;
   justAdded: boolean;
   compact?: boolean;
+  phone?: boolean;
   canAddPhoto?: boolean;
   photoUploading?: boolean;
   qtyStepper?: ReactNode;
@@ -905,6 +918,7 @@ function TopSellerTile({
         justAdded={justAdded}
         stockTone={stockTone}
         compact={compact}
+        phone={phone}
         canAddPhoto={canAddPhoto}
         itemId={product.id}
         photoUploading={photoUploading}
@@ -919,7 +933,7 @@ function TopSellerTile({
         className={cn(
           "flex flex-1 flex-col justify-center",
           compact
-            ? "min-h-[3.1rem] px-1 pb-1 pt-0.5"
+            ? "min-h-[2.1rem] px-1 py-0.5"
             : "min-h-[4rem] px-2 pb-2 pt-1.5",
         )}
       >
@@ -946,6 +960,7 @@ function SearchHitTile({
   cartQty,
   justAdded,
   compact = false,
+  phone = false,
   canAddPhoto = false,
   photoUploading = false,
   onOpenPhotoPicker,
@@ -958,6 +973,7 @@ function SearchHitTile({
   cartQty: number;
   justAdded: boolean;
   compact?: boolean;
+  phone?: boolean;
   canAddPhoto?: boolean;
   photoUploading?: boolean;
   onOpenPhotoPicker?: (itemId: string, itemName: string) => void;
@@ -989,6 +1005,7 @@ function SearchHitTile({
         justAdded={justAdded}
         stockTone={stockTone}
         compact={compact}
+        phone={phone}
         canAddPhoto={canAddPhoto}
         itemId={item.id}
         photoUploading={photoUploading}
@@ -1002,9 +1019,9 @@ function SearchHitTile({
         className={cn(
           "flex flex-1 flex-col justify-center gap-1",
           compact
-            ? "min-h-[3.1rem] px-1 pb-1 pt-0.5"
+            ? "min-h-[2.1rem] px-1 py-0.5"
             : "min-h-[4rem] px-2 pb-2 pt-1.5",
-          showCategory && (compact ? "min-h-[3.75rem]" : "min-h-[4.5rem]"),
+          showCategory && (compact ? "min-h-[2.6rem]" : "min-h-[4.5rem]"),
         )}
       >
         <KioskTileTitle
@@ -1034,6 +1051,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     embeddedInDashboard = false,
     inDrawer = false,
     brandTheme,
+    toolbarExtras,
     online,
     offlineBanner,
     tillPrinterStatus,
@@ -1662,91 +1680,18 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       dispatchCashierTools([]);
       return;
     }
-    const tools: CashierMobileTool[] = [];
-    if (allowCreditTabs) {
-      tools.push({
-        id: "credit-tabs",
-        label: "Credit tabs",
-        hint: "Put this sale on a customer's tab",
-        section: "sale",
-      });
-    }
-    if (allowAirtime) {
-      tools.push({
-        id: "airtime",
-        label: "Airtime",
-        hint: "Sell M-Pesa airtime or data bundles",
-        section: "sale",
-      });
-    }
-    if (allowOrderPad) {
-      tools.push({
-        id: "order-pad",
-        label: "Order pad",
-        hint: "Jot what to buy — the whole branch sees it",
-        section: "sale",
-      });
-    }
-    if (allowCreateProduct) {
-      tools.push({
-        id: "add-product",
-        label: "Add product",
-        hint: "Create an item that is not in the catalog yet",
-        section: "stock",
-      });
-    }
-    if (allowManageSuppliers) {
-      tools.push({
-        id: "suppliers",
-        label: "Suppliers",
-        hint: "Vendors, contacts, and till deliveries",
-        section: "stock",
-      });
-    }
-    if (allowSupplierOrder) {
-      tools.push({
-        id: "supplier-order",
-        label: "Supplier order",
-        hint: "Raise a purchase order for stock",
-        section: "stock",
-      });
-    }
-    if (allowOrderConfirm) {
-      tools.push({
-        id: "order-confirm",
-        label: "Confirm order",
-        hint: "Receive goods from an open supplier order",
-        section: "stock",
-      });
-    }
-    if (posShiftLinks?.branchSelected) {
-      if (posShiftLinks.canDrawout && posShiftLinks.hasOpenShift) {
-        tools.push({
-          id: "drawout",
-          label: "Drawout",
-          hint: "Take cash out of the till",
-          section: "shift",
-        });
-      }
-      if (posShiftLinks.canOpenShift && !posShiftLinks.hasOpenShift) {
-        tools.push({
-          id: "open-shift",
-          label: "Open shift",
-          hint: "Start a shift and enter the opening float",
-          section: "shift",
-        });
-      }
-      if (posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift) {
-        tools.push({
-          id: "close-shift",
-          label: "Close shift",
-          hint: "Count the drawer and close the shift",
-          section: "shift",
-          tone: "danger",
-        });
-      }
-    }
-    dispatchCashierTools(tools);
+    dispatchCashierTools(
+      buildCashierTools({
+        allowCreditTabs,
+        allowAirtime,
+        allowOrderPad,
+        allowCreateProduct,
+        allowManageSuppliers,
+        allowSupplierOrder,
+        allowOrderConfirm,
+        posShiftLinks: posShiftLinks ?? null,
+      }),
+    );
     return () => dispatchCashierTools([]);
   }, [
     embeddedInDashboard,
@@ -1872,7 +1817,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               // scroller, unlike the dashboard page where `main` scrolls.
               inDrawer && "min-h-0 flex-1 overflow-y-auto overscroll-y-contain",
             )
-          : "flex h-full min-h-0 flex-1 flex-col overflow-hidden pb-4 lg:pb-0",
+          : "flex h-full min-h-0 flex-1 flex-col overflow-hidden pb-0",
       )}
       style={brandTheme}
     >
@@ -1887,16 +1832,22 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         <div
           className={cn(
             "min-w-0 flex-1",
-            compactShelf ? "space-y-1.5" : "space-y-3 sm:space-y-4",
+            mobilePhone
+              ? "space-y-0"
+              : compactShelf
+                ? "space-y-1.5"
+                : "space-y-3 sm:space-y-4",
             !embeddedInDashboard &&
-              "h-full min-h-0 overflow-y-auto overscroll-y-contain pr-0.5",
+              // Clearance lives inside the scroller so the shelf scrolls under
+              // the bottom nav instead of a dead band sitting above it.
+              "pos-scroll h-full min-h-0 overflow-y-auto overscroll-y-contain pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] pr-0.5",
           )}
         >
       <section
         className={cn(
           "border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] dark:border-border/40",
           compactShelf ? "pb-1.5" : "pb-3",
-          mobilePhone && !offlineBanner && !tillPrinterStatus && "hidden",
+          mobilePhone && !offlineBanner && "hidden",
         )}
       >
         <div
@@ -1930,7 +1881,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 <h2 className="pos-market-section-label flex items-center gap-2 text-xl leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-2xl">
                   <span>{pageTitle}</span>
                   <span
-                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--pos-primary)] opacity-80"
+                    className="h-1.5 w-1.5 shrink-0 rounded-none bg-[var(--pos-primary)] opacity-80"
                     aria-hidden
                   />
                 </h2>
@@ -2083,21 +2034,21 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           </p>
         ) : null}
         {tillPrinterStatus ? (
-          <div className="mt-2 print:hidden">{tillPrinterStatus}</div>
+          <div className={cn("print:hidden", mobilePhone && "hidden")}>{tillPrinterStatus}</div>
         ) : null}
       </section>
 
       {/* ── Sticky cart tabs + search ───────────────────────────── */}
       <div
         className={cn(
-          "sticky z-20 -mx-1 space-y-1 sm:-mx-0",
+          "sticky z-20 -mx-1 space-y-0.5 sm:-mx-0",
           embeddedInDashboard ? "top-[3.5rem]" : "top-0",
         )}
       >
       {cartTabs.length > 0 ? (
           <div
             className={cn(
-              "flex items-center gap-1.5 overflow-x-auto px-1 py-1.5",
+              "flex items-center gap-1.5 overflow-x-auto px-1 py-1",
               "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_88%,transparent)]",
               "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_78%,transparent)] supports-[backdrop-filter]:backdrop-blur-sm",
               "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40 dark:bg-background/85",
@@ -2144,7 +2095,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 <div
                   key={tab.id}
                   className={cn(
-                    "pos-market-ticket group relative flex shrink-0 items-center gap-1.5 border px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
+                    "pos-market-ticket group relative flex shrink-0 items-center gap-1.5 border px-2 py-1 text-xs font-medium transition-all duration-150",
                     isActive
                       ? "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)] bg-card text-foreground"
                       : veryStale || stale
@@ -2158,6 +2109,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 >
                   <button
                     type="button"
+                    aria-current={isActive ? "true" : undefined}
                     onClick={() => onSwitchCart(tab.id)}
                     className="flex min-w-0 flex-col items-start gap-0.5 text-left"
                     title={
@@ -2169,7 +2121,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     <span className="flex items-center gap-1.5">
                       <span
                         className={cn(
-                          "size-1.5 shrink-0 rounded-full",
+                          "size-1.5 shrink-0 rounded-none",
                           isActive
                             ? "bg-[var(--pos-ink,#1c1915)]"
                             : veryStale || stale
@@ -2182,10 +2134,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       />
                       <span
                         className={cn(
-                          "text-[9px] font-semibold uppercase tracking-[0.12em]",
-                          veryStale || stale
-                            ? "text-foreground/70"
-                            : "text-muted-foreground",
+                          POS_MICRO_LABEL,
+                          "shrink-0",
+                          (veryStale || stale) && "text-foreground/70",
                         )}
                       >
                         {role}
@@ -2196,7 +2147,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       {tab.syncStatus && tab.kind !== "empty" ? (
                         <span
                           className={cn(
-                            "size-1.5 shrink-0 rounded-full",
+                            "size-1.5 shrink-0 rounded-none",
                             tab.syncStatus === "idle"
                               ? "bg-emerald-500"
                               : tab.syncStatus === "syncing"
@@ -2241,18 +2192,30 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               <button
                 type="button"
                 onClick={onCreateCart}
-                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-[var(--pos-primary)] hover:text-foreground"
+                className="inline-flex shrink-0 items-center gap-1 rounded-none border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-[var(--pos-primary)] hover:text-foreground"
               >
                 <PlusCircle className="size-3.5" />
                 <span>New</span>
               </button>
+            ) : null}
+            {/* Phone: printer status + Pending/Invoices fold into the tab row
+                so no chip gets a full-width band above the shelf. */}
+            {mobilePhone && tillPrinterStatus ? (
+              <div className="ml-auto flex shrink-0 items-center print:hidden">
+                {tillPrinterStatus}
+              </div>
+            ) : null}
+            {mobilePhone && toolbarExtras ? (
+              <div className="ml-auto flex shrink-0 items-center gap-1">
+                {toolbarExtras}
+              </div>
             ) : null}
           </div>
       ) : null}
 
         <section
           className={cn(
-            "py-1",
+            "py-0.5",
             "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,transparent)]",
             "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_82%,transparent)] supports-[backdrop-filter]:backdrop-blur-sm",
             "dark:bg-background/90",
@@ -2260,8 +2223,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         >
           <div
             className={cn(
-              "group flex items-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card pl-3.5 pr-1.5 transition-colors",
-              "rounded-2xl sm:rounded-none",
+              "group flex items-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card pl-3 pr-1 transition-colors",
+              "rounded-none",
               "focus-within:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)]",
               "dark:border-border/40 dark:bg-card/80",
             )}
@@ -2273,7 +2236,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             <button
               type="button"
               onClick={() => setShowScanner(true)}
-              className="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:text-foreground dark:text-muted-foreground"
+              className="flex size-11 shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors hover:text-foreground dark:text-muted-foreground"
               aria-label="Scan barcode with phone camera"
               title="Scan barcode with camera"
             >
@@ -2380,38 +2343,38 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       </div>
 
       {hasSearch ? (
-        <section
-          className={cn(
-            "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
-            compactShelf ? "space-y-1.5 pt-1.5" : "space-y-2.5 pt-3",
-          )}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <h3
-              className={cn(
-                "pos-market-section-label leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground",
-                compactShelf ? "text-[0.95rem]" : "text-lg sm:text-xl",
-              )}
-            >
-              {sharedCategoryLabel
-                ? `${sharedCategoryLabel} — ${hits.length} result${hits.length === 1 ? "" : "s"}`
-                : search.trim()
-                  ? "Search results"
-                  : categoryFilterId
-                    ? "Aisle items"
-                    : typeFilterId
-                      ? "Type items"
-                      : "Items"}
-            </h3>
-            {!sharedCategoryLabel && hits.length > 0 ? (
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {hits.length} match{hits.length === 1 ? "" : "es"}
-              </span>
-            ) : null}
-          </div>
+          <section
+            className={cn(
+              "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
+              compactShelf ? "space-y-2 pt-2" : "space-y-2.5 pt-3",
+            )}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <h3
+                className={cn(
+                  "pos-market-section-label leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground",
+                  compactShelf ? "text-[0.95rem]" : "text-lg sm:text-xl",
+                )}
+              >
+                {sharedCategoryLabel
+                  ? `${sharedCategoryLabel} — ${hits.length} result${hits.length === 1 ? "" : "s"}`
+                  : search.trim()
+                    ? "Search results"
+                    : categoryFilterId
+                      ? "Aisle items"
+                      : typeFilterId
+                        ? "Type items"
+                        : "Items"}
+              </h3>
+              {!sharedCategoryLabel && hits.length > 0 ? (
+                <span className={cn(POS_MICRO_LABEL, "shrink-0 tabular-nums")}>
+                  {hits.length} match{hits.length === 1 ? "" : "es"}
+                </span>
+              ) : null}
+            </div>
           {hits.length === 0 ? (
             <div className="space-y-2">
-              <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-center text-xs text-muted-foreground sm:py-8">
+              <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-5 text-center text-xs text-muted-foreground sm:py-8">
                 {search.trim()
                   ? "No items match your search."
                   : categoryFilterId
@@ -2425,7 +2388,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   trigger={
                     <button
                       type="button"
-                      className="group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] bg-[color-mix(in_srgb,var(--card)_60%,transparent)] px-4 py-3 text-center text-sm font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)] transition hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] hover:text-[var(--pos-primary,#0f766e)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0 sm:rounded-none sm:text-xs"
+                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-none border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] bg-[color-mix(in_srgb,var(--card)_60%,transparent)] px-3 py-2 text-center text-[13px] font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)] transition hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] hover:text-[var(--pos-primary,#0f766e)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0 sm:text-xs"
                       title="How to take your first sale — summary + full guide"
                     >
                       How to take your first sale
@@ -2455,7 +2418,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               className={cn(
                 "grid gap-1.5 sm:gap-2",
                 mobilePhone
-                  ? "min-h-[min(68dvh,36rem)] grid-cols-3 content-start gap-2 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5"
+                  ? "grid-cols-3 content-start gap-x-1.5 gap-y-1 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5"
                   : compactShelf
                     ? "grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
                     : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
@@ -2478,6 +2441,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   cartQty={cartQtyByItem.get(item.id) ?? 0}
                   justAdded={justAddedId === item.id}
                   compact={tileCompact || mobilePhone}
+                  phone={mobilePhone}
                   canAddPhoto={allowAddPhoto}
                   photoUploading={photoUploadingId === item.id}
                   onOpenPhotoPicker={
@@ -2508,7 +2472,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           aria-label="Top selling products"
           className={cn(
             "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
-            compactShelf ? "space-y-1.5 pt-1.5" : "space-y-3 pt-3",
+            compactShelf ? "space-y-2 pt-2" : "space-y-3 pt-3",
           )}
         >
           <div className="flex items-end justify-between gap-2">
@@ -2530,12 +2494,12 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             </div>
           </div>
           {alwaysShowTopProducts && topProductsLoading ? (
-            <div className="flex items-center justify-center gap-2 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-xs text-muted-foreground sm:py-8">
+            <div className="flex items-center justify-center gap-2 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-5 text-xs text-muted-foreground sm:py-8">
               <Loader2 className="size-4 animate-spin" aria-hidden />
               Loading top sellers…
             </div>
           ) : alwaysShowTopProducts && topProducts.length === 0 ? (
-            <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-center text-xs text-muted-foreground sm:py-8">
+            <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-5 text-center text-xs text-muted-foreground sm:py-8">
               No sales yet — top sellers will appear here after the first sale.
             </p>
           ) : (
@@ -2543,7 +2507,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               className={cn(
                 "grid gap-1.5 sm:gap-2",
                 mobilePhone
-                  ? "grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5"
+                  ? "grid-cols-3 gap-x-1.5 gap-y-1 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5"
                   : compactShelf
                     ? "grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
                     : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 lg:grid-cols-5",
@@ -2561,6 +2525,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   cartQty={cartQtyByItem.get(p.id) ?? 0}
                   justAdded={justAddedId === p.id}
                   compact={tileCompact || mobilePhone}
+                  phone={mobilePhone}
                   canAddPhoto={allowAddPhoto}
                   photoUploading={photoUploadingId === p.id}
                   qtyStepper={shelfStepper(p.id, p.name)}
@@ -2581,7 +2546,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         <section
           className={cn(
             "border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] dark:border-border/40",
-            compactShelf ? "mt-2 space-y-1.5 pt-2" : "mt-3 space-y-3 pt-3",
+            compactShelf ? "mt-2 space-y-2 pt-2" : "mt-3 space-y-3 pt-3",
           )}
         >
           <div className="flex flex-wrap items-end justify-between gap-2">

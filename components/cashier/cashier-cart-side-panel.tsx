@@ -229,7 +229,7 @@ export function CashierCartSidePanel({
 
         <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-3 py-2.5 dark:border-border/40">
           {tillListening ? (
-            <p className="mb-2 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+            <p className="mb-2 rounded-none border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
               Listening for M-Pesa till payment…
             </p>
           ) : null}
@@ -249,7 +249,7 @@ export function CashierCartSidePanel({
           <Button
             type="button"
             className={cn(
-              "h-12 w-full rounded-md text-[15px] font-semibold tracking-wide",
+              "h-12 w-full rounded-none text-[15px] font-semibold tracking-wide",
               "disabled:opacity-40",
             )}
             style={{
@@ -267,7 +267,7 @@ export function CashierCartSidePanel({
             <Button
               type="button"
               variant="outline"
-              className="mt-2 h-10 w-full rounded-md border-destructive/35 text-[13px] font-semibold text-destructive hover:bg-destructive/5 hover:text-destructive"
+              className="mt-2 h-10 w-full rounded-none border-destructive/35 text-[13px] font-semibold text-destructive hover:bg-destructive/5 hover:text-destructive"
               disabled={loading}
               onClick={onClearSale}
             >

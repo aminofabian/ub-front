@@ -78,7 +78,7 @@ export function CashierEditPriceModal({
   const canSave = Number.isFinite(priceNum) && priceNum > 0 && !busy;
 
   const fieldClass = cn(
-    "h-12 w-full rounded-2xl border border-border/55 bg-background px-3 text-right text-lg font-semibold tabular-nums shadow-sm sm:h-11 sm:rounded-xl",
+    "h-12 w-full rounded-none border border-border/55 bg-background px-3 text-right text-lg font-semibold tabular-nums shadow-sm sm:h-11 sm:rounded-none",
     "focus:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_40%,var(--border))] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)]",
   );
 
@@ -122,9 +122,9 @@ export function CashierEditPriceModal({
         sheetDrag={phone}
         showCloseButton={!phone}
         className={cn(
-          "gap-0 overflow-hidden p-0",
+          "gap-0 overflow-hidden p-0 [&>button]:rounded-none",
           phone
-            ? "max-h-[min(92dvh,32rem)] w-full rounded-t-[1.25rem]"
+            ? "max-h-[min(92dvh,32rem)] w-full rounded-t-none"
             : "max-w-sm",
         )}
         style={brandTheme}
@@ -165,7 +165,7 @@ export function CashierEditPriceModal({
           {canUpdateCatalog ? (
             <label
               className={cn(
-                "flex cursor-pointer items-start gap-2.5 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5",
+                "flex cursor-pointer items-start gap-2.5 rounded-none border border-border/50 bg-muted/20 px-3 py-2.5",
                 !canPersist && "cursor-not-allowed opacity-60",
               )}
             >
@@ -197,7 +197,7 @@ export function CashierEditPriceModal({
             type="button"
             variant="ghost"
             disabled={busy}
-            className="h-12 rounded-2xl sm:h-9 sm:rounded-md"
+            className="h-12 rounded-none sm:h-9 sm:rounded-none"
             onClick={() => onOpenChange(false)}
           >
             Cancel
@@ -205,7 +205,7 @@ export function CashierEditPriceModal({
           <Button
             type="button"
             disabled={!canSave}
-            className="h-12 rounded-2xl bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90 sm:h-9 sm:rounded-md"
+            className="h-12 rounded-none bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90 sm:h-9 sm:rounded-none"
             onClick={() => void submit()}
           >
             {busy ? "Saving…" : "Update price"}

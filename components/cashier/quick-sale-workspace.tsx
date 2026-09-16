@@ -4696,9 +4696,9 @@ export function QuickSaleWorkspace({
           className={cn(
             "flex items-center justify-between px-1",
             isCashier ? "shrink-0 pb-0.5" : "pb-2",
-            // On phone the shelf is the product; tuck Pending / Invoices into a
-            // single trailing chip row that doesn't steal vertical space.
-            isCashier && "max-lg:pb-1",
+            // On phone Pending / Invoices fold into the POS tab row instead
+            // of owning a full-width band above the shelf.
+            isCashier && "max-lg:hidden",
           )}
         >
           {!isCashier ? (
@@ -4726,7 +4726,9 @@ export function QuickSaleWorkspace({
         inDrawer={!isCashier && inShellDrawer}
         checkoutCompletedKey={checkoutCompletedKey}
         brandTheme={dialogBrandTheme}
-        toolbarExtras={isLedger ? pendingExtras : undefined}
+        // Phone /cashier folds Pending / Invoices into the POS tab row via
+        // toolbarExtras; other hosts keep their own standalone row.
+        toolbarExtras={isLedger || !isCashier ? (isLedger ? pendingExtras : undefined) : pendingExtras}
         online={online}
         offlineBanner={posDraftOfflineBanner}
         currency={currency}
@@ -4926,6 +4928,7 @@ export function QuickSaleWorkspace({
           receiptLoading,
           onStartNewSale,
           onClearSale,
+          onOpenShift: () => onPosShiftShortcut("open-shift"),
           receiptPrinter: {
             cupsName:
               branches.find((b) => b.id === branchId.trim())?.receipt
@@ -5032,7 +5035,7 @@ export function QuickSaleWorkspace({
           <DialogFooter className="gap-2 sm:flex-col sm:space-x-0">
             <button
               type="button"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-none bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
               onClick={() => {
                 const choice = invoicePlacementChoice;
                 if (!choice) return;
@@ -5045,7 +5048,7 @@ export function QuickSaleWorkspace({
             </button>
             <button
               type="button"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-none border border-border bg-background px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
               onClick={() => {
                 const choice = invoicePlacementChoice;
                 if (!choice) return;

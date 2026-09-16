@@ -74,7 +74,7 @@ const fieldClass = cn(
   "focus-visible:border-[var(--pos-primary)] focus-visible:outline-none",
   "focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)]",
   "disabled:bg-[#f0f0f0] disabled:text-[#888]",
-  "h-12 rounded-2xl border-[#E8E4DC] text-base shadow-none",
+  "h-12 rounded-none border-[#E8E4DC] text-base shadow-none",
   "sm:h-auto sm:rounded-none sm:border-[#8a8a8a] sm:px-2.5 sm:py-2 sm:text-sm sm:shadow-[inset_1px_1px_0_#d4d4d4]",
   "dark:border-border dark:bg-background dark:text-foreground dark:shadow-none",
 );
@@ -652,9 +652,9 @@ export function CashierSuppliersModal({
         sheetDrag={phone}
         showCloseButton={!phone}
         className={cn(
-          "gap-0 overflow-hidden p-0",
+          "gap-0 overflow-hidden p-0 [&>button]:rounded-none",
           phone
-            ? "max-h-[min(92dvh,44rem)] rounded-t-[1.25rem] border-0 bg-[#FBF9F5] shadow-[0_-16px_48px_-20px_rgba(0,0,0,0.18)]"
+            ? "max-h-[min(92dvh,44rem)] rounded-t-none border-0 bg-[#FBF9F5] shadow-[0_-16px_48px_-20px_rgba(0,0,0,0.18)]"
             : cn(
                 "max-h-[min(92dvh,44rem)] max-w-lg rounded-none border-2 border-[#6d6d6d]",
                 "bg-[#f0f0f0] shadow-[4px_4px_0_rgba(0,0,0,0.18)]",
@@ -712,7 +712,7 @@ export function CashierSuppliersModal({
               "border-0 bg-[#f3f3f3] dark:bg-muted/30",
               panel === "find" && panelBtnActive,
               phone &&
-                "min-h-12 items-center justify-center rounded-2xl border border-[#E8E4DC] bg-white px-2 py-2 shadow-none",
+                "min-h-12 items-center justify-center rounded-none border border-[#E8E4DC] bg-white px-2 py-2 shadow-none",
               phone && panel === "find" && "border-[#0D9488] bg-[#F0FDFA]",
             )}
             onClick={() => {
@@ -743,7 +743,7 @@ export function CashierSuppliersModal({
                 "border-0 bg-[#f3f3f3] dark:bg-muted/30",
                 panel === "create" && panelBtnActive,
                 phone &&
-                  "min-h-12 items-center justify-center rounded-2xl border border-[#E8E4DC] bg-white px-2 py-2 shadow-none",
+                  "min-h-12 items-center justify-center rounded-none border border-[#E8E4DC] bg-white px-2 py-2 shadow-none",
                 phone && panel === "create" && "border-[#0D9488] bg-[#F0FDFA]",
               )}
               onClick={() => setPanel("create")}
@@ -776,7 +776,7 @@ export function CashierSuppliersModal({
                 "border-0 bg-[#f3f3f3] dark:bg-muted/30",
                 panel === "link" && panelBtnActive,
                 phone &&
-                  "min-h-12 items-center justify-center rounded-2xl border border-[#E8E4DC] bg-white px-2 py-2 shadow-none",
+                  "min-h-12 items-center justify-center rounded-none border border-[#E8E4DC] bg-white px-2 py-2 shadow-none",
                 phone && panel === "link" && "border-[#0D9488] bg-[#F0FDFA]",
                 !phone && "col-span-2",
               )}
@@ -1274,7 +1274,7 @@ export function CashierSuppliersModal({
           <Button
             type="button"
             variant="outline"
-            className={cn(classicBtn, "h-9", phone && "h-12 w-full rounded-2xl shadow-none")}
+            className={cn(classicBtn, "h-9", phone && "h-12 w-full rounded-none shadow-none")}
             onClick={() => onOpenChange(false)}
             disabled={createBusy || linkBusy}
           >
@@ -1286,7 +1286,7 @@ export function CashierSuppliersModal({
               className={cn(
                 classicPrimary,
                 "h-9 gap-1.5",
-                phone && "h-12 w-full rounded-2xl shadow-none",
+                phone && "h-12 w-full rounded-none shadow-none",
               )}
               onClick={() => void onCreate()}
               disabled={createBusy || !lookup.trim()}
@@ -1305,7 +1305,7 @@ export function CashierSuppliersModal({
               className={cn(
                 classicPrimary,
                 "h-9 gap-1.5",
-                phone && "h-12 w-full rounded-2xl shadow-none",
+                phone && "h-12 w-full rounded-none shadow-none",
               )}
               onClick={() => void onLink()}
               disabled={linkBusy || !supplier || linkCount === 0}
@@ -1326,7 +1326,7 @@ export function CashierSuppliersModal({
               className={cn(
                 classicPrimary,
                 "h-9 gap-1.5",
-                phone && "h-12 w-full rounded-2xl shadow-none",
+                phone && "h-12 w-full rounded-none shadow-none",
               )}
               onClick={openTill}
             >

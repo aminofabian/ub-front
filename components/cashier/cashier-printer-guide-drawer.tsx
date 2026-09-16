@@ -115,7 +115,7 @@ export function CashierPrinterGuideDrawer({
         showCloseButton={desktop}
         className={cn(
           "gap-0 p-0",
-          !desktop && "max-h-[min(92dvh,44rem)] rounded-t-[1.25rem] bg-[#FBF9F5]",
+          !desktop && "max-h-[min(92dvh,44rem)] rounded-t-none bg-[#FBF9F5]",
         )}
       >
         <div className="flex min-h-0 flex-col overflow-y-auto p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
@@ -129,7 +129,7 @@ export function CashierPrinterGuideDrawer({
             </DialogDescription>
           </DialogHeader>
 
-          <figure className="mt-4 overflow-hidden rounded-xl border border-border bg-card">
+          <figure className="mt-4 overflow-hidden rounded-none border border-border bg-card">
             {/* eslint-disable-next-line @next/next/no-img-element -- help SVGs are static public assets */}
             <img
               src={step.src}
@@ -164,7 +164,7 @@ export function CashierPrinterGuideDrawer({
                 <span
                   key={s.title}
                   className={cn(
-                    "size-1.5 rounded-full transition-colors",
+                    "size-1.5 rounded-none transition-colors",
                     i === index ? "bg-primary" : "bg-muted-foreground/25",
                   )}
                 />
@@ -202,7 +202,7 @@ export function CashierPrinterGuideDrawer({
             href={guideUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="group mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-muted/40 px-4 text-sm font-medium text-foreground transition hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:h-auto sm:rounded-lg sm:py-2.5"
+            className="group mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-none border border-border bg-muted/40 px-4 text-sm font-medium text-foreground transition hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:h-auto sm:rounded-none sm:py-2.5"
           >
             <BookOpen className="size-4" aria-hidden />
             Full guide with every screenshot

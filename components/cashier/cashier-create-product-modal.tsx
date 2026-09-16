@@ -174,7 +174,7 @@ function CashierSupplierPick({
 
   if (selected) {
     return (
-      <div className="flex min-h-12 items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-3 sm:min-h-10 sm:rounded-md">
+      <div className="flex min-h-12 items-center gap-2 rounded-none border border-zinc-200 bg-white px-3 sm:min-h-10 sm:rounded-none">
         <Truck className="size-4 shrink-0 text-[var(--pos-primary)]" aria-hidden />
         <p className="min-w-0 flex-1 truncate text-[15px] font-medium sm:text-sm">
           {selected.name}
@@ -196,7 +196,7 @@ function CashierSupplierPick({
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
         <input
-          className="h-12 w-full rounded-2xl border border-zinc-300 bg-white pl-10 pr-10 text-base sm:h-10 sm:rounded-md sm:text-sm"
+          className="h-12 w-full rounded-none border border-zinc-300 bg-white pl-10 pr-10 text-base sm:h-10 sm:rounded-none sm:text-sm"
           value={query}
           disabled={disabled}
           onChange={(e) => setQuery(e.target.value)}
@@ -208,7 +208,7 @@ function CashierSupplierPick({
         ) : null}
       </div>
       {hits.length > 0 ? (
-        <ul className="overflow-hidden rounded-2xl border border-zinc-200 bg-white sm:rounded-md">
+        <ul className="overflow-hidden rounded-none border border-zinc-200 bg-white sm:rounded-none">
           {hits.map((row) => (
             <li key={row.id} className="border-t border-zinc-100 first:border-t-0">
               <button
@@ -887,11 +887,11 @@ export function CashierCreateProductModal({
 
   const labelClass = "block text-[12px] font-medium text-zinc-600";
   const fieldClass = cn(
-    "h-12 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-base sm:h-10 sm:rounded-md sm:text-sm",
+    "h-12 w-full rounded-none border border-zinc-300 bg-white px-3 text-base sm:h-10 sm:rounded-none sm:text-sm",
     "focus:outline-none focus-visible:border-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
   );
   const cellClass = cn(
-    "h-12 w-full rounded-2xl border border-zinc-300 bg-white px-2 text-base sm:h-9 sm:rounded-md sm:text-sm",
+    "h-12 w-full rounded-none border border-zinc-300 bg-white px-2 text-base sm:h-9 sm:rounded-none sm:text-sm",
     "focus:outline-none focus-visible:border-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
   );
   const currencySuffix = currency ? ` (${currency})` : "";
@@ -980,12 +980,12 @@ export function CashierCreateProductModal({
           "gap-0 overflow-hidden p-0",
           desktop
             ? "w-[min(100%,60rem)] max-w-[60rem] sm:rounded-l-2xl"
-            : "max-h-[min(92dvh,44rem)] rounded-t-[1.25rem]",
+            : "max-h-[min(92dvh,44rem)] rounded-t-none",
         )}
         style={brandTheme}
       >
         <div className={styles.header}>
-          <DialogHeader className="space-y-1 text-left">
+          <DialogHeader className="space-y-1 text-left [&>button]:rounded-none">
             <DialogTitle className="flex items-center gap-2 text-lg">
               <span className={styles.iconMark}>
                 <PackagePlus className="size-3.5" />
@@ -1212,7 +1212,7 @@ export function CashierCreateProductModal({
                 <button
                   type="button"
                   onClick={() => setMoreOpen((value) => !value)}
-                  className="flex min-h-11 w-full items-center justify-between rounded-2xl border border-zinc-200 bg-white px-3.5 text-sm font-medium text-[var(--pos-primary)]"
+                  className="flex min-h-11 w-full items-center justify-between rounded-none border border-zinc-200 bg-white px-3.5 text-sm font-medium text-[var(--pos-primary)]"
                 >
                   {moreOpen ? "Hide extra details" : "Barcode, buy price, variants"}
                   <span className="text-xs font-normal text-zinc-500">
@@ -1248,7 +1248,7 @@ export function CashierCreateProductModal({
                 />
               </label>
 
-              <label className="flex min-h-12 cursor-pointer items-start gap-2.5 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 sm:min-h-0 sm:rounded-md sm:py-2.5">
+              <label className="flex min-h-12 cursor-pointer items-start gap-2.5 rounded-none border border-zinc-200 bg-zinc-50 px-3 py-3 sm:min-h-0 sm:rounded-none sm:py-2.5">
                 <input
                   type="checkbox"
                   className="mt-0.5 size-4 accent-[var(--pos-primary)]"
@@ -1276,9 +1276,9 @@ export function CashierCreateProductModal({
               </label>
 
               {linkAsVariant ? (
-                <div className="space-y-2 rounded-md border border-zinc-200 bg-white p-3">
+                <div className="space-y-2 rounded-none border border-zinc-200 bg-white p-3">
                   {relatedItem ? (
-                    <div className="flex items-start gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2">
+                    <div className="flex items-start gap-2 rounded-none border border-zinc-200 bg-zinc-50 px-2.5 py-2">
                       <div className="min-w-0 flex-1 space-y-0.5">
                         <p className="truncate text-sm font-medium text-zinc-900">
                           {cashierItemPrimaryLabel(relatedItem)}
@@ -1289,7 +1289,7 @@ export function CashierCreateProductModal({
                       </div>
                       <button
                         type="button"
-                        className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+                        className="rounded-none p-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
                         aria-label="Clear related product"
                         onClick={() => {
                           setRelatedItem(null);
@@ -1312,7 +1312,7 @@ export function CashierCreateProductModal({
                         <p className="text-[11px] text-zinc-500">Searching…</p>
                       ) : null}
                       {relatedHits.length > 0 ? (
-                        <ul className="max-h-36 divide-y divide-zinc-100 overflow-y-auto rounded-md border border-zinc-200">
+                        <ul className="max-h-36 divide-y divide-zinc-100 overflow-y-auto rounded-none border border-zinc-200">
                           {relatedHits.map((hit) => (
                             <li key={hit.id}>
                               <button
@@ -1465,7 +1465,7 @@ export function CashierCreateProductModal({
                         {familyPrefix ? (
                           <div
                             className={cn(
-                              "flex h-9 w-full min-w-0 items-stretch overflow-hidden rounded-md border border-zinc-300 bg-white",
+                              "flex h-9 w-full min-w-0 items-stretch overflow-hidden rounded-none border border-zinc-300 bg-white",
                               "focus-within:border-[var(--pos-primary)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
                             )}
                           >
@@ -1623,7 +1623,7 @@ export function CashierCreateProductModal({
             type="button"
             variant="ghost"
             disabled={busy}
-            className="h-12 rounded-2xl sm:h-9 sm:rounded-md"
+            className="h-12 rounded-none sm:h-9 sm:rounded-none"
             onClick={() => onOpenChange(false)}
           >
             Cancel

@@ -99,3 +99,17 @@ export function posBrandThemeStyle(branding: BrandingRecord | null | undefined):
     "--pos-secondary-ink": inkForOnColor(secondary),
   } as CSSProperties;
 }
+
+/**
+ * A locally chosen till accent layered over the shop theme. Returns the same
+ * variables {@link posBrandThemeStyle} sets for its primary, so a till can
+ * repaint itself without touching the shop's branding.
+ */
+export function posAccentThemeStyle(primaryHex: string): CSSProperties {
+  const hex = normalizeHex(primaryHex) ?? primaryHex;
+  return {
+    "--pos-primary": hex,
+    "--pos-glow": mixTowardWhite(hex, 0.55),
+    "--pos-primary-ink": inkForOnColor(hex),
+  } as CSSProperties;
+}

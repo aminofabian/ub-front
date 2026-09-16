@@ -55,7 +55,7 @@ type CashierCreditTabsModalProps = {
 };
 
 const fieldClass = cn(
-  "w-full rounded-lg border border-border/60 bg-background px-2.5 py-2 text-sm shadow-sm",
+  "w-full rounded-none border border-border/60 bg-background px-2.5 py-2 text-sm shadow-sm",
   "placeholder:text-muted-foreground/50",
   "focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
 );
@@ -251,23 +251,23 @@ export function CashierCreditTabsModal({
         showCloseButton={false}
         style={brandTheme}
         className={cn(
-          "flex flex-col gap-0 overflow-hidden p-0",
+          "flex flex-col gap-0 overflow-hidden p-0 [&>button]:rounded-none",
           phone
-            ? "max-h-[min(92dvh,44rem)] w-full rounded-t-[1.25rem]"
+            ? "max-h-[min(92dvh,44rem)] w-full rounded-t-none"
             : "max-h-[min(92vh,720px)] w-[min(96vw,34rem)] sm:max-w-lg",
         )}
       >
         <DialogHeader className="relative shrink-0 space-y-0 border-b border-border/50 bg-[radial-gradient(120%_80%_at_0%_0%,color-mix(in_srgb,var(--pos-primary)_18%,transparent),transparent_55%)] px-4 pb-3 pt-4 text-left">
           <button
             type="button"
-            className="absolute right-3 top-3 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="absolute right-3 top-3 rounded-none p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={() => onOpenChange(false)}
             aria-label="Close"
           >
             <X className="size-4" />
           </button>
           <div className="flex items-start gap-3 pr-8 min-w-0">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)] text-[var(--pos-primary)]">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-none bg-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)] text-[var(--pos-primary)]">
               <Users className="size-5" />
             </div>
             <div className="min-w-0 space-y-1">
@@ -307,7 +307,7 @@ export function CashierCreditTabsModal({
                   {query.trim() ? " match this search" : ""}.
                 </p>
               ) : (
-                <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60">
+                <ul className="divide-y divide-border/60 overflow-hidden rounded-none border border-border/60">
                   {rows.map((row) => (
                     <li
                       key={row.customerId}
@@ -367,7 +367,7 @@ export function CashierCreditTabsModal({
                 All tabs
               </button>
 
-              <div className="rounded-2xl border border-border/60 bg-muted/20 px-4 py-5 text-center">
+              <div className="rounded-none border border-border/60 bg-muted/20 px-4 py-5 text-center">
                 <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                   Owed on tab
                 </p>
@@ -396,7 +396,7 @@ export function CashierCreditTabsModal({
               <button
                 type="button"
                 className={cn(
-                  "flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-colors",
+                  "flex w-full items-center justify-between gap-2 rounded-none border px-3 py-2.5 text-left text-sm font-medium transition-colors",
                   showPurchases
                     ? "border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)]"
                     : "border-border/60 bg-background hover:bg-muted/40",
@@ -422,11 +422,11 @@ export function CashierCreditTabsModal({
                       Loading purchases…
                     </div>
                   ) : purchases.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-border/60 px-3 py-6 text-center text-sm text-muted-foreground">
+                    <p className="rounded-none border border-dashed border-border/60 px-3 py-6 text-center text-sm text-muted-foreground">
                       No credit purchases on file for this tab.
                     </p>
                   ) : (
-                    <ul className="divide-y divide-border/50 overflow-hidden rounded-xl border border-border/60">
+                    <ul className="divide-y divide-border/50 overflow-hidden rounded-none border border-border/60">
                       {purchases.map((purchase) => {
                         const openRow = expandedSaleId === purchase.saleId;
                         const printing = printingSaleId === purchase.saleId;
@@ -551,7 +551,7 @@ export function CashierCreditTabsModal({
                   <button
                     type="button"
                     className={cn(
-                      "flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                      "flex items-center justify-center gap-2 rounded-none border px-3 py-2.5 text-sm font-medium transition-colors",
                       channel === "cash"
                         ? "border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-foreground"
                         : "border-border/60 bg-background text-muted-foreground hover:bg-muted/40",
@@ -564,7 +564,7 @@ export function CashierCreditTabsModal({
                   <button
                     type="button"
                     className={cn(
-                      "flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                      "flex items-center justify-center gap-2 rounded-none border px-3 py-2.5 text-sm font-medium transition-colors",
                       channel === "mpesa"
                         ? "border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-foreground"
                         : "border-border/60 bg-background text-muted-foreground hover:bg-muted/40",

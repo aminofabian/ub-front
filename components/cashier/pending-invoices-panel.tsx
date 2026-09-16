@@ -446,7 +446,7 @@ export function PendingInvoicesPanel({
         aria-expanded={open}
         aria-haspopup="dialog"
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+          "inline-flex items-center gap-1.5 rounded-none px-3 py-1.5 text-xs font-medium transition-colors",
           open
             ? "bg-primary/10 text-primary"
             : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -458,7 +458,7 @@ export function PendingInvoicesPanel({
         {pendingCount > 0 && (
           <span
             className={cn(
-              "inline-flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground",
+              "inline-flex size-4 items-center justify-center rounded-none bg-primary text-[10px] font-bold text-primary-foreground",
               badgePulse && "animate-pulse",
             )}
           >
@@ -478,7 +478,7 @@ export function PendingInvoicesPanel({
             onClick={() => setOpen(false)}
           />
 
-          <div className="absolute right-0 top-full z-50 mt-2 w-[22rem] rounded-xl border border-border bg-card shadow-xl">
+          <div className="absolute right-0 top-full z-50 mt-2 w-[22rem] rounded-none border border-border bg-card shadow-xl">
             <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
               <span className="text-sm font-semibold">Pending Invoices</span>
               {loading && (
@@ -573,7 +573,7 @@ export function PendingInvoicesPanel({
                       >
                         {activeCartHasItems ? (
                           <div className="flex w-full items-start gap-2">
-                            <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-none bg-primary/10">
                               <ShoppingBag className="size-4 text-primary" />
                             </div>
                             <div className="min-w-0 flex-1">
@@ -615,7 +615,7 @@ export function PendingInvoicesPanel({
                                 title="Add to current cart"
                                 aria-label={`Add ${inv.barcodeCode} to current cart`}
                                 onClick={() => loadOrWarn("merge")}
-                                className="inline-flex size-8 items-center justify-center rounded-lg border border-border/60 bg-background text-foreground hover:bg-muted"
+                                className="inline-flex size-8 items-center justify-center rounded-none border border-border/60 bg-background text-foreground hover:bg-muted"
                               >
                                 <Plus className="size-4" />
                               </button>
@@ -624,7 +624,7 @@ export function PendingInvoicesPanel({
                                 title="Open in new cart"
                                 aria-label={`Open ${inv.barcodeCode} in a new cart`}
                                 onClick={() => loadOrWarn("new")}
-                                className="rounded-lg border border-border/60 bg-background px-2 py-1 text-[10px] font-semibold text-foreground hover:bg-muted"
+                                className="rounded-none border border-border/60 bg-background px-2 py-1 text-[10px] font-semibold text-foreground hover:bg-muted"
                               >
                                 New
                               </button>
@@ -638,7 +638,7 @@ export function PendingInvoicesPanel({
                               onClick={() => loadOrWarn()}
                               className="flex min-w-0 flex-1 items-start gap-3 text-left transition-colors"
                             >
-                              <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                              <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-none bg-primary/10">
                                 <ShoppingBag className="size-4 text-primary" />
                               </div>
                               <div className="min-w-0 flex-1">
@@ -690,7 +690,7 @@ export function PendingInvoicesPanel({
                                 type="button"
                                 disabled={!online || isBusy}
                                 onClick={() => void handleResendStk(inv)}
-                                className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-[10px] font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+                                className="inline-flex items-center gap-1 rounded-none border border-border/60 bg-background px-2 py-1 text-[10px] font-semibold text-foreground hover:bg-muted disabled:opacity-50"
                               >
                                 {busyId === inv.id ? (
                                   <Loader2 className="size-3 animate-spin" />
@@ -709,7 +709,7 @@ export function PendingInvoicesPanel({
                                     );
                                     setMpesaRef("");
                                   }}
-                                  className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-[10px] font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+                                  className="inline-flex items-center gap-1 rounded-none border border-border/60 bg-background px-2 py-1 text-[10px] font-semibold text-foreground hover:bg-muted disabled:opacity-50"
                                 >
                                   <Banknote className="size-3" />
                                   Mark paid
@@ -718,7 +718,7 @@ export function PendingInvoicesPanel({
                             </div>
 
                             {showMarkPaid && canPayInvoices ? (
-                              <div className="space-y-2 rounded-lg border border-border/50 bg-muted/30 p-2">
+                              <div className="space-y-2 rounded-none border border-border/50 bg-muted/30 p-2">
                                 <div className="flex flex-wrap gap-1.5">
                                   <button
                                     type="button"
@@ -726,7 +726,7 @@ export function PendingInvoicesPanel({
                                     onClick={() =>
                                       void handleMarkPaid(inv, "cash")
                                     }
-                                    className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground disabled:opacity-50"
+                                    className="inline-flex items-center gap-1 rounded-none bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground disabled:opacity-50"
                                   >
                                     <Banknote className="size-3" />
                                     Cash
@@ -739,7 +739,7 @@ export function PendingInvoicesPanel({
                                     onClick={() =>
                                       void handleMarkPaid(inv, "mpesa_manual")
                                     }
-                                    className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[10px] font-semibold disabled:opacity-50"
+                                    className="inline-flex items-center gap-1 rounded-none border border-border bg-background px-2 py-1 text-[10px] font-semibold disabled:opacity-50"
                                   >
                                     <Smartphone className="size-3" />
                                     M-Pesa
@@ -750,7 +750,7 @@ export function PendingInvoicesPanel({
                                   value={mpesaRef}
                                   onChange={(e) => setMpesaRef(e.target.value)}
                                   placeholder="M-Pesa reference"
-                                  className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-primary"
+                                  className="w-full rounded-none border border-border bg-background px-2 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-primary"
                                 />
                               </div>
                             ) : null}

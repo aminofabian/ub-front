@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 
 import {
-  CASHIER_TEMPLATE_STORAGE_KEY,
+  clearLocalCashierTemplate,
   DEFAULT_CASHIER_TEMPLATE_ID,
   parseCashierTemplateId,
   readLocalCashierTemplate,
+  readLocalCashierTemplateOrNull,
   resolveCashierTemplate,
+  CASHIER_TEMPLATE_STORAGE_KEY,
   writeLocalCashierTemplate,
-} from "@/lib/cashier-templates";
+} from "./cashier-templates";
 
 function createMemoryStorage(): Storage {
   const store: Record<string, string> = {};
@@ -55,9 +57,17 @@ describe("cashier-templates", () => {
     expect(parseCashierTemplateId(null)).toBe("shelf");
   });
 
-  it("lets a registered till override local storage", () => {
+  it("lets an explicit device pick win over the registered till", () => {
+    // A tap on this browser is deliberate, so it outranks the till's default…
     expect(
       resolveCashierTemplate({ registered: "ledger", local: "shelf" }),
+    ).toBe("shelf");
+    expect(
+      resolveCashierTemplate({ registered: "shelf", local: "ledger" }),
+    ).toBe("ledger");
+    // …and a device with no pick follows the till.
+    expect(
+      resolveCashierTemplate({ registered: "ledger", local: null }),
     ).toBe("ledger");
     expect(
       resolveCashierTemplate({ registered: null, local: "ledger" }),
@@ -67,8 +77,12 @@ describe("cashier-templates", () => {
 
   it("reads and writes the local preference", () => {
     expect(readLocalCashierTemplate()).toBe("shelf");
+    expect(readLocalCashierTemplateOrNull()).toBeNull();
     writeLocalCashierTemplate("ledger");
     expect(localStorage.getItem(CASHIER_TEMPLATE_STORAGE_KEY)).toBe("ledger");
     expect(readLocalCashierTemplate()).toBe("ledger");
+    clearLocalCashierTemplate();
+    expect(readLocalCashierTemplateOrNull()).toBeNull();
+    expect(readLocalCashierTemplate()).toBe("shelf");
   });
 });

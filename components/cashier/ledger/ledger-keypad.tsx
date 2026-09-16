@@ -16,6 +16,22 @@ type LedgerKeypadProps = {
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0"] as const;
 
+const KEY_BASE = cn(
+  "flex min-h-[3.25rem] items-center justify-center rounded-none border",
+  "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card",
+  "transition-colors duration-100",
+  "hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]",
+  "active:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+  "focus-visible:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_45%,transparent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
+  "disabled:opacity-40",
+  "dark:border-border/40",
+);
+
+/**
+ * Counter keypad. Numerals use the condensed heading face so a run of digits
+ * reads like a figure on a receipt — and the strip above always names what the
+ * next keystroke will edit, so the pad is never a mystery.
+ */
 export function LedgerKeypad({
   onDigit,
   onBackspace,
@@ -27,15 +43,25 @@ export function LedgerKeypad({
 }: LedgerKeypadProps) {
   return (
     <div className="space-y-1.5">
-      {targetLabel ? (
-        <p
+      <div
+        className={cn(
+          "flex items-baseline gap-1.5 border px-2 py-1",
+          targetLabel
+            ? "border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_7%,var(--card))]"
+            : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
+        )}
+      >
+        <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Keypad
+        </span>
+        <span
           aria-live="polite"
-          className="truncate rounded-md bg-zinc-100 px-2 py-1 text-[11px] text-zinc-600"
+          className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[var(--pos-ink,#1c1915)]"
         >
-          Keypad{" "}
-          <span className="font-medium text-zinc-900">{targetLabel}</span>
-        </p>
-      ) : null}
+          {targetLabel ?? "Whole sale"}
+        </span>
+      </div>
+
       <div className="grid grid-cols-3 gap-1.5">
         {KEYS.map((key) => (
           <button
@@ -44,10 +70,8 @@ export function LedgerKeypad({
             disabled={disabled}
             onClick={() => onDigit(key)}
             className={cn(
-              "h-11 rounded-md border border-zinc-200 bg-white text-lg font-semibold tabular-nums text-zinc-800",
-              "hover:bg-zinc-50 active:scale-[0.98]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)]",
-              "disabled:opacity-40",
+              KEY_BASE,
+              "pos-market-section-label text-[1.5rem] leading-none tabular-nums",
             )}
           >
             {key}
@@ -58,12 +82,7 @@ export function LedgerKeypad({
           disabled={disabled}
           onClick={onBackspace}
           aria-label="Backspace"
-          className={cn(
-            "flex h-11 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700",
-            "hover:bg-zinc-50 active:scale-[0.98]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)]",
-            "disabled:opacity-40",
-          )}
+          className={cn(KEY_BASE, "text-muted-foreground")}
         >
           <Delete className="size-5" aria-hidden />
         </button>
@@ -72,10 +91,10 @@ export function LedgerKeypad({
           disabled={disabled}
           onClick={onClear}
           className={cn(
-            "h-10 rounded-md border border-red-200 bg-red-50 text-sm font-semibold text-red-800",
-            "hover:bg-red-100 active:scale-[0.98]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400",
-            "disabled:opacity-40",
+            KEY_BASE,
+            "border-red-500/30 bg-red-500/5 text-[13px] font-semibold text-red-700",
+            "hover:bg-red-500/10 active:bg-red-500/15",
+            "focus-visible:ring-red-400/40 dark:text-red-300",
           )}
         >
           Clear
@@ -85,12 +104,10 @@ export function LedgerKeypad({
           disabled={disabled}
           onClick={onEnter}
           className={cn(
-            "col-span-2 h-10 rounded-md border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)]",
-            "bg-[color-mix(in_srgb,var(--pos-primary)_14%,white)] text-sm font-semibold",
-            "text-[var(--pos-ink,#14532d)]",
-            "hover:bg-[color-mix(in_srgb,var(--pos-primary)_22%,white)] active:scale-[0.98]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)]",
-            "disabled:opacity-40",
+            KEY_BASE,
+            "col-span-2 border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_14%,var(--card))]",
+            "text-[13px] font-bold tracking-tight text-[var(--pos-ink,#1c1915)]",
+            "hover:bg-[color-mix(in_srgb,var(--pos-primary)_22%,var(--card))]",
           )}
         >
           {enterLabel}

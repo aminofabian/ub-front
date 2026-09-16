@@ -140,8 +140,8 @@ export function TillPrinterStatus({
 
   const panelClass = cn(
     compact
-      ? "flex flex-col gap-1.5 rounded-md border border-border/50 bg-background px-2.5 py-2 text-[11px]"
-      : "flex flex-col gap-2 rounded-lg border border-border/60 bg-background px-3 py-2.5 text-xs",
+      ? "flex flex-col gap-1.5 rounded-none border border-border/50 bg-background px-2.5 py-2 text-[11px]"
+      : "flex flex-col gap-2 rounded-none border border-border/60 bg-background px-3 py-2.5 text-xs",
   );
 
   const setupTools = (

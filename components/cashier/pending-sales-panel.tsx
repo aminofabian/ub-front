@@ -158,7 +158,7 @@ export function PendingSalesPanel({
         aria-expanded={open}
         aria-haspopup="dialog"
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+          "inline-flex items-center gap-1.5 rounded-none px-3 py-1.5 text-xs font-medium transition-colors",
           open
             ? "bg-primary/10 text-primary"
             : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -167,7 +167,7 @@ export function PendingSalesPanel({
         <ShoppingCart className="size-3.5" />
         <span>Pending</span>
         {pendingCount > 0 && (
-          <span className="inline-flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+          <span className="inline-flex size-4 items-center justify-center rounded-none bg-primary text-[10px] font-bold text-primary-foreground">
             {pendingCount > 9 ? "9+" : pendingCount}
           </span>
         )}
@@ -180,7 +180,7 @@ export function PendingSalesPanel({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
 
-          <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl">
+          <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-none border border-border bg-card shadow-xl">
             <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
               <span className="text-sm font-semibold">Pending sales</span>
               {loading && (
@@ -224,7 +224,7 @@ export function PendingSalesPanel({
                           }}
                           className="flex min-w-0 flex-1 items-start gap-3 text-left"
                         >
-                          <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                          <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-none bg-primary/10">
                             <ClipboardList className="size-4 text-primary" />
                           </div>
                           <div className="min-w-0 flex-1">

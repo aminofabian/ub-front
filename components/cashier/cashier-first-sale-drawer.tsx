@@ -86,7 +86,7 @@ export function CashierFirstSaleDrawer({
         showCloseButton={desktop}
         className={cn(
           "gap-0 p-0",
-          !desktop && "max-h-[min(92dvh,40rem)] rounded-t-[1.25rem] bg-[#FBF9F5]",
+          !desktop && "max-h-[min(92dvh,40rem)] rounded-t-none bg-[#FBF9F5]",
         )}
       >
         <div className="flex min-h-0 flex-col overflow-y-auto p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
@@ -104,11 +104,11 @@ export function CashierFirstSaleDrawer({
             {STEPS.map(({ icon: Icon, title, body }, index) => (
               <div
                 key={title}
-                className="flex items-start gap-3 rounded-lg border border-border bg-card px-3.5 py-3"
+                className="flex items-start gap-3 rounded-none border border-border bg-card px-3.5 py-3"
               >
-                <span className="relative mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 text-primary">
+                <span className="relative mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-none border border-border bg-muted/40 text-primary">
                   <Icon className="size-4" aria-hidden />
-                  <span className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-primary font-mono text-[9px] font-bold text-primary-foreground">
+                  <span className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-none bg-primary font-mono text-[9px] font-bold text-primary-foreground">
                     {index + 1}
                   </span>
                 </span>
@@ -124,7 +124,7 @@ export function CashierFirstSaleDrawer({
             ))}
           </div>
 
-          <div className="mt-5 rounded-lg border border-border bg-muted/40 px-3.5 py-3 text-[12px] leading-relaxed text-muted-foreground">
+          <div className="mt-5 rounded-none border border-border bg-muted/40 px-3.5 py-3 text-[12px] leading-relaxed text-muted-foreground">
             <span className="font-medium text-foreground">Quick rule: </span>
             ring every sale, no exceptions — an un-rung sale is a stock ghost
             you’ll chase for weeks. M-Pesa can wait for the network; the till
@@ -135,7 +135,7 @@ export function CashierFirstSaleDrawer({
             href={cashierGuideUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="group mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:h-auto sm:rounded-lg sm:py-2.5"
+            className="group mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-none bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:h-auto sm:rounded-none sm:py-2.5"
           >
             <BookOpen className="size-4" aria-hidden />
             Open the cashier guide

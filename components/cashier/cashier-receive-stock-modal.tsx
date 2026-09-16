@@ -67,7 +67,7 @@ type CashierReceiveStockModalProps = {
 };
 
 const fieldClass = cn(
-  "w-full rounded-lg border border-border/60 bg-background px-2.5 py-2 text-sm shadow-sm",
+  "w-full rounded-none border border-border/60 bg-background px-2.5 py-2 text-sm shadow-sm",
   "placeholder:text-muted-foreground/50",
   "focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
 );
@@ -529,9 +529,9 @@ export function CashierReceiveStockModal({
         sheetDrag={phone}
         showCloseButton={!phone}
         className={cn(
-          "flex flex-col gap-0 overflow-hidden p-0",
+          "flex flex-col gap-0 overflow-hidden p-0 [&>button]:rounded-none",
           phone
-            ? "max-h-[min(92dvh,44rem)] w-full rounded-t-[1.25rem]"
+            ? "max-h-[min(92dvh,44rem)] w-full rounded-t-none"
             : "max-h-[min(94dvh,44rem)] max-w-lg",
         )}
         style={brandTheme}
@@ -547,7 +547,7 @@ export function CashierReceiveStockModal({
           />
           <DialogHeader className="relative space-y-1 text-left">
             <DialogTitle className="flex items-center gap-2 text-lg">
-              <span className="flex size-8 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--pos-primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] text-[var(--pos-primary)]">
+              <span className="flex size-8 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--pos-primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] text-[var(--pos-primary)]">
                 <PackagePlus className="size-4" />
               </span>
               Receive stock
@@ -561,7 +561,7 @@ export function CashierReceiveStockModal({
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
           {draftRestoredAt != null ? (
             <div
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-amber-500/30 bg-amber-500/10 px-3 py-2"
               role="status"
             >
               <p className="text-[11px] leading-snug text-foreground">
@@ -575,7 +575,7 @@ export function CashierReceiveStockModal({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 shrink-0 rounded-lg px-2 text-[11px]"
+                className="h-7 shrink-0 rounded-none px-2 text-[11px]"
                 disabled={saving}
                 onClick={discardLocalDraft}
               >
@@ -590,7 +590,7 @@ export function CashierReceiveStockModal({
               From
             </p>
             {supplier ? (
-              <div className="flex items-center gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)] px-3 py-2.5">
+              <div className="flex items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)] px-3 py-2.5">
                 <Truck className="size-4 shrink-0 text-[var(--pos-primary)]" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{supplier.name}</p>
@@ -604,7 +604,7 @@ export function CashierReceiveStockModal({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-8 shrink-0 rounded-lg px-2 text-xs"
+                  className="h-8 shrink-0 rounded-none px-2 text-xs"
                   disabled={saving}
                   onClick={() => {
                     setSupplier(null);
@@ -619,7 +619,7 @@ export function CashierReceiveStockModal({
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
-                    className={cn(fieldClass, "rounded-xl pl-9")}
+                    className={cn(fieldClass, "rounded-none pl-9")}
                     value={supplierQuery}
                     onChange={(e) => setSupplierQuery(e.target.value)}
                     placeholder="Search supplier…"
@@ -630,7 +630,7 @@ export function CashierReceiveStockModal({
                     <Loader2 className="absolute right-3 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
                   ) : null}
                 </div>
-                <ul className="max-h-44 overflow-auto rounded-2xl border border-border/60 bg-popover py-1 shadow-sm">
+                <ul className="max-h-44 overflow-auto rounded-none border border-border/60 bg-popover py-1 shadow-sm">
                   {supplierHits.length === 0 && !supplierBusy ? (
                     <li className="px-3 py-3 text-xs text-muted-foreground">
                       {supplierQuery.trim()
@@ -677,7 +677,7 @@ export function CashierReceiveStockModal({
                   <div className="relative max-w-[10rem] flex-1">
                     <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
                     <input
-                      className={cn(fieldClass, "h-8 rounded-lg py-1 pl-7 text-xs")}
+                      className={cn(fieldClass, "h-8 rounded-none py-1 pl-7 text-xs")}
                       value={filter}
                       onChange={(e) => setFilter(e.target.value)}
                       placeholder="Filter…"
@@ -688,12 +688,12 @@ export function CashierReceiveStockModal({
               </div>
 
               {linesBusy ? (
-                <div className="flex items-center gap-2 rounded-2xl border border-dashed border-border px-3 py-6 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 rounded-none border border-dashed border-border px-3 py-6 text-xs text-muted-foreground">
                   <Loader2 className="size-3.5 animate-spin" />
                   Loading products…
                 </div>
               ) : lines.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+                <div className="rounded-none border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
                   No products linked to this supplier yet.
                   <br />
                   Use Suppliers → Link products first.
@@ -711,7 +711,7 @@ export function CashierReceiveStockModal({
                       <li
                         key={line.itemId}
                         className={cn(
-                          "rounded-2xl border px-3 py-2.5 transition-colors",
+                          "rounded-none border px-3 py-2.5 transition-colors",
                           active
                             ? "border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_5%,transparent)]"
                             : "border-border/60 bg-card",
@@ -738,7 +738,7 @@ export function CashierReceiveStockModal({
                           {active ? (
                             <button
                               type="button"
-                              className="rounded-md p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                              className="rounded-none p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                               aria-label="Clear qty"
                               onClick={() =>
                                 patchLine(line.itemId, { qtyStr: "" })
@@ -853,7 +853,7 @@ export function CashierReceiveStockModal({
           <Button
             type="button"
             variant="outline"
-            className="rounded-xl"
+            className="rounded-none"
             disabled={saving}
             onClick={() => onOpenChange(false)}
           >
@@ -861,7 +861,7 @@ export function CashierReceiveStockModal({
           </Button>
           <Button
             type="button"
-            className="rounded-xl gap-1.5"
+            className="rounded-none gap-1.5"
             disabled={saving || !supplier || readyLines.length === 0}
             onClick={() => void onSave()}
           >

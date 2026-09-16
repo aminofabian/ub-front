@@ -2,19 +2,24 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   BookOpen,
   Building2,
   FileText,
+  LayoutGrid,
   Lock,
   LockKeyhole,
   LogOut,
   MapPin,
   MonitorSmartphone,
+  PackagePlus,
+  Printer,
   Receipt,
   Settings2,
   ShoppingBag,
+  Sparkles,
+  Table2,
 } from "lucide-react";
 
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
@@ -37,13 +42,18 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
 import { logoutRemoteAndRedirectToLogin } from "@/lib/api";
-import { posBrandThemeStyle } from "@/lib/brand-theme";
+import { posAccentThemeStyle, posBrandThemeStyle } from "@/lib/brand-theme";
 import { isBranchLockedRole } from "@/lib/branch-access";
+import {
+  CASHIER_TEMPLATES,
+  type CashierTemplateId,
+} from "@/lib/cashier-templates";
 import { APP_ROUTES } from "@/lib/config";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { OPEN_REGISTER_TILL_EVENT } from "@/lib/pos-guidance";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
+import { usePosTillAccent } from "@/lib/pos-till-accent";
 import {
   getOrCreateTillDeviceId,
   tillDeviceDisplayName,
@@ -75,7 +85,19 @@ export function CashierShell({ children }: CashierShellProps) {
     refreshBranches,
   } = useDashboard();
   const { lock: lockTill, locked: tillLocked } = usePosTillLock();
-  const { isLedger: tillWantsLedger } = useCashierTemplate(branchId);
+  const {
+    isLedger: tillWantsLedger,
+    preferred,
+    effective,
+    setTemplate,
+    canPersistToTill,
+    tillUpdateError,
+    localPick,
+    registeredTemplate,
+    followTill,
+  } = useCashierTemplate(branchId);
+  const templateName = (id: CashierTemplateId | null) =>
+    CASHIER_TEMPLATES.find((t) => t.id === id)?.name ?? "";
   const featureFlags = useFeatureFlags();
   const [capsOpen, setCapsOpen] = useState(false);
   const [receiptShopOpen, setReceiptShopOpen] = useState(false);
@@ -107,8 +129,18 @@ export function CashierShell({ children }: CashierShellProps) {
     () => posBrandThemeStyle(business?.branding ?? null),
     [business?.branding],
   );
+  // A locally chosen till accent layers over the shop theme (device-local,
+  // reversible from More → Till look).
+  const { accent: tillAccent } = usePosTillAccent();
+  const shellTheme = useMemo(
+    () =>
+      tillAccent
+        ? ({ ...brandTheme, ...posAccentThemeStyle(tillAccent.hex) } as CSSProperties)
+        : brandTheme,
+    [brandTheme, tillAccent],
+  );
   const scopeSelectClass = cn(
-    "h-7 max-w-[10.5rem] border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+    "h-7 max-w-[10.5rem] rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
     "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] px-2 text-[11px] font-medium text-foreground",
     "shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
     "disabled:opacity-50 dark:bg-card/80",
@@ -176,8 +208,110 @@ export function CashierShell({ children }: CashierShellProps) {
     return () => window.removeEventListener("ub:open-receipt-shop", onOpen);
   }, []);
 
+  /**
+   * Template picker — the shelf (tiles) or the ledger (spreadsheet + keypad).
+   * Saved against the registered till and this browser, so an owner can set a
+   * counter till from their phone and it lands the next time it opens wide.
+   */
+  const templateMore = (
+    <MoreSection label="Template">
+      <div className="grid grid-cols-2 gap-1.5 px-2">
+        {CASHIER_TEMPLATES.map((t) => {
+          const saved = preferred === t.id;
+          const live = effective === t.id;
+          const Icon = t.id === "ledger" ? Table2 : LayoutGrid;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              aria-pressed={saved}
+              title={`${t.name} — ${t.blurb}`}
+              onClick={() => void setTemplate(t.id as CashierTemplateId)}
+              className={cn(
+                "flex min-h-[4.75rem] flex-col items-start gap-1 border p-2 text-left transition-colors",
+                saved
+                  ? "border-[var(--pos-ink,#1c1915)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]"
+                  : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
+                "dark:border-border/40",
+              )}
+            >
+              <span
+                className={cn(
+                  "flex size-7 shrink-0 items-center justify-center",
+                  saved
+                    ? "bg-[var(--pos-primary)] text-[var(--pos-primary-ink)]"
+                    : "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] text-muted-foreground",
+                )}
+                aria-hidden
+              >
+                <Icon className="size-4" />
+              </span>
+              <span className="w-full text-[11px] font-semibold leading-tight tracking-tight text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_92%,transparent)]">
+                {t.name}
+              </span>
+              <span className="w-full text-[9px] leading-snug text-muted-foreground">
+                {t.blurb}
+              </span>
+              {live ? (
+                <span className="mt-auto text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--pos-primary)]">
+                  On this screen
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+      {registeredTemplate && localPick && registeredTemplate !== localPick ? (
+        <div className="mx-2 mb-2 flex items-center justify-between gap-2 border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)] px-2 py-1.5">
+          <span className="min-w-0 text-[9px] font-semibold uppercase leading-relaxed tracking-[0.14em] text-muted-foreground">
+            This till is set to {templateName(registeredTemplate)}
+          </span>
+          <button
+            type="button"
+            onClick={followTill}
+            className="shrink-0 text-[11px] font-semibold underline underline-offset-2 text-[var(--pos-primary)]"
+          >
+            Follow it
+          </button>
+        </div>
+      ) : null}
+      <p className="px-2 pb-2 pt-1.5 text-[9px] font-semibold uppercase leading-relaxed tracking-[0.14em] text-muted-foreground">
+        {tillUpdateError
+          ? `Saved on this device · till not updated — ${tillUpdateError}`
+          : canPersistToTill
+            ? "Saved to this till and this device"
+            : "Saved on this device — an admin sets it for the whole till"}
+      </p>
+    </MoreSection>
+  );
+
   const shellMore = (
     <>
+      <section className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] first:border-t-0 dark:border-border/40">
+        <h2 className="px-3 pb-1 pt-2.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:px-2.5">
+          This register
+        </h2>
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 px-3 pb-2 text-[12px] sm:px-2.5">
+          <dt className="text-muted-foreground">Branch</dt>
+          <dd className="truncate text-right font-medium text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_92%,transparent)]">
+            {currentBranch?.name?.trim() ||
+              (branchesLoading ? "Loading…" : "No branch picked")}
+          </dd>
+          <dt className="text-muted-foreground">Register</dt>
+          <dd className="truncate text-right font-medium tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_92%,transparent)]">
+            {tillLabel || "Not registered"}
+          </dd>
+          <dt className="text-muted-foreground">Signed in</dt>
+          <dd className="truncate text-right font-medium text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_92%,transparent)]">
+            {cashierName || "—"}
+          </dd>
+          <dt className="text-muted-foreground">Role</dt>
+          <dd className="truncate text-right font-medium capitalize text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_92%,transparent)]">
+            {me?.role?.name?.trim() || roleKey || "—"}
+          </dd>
+        </dl>
+      </section>
       <MoreSection label="This till">
         {canManageCashierCapabilities ? (
           <MoreRow
@@ -256,27 +390,134 @@ export function CashierShell({ children }: CashierShellProps) {
           Log out
         </MoreRow>
       </MoreSection>
+      <MoreSection label="Guides">
+        <MoreRow icon={BookOpen} href={APP_ROUTES.helpOpenCashier}>
+          Open a shift
+        </MoreRow>
+        <MoreRow icon={PackagePlus} href={APP_ROUTES.helpAddProducts}>
+          Add products
+        </MoreRow>
+        <MoreRow icon={Printer} href={APP_ROUTES.helpInstallPrinter}>
+          Install a receipt printer
+        </MoreRow>
+        <MoreRow icon={Sparkles} href={APP_ROUTES.helpKioskGuide}>
+          Getting the most from Kiosk
+        </MoreRow>
+      </MoreSection>
     </>
   );
 
   return (
     <CashierMobileChromeProvider
+      appearanceMore={templateMore}
       shellMore={<ShellMoreCloseOnNavigate>{shellMore}</ShellMoreCloseOnNavigate>}
     >
       <div
         className="relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden pos-market-paper"
-        style={brandTheme}
+        style={shellTheme}
       >
         <header
           className={cn(
             "shrink-0 z-10 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
-            "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_82%,transparent)] backdrop-blur-md",
-            "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_72%,transparent)]",
+            "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,transparent)]",
             "dark:border-border/50 dark:bg-background/90",
             isLedger && "hidden",
           )}
         >
-          <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 sm:px-4 xl:flex-nowrap">
+          {/* Phone: one toolbar row. Branch/dept sit here so they do not wrap
+              into a second beige band under the shop name. */}
+          <div className="flex h-11 items-center gap-1.5 px-2 lg:hidden">
+            <span className="pos-market-section-label min-w-0 max-w-[28%] truncate text-[0.92rem] leading-none">
+              {loading ? "Loading…" : business?.name?.trim() || "Cashier"}
+            </span>
+            <span
+              className={cn(
+                "size-1.5 shrink-0",
+                online ? "bg-[var(--pos-primary)]" : "bg-amber-600",
+              )}
+              title={online ? "Online" : "Offline"}
+              aria-label={online ? "Online" : "Offline"}
+            />
+            <div className="flex min-w-0 flex-1 items-center gap-1">
+              {branchLockedRole ? (
+                currentBranch ? (
+                  <span
+                    className="inline-flex h-8 min-w-0 flex-1 items-center gap-1 truncate border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-transparent px-1.5 text-[10px] font-medium text-muted-foreground"
+                    title="Branch switching is disabled for your role"
+                  >
+                    <MapPin className="size-3 shrink-0" aria-hidden />
+                    <span className="truncate">{currentBranch.name}</span>
+                  </span>
+                ) : branchesLoading ? (
+                  <span className="text-[10px] text-muted-foreground">
+                    Loading…
+                  </span>
+                ) : null
+              ) : (
+                <select
+                  className={cn(scopeSelectClass, "h-8 max-w-none min-w-0 flex-1")}
+                  value={branchId}
+                  onChange={(e) => setBranchId(e.target.value)}
+                  disabled={branchesLoading || branches.length === 0}
+                  aria-label="Select branch"
+                  data-shell-branch-select=""
+                >
+                  {branches.length === 0 ? (
+                    <option value="">
+                      {branchesLoading ? "Loading…" : "No branches"}
+                    </option>
+                  ) : (
+                    <>
+                      {!branchId ? (
+                        <option value="">Select branch…</option>
+                      ) : null}
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+              )}
+              <select
+                className={cn(scopeSelectClass, "h-8 max-w-none min-w-0 flex-1")}
+                value={itemTypeId}
+                onChange={(e) => setItemTypeId(e.target.value)}
+                disabled={itemTypesLoading || itemTypes.length === 0}
+                aria-label="Select department"
+              >
+                {itemTypes.length === 0 ? (
+                  <option value="">
+                    {itemTypesLoading ? "Loading…" : "No departments"}
+                  </option>
+                ) : (
+                  <>
+                    <option value="">{ALL_DEPARTMENTS_LABEL}</option>
+                    {itemTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                        {t.isDefault ? " ★" : ""}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              className="size-8 shrink-0 rounded-none border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent shadow-none"
+              disabled={tillLocked}
+              onClick={() => lockTill({ reason: "manual" })}
+              aria-label="Lock till"
+            >
+              <LockKeyhole className="size-3.5" aria-hidden />
+            </Button>
+          </div>
+
+          <div className="mx-auto hidden w-full max-w-[1600px] items-center gap-x-3 gap-y-2 px-3 py-2 sm:px-4 lg:flex xl:flex-nowrap">
             <div className="flex min-w-0 flex-1 flex-col gap-1 lg:flex-none lg:shrink-0">
               <span className="pos-market-section-label truncate text-[1.05rem] leading-none sm:text-lg">
                 {loading ? "Loading…" : business?.name?.trim() || "Cashier"}
@@ -302,7 +543,7 @@ export function CashierShell({ children }: CashierShellProps) {
                 >
                   <span
                     className={cn(
-                      "size-1.5 rounded-full",
+                      "size-1.5 rounded-none",
                       online ? "bg-[var(--pos-primary)]" : "bg-amber-600",
                     )}
                     aria-hidden
@@ -313,7 +554,7 @@ export function CashierShell({ children }: CashierShellProps) {
               </div>
             </div>
 
-            <div className="order-3 flex w-full flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2 lg:order-none lg:w-auto lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+            <div className="flex w-auto flex-wrap items-center gap-2 border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pl-4">
               {branchLockedRole ? (
                 currentBranch ? (
                   <span
@@ -380,19 +621,6 @@ export function CashierShell({ children }: CashierShellProps) {
                   </>
                 )}
               </select>
-
-              {/* Mobile: quick lock only — everything else lives in More. */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="ml-auto h-7 gap-1 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent px-2 text-[11px] shadow-none lg:hidden"
-                disabled={tillLocked}
-                onClick={() => lockTill({ reason: "manual" })}
-              >
-                <LockKeyhole className="size-3.5" aria-hidden />
-                Lock
-              </Button>
             </div>
 
             <div className="ml-auto hidden shrink-0 flex-wrap items-center justify-end gap-x-1 gap-y-1 lg:flex">
@@ -498,7 +726,7 @@ export function CashierShell({ children }: CashierShellProps) {
             "mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden",
             isLedger
               ? "max-w-none p-0"
-              : "max-w-[1600px] px-3 py-1.5 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:px-4 sm:py-2 lg:pb-2",
+              : "max-w-[1600px] px-1.5 py-0 sm:px-4 sm:py-2 lg:pb-2",
           )}
         >
           {children}

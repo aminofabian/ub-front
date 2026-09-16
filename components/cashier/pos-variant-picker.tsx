@@ -166,10 +166,11 @@ export function PosVariantPicker({
         showCloseButton={!phone}
         overlayClassName="bg-[rgba(0,0,0,0.55)] supports-[backdrop-filter]:bg-[rgba(0,0,0,0.45)]"
         className={cn(
-          "gap-0 overflow-hidden border border-border bg-background p-0 shadow-2xl",
+          "gap-0 overflow-hidden rounded-none border border-border bg-background p-0 shadow-2xl",
           phone
-            ? "max-h-[min(92dvh,44rem)] w-full max-w-none rounded-t-[1.25rem]"
+            ? "max-h-[min(92dvh,44rem)] w-full max-w-none rounded-t-none"
             : "w-[calc(100vw-1.25rem)] max-w-[min(26rem,calc(100vw-1.25rem))] sm:max-w-lg",
+          "[&>button]:rounded-none",
         )}
         style={brandTheme}
       >
@@ -180,9 +181,11 @@ export function PosVariantPicker({
           <DialogDescription className="sr-only">
             Pick a size to add to cart
           </DialogDescription>
-          <p className="text-[13px] text-muted-foreground">{headerCount}</p>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {headerCount}
+          </p>
         </DialogHeader>
-        <div className="max-h-[min(60vh,28rem)] overflow-y-auto overscroll-contain">
+        <div className="pos-scroll max-h-[min(60vh,28rem)] overflow-y-auto overscroll-contain">
           {loading ? (
             <div className="flex items-center justify-center gap-2 px-4 py-8 text-xs text-muted-foreground">
               <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -195,7 +198,7 @@ export function PosVariantPicker({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="mt-3 h-8 gap-1.5 rounded-xl border-border bg-background"
+                className="mt-3 h-8 gap-1.5 rounded-none border-border bg-background"
                 onClick={retry}
               >
                 <RefreshCw className="size-3.5" aria-hidden />
@@ -221,7 +224,7 @@ export function PosVariantPicker({
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="h-10 rounded-xl border-border bg-background sm:flex-none"
+            className="h-10 rounded-none border-border bg-background sm:flex-none"
           >
             Done
           </Button>
