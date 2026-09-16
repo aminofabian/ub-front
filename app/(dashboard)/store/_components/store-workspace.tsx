@@ -53,7 +53,7 @@ import type { SupplyPackMode } from "@/lib/supply-pack-math";
 import { resolveCurrencyCode } from "@/lib/money";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
-import { setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
+import { setCatalogOnHandStock, resolveStockHolderForEdit } from "@/lib/set-on-hand-stock";
 import { cn } from "@/lib/utils";
 
 import {
@@ -207,10 +207,10 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   const fetchAll = useCallback(async () => {
     const [nextSettings, nextRows] = await Promise.all([
       fetchStoreRoomSettings(),
-      fetchStoreItems(),
+      fetchStoreItems({ branchId }),
     ]);
     return { nextSettings, nextRows };
-  }, []);
+  }, [branchId]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -338,7 +338,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setFeedback(null);
     try {
       const nextSettings = await updateStoreRoomSettings({ mode: next });
-      const nextRows = await fetchStoreItems();
+      const nextRows = await fetchStoreItems({ branchId });
       setSettings(nextSettings);
       setRows(nextRows);
       setOnlyUnlinked(false);
@@ -566,12 +566,17 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
       for (const item of unique) {
         try {
           const cost = Number(item.buyingPrice);
-          const row = await createStoreItem({
-            name: item.name,
-            quantity: 0,
-            itemId: item.id,
-            ...(Number.isFinite(cost) && cost >= 0 ? { buyingPrice: cost } : {}),
-          });
+          const row = await createStoreItem(
+            {
+              name: item.name,
+              quantity: 0,
+              itemId: item.id,
+              ...(Number.isFinite(cost) && cost >= 0
+                ? { buyingPrice: cost }
+                : {}),
+            },
+            { branchId },
+          );
           created.push(row);
         } catch {
           failed.push(item.name);
@@ -621,7 +626,11 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setPickBusy(true);
     setFeedback(null);
     try {
-      const updated = await updateStoreItem(linkRow.id, { itemId: item.id });
+      const updated = await updateStoreItem(
+        linkRow.id,
+        { itemId: item.id },
+        { branchId },
+      );
       setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       setLinkRow(null);
       setPickOpen(false);
@@ -644,7 +653,11 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setRowBusyId(row.id);
     setFeedback(null);
     try {
-      const updated = await updateStoreItem(row.id, { clearItemId: true });
+      const updated = await updateStoreItem(
+        row.id,
+        { clearItemId: true },
+        { branchId },
+      );
       setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       refreshQuietly();
       setFeedback({
@@ -686,13 +699,16 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setCreateBusy(true);
     setFeedback(null);
     try {
-      const created = await createStoreItem({
-        name,
-        barcode: createDraft.barcode.trim() || null,
-        quantity,
-        expiryDate: createDraft.expiryDate.trim() || null,
-        buyingPrice,
-      });
+      const created = await createStoreItem(
+        {
+          name,
+          barcode: createDraft.barcode.trim() || null,
+          quantity,
+          expiryDate: createDraft.expiryDate.trim() || null,
+          buyingPrice,
+        },
+        { branchId },
+      );
       setRows((prev) =>
         [...prev, created].sort((a, b) => a.name.localeCompare(b.name)),
       );
@@ -744,7 +760,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     const targetDisplay = followsInventory
       ? packsToCatalogDisplay(quantity, packMode, factor)
       : quantity;
-    const qtyChanged = Math.abs(targetDisplay - currentLive) >= 0.0001;
+    let qtyChanged = Math.abs(targetDisplay - currentLive) >= 0.0001;
     if (followsInventory && qtyChanged) {
       if (!canDecide) {
         setFeedback({
@@ -765,32 +781,64 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setFeedback(null);
     try {
       if (followsInventory && qtyChanged && latest.itemId) {
-        await setCatalogOnHandStock({
+        // Compare against branch stock (the source Save mutates), not a stale
+        // list snapshot, so we neither no-op nor write a zero delta by mistake.
+        const resolved = await resolveStockHolderForEdit({
           itemId: latest.itemId,
           branchId,
-          targetDisplay,
-          unitCost: buyingPrice ?? 0,
-          notes: "Stock set from store room",
         });
+        qtyChanged =
+          Math.abs(targetDisplay - resolved.displayCurrent) >= 0.0001;
+        if (qtyChanged) {
+          await setCatalogOnHandStock({
+            itemId: latest.itemId,
+            branchId,
+            targetDisplay,
+            unitCost: buyingPrice ?? 0,
+            notes: "Stock set from store room",
+          });
+        }
       }
-      const updated = await updateStoreItem(editRow.id, {
-        name,
-        barcode: editDraft.barcode.trim(),
-        quantity: followsInventory ? undefined : quantity,
-        expiryDate: editDraft.expiryDate.trim() || null,
-        clearExpiryDate: !editDraft.expiryDate.trim(),
-        buyingPrice: buyingPrice ?? undefined,
-        clearBuyingPrice: buyingPrice == null,
-      });
-      setRows((prev) =>
-        prev
-          .map((r) => (r.id === updated.id ? updated : r))
-          .sort((a, b) => a.name.localeCompare(b.name)),
+      const updated = await updateStoreItem(
+        editRow.id,
+        {
+          name,
+          barcode: editDraft.barcode.trim(),
+          quantity: followsInventory ? undefined : quantity,
+          expiryDate: editDraft.expiryDate.trim() || null,
+          clearExpiryDate: !editDraft.expiryDate.trim(),
+          buyingPrice: buyingPrice ?? undefined,
+          clearBuyingPrice: buyingPrice == null,
+        },
+        { branchId },
       );
-      setEditRow(updated);
-      setEditDraft(draftFromRow(updated, connected));
-      setSelectedId(updated.id);
-      setFeedback({ kind: "success", text: `Updated “${updated.name}”.` });
+      // After an inventory write, re-read the list so the on-hand figure is
+      // branch-batch stock (same source Save just mutated), not a stale snapshot.
+      const nextRows =
+        followsInventory && qtyChanged
+          ? await fetchStoreItems({ branchId })
+          : null;
+      const fresh =
+        nextRows?.find((r) => r.id === updated.id) ??
+        (followsInventory && qtyChanged
+          ? {
+              ...updated,
+              inventoryQuantity: targetDisplay,
+            }
+          : updated);
+      if (nextRows) {
+        setRows(nextRows);
+      } else {
+        setRows((prev) =>
+          prev
+            .map((r) => (r.id === fresh.id ? fresh : r))
+            .sort((a, b) => a.name.localeCompare(b.name)),
+        );
+      }
+      setEditRow(fresh);
+      setEditDraft(draftFromRow(fresh, connected));
+      setSelectedId(fresh.id);
+      setFeedback({ kind: "success", text: `Updated “${fresh.name}”.` });
     } catch (err) {
       setFeedback({
         kind: "error",

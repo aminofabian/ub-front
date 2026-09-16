@@ -4138,8 +4138,18 @@ export async function decideStoreRoomMovement(
   );
 }
 
-export async function fetchStoreItems(): Promise<StoreItemRecord[]> {
-  return request<StoreItemRecord[]>(API_ROUTES.storeItems);
+export async function fetchStoreItems(opts?: {
+  branchId?: string | null;
+}): Promise<StoreItemRecord[]> {
+  const params = new URLSearchParams();
+  const branchId = opts?.branchId?.trim();
+  if (branchId) {
+    params.set("branchId", branchId);
+  }
+  const qs = params.toString();
+  return request<StoreItemRecord[]>(
+    `${API_ROUTES.storeItems}${qs ? `?${qs}` : ""}`,
+  );
 }
 
 export async function fetchStoreRoomSettings(): Promise<StoreRoomSettingsRecord> {
@@ -4164,19 +4174,36 @@ export async function updateStoreRoomSettings(patch: {
 
 export async function createStoreItem(
   body: CreateStoreItemPayload,
+  opts?: { branchId?: string | null },
 ): Promise<StoreItemRecord> {
-  return request<StoreItemRecord>(API_ROUTES.storeItems, {
-    method: "POST",
-    body,
-  });
+  const params = new URLSearchParams();
+  const branchId = opts?.branchId?.trim();
+  if (branchId) {
+    params.set("branchId", branchId);
+  }
+  const qs = params.toString();
+  return request<StoreItemRecord>(
+    `${API_ROUTES.storeItems}${qs ? `?${qs}` : ""}`,
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 export async function updateStoreItem(
   id: string,
   body: PatchStoreItemPayload,
+  opts?: { branchId?: string | null },
 ): Promise<StoreItemRecord> {
+  const params = new URLSearchParams();
+  const branchId = opts?.branchId?.trim();
+  if (branchId) {
+    params.set("branchId", branchId);
+  }
+  const qs = params.toString();
   return request<StoreItemRecord>(
-    `${API_ROUTES.storeItems}/${encodeURIComponent(id)}`,
+    `${API_ROUTES.storeItems}/${encodeURIComponent(id)}${qs ? `?${qs}` : ""}`,
     {
       method: "PATCH",
       body,
