@@ -91,6 +91,7 @@ export function StoreRoomTheatre({
   onMobileDetailTab,
   activityToken,
   onPutIn,
+  onInheritOrder,
   onRecorded,
   onTakeOut,
   onLink,
@@ -134,6 +135,7 @@ export function StoreRoomTheatre({
   onMobileDetailTab: (tab: "history" | "edit") => void;
   activityToken: number;
   onPutIn: () => void;
+  onInheritOrder?: () => void;
   onRecorded: () => void;
   onTakeOut: (row: StoreItemRecord) => void;
   onLink: (row: StoreItemRecord) => void;
@@ -364,6 +366,7 @@ export function StoreRoomTheatre({
       connected={connected}
       reloadToken={activityToken}
       onPutIn={canWrite ? onPutIn : undefined}
+      onInheritOrder={canWrite ? onInheritOrder : undefined}
       onSelect={onSelect}
       onShowUnlinked={
         connected && unlinkedCount > 0

@@ -5,6 +5,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Link2Off,
+  Package,
   PackageX,
   TriangleAlert,
 } from "lucide-react";
@@ -62,6 +63,7 @@ export function StoreRoomPulse({
   connected,
   reloadToken,
   onPutIn,
+  onInheritOrder,
   onSelect,
   onShowUnlinked,
   className,
@@ -70,6 +72,7 @@ export function StoreRoomPulse({
   connected: boolean;
   reloadToken: number;
   onPutIn?: () => void;
+  onInheritOrder?: () => void;
   onSelect: (row: StoreItemRecord) => void;
   onShowUnlinked?: () => void;
   className?: string;
@@ -260,17 +263,32 @@ export function StoreRoomPulse({
         />
       </svg>
 
-      {onPutIn ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="absolute right-3 top-3 z-[2] h-8 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white shadow-none"
-          onClick={onPutIn}
-        >
-          <ArrowDownToLine className="size-3.5" aria-hidden />
-          Put in
-        </Button>
+      {onPutIn || onInheritOrder ? (
+        <div className="absolute right-3 top-3 z-[2] flex items-center gap-1.5">
+          {onInheritOrder ? (
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 gap-1.5 rounded-none shadow-none"
+              onClick={onInheritOrder}
+            >
+              <Package className="size-3.5" aria-hidden />
+              Delivery
+            </Button>
+          ) : null}
+          {onPutIn ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white shadow-none"
+              onClick={onPutIn}
+            >
+              <ArrowDownToLine className="size-3.5" aria-hidden />
+              Put in
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       <article className={cn(card, "left-[8%] top-[22%]")}>

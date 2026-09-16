@@ -69,6 +69,7 @@ import {
   type StorePackCatalog,
 } from "../_lib/store-item-pack";
 import { StoreRoomConnectionChooser } from "./store-room-connection-chooser";
+import { StoreRoomInheritOrderDrawer } from "./store-room-inherit-order-drawer";
 import { StoreRoomMovementDrawer } from "./store-room-movement-drawer";
 import { StoreRoomProductPicker } from "./store-room-product-picker";
 import {
@@ -175,6 +176,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   const [movementOpen, setMovementOpen] = useState(false);
+  const [inheritOpen, setInheritOpen] = useState(false);
   // Bumped per open so the drawer remounts and re-seeds from `movementInitial`.
   const [movementKey, setMovementKey] = useState(0);
   const [movementInitial, setMovementInitial] = useState<{
@@ -1058,6 +1060,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         onMobileDetailTab={setMobileDetailTab}
         activityToken={activityToken}
         onPutIn={() => openMovement(null, "in")}
+        onInheritOrder={() => setInheritOpen(true)}
         onRecorded={refreshQuietly}
         onTakeOut={(row) => openMovement(row, "out")}
         onLink={openPickerForLink}
@@ -1072,6 +1075,21 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         onSave={() => void handleEdit()}
         onDelete={setDeleteRow}
         onAddCustom={canWrite ? openCustomCreate : undefined}
+      />
+
+      <StoreRoomInheritOrderDrawer
+        open={inheritOpen}
+        onOpenChange={setInheritOpen}
+        connected={connected}
+        branchId={branchId}
+        onApplied={() => {
+          setActivityToken((n) => n + 1);
+          refreshQuietly();
+          setFeedback({
+            kind: "success",
+            text: "Delivery is on the shelf.",
+          });
+        }}
       />
 
       <StoreRoomMovementDrawer

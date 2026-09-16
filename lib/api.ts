@@ -4138,6 +4138,65 @@ export async function decideStoreRoomMovement(
   );
 }
 
+export type StoreRoomInheritOrderLineRecord = {
+  purchaseOrderLineId: string;
+  itemId: string;
+  itemName: string;
+  barcode: string | null;
+  qtyOrdered: number | string;
+  qtyReceived: number | string;
+  remaining: number | string;
+  displayToHolderFactor: number | string;
+  catalogPackUnit: string;
+  storeItemId: string | null;
+  onList: boolean;
+};
+
+export type StoreRoomInheritOrderPreviewRecord = {
+  purchaseOrderId: string;
+  poNumber: string;
+  status: string;
+  deliveryStatus: string | null;
+  supplierId: string;
+  branchId: string;
+  expectedDate: string | null;
+  createdAt: string | null;
+  alreadyInherited: boolean;
+  unpacked: boolean;
+  lines: StoreRoomInheritOrderLineRecord[];
+};
+
+export type StoreRoomInheritOrderApplyRecord = {
+  purchaseOrderId: string;
+  poNumber: string;
+  createdStoreItems: number;
+  movements: number;
+  recorded: StoreRoomMovementRecord[];
+};
+
+export async function fetchStoreRoomInheritPreview(
+  purchaseOrderId: string,
+): Promise<StoreRoomInheritOrderPreviewRecord> {
+  const q = new URLSearchParams();
+  q.set("purchaseOrderId", purchaseOrderId.trim());
+  return request<StoreRoomInheritOrderPreviewRecord>(
+    `${API_ROUTES.storeRoomInheritOrder}?${q.toString()}`,
+    { toast: false },
+  );
+}
+
+export async function postStoreRoomInheritOrder(body: {
+  purchaseOrderId: string;
+  confirmDuplicate?: boolean;
+  lines: { purchaseOrderLineId: string; quantity: number }[];
+  branchId?: string | null;
+}): Promise<StoreRoomInheritOrderApplyRecord> {
+  return request<StoreRoomInheritOrderApplyRecord>(
+    API_ROUTES.storeRoomInheritOrder,
+    { method: "POST", body, toast: false },
+  );
+}
+
 export async function fetchStoreItems(opts?: {
   branchId?: string | null;
 }): Promise<StoreItemRecord[]> {

@@ -7,6 +7,7 @@ import {
   Check,
   Clock,
   Loader2,
+  Package,
   RotateCcw,
   ShieldAlert,
   X,
@@ -78,6 +79,7 @@ function formatWhen(iso: string, range: RangeKey): string {
 export function StoreRoomActivity({
   reloadToken,
   onPutIn,
+  onInheritOrder,
   onRecorded,
   canWrite,
   canDecide,
@@ -90,6 +92,7 @@ export function StoreRoomActivity({
 }: {
   reloadToken: number;
   onPutIn?: () => void;
+  onInheritOrder?: () => void;
   /** Called after an approve/reject so the register can re-read live counts. */
   onRecorded?: () => void;
   canWrite: boolean;
@@ -235,6 +238,18 @@ export function StoreRoomActivity({
             >
               <ArrowDownToLine className="size-3.5" aria-hidden />
               Put in
+            </Button>
+          ) : null}
+          {canWrite && onInheritOrder && !focusStoreItemId ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 px-1.5 text-[11px] text-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]"
+              onClick={onInheritOrder}
+            >
+              <Package className="size-3.5" aria-hidden />
+              Delivery
             </Button>
           ) : null}
           <Button
