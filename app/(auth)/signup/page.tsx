@@ -37,7 +37,9 @@ import {
 } from "@/lib/post-registration-auth";
 import {
   clearPendingOnboardDraft,
+  readPendingOnboardDraft,
   savePendingOnboardDraft,
+  type PendingOnboardDraft,
 } from "@/lib/pending-onboard-draft";
 import { isAccountExistsError } from "@/lib/problem";
 import { cn } from "@/lib/utils";
@@ -63,8 +65,35 @@ function SignupPageContent() {
   const [businessName, setBusinessName] = useState("");
   const [countryCode, setCountryCode] = useState(DEFAULT_SELFSERVE_COUNTRY_CODE);
   const [isOnboarding, setIsOnboarding] = useState(false);
+  /** Resume copy when localStorage still has an unfinished create-business. */
+  const [resumedDraft, setResumedDraft] = useState<PendingOnboardDraft | null>(
+    null,
+  );
   const { countries } = useSelfServeCountries();
   const router = useRouter();
+
+  useEffect(() => {
+    if (tenant) {
+      return;
+    }
+    const draft = readPendingOnboardDraft();
+    if (!draft) {
+      return;
+    }
+    setSessionTenantId(draft.tenantId);
+    setBusinessName(draft.name);
+    setCountryCode(draft.countryCode || DEFAULT_SELFSERVE_COUNTRY_CODE);
+    setResumedDraft(draft);
+    setShowOnboarding(false);
+    const shopUrl = slugDerivedShopUrl(draft.slug);
+    if (shopUrl) {
+      try {
+        persistSessionTenantHost(new URL(shopUrl).hostname);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [tenant]);
 
   useEffect(() => {
     if (!hasAccessSession() && !hasSessionPresenceCookie()) {
@@ -274,6 +303,13 @@ function SignupPageContent() {
         // Fallback: stay on page (localhost without suffix configured)
         setShowOnboarding(false);
         setErrorMessage("");
+        setResumedDraft({
+          tenantId: result.tenantId,
+          slug: result.slug,
+          name: businessName.trim() || result.slug,
+          countryCode,
+          createdAt: new Date().toISOString(),
+        });
         const qsEmail2 = searchParams.get("email")?.trim();
         if (qsEmail2) {
           setEmail(qsEmail2);
@@ -294,17 +330,50 @@ function SignupPageContent() {
     <AuthSplitShell tenant={tenant}>
       <AuthPageHeader
         title="Create your account"
-        description="Browse the storefront, save carts, and check out pickups with your profile."
+        description={
+          resumedDraft
+            ? `Continue setting up ${resumedDraft.name || resumedDraft.slug}. Confirm your email, then we’ll take you to your dashboard.`
+            : "Browse the storefront, save carts, and check out pickups with your profile."
+        }
       />
       <p className="mt-1 text-sm text-muted-foreground">
         Confirm your email when asked — we&apos;ll take you straight to your account.
         No need to sign in again.
       </p>
 
+      {resumedDraft && !tenant ? (
+        <div className="mt-4 rounded-2xl border border-[color-mix(in_srgb,var(--auth-accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--auth-accent)_6%,white)] p-4 text-sm dark:bg-[color-mix(in_srgb,var(--auth-accent)_10%,#18181b)]">
+          <p className="font-semibold text-foreground">
+            Picking up where you left off
+          </p>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Your shop{" "}
+            <span className="font-medium text-foreground">
+              {resumedDraft.name || resumedDraft.slug}
+            </span>{" "}
+            is already created. Finish your owner account below — no need to
+            create another shop.
+          </p>
+          <button
+            type="button"
+            className="mt-3 text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            onClick={() => {
+              clearPendingOnboardDraft();
+              clearSessionTenantId();
+              setResumedDraft(null);
+              setBusinessName("");
+              setShowOnboarding(false);
+            }}
+          >
+            Start over with a different shop name
+          </button>
+        </div>
+      ) : null}
+
       {/* Onboarding CTA for the platform apex only.
           A mapped shop host always has a tenant, so pitching "create a business"
           there invites a shopper to spin up a second shop (F6). */}
-      {!showOnboarding && !tenant ? (
+      {!showOnboarding && !tenant && !resumedDraft ? (
         <div className="mt-6 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--auth-accent)_33%,transparent)] bg-[color-mix(in_srgb,var(--auth-accent)_4%,white)] p-4 dark:bg-[color-mix(in_srgb,var(--auth-accent)_7%,#18181b)]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="flex items-start gap-3">
