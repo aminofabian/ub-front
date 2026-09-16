@@ -36,6 +36,8 @@ import {
   ApiRequestError,
   createStoreItem,
   deleteStoreItem,
+  fetchItemById,
+  fetchItemPackOptions,
   fetchStoreItems,
   fetchStoreRoomSettings,
   updateStoreItem,
@@ -47,6 +49,7 @@ import {
   type StoreRoomMovementRecord,
   type StoreRoomSettingsRecord,
 } from "@/lib/api";
+import type { SupplyPackMode } from "@/lib/supply-pack-math";
 import { resolveCurrencyCode } from "@/lib/money";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
@@ -58,6 +61,14 @@ import {
   storeItemCount,
   storeItemCountInput,
 } from "../_lib/store-item-count";
+import {
+  catalogNativePack,
+  isPacked,
+  packsToCatalogDisplay,
+  retargetCount,
+  storePackCatalogFromItem,
+  type StorePackCatalog,
+} from "../_lib/store-item-pack";
 import { StoreRoomConnectionChooser } from "./store-room-connection-chooser";
 import { StoreRoomMovementDrawer } from "./store-room-movement-drawer";
 import { StoreRoomProductPicker } from "./store-room-product-picker";
@@ -149,6 +160,8 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   const [editRow, setEditRow] = useState<StoreItemRecord | null>(null);
   const [editDraft, setEditDraft] = useState<Draft>(EMPTY_DRAFT);
   const [editBusy, setEditBusy] = useState(false);
+  const [packCatalog, setPackCatalog] = useState<StorePackCatalog | null>(null);
+  const [packMode, setPackMode] = useState<SupplyPackMode | null>(null);
 
   const [deleteRow, setDeleteRow] = useState<StoreItemRecord | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -253,6 +266,49 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     () => filtered.find((row) => row.id === selectedId) ?? rows.find((row) => row.id === selectedId) ?? null,
     [filtered, rows, selectedId],
   );
+
+  const linkedItemId = connected ? selectedRow?.itemId ?? null : null;
+
+  useEffect(() => {
+    if (!linkedItemId) {
+      setPackCatalog(null);
+      setPackMode(null);
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      fetchItemById(linkedItemId, { branchId: branchId || null, toast: false }),
+      fetchItemPackOptions(linkedItemId),
+    ])
+      .then(([detail, options]) => {
+        if (cancelled) return;
+        const next = storePackCatalogFromItem(linkedItemId, detail, options);
+        setPackCatalog(next);
+        setPackMode(catalogNativePack(next));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPackCatalog(null);
+        setPackMode(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [branchId, linkedItemId]);
+
+  const applyPackMode = (next: SupplyPackMode | null) => {
+    const factor = packCatalog?.displayToHolderFactor ?? 1;
+    const typed = parseStoreCount(editDraft.quantity, false);
+    if (typed != null) {
+      setEditDraft((prev) => ({
+        ...prev,
+        quantity: storeItemCountInput(
+          retargetCount(typed, packMode, next, factor),
+        ),
+      }));
+    }
+    setPackMode(next);
+  };
 
   const maxCount = useMemo(() => {
     let max = 1;
@@ -623,7 +679,8 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     const buyingPrice = parseBuyingPrice(editDraft.buyingPrice);
     const latest = rows.find((r) => r.id === editRow.id) ?? editRow;
     const followsInventory = connected && latest.itemId != null;
-    const quantity = parseStoreCount(editDraft.quantity, !followsInventory);
+    const packed = followsInventory && isPacked(packMode);
+    const quantity = parseStoreCount(editDraft.quantity, !followsInventory && !packed);
     if (!name) {
       setFeedback({ kind: "error", text: "Name is required." });
       return;
@@ -631,9 +688,10 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     if (quantity == null) {
       setFeedback({
         kind: "error",
-        text: followsInventory
-          ? "Quantity must be a number ≥ 0."
-          : "Quantity must be a whole number ≥ 0.",
+        text:
+          followsInventory || packed
+            ? "Quantity must be a number ≥ 0."
+            : "Quantity must be a whole number ≥ 0.",
       });
       return;
     }
@@ -645,7 +703,11 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
       return;
     }
     const currentLive = storeItemCount(latest, connected);
-    const qtyChanged = Math.abs(quantity - currentLive) >= 0.0001;
+    const factor = packCatalog?.displayToHolderFactor ?? 1;
+    const targetDisplay = followsInventory
+      ? packsToCatalogDisplay(quantity, packMode, factor)
+      : quantity;
+    const qtyChanged = Math.abs(targetDisplay - currentLive) >= 0.0001;
     if (followsInventory && qtyChanged) {
       if (!canDecide) {
         setFeedback({
@@ -669,7 +731,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         await setCatalogOnHandStock({
           itemId: latest.itemId,
           branchId,
-          targetDisplay: quantity,
+          targetDisplay,
           unitCost: buyingPrice ?? 0,
           notes: "Stock set from store room",
         });
@@ -866,6 +928,9 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         rowBusyId={rowBusyId}
         draft={editDraft}
         onDraftChange={setEditDraft}
+        packCatalog={packCatalog}
+        packMode={packMode}
+        onPackModeChange={applyPackMode}
         editBusy={editBusy}
         onSave={() => void handleEdit()}
         onDelete={setDeleteRow}

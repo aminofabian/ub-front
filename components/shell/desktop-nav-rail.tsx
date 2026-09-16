@@ -71,7 +71,7 @@ export type DesktopNavSection = {
 /** Icon-rail clusters — dividers separate related sections at a glance. */
 const RAIL_CLUSTER_IDS: readonly (readonly string[])[] = [
   ["overview"],
-  ["org", "catalog", "procurement", "inventory"],
+  ["org", "catalog", "procurement", "inventory", "store"],
   ["ops", "payments", "credits"],
   ["sales"],
 ];
@@ -105,7 +105,7 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.purchasingIntelligence]: BarChart3,
   [APP_ROUTES.purchasingApAging]: Receipt,
   [APP_ROUTES.purchasingRecordPayment]: CreditCard,
-  [APP_ROUTES.store]: Warehouse,
+  [APP_ROUTES.store]: Store,
   [APP_ROUTES.inventorySupplyBatches]: Warehouse,
   [APP_ROUTES.inventoryStock]: Warehouse,
   [APP_ROUTES.inventoryRestock]: Package,

@@ -152,11 +152,6 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Profile",
       },
       {
-        href: APP_ROUTES.store,
-        label: "Store",
-        group: "Profile",
-      },
-      {
         href: APP_ROUTES.businessConfiguration,
         label: "How the shop runs",
         group: "Configuration",
@@ -350,13 +345,6 @@ const NAV_SECTIONS: readonly NavSection[] = [
         label: "Stock levels",
         group: "In the shop",
       },
-      // Sits with stock rather than the catalogue: a store room can follow
-      // inventory, so its counts move with what's on the shelf.
-      {
-        href: APP_ROUTES.store,
-        label: "Store room",
-        group: "In the shop",
-      },
       {
         href: APP_ROUTES.inventoryRestock,
         label: "Out of stock",
@@ -383,6 +371,15 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Worth & moves",
       },
     ],
+  },
+  {
+    id: "store",
+    title: "Store",
+    shortLabel: "Store",
+    blurb: "Store room register",
+    icon: Store,
+    entryHref: APP_ROUTES.store,
+    items: [{ href: APP_ROUTES.store, label: "Store" }],
   },
   {
     id: "ops",
@@ -885,7 +882,14 @@ const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
     id: "more",
     label: "More",
     icon: Tags,
-    matchSectionIds: ["org", "payments", "procurement", "inventory", "sales"],
+    matchSectionIds: [
+      "org",
+      "payments",
+      "procurement",
+      "inventory",
+      "store",
+      "sales",
+    ],
   },
 ];
 
@@ -935,6 +939,7 @@ const BOTTOM_TABS: readonly BottomTab[] = [
       "payments",
       "procurement",
       "inventory",
+      "store",
       "sales",
       "credits",
       "customers",

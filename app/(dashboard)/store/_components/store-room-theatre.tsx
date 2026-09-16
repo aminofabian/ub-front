@@ -28,9 +28,12 @@ import { FormDrawer } from "@/components/form-drawer";
 import { APP_ROUTES } from "@/lib/config";
 import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import type { StoreItemRecord } from "@/lib/api";
+import type { SupplyPackMode } from "@/lib/supply-pack-math";
 import { cn } from "@/lib/utils";
 
 import { storeItemCount } from "../_lib/store-item-count";
+import { type StorePackCatalog } from "../_lib/store-item-pack";
+import { StorePackCountField } from "./store-pack-count-field";
 import { StoreRoomActivity } from "./store-room-activity";
 
 function LiveDot() {
@@ -89,6 +92,9 @@ export function StoreRoomTheatre({
   rowBusyId,
   draft,
   onDraftChange,
+  packCatalog,
+  packMode,
+  onPackModeChange,
   editBusy,
   onSave,
   onDelete,
@@ -127,6 +133,9 @@ export function StoreRoomTheatre({
   rowBusyId: string | null;
   draft: StoreInspectDraft;
   onDraftChange: (draft: StoreInspectDraft) => void;
+  packCatalog: StorePackCatalog | null;
+  packMode: SupplyPackMode | null;
+  onPackModeChange: (next: SupplyPackMode | null) => void;
   editBusy: boolean;
   onSave: () => void;
   onDelete: (row: StoreItemRecord) => void;
@@ -312,6 +321,9 @@ export function StoreRoomTheatre({
         maxCount={maxCount}
         draft={draft}
         onDraftChange={onDraftChange}
+        packCatalog={packCatalog}
+        packMode={packMode}
+        onPackModeChange={onPackModeChange}
         busy={editBusy}
         rowBusyId={rowBusyId}
         onSave={onSave}
@@ -488,6 +500,9 @@ function InspectPanel({
   maxCount,
   draft,
   onDraftChange,
+  packCatalog,
+  packMode,
+  onPackModeChange,
   busy,
   rowBusyId,
   onSave,
@@ -502,6 +517,9 @@ function InspectPanel({
   maxCount: number;
   draft: StoreInspectDraft;
   onDraftChange: (draft: StoreInspectDraft) => void;
+  packCatalog: StorePackCatalog | null;
+  packMode: SupplyPackMode | null;
+  onPackModeChange: (next: SupplyPackMode | null) => void;
   busy: boolean;
   rowBusyId: string | null;
   onSave: () => void;
@@ -538,6 +556,11 @@ function InspectPanel({
               >
                 {formatQuantity(count)}
               </span>
+              {packCatalog && packCatalog.displayToHolderFactor > 1 ? (
+                <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                  {packCatalog.catalogPackUnit}
+                </span>
+              ) : null}
             </span>
           </div>
           <div className="mt-2 h-1.5 w-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
@@ -601,26 +624,15 @@ function InspectPanel({
             placeholder="Optional"
           />
         </label>
-        <label className="block space-y-1">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-            Number
-          </span>
-          <input
-            className={dashboardInputClass()}
-            type="number"
-            min={0}
-            step={followsInventory ? "any" : 1}
-            inputMode={followsInventory ? "decimal" : "numeric"}
-            value={draft.quantity}
-            onChange={(e) => set("quantity")(e.target.value)}
-            required
-          />
-          {followsInventory ? (
-            <span className={cn(dashboardHintClass(), "block")}>
-              Saving number updates inventory on-hand.
-            </span>
-          ) : null}
-        </label>
+        <StorePackCountField
+          value={draft.quantity}
+          onChange={set("quantity")}
+          packMode={packMode}
+          onPackModeChange={onPackModeChange}
+          catalog={packCatalog}
+          followsInventory={followsInventory}
+          disabled={busy}
+        />
         <div className="grid grid-cols-2 gap-2">
           <label className="block space-y-1">
             <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">

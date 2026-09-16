@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowDownToLine, ArrowUpFromLine, Loader2 } from "lucide-react";
 
 import {
@@ -12,14 +12,28 @@ import { FormDrawer } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import {
   ApiRequestError,
+  fetchItemById,
+  fetchItemPackOptions,
   postStoreRoomMovement,
   type StoreItemRecord,
   type StoreRoomDirection,
   type StoreRoomMovementRecord,
   type StoreRoomReason,
 } from "@/lib/api";
+import type { SupplyPackMode } from "@/lib/supply-pack-math";
 import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
 import { cn } from "@/lib/utils";
+
+import {
+  catalogNativePack,
+  isPacked,
+  packsToCatalogDisplay,
+  retargetCount,
+  storePackCatalogFromItem,
+  type StorePackCatalog,
+} from "../_lib/store-item-pack";
+import { parseStoreCount, storeItemCountInput } from "../_lib/store-item-count";
+import { StorePackCountField } from "./store-pack-count-field";
 
 /**
  * Every store-room reason in one place, with the two things the form needs to know:
@@ -194,6 +208,8 @@ export function StoreRoomMovementDrawer({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [packCatalog, setPackCatalog] = useState<StorePackCatalog | null>(null);
+  const [packMode, setPackMode] = useState<SupplyPackMode | null>(null);
 
   const row = useMemo(
     () => rows.find((candidate) => candidate.id === storeItemId) ?? null,
@@ -202,6 +218,34 @@ export function StoreRoomMovementDrawer({
   /** A row is only "linked" while the store room follows inventory. */
   const linked = connected && row?.itemId != null;
 
+  useEffect(() => {
+    const itemId = linked ? row?.itemId ?? null : null;
+    if (!itemId) {
+      setPackCatalog(null);
+      setPackMode(null);
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      fetchItemById(itemId, { toast: false }),
+      fetchItemPackOptions(itemId),
+    ])
+      .then(([detail, options]) => {
+        if (cancelled) return;
+        const next = storePackCatalogFromItem(itemId, detail, options);
+        setPackCatalog(next);
+        setPackMode(catalogNativePack(next));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPackCatalog(null);
+        setPackMode(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [linked, row?.itemId]);
+
   const reasonsForDirection = useMemo(
     () => STORE_ROOM_REASONS.filter((option) => option.direction === direction),
     [direction],
@@ -209,22 +253,35 @@ export function StoreRoomMovementDrawer({
 
   const meta = STORE_ROOM_REASONS.find((option) => option.value === reason);
   const changesStock = meta?.changesStock ?? false;
-  const wholeOnly = changesStock && !linked;
+  const wholeOnly = changesStock && !linked && !isPacked(packMode);
   const parsed = parseQuantity(quantity, wholeOnly);
   const noteRequired = reason === "other";
+  const factor = packCatalog?.displayToHolderFactor ?? 1;
+  const movementQty =
+    parsed == null
+      ? null
+      : linked
+        ? packsToCatalogDisplay(parsed, packMode, factor)
+        : parsed;
+  const baseQty =
+    parsed == null
+      ? null
+      : isPacked(packMode)
+        ? parsed * packMode!.unitsPerPack
+        : parsed * factor;
   const needsApproval =
     changesStock &&
     linked &&
     approvalThreshold != null &&
-    parsed != null &&
-    parsed > approvalThreshold;
+    baseQty != null &&
+    baseQty > approvalThreshold;
 
   const submit = async () => {
     if (!row) {
       setError("Pick something from the store room.");
       return;
     }
-    if (parsed == null) {
+    if (movementQty == null) {
       setError(
         wholeOnly
           ? "Enter a whole number of one or more."
@@ -243,7 +300,7 @@ export function StoreRoomMovementDrawer({
         storeItemId: row.id,
         direction,
         reason,
-        quantity: parsed,
+        quantity: movementQty,
         note: note.trim() || null,
       });
       onOpenChange(false);
@@ -381,21 +438,25 @@ export function StoreRoomMovementDrawer({
           </select>
         </label>
 
-        <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-            How many
-          </span>
-          <input
-            className={dashboardInputClass()}
-            type="number"
-            min={wholeOnly ? 1 : 0.01}
-            step={wholeOnly ? 1 : 0.01}
-            inputMode={wholeOnly ? "numeric" : "decimal"}
-            value={quantity}
-            onChange={(event) => setQuantity(event.target.value)}
-            required
-          />
-        </label>
+        <StorePackCountField
+          value={quantity}
+          onChange={setQuantity}
+          packMode={packMode}
+          onPackModeChange={(next) => {
+            const typed = parseStoreCount(quantity, false);
+            if (typed != null) {
+              setQuantity(
+                storeItemCountInput(
+                  retargetCount(typed, packMode, next, factor),
+                ),
+              );
+            }
+            setPackMode(next);
+          }}
+          catalog={packCatalog}
+          followsInventory={Boolean(linked)}
+          disabled={busy}
+        />
 
         <label className="block space-y-1.5">
           <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
@@ -456,7 +517,7 @@ export function StoreRoomMovementDrawer({
               "border-l-2 border-amber-500/60 pl-2.5 text-amber-700 dark:text-amber-400",
             )}
           >
-            More than {approvalThreshold} needs approval. This will be recorded and
+            More than {approvalThreshold} each needs approval. This will be recorded and
             wait for a decision — stock will not move until then.
           </p>
         ) : null}
