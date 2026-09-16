@@ -535,7 +535,7 @@ export function CreditActivityPage({
 
   if (sessionLoading) {
     return (
-      <div className={cn(DASHBOARD_MAX_WIDE, styles.shell, "space-y-6 pb-16")}>
+      <div className={cn(DASHBOARD_MAX_WIDE, styles.shell, "gap-1.5 pb-16")}>
         <div className="h-10 w-48 animate-pulse bg-muted" />
         <div className="h-36 animate-pulse bg-muted/60" />
         <div className="h-80 animate-pulse bg-muted/40" />
@@ -559,42 +559,38 @@ export function CreditActivityPage({
       className={cn(
         !embedded && DASHBOARD_MAX_WIDE,
         styles.shell,
-        embedded ? "space-y-4 pb-8" : "space-y-5 pb-16",
+        embedded ? "gap-1.5 pb-8" : "gap-1.5 pb-16",
       )}
     >
-      {/*
- THESIS: a flush ledger — type and hairlines, no panel, no radius.
- OWN-WORLD: page paper, charcoal type, rust only on outstanding.
- STORY: pick a name, collect or freeze, tap a charge to read the items.
- FIRST VIEWPORT: owed figure, names, selected account.
- FORM: operate / square ledger.
- FINISH: verify in the browser.
- */}
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        {embedded ? (
-          <div className="min-w-0">
-            <p className="text-[13px] font-semibold tracking-[-0.015em]">
-              Collect or freeze from the list below
-            </p>
-          </div>
-        ) : (
-          <DashboardPageHero
-            compact
-            icon={CreditCard}
-            title="On tab"
-            description="The shop cash book. Open a name to collect, remind, or freeze credit."
-          />
-        )}
-        <div className="flex flex-wrap items-center gap-2">
+      {embedded ? (
+        <p className="text-[13px] font-semibold tracking-[-0.015em]">
+          Collect or freeze from the list below
+        </p>
+      ) : (
+        <DashboardPageHero
+          icon={CreditCard}
+          title="On tab"
+          description="Pick a name. Collect, remind, or freeze credit."
+        >
           {canReviewPaymentClaims ? (
-            <Button asChild size="sm" variant="outline">
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="h-8 rounded-none shadow-none"
+            >
               <Link href={APP_ROUTES.creditsPaymentClaims}>
                 They say they paid
               </Link>
             </Button>
           ) : null}
           {canViewCustomers ? (
-            <Button asChild size="sm" variant="outline">
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="h-8 rounded-none shadow-none"
+            >
               <Link href={APP_ROUTES.customers}>
                 <Users className="size-3.5" aria-hidden />
                 Directory
@@ -605,6 +601,7 @@ export function CreditActivityPage({
             type="button"
             size="sm"
             variant="outline"
+            className="h-8 rounded-none shadow-none"
             disabled={busy}
             onClick={() => void refreshAll()}
           >
@@ -614,8 +611,8 @@ export function CreditActivityPage({
             />
             Refresh
           </Button>
-        </div>
-      </header>
+        </DashboardPageHero>
+      )}
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
       {feedback ? (
@@ -623,141 +620,55 @@ export function CreditActivityPage({
       ) : null}
 
       <section className={styles.book}>
-        <div className={styles.masthead}>
-          <div className={styles.mastheadTop}>
-            <div className={styles.owedFigure}>
-              <h2 className={styles.owedAmount}>
-                {summaryLoading && summary == null && tabsLoading
-                  ? " "
-                  : fmtKes(totalOwed)}
-              </h2>
-              <p className={styles.owedMeta}>
-                {summaryLoading && summary == null && tabsLoading
-                  ? "Loading balances"
-                  : openTabCount === 0
-                    ? "All tabs settled"
-                    : `Still owed · ${openTabCount} open tab${openTabCount === 1 ? "" : "s"}${
-                        phoneIssues > 0
-                          ? ` · ${phoneIssues} need a usable phone`
-                          : ""
-                      }`}
-              </p>
-            </div>
-            <dl className={styles.sideFigures}>
-              <div>
-                <dt>Charged</dt>
-                <dd>{listLoading ? " " : fmtKes(totalCredit)}</dd>
-                <p className={styles.sideHint}>
-                  {listLoading
-                    ? "Loading"
-                    : tabCount === 0
-                      ? "Nothing this period"
-                      : `${tabCount} sale${tabCount === 1 ? "" : "s"} · ${peopleCount} ${peopleCount === 1 ? "person" : "people"}`}
-                </p>
-              </div>
-              <div>
-                <dt>Collected</dt>
-                <dd className={styles.collect}>
-                  {summaryLoading && summary == null ? " " : fmtKes(totalPaid)}
-                </dd>
-                <p className={styles.sideHint}>
-                  {summaryLoading && summary == null
-                    ? "Loading"
-                    : paymentCount === 0
-                      ? "No collections this period"
-                      : `${paymentCount} payment${paymentCount === 1 ? "" : "s"}`}
-                </p>
-              </div>
-            </dl>
+        <div className={styles.banner}>
+          <div className={styles.stamps} role="group" aria-label="Credit period">
+            {PERIOD_OPTIONS.map(({ id, label, hint }) => {
+              const active = period === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  title={hint}
+                  onClick={() => setPeriod(id)}
+                  className={cn(styles.stamp, active && styles.stampActive)}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
-
-          <div className={styles.toolbar}>
-            <div
-              className={styles.stamps}
-              role="group"
-              aria-label="Credit period"
-            >
-              {PERIOD_OPTIONS.map(({ id, label, hint }) => {
-                const active = period === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    title={hint}
-                    onClick={() => setPeriod(id)}
-                    className={cn(styles.stamp, active && styles.stampActive)}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className={styles.sideHint}>
-              {periodLabel}
-              {listLoading || tabCount === 0
-                ? null
-                : ` · avg ${fmtKes(avgTab)}${
-                    peakHour && singleDay ? ` · peak ${peakHour.label}` : ""
-                  }`}
-            </p>
-          </div>
-
-          {singleDay && tabCount > 0 ? (
-            <div>
-              <div
-                className={styles.hours}
-                role="img"
-                aria-label="Credit charged by hour of day"
-              >
-                {hours.map((value, hour) => (
-                  <div
-                    key={hour}
-                    className={styles.hour}
-                    style={{
-                      height: `${Math.max(10, (value / maxHour) * 100)}%`,
-                      opacity:
-                        value > 0 ? 0.28 + (value / maxHour) * 0.72 : 0.1,
-                    }}
-                    title={`${hour}:00 ${fmtKes(value)}`}
-                  />
-                ))}
-              </div>
-              <div className={styles.hourScale}>
-                <span>12a</span>
-                <span>6a</span>
-                <span>12p</span>
-                <span>6p</span>
-                <span>11p</span>
-              </div>
-            </div>
-          ) : null}
+          <p className={styles.sideHint}>
+            {periodLabel}
+            {listLoading || tabCount === 0
+              ? null
+              : ` · avg ${fmtKes(avgTab)}${
+                  peakHour && singleDay ? ` · peak ${peakHour.label}` : ""
+                }`}
+          </p>
         </div>
 
-        {canViewCustomers ? (
-          tabsLoading ? (
-            <LedgerSkeleton rows={6} />
-          ) : openTabs.length === 0 ? (
-            <div className={styles.empty}>
-              <p>Everyone is settled</p>
-              <p className={styles.muted}>No open tab balances right now.</p>
-            </div>
-          ) : (
+        <div className={styles.theatre}>
             <div className={styles.spread}>
               <div className={styles.index}>
                 <div className={styles.indexHead}>
                   <div>
                     <h2 className={styles.indexTitle}>Names</h2>
                     <p className={styles.indexHint}>
-                      {filteredTabs.length === 0
-                        ? query
-                          ? "No open tabs match that search"
-                          : "No outstanding balances"
-                        : `Biggest first · ${fmtKes(totalOwed)}`}
+                      {!canViewCustomers
+                        ? "Needs customer access"
+                        : tabsLoading
+                          ? "Loading open tabs"
+                          : filteredTabs.length === 0
+                            ? query
+                              ? "No open tabs match that search"
+                              : "No outstanding balances"
+                            : `Biggest first · ${fmtKes(totalOwed)}`}
                     </p>
                   </div>
+                  {canViewCustomers ? (
                   <div className="relative">
                     <Search
-                      className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-neutral-400"
+                      className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
                       aria-hidden
                     />
                     <input
@@ -768,11 +679,21 @@ export function CreditActivityPage({
                       aria-label="Search open tabs and credit sales"
                     />
                   </div>
+                  ) : null}
                 </div>
+                {tabsLoading && canViewCustomers ? (
+                  <LedgerSkeleton rows={8} />
+                ) : (
                 <ul aria-label="Open tabs">
-                  {filteredTabs.length === 0 ? (
+                  {!canViewCustomers ? (
                     <li className={cn(styles.empty, styles.muted)}>
-                      No names match that search.
+                      Open tabs need customer access.
+                    </li>
+                  ) : filteredTabs.length === 0 ? (
+                    <li className={cn(styles.empty, styles.muted)}>
+                      {query
+                        ? "No names match that search."
+                        : "Everyone is settled."}
                     </li>
                   ) : (
                     filteredTabs.map((tab) => {
@@ -818,6 +739,7 @@ export function CreditActivityPage({
                     })
                   )}
                 </ul>
+                )}
               </div>
 
               <div className={styles.page}>
@@ -868,22 +790,90 @@ export function CreditActivityPage({
                     }
                   />
                 ) : (
-                  <div className={styles.empty}>
-                    <p>Pick a name</p>
-                    <p className={styles.muted}>
-                      Their charges, payments, and collect actions open here.
-                    </p>
+                  <div className={styles.masthead}>
+                    <div className={styles.mastheadTop}>
+                      <div className={styles.owedFigure}>
+                        <p className={styles.owedAmount}>
+                          {summaryLoading && summary == null && tabsLoading
+                            ? " "
+                            : fmtKes(totalOwed)}
+                        </p>
+                        <p className={styles.owedMeta}>
+                          {summaryLoading && summary == null && tabsLoading
+                            ? "Loading balances"
+                            : openTabCount === 0
+                              ? "All tabs settled. Pick a charge on the right to read a slip."
+                              : `Still owed · ${openTabCount} open tab${openTabCount === 1 ? "" : "s"}${
+                                  phoneIssues > 0
+                                    ? ` · ${phoneIssues} need a usable phone`
+                                    : ""
+                                }`}
+                        </p>
+                      </div>
+                      <dl className={styles.sideFigures}>
+                        <div>
+                          <dt>Charged</dt>
+                          <dd>{listLoading ? " " : fmtKes(totalCredit)}</dd>
+                          <p className={styles.sideHint}>
+                            {listLoading
+                              ? "Loading"
+                              : tabCount === 0
+                                ? "Nothing this period"
+                                : `${tabCount} sale${tabCount === 1 ? "" : "s"} · ${peopleCount} ${peopleCount === 1 ? "person" : "people"}`}
+                          </p>
+                        </div>
+                        <div>
+                          <dt>Collected</dt>
+                          <dd className={styles.collect}>
+                            {summaryLoading && summary == null
+                              ? " "
+                              : fmtKes(totalPaid)}
+                          </dd>
+                          <p className={styles.sideHint}>
+                            {summaryLoading && summary == null
+                              ? "Loading"
+                              : paymentCount === 0
+                                ? "No collections this period"
+                                : `${paymentCount} payment${paymentCount === 1 ? "" : "s"}`}
+                          </p>
+                        </div>
+                      </dl>
+                    </div>
+                    {singleDay && tabCount > 0 ? (
+                      <div>
+                        <div
+                          className={styles.hours}
+                          role="img"
+                          aria-label="Credit charged by hour of day"
+                        >
+                          {hours.map((value, hour) => (
+                            <div
+                              key={hour}
+                              className={styles.hour}
+                              style={{
+                                height: `${Math.max(10, (value / maxHour) * 100)}%`,
+                                opacity:
+                                  value > 0
+                                    ? 0.28 + (value / maxHour) * 0.72
+                                    : 0.1,
+                              }}
+                              title={`${hour}:00 ${fmtKes(value)}`}
+                            />
+                          ))}
+                        </div>
+                        <div className={styles.hourScale}>
+                          <span>12a</span>
+                          <span>6a</span>
+                          <span>12p</span>
+                          <span>6p</span>
+                          <span>11p</span>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </div>
             </div>
-          )
-        ) : (
-          <div className={styles.empty}>
-            <p>Open tabs need customer access</p>
-            <p className={styles.muted}>Period charges are still below.</p>
-          </div>
-        )}
 
         <div className={styles.daySheet}>
           <div className={styles.dayCol}>
@@ -1059,6 +1049,7 @@ export function CreditActivityPage({
               </Link>
             </p>
           </div>
+        </div>
         </div>
       </section>
 
@@ -1304,7 +1295,7 @@ function SelectedTabWorkspace({
 
       <div className={styles.actions}>
         {canReviewPaymentClaims ? (
-          <Button type="button" size="sm" onClick={onMarkPaid}>
+        <Button type="button" size="sm" className="rounded-none shadow-none" onClick={onMarkPaid}>
             Mark paid
           </Button>
         ) : null}

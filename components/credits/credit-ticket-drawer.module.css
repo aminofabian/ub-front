@@ -8,10 +8,11 @@
 }
 
 .wrap {
-  --ink: #111111;
-  --soft: #3d3d3d;
-  --rule: #d6d6d6;
+  --ink: var(--order-ink, #15231f);
+  --soft: color-mix(in srgb, var(--order-ink, #15231f) 62%, white);
+  --rule: color-mix(in srgb, var(--order-ink, #15231f) 14%, transparent);
   --tab: #9a2e16;
+  --collect: var(--pos-primary, #0f766e);
   color: var(--ink);
 }
 
@@ -61,12 +62,12 @@
 
 .paidFigure {
   margin: 1.15rem 0 0;
-  font-family: var(--font-serif), ui-serif, Georgia, serif;
+  font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(1.85rem, 4vw, 2.35rem);
   letter-spacing: -0.03em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: #1f6b3a;
+  color: var(--collect);
 }
 
 .paidLabel {
