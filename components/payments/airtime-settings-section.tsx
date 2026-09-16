@@ -33,7 +33,13 @@ function money(n: number | null | undefined, currency = "KES") {
  * read-only-ish until the platform has Instalipa credentials and the wallet is
  * active — the blocked reason from the API explains which one is missing.
  */
-export function AirtimeSettingsSection() {
+type AirtimeSettingsSectionProps = {
+  theatreMode?: boolean;
+};
+
+export function AirtimeSettingsSection({
+  theatreMode = false,
+}: AirtimeSettingsSectionProps = {}) {
   const { me } = useDashboard();
   const canRead =
     hasPermission(me?.permissions, Permission.AirtimeRead) ||
@@ -111,39 +117,8 @@ export function AirtimeSettingsSection() {
     return null;
   }
 
-  return (
-    <section id="airtime" className="scroll-mt-24 space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="flex items-center gap-2 font-heading text-lg font-semibold tracking-tight text-[#141414]">
-            <Signal className="size-4 text-[#0f766e]" aria-hidden />
-            Sell airtime
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-[#666666]">
-            Turn your Kiosk Pay balance into an extra earner. Every top-up you sell
-            debits the airtime face value from your wallet and credits your commission
-            straight back — no separate float to manage.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" asChild>
-            <Link href={APP_ROUTES.airtime}>Airtime activity</Link>
-          </Button>
-          <Button type="button" variant="outline" size="sm" asChild>
-            <Link href={APP_ROUTES.onlineAirtime}>Online purchases</Link>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={loading || saving}
-            onClick={() => void reload()}
-          >
-            Refresh
-          </Button>
-        </div>
-      </div>
-
+  const body = (
+    <>
       {loading && !settings ? (
         <div className={cn(HUB_SURFACE, "flex items-center gap-2 px-4 py-8 text-sm text-[#666666]")}>
           <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -161,12 +136,16 @@ export function AirtimeSettingsSection() {
           {platformReady && !walletReady ? (
             <p className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-sm text-[#9a2e16]">
               Activate Kiosk Pay first — airtime is funded from that wallet.{" "}
-              <Link
-                href="#kiosk-pay"
+              <button
+                type="button"
                 className="font-medium underline underline-offset-2"
+                onClick={() => {
+                  history.replaceState(null, "", "#kiosk-pay");
+                  window.dispatchEvent(new HashChangeEvent("hashchange"));
+                }}
               >
                 Set up Kiosk Pay
-              </Link>
+              </button>
               .
             </p>
           ) : null}
@@ -311,6 +290,67 @@ export function AirtimeSettingsSection() {
           ) : null}
         </div>
       )}
+    </>
+  );
+
+  if (theatreMode) {
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" asChild>
+            <Link href={APP_ROUTES.airtime}>Airtime activity</Link>
+          </Button>
+          <Button type="button" variant="outline" size="sm" asChild>
+            <Link href={APP_ROUTES.onlineAirtime}>Online purchases</Link>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={loading || saving}
+            onClick={() => void reload()}
+          >
+            Refresh
+          </Button>
+        </div>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <section id="airtime" className="scroll-mt-24 space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 font-heading text-lg font-semibold tracking-tight text-[#141414]">
+            <Signal className="size-4 text-[#0f766e]" aria-hidden />
+            Sell airtime
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-[#666666]">
+            Turn your Kiosk Pay balance into an extra earner. Every top-up you sell
+            debits the airtime face value from your wallet and credits your commission
+            straight back — no separate float to manage.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" asChild>
+            <Link href={APP_ROUTES.airtime}>Airtime activity</Link>
+          </Button>
+          <Button type="button" variant="outline" size="sm" asChild>
+            <Link href={APP_ROUTES.onlineAirtime}>Online purchases</Link>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={loading || saving}
+            onClick={() => void reload()}
+          >
+            Refresh
+          </Button>
+        </div>
+      </div>
+      {body}
     </section>
   );
 }

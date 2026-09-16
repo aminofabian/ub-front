@@ -25,6 +25,8 @@ import { HUB_SURFACE } from "@/lib/business-hub/constants";
 
 type SupplierPayoutSettingsSectionProps = {
   canWrite: boolean;
+  /** When true, render configure form only (theatre dock — no section chrome or nested drawer). */
+  theatreMode?: boolean;
 };
 
 const DEFAULT_AUTO_PAY_TIMES = ["00:00", "18:00"];
@@ -46,8 +48,183 @@ function formatTimeLabel(hhmm: string): string {
   return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
+function SupplierPayoutConfigureForm({
+  canWrite,
+  saving,
+  enabled,
+  setEnabled,
+  autoPayEnabled,
+  setAutoPayEnabled,
+  autoPayTimes,
+  setAutoPayTimes,
+  configId,
+  setConfigId,
+  activeSelectable,
+  settings,
+}: {
+  canWrite: boolean;
+  saving: boolean;
+  enabled: boolean;
+  setEnabled: (v: boolean) => void;
+  autoPayEnabled: boolean;
+  setAutoPayEnabled: (v: boolean) => void;
+  autoPayTimes: string[];
+  setAutoPayTimes: (v: string[]) => void;
+  configId: string;
+  setConfigId: (v: string) => void;
+  activeSelectable: NonNullable<
+    SupplierPayoutSettingsRecord["selectableGateways"]
+  >;
+  settings: SupplierPayoutSettingsRecord | null;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-3.5 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">
+            Enable paying suppliers
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            Allows Supplies → Pay to send M-Pesa when the supplier has a payout
+            phone.
+          </p>
+        </div>
+        <Switch
+          checked={enabled}
+          disabled={!canWrite || saving}
+          onCheckedChange={(on) => {
+            setEnabled(on);
+            if (!on) setAutoPayEnabled(false);
+          }}
+          aria-label="Enable paying suppliers"
+        />
+      </div>
+
+      {enabled ? (
+        <>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
+              Payout gateway
+            </span>
+            <select
+              className="h-10 border border-input bg-background px-3 text-sm"
+              value={configId}
+              disabled={!canWrite || saving || activeSelectable.length === 0}
+              onChange={(e) => setConfigId(e.target.value)}
+            >
+              <option value="">Select an active gateway…</option>
+              {activeSelectable.map((g) => (
+                <option key={g.configId} value={g.configId}>
+                  {g.label} ({g.gatewayType})
+                </option>
+              ))}
+            </select>
+            {activeSelectable.length === 0 ? (
+              <p className="text-xs text-[#9a2e16]">
+                No eligible gateway is active. Activate KopoKopo under Accept
+                payments first.
+              </p>
+            ) : settings?.gatewayReady && configId ? (
+              <p className="text-xs text-[var(--pos-primary,#0f766e)]">
+                Ready: {settings.gatewayLabel} ({settings.gatewayType})
+              </p>
+            ) : (
+              <p className="text-xs text-[#9a2e16]">
+                Select an active gateway and save.
+              </p>
+            )}
+          </label>
+
+          <div className="space-y-4 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">
+                  Auto-pay unpaid supply bills
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  At each scheduled time, send M-Pesa for unpaid supplies whose
+                  suppliers have an M-Pesa payout phone. Keep enough till balance.
+                </p>
+              </div>
+              <Switch
+                checked={autoPayEnabled}
+                disabled={!canWrite || saving || !configId}
+                onCheckedChange={setAutoPayEnabled}
+                aria-label="Enable auto-pay"
+              />
+            </div>
+
+            <div
+              id="supplier-auto-pay-times"
+              className="space-y-2.5 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-3"
+            >
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  Override payment times
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  Replace the default 12:00 AM and 6:00 PM. Up to 8 times per day
+                  (Africa/Nairobi).
+                </p>
+              </div>
+              <ul className="space-y-2">
+                {autoPayTimes.map((time, idx) => (
+                  <li key={`t-${idx}`} className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      className="h-9 flex-1 border border-input bg-background px-3 font-mono text-sm"
+                      value={time}
+                      disabled={!canWrite || saving}
+                      onChange={(e) => {
+                        const next = [...autoPayTimes];
+                        next[idx] = e.target.value || "00:00";
+                        setAutoPayTimes(next);
+                      }}
+                    />
+                    {canWrite && autoPayTimes.length > 1 ? (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="size-9 shrink-0 text-muted-foreground hover:text-destructive"
+                        disabled={saving}
+                        onClick={() =>
+                          setAutoPayTimes(
+                            autoPayTimes.filter((_, i) => i !== idx),
+                          )
+                        }
+                        aria-label="Remove time"
+                      >
+                        <Trash2 className="size-4" aria-hidden />
+                      </Button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              {canWrite && autoPayTimes.length < 8 ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1.5 text-xs"
+                  disabled={saving}
+                  onClick={() => setAutoPayTimes([...autoPayTimes, "12:00"])}
+                >
+                  <Plus className="size-3.5" aria-hidden />
+                  Add time
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 export function SupplierPayoutSettingsSection({
   canWrite,
+  theatreMode = false,
 }: SupplierPayoutSettingsSectionProps) {
   const [settings, setSettings] = useState<SupplierPayoutSettingsRecord | null>(
     null,
@@ -101,11 +278,11 @@ export function SupplierPayoutSettingsSection({
   }, [reload]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (theatreMode || typeof window === "undefined") return;
     if (window.location.hash === "#supplier-payouts") {
       setDrawerOpen(true);
     }
-  }, []);
+  }, [theatreMode]);
 
   const activeSelectable = (settings?.selectableGateways ?? []).filter(
     (g) => g.status === "ACTIVE",
@@ -175,6 +352,53 @@ export function SupplierPayoutSettingsSection({
         ? "auto"
         : "ready"
       : "warn";
+
+  if (theatreMode) {
+    if (loading && !settings) {
+      return (
+        <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+          Loading supplier payout settings…
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-4">
+        <SupplierPayoutConfigureForm
+          canWrite={canWrite}
+          saving={saving}
+          enabled={enabled}
+          setEnabled={setEnabled}
+          autoPayEnabled={autoPayEnabled}
+          setAutoPayEnabled={setAutoPayEnabled}
+          autoPayTimes={autoPayTimes}
+          setAutoPayTimes={setAutoPayTimes}
+          configId={configId}
+          setConfigId={setConfigId}
+          activeSelectable={activeSelectable}
+          settings={settings}
+        />
+        {canWrite ? (
+          <div className="flex items-center justify-end gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] pt-3">
+            <Button
+              type="button"
+              disabled={saving || !dirty}
+              onClick={() => void onSave()}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                "Save payout settings"
+              )}
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <section id="supplier-payouts" className="scroll-mt-24 space-y-4">
@@ -333,149 +557,20 @@ export function SupplierPayoutSettingsSection({
           ) : undefined
         }
       >
-        <div className="space-y-6">
-          <div className="flex items-start justify-between gap-4 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-3.5 py-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">
-                Enable paying suppliers
-              </p>
-              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                Allows Supplies → Pay to send M-Pesa when the supplier has a payout
-                phone.
-              </p>
-            </div>
-            <Switch
-              checked={enabled}
-              disabled={!canWrite || saving}
-              onCheckedChange={(on) => {
-                setEnabled(on);
-                if (!on) setAutoPayEnabled(false);
-              }}
-              aria-label="Enable paying suppliers"
-            />
-          </div>
-
-          {enabled ? (
-            <>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
-                  Payout gateway
-                </span>
-                <select
-                  className="h-10 border border-input bg-background px-3 text-sm"
-                  value={configId}
-                  disabled={!canWrite || saving || activeSelectable.length === 0}
-                  onChange={(e) => setConfigId(e.target.value)}
-                >
-                  <option value="">Select an active gateway…</option>
-                  {activeSelectable.map((g) => (
-                    <option key={g.configId} value={g.configId}>
-                      {g.label} ({g.gatewayType})
-                    </option>
-                  ))}
-                </select>
-                {activeSelectable.length === 0 ? (
-                  <p className="text-xs text-[#9a2e16]">
-                    No eligible gateway is active. Activate KopoKopo under Accept
-                    payments first.
-                  </p>
-                ) : settings?.gatewayReady && configId ? (
-                  <p className="text-xs text-[var(--pos-primary,#0f766e)]">
-                    Ready: {settings.gatewayLabel} ({settings.gatewayType})
-                  </p>
-                ) : (
-                  <p className="text-xs text-[#9a2e16]">
-                    Select an active gateway and save.
-                  </p>
-                )}
-              </label>
-
-              <div className="space-y-4 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">
-                      Auto-pay unpaid supply bills
-                    </p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                      At each scheduled time, send M-Pesa for unpaid supplies whose
-                      suppliers have an M-Pesa payout phone. Keep enough till balance.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={autoPayEnabled}
-                    disabled={!canWrite || saving || !configId}
-                    onCheckedChange={setAutoPayEnabled}
-                    aria-label="Enable auto-pay"
-                  />
-                </div>
-
-                <div
-                  id="supplier-auto-pay-times"
-                  className="space-y-2.5 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-3"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      Override payment times
-                    </p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                      Replace the default 12:00 AM and 6:00 PM. Up to 8 times per day
-                      (Africa/Nairobi).
-                    </p>
-                  </div>
-                  <ul className="space-y-2">
-                    {autoPayTimes.map((time, idx) => (
-                      <li key={`t-${idx}`} className="flex items-center gap-2">
-                        <input
-                          type="time"
-                          className="h-9 flex-1 border border-input bg-background px-3 font-mono text-sm"
-                          value={time}
-                          disabled={!canWrite || saving}
-                          onChange={(e) => {
-                            const next = [...autoPayTimes];
-                            next[idx] = e.target.value || "00:00";
-                            setAutoPayTimes(next);
-                          }}
-                        />
-                        {canWrite && autoPayTimes.length > 1 ? (
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="size-9 shrink-0 text-muted-foreground hover:text-destructive"
-                            disabled={saving}
-                            onClick={() =>
-                              setAutoPayTimes(
-                                autoPayTimes.filter((_, i) => i !== idx),
-                              )
-                            }
-                            aria-label="Remove time"
-                          >
-                            <Trash2 className="size-4" aria-hidden />
-                          </Button>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                  {canWrite && autoPayTimes.length < 8 ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 gap-1.5 text-xs"
-                      disabled={saving}
-                      onClick={() =>
-                        setAutoPayTimes([...autoPayTimes, "12:00"])
-                      }
-                    >
-                      <Plus className="size-3.5" aria-hidden />
-                      Add time
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            </>
-          ) : null}
-        </div>
+        <SupplierPayoutConfigureForm
+          canWrite={canWrite}
+          saving={saving}
+          enabled={enabled}
+          setEnabled={setEnabled}
+          autoPayEnabled={autoPayEnabled}
+          setAutoPayEnabled={setAutoPayEnabled}
+          autoPayTimes={autoPayTimes}
+          setAutoPayTimes={setAutoPayTimes}
+          configId={configId}
+          setConfigId={setConfigId}
+          activeSelectable={activeSelectable}
+          settings={settings}
+        />
       </FormDrawer>
     </section>
   );

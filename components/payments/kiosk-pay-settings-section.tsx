@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   canWrite: boolean;
+  theatreMode?: boolean;
 };
 
 function money(n: number | null | undefined, currency = "KES") {
@@ -27,7 +28,10 @@ function money(n: number | null | undefined, currency = "KES") {
   return `${currency} ${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function KioskPaySettingsSection({ canWrite }: Props) {
+export function KioskPaySettingsSection({
+  canWrite,
+  theatreMode = false,
+}: Props) {
   const [account, setAccount] = useState<KioskPayAccountRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -121,36 +125,8 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
   const active = account?.status === "ACTIVE";
   const platformOn = account?.platformEnabled === true;
 
-  return (
-    <section id="kiosk-pay" className="scroll-mt-24 space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="font-heading text-lg font-semibold tracking-tight text-[#141414]">
-            Kiosk Pay
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-[#666666]">
-            Collect online via Kiosk&apos;s Paystack, or at the cashier via Kiosk Pay
-            STK — funds land in your Kiosk Pay balance. Withdraw to M-Pesa anytime
-            (about KES 50 Safaricom / KopoKopo fee per payout — not a Kiosk charge).
-            You can still connect your own Paystack above.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" asChild>
-            <Link href={APP_ROUTES.paymentsKioskPay}>Ledger & withdrawals</Link>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={loading || saving}
-            onClick={() => void reload()}
-          >
-            Refresh
-          </Button>
-        </div>
-      </div>
-
+  const body = (
+    <>
       {loading && !account ? (
         <div className={cn(HUB_SURFACE, "flex items-center gap-2 px-4 py-8 text-sm text-[#666666]")}>
           <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -333,6 +309,61 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
           )}
         </div>
       )}
+    </>
+  );
+
+  if (theatreMode) {
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" asChild>
+            <Link href={APP_ROUTES.paymentsKioskPay}>Ledger & withdrawals</Link>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={loading || saving}
+            onClick={() => void reload()}
+          >
+            Refresh
+          </Button>
+        </div>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <section id="kiosk-pay" className="scroll-mt-24 space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-heading text-lg font-semibold tracking-tight text-[#141414]">
+            Kiosk Pay
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-[#666666]">
+            Collect online via Kiosk&apos;s Paystack, or at the cashier via Kiosk Pay
+            STK — funds land in your Kiosk Pay balance. Withdraw to M-Pesa anytime
+            (about KES 50 Safaricom / KopoKopo fee per payout — not a Kiosk charge).
+            You can still connect your own Paystack above.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" asChild>
+            <Link href={APP_ROUTES.paymentsKioskPay}>Ledger & withdrawals</Link>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={loading || saving}
+            onClick={() => void reload()}
+          >
+            Refresh
+          </Button>
+        </div>
+      </div>
+      {body}
     </section>
   );
 }

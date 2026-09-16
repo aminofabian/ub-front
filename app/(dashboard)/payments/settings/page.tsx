@@ -16,9 +16,12 @@ import {
 import { toast } from "sonner";
 
 import { useDashboard } from "@/components/dashboard-provider";
-import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
-import { HubSettingsSectionNav } from "@/components/business-hub/hub-settings-section-nav";
-import { DashboardFeedback } from "@/components/dashboard-page-ui";
+import {
+  DASHBOARD_MAX_WIDE,
+  DashboardAccessDenied,
+  DashboardFeedback,
+  DashboardPageHero,
+} from "@/components/dashboard-page-ui";
 import { FormDrawer } from "@/components/form-drawer";
 import { AirtimeSettingsSection } from "@/components/payments/airtime-settings-section";
 import { GatewayConfigForm } from "@/components/payments/gateway-config-form";
@@ -49,8 +52,18 @@ import {
   type GatewayCredentialSettingsRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
+
+import {
+  AcceptPaymentsPanel,
+  gatewayDisplayName,
+  isManualGateway,
+} from "./_components/accept-payments-panel";
+import {
+  PAYMENTS_SETTINGS_NAV,
+  PaymentsSettingsTheatre,
+  type PaymentsSettingsSectionId,
+} from "./_components/payments-settings-theatre";
 
 type DrawerState =
   | { kind: "closed" }
@@ -70,10 +83,6 @@ type DrawerState =
     }
   | { kind: "manage"; config: GatewayConfigRecord };
 
-function isManualGateway(config: GatewayConfigRecord) {
-  return config.gatewayType === "MANUAL";
-}
-
 function displayRecordToJson(record: DisplayInstructionRecord): string {
   const payload: Record<string, string> = {};
   if (record.type) payload.type = record.type;
@@ -87,27 +96,6 @@ function displayRecordToJson(record: DisplayInstructionRecord): string {
   if (record.accountName) payload.accountName = record.accountName;
   if (record.swiftCode) payload.swiftCode = record.swiftCode;
   return JSON.stringify(payload);
-}
-
-function gatewayDisplayName(
-  config: GatewayConfigRecord,
-  available: AvailableGatewayRecord[],
-) {
-  if (isManualGateway(config)) {
-    return "Manual payment";
-  }
-  return (
-    available.find((a) => a.gatewayType === config.gatewayType)?.displayName ??
-    config.gatewayType
-  );
-}
-
-function gatewayGlyph(type: string) {
-  if (type === "KOPOKOPO") return "K";
-  if (type === "MPESA_STK" || type === "SAFARICOM") return "M";
-  if (type === "PAYSTACK") return "P";
-  if (type === "MANUAL") return "T";
-  return type.slice(0, 1).toUpperCase() || "?";
 }
 
 function checkoutStatusLabel(status: string | null): string {
@@ -179,6 +167,15 @@ function formatCheckoutAmount(amount: number | null, currency: string | null) {
   }
 }
 
+function sectionFromHash(hash: string): PaymentsSettingsSectionId | null {
+  const id = hash.replace(/^#/, "");
+  if (!id) return null;
+  if (PAYMENTS_SETTINGS_NAV.some((item) => item.id === id)) {
+    return id as PaymentsSettingsSectionId;
+  }
+  return null;
+}
+
 export default function PaymentGatewaySettingsPage() {
   const { me } = useDashboard();
   const canRead = hasPermission(
@@ -189,6 +186,12 @@ export default function PaymentGatewaySettingsPage() {
     me?.permissions,
     Permission.PaymentsGatewaysWrite,
   );
+  const canReadAirtime =
+    hasPermission(me?.permissions, Permission.AirtimeRead) ||
+    hasPermission(me?.permissions, Permission.AirtimeManage);
+
+  const [activeSection, setActiveSection] =
+    useState<PaymentsSettingsSectionId | null>(null);
 
   const [available, setAvailable] = useState<AvailableGatewayRecord[]>([]);
   const [configs, setConfigs] = useState<GatewayConfigRecord[]>([]);
@@ -235,6 +238,26 @@ export default function PaymentGatewaySettingsPage() {
     }
     void reload();
   }, [canRead, reload]);
+
+  useEffect(() => {
+    const applyHash = () => {
+      const id = sectionFromHash(window.location.hash);
+      if (id) setActiveSection(id);
+    };
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, []);
+
+  const visibleSectionIds = useMemo((): PaymentsSettingsSectionId[] => {
+    const ids: PaymentsSettingsSectionId[] = [
+      "accept-payments",
+      "kiosk-pay",
+      "supplier-payouts",
+    ];
+    if (canReadAirtime) ids.push("airtime");
+    return ids;
+  }, [canReadAirtime]);
 
   const addableApi = useMemo(
     () => available.filter((a) => a.gatewayType !== "MANUAL" && !a.configured),
@@ -480,266 +503,147 @@ export default function PaymentGatewaySettingsPage() {
     }
   };
 
+  const sectionSummary = useCallback(
+    (sectionId: PaymentsSettingsSectionId) => {
+      switch (sectionId) {
+        case "accept-payments":
+          return (
+            <>
+              <span className="font-semibold tabular-nums">{configs.length}</span>{" "}
+              method{configs.length === 1 ? "" : "s"} ·{" "}
+              <span className="font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
+                {activeCount}
+              </span>{" "}
+              active
+              {draftOrErrorCount > 0 ? (
+                <>
+                  {" "}
+                  ·{" "}
+                  <span className="font-semibold text-[#9a2e16]">
+                    {draftOrErrorCount} need attention
+                  </span>
+                </>
+              ) : null}
+            </>
+          );
+        case "kiosk-pay":
+          return <>Wallet, storefront toggle, and M-Pesa withdraw in the panel.</>;
+        case "supplier-payouts":
+          return <>Send Money gateway, auto-pay schedule, and enable switch.</>;
+        case "airtime":
+          return <>POS and storefront airtime switches funded from Kiosk Pay.</>;
+        default:
+          return null;
+      }
+    },
+    [configs.length, activeCount, draftOrErrorCount],
+  );
+
+  const theatreDrawerBody = useMemo(() => {
+    switch (activeSection) {
+      case "accept-payments":
+        return (
+          <AcceptPaymentsPanel
+            loading={loading}
+            configs={configs}
+            available={available}
+            canWrite={canWrite}
+            rowBusyId={rowBusyId}
+            kopokopoNeedsAttention={kopokopoNeedsAttention}
+            onAddMethod={() => setDrawer({ kind: "pick" })}
+            onEdit={(config) => void openEdit(config)}
+            onManage={(config) => setDrawer({ kind: "manage", config })}
+            compact
+          />
+        );
+      case "supplier-payouts":
+        return (
+          <SupplierPayoutSettingsSection canWrite={canWrite} theatreMode />
+        );
+      case "kiosk-pay":
+        return <KioskPaySettingsSection canWrite={canWrite} theatreMode />;
+      case "airtime":
+        return <AirtimeSettingsSection theatreMode />;
+      default:
+        return null;
+    }
+  }, [
+    activeSection,
+    loading,
+    configs,
+    available,
+    canWrite,
+    rowBusyId,
+    kopokopoNeedsAttention,
+    openEdit,
+  ]);
+
   if (!canRead) {
     return (
-      <BusinessPageLayout
+      <DashboardAccessDenied
         title="Payments"
-        description="Configure M-Pesa, card, and manual payment methods for your storefront and POS."
-      >
-        <DashboardFeedback
-          kind="warning"
-          text="You do not have permission to view payment gateway settings."
-        />
-      </BusinessPageLayout>
+        description="You do not have permission to view payment gateway settings."
+      />
     );
   }
 
   return (
-    <BusinessPageLayout
-      title="Payments"
-      description="Connect checkout providers, show till instructions to customers, and control how you pay suppliers with M-Pesa."
-      headerActions={
-        <>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() => void reload()}
-            className={cn(
-              "inline-flex size-7 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666]",
-              "transition-colors hover:border-[#0f766e] hover:text-[#0f766e]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/30",
-              "disabled:cursor-not-allowed disabled:opacity-60",
-            )}
-            aria-label="Refresh payment methods"
-          >
-            <RefreshCw
-              className={cn("size-3.5", loading && "animate-spin")}
-              aria-hidden
-            />
-          </button>
-          {canWrite ? (
-            <Button
-              type="button"
-              size="sm"
-              className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3.5 text-white hover:bg-[#0d6b63]"
-              onClick={() => setDrawer({ kind: "pick" })}
-            >
-              <Plus className="size-4" aria-hidden />
-              Add method
-            </Button>
-          ) : null}
-        </>
-      }
+    <div
+      className={cn(
+        DASHBOARD_MAX_WIDE,
+        "flex flex-col gap-1.5 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8",
+      )}
     >
-      <div className="space-y-1 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:pb-2">
-        <HubSettingsSectionNav
-          ariaLabel="Payment settings sections"
-          items={[
-            { id: "accept-payments", label: "Accept payments" },
-            { id: "kiosk-pay", label: "Kiosk Pay" },
-            { id: "supplier-payouts", label: "Pay suppliers" },
-            { id: "airtime", label: "Airtime" },
-          ]}
-        />
-
-        <dl
+      <DashboardPageHero
+        icon={CreditCard}
+        eyebrow="Money"
+        title="Payments"
+        description="Connect checkout providers, show till instructions to customers, and control how you pay suppliers with M-Pesa."
+      >
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void reload()}
           className={cn(
-            HUB_SURFACE,
-            "grid gap-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:grid-cols-3",
+            "inline-flex size-7 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666]",
+            "transition-colors hover:border-[#0f766e] hover:text-[#0f766e]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/30",
+            "disabled:cursor-not-allowed disabled:opacity-60",
           )}
+          aria-label="Refresh payment methods"
         >
-          <div className="bg-white px-4 py-3">
-            <dt className="text-[10px] font-semibold tracking-[-0.02em] text-[#8A8A8A]">
-              Methods
-            </dt>
-            <dd
-              className="mt-1 text-lg font-semibold tabular-nums tracking-[-0.03em] text-[#141414]"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {loading ? "—" : configs.length}
-            </dd>
-          </div>
-          <div className="bg-white px-4 py-3">
-            <dt className="text-[10px] font-semibold tracking-[-0.02em] text-[#8A8A8A]">
-              Active
-            </dt>
-            <dd
-              className="mt-1 text-lg font-semibold tabular-nums tracking-[-0.03em] text-[var(--pos-primary,#0f766e)]"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {loading ? "—" : activeCount}
-            </dd>
-          </div>
-          <div className="bg-white px-4 py-3">
-            <dt className="text-[10px] font-semibold tracking-[-0.02em] text-[#8A8A8A]">
-              Needs attention
-            </dt>
-            <dd
-              className={cn(
-                "mt-1 text-lg font-semibold tabular-nums tracking-[-0.03em]",
-                draftOrErrorCount > 0 ? "text-[#9a2e16]" : "text-[#141414]",
-              )}
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {loading ? "—" : draftOrErrorCount}
-            </dd>
-          </div>
-        </dl>
+          <RefreshCw
+            className={cn("size-3.5", loading && "animate-spin")}
+            aria-hidden
+          />
+        </button>
+        {canWrite ? (
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3.5 text-white hover:bg-[#0d6b63]"
+            onClick={() => setDrawer({ kind: "pick" })}
+          >
+            <Plus className="size-4" aria-hidden />
+            Add method
+          </Button>
+        ) : null}
+      </DashboardPageHero>
 
-        {loadError ? <DashboardFeedback kind="error" text={loadError} /> : null}
+      {loadError ? <DashboardFeedback kind="error" text={loadError} /> : null}
 
-        <section
-          id="accept-payments"
-          className="relative scroll-mt-24 space-y-4"
-        >
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="min-w-0 max-w-2xl">
-              <h2 className="font-heading text-lg font-semibold tracking-tight text-[#141414]">
-                Accept payments
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-[#666666]">
-                API gateways need a successful connection test before
-                activation. Manual till / paybill methods go live immediately.
-              </p>
-            </div>
-          </div>
-
-          {kopokopoNeedsAttention ? (
-            <div
-              role="status"
-              className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-4 py-3 text-sm text-[#9a2e16]"
-            >
-              <p className="font-semibold">KopoKopo is not active yet</p>
-              <p className="mt-1 text-xs leading-relaxed opacity-90">
-                Open <strong>Manage</strong> on the KopoKopo row →{" "}
-                <strong>Test</strong> → <strong>Activate</strong> →{" "}
-                <strong>Till webhooks</strong>. A Manual “Mpesa Till” row only
-                prints instructions; it does not receive payments.
-              </p>
-            </div>
-          ) : null}
-
-          {loading ? (
-            <div
-              className={cn(
-                HUB_SURFACE,
-                "flex items-center gap-2 px-4 py-10 text-sm text-[#666666]",
-              )}
-            >
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-              Loading payment methods…
-            </div>
-          ) : configs.length === 0 ? (
-            <div
-              className={cn(
-                HUB_SURFACE,
-                "border-dashed px-5 py-12 text-center",
-              )}
-            >
-              <span className="mx-auto flex size-12 items-center justify-center rounded-none bg-[#ffffff] text-[#0f766e]">
-                <CreditCard className="size-6" aria-hidden />
-              </span>
-              <p className="mt-4 text-sm font-semibold text-[#141414]">
-                No payment methods yet
-              </p>
-              <p className="mx-auto mt-1 max-w-md text-sm text-[#666666]">
-                {canWrite
-                  ? "Add KopoKopo for M-Pesa STK and supplier Send Money, or a manual till / paybill for receipt instructions."
-                  : "Ask an admin to connect a payment gateway."}
-              </p>
-              {canWrite ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  className="mt-5 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
-                  onClick={() => setDrawer({ kind: "pick" })}
-                >
-                  <Plus className="size-4" aria-hidden />
-                  Add your first method
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <ul className={cn(HUB_SURFACE, "divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]")}>
-              {configs.map((config) => {
-                const busy = rowBusyId === config.id;
-                const name = gatewayDisplayName(config, available);
-                return (
-                  <li
-                    key={config.id}
-                    className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5"
-                  >
-                    <div className="flex min-w-0 items-start gap-3">
-                      <span
-                        className={cn(
-                          "mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-none font-mono text-sm font-bold",
-                          config.status === "ACTIVE"
-                            ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                            : config.status === "ERROR"
-                              ? "border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_8%,white)] text-[#9a2e16]"
-                              : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666]",
-                        )}
-                        aria-hidden
-                      >
-                        {gatewayGlyph(config.gatewayType)}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate font-medium text-foreground">
-                            {config.label}
-                          </p>
-                          <GatewayStatusBadge status={config.status} />
-                          {config.isDefault ? (
-                            <span className="rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
-                              Default
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {name}
-                          {config.lastTestedAt
-                            ? ` · Last tested ${new Date(config.lastTestedAt).toLocaleString()}`
-                            : ""}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 sm:justify-end">
-                      {canWrite ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-1.5 rounded-none shadow-none"
-                          disabled={busy}
-                          onClick={() => void openEdit(config)}
-                        >
-                          <Pencil className="size-3.5" aria-hidden />
-                          Edit
-                        </Button>
-                      ) : null}
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
-                        disabled={busy}
-                        onClick={() => setDrawer({ kind: "manage", config })}
-                      >
-                        <MoreHorizontal className="size-3.5" aria-hidden />
-                        Manage
-                      </Button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-
-        <SupplierPayoutSettingsSection canWrite={canWrite} />
-        <KioskPaySettingsSection canWrite={canWrite} />
-        <AirtimeSettingsSection />
-      </div>
+      <PaymentsSettingsTheatre
+        activeSectionId={activeSection}
+        onActiveSectionChange={setActiveSection}
+        visibleSectionIds={visibleSectionIds}
+        methodsCount={configs.length}
+        activeCount={activeCount}
+        attentionCount={draftOrErrorCount}
+        loading={loading}
+        kopokopoNeedsAttention={kopokopoNeedsAttention}
+        sectionSummary={sectionSummary}
+        drawerBody={theatreDrawerBody}
+      />
 
       {/* Pick provider */}
       <FormDrawer
@@ -1178,6 +1082,6 @@ export default function PaymentGatewaySettingsPage() {
           />
         ) : null}
       </FormDrawer>
-    </BusinessPageLayout>
+    </div>
   );
 }
