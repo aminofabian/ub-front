@@ -506,7 +506,7 @@ export default function AnalyticsActivityPage() {
                     className={cn(
                       "inline-flex h-8 items-center gap-1.5 rounded-none border px-2.5 text-[10.5px] font-semibold tracking-tight transition-all duration-200",
                       view === tab.id
-                        ? "border-primary/20 bg-linear-to-b from-primary to-primary/90 text-primary-foreground shadow-none shadow-primary/20"
+                        ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white shadow-none"
                         : "border-transparent bg-muted/50 text-muted-foreground hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/80 hover:text-foreground",
                     )}
                   >
@@ -524,7 +524,7 @@ export default function AnalyticsActivityPage() {
                   onChange={(e) => onChangeBranch(e.target.value)}
                   disabled={branchLocked}
                   aria-label="Branch"
-                  className="h-10 max-w-[7.5rem] appearance-none rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 py-0 pl-2.5 pr-7 text-[12px] font-medium text-foreground/90 outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60 sm:h-8 sm:max-w-none sm:rounded-none sm:text-[11px]"
+                  className="h-10 max-w-[7.5rem] appearance-none rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 py-0 pl-2.5 pr-7 text-[12px] font-medium text-foreground/90 outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/60 focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 disabled:cursor-not-allowed disabled:opacity-60 sm:h-8 sm:max-w-none sm:rounded-none sm:text-[11px]"
                 >
                   <option value="">All branches</option>
                   {branches.map((b) => (
@@ -583,9 +583,9 @@ export default function AnalyticsActivityPage() {
                   title={hint}
                   onClick={() => setPreset(key)}
                   className={cn(
-                    "h-8 shrink-0 rounded-full border px-3 text-[11px] font-semibold tracking-tight transition-all duration-200 sm:h-7 sm:rounded-none sm:px-2.5 sm:text-[10.5px]",
+                    "h-8 shrink-0 rounded-none border px-3 text-[11px] font-semibold tracking-tight transition-all duration-200 sm:h-7 sm:rounded-none sm:px-2.5 sm:text-[10.5px]",
                     preset === key
-                      ? "border-primary/20 bg-primary/10 text-primary"
+                      ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
                       : "border-transparent bg-muted/40 text-muted-foreground hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/70 hover:text-foreground",
                   )}
                 >
@@ -604,14 +604,14 @@ export default function AnalyticsActivityPage() {
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-10 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 text-[14px] font-medium text-foreground outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 sm:h-7 sm:flex-none sm:rounded-none sm:text-[11px]"
+                className="h-10 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 text-[14px] font-medium text-foreground outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 sm:h-7 sm:flex-none sm:rounded-none sm:text-[11px]"
               />
               <span className="text-[11px] text-muted-foreground/60">to</span>
               <input
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="h-10 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 text-[14px] font-medium text-foreground outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 sm:h-7 sm:flex-none sm:rounded-none sm:text-[11px]"
+                className="h-10 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 text-[14px] font-medium text-foreground outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 sm:h-7 sm:flex-none sm:rounded-none sm:text-[11px]"
               />
             </div>
           ) : null}
@@ -633,7 +633,7 @@ export default function AnalyticsActivityPage() {
                   placeholder="Filter products…"
                   value={velocitySearch}
                   onChange={(e) => setVelocitySearch(e.target.value)}
-                  className="h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 pl-8 pr-3 text-[14px] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:rounded-none sm:text-[11px]"
+                  className="h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 pl-8 pr-3 text-[14px] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:rounded-none sm:text-[11px]"
                 />
               </div>
             }
@@ -691,7 +691,7 @@ export default function AnalyticsActivityPage() {
                       setStockTakeBranchId(branchId || (branches[0]?.id ?? ""));
                       setShowStockTakeDialog(true);
                     }}
-                    className="flex h-9 items-center gap-1.5 rounded-none border border-primary/30 bg-primary/10 px-2.5 text-[12px] font-semibold text-primary transition-colors hover:bg-primary/20 sm:h-7 sm:rounded-none sm:text-[11px]"
+                    className="flex h-9 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] px-2.5 text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,white)] sm:h-7 sm:rounded-none sm:text-[11px]"
                   >
                     <ClipboardList className="size-3.5" />
                     Stock Take ({selectedItemIds.size})
@@ -708,7 +708,7 @@ export default function AnalyticsActivityPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setSaleSearch(e.target.value)
                     }
-                    className="h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 pl-8 pr-3 text-[14px] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:rounded-none sm:text-[11px]"
+                    className="h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 pl-8 pr-3 text-[14px] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:rounded-none sm:text-[11px]"
                   />
                 </div>
               </div>
@@ -776,10 +776,10 @@ export default function AnalyticsActivityPage() {
                                   className={cn(
                                     "rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                                     s.paymentMethod.toLowerCase() === "cash"
-                                      ? "border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-600"
+                                      ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] text-[var(--pos-primary,#0f766e)]"
                                       : s.paymentMethod.toLowerCase() ===
                                           "mpesa"
-                                        ? "border-sky-500/20 bg-sky-500/[0.06] text-sky-600"
+                                        ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground"
                                         : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground",
                                   )}
                                 >
@@ -789,8 +789,8 @@ export default function AnalyticsActivityPage() {
                                   className={cn(
                                     "font-mono text-[11px] font-medium tabular-nums",
                                     profitVal >= 0
-                                      ? "text-emerald-600"
-                                      : "text-destructive",
+                                      ? "text-[var(--pos-primary,#0f766e)]"
+                                      : "text-[#9a2e16]",
                                   )}
                                 >
                                   {profitVal >= 0 ? "+" : ""}
@@ -875,7 +875,7 @@ export default function AnalyticsActivityPage() {
                             key={`${s.saleId}-${s.itemId}-${idx}`}
                             className={cn(
                               "group relative transition-all duration-150",
-                              "hover:bg-primary/[0.03] ",
+                              "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_3%,white)] ",
                               isEven ? "bg-transparent" : "bg-muted/[0.15]",
                             )}
                           >
@@ -901,7 +901,7 @@ export default function AnalyticsActivityPage() {
                             <td className="py-2.5 pl-3">
                               <button
                                 type="button"
-                                className="max-w-[180px] truncate text-left text-[11px] font-medium text-foreground/85 hover:text-primary hover:underline"
+                                className="max-w-[180px] truncate text-left text-[11px] font-medium text-foreground/85 hover:text-[var(--pos-primary,#0f766e)] hover:underline"
                                 onClick={() => openItemStory(s.itemId)}
                               >
                                 {s.itemName}
@@ -920,10 +920,10 @@ export default function AnalyticsActivityPage() {
                               <div className="flex items-center justify-end gap-1.5">
                                 <span
                                   className={cn(
-                                    "size-1.5 shrink-0 rounded-full",
+                                    "size-1.5 shrink-0 rounded-none",
                                     profitVal >= 0
-                                      ? "bg-emerald-500"
-                                      : "bg-destructive",
+                                      ? "bg-[var(--pos-primary,#0f766e)]"
+                                      : "bg-[#9a2e16]",
                                   )}
                                   aria-hidden
                                 />
@@ -931,8 +931,8 @@ export default function AnalyticsActivityPage() {
                                   className={cn(
                                     "font-mono text-[11px] font-medium tabular-nums",
                                     profitVal >= 0
-                                      ? "text-emerald-600"
-                                      : "text-destructive",
+                                      ? "text-[var(--pos-primary,#0f766e)]"
+                                      : "text-[#9a2e16]",
                                   )}
                                 >
                                   {formatMoney(s.profit)}
@@ -952,9 +952,9 @@ export default function AnalyticsActivityPage() {
                                 className={cn(
                                   "inline-flex items-center rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                                   s.paymentMethod.toLowerCase() === "cash"
-                                    ? "border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-600"
+                                    ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] text-[var(--pos-primary,#0f766e)]"
                                     : s.paymentMethod.toLowerCase() === "mpesa"
-                                      ? "border-sky-500/20 bg-sky-500/[0.06] text-sky-600"
+                                      ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground"
                                       : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground",
                                 )}
                               >
@@ -964,17 +964,17 @@ export default function AnalyticsActivityPage() {
                             <td className="py-2.5 pr-3">
                               <span
                                 className={cn(
-                                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                                  "inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                                   s.status === "completed"
-                                    ? "border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-600"
+                                    ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--pos-primary,#0f766e)]"
                                     : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground/70",
                                 )}
                               >
                                 <span
                                   className={cn(
-                                    "size-1.5 rounded-full",
+                                    "size-1.5 rounded-none",
                                     s.status === "completed"
-                                      ? "bg-emerald-500"
+                                      ? "bg-[var(--pos-primary,#0f766e)]"
                                       : "bg-muted-foreground/50",
                                   )}
                                   aria-hidden
@@ -1009,7 +1009,7 @@ export default function AnalyticsActivityPage() {
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
             <div className="w-full max-w-sm rounded-t-2xl bg-background shadow-2xl sm:rounded-none">
               <div className="flex justify-center pt-2.5 sm:hidden" aria-hidden>
-                <span className="h-1 w-10 rounded-full bg-muted-foreground/25" />
+                <span className="h-1 w-10 rounded-none bg-muted-foreground/25" />
               </div>
               <div className="flex items-start justify-between border-b px-5 py-4">
                 <div className="min-w-0">
@@ -1070,7 +1070,7 @@ export default function AnalyticsActivityPage() {
                   />
                 </label>
                 {stockTakeMessage ? (
-                  <p className="text-sm text-destructive">{stockTakeMessage}</p>
+                  <p className="text-sm text-[#9a2e16]">{stockTakeMessage}</p>
                 ) : null}
               </div>
               <div className="border-t px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -1103,19 +1103,19 @@ export default function AnalyticsActivityPage() {
                 onClick={() => setView(tab.id)}
                 className={cn(
                   "relative flex flex-col items-center gap-0.5 rounded-none px-1 py-2 transition-colors active:scale-[0.97]",
-                  active ? "text-primary" : "text-muted-foreground",
+                  active ? "text-[var(--pos-primary,#0f766e)]" : "text-muted-foreground",
                 )}
               >
                 {active ? (
                   <span
-                    className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary"
+                    className="absolute inset-x-3 top-0 h-0.5 rounded-none bg-[var(--pos-primary,#0f766e)]"
                     aria-hidden
                   />
                 ) : null}
                 <span
                   className={cn(
                     "flex size-9 items-center justify-center rounded-none transition-colors",
-                    active ? "bg-primary/12" : "bg-transparent",
+                    active ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)]" : "bg-transparent",
                   )}
                 >
                   <Icon className="size-[18px]" aria-hidden />

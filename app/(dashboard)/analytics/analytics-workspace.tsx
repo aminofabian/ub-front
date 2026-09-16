@@ -165,7 +165,7 @@ function SlicerPanel({
               className={cn(
                 "flex cursor-pointer items-center justify-between gap-2 px-2 py-1.5 text-[12px] tracking-[-0.01em] transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring",
                 selected
-                  ? "bg-foreground font-semibold text-background"
+                  ? "bg-[var(--pos-primary,#0f766e)] font-semibold text-white"
                   : "text-foreground hover:bg-muted/50",
               )}
             >
@@ -837,7 +837,7 @@ export function AnalyticsWorkspace({
             <span
               className={cn(
                 "inline-flex items-center gap-1 text-[11px] font-semibold tracking-[-0.02em]",
-                balanced ? "text-emerald-700" : "text-[#9a2e16]",
+                balanced ? "text-[var(--pos-primary,#0f766e)]" : "text-[#9a2e16]",
               )}
             >
               {balanced ? <Check className="size-3.5" aria-hidden /> : null}
@@ -907,8 +907,8 @@ export function AnalyticsWorkspace({
                 className={cn(
                   "inline-flex h-10 shrink-0 items-center border px-3.5 text-[13px] font-semibold tracking-[-0.015em] transition-colors",
                   active
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border bg-transparent text-foreground active:bg-muted/40",
+                    ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-foreground active:bg-muted/40",
                 )}
               >
                 {label}
@@ -924,8 +924,8 @@ export function AnalyticsWorkspace({
                 preset === "custom" ||
                 !primaryPeriods.includes(preset) ||
                 filtersActive
-                ? "border-foreground text-foreground"
-                : "border-border text-muted-foreground",
+                ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
+                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
             )}
             aria-expanded={mobileFiltersOpen}
           >
@@ -939,7 +939,7 @@ export function AnalyticsWorkspace({
               aria-hidden
             />
             {filtersActive ? (
-              <span className="absolute -right-1 -top-1 size-2 rounded-full bg-[var(--pos-primary,#0f766e)]" />
+              <span className="absolute -right-1 -top-1 size-2 rounded-none bg-[var(--pos-primary,#0f766e)]" />
             ) : null}
           </button>
         </div>
@@ -969,8 +969,8 @@ export function AnalyticsWorkspace({
                       className={cn(
                         "inline-flex h-9 items-center border px-3 text-[12px] font-semibold",
                         active
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border bg-background",
+                          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-background",
                       )}
                     >
                       {label}

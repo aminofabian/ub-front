@@ -256,7 +256,7 @@ function EditDrawer({
         showCloseButton={false}
       >
         <div className="flex justify-center pt-2.5 md:hidden" aria-hidden>
-          <span className="h-1 w-10 rounded-full bg-muted-foreground/25" />
+          <span className="h-1 w-10 rounded-none bg-muted-foreground/25" />
         </div>
         <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 pb-3 pt-1 md:pt-3">
           <div className="min-w-0">
@@ -284,7 +284,7 @@ function EditDrawer({
               type="button"
               disabled={uploading || !canUploadPhoto}
               onClick={() => fileRef.current?.click()}
-              className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-none border-2 border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 transition-colors active:scale-[0.98] hover:border-primary/30 hover:bg-primary/[0.04] disabled:opacity-60"
+              className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-none border-2 border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 transition-colors active:scale-[0.98] hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)] disabled:opacity-60"
             >
               {photoSrc ? (
                 <img
@@ -293,18 +293,18 @@ function EditDrawer({
                   className="absolute inset-0 size-full object-cover"
                 />
               ) : (
-                <ImageIcon className="size-5 text-muted-foreground/35 group-hover:text-primary/50" />
+                <ImageIcon className="size-5 text-muted-foreground/35 group-hover:text-[var(--pos-primary,#0f766e)]/50" />
               )}
               {canUploadPhoto ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-100 md:opacity-0 md:group-hover:bg-black/20 md:group-hover:opacity-100">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm md:bg-transparent">
+                  <span className="flex size-8 items-center justify-center rounded-none bg-black/35 backdrop-blur-sm md:bg-transparent">
                     <Camera className="size-3.5 text-white" />
                   </span>
                 </div>
               ) : null}
               {uploading ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/70">
-                  <svg className="size-4 animate-spin text-primary" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
+                  <svg className="size-4 animate-spin text-[var(--pos-primary,#0f766e)]" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
                 </div>
               ) : null}
             </button>
@@ -324,7 +324,7 @@ function EditDrawer({
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4">
           {error ? (
-            <div className="rounded-none border border-destructive/20 bg-destructive/[0.06] px-3 py-2.5 text-[12px] font-medium text-destructive">
+            <div className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2.5 text-[12px] font-medium text-[#9a2e16]">
               {error}
             </div>
           ) : null}
@@ -358,7 +358,7 @@ function EditDrawer({
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-none bg-primary text-[14px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition-all hover:bg-[#0d6b63] active:scale-[0.98] disabled:opacity-50"
           >
             <Save className="size-4" />
             {saving ? "Saving…" : "Save changes"}
@@ -499,7 +499,7 @@ export function ActivityItemStory({
       ) : null}
 
       {itemId && error ? (
-        <p className="py-4 text-center text-xs text-destructive">{error}</p>
+        <p className="py-4 text-center text-xs text-[#9a2e16]">{error}</p>
       ) : null}
 
       {itemId && activity && !loading ? (
@@ -602,7 +602,7 @@ export function ActivityItemStory({
                     <span
                       className={cn(
                         "w-full max-w-[10px] rounded-t-sm transition-colors",
-                        qty > 0 ? "bg-primary/70 group-hover:bg-primary" : "bg-muted/50",
+                        qty > 0 ? "bg-[var(--pos-primary,#0f766e)]/70 group-hover:bg-[var(--pos-primary,#0f766e)]" : "bg-muted/50",
                       )}
                       style={{ height: `${h}%` }}
                     />
@@ -648,7 +648,7 @@ export function ActivityItemStory({
                           <p className="mt-0.5 truncate text-[10px] text-muted-foreground/70">{m.reason || m.notes}</p>
                         ) : null}
                       </div>
-                      <span className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-emerald-700">+{formatQty(m.quantityDelta)}</span>
+                      <span className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">+{formatQty(m.quantityDelta)}</span>
                     </li>
                   ))}
                 </ul>

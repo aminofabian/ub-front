@@ -98,8 +98,8 @@ function StatusMark({
     <span
       className={cn(
         "text-[10px] font-semibold tracking-[-0.02em]",
-        tone === "ok" && "text-emerald-700",
-        tone === "warn" && "text-amber-700",
+        tone === "ok" && "text-[var(--pos-primary,#0f766e)]",
+        tone === "warn" && "text-[#9a2e16]",
         tone === "bad" && "text-[#9a2e16]",
         tone === "info" && "text-muted-foreground",
       )}
@@ -618,7 +618,7 @@ export function AnalyticsOpsBoard({
               <p
                 className={cn(
                   "flex items-center gap-1.5 text-[14px] font-bold tracking-[-0.02em] sm:text-[13px]",
-                  balanced ? "text-emerald-700" : "text-[#9a2e16]",
+                  balanced ? "text-[var(--pos-primary,#0f766e)]" : "text-[#9a2e16]",
                 )}
               >
                 {balanced ? <Check className="size-3.5" aria-hidden /> : null}
@@ -647,7 +647,8 @@ export function AnalyticsOpsBoard({
                   <span
                     className={cn(
                       "flex size-5 shrink-0 items-center justify-center border border-border sm:size-4",
-                      item.done && "border-emerald-700 text-emerald-700",
+                      item.done &&
+                        "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
                     )}
                     aria-hidden
                   >

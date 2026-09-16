@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Filter,
+  GitMerge,
   Mail,
   MessageCircle,
   MessageSquare,
@@ -27,6 +28,7 @@ import { CustomerCreateDialog } from "@/components/credits/customer-create-dialo
 import { CustomerDetailDrawer } from "@/components/credits/customer-detail-drawer";
 import { CustomerInsightsColumn } from "@/components/credits/customer-insights-column";
 import { CustomerListColumn } from "@/components/credits/customer-list-column";
+import { CustomerMergeDialog } from "@/components/credits/customer-merge-dialog";
 import { CustomerMessagingDrawer } from "@/components/credits/customer-messaging-drawer";
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import {
@@ -108,6 +110,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
   const [messagingOpen, setMessagingOpen] = useState(false);
   const [smsOpen, setSmsOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
   const [cardCustomer, setCardCustomer] =
     useState<LoyaltyCardCustomerInput | null>(null);
   const [isLg, setIsLg] = useState(false);
@@ -401,6 +404,18 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
             {selectedIds.size}
           </Button>
         ) : null}
+        {canManageCustomers && selectedIds.size >= 2 ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 rounded-none text-xs"
+            onClick={() => setMergeOpen(true)}
+          >
+            <GitMerge className="size-3.5" />
+            Fuse
+          </Button>
+        ) : null}
         {canManageCustomers && selectedIds.size > 0 ? (
           <Button
             type="button"
@@ -510,6 +525,18 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
         open={createOpen}
         onOpenChange={setCreateOpen}
         onCreated={() => setRefreshKey((k) => k + 1)}
+        onFeedback={(kind, text) => setMessage({ kind, text })}
+      />
+
+      <CustomerMergeDialog
+        open={mergeOpen}
+        onOpenChange={setMergeOpen}
+        customers={rows.filter((r) => selectedIds.has(r.id))}
+        onMerged={(keep) => {
+          setFocusedId(keep.id);
+          setSelectedIds(new Set());
+          setRefreshKey((k) => k + 1);
+        }}
         onFeedback={(kind, text) => setMessage({ kind, text })}
       />
 

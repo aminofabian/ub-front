@@ -12111,6 +12111,17 @@ export async function patchCustomer(
   );
 }
 
+/** Fuse duplicate credit customers into one keep record. */
+export async function mergeCustomers(body: {
+  keepId: string;
+  absorbIds: string[];
+}): Promise<CustomerRecord> {
+  return request<CustomerRecord>("/api/v1/customers/merge", {
+    method: "POST",
+    body,
+  });
+}
+
 export async function addCustomerPhone(
   customerId: string,
   body: { phone: string; primary?: boolean },
