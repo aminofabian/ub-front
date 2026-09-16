@@ -3,6 +3,7 @@
 import {
   DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
+  DashboardLoading,
 } from "@/components/dashboard-page-ui";
 import { PromotionsDashboard } from "@/components/promotions/promotions-dashboard";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -10,11 +11,15 @@ import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 
 export default function PromoCampaignsPage() {
-  const { me } = useDashboard();
+  const { me, loading } = useDashboard();
   const allowed = hasPermission(
     me?.permissions,
     Permission.NotificationsPromotionsManage,
   );
+
+  if (loading && !me) {
+    return <DashboardLoading label="Loading session…" />;
+  }
 
   if (!allowed) {
     return (
@@ -27,7 +32,7 @@ export default function PromoCampaignsPage() {
               <code className="rounded bg-muted px-1 py-0.5 text-xs">
                 {Permission.NotificationsPromotionsManage}
               </code>
-              . Owners have this by default.
+              . Owners and admins have this by default.
             </>
           }
           backHref={APP_ROUTES.business}
