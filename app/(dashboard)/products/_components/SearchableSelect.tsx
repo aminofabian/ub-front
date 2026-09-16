@@ -13,27 +13,22 @@ import { Popover } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 import {
+  matchesSearchableSelectQuery,
   shouldOfferCreate,
   type SearchableSelectOption,
 } from "./searchable-select-create";
 
 export type { SearchableSelectOption } from "./searchable-select-create";
-export { shouldOfferCreate } from "./searchable-select-create";
+export {
+  matchesSearchableSelectQuery,
+  shouldOfferCreate,
+} from "./searchable-select-create";
 
 export type SearchableSelectHandle = {
   openForCreate: () => void;
 };
 
 const POPOVER_Z = 400;
-
-function matchesQuery(option: SearchableSelectOption, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-  return (
-    option.label.toLowerCase().includes(q) ||
-    (option.hint?.toLowerCase().includes(q) ?? false)
-  );
-}
 
 type ListItem =
   | { kind: "option"; option: SearchableSelectOption }
@@ -95,8 +90,13 @@ export const SearchableSelect = forwardRef<
     : placeholder;
 
   const filtered = useMemo(() => {
-    const rows = options.filter((o) => matchesQuery(o, query));
-    if (noneLabel && matchesQuery({ value: "", label: noneLabel }, query)) {
+    const rows = options.filter((o) =>
+      matchesSearchableSelectQuery(o, query),
+    );
+    if (
+      noneLabel &&
+      matchesSearchableSelectQuery({ value: "", label: noneLabel }, query)
+    ) {
       return [{ value: "", label: noneLabel }, ...rows];
     }
     return rows;

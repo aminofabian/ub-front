@@ -12,6 +12,11 @@ export type StorePackCatalog = {
   displayToHolderFactor: number;
   catalogPackUnit: string;
   options: ItemPackOptionRecord[];
+  /**
+   * Absolute each/on-hand at the branch when known (base pool for package
+   * variants). Used to show "1 pack, 26 singles" instead of a floored tray count.
+   */
+  holderEach: number | null;
 };
 
 function roundQty(n: number): number {
@@ -22,6 +27,12 @@ function positiveQty(raw: number | string | null | undefined): number | null {
   if (raw == null || raw === "") return null;
   const n = typeof raw === "number" ? raw : Number(String(raw).trim());
   return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function nonNegQty(raw: number | string | null | undefined): number | null {
+  if (raw == null || raw === "") return null;
+  const n = typeof raw === "number" ? raw : Number(String(raw).trim());
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 export function storePackCatalogFromItem(
@@ -43,12 +54,27 @@ export function storePackCatalogFromItem(
   const unit =
     detail.packagingUnitName?.trim() ||
     (factor > 1 ? "pack" : "each");
+  const holderEach =
+    nonNegQty(detail.baseStockQty) ??
+    (factor <= 1 ? nonNegQty(detail.stockQty) : null);
   return {
     itemId,
     displayToHolderFactor: factor,
     catalogPackUnit: unit,
     options: options.filter((o) => o.active && o.unitsPerPack > 1),
+    holderEach,
   };
+}
+
+/** Total each for pack/singles labels — prefer the holder pool when we have it. */
+export function packStockEach(
+  displayCount: number,
+  catalog: StorePackCatalog | null,
+): number {
+  if (catalog?.holderEach != null) return catalog.holderEach;
+  const factor = catalog?.displayToHolderFactor ?? 1;
+  if (factor > 1) return roundQty(displayCount * factor);
+  return displayCount;
 }
 
 /** Native pack for a package-variant SKU; null means count in catalog display units. */
@@ -98,14 +124,59 @@ export function catalogDisplayToPacks(
   return roundQty(holder / pack!.unitsPerPack);
 }
 
+/** Whole packs + leftover each from a total piece count. */
+export function splitPacksAndSingles(
+  totalEach: number,
+  unitsPerPack: number,
+): { packs: number; singles: number; each: number } {
+  const each =
+    Number.isFinite(totalEach) && totalEach > 0 ? roundQty(totalEach) : 0;
+  const size =
+    Number.isFinite(unitsPerPack) && unitsPerPack > 1 ? unitsPerPack : 1;
+  if (size <= 1) {
+    return { packs: 0, singles: each, each };
+  }
+  const packs = Math.floor(each / size + 1e-9);
+  const singles = roundQty(each - packs * size);
+  return { packs, singles, each };
+}
+
+/**
+ * Human label for stock counted in packs — e.g. 56 each @ 30 →
+ * "1 pack(s), 26 singles".
+ */
+export function packBreakdownLabel(
+  totalEach: number,
+  pack: SupplyPackMode | null | undefined,
+): string | null {
+  if (!isPacked(pack)) return null;
+  const { packs, singles, each } = splitPacksAndSingles(
+    totalEach,
+    pack!.unitsPerPack,
+  );
+  const unit = (pack!.packUnit.trim() || "pack").toLowerCase();
+  const packWord = `${unit}(s)`;
+  if (each <= 0) {
+    return `0 ${packWord}`;
+  }
+  if (singles < 0.0001) {
+    return `${formatSupplyQty(packs)} ${packWord}`;
+  }
+  if (packs <= 0) {
+    return `${formatSupplyQty(singles)} singles`;
+  }
+  return `${formatSupplyQty(packs)} ${packWord}, ${formatSupplyQty(singles)} singles`;
+}
+
 export function packCountPreview(
   packs: number | null,
   pack: SupplyPackMode | null | undefined,
 ): string | null {
   if (packs == null || !isPacked(pack)) return null;
-  const pieces = roundQty(packs * pack!.unitsPerPack);
-  const unit = pack!.packUnit.trim() || "pack";
-  return `${formatSupplyQty(packs)} × ${formatSupplyQty(pack!.unitsPerPack)} = ${formatSupplyQty(pieces)} each`;
+  const each = roundQty(packs * pack!.unitsPerPack);
+  const breakdown = packBreakdownLabel(each, pack);
+  if (!breakdown) return null;
+  return `${breakdown} · ${formatSupplyQty(each)} each`;
 }
 
 export function packOffersFromOptions(

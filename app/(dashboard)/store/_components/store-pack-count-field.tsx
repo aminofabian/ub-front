@@ -14,8 +14,10 @@ import { SupplyPackQtyModal } from "@/app/(dashboard)/supplies/_components/suppl
 
 import {
   isPacked,
+  packBreakdownLabel,
   packCountPreview,
   packOffersFromOptions,
+  splitPacksAndSingles,
   type StorePackCatalog,
 } from "../_lib/store-item-pack";
 import { parseStoreCount } from "../_lib/store-item-count";
@@ -27,6 +29,7 @@ export function StorePackCountField({
   onPackModeChange,
   catalog,
   followsInventory,
+  onHandEach = null,
   disabled = false,
 }: {
   value: string;
@@ -35,13 +38,37 @@ export function StorePackCountField({
   onPackModeChange: (next: SupplyPackMode | null) => void;
   catalog: StorePackCatalog | null;
   followsInventory: boolean;
+  /** Absolute each on hand — used so 56 @ 30 shows remainder singles. */
+  onHandEach?: number | null;
   disabled?: boolean;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const packed = isPacked(packMode);
   const parsed = parseStoreCount(value, !followsInventory && !packed);
-  const preview = packCountPreview(parsed, packMode);
+  const typedPreview = packCountPreview(parsed, packMode);
+  const stockBreakdown =
+    packed && packMode && onHandEach != null && onHandEach >= 0
+      ? packBreakdownLabel(onHandEach, packMode)
+      : null;
+  const floorPacks =
+    packed && packMode && onHandEach != null
+      ? splitPacksAndSingles(onHandEach, packMode.unitsPerPack).packs
+      : null;
+  const typedMatchesStock =
+    floorPacks != null &&
+    parsed != null &&
+    Math.abs(parsed - floorPacks) < 0.0001;
+  const preview =
+    stockBreakdown && (typedMatchesStock || parsed == null)
+      ? `${stockBreakdown} · ${formatSupplyQty(onHandEach!)} each`
+      : typedPreview;
   const offers = catalog ? packOffersFromOptions(catalog.options) : [];
+  const stampPackCount =
+    stockBreakdown && typedMatchesStock && floorPacks != null && floorPacks > 0
+      ? floorPacks
+      : parsed != null && parsed > 0
+        ? parsed
+        : 1;
 
   const togglePack = () => {
     if (packed) {
@@ -98,7 +125,7 @@ export function StorePackCountField({
         {packed && packMode ? (
           <WholesalePackStamp
             units={packMode.unitsPerPack}
-            packCount={parsed != null && parsed > 0 ? parsed : 1}
+            packCount={stampPackCount}
             packUnit={packMode.packUnit}
             className="shrink-0 px-1 py-1"
           />

@@ -858,6 +858,10 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
       setSelectedId(fresh.id);
       setFeedback({ kind: "success", text: `Updated “${fresh.name}”.` });
       if (stockWritten) {
+        const targetEach = Math.round(targetDisplay * factor * 10000) / 10000;
+        setPackCatalog((prev) =>
+          prev ? { ...prev, holderEach: targetEach } : prev,
+        );
         // Background reconcile — keep the optimistic count if the read is stale.
         void fetchStoreItems({ branchId })
           .then((nextRows) => {

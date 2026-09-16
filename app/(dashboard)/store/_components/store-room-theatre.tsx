@@ -31,7 +31,13 @@ import type { SupplyPackMode } from "@/lib/supply-pack-math";
 import { cn } from "@/lib/utils";
 
 import { storeItemCount } from "../_lib/store-item-count";
-import { type StorePackCatalog } from "../_lib/store-item-pack";
+import {
+  catalogNativePack,
+  isPacked,
+  packBreakdownLabel,
+  packStockEach,
+  type StorePackCatalog,
+} from "../_lib/store-item-pack";
 import { StorePackCountField } from "./store-pack-count-field";
 import { StoreRoomActivity } from "./store-room-activity";
 import { StoreRoomPulse } from "./store-room-pulse";
@@ -549,6 +555,11 @@ function InspectPanel({
   const followsInventory = connected && row.itemId != null;
   const set = (key: keyof StoreInspectDraft) => (value: string) =>
     onDraftChange({ ...draft, [key]: value });
+  const breakdownPack = isPacked(packMode)
+    ? packMode
+    : catalogNativePack(packCatalog);
+  const onHandEach = packStockEach(count, packCatalog);
+  const onHandBreakdown = packBreakdownLabel(onHandEach, breakdownPack);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
@@ -573,14 +584,25 @@ function InspectPanel({
                 .join(" · ") || "No barcode · no expiry"}
             </p>
           </div>
-          <span className="inline-flex shrink-0 items-baseline gap-1 tabular-nums">
-            {connected && row.itemId ? <LiveDot /> : null}
-            <span className="text-[1.35rem] font-semibold leading-none tracking-[-0.03em] text-foreground">
-              {formatQuantity(count)}
-            </span>
-            {packCatalog && packCatalog.displayToHolderFactor > 1 ? (
+          <span className="inline-flex shrink-0 flex-col items-end gap-0.5 tabular-nums">
+            <span className="inline-flex items-baseline gap-1">
+              {connected && row.itemId ? <LiveDot /> : null}
+              <span className="text-[1.35rem] font-semibold leading-none tracking-[-0.03em] text-foreground">
+                {onHandBreakdown
+                  ? formatQuantity(onHandEach)
+                  : formatQuantity(count)}
+              </span>
               <span className="text-[10px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
-                {packCatalog.catalogPackUnit}
+                {onHandBreakdown
+                  ? "each"
+                  : packCatalog && packCatalog.displayToHolderFactor > 1
+                    ? packCatalog.catalogPackUnit
+                    : null}
+              </span>
+            </span>
+            {onHandBreakdown ? (
+              <span className="max-w-[11rem] text-right text-[10px] font-medium leading-tight text-muted-foreground">
+                {onHandBreakdown}
               </span>
             ) : null}
           </span>
@@ -629,6 +651,7 @@ function InspectPanel({
           onPackModeChange={onPackModeChange}
           catalog={packCatalog}
           followsInventory={followsInventory}
+          onHandEach={followsInventory ? onHandEach : null}
           disabled={busy}
         />
         <div className="grid grid-cols-2 gap-1.5">

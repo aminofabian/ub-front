@@ -11,6 +11,10 @@ import {
 import { FormDrawer } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import {
+  SearchableSelect,
+  type SearchableSelectOption,
+} from "@/app/(dashboard)/products/_components/SearchableSelect";
+import {
   ApiRequestError,
   fetchItemById,
   fetchItemPackOptions,
@@ -218,6 +222,24 @@ export function StoreRoomMovementDrawer({
   /** A row is only "linked" while the store room follows inventory. */
   const linked = connected && row?.itemId != null;
 
+  const itemOptions = useMemo<SearchableSelectOption[]>(
+    () =>
+      rows.map((candidate) => {
+        const barcode = candidate.barcode?.trim() || "";
+        const follows =
+          connected && candidate.itemId ? "follows stock" : "";
+        return {
+          value: candidate.id,
+          label: candidate.name,
+          hint: [barcode, follows].filter(Boolean).join(" · ") || undefined,
+          search: [barcode, candidate.inventoryItemName?.trim() || ""]
+            .filter(Boolean)
+            .join(" "),
+        };
+      }),
+    [connected, rows],
+  );
+
   useEffect(() => {
     const itemId = linked ? row?.itemId ?? null : null;
     if (!itemId) {
@@ -421,21 +443,20 @@ export function StoreRoomMovementDrawer({
           <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
             Item
           </span>
-          <select
-            className={dashboardInputClass()}
+          <SearchableSelect
+            className={dashboardInputClass(Boolean(initial?.storeItemId))}
             value={storeItemId}
-            onChange={(event) => setStoreItemId(event.target.value)}
-            disabled={Boolean(initial?.storeItemId)}
+            onChange={setStoreItemId}
+            options={itemOptions}
+            placeholder={
+              rows.length === 0
+                ? "Nothing in the store room"
+                : "Search name or barcode…"
+            }
             required
-          >
-            {rows.length === 0 ? <option value="">Nothing in the store room</option> : null}
-            {rows.map((candidate) => (
-              <option key={candidate.id} value={candidate.id}>
-                {candidate.name}
-                {connected && candidate.itemId ? " · follows stock" : ""}
-              </option>
-            ))}
-          </select>
+            disabled={Boolean(initial?.storeItemId)}
+            aria-label="Item"
+          />
         </label>
 
         <StorePackCountField

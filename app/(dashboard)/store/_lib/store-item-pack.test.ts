@@ -3,8 +3,10 @@ import { describe, expect, test } from "bun:test";
 import {
   catalogDisplayToPacks,
   catalogNativePack,
+  packBreakdownLabel,
   packCountPreview,
   packsToCatalogDisplay,
+  packStockEach,
   retargetCount,
   storePackCatalogFromItem,
 } from "./store-item-pack";
@@ -28,10 +30,13 @@ describe("storePackCatalogFromItem", () => {
         variantOfItemId: "base",
         packageUnitsPerSale: 30,
         packagingUnitName: "tray",
+        baseStockQty: 56,
+        stockQty: 1,
       }),
       [],
     );
     expect(catalog.displayToHolderFactor).toBe(30);
+    expect(catalog.holderEach).toBe(56);
     expect(catalogNativePack(catalog)).toEqual({
       unitsPerPack: 30,
       packUnit: "tray",
@@ -39,9 +44,28 @@ describe("storePackCatalogFromItem", () => {
   });
 
   test("keeps a plain SKU in each", () => {
-    const catalog = storePackCatalogFromItem("p1", detail({}), []);
+    const catalog = storePackCatalogFromItem(
+      "p1",
+      detail({ stockQty: 12 }),
+      [],
+    );
     expect(catalog.displayToHolderFactor).toBe(1);
+    expect(catalog.holderEach).toBe(12);
     expect(catalogNativePack(catalog)).toBeNull();
+  });
+});
+
+describe("packStockEach", () => {
+  test("prefers holder pool over floored display trays", () => {
+    expect(
+      packStockEach(1, {
+        itemId: "p1",
+        displayToHolderFactor: 30,
+        catalogPackUnit: "tray",
+        options: [],
+        holderEach: 56,
+      }),
+    ).toBe(56);
   });
 });
 
@@ -90,9 +114,23 @@ describe("retargetCount", () => {
 });
 
 describe("packCountPreview", () => {
-  test("shows packs times size", () => {
+  test("splits remainder into packs and singles", () => {
+    expect(
+      packCountPreview(56 / 30, { unitsPerPack: 30, packUnit: "pack" }),
+    ).toBe("1 pack(s), 26 singles · 56 each");
+  });
+
+  test("omits singles when the count divides evenly", () => {
     expect(
       packCountPreview(2, { unitsPerPack: 30, packUnit: "tray" }),
-    ).toBe("2 × 30 = 60 each");
+    ).toBe("2 tray(s) · 60 each");
+  });
+});
+
+describe("packBreakdownLabel", () => {
+  test("formats 56 each in packs of 30", () => {
+    expect(
+      packBreakdownLabel(56, { unitsPerPack: 30, packUnit: "pack" }),
+    ).toBe("1 pack(s), 26 singles");
   });
 });
