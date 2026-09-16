@@ -30,11 +30,22 @@ import {
 import { APP_ROUTES } from "@/lib/config";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
+import { useResendCooldown } from "@/lib/resend-cooldown";
 import { cn } from "@/lib/utils";
 
 const REDIRECT_SECONDS = 10;
+const RESEND_COOLDOWN_SECONDS = 45;
 /** Fallback when verify-email cannot mint a session (older API). */
-const POST_VERIFY_LOGIN_HREF = `${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`;
+function postVerifyLoginHref(email?: string): string {
+  const params = new URLSearchParams({
+    mode: "office",
+    next: APP_ROUTES.business,
+  });
+  if (email?.trim()) {
+    params.set("email", email.trim());
+  }
+  return `${APP_ROUTES.staffLogin}?${params.toString()}`;
+}
 
 const primaryCtaClass =
   "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50";
@@ -59,6 +70,10 @@ function VerifyEmailContent() {
   const [resendLink, setResendLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const autoVerifyStarted = useRef(false);
+  const resendCooldown = useResendCooldown(RESEND_COOLDOWN_SECONDS);
+  const loginAfterVerifyHref = postVerifyLoginHref(
+    resendEmail || emailFromQuery,
+  );
 
   const hasAutoToken = tokenFromQuery.trim().length >= 16;
   const showManualForm = !hasAutoToken;
@@ -104,7 +119,7 @@ function VerifyEmailContent() {
         /* fall through to staff sign-in with next=/business */
       }
     }
-    router.replace(POST_VERIFY_LOGIN_HREF);
+    router.replace(loginAfterVerifyHref);
   };
 
   const onVerifySuccess = (signedIn: boolean) => {
@@ -123,14 +138,20 @@ function VerifyEmailContent() {
       return;
     }
     if (redirectSeconds <= 0) {
-      router.replace(POST_VERIFY_LOGIN_HREF);
+      router.replace(loginAfterVerifyHref);
       return;
     }
     const timer = window.setTimeout(() => {
       setRedirectSeconds((current) => current - 1);
     }, 1000);
     return () => window.clearTimeout(timer);
-  }, [verifyPhase, signedInAfterVerify, redirectSeconds, router]);
+  }, [
+    verifyPhase,
+    signedInAfterVerify,
+    redirectSeconds,
+    router,
+    loginAfterVerifyHref,
+  ]);
 
   useEffect(() => {
     const token = tokenFromQuery.trim();
@@ -211,6 +232,9 @@ function VerifyEmailContent() {
 
   const onResend = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (resendCooldown.coolingDown || busy) {
+      return;
+    }
     setBusy(true);
     setErrorMessage("");
     setMessage("");
@@ -234,6 +258,7 @@ function VerifyEmailContent() {
           "If that email has a pending signup for this shop, we sent a fresh link. Check your inbox and spam folder.",
         );
       }
+      resendCooldown.start();
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Could not resend.",
@@ -254,7 +279,7 @@ function VerifyEmailContent() {
     if (verifyPhase === "success") {
       return signedInAfterVerify
         ? "Taking you to your account…"
-        : "You're in. Continue to your account — you'll sign in once if we couldn't start the session automatically.";
+        : "Email verified on this browser. Sign in here to continue — if you opened the link on another device, use that password on this one.";
     }
     if (hasAutoToken && verifyPhase === "verifying") {
       return "Confirming your verification link…";
@@ -384,7 +409,7 @@ function VerifyEmailContent() {
                 {redirectSeconds === 1 ? " second" : " seconds"}.
               </AuthAlert>
               <Link
-                href={POST_VERIFY_LOGIN_HREF}
+                href={loginAfterVerifyHref}
                 className={cn(primaryCtaClass, "mt-4")}
               >
                 Continue to your account
@@ -446,9 +471,13 @@ function VerifyEmailContent() {
             className="h-11 w-full rounded-2xl"
             type="submit"
             variant="outline"
-            disabled={busy}
+            disabled={busy || resendCooldown.coolingDown}
           >
-            {busy ? "Sending…" : "Resend verification link"}
+            {busy
+              ? "Sending…"
+              : resendCooldown.coolingDown
+                ? `Resend in ${resendCooldown.remaining}s`
+                : "Resend verification link"}
           </Button>
         </form>
       ) : null}
@@ -456,7 +485,7 @@ function VerifyEmailContent() {
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Already verified?{" "}
         <Link
-          href={POST_VERIFY_LOGIN_HREF}
+          href={loginAfterVerifyHref}
           className="font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
         >
           Staff sign in

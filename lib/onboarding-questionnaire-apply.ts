@@ -348,9 +348,12 @@ export async function applyOnboardingQuestionnaire(
     answers.landingTemplateId || DEFAULT_LANDING_TEMPLATE_ID,
   );
   try {
+    // Configure-shop is applied, but onboarding stays active until the shelf
+    // has sellable stock (or an explicit later completion). Marking completed
+    // here left shops "done" with an empty catalog.
     await patchOnboardingState({
-      status: "completed",
-      step: 7,
+      status: "active",
+      step: 8,
       answers: {
         branchCount: answers.branchCount,
         branchLocalities: answers.branchLocalities,

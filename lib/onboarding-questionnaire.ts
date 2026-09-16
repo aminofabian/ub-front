@@ -12,6 +12,8 @@ import {
 } from "@/lib/kenyan-phone";
 
 const STORAGE_KEY = "palmart.onboardingQuestionnaire.v1";
+/** Session-only: Skip closes the overlay without permanently parking as dismissed. */
+const SESSION_SKIP_KEY = "palmart.onboardingQuestionnaire.sessionSkip.v1";
 
 export type BranchCountChoice = "1" | "2" | "3" | "4" | "5plus";
 
@@ -544,6 +546,7 @@ export function markOnboardingQuestionnairePending(): void {
     updatedAt: new Date().toISOString(),
   };
   writeState(next);
+  clearOnboardingQuestionnaireSessionSkip();
   void persistOnboardingQuestionnaireToServer({
     status: "pending",
     step: 1,
@@ -551,7 +554,43 @@ export function markOnboardingQuestionnairePending(): void {
   });
 }
 
+export function markOnboardingQuestionnaireSkippedThisSession(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.sessionStorage.setItem(SESSION_SKIP_KEY, "1");
+  } catch {
+    /* private mode / quota */
+  }
+}
+
+export function clearOnboardingQuestionnaireSessionSkip(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.sessionStorage.removeItem(SESSION_SKIP_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function wasOnboardingQuestionnaireSkippedThisSession(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  try {
+    return window.sessionStorage.getItem(SESSION_SKIP_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function shouldStartOnboardingQuestionnaire(): boolean {
+  if (wasOnboardingQuestionnaireSkippedThisSession()) {
+    return false;
+  }
   const { status } = readState();
   return status === "pending" || status === "active";
 }
@@ -561,8 +600,56 @@ export function isOnboardingQuestionnaireFinished(): boolean {
   return status === "completed" || status === "dismissed";
 }
 
+/**
+ * True when the shop still needs (or can resume) the configure-shop questionnaire.
+ * Prefer server status from business.onboarding when present.
+ * Completed + empty catalog still needs stock — treat as resume-worthy.
+ */
+export function needsOnboardingQuestionnaireResume(
+  businessStatus?: string | null,
+  opts?: { catalogEmpty?: boolean },
+): boolean {
+  const server = businessStatus?.trim().toLowerCase() ?? "";
+  const local = readState();
+  const status = server || local.status;
+  if (status === "completed") {
+    return opts?.catalogEmpty === true;
+  }
+  if (status === "pending" || status === "active" || status === "dismissed") {
+    return true;
+  }
+  // idle / unknown: only nudge if they already started answering locally
+  if (local.step > 1 || Object.keys(local.answers).length > 0) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * After configure-shop apply: park on the stock step without marking completed.
+ */
+export function markOnboardingAwaitingStock(
+  answers?: Partial<OnboardingQuestionnaireAnswers>,
+): void {
+  clearOnboardingQuestionnaireSessionSkip();
+  const current = readState();
+  const finalAnswers = answers ?? current.answers;
+  writeState({
+    status: "active",
+    step: QUESTIONNAIRE_STOCK_STEP,
+    answers: finalAnswers,
+    updatedAt: new Date().toISOString(),
+  });
+  void persistOnboardingQuestionnaireToServer({
+    status: "active",
+    step: QUESTIONNAIRE_STOCK_STEP,
+    answers: finalAnswers,
+  });
+}
+
 export function activateOnboardingQuestionnaire(): void {
   const current = readState();
+  clearOnboardingQuestionnaireSessionSkip();
   const next: OnboardingQuestionnaireState = {
     status: "active",
     step: current.step || 1,
@@ -630,8 +717,37 @@ export function dismissOnboardingQuestionnaire(): void {
   });
 }
 
-/** Re-open a dismissed questionnaire without wiping progress. */
+/**
+ * Skip for now: close the overlay for this browser session without permanently
+ * marking the shop as done. Answers and step stay; next visit can auto-open again.
+ */
+export function softSkipOnboardingQuestionnaire(): void {
+  const current = readState();
+  if (current.status === "completed") {
+    markOnboardingQuestionnaireSkippedThisSession();
+    return;
+  }
+  const status: OnboardingQuestionnaireStatus =
+    current.status === "active" || current.status === "pending"
+      ? current.status
+      : "pending";
+  writeState({
+    status,
+    step: Math.max(1, current.step || 1),
+    answers: current.answers,
+    updatedAt: new Date().toISOString(),
+  });
+  void persistOnboardingQuestionnaireToServer({
+    status,
+    step: Math.max(1, current.step || 1),
+    answers: current.answers,
+  });
+  markOnboardingQuestionnaireSkippedThisSession();
+}
+
+/** Re-open a dismissed / soft-skipped questionnaire without wiping progress. */
 export function resumeOnboardingQuestionnaire(): void {
+  clearOnboardingQuestionnaireSessionSkip();
   const current = readState();
   const next: OnboardingQuestionnaireState = {
     status: "active",

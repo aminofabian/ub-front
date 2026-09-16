@@ -340,9 +340,13 @@ export function NewMerchantGuideDrawer() {
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
-          // Only brand-new shops (questionnaire completed) with an empty catalog.
+          // Configured shops still missing stock (incl. legacy "completed" empty).
           const state = getOnboardingQuestionnaireState();
-          if (state.status !== "completed" || readDismissed(businessId)) {
+          const awaitingStock =
+            state.status === "completed" ||
+            (state.status === "active" &&
+              state.step >= 8);
+          if (!awaitingStock || readDismissed(businessId)) {
             return;
           }
           const stats = await fetchCatalogListStats(undefined);

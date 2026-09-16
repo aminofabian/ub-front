@@ -38,6 +38,7 @@ import { OpenWorkBoard } from "@/components/business-hub/open-work-board";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
+import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnaire-resume-banner";
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
 import { CreditTabsRail } from "@/components/business-hub/credit-tabs-rail";
 import { SupplyBillsRail } from "@/components/business-hub/supply-bills-rail";
@@ -84,6 +85,11 @@ import { monthlyCommitmentForSchedule } from "@/lib/fixed-costs-utils";
 import { cn } from "@/lib/utils";
 import { HUB_ICON_BTN } from "@/lib/business-hub/constants";
 import { hasPermission, Permission } from "@/lib/permissions";
+import {
+  completeOnboardingQuestionnaire,
+  getOnboardingQuestionnaireState,
+  QUESTIONNAIRE_STOCK_STEP,
+} from "@/lib/onboarding-questionnaire";
 import {
   addDays,
   presetRange,
@@ -758,6 +764,32 @@ export function BusinessHubWorkspace() {
   const salesEmpty = isHubSalesEmpty(revenue, orders, chartRevenue);
   const shopNotReady = catalogueCount === 0;
 
+  // Configure-shop can finish with an empty shelf. When sellable items appear
+  // (import, manual create, etc.), mark onboarding completed so setup progress
+  // and first-sale CTAs take over.
+  useEffect(() => {
+    if (!canManageBusinessSettings) {
+      return;
+    }
+    if (catalogueCount == null || catalogueCount <= 0) {
+      return;
+    }
+    const local = getOnboardingQuestionnaireState();
+    const server = business?.onboarding?.status?.trim().toLowerCase() ?? "";
+    const status = server || local.status;
+    if (status === "completed" || status === "idle") {
+      return;
+    }
+    if (local.step < QUESTIONNAIRE_STOCK_STEP && status !== "dismissed") {
+      return;
+    }
+    completeOnboardingQuestionnaire(local.answers);
+  }, [
+    canManageBusinessSettings,
+    catalogueCount,
+    business?.onboarding?.status,
+  ]);
+
   const headline = buildPulseHeadline({
     period,
     revenue,
@@ -1221,6 +1253,12 @@ export function BusinessHubWorkspace() {
         )}
       >
         <div className="flex flex-col gap-2">
+          {canManageBusinessSettings ? (
+            <QuestionnaireResumeBanner
+              businessOnboardingStatus={business?.onboarding?.status}
+              catalogEmpty={catalogueCount === 0}
+            />
+          ) : null}
           {canManageBusinessSettings ? <SetupProgressBanner /> : null}
 
           <div

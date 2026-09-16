@@ -116,7 +116,7 @@ function SignupPageContent() {
         );
         setVerificationLink(link);
       } else {
-        const base = `You're almost done. We sent a link and a 6-digit code to ${result.email}. Open the link, or enter the code on the next page — we'll take you straight to your account.`;
+        const base = `You're almost done. We sent a link and a 6-digit code to ${result.email}. Check inbox and spam, then open the link or enter the code. If you verify on another device, sign in here afterward.`;
         const localHint =
           process.env.NODE_ENV === "development"
             ? " Locally, if the API has no SMTP, the link is only in the backend terminal (yellow WARN + INFO with the verify URL), not in your inbox."
@@ -494,7 +494,7 @@ function SignupPageContent() {
           <p className="text-center text-sm text-muted-foreground">
             Already verified?{" "}
             <Link
-              href={`${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`}
+              href={`${APP_ROUTES.staffLogin}?mode=office&email=${encodeURIComponent(email.trim())}&next=${encodeURIComponent(APP_ROUTES.business)}`}
               className="font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
             >
               Continue to your account

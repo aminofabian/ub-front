@@ -7,6 +7,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
+import { EmailNotVerifiedRecovery } from "@/components/auth/email-not-verified-recovery";
 import { StaffShopPickerDialog } from "@/components/auth/staff-shop-picker-dialog";
 import {
   authInputClassName,
@@ -53,7 +54,7 @@ import {
   resolvePostAuthDestination,
 } from "@/lib/post-auth-destination";
 import { isOfficeLoginMode } from "@/lib/login-audience";
-import { getPosGuidanceKind } from "@/lib/problem";
+import { getPosGuidanceKind, isEmailNotVerifiedError } from "@/lib/problem";
 import { formatTillAccessDeniedMessage } from "@/lib/pos-till-unlock";
 import { cn } from "@/lib/utils";
 
@@ -82,6 +83,7 @@ function LoginPageContent() {
   const sessionEndedNotice = searchParams.get("notice")?.trim() === "session-ended";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pinSetup, setPinSetup] = useState(false);
+  const [verifyRecovery, setVerifyRecovery] = useState(false);
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [pinSaving, setPinSaving] = useState(false);
@@ -258,6 +260,11 @@ function LoginPageContent() {
       await completeStaffSignIn(tenantId);
       navigatedAway = true;
     } catch (error) {
+      if (isEmailNotVerifiedError(error)) {
+        setVerifyRecovery(true);
+        setErrorMessage("");
+        return;
+      }
       setErrorMessage(
         formatTillAccessDeniedMessage(
           error instanceof Error
@@ -598,6 +605,49 @@ function LoginPageContent() {
             </button>
           </form>
         </>
+      ) : verifyRecovery ? (
+        <EmailNotVerifiedRecovery
+          email={email.trim().toLowerCase()}
+          password={secret}
+          onBack={() => {
+            setVerifyRecovery(false);
+            setErrorMessage("");
+          }}
+          onVerified={async (signedIn) => {
+            setIsSubmitting(true);
+            setErrorMessage("");
+            try {
+              if (!signedIn) {
+                await loginWithPassword(email.trim().toLowerCase(), secret);
+              }
+              if (IS_DESKTOP && !isOffice) {
+                const me = await fetchMe().catch(() => null);
+                if (me && me.hasPin === false) {
+                  setVerifyRecovery(false);
+                  setSecret("");
+                  setPinSetup(true);
+                  return;
+                }
+              }
+              const dest = await resolveAfterStaffAuth({
+                office: isOffice,
+                honorNext: true,
+              });
+              await completeAuthAndNavigate(dest, tenant?.slug, {
+                office: isOffice,
+              });
+            } catch (error) {
+              setErrorMessage(
+                error instanceof Error
+                  ? error.message
+                  : "Email verified — sign in with your password to continue.",
+              );
+              setVerifyRecovery(false);
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
+        />
       ) : (
         <>
           <form

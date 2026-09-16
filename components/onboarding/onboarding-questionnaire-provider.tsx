@@ -38,12 +38,14 @@ import type { OnboardingSuggestedPackPreview } from "@/lib/onboarding-suggested-
 import {
   activateOnboardingQuestionnaire,
   completeOnboardingQuestionnaire,
-  dismissOnboardingQuestionnaire,
   getOnboardingQuestionnaireState,
   hydrateOnboardingQuestionnaireFromServer,
   looksLikeOwnerPhone,
+  markOnboardingAwaitingStock,
+  resumeOnboardingQuestionnaire,
   saveQuestionnaireProgress,
   shouldStartOnboardingQuestionnaire,
+  softSkipOnboardingQuestionnaire,
   QUESTIONNAIRE_PHONE_STEP,
   QUESTIONNAIRE_STOCK_STEP,
   QUESTIONNAIRE_STEP_COUNT,
@@ -242,6 +244,23 @@ export function OnboardingQuestionnaireProvider({
     setCelebrate(false);
   }, []);
 
+  const reopenQuestionnaire = useCallback(() => {
+    const before = getOnboardingQuestionnaireState();
+    const reopenAtStock =
+      before.status === "completed" ||
+      before.step >= QUESTIONNAIRE_STOCK_STEP;
+    resumeOnboardingQuestionnaire();
+    if (reopenAtStock) {
+      markOnboardingAwaitingStock(before.answers);
+    }
+    const stored = getOnboardingQuestionnaireState();
+    setStep(stored.step || 1);
+    setAnswers(stored.answers);
+    setActive(true);
+    setErrorMessage("");
+    setCelebrate(false);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -272,11 +291,13 @@ export function OnboardingQuestionnaireProvider({
   }, []);
 
   const handleAddProductsManually = useCallback(() => {
+    softSkipOnboardingQuestionnaire();
     setActive(false);
     router.replace(APP_ROUTES.products);
   }, [router]);
 
   const handleFinishLater = useCallback(() => {
+    softSkipOnboardingQuestionnaire();
     finish();
   }, [finish]);
 
@@ -299,17 +320,19 @@ export function OnboardingQuestionnaireProvider({
       setAnswers(merged);
       saveQuestionnaireProgress(QUESTIONNAIRE_STOCK_STEP, merged);
     }
+    softSkipOnboardingQuestionnaire();
     setActive(false);
     router.replace(APP_ROUTES.businessImport);
   }, [answers, router]);
 
   const handleCatalogImportSuccess = useCallback(() => {
+    completeOnboardingQuestionnaire(answers);
     setCatalogDrawerOpen(false);
     finish();
-  }, [finish]);
+  }, [answers, finish]);
 
   const dismissLayer = useCallback(() => {
-    dismissOnboardingQuestionnaire();
+    softSkipOnboardingQuestionnaire();
     setActive(false);
   }, []);
 
@@ -371,12 +394,13 @@ export function OnboardingQuestionnaireProvider({
             setErrorMessage(formatApplyFailureMessage(result));
             return;
           }
-          completeOnboardingQuestionnaire(merged);
-          if (isCatalogEligibleStoreTypes(merged.storeTypes)) {
-            saveQuestionnaireProgress(QUESTIONNAIRE_STOCK_STEP, merged);
-            setCelebrate(true);
-            setStep(QUESTIONNAIRE_STOCK_STEP);
-          } else {
+          // Entities applied — stay incomplete until the shelf has stock.
+          markOnboardingAwaitingStock(merged);
+          setCelebrate(true);
+          setStep(QUESTIONNAIRE_STOCK_STEP);
+          if (!isCatalogEligibleStoreTypes(merged.storeTypes)) {
+            // No catalog packs path — soft-close; Resume keeps nudging.
+            softSkipOnboardingQuestionnaire();
             setActive(false);
             router.replace(
               isButcheryOnlyBusiness({
@@ -483,8 +507,8 @@ export function OnboardingQuestionnaireProvider({
   }, [active, mounted]);
 
   const contextValue = useMemo(
-    () => ({ active, reopen: startQuestionnaire }),
-    [active, startQuestionnaire],
+    () => ({ active, reopen: reopenQuestionnaire }),
+    [active, reopenQuestionnaire],
   );
 
   const openingBranchId =

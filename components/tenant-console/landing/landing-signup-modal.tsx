@@ -11,15 +11,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { onboardBusiness, registerAccount } from "@/lib/api";
+import { onboardBusiness, registerAccount, resendVerificationEmail } from "@/lib/api";
 import {
   persistSessionTenantHost,
   setSessionTenantId,
 } from "@/lib/auth";
-import { slugDerivedShopUrl } from "@/lib/config";
+import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
 import { businessNameToSlug } from "@/lib/shop-lookup";
 import { handleRegistrationResult } from "@/lib/post-registration-auth";
+import { useResendCooldown } from "@/lib/resend-cooldown";
 import { cn } from "@/lib/utils";
 
 import { LandingOnboarding } from "./landing-onboarding";
@@ -58,8 +59,11 @@ export function LandingSignupModal({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [verifyPending, setVerifyPending] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { countries } = useSelfServeCountries();
+  const resendCooldown = useResendCooldown();
 
   const resetState = () => {
     setStep(1);
@@ -73,7 +77,10 @@ export function LandingSignupModal({
     setPassword("");
     setShowPassword(false);
     setErrorMessage("");
+    setSuccessMessage("");
+    setVerifyPending(false);
     setIsSubmitting(false);
+    resendCooldown.reset();
   };
 
   useEffect(() => {
@@ -163,12 +170,35 @@ export function LandingSignupModal({
         return;
       }
 
-      setErrorMessage(
-        "Account created. Check your email for the link and 6-digit code — we'll open your business hub from there.",
+      setVerifyPending(true);
+      setSuccessMessage(
+        `Account created. Check ${email.trim()} for the link and 6-digit code — check spam if it’s not there.`,
       );
+      setErrorMessage("");
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Sign up failed.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onResendVerification = async () => {
+    if (resendCooldown.coolingDown || isSubmitting) {
+      return;
+    }
+    setIsSubmitting(true);
+    setErrorMessage("");
+    try {
+      await resendVerificationEmail(email.trim());
+      setSuccessMessage(
+        `If ${email.trim()} has a pending signup, we sent a fresh code. Check inbox and spam.`,
+      );
+      resendCooldown.start();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Could not resend.",
       );
     } finally {
       setIsSubmitting(false);
@@ -242,6 +272,47 @@ export function LandingSignupModal({
                     onSubmit={onStep1Submit}
                     onBack={() => onOpenChange(false)}
                   />
+                </div>
+              </>
+            ) : verifyPending ? (
+              <>
+                <DialogHeader className="gap-3 text-left">
+                  <p className={sectionLabelPillClass}>Check your email</p>
+                  <DialogTitle className="font-heading text-2xl font-bold tracking-[-0.02em] text-[#141412] sm:text-[2rem]">
+                    Confirm your account
+                  </DialogTitle>
+                  <DialogDescription className="text-sm leading-relaxed text-[#5F5D58] sm:text-[15px]">
+                    Open the link or enter the 6-digit code. If you verify on
+                    another device, come back and sign in on this one.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-6 space-y-4">
+                  {successMessage ? (
+                    <AuthAlert variant="success">{successMessage}</AuthAlert>
+                  ) : null}
+                  {errorMessage ? (
+                    <AuthAlert variant="error">{errorMessage}</AuthAlert>
+                  ) : null}
+                  <a
+                    href={`${APP_ROUTES.verifyEmail}?email=${encodeURIComponent(email.trim())}`}
+                    className={`${goldCtaClass} flex w-full items-center justify-center py-3.5 text-base`}
+                  >
+                    Open verification page
+                  </a>
+                  {resendCooldown.coolingDown ? (
+                    <p className="text-center text-sm text-[#8A8782]">
+                      Resend in {resendCooldown.remaining}s
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => void onResendVerification()}
+                      className="w-full text-center text-sm font-medium text-[#20863B] underline-offset-2 hover:underline disabled:opacity-50"
+                    >
+                      Resend code
+                    </button>
+                  )}
                 </div>
               </>
             ) : (
