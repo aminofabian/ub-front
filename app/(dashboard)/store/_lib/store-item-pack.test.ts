@@ -71,8 +71,12 @@ describe("packStockEach", () => {
 });
 
 describe("packsToCatalogDisplay", () => {
-  test("leaves each-mode counts alone", () => {
+  test("turns pieces into display on a plain SKU", () => {
     expect(packsToCatalogDisplay(12, null, 1)).toBe(12);
+  });
+
+  test("turns pieces into trays on a tray SKU", () => {
+    expect(packsToCatalogDisplay(60, null, 30)).toBe(2);
   });
 
   test("does not double-convert a tray SKU counted in trays", () => {
@@ -100,6 +104,10 @@ describe("catalogDisplayToPacks", () => {
       catalogDisplayToPacks(26, { unitsPerPack: 12, packUnit: "pack" }, 30),
     ).toBe(65);
   });
+
+  test("turns tray display into pieces when unpacked", () => {
+    expect(catalogDisplayToPacks(2, null, 30)).toBe(60);
+  });
 });
 
 describe("retargetCount", () => {
@@ -111,6 +119,24 @@ describe("retargetCount", () => {
       30,
     );
     expect(next).toBe(5);
+  });
+
+  test("turns a piece count into packs", () => {
+    expect(
+      retargetCount(6, null, { unitsPerPack: 100, packUnit: "pack" }, 1),
+    ).toBe(0.06);
+  });
+
+  test("turns packs back into pieces", () => {
+    expect(
+      retargetCount(2, { unitsPerPack: 100, packUnit: "pack" }, null, 1),
+    ).toBe(200);
+  });
+
+  test("does not leave pack count equal to pieces on a pack SKU", () => {
+    expect(
+      retargetCount(6, null, { unitsPerPack: 100, packUnit: "pack" }, 100),
+    ).toBe(0.06);
   });
 });
 

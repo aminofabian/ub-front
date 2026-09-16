@@ -92,7 +92,10 @@ export function isPacked(pack: SupplyPackMode | null | undefined): boolean {
   return pack != null && pack.unitsPerPack > 1;
 }
 
-/** Convert typed packs into catalog display units (what inventoryQuantity uses). */
+/**
+ * Convert a typed count into catalog display units (what inventoryQuantity uses).
+ * Unpacked counts are pieces; packed counts are packs of `pack.unitsPerPack`.
+ */
 export function packsToCatalogDisplay(
   packs: number,
   pack: SupplyPackMode | null | undefined,
@@ -103,12 +106,13 @@ export function packsToCatalogDisplay(
     Number.isFinite(displayToHolderFactor) && displayToHolderFactor > 0
       ? displayToHolderFactor
       : 1;
-  if (!isPacked(pack)) return roundQty(packs);
-  const holder = packs * pack!.unitsPerPack;
+  const holder = isPacked(pack) ? packs * pack!.unitsPerPack : packs;
   return roundQty(holder / factor);
 }
 
-/** Show current catalog display qty in the selected pack unit. */
+/**
+ * Show catalog display qty as packs, or as pieces when unpacked.
+ */
 export function catalogDisplayToPacks(
   display: number,
   pack: SupplyPackMode | null | undefined,
@@ -119,8 +123,8 @@ export function catalogDisplayToPacks(
     Number.isFinite(displayToHolderFactor) && displayToHolderFactor > 0
       ? displayToHolderFactor
       : 1;
-  if (!isPacked(pack)) return roundQty(display);
   const holder = display * factor;
+  if (!isPacked(pack)) return roundQty(holder);
   return roundQty(holder / pack!.unitsPerPack);
 }
 
