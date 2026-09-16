@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { onboardBusiness, registerAccount, resendVerificationEmail } from "@/lib/api";
+import { onboardBusiness, registerAccount, resendVerificationEmail, verifyEmailAddress, loginWithPassword } from "@/lib/api";
 import {
   persistSessionTenantHost,
   setSessionTenantId,
@@ -24,7 +24,11 @@ import {
   savePendingOnboardDraft,
 } from "@/lib/pending-onboard-draft";
 import { businessNameToSlug } from "@/lib/shop-lookup";
-import { handleRegistrationResult } from "@/lib/post-registration-auth";
+import {
+  handleRegistrationResult,
+  resolveDestinationAfterAuth,
+} from "@/lib/post-registration-auth";
+import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import { isAccountExistsError } from "@/lib/problem";
 import { useResendCooldown } from "@/lib/resend-cooldown";
 import { cn } from "@/lib/utils";
@@ -69,6 +73,8 @@ export function LandingSignupModal({
   const [verifyPending, setVerifyPending] = useState(false);
   /** Duplicate email on this shop — offer verify / sign-in, not a dead end. */
   const [accountExists, setAccountExists] = useState(false);
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyLink, setVerifyLink] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { countries } = useSelfServeCountries();
   const resendCooldown = useResendCooldown();
@@ -82,6 +88,8 @@ export function LandingSignupModal({
     setSuccessMessage("");
     setVerifyPending(false);
     setAccountExists(false);
+    setVerifyCode("");
+    setVerifyLink(null);
     setIsSubmitting(false);
     resendCooldown.reset();
   };
@@ -223,6 +231,10 @@ export function LandingSignupModal({
       }
 
       setVerifyPending(true);
+      const link = result.verificationUrl?.trim();
+      if (link) {
+        setVerifyLink(link);
+      }
       setSuccessMessage(
         `Account created. Check ${email.trim()} for the link and 6-digit code — check spam if it’s not there.`,
       );
@@ -241,17 +253,68 @@ export function LandingSignupModal({
     }
   };
 
+  const onVerifySubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErrorMessage("");
+    const code = verifyCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setErrorMessage("Enter the 6-digit code from your email.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const signedIn = await verifyEmailAddress(code, {
+        toast: false,
+        email: email.trim(),
+      });
+      if (!signedIn) {
+        try {
+          await loginWithPassword(email.trim(), password);
+        } catch {
+          setErrorMessage(
+            "Your email is verified. Sign in with your password to continue.",
+          );
+          setVerifyPending(false);
+          return;
+        }
+      }
+      clearPendingOnboardDraft();
+      const { dest, slug } = await resolveDestinationAfterAuth({
+        tenantSlug: tenantSlug || undefined,
+      });
+      await completeAuthAndNavigate(dest, slug, {
+        preferAssignedSubdomain: true,
+      });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "That code did not work. Check your email, or resend a new one.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const onResendVerification = async () => {
     if (resendCooldown.coolingDown || isSubmitting) {
       return;
     }
     setIsSubmitting(true);
     setErrorMessage("");
+    setVerifyLink(null);
     try {
-      await resendVerificationEmail(email.trim());
-      setSuccessMessage(
-        `If ${email.trim()} has a pending signup, we sent a fresh code. Check inbox and spam.`,
-      );
+      const out = await resendVerificationEmail(email.trim());
+      const link = out.verificationUrl?.trim();
+      if (link) {
+        setSuccessMessage(`A new code is ready for ${email.trim()}.`);
+        setVerifyLink(link);
+      } else {
+        setSuccessMessage(
+          `If ${email.trim()} has a pending signup, we sent a fresh code. Check inbox and spam.`,
+        );
+      }
+      setVerifyCode("");
       resendCooldown.start();
     } catch (error) {
       setErrorMessage(
@@ -350,26 +413,72 @@ export function LandingSignupModal({
                   {errorMessage ? (
                     <AuthAlert variant="error">{errorMessage}</AuthAlert>
                   ) : null}
-                  <a
-                    href={`${APP_ROUTES.verifyEmail}?email=${encodeURIComponent(email.trim())}`}
-                    className={`${goldCtaClass} flex w-full items-center justify-center py-3.5 text-base`}
-                  >
-                    Open verification page
-                  </a>
-                  {resendCooldown.coolingDown ? (
-                    <p className="text-center text-sm text-[#8A8782]">
-                      Resend in {resendCooldown.remaining}s
-                    </p>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void onResendVerification()}
-                      className="w-full text-center text-sm font-medium text-[#20863B] underline-offset-2 hover:underline disabled:opacity-50"
+                  {verifyLink ? (
+                    <a
+                      href={verifyLink}
+                      className="block break-all text-sm font-medium text-[#20863B] underline underline-offset-2"
                     >
-                      Resend code
+                      Open verification link
+                    </a>
+                  ) : null}
+                  <form className="space-y-4" onSubmit={(e) => void onVerifySubmit(e)}>
+                    <div>
+                      <label
+                        htmlFor="landing-signup-verify-code"
+                        className="mb-2 block text-sm font-medium text-[#141412]"
+                      >
+                        6-digit code
+                      </label>
+                      <input
+                        id="landing-signup-verify-code"
+                        className={cn(
+                          landingInputClass,
+                          "text-center text-2xl font-semibold tracking-[0.35em]",
+                        )}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        placeholder="••••••"
+                        value={verifyCode}
+                        onChange={(e) =>
+                          setVerifyCode(
+                            e.target.value.replace(/\D/g, "").slice(0, 6),
+                          )
+                        }
+                        autoFocus
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className={`${goldCtaClass} w-full py-3.5 text-base`}
+                    >
+                      {isSubmitting ? "Verifying…" : "Verify & continue"}
                     </button>
-                  )}
+                  </form>
+                  <div className="flex flex-col gap-2 text-center text-sm">
+                    {resendCooldown.coolingDown ? (
+                      <p className="text-[#8A8782]">
+                        Resend in {resendCooldown.remaining}s
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => void onResendVerification()}
+                        className="font-medium text-[#20863B] underline-offset-2 hover:underline disabled:opacity-50"
+                      >
+                        Resend code
+                      </button>
+                    )}
+                    <a
+                      href={`${APP_ROUTES.verifyEmail}?email=${encodeURIComponent(email.trim())}`}
+                      className="text-[#8A8782] underline-offset-2 hover:text-[#5F5D58] hover:underline"
+                    >
+                      Open full verification page
+                    </a>
+                  </div>
                 </div>
               </>
             ) : (
