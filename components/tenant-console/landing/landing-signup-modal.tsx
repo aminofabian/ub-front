@@ -20,6 +20,7 @@ import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
 import { businessNameToSlug } from "@/lib/shop-lookup";
 import { handleRegistrationResult } from "@/lib/post-registration-auth";
+import { isAccountExistsError } from "@/lib/problem";
 import { useResendCooldown } from "@/lib/resend-cooldown";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +62,8 @@ export function LandingSignupModal({
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [verifyPending, setVerifyPending] = useState(false);
+  /** Duplicate email on this shop — offer verify / sign-in, not a dead end. */
+  const [accountExists, setAccountExists] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { countries } = useSelfServeCountries();
   const resendCooldown = useResendCooldown();
@@ -79,6 +82,7 @@ export function LandingSignupModal({
     setErrorMessage("");
     setSuccessMessage("");
     setVerifyPending(false);
+    setAccountExists(false);
     setIsSubmitting(false);
     resendCooldown.reset();
   };
@@ -153,6 +157,7 @@ export function LandingSignupModal({
     event.preventDefault();
     setIsSubmitting(true);
     setErrorMessage("");
+    setAccountExists(false);
 
     try {
       const result = await registerAccount(name.trim(), email.trim(), password);
@@ -176,6 +181,9 @@ export function LandingSignupModal({
       );
       setErrorMessage("");
     } catch (error) {
+      if (isAccountExistsError(error)) {
+        setAccountExists(true);
+      }
       setErrorMessage(
         error instanceof Error ? error.message : "Sign up failed.",
       );
@@ -441,8 +449,27 @@ export function LandingSignupModal({
                 </button>
 
                 {errorMessage ? (
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-3">
                     <AuthAlert variant="error">{errorMessage}</AuthAlert>
+                    {accountExists ? (
+                      <div className="space-y-3">
+                        <a
+                          href={`${APP_ROUTES.verifyEmail}?email=${encodeURIComponent(email.trim())}`}
+                          className={`${goldCtaClass} flex w-full items-center justify-center py-3 text-sm`}
+                        >
+                          Open verification page
+                        </a>
+                        <p className="text-center text-sm text-[#8A8782]">
+                          Already verified?{" "}
+                          <a
+                            href={`${APP_ROUTES.staffLogin}?mode=office&email=${encodeURIComponent(email.trim())}&next=${encodeURIComponent(APP_ROUTES.business)}`}
+                            className="font-medium text-[#20863B] underline-offset-2 hover:underline"
+                          >
+                            Continue to your account
+                          </a>
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </>
