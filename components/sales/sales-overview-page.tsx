@@ -20,17 +20,17 @@ import {
 } from "lucide-react";
 
 import {
-  DASHBOARD_MAX,
-  DASHBOARD_TABLE_HEAD,
-  DASHBOARD_TABLE_SURFACE,
+  DASHBOARD_MAX_WIDE,
+  DashboardAccessDenied,
   DashboardFeedback,
+  DashboardPageHero,
+  dashboardHintClass,
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
-import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { AdjustSalePaymentDialog } from "@/components/sales/adjust-sale-payment-dialog";
 import {
   SalesFeedFilters,
@@ -70,7 +70,6 @@ import {
   salesActivityPdfFilename,
 } from "@/lib/sales-activity-pdf";
 
-const MUTED = "text-muted-foreground";
 const POLL_MS = 8_000;
 
 function toNum(n: number | string | null | undefined): number {
@@ -132,7 +131,14 @@ function canAdjustSalePayment(tx: SaleTransaction): boolean {
   return true;
 }
 
-function RevenueSparkline({
+const INK_RULE =
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+const PAPER =
+  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]";
+const ROSTER =
+  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]";
+
+function RevenueBars({
   values,
   labels,
 }: {
@@ -141,35 +147,24 @@ function RevenueSparkline({
 }) {
   if (values.length < 2) return null;
   const max = Math.max(...values, 1);
-  const w = 120;
-  const h = 28;
-  const pad = 1;
-  const points = values.map((v, i) => {
-    const x = pad + (i / (values.length - 1)) * (w - pad * 2);
-    const y = h - pad - (v / max) * (h - pad * 2);
-    return `${x},${y}`;
-  });
-  const area = `M${points[0]} L${points.join(" L")} L${w - pad},${h - pad} L${pad},${h - pad} Z`;
-
   return (
-    <svg
-      width={w}
-      height={h}
-      viewBox={`0 0 ${w} ${h}`}
-      className="mt-1.5 overflow-visible"
+    <div
+      className="mt-2 flex h-10 items-end gap-px"
       role="img"
       aria-label={`Revenue trend: ${labels[0]} to ${labels[labels.length - 1]}`}
     >
-      <path d={area} fill="#0f766e" fillOpacity={0.12} />
-      <polyline
-        points={points.join(" ")}
-        fill="none"
-        stroke="#0f766e"
-        strokeWidth={1.5}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </svg>
+      {values.map((v, i) => (
+        <div
+          key={`${labels[i]}-${i}`}
+          className="min-w-0 flex-1 bg-[var(--pos-primary,#0f766e)]"
+          style={{
+            height: `${Math.max(8, (v / max) * 100)}%`,
+            opacity: v > 0 ? 0.28 + (v / max) * 0.72 : 0.1,
+          }}
+          title={`${labels[i]} ${fmtKes(v)}`}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -186,17 +181,18 @@ function Metric({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </p>
-      <p className="mt-0.5 truncate text-xl font-semibold tabular-nums tracking-tight text-foreground">
+      <p
+        className="mt-1 truncate text-[1.45rem] font-semibold tabular-nums leading-none tracking-[-0.03em] text-foreground"
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
         {value}
       </p>
       {chart}
       {hint ? (
-        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-          {hint}
-        </p>
+        <p className={cn(dashboardHintClass(), "mt-1.5 truncate")}>{hint}</p>
       ) : null}
     </div>
   );
@@ -204,11 +200,11 @@ function Metric({
 
 function MetricsSkeleton() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-5 sm:grid-cols-2">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="space-y-1.5">
-          <div className="h-2.5 w-14 animate-pulse rounded bg-muted" />
-          <div className="h-6 w-24 animate-pulse rounded bg-muted" />
+        <div key={i} className="space-y-2">
+          <div className="h-2.5 w-14 animate-pulse bg-muted" />
+          <div className="h-7 w-24 animate-pulse bg-muted" />
         </div>
       ))}
     </div>
@@ -274,21 +270,14 @@ function buildRevenueTrend(
 
 function FeedSkeleton() {
   return (
-    <div className={DASHBOARD_TABLE_SURFACE}>
-      <div className={DASHBOARD_TABLE_HEAD}>
-        <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-      </div>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div
-          key={i}
-          className="space-y-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-5 py-5 last:border-0 sm:px-6"
-        >
+    <div className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="space-y-2 px-4 py-3">
           <div className="flex justify-between gap-4">
-            <div className="h-4 w-40 animate-pulse rounded bg-muted" />
-            <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-36 animate-pulse bg-muted" />
+            <div className="h-3 w-16 animate-pulse bg-muted" />
           </div>
-          <div className="h-3 w-56 animate-pulse rounded bg-muted" />
-          <div className="h-3 w-44 animate-pulse rounded bg-muted" />
+          <div className="h-2.5 w-48 animate-pulse bg-muted/70" />
         </div>
       ))}
     </div>
@@ -346,25 +335,26 @@ function SaleGroup({
   return (
     <article
       className={cn(
-        "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0 transition-colors",
-        isNew && "bg-primary/[0.04]",
+        "border-b last:border-0 transition-colors duration-150",
+        INK_RULE,
+        isNew && "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
         refunded && "bg-destructive/[0.03]",
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 px-4 py-2.5 sm:px-5">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 px-3.5 py-2.5 sm:px-4">
         <div className="min-w-0 space-y-0.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="font-mono text-[11px] font-semibold tracking-wide text-foreground/70">
+            <span className="text-[11px] font-semibold tabular-nums tracking-tight text-foreground/80">
               #{txDisplayNo(tx)}
             </span>
             <span
               className={cn(
-                "rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                "border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
                 isOnline
-                  ? "bg-sky-50 text-sky-800"
+                  ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_25%,transparent)] text-foreground"
                   : refunded
-                    ? "bg-destructive/10 text-destructive"
-                    : "bg-emerald-50 text-emerald-800",
+                    ? "border-destructive/35 text-destructive"
+                    : "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]",
               )}
             >
               {isOnline
@@ -375,7 +365,7 @@ function SaleGroup({
             </span>
             {tx.mpesaVerified && !refunded ? (
               <span
-                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] bg-sky-50 text-sky-800"
+                className="inline-flex items-center gap-0.5 border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-primary,#0f766e)]"
                 title="M-Pesa confirmed by KopoKopo webhook"
               >
                 <BadgeCheck className="size-3" aria-hidden />
@@ -386,22 +376,22 @@ function SaleGroup({
             !tx.customerPhoneVerified &&
             tx.customerMaskedHint ? (
               <span
-                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] bg-amber-50 text-amber-800"
+                className="inline-flex items-center border border-amber-700/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-amber-900"
                 title="M-Pesa number is still masked until the customer fills the missing digits"
               >
                 Unverified number
               </span>
             ) : null}
-            <span className="text-[11px] text-muted-foreground">
+            <span className={cn(dashboardHintClass())}>
               {formatSoldTime(tx.soldAt, nowMs, { relative: showRelativeTime })}
             </span>
           </div>
           {meta.length > 0 ? (
-            <p className="text-xs font-medium text-foreground/75">
+            <p className="text-xs font-medium text-foreground/80">
               {tx.customerId ? (
                 <Link
                   href={APP_ROUTES.customer(tx.customerId)}
-                  className="text-primary hover:underline"
+                  className="text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
                 >
                   {meta.join(" · ")}
                 </Link>
@@ -416,14 +406,15 @@ function SaleGroup({
           <div className="text-right">
             <p
               className={cn(
-                "text-base font-semibold tabular-nums tracking-tight",
-                refunded ? "text-[#C47A5A]" : "text-foreground",
+                "text-[15px] font-semibold tabular-nums tracking-[-0.02em]",
+                refunded ? "text-[#9a2e16]" : "text-foreground",
               )}
+              style={{ fontFamily: "var(--font-heading)" }}
             >
               {refunded && tx.total > 0 ? "−" : ""}
               {fmtKes(Math.abs(tx.total))}
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className={dashboardHintClass()}>
               {tx.lineCount} item{tx.lineCount === 1 ? "" : "s"}
             </p>
           </div>
@@ -432,7 +423,7 @@ function SaleGroup({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+              className="h-7 gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
               onClick={onAdjust}
             >
               <Pencil className="size-3" aria-hidden />
@@ -442,7 +433,7 @@ function SaleGroup({
         </div>
       </div>
 
-      <ul className="space-y-0.5 border-t border-border/25 bg-muted/10 px-4 py-1.5 pl-7 sm:px-5 sm:pl-8">
+      <ul className="space-y-0.5 border-t px-3.5 py-1.5 pl-7 sm:px-4 sm:pl-8" style={{ borderColor: "color-mix(in srgb, var(--order-ink, #15231f) 10%, transparent)" }}>
         {tx.lines.map((line, i) => {
           const lineRefunded = isRefunded(line.status);
           return (
@@ -773,18 +764,12 @@ export function SalesOverviewPage() {
 
   if (!allowed) {
     return (
-      <div className="mx-auto max-w-lg py-16 text-center">
-        <h1 className="text-lg font-semibold text-foreground">Sales</h1>
-        <p className={cn("mt-2 text-sm", MUTED)}>
-          You do not have permission to view sales activity.
-        </p>
-        <Link
-          href={APP_ROUTES.business}
-          className="mt-6 inline-block text-sm font-medium text-[#0f766e] hover:underline"
-        >
-          Back to business
-        </Link>
-      </div>
+      <DashboardAccessDenied
+        title="Sales"
+        description="You do not have permission to view sales activity."
+        backHref={APP_ROUTES.business}
+        backLabel="Business"
+      />
     );
   }
 
@@ -801,239 +786,136 @@ export function SalesOverviewPage() {
     .filter(Boolean)
     .join(" · ");
 
-  return (
-    <div className={cn(DASHBOARD_MAX, "space-y-5")}>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-            Sales
-          </p>
-          <h1 className="mt-0.5 font-sans text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            Activity
-          </h1>
-          <ActiveScopeSubtitle className="mt-0.5 text-xs text-muted-foreground" />
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            {statusLine || "Sold items for the selected period."}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            asChild
-          >
-            <Link href={APP_ROUTES.salesTransactions}>
-              <List className="size-3.5" aria-hidden />
-              Transactions
-            </Link>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => void load({ silent: true })}
-            disabled={loading}
-          >
-            <RefreshCw
-              className={cn("size-3.5", refreshing && "animate-spin")}
-              aria-hidden
-            />
-            Refresh
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={downloadPdf}
-            disabled={loading || !dateRange || pdfLoading}
-          >
-            <Download className="size-3.5" aria-hidden />
-            {pdfLoading ? "PDF…" : "PDF"}
-          </Button>
-          <Button
-            size="sm"
-            asChild
-            className="gap-1.5 bg-[#0f766e] text-white hover:bg-[#9A7A3F]"
-          >
-            <Link href={APP_ROUTES.salesQuick}>
-              <Receipt className="size-3.5" aria-hidden />
-              Record sale
-            </Link>
-          </Button>
-        </div>
-      </header>
+  const trendChart =
+    revenueTrend.values.some((v) => v > 0) ? (
+      <RevenueBars
+        values={revenueTrend.values}
+        labels={revenueTrend.labels}
+      />
+    ) : null;
 
+  const pulse = (
+    <div className="flex h-full min-h-0 flex-col overflow-auto p-4 sm:p-5">
       {dateRange && !error ? (
         loading ? (
           <MetricsSkeleton />
         ) : (
-          <section
-            aria-label="Period summary"
-            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-          >
-            <Metric
-              label="Revenue"
-              value={fmtKes(summary.revenue)}
-              chart={
-                revenueTrend.values.some((v) => v > 0) ? (
-                  <RevenueSparkline
-                    values={revenueTrend.values}
-                    labels={revenueTrend.labels}
-                  />
-                ) : null
-              }
-              hint={
-                revenueTrend.values.some((v) => v > 0)
-                  ? datePreset === "today" || datePreset === "yesterday"
-                    ? "Hourly trend"
-                    : "Daily trend"
-                  : undefined
-              }
-            />
-            <Metric
-              label="Transactions"
-              value={summary.transactions.toLocaleString("en-KE")}
-              hint={
-                summary.transactions > 0
-                  ? `${fmtKes(summary.avgTicket)} average`
-                  : undefined
-              }
-            />
-            <Metric
-              label="Units sold"
-              value={summary.units.toLocaleString("en-KE", {
-                maximumFractionDigits: 1,
-              })}
-              hint={
-                summary.lineCount > 0
-                  ? `${summary.lineCount.toLocaleString("en-KE")} lines`
-                  : undefined
-              }
-            />
-            <Metric
-              label={summary.refundLines > 0 ? "Refunds" : "Top product"}
-              value={
-                summary.refundLines > 0
-                  ? fmtKes(summary.refundTotal)
-                  : summary.topItem || "—"
-              }
-              hint={
-                summary.refundLines > 0
-                  ? `${summary.refundLines} refunded line${summary.refundLines === 1 ? "" : "s"}`
-                  : summary.topItem
-                    ? "Highest revenue"
+          <div className="grid gap-6">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                Revenue
+              </p>
+              <p
+                className="mt-1 text-[2.15rem] font-semibold leading-none tracking-[-0.04em] tabular-nums text-foreground"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                {fmtKes(summary.revenue)}
+              </p>
+              <p className={cn(dashboardHintClass(), "mt-2")}>
+                {statusLine || "Sold this period."}
+              </p>
+              {trendChart}
+              {trendChart ? (
+                <p className={cn(dashboardHintClass(), "mt-1")}>
+                  {datePreset === "today" || datePreset === "yesterday"
+                    ? "By hour"
+                    : "By day"}
+                </p>
+              ) : null}
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Metric
+                label="Transactions"
+                value={summary.transactions.toLocaleString("en-KE")}
+                hint={
+                  summary.transactions > 0
+                    ? `${fmtKes(summary.avgTicket)} average`
                     : undefined
-              }
-            />
-          </section>
+                }
+              />
+              <Metric
+                label="Units sold"
+                value={summary.units.toLocaleString("en-KE", {
+                  maximumFractionDigits: 1,
+                })}
+                hint={
+                  summary.lineCount > 0
+                    ? `${summary.lineCount.toLocaleString("en-KE")} lines`
+                    : undefined
+                }
+              />
+              <Metric
+                label={summary.refundLines > 0 ? "Refunds" : "Top product"}
+                value={
+                  summary.refundLines > 0
+                    ? fmtKes(summary.refundTotal)
+                    : summary.topItem || "—"
+                }
+                hint={
+                  summary.refundLines > 0
+                    ? `${summary.refundLines} refunded line${summary.refundLines === 1 ? "" : "s"}`
+                    : summary.topItem
+                      ? "Highest revenue"
+                      : undefined
+                }
+              />
+            </div>
+          </div>
         )
-      ) : null}
+      ) : (
+        <p className={dashboardHintClass()}>
+          Pick a period to see what the till took.
+        </p>
+      )}
+    </div>
+  );
 
-      <section className="space-y-2.5" aria-label="Filters">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative min-w-0 flex-1">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+  const feed = (
+    <div className="flex h-full min-h-0 flex-col bg-white">
+      <div
+        className={cn(
+          "flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-3 py-2 sm:px-3.5",
+          INK_RULE,
+        )}
+      >
+        <div>
+          <h2
+            className="text-[15px] font-semibold tracking-[-0.02em]"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            Tickets
+          </h2>
+          <p className={dashboardHintClass()}>
+            {loading
+              ? "Loading…"
+              : feedFiltered
+                ? `Showing ${transactions.length.toLocaleString("en-KE")} of period`
+                : `${transactions.length.toLocaleString("en-KE")} ticket${transactions.length === 1 ? "" : "s"}`}
+          </p>
+        </div>
+        {isLivePeriod ? (
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+            <span
+              className="size-1.5 bg-[var(--pos-primary,#0f766e)]"
               aria-hidden
             />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Receipt, product, SKU, barcode…"
-              className={cn(dashboardInputClass(), "h-9 py-2 pl-9 text-sm")}
-              aria-label="Search sales"
-            />
-          </div>
-          <select
-            value={branchId}
-            onChange={(e) => onChangeBranch(e.target.value)}
-            className={cn(dashboardSelectClass(), "h-9 py-1.5 sm:w-48")}
-            aria-label="Branch"
-            disabled={branchLocked}
-          >
-            <option value="">All branches</option>
-            {branches
-              .filter((b) => !branchLocked || b.id === me?.branchId)
-              .map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-          </select>
-        </div>
-
-        <SalesFeedFilters
-          datePreset={datePreset}
-          onDatePresetChange={setDatePreset}
-          customFrom={customFrom}
-          customTo={customTo}
-          onCustomFromChange={setCustomFrom}
-          onCustomToChange={setCustomTo}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          paymentFilter={paymentFilter}
-          onPaymentFilterChange={setPaymentFilter}
-          channelFilter={channelFilter}
-          onChannelFilterChange={setChannelFilter}
-          showChannelFilter={canViewWebOrders}
-        />
-      </section>
-
-      {error ? <DashboardFeedback kind="error" text={error} /> : null}
-
-      {loading ? (
-        <FeedSkeleton />
-      ) : transactions.length === 0 ? (
-        <div
-          className={cn(
-            DASHBOARD_TABLE_SURFACE,
-            "px-6 py-20 text-center text-sm text-muted-foreground",
-          )}
-        >
-          {!dateRange
-            ? "Pick a from and to date above."
-            : feedFiltered
-              ? "No sales match your filters."
-              : "No sales in this period."}
-        </div>
-      ) : (
-        <section className={DASHBOARD_TABLE_SURFACE} aria-label="Sales feed">
-          <div
-            className={cn(
-              DASHBOARD_TABLE_HEAD,
-              "flex flex-wrap items-center justify-between gap-2",
-            )}
-          >
-            <div>
-              <h2 className="text-sm font-semibold tracking-tight text-foreground">
-                Sales
-              </h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {feedFiltered
-                  ? `Showing ${transactions.length.toLocaleString("en-KE")} of period`
-                  : `${transactions.length.toLocaleString("en-KE")} transaction${transactions.length === 1 ? "" : "s"}`}
-              </p>
-            </div>
-            {isLivePeriod ? (
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-                <span
-                  className={cn(
-                    "size-1.5 rounded-full bg-emerald-500",
-                    !refreshing && "animate-pulse",
-                  )}
-                  aria-hidden
-                />
-                Live feed
-              </span>
-            ) : null}
-          </div>
-
-          {transactions.map((tx) => (
+            Live
+          </span>
+        ) : null}
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {loading ? (
+          <FeedSkeleton />
+        ) : transactions.length === 0 ? (
+          <p className="px-4 py-16 text-center text-sm text-muted-foreground">
+            {!dateRange
+              ? "Pick a from and to date above."
+              : feedFiltered
+                ? "No sales match your filters."
+                : "No sales in this period."}
+          </p>
+        ) : (
+          transactions.map((tx) => (
             <SaleGroup
               key={tx.saleId}
               tx={tx}
@@ -1046,9 +928,142 @@ export function SalesOverviewPage() {
                 setAdjustReceiptLabel(txDisplayNo(tx));
               }}
             />
-          ))}
-        </section>
-      )}
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+      <DashboardPageHero
+        icon={Receipt}
+        title="Sales"
+        description={statusLine || "What the till took."}
+        showActiveScope
+      >
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 rounded-none shadow-none"
+          asChild
+        >
+          <Link href={APP_ROUTES.salesTransactions}>
+            <List className="size-3.5" aria-hidden />
+            Transactions
+          </Link>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 rounded-none shadow-none"
+          onClick={() => void load({ silent: true })}
+          disabled={loading}
+        >
+          <RefreshCw
+            className={cn("size-3.5", refreshing && "animate-spin")}
+            aria-hidden
+          />
+          Refresh
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 rounded-none shadow-none"
+          onClick={downloadPdf}
+          disabled={loading || !dateRange || pdfLoading}
+        >
+          <Download className="size-3.5" aria-hidden />
+          {pdfLoading ? "PDF…" : "PDF"}
+        </Button>
+        <Button size="sm" asChild className="h-8 gap-1.5 rounded-none shadow-none">
+          <Link href={APP_ROUTES.salesQuick}>
+            <Receipt className="size-3.5" aria-hidden />
+            Record sale
+          </Link>
+        </Button>
+      </DashboardPageHero>
+
+      <div
+        className={cn(
+          "flex flex-col gap-2 border bg-white p-2.5 sm:flex-row sm:items-center sm:px-3",
+          INK_RULE,
+        )}
+      >
+        <div className="relative min-w-0 flex-1">
+          <Search
+            className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Receipt, product, SKU, barcode…"
+            className={cn(dashboardInputClass(), "h-8 py-1.5 pl-8 text-sm")}
+            aria-label="Search sales"
+          />
+        </div>
+        <select
+          value={branchId}
+          onChange={(e) => onChangeBranch(e.target.value)}
+          className={cn(dashboardSelectClass(), "h-8 py-1 sm:w-48")}
+          aria-label="Branch"
+          disabled={branchLocked}
+        >
+          <option value="">All branches</option>
+          {branches
+            .filter((b) => !branchLocked || b.id === me?.branchId)
+            .map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+        </select>
+      </div>
+
+      <SalesFeedFilters
+        datePreset={datePreset}
+        onDatePresetChange={setDatePreset}
+        customFrom={customFrom}
+        customTo={customTo}
+        onCustomFromChange={setCustomFrom}
+        onCustomToChange={setCustomTo}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        paymentFilter={paymentFilter}
+        onPaymentFilterChange={setPaymentFilter}
+        channelFilter={channelFilter}
+        onChannelFilterChange={setChannelFilter}
+        showChannelFilter={canViewWebOrders}
+      />
+
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+
+      <div className="flex min-h-0 flex-col gap-1.5">
+        <div
+          className={cn(
+            "hidden overflow-hidden border lg:grid",
+            "h-[min(80dvh,52rem)]",
+            INK_RULE,
+            PAPER,
+            "lg:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)]",
+          )}
+        >
+          <div className={cn("min-h-0 overflow-hidden border-r", INK_RULE, ROSTER)}>
+            {pulse}
+          </div>
+          {feed}
+        </div>
+
+        <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
+          <div className={cn("border", INK_RULE, ROSTER)}>{pulse}</div>
+          <div className={cn("border", INK_RULE)}>{feed}</div>
+        </div>
+      </div>
 
       <AdjustSalePaymentDialog
         open={adjustSaleId != null}

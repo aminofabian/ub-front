@@ -61,10 +61,11 @@ const PAYMENT_ICONS: Record<
 };
 
 const SEGMENT =
-  "inline-flex shrink-0 items-center gap-1 rounded-none px-2 py-1 text-[11px] font-medium transition-colors";
+  "inline-flex shrink-0 items-center gap-1 rounded-none px-2 py-1 text-[11px] font-semibold transition-colors duration-150";
 const SEGMENT_IDLE =
-  "text-muted-foreground hover:bg-muted/70 hover:text-foreground";
-const SEGMENT_ACTIVE = "bg-[#ffffff] text-[#0f766e]";
+  "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground";
+const SEGMENT_ACTIVE =
+  "bg-[var(--pos-primary,#0f766e)] text-white";
 
 function Seg({
   active,
@@ -155,8 +156,8 @@ export function SalesFeedFilters({
       className={cn(
         "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none",
         compact
-          ? "flex flex-wrap items-center gap-x-3 rounded-none px-2"
-          : "rounded-none",
+          ? "flex flex-wrap items-center gap-x-3 px-2"
+          : null,
       )}
     >
       <div
