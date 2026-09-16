@@ -301,7 +301,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   }
 
   return (
-    <div className={DASHBOARD_MAX_WIDE}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
       {message ? (
         <DashboardFeedback kind={message.kind} text={message.text} />
       ) : null}
@@ -421,11 +421,12 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
       </DashboardPageHero>
 
       <div className={cn(directoryFrameClass, refreshing && "opacity-90")}>
-        <div className="grid min-h-0 flex-1 divide-y lg:grid-cols-[13.5rem_minmax(0,1fr)_12.5rem] lg:divide-x lg:divide-y-0 divide-border/60">
+        <div className="grid min-h-0 flex-1 divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:grid-cols-[minmax(15.5rem,17.5rem)_minmax(0,1fr)_minmax(16rem,19rem)] lg:divide-x lg:divide-y-0">
           {!isLg ? (
             <>
               {mobilePane === "list" ? (
                 <DirectoryColumn
+                  className="bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]"
                   title="Directory"
                   hint="Search and pick"
                   badge={visibleRows.length}
@@ -459,6 +460,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
           ) : (
             <>
               <DirectoryColumn
+                className="bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]"
                 title="Directory"
                 hint="Who shops with you"
                 badge={visibleRows.length}
@@ -476,6 +478,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
                 />
               </DirectoryColumn>
               <DirectoryColumn
+                className="bg-white"
                 title="Contact"
                 hint={focusedCustomer ? "Balance & reach" : "—"}
               >

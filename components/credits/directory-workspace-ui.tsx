@@ -9,7 +9,7 @@ export const directoryPanelClass =
   "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none";
 
 export const directoryFrameClass =
-  "flex min-h-0 flex-col overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none lg:min-h-[min(72dvh,44rem)] lg:max-h-[calc(100dvh-10.5rem)]";
+  "flex min-h-0 flex-col overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)] shadow-none lg:h-[min(80dvh,52rem)] lg:max-h-[calc(100dvh-10.5rem)]";
 
 export function DirectoryPanel({
   children,
@@ -35,12 +35,15 @@ export function DirectoryColumnHeader({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-between gap-2 border-b border-border/60 px-3 py-2",
+        "flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2",
         className,
       )}
     >
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+        <p
+          className="text-[13px] font-semibold tracking-[-0.02em] text-foreground"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
           {title}
         </p>
         {hint ? (
@@ -93,17 +96,17 @@ export function DirectoryStat({
   return (
     <div
       className={cn(
-        "min-w-0 rounded-none border border-border/60 bg-background/80 px-2.5 py-2",
+        "min-w-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-2",
         className,
       )}
     >
-      <p className="truncate text-[10px] font-medium tracking-[-0.02em] text-muted-foreground">
+      <p className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </p>
       <p
         className={cn(
           "mt-0.5 truncate text-base font-semibold tabular-nums tracking-tight",
-          warn ? "text-amber-700 dark:text-amber-400" : "text-foreground",
+          warn ? "text-[#9a2e16]" : "text-foreground",
         )}
       >
         {value}
@@ -199,7 +202,7 @@ export function DirectoryMobileTabs({
   return (
     <div
       className={cn(
-        "fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-background/95 backdrop-blur-sm",
+        "fixed inset-x-0 bottom-0 z-30 flex border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
         className,
       )}
     >

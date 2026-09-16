@@ -26,11 +26,13 @@ export function CrmBar({
   warn?: boolean;
 }) {
   return (
-    <div className={cn("h-1 w-full rounded-full bg-muted/80", className)}>
+    <div className={cn("h-1 w-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]", className)}>
       <div
         className={cn(
-          "h-1 origin-left rounded-full",
-          warn ? "bg-amber-500/75" : "bg-foreground/45",
+          "h-full origin-left",
+          warn
+            ? "bg-[#9a2e16]"
+            : "bg-[var(--pos-primary,#0f766e)]",
         )}
         style={{
           width: "100%",
@@ -63,7 +65,7 @@ export function BoardFilterButton({
         "rounded-none font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
         compact ? "h-7 px-2 text-[11px]" : "h-8 px-2.5 text-xs",
         selected
-          ? "border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+          ? "border border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
           : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
       )}
     >

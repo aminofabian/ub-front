@@ -34,6 +34,7 @@ import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { AdjustSalePaymentDialog } from "@/components/sales/adjust-sale-payment-dialog";
 import {
   SalesFeedFilters,
+  DATE_FILTER_OPTIONS,
   type SalesDatePreset,
   type StatusFilter,
 } from "@/components/sales/sales-feed-filters";
@@ -135,8 +136,6 @@ const INK_RULE =
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
 const PAPER =
   "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]";
-const ROSTER =
-  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]";
 
 function RevenueBars({
   values,
@@ -168,45 +167,55 @@ function RevenueBars({
   );
 }
 
-function Metric({
+function PulseCard({
   label,
   value,
   hint,
   chart,
+  tone,
+  className,
 }: {
   label: string;
   value: string;
   hint?: string;
   chart?: ReactNode;
+  tone?: "ink" | "owed";
+  className?: string;
 }) {
   return (
-    <div className="min-w-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+    <article
+      className={cn(
+        "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] border bg-white p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
+        INK_RULE,
+        className,
+      )}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </p>
       <p
-        className="mt-1 truncate text-[1.45rem] font-semibold tabular-nums leading-none tracking-[-0.03em] text-foreground"
+        className={cn(
+          "mt-2 font-semibold leading-none tracking-[-0.04em] tabular-nums",
+          tone === "owed" ? "text-[#9a2e16]" : "text-foreground",
+          value.length > 18 ? "text-[1.35rem]" : "text-[2.05rem]",
+        )}
         style={{ fontFamily: "var(--font-heading)" }}
       >
         {value}
       </p>
       {chart}
       {hint ? (
-        <p className={cn(dashboardHintClass(), "mt-1.5 truncate")}>{hint}</p>
+        <p className={cn(dashboardHintClass(), "mt-2")}>{hint}</p>
       ) : null}
-    </div>
+    </article>
   );
 }
 
 function MetricsSkeleton() {
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="space-y-2">
-          <div className="h-2.5 w-14 animate-pulse bg-muted" />
-          <div className="h-7 w-24 animate-pulse bg-muted" />
-        </div>
-      ))}
+    <div className="relative h-full min-h-[22rem]">
+      <div className="absolute left-[8%] top-[22%] h-36 w-56 animate-pulse bg-white/80" />
+      <div className="absolute right-[7%] top-[14%] h-24 w-40 animate-pulse bg-white/70" />
     </div>
   );
 }
@@ -795,75 +804,136 @@ export function SalesOverviewPage() {
     ) : null;
 
   const pulse = (
-    <div className="flex h-full min-h-0 flex-col overflow-auto p-4 sm:p-5">
+    <div className="relative h-full min-h-[22rem] overflow-hidden">
+      <svg
+        className="pointer-events-none absolute inset-0 h-full w-full text-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)]"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <path
+          d="M22 42 C 38 28, 58 22, 72 28"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="0.35"
+          strokeDasharray="1.4 1.6"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M28 48 C 48 58, 62 52, 74 62"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="0.35"
+          strokeDasharray="1.4 1.6"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M24 52 C 30 72, 48 78, 38 86"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="0.35"
+          strokeDasharray="1.4 1.6"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+
+      <div className="absolute left-3 top-3 z-[2] flex max-w-[min(100%-6rem,28rem)] flex-wrap items-center gap-0.5">
+        {DATE_FILTER_OPTIONS.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setDatePreset(id)}
+            className={cn(
+              "px-2 py-1 text-[11px] font-semibold",
+              datePreset === id
+                ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                : "bg-white/90 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {isLivePeriod ? (
+        <span className="absolute right-3 top-3 z-[2] inline-flex items-center gap-1.5 bg-white/90 px-2 py-1 text-[11px] font-medium text-muted-foreground">
+          <span
+            className="size-1.5 bg-[var(--pos-primary,#0f766e)]"
+            aria-hidden
+          />
+          Live
+        </span>
+      ) : null}
+
+      <p
+        className="pointer-events-none absolute bottom-3 left-4 z-[1] text-[10px] font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]"
+        aria-hidden
+      >
+        The till
+      </p>
+
       {dateRange && !error ? (
         loading ? (
           <MetricsSkeleton />
         ) : (
-          <div className="grid gap-6">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Revenue
-              </p>
-              <p
-                className="mt-1 text-[2.15rem] font-semibold leading-none tracking-[-0.04em] tabular-nums text-foreground"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                {fmtKes(summary.revenue)}
-              </p>
-              <p className={cn(dashboardHintClass(), "mt-2")}>
-                {statusLine || "Sold this period."}
-              </p>
-              {trendChart}
-              {trendChart ? (
-                <p className={cn(dashboardHintClass(), "mt-1")}>
-                  {datePreset === "today" || datePreset === "yesterday"
-                    ? "By hour"
-                    : "By day"}
-                </p>
-              ) : null}
-            </div>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Metric
-                label="Transactions"
-                value={summary.transactions.toLocaleString("en-KE")}
-                hint={
-                  summary.transactions > 0
-                    ? `${fmtKes(summary.avgTicket)} average`
-                    : undefined
-                }
-              />
-              <Metric
-                label="Units sold"
-                value={summary.units.toLocaleString("en-KE", {
-                  maximumFractionDigits: 1,
-                })}
-                hint={
-                  summary.lineCount > 0
-                    ? `${summary.lineCount.toLocaleString("en-KE")} lines`
-                    : undefined
-                }
-              />
-              <Metric
-                label={summary.refundLines > 0 ? "Refunds" : "Top product"}
-                value={
-                  summary.refundLines > 0
-                    ? fmtKes(summary.refundTotal)
-                    : summary.topItem || "—"
-                }
-                hint={
-                  summary.refundLines > 0
-                    ? `${summary.refundLines} refunded line${summary.refundLines === 1 ? "" : "s"}`
-                    : summary.topItem
-                      ? "Highest revenue"
-                      : undefined
-                }
-              />
-            </div>
-          </div>
+          <>
+            <PulseCard
+              className="left-[8%] top-[26%]"
+              label="Taken"
+              value={fmtKes(summary.revenue)}
+              chart={trendChart}
+              hint={
+                trendChart
+                  ? `${statusLine || "Sold this period."} · ${
+                      datePreset === "today" || datePreset === "yesterday"
+                        ? "by hour"
+                        : "by day"
+                    }`
+                  : statusLine || "Sold this period."
+              }
+            />
+            <PulseCard
+              className="right-[7%] top-[16%] !w-[min(13.5rem,calc(100%-1.5rem))]"
+              label="Tickets"
+              value={summary.transactions.toLocaleString("en-KE")}
+              hint={
+                summary.transactions > 0
+                  ? `${fmtKes(summary.avgTicket)} average`
+                  : "No tickets yet"
+              }
+            />
+            <PulseCard
+              className="right-[10%] top-[48%] !w-[min(13.5rem,calc(100%-1.5rem))]"
+              label="Units"
+              value={summary.units.toLocaleString("en-KE", {
+                maximumFractionDigits: 1,
+              })}
+              hint={
+                summary.lineCount > 0
+                  ? `${summary.lineCount.toLocaleString("en-KE")} lines`
+                  : undefined
+              }
+            />
+            <PulseCard
+              className="left-[12%] bottom-[10%] !w-[min(15rem,calc(100%-1.5rem))]"
+              label={summary.refundLines > 0 ? "Refunds" : "Top product"}
+              tone={summary.refundLines > 0 ? "owed" : "ink"}
+              value={
+                summary.refundLines > 0
+                  ? fmtKes(summary.refundTotal)
+                  : summary.topItem || "—"
+              }
+              hint={
+                summary.refundLines > 0
+                  ? `${summary.refundLines} refunded line${summary.refundLines === 1 ? "" : "s"}`
+                  : summary.topItem
+                    ? "Highest revenue"
+                    : "Nothing sold yet"
+              }
+            />
+          </>
         )
       ) : (
-        <p className={dashboardHintClass()}>
+        <p className={cn(dashboardHintClass(), "absolute left-[8%] top-[36%] max-w-[16rem]")}>
           Pick a period to see what the till took.
         </p>
       )}
@@ -874,34 +944,76 @@ export function SalesOverviewPage() {
     <div className="flex h-full min-h-0 flex-col bg-white">
       <div
         className={cn(
-          "flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-3 py-2 sm:px-3.5",
+          "flex shrink-0 flex-col gap-2 border-b px-3 py-2 sm:px-3.5",
           INK_RULE,
         )}
       >
-        <div>
-          <h2
-            className="text-[15px] font-semibold tracking-[-0.02em]"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            Tickets
-          </h2>
-          <p className={dashboardHintClass()}>
-            {loading
-              ? "Loading…"
-              : feedFiltered
-                ? `Showing ${transactions.length.toLocaleString("en-KE")} of period`
-                : `${transactions.length.toLocaleString("en-KE")} ticket${transactions.length === 1 ? "" : "s"}`}
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2
+              className="text-[15px] font-semibold tracking-[-0.02em]"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              Tickets
+            </h2>
+            <p className={dashboardHintClass()}>
+              {loading
+                ? "Loading…"
+                : feedFiltered
+                  ? `Showing ${transactions.length.toLocaleString("en-KE")} of period`
+                  : `${transactions.length.toLocaleString("en-KE")} ticket${transactions.length === 1 ? "" : "s"}`}
+            </p>
+          </div>
         </div>
-        {isLivePeriod ? (
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-            <span
-              className="size-1.5 bg-[var(--pos-primary,#0f766e)]"
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
-            Live
-          </span>
-        ) : null}
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Receipt, product, SKU…"
+              className={cn(dashboardInputClass(), "h-8 py-1.5 pl-8 text-sm")}
+              aria-label="Search sales"
+            />
+          </div>
+          <select
+            value={branchId}
+            onChange={(e) => onChangeBranch(e.target.value)}
+            className={cn(dashboardSelectClass(), "h-8 py-1 sm:w-40")}
+            aria-label="Branch"
+            disabled={branchLocked}
+          >
+            <option value="">All branches</option>
+            {branches
+              .filter((b) => !branchLocked || b.id === me?.branchId)
+              .map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+          </select>
+        </div>
+        <SalesFeedFilters
+          compact
+          hidePeriod
+          datePreset={datePreset}
+          onDatePresetChange={setDatePreset}
+          customFrom={customFrom}
+          customTo={customTo}
+          onCustomFromChange={setCustomFrom}
+          onCustomToChange={setCustomTo}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          paymentFilter={paymentFilter}
+          onPaymentFilterChange={setPaymentFilter}
+          channelFilter={channelFilter}
+          onChannelFilterChange={setChannelFilter}
+          showChannelFilter={canViewWebOrders}
+        />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {loading ? (
@@ -909,7 +1021,7 @@ export function SalesOverviewPage() {
         ) : transactions.length === 0 ? (
           <p className="px-4 py-16 text-center text-sm text-muted-foreground">
             {!dateRange
-              ? "Pick a from and to date above."
+              ? "Pick a from and to date on the till map."
               : feedFiltered
                 ? "No sales match your filters."
                 : "No sales in this period."}
@@ -987,60 +1099,6 @@ export function SalesOverviewPage() {
         </Button>
       </DashboardPageHero>
 
-      <div
-        className={cn(
-          "flex flex-col gap-2 border bg-white p-2.5 sm:flex-row sm:items-center sm:px-3",
-          INK_RULE,
-        )}
-      >
-        <div className="relative min-w-0 flex-1">
-          <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Receipt, product, SKU, barcode…"
-            className={cn(dashboardInputClass(), "h-8 py-1.5 pl-8 text-sm")}
-            aria-label="Search sales"
-          />
-        </div>
-        <select
-          value={branchId}
-          onChange={(e) => onChangeBranch(e.target.value)}
-          className={cn(dashboardSelectClass(), "h-8 py-1 sm:w-48")}
-          aria-label="Branch"
-          disabled={branchLocked}
-        >
-          <option value="">All branches</option>
-          {branches
-            .filter((b) => !branchLocked || b.id === me?.branchId)
-            .map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-        </select>
-      </div>
-
-      <SalesFeedFilters
-        datePreset={datePreset}
-        onDatePresetChange={setDatePreset}
-        customFrom={customFrom}
-        customTo={customTo}
-        onCustomFromChange={setCustomFrom}
-        onCustomToChange={setCustomTo}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        paymentFilter={paymentFilter}
-        onPaymentFilterChange={setPaymentFilter}
-        channelFilter={channelFilter}
-        onChannelFilterChange={setChannelFilter}
-        showChannelFilter={canViewWebOrders}
-      />
-
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
       <div className="flex min-h-0 flex-col gap-1.5">
@@ -1050,17 +1108,19 @@ export function SalesOverviewPage() {
             "h-[min(80dvh,52rem)]",
             INK_RULE,
             PAPER,
-            "lg:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)]",
+            "lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]",
           )}
         >
-          <div className={cn("min-h-0 overflow-hidden border-r", INK_RULE, ROSTER)}>
-            {pulse}
+          <div className={cn("min-h-0 overflow-hidden border-r", INK_RULE)}>
+            {feed}
           </div>
-          {feed}
+          <div className="relative min-h-0 overflow-hidden">{pulse}</div>
         </div>
 
         <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
-          <div className={cn("border", INK_RULE, ROSTER)}>{pulse}</div>
+          <div className={cn("min-h-[22rem] border", INK_RULE, PAPER)}>
+            {pulse}
+          </div>
           <div className={cn("border", INK_RULE)}>{feed}</div>
         </div>
       </div>

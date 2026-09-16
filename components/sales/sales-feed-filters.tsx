@@ -122,6 +122,7 @@ export function SalesFeedFilters({
   onChannelFilterChange,
   showChannelFilter = true,
   compact = false,
+  hidePeriod = false,
 }: {
   datePreset: SalesDatePreset;
   onDatePresetChange: (id: SalesDatePreset) => void;
@@ -137,6 +138,7 @@ export function SalesFeedFilters({
   onChannelFilterChange: (id: ChannelFilter) => void;
   showChannelFilter?: boolean;
   compact?: boolean;
+  hidePeriod?: boolean;
 }) {
   const showTender = channelFilter === "all" || channelFilter === "walk_in";
 
@@ -154,49 +156,50 @@ export function SalesFeedFilters({
   return (
     <div
       className={cn(
-        "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none",
         compact
-          ? "flex flex-wrap items-center gap-x-3 px-2"
-          : null,
+          ? null
+          : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none",
       )}
     >
-      <div
-        className={cn(
-          "flex flex-wrap items-center gap-x-1 gap-y-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 py-1.5",
-          compact && "border-b-0 px-0 py-1",
-        )}
-      >
-        <FilterCluster label="When">
-          <div role="group" aria-label="Period">
-            <div className="flex flex-wrap items-center gap-0.5">
-              {DATE_FILTER_OPTIONS.map(({ id, label }) => (
-                <Seg
-                  key={id}
-                  active={datePreset === id}
-                  onClick={() => onDatePresetChange(id)}
-                >
-                  {label}
-                </Seg>
-              ))}
+      {hidePeriod ? null : (
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-x-1 gap-y-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 py-1.5",
+            compact && "border-b-0 px-0 py-1",
+          )}
+        >
+          <FilterCluster label="When">
+            <div role="group" aria-label="Period">
+              <div className="flex flex-wrap items-center gap-0.5">
+                {DATE_FILTER_OPTIONS.map(({ id, label }) => (
+                  <Seg
+                    key={id}
+                    active={datePreset === id}
+                    onClick={() => onDatePresetChange(id)}
+                  >
+                    {label}
+                  </Seg>
+                ))}
+              </div>
             </div>
-          </div>
-        </FilterCluster>
+          </FilterCluster>
 
-        {hasExtraFilters ? (
-          <button
-            type="button"
-            onClick={clearExtra}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-none px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-              !compact && "ml-auto",
-            )}
-            title="Clear filters"
-          >
-            <X className="size-3" aria-hidden />
-            Clear
-          </button>
-        ) : null}
-      </div>
+          {hasExtraFilters ? (
+            <button
+              type="button"
+              onClick={clearExtra}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-none px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                !compact && "ml-auto",
+              )}
+              title="Clear filters"
+            >
+              <X className="size-3" aria-hidden />
+              Clear
+            </button>
+          ) : null}
+        </div>
+      )}
 
       {datePreset === "custom" ? (
         <div
@@ -311,6 +314,18 @@ export function SalesFeedFilters({
               </div>
             </div>
           </FilterCluster>
+        ) : null}
+
+        {hidePeriod && hasExtraFilters ? (
+          <button
+            type="button"
+            onClick={clearExtra}
+            className="ml-auto inline-flex items-center gap-1 rounded-none px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+            title="Clear filters"
+          >
+            <X className="size-3" aria-hidden />
+            Clear
+          </button>
         ) : null}
       </div>
     </div>

@@ -76,7 +76,7 @@ function MetricCell({
       </p>
       <p
         className={cn(
-          "truncate font-semibold tabular-nums tracking-tight text-foreground",
+          "truncate font-semibold tabular-nums tracking-[-0.02em] text-foreground",
           lead ? "text-sm" : "text-xs",
         )}
       >
@@ -308,25 +308,25 @@ export function CustomerInsightsColumn({
     <div className="flex min-h-0 flex-col gap-1.5">
       {display ? (
         <div className="shrink-0 space-y-1.5">
-          <div className="rounded-none border border-border/60 bg-muted/25 px-2 py-1">
+          <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-1.5">
             <div className="mb-1 flex flex-wrap items-center gap-1">
               {spendRow?.cohort ? (
-                <span className="rounded bg-foreground/8 px-1.5 py-0.5 text-[9px] font-semibold capitalize text-muted-foreground">
+                <span className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                   {cohortLabel(String(spendRow.cohort))}
                 </span>
               ) : null}
               {spendRow?.cadence ? (
-                <span className="rounded bg-foreground/8 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                <span className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
                   {spendRow.cadence}
                 </span>
               ) : null}
               {spendRow?.favoriteWeekday ? (
-                <span className="rounded bg-foreground/8 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                <span className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
                   {spendRow.favoriteWeekday}s
                 </span>
               ) : null}
               {seen ? (
-                <span className="rounded bg-foreground/8 px-1.5 py-0.5 text-[9px] font-medium tabular-nums text-muted-foreground">
+                <span className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-1.5 py-0.5 text-[9px] font-medium tabular-nums text-muted-foreground">
                   {seen}
                 </span>
               ) : null}
@@ -353,8 +353,8 @@ export function CustomerInsightsColumn({
                   className={cn(
                     "h-5 min-w-[2.25rem] rounded-none px-1.5 text-[9px] font-semibold",
                     insightWindow === item.key
-                      ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:bg-muted",
+                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                      : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
                   )}
                 >
                   {item.label}

@@ -90,6 +90,7 @@ export function CustomerDetailDrawer({
       open={open}
       onOpenChange={onOpenChange}
       width="extraWide"
+      appearance="sharp"
       contextLabel="Customer"
       title={customer?.name ?? "Customer profile"}
       description={
@@ -126,7 +127,7 @@ export function CustomerDetailDrawer({
               <p
                 className={cn(
                   "mt-0.5 text-lg font-semibold tabular-nums",
-                  owed > 0 && "text-amber-700 dark:text-amber-400",
+                  owed > 0 && "text-[#9a2e16]",
                 )}
               >
                 {formatKes(owed)}

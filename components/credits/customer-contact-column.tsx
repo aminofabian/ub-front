@@ -51,7 +51,7 @@ function BalanceCell({
       <p
         className={cn(
           "mt-0.5 text-[11px] font-semibold leading-snug break-words tabular-nums",
-          warn ? "text-amber-700 dark:text-amber-400" : "text-foreground",
+          warn ? "text-[#9a2e16]" : "text-foreground",
         )}
       >
         {value}
@@ -92,7 +92,10 @@ export function CustomerContactColumn({
                 ? `C-${customer.customerNo}`
                 : "Profile"}
             </p>
-            <p className="mt-0.5 text-sm font-semibold leading-snug break-words text-foreground">
+            <p
+              className="mt-0.5 text-[1.05rem] font-semibold leading-snug break-words tracking-[-0.02em] text-foreground"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
               {customer.name}
             </p>
           </div>
@@ -186,7 +189,7 @@ export function CustomerContactColumn({
             <Button
               type="button"
               size="sm"
-              className="h-7 text-[11px]"
+              className="h-7 rounded-none text-[11px]"
               onClick={onEdit}
             >
               <Pencil className="mr-1 size-3" />
@@ -196,7 +199,7 @@ export function CustomerContactColumn({
               type="button"
               size="sm"
               variant="outline"
-              className="h-7 text-[11px]"
+              className="h-7 rounded-none text-[11px]"
               onClick={onMessage}
             >
               <MessageSquare className="mr-1 size-3" />

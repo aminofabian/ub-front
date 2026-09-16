@@ -35,7 +35,7 @@ export const CRM_PANEL = cn(
 );
 
 export const CRM_PILL_ACTIVE =
-  "border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)] shadow-none";
+  "border border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white shadow-none";
 
 export const CRM_PILL_IDLE =
   "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]";
@@ -51,8 +51,8 @@ export function customerTableCheckboxClass(className?: string) {
 export function customerTableRowClass(selected?: boolean, focused?: boolean) {
   return cn(
     "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] transition-colors last:border-0",
-    selected && "bg-white text-[var(--pos-primary,#0f766e)]",
-    !selected && focused && "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]",
+    selected && "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--pos-primary,#0f766e)]",
+    !selected && focused && "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
     !selected && !focused && "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]",
   );
 }

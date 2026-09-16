@@ -35,14 +35,14 @@ function OriginChip({ customer }: { customer: CustomerRecord }) {
   );
   if (customer.origin === "mpesa_inferred" && !verified) {
     return (
-      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-amber-800 ring-1 ring-amber-200/70">
+      <span className="border border-amber-700/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-amber-900">
         Inferred
       </span>
     );
   }
   if (verified) {
     return (
-      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-emerald-800 ring-1 ring-emerald-200/70">
+      <span className="border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-primary,#0f766e)]">
         Verified
       </span>
     );
@@ -106,7 +106,10 @@ export function CustomerInspectorPanel({
                   ? `C-${customer.customerNo}`
                   : "Customer"}
               </p>
-              <h2 className="truncate text-base font-semibold leading-tight">
+              <h2
+                className="truncate text-base font-semibold leading-tight tracking-[-0.02em]"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
                 {customer.name}
               </h2>
               <div className="mt-1 flex flex-wrap gap-1">
@@ -125,8 +128,7 @@ export function CustomerInspectorPanel({
               <p
                 className={cn(
                   "mt-1 text-sm font-semibold tabular-nums",
-                  Number(customer.credit.balanceOwed) > 0 &&
-                    "text-amber-700 dark:text-amber-400",
+                  Number(customer.credit.balanceOwed) > 0 && "text-[#9a2e16]",
                 )}
               >
                 {formatKes(customer.credit.balanceOwed)}

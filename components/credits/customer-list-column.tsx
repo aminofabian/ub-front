@@ -60,7 +60,7 @@ export function CustomerListColumn({
 }: Props) {
   return (
     <div className="flex min-h-0 flex-col gap-1.5">
-      <div className="shrink-0 space-y-1.5 rounded-none border border-border/60 bg-muted/15 p-1.5">
+      <div className="shrink-0 space-y-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-1.5">
         <label className="relative block">
           <Search
             className="pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 text-muted-foreground"
@@ -157,8 +157,9 @@ export function CustomerListColumn({
                 <li
                   key={row.id}
                   className={cn(
-                    "border-b border-border/40 last:border-0",
-                    focused && "bg-muted/50",
+                    "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] last:border-0",
+                    focused &&
+                      "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
                   )}
                 >
                   <div className="grid gap-1 px-1.5 py-1.5 sm:grid-cols-[auto_minmax(0,1fr)]">
@@ -182,10 +183,10 @@ export function CustomerListColumn({
                       <div className="flex items-start gap-1.5">
                         <span
                           className={cn(
-                            "flex size-5 shrink-0 items-center justify-center rounded text-[9px] font-bold tabular-nums",
+                            "flex size-5 shrink-0 items-center justify-center text-[9px] font-bold tabular-nums",
                             focused
-                              ? "bg-foreground text-background"
-                              : "bg-muted text-muted-foreground",
+                              ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                              : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
                           )}
                         >
                           {index + 1}
@@ -208,7 +209,11 @@ export function CustomerListColumn({
                           ) : null}
                           <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
                             {customerPrimaryPhone(row.phones) || "No phone"}
-                            {owed > 0 ? ` · ${formatKes(owed)}` : ""}
+                            {owed > 0 ? (
+                              <span className="font-semibold text-[#9a2e16]">
+                                {` · ${formatKes(owed)}`}
+                              </span>
+                            ) : null}
                           </p>
                         </div>
                       </div>
