@@ -28,8 +28,10 @@ import { WhatsAppOpsAlertsPanel } from "@/components/business/whatsapp-ops-alert
 import { OnboardingTipsMutePanel } from "@/components/business/onboarding-tips-mute-panel";
 import {
   BUSINESS_CONFIGURATION_NAV,
+  BUSINESS_OPS_ALERT_NAV,
   type ConfigurationWorkspace,
 } from "@/components/business/business-settings-nav";
+import { ConfigurationTheatre } from "@/app/(dashboard)/business/configuration/_components/configuration-theatre";
 import {
   DEFAULT_DAILY_AUDIT_SAMPLE_SIZE,
   DEFAULT_MORNING_STARTS_AT,
@@ -160,13 +162,24 @@ function PolicyPanel({
   hint,
   children,
   accent = "emerald",
+  fieldsOnly = false,
 }: {
   id: string;
   title: string;
   hint: string;
   children: ReactNode;
   accent?: "emerald" | "sky" | "amber" | "teal";
+  /** Theatre drawer: fields without panel chrome */
+  fieldsOnly?: boolean;
 }) {
+  if (fieldsOnly) {
+    return (
+      <div id={id} className="space-y-2.5">
+        {children}
+      </div>
+    );
+  }
+
   const accentBar = {
     emerald: "bg-emerald-500/70",
     sky: "bg-sky-500/60",
@@ -224,6 +237,11 @@ export function BusinessConfigurationForm({
   onSubmit,
   onCancel,
   canEditWhatsAppAlerts = false,
+  useTheatreLayout = false,
+  activeSectionId = null as string | null,
+  onActiveSectionChange,
+  onWorkspaceChange,
+  enabledPolicyCount = 0,
 }: {
   workspace: ConfigurationWorkspace;
   inventory: InventoryForm;
@@ -246,6 +264,11 @@ export function BusinessConfigurationForm({
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
   canEditWhatsAppAlerts?: boolean;
+  useTheatreLayout?: boolean;
+  activeSectionId?: string | null;
+  onActiveSectionChange?: (id: string | null) => void;
+  onWorkspaceChange?: (workspace: ConfigurationWorkspace) => void;
+  enabledPolicyCount?: number;
 }) {
   const [dailyAuditSampleDraft, setDailyAuditSampleDraft] = useState(
     String(inventory.dailyAuditSampleSize),
@@ -303,27 +326,84 @@ export function BusinessConfigurationForm({
     ).map((item) => item.id),
   );
 
-  return (
-    <form
-      id="business-configuration-form"
-      className="space-y-4"
-      onSubmit={(event) => {
-        flushSync(() => {
-          commitDailyAuditSampleSize(dailyAuditSampleDraft);
-        });
-        onSubmit(event);
-      }}
-    >
-      {/* Always visible on this page — Inventory and Till workspaces */}
-      <WhatsAppOpsAlertsPanel canEdit={canEditWhatsAppAlerts} />
-      <OnboardingTipsMutePanel canEdit={canEditWhatsAppAlerts} />
+  const theatreFieldsOnly = useTheatreLayout;
 
-      {visibleIds.has("settings-stock-take") ? (
+  function shouldShowSection(sectionId: string) {
+    if (useTheatreLayout) {
+      if (activeSectionId == null) return false;
+      if (sectionId === BUSINESS_OPS_ALERT_NAV.id) {
+        return activeSectionId === BUSINESS_OPS_ALERT_NAV.id;
+      }
+      return activeSectionId === sectionId;
+    }
+    return visibleIds.has(sectionId);
+  }
+
+  const saveFooter = (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-end gap-2",
+        !useTheatreLayout &&
+          "sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-20 -mx-1 rounded-2xl border border-primary/25 bg-background/95 p-3 shadow-lg shadow-primary/5 backdrop-blur supports-[backdrop-filter]:bg-background/85 lg:static lg:bottom-auto lg:mx-0 lg:border-border/60 lg:shadow-sm",
+      )}
+    >
+      {!useTheatreLayout ? (
+        <p className="hidden text-[11px] text-muted-foreground sm:block lg:mr-auto">
+          Saves inventory and till policies for this workspace.
+        </p>
+      ) : null}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={cn("h-9", !useTheatreLayout && "rounded-xl")}
+          disabled={isSaving}
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          size="sm"
+          className={cn(
+            "h-9 gap-1.5 px-4",
+            !useTheatreLayout && "rounded-xl",
+          )}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Saving…
+            </>
+          ) : (
+            <>
+              <Save className="size-4" aria-hidden />
+              Save configuration
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const sectionFields = (
+    <>
+      {shouldShowSection(BUSINESS_OPS_ALERT_NAV.id) ? (
+        <>
+          <WhatsAppOpsAlertsPanel canEdit={canEditWhatsAppAlerts} />
+          <OnboardingTipsMutePanel canEdit={canEditWhatsAppAlerts} />
+        </>
+      ) : null}
+
+      {shouldShowSection("settings-stock-take") ? (
         <PolicyPanel
           id="settings-stock-take"
           title="Stock take & daily audit"
           hint="How many SKUs get sampled overnight, when counts happen, and what stock managers can see while counting."
           accent="emerald"
+          fieldsOnly={theatreFieldsOnly}
         >
           <PolicySwitch
             checked={inventory.showSystemStockToStockManager}
@@ -501,12 +581,13 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-stock-levels") ? (
+      {shouldShowSection("settings-stock-levels") ? (
         <PolicyPanel
           id="settings-stock-levels"
           title="Stock levels"
           hint="Who can change quantities, and whether the till may oversell."
           accent="amber"
+          fieldsOnly={theatreFieldsOnly}
         >
           <PolicySwitch
             checked={inventory.allowStockEditForStockManager}
@@ -632,12 +713,13 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-catalog") ? (
+      {shouldShowSection("settings-catalog") ? (
         <PolicyPanel
           id="settings-catalog"
           title="Product names"
           hint="How product titles read on Products, Stock, and POS."
           accent="amber"
+          fieldsOnly={theatreFieldsOnly}
         >
           <PolicySwitch
             checked={inventory.preserveProductNameCasing}
@@ -654,12 +736,13 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-receive") ? (
+      {shouldShowSection("settings-receive") ? (
         <PolicyPanel
           id="settings-receive"
           title="Receive stock"
           hint="Who can post supplier deliveries into on-hand."
           accent="sky"
+          fieldsOnly={theatreFieldsOnly}
         >
           <PolicySwitch
             checked={inventory.allowReceiveForStockManager}
@@ -712,12 +795,13 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-credit-tabs") ? (
+      {shouldShowSection("settings-credit-tabs") ? (
         <PolicyPanel
           id="settings-credit-tabs"
           title="Credit tabs"
           hint="Cashier access to customer tab balances and clearance requests."
           accent="teal"
+          fieldsOnly={theatreFieldsOnly}
         >
           <PolicySwitch
             checked={inventory.allowCashierTabClearance}
@@ -758,12 +842,13 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-suppliers") ? (
+      {shouldShowSection("settings-suppliers") ? (
         <PolicyPanel
           id="settings-suppliers"
           title="Suppliers"
           hint="Who can create supplier profiles and link catalog products."
           accent="sky"
+          fieldsOnly={theatreFieldsOnly}
         >
           <div className="grid gap-2.5 lg:grid-cols-2">
             <PolicySwitch
@@ -818,12 +903,13 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-shifts") ? (
+      {shouldShowSection("settings-shifts") ? (
         <PolicyPanel
           id="settings-shifts"
           title="Shifts & cash drawer"
           hint="How opening float is prepared when a cashier starts a shift."
           accent="amber"
+          fieldsOnly={theatreFieldsOnly}
         >
           <PolicySwitch
             checked={shiftSettings.prefillOpeningFromLastClose}
@@ -840,12 +926,13 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-checkout") ? (
+      {shouldShowSection("settings-checkout") ? (
         <PolicyPanel
           id="settings-checkout"
           title="Checkout"
           hint="Attach repeat cash and M-Pesa sales to the customer directory."
           accent="teal"
+          fieldsOnly={theatreFieldsOnly}
         >
           <PolicySwitch
             checked={inventory.captureCustomerForCashAndMpesa}
@@ -862,12 +949,13 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-cashier") ? (
+      {shouldShowSection("settings-cashier") ? (
         <PolicyPanel
           id="settings-cashier"
           title="Cashier capabilities"
           hint="What cashiers can do on the POS. Weighted marking is on by default."
           accent="emerald"
+          fieldsOnly={theatreFieldsOnly}
         >
           <div className="grid gap-2.5 lg:grid-cols-2">
             <PolicySwitch
@@ -1027,12 +1115,13 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-pos-drafts") ? (
+      {shouldShowSection("settings-pos-drafts") ? (
         <PolicyPanel
           id="settings-pos-drafts"
           title="Live pending carts"
           hint="Save in-progress till carts so admins can watch live from Sales → Pending carts."
           accent="teal"
+          fieldsOnly={theatreFieldsOnly}
         >
           <PolicySwitch
             checked={posDrafts.enabled && posDrafts.uiVisible}
@@ -1103,12 +1192,13 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-till-listen") ? (
+      {shouldShowSection("settings-till-listen") ? (
         <PolicyPanel
           id="settings-till-listen"
           title="When to listen for till payments"
           hint="Buy Goods webhooks can auto-confirm sales. Default is checkout only — turn on earlier surfaces if cashiers pay before opening pay."
           accent="sky"
+          fieldsOnly={theatreFieldsOnly}
         >
           <div className="grid gap-2.5 lg:grid-cols-2">
             <PolicySwitch
@@ -1161,12 +1251,13 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-hub-alerts") ? (
+      {shouldShowSection("settings-hub-alerts") ? (
         <PolicyPanel
           id="settings-hub-alerts"
           title="Live beeps on /business"
           hint="When the Morning board is open, play a short chime for new activity. Click the page once so the browser allows sound."
           accent="amber"
+          fieldsOnly={theatreFieldsOnly}
         >
           <div className="grid gap-2.5 lg:grid-cols-2">
             <PolicySwitch
@@ -1249,50 +1340,58 @@ export function BusinessConfigurationForm({
         </PolicyPanel>
       ) : null}
 
-      {visibleIds.has("settings-trusted-tills") ? (
-        <div id="settings-trusted-tills" className="scroll-mt-28">
+      {shouldShowSection("settings-trusted-tills") ? (
+        <div
+          id="settings-trusted-tills"
+          className={cn(!theatreFieldsOnly && "scroll-mt-28")}
+        >
           <TrustedTillsPanel
             branches={activeBranches}
             defaultBranchId={defaultBranchId}
           />
         </div>
       ) : null}
+    </>
+  );
 
-      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-20 -mx-1 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-primary/25 bg-background/95 p-3 shadow-lg shadow-primary/5 backdrop-blur supports-[backdrop-filter]:bg-background/85 lg:static lg:bottom-auto lg:mx-0 lg:border-border/60 lg:shadow-sm">
-        <p className="hidden text-[11px] text-muted-foreground sm:block lg:mr-auto">
-          Saves inventory and till policies for this workspace.
-        </p>
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-9 rounded-xl"
-            disabled={isSaving}
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            size="sm"
-            className="h-9 gap-1.5 rounded-xl px-4"
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Saving…
-              </>
-            ) : (
-              <>
-                <Save className="size-4" aria-hidden />
-                Save configuration
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    flushSync(() => {
+      commitDailyAuditSampleSize(dailyAuditSampleDraft);
+    });
+    onSubmit(event);
+  };
+
+  if (useTheatreLayout) {
+    return (
+      <form
+        id="business-configuration-form"
+        className="min-h-0"
+        onSubmit={handleSubmit}
+      >
+        <ConfigurationTheatre
+          workspace={workspace}
+          onWorkspaceChange={onWorkspaceChange ?? (() => undefined)}
+          activeSectionId={activeSectionId}
+          onActiveSectionChange={onActiveSectionChange ?? (() => undefined)}
+          enabledPolicyCount={enabledPolicyCount}
+          inventory={inventory}
+          shiftSettings={shiftSettings}
+          posDrafts={posDrafts}
+          drawerFields={sectionFields}
+          footer={saveFooter}
+        />
+      </form>
+    );
+  }
+
+  return (
+    <form
+      id="business-configuration-form"
+      className="space-y-4"
+      onSubmit={handleSubmit}
+    >
+      {sectionFields}
+      {saveFooter}
     </form>
   );
 }

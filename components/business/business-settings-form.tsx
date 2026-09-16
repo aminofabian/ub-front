@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { flushSync } from "react-dom";
 import {
   AlertCircle,
@@ -52,6 +58,8 @@ import { FrontWindowLandingEditor } from "@/components/business/front-window-lan
 import { BrandPosterLandingEditor } from "@/components/business/brand-poster-landing-editor";
 import type { BranchRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { SettingsTheatre } from "@/app/(dashboard)/business/settings/_components/settings-theatre";
+import type { ShopSnapshotOverview } from "@/app/(dashboard)/business/settings/_components/settings-theatre";
 import { cn } from "@/lib/utils";
 
 function inputClass(disabled?: boolean) {
@@ -92,6 +100,39 @@ function SettingsGroupLabel({ children }: { children: ReactNode }) {
         {children}
       </p>
     </div>
+  );
+}
+
+function ProfilePanel({
+  id,
+  fieldsOnly,
+  legend,
+  hint,
+  innerRef,
+  children,
+}: {
+  id: string;
+  fieldsOnly?: boolean;
+  legend: string;
+  hint: string;
+  innerRef?: RefObject<HTMLDivElement | null>;
+  children: ReactNode;
+}) {
+  if (fieldsOnly) {
+    return (
+      <div id={id} ref={innerRef} className="space-y-2.5">
+        {children}
+      </div>
+    );
+  }
+  return (
+    <SettingsAnchor id={id}>
+      <div ref={innerRef}>
+        <FormDrawerFields compact legend={legend} hint={hint}>
+          {children}
+        </FormDrawerFields>
+      </div>
+    </SettingsAnchor>
   );
 }
 
@@ -154,6 +195,10 @@ export function BusinessSettingsForm({
   onSubmit,
   onCancel,
   onRemoveDeliveryArea,
+  useTheatreLayout = false,
+  activeSectionId = null as string | null,
+  onActiveSectionChange,
+  shopSnapshot = null as ShopSnapshotOverview | null,
 }: {
   editable: EditableBusiness;
   setEditable: React.Dispatch<React.SetStateAction<EditableBusiness>>;
@@ -182,6 +227,10 @@ export function BusinessSettingsForm({
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
   onRemoveDeliveryArea?: (areaId: string) => void | Promise<void>;
+  useTheatreLayout?: boolean;
+  activeSectionId?: string | null;
+  onActiveSectionChange?: (id: string | null) => void;
+  shopSnapshot?: ShopSnapshotOverview | null;
 }) {
   const storefrontRef = useRef<HTMLDivElement>(null);
   const [dailyAuditSampleDraft, setDailyAuditSampleDraft] = useState(
@@ -199,8 +248,13 @@ export function BusinessSettingsForm({
     if (!focusStorefrontOnMount) {
       return;
     }
+    if (useTheatreLayout) {
+      onActiveSectionChange?.("settings-storefront");
+      history.replaceState(null, "", "#settings-storefront");
+      return;
+    }
     storefrontRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [focusStorefrontOnMount]);
+  }, [focusStorefrontOnMount, useTheatreLayout, onActiveSectionChange]);
 
   useEffect(() => {
     if (milkRunWaPromptedRef.current) return;
@@ -231,27 +285,74 @@ export function BusinessSettingsForm({
     setDailyAuditSampleDraft(String(next));
   }
 
-  return (
-    <form
-      id="business-settings-form"
-      className="space-y-4"
-      onSubmit={(event) => {
-        if (showOperations) {
-          flushSync(() => {
-            commitDailyAuditSampleSize(dailyAuditSampleDraft);
-          });
-        }
-        onSubmit(event);
-      }}
-    >
-      <SettingsGroupLabel>Business</SettingsGroupLabel>
+  const theatreFieldsOnly = useTheatreLayout;
 
-      <SettingsAnchor id="settings-profile">
-        <FormDrawerFields
-            compact
-          legend="Profile & billing"
-          hint="How your business appears internally and your plan label."
+  function shouldShowSection(sectionId: string) {
+    if (!useTheatreLayout) {
+      if (sectionId === "settings-storefront") {
+        return canManageBusinessSettings;
+      }
+      return true;
+    }
+    if (activeSectionId == null) return false;
+    return activeSectionId === sectionId;
+  }
+
+  const saveFooter = (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-end gap-2",
+        !useTheatreLayout &&
+          "sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-10 -mx-1 rounded-lg border border-border/70 bg-background/95 p-2.5 shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:static lg:bottom-auto lg:mx-0 lg:justify-end lg:border-border/50 lg:bg-muted/20 lg:p-3 lg:shadow-none",
+      )}
+    >
+      {!useTheatreLayout ? (
+        <p className="hidden text-[11px] text-muted-foreground sm:block lg:mr-auto">
+          {showOperations
+            ? "Save applies all sections on this page."
+            : "Save applies profile and storefront on this page."}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={cn("h-8", useTheatreLayout && "h-9")}
+          disabled={isSaving}
+          onClick={onCancel}
         >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          size="sm"
+          className={cn("h-8 gap-1.5", useTheatreLayout && "h-9 px-4")}
+          disabled={isSaving || Boolean(storefrontNeedsBranch)}
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Saving…
+            </>
+          ) : (
+            <>
+              <Save className="size-4" aria-hidden />
+              Save changes
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const profileFields = shouldShowSection("settings-profile") ? (
+    <ProfilePanel
+      id="settings-profile"
+      fieldsOnly={theatreFieldsOnly}
+      legend="Profile & billing"
+      hint="How your business appears internally and your plan label."
+    >
           <div className="grid gap-2.5 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
               <label className={labelClass()} htmlFor="biz-name">
@@ -339,17 +440,18 @@ export function BusinessSettingsForm({
               </label>
             </div>
           </div>
-        </FormDrawerFields>
-      </SettingsAnchor>
+    </ProfilePanel>
+  ) : null;
 
-      {canManageBusinessSettings ? (
-        <SettingsAnchor id="settings-storefront">
-          <div ref={storefrontRef} id="storefront-settings">
-            <FormDrawerFields
-            compact
-              legend="Online storefront"
-              hint="Public catalog and pickup flow. Prices follow the branch you choose."
-            >
+  const storefrontFields =
+    canManageBusinessSettings && shouldShowSection("settings-storefront") ? (
+      <ProfilePanel
+        id="settings-storefront"
+        fieldsOnly={theatreFieldsOnly}
+        legend="Online storefront"
+        hint="Public catalog and pickup flow. Prices follow the branch you choose."
+        innerRef={storefrontRef}
+      >
               <div className="rounded-lg border border-border/55 bg-muted/20 px-2.5 py-2 sm:col-span-2">
                 <p className="text-[13px] font-medium leading-snug">
                   {storefront.enabled
@@ -771,10 +873,74 @@ export function BusinessSettingsForm({
                   )}
                 </div>
               </div>
-            </FormDrawerFields>
-          </div>
-        </SettingsAnchor>
-      ) : null}
+      </ProfilePanel>
+    ) : null;
+
+  const sectionFields = (
+    <>
+      {profileFields}
+      {storefrontFields}
+    </>
+  );
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    if (showOperations) {
+      flushSync(() => {
+        commitDailyAuditSampleSize(dailyAuditSampleDraft);
+      });
+    }
+    onSubmit(event);
+  };
+
+  if (useTheatreLayout) {
+    return (
+      <form
+        id="business-settings-form"
+        className="min-h-0"
+        onSubmit={handleSubmit}
+      >
+        <SettingsTheatre
+          activeSectionId={activeSectionId}
+          onActiveSectionChange={onActiveSectionChange ?? (() => undefined)}
+          snapshot={shopSnapshot}
+          editable={editable}
+          storefront={storefront}
+          allowNegativeStock={inventory.allowNegativeStock}
+          includeStorefront={canManageBusinessSettings}
+          drawerFields={sectionFields}
+          footer={saveFooter}
+        />
+        <MilkRunWhatsAppDialog
+          open={milkRunWaPromptOpen}
+          onOpenChange={setMilkRunWaPromptOpen}
+          initialWhatsapp={storefront.landingWhatsapp}
+          existingLandingContent={{
+            headline: storefront.landingHeadline.trim() || null,
+            subheadline: storefront.landingSubheadline.trim() || null,
+            phone: storefront.landingPhone.trim() || null,
+            hours: storefront.landingHours.trim() || null,
+            address: storefront.landingAddress.trim() || null,
+            ctaLabel: storefront.landingCtaLabel.trim() || null,
+            whatsapp: storefront.landingWhatsapp.trim() || null,
+          }}
+          onSaved={(whatsapp) => {
+            setStorefront((s) => ({ ...s, landingWhatsapp: whatsapp }));
+          }}
+        />
+      </form>
+    );
+  }
+
+  return (
+    <form
+      id="business-settings-form"
+      className="space-y-4"
+      onSubmit={handleSubmit}
+    >
+      {!useTheatreLayout ? <SettingsGroupLabel>Business</SettingsGroupLabel> : null}
+
+      {profileFields}
+      {storefrontFields}
 
       {canManageBusinessSettings && showOperations ? (
         <>
@@ -1568,43 +1734,7 @@ export function BusinessSettingsForm({
         </>
       ) : null}
 
-      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-10 -mx-1 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-background/95 p-2.5 shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:static lg:bottom-auto lg:mx-0 lg:justify-end lg:border-border/50 lg:bg-muted/20 lg:p-3 lg:shadow-none">
-        <p className="hidden text-[11px] text-muted-foreground sm:block lg:mr-auto">
-          {showOperations
-            ? "Save applies all sections on this page."
-            : "Save applies profile and storefront on this page."}
-        </p>
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8"
-            disabled={isSaving}
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            size="sm"
-            className="h-8 gap-1.5"
-            disabled={isSaving || Boolean(storefrontNeedsBranch)}
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Saving…
-              </>
-            ) : (
-              <>
-                <Save className="size-4" aria-hidden />
-                Save changes
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+      {saveFooter}
 
       <MilkRunWhatsAppDialog
         open={milkRunWaPromptOpen}
