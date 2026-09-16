@@ -222,184 +222,157 @@ export function StoreRoomPulse({
     muted: "text-muted-foreground",
   } as const;
 
+  const satellites = attention.slice(0, 4);
+  const card =
+    "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] bg-white p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]";
+
   return (
-    <div
-      className={cn(
-        "flex h-full min-h-0 flex-col bg-transparent",
-        className,
-      )}
-    >
-      <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2.5 py-2 sm:px-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h2 className="text-[13px] font-semibold tracking-tight text-foreground">
-              Room
-            </h2>
-            <p className={cn(dashboardHintClass(), "mt-0.5")}>
-              {pulse.needsAttention > 0
-                ? `${pulse.needsAttention} to glance at`
-                : "Quiet — pick a line to dig in"}
-            </p>
-          </div>
-          {onPutIn ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
-              onClick={onPutIn}
-            >
-              <ArrowDownToLine className="size-3.5" aria-hidden />
-              Put in
-            </Button>
-          ) : null}
-        </div>
-      </div>
+    <div className={cn("relative h-full min-h-0 overflow-hidden", className)}>
+      <svg
+        className="pointer-events-none absolute inset-0 h-full w-full text-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)]"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <path
+          d="M22 42 C 38 28, 58 22, 72 28"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="0.35"
+          strokeDasharray="1.4 1.6"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M28 48 C 48 58, 62 52, 74 62"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="0.35"
+          strokeDasharray="1.4 1.6"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M24 52 C 30 72, 48 78, 38 86"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="0.35"
+          strokeDasharray="1.4 1.6"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-2.5 sm:px-3">
-        <div className="space-y-3">
-          <div>
-            <p className="text-[1.35rem] font-semibold leading-none tracking-[-0.03em] tabular-nums text-foreground">
-              {formatQty(pulse.units)}
-              <span className="ml-1.5 text-[11px] font-medium tracking-normal text-muted-foreground">
-                on hand
-              </span>
-            </p>
-            <p className={cn(dashboardHintClass(), "mt-1.5")}>
-              {formatQty(pulse.lines)} line{pulse.lines === 1 ? "" : "s"}
-              {pulse.heaviest && pulse.heaviestCount > 0 ? (
-                <>
-                  {" · "}
-                  <button
-                    type="button"
-                    onClick={() => onSelect(pulse.heaviest!)}
-                    className="underline-offset-2 hover:text-foreground hover:underline"
-                  >
-                    {pulse.heaviest.name}
-                  </button>
-                  {` heaviest (${formatQty(pulse.heaviestCount)})`}
-                </>
-              ) : null}
-            </p>
-          </div>
+      {onPutIn ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="absolute right-3 top-3 z-[2] h-8 gap-1.5 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white shadow-none"
+          onClick={onPutIn}
+        >
+          <ArrowDownToLine className="size-3.5" aria-hidden />
+          Put in
+        </Button>
+      ) : null}
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] py-2 text-[12px] tabular-nums text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <ArrowUpFromLine className="size-3 opacity-70" aria-hidden />
-              <span className="font-semibold text-foreground">
-                {loadingActivity ? "…" : formatQty(pulse.takeOuts)}
-              </span>
-              <span>out</span>
-            </span>
-            <span
-              className="h-3 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
-              aria-hidden
-            />
-            <span className="inline-flex items-center gap-1">
-              <ArrowDownToLine className="size-3 opacity-70" aria-hidden />
-              <span className="font-semibold text-foreground">
-                {loadingActivity ? "…" : formatQty(pulse.putIns)}
-              </span>
-              <span>in</span>
-            </span>
-            {!loadingActivity && pulse.pending > 0 ? (
-              <>
-                <span
-                  className="h-3 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
-                  aria-hidden
-                />
-                <span className="font-medium text-amber-800 dark:text-amber-300">
-                  {formatQty(pulse.pending)} waiting
-                </span>
-              </>
-            ) : null}
-          </div>
-
-          {attention.length > 0 ? (
-            <ul className="space-y-0.5">
-              {attention.map((row) => {
-                const Icon = row.icon;
-                const body = (
-                  <>
-                    <Icon
-                      className={cn(
-                        "mt-0.5 size-3.5 shrink-0",
-                        toneText[row.tone],
-                      )}
-                      aria-hidden
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className={cn(
-                          "block text-[12px] font-medium leading-snug",
-                          toneText[row.tone],
-                        )}
-                      >
-                        {row.label}
-                      </span>
-                      <span className="block text-[11px] leading-snug text-muted-foreground">
-                        {row.detail}
-                      </span>
-                    </span>
-                  </>
-                );
-                return (
-                  <li key={row.id}>
-                    {row.onClick ? (
-                      <button
-                        type="button"
-                        onClick={row.onClick}
-                        className="flex w-full items-start gap-2 px-1 py-1.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3.5%,transparent)]"
-                      >
-                        {body}
-                      </button>
-                    ) : (
-                      <div className="flex items-start gap-2 px-1 py-1.5">
-                        {body}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-
-          {pulse.emptyRows.length > 0 ? (
-            <div>
-              <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                Empty
-              </p>
-              <ul className="mt-1">
-                {pulse.emptyRows.slice(0, 5).map((row) => (
-                  <li key={row.id}>
-                    <button
-                      type="button"
-                      onClick={() => onSelect(row)}
-                      className="flex w-full items-center justify-between gap-2 px-1 py-1 text-left text-[12px] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3.5%,transparent)]"
-                    >
-                      <span className="min-w-0 truncate font-medium text-foreground">
-                        {row.name}
-                      </span>
-                      <span className="shrink-0 tabular-nums text-[11px] text-amber-800 dark:text-amber-300">
-                        0
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {pulse.emptyRows.length > 5 ? (
-                <p className={cn(dashboardHintClass(), "px-1 pt-0.5")}>
-                  +{pulse.emptyRows.length - 5} more
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-
-        <p className={cn(dashboardHintClass(), "mt-4 px-1")}>
-          Select a product to see its moves.
+      <article className={cn(card, "left-[8%] top-[22%]")}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          On hand
         </p>
-      </div>
+        <p
+          className="mt-2 text-[2.15rem] font-semibold leading-none tracking-[-0.04em] tabular-nums text-foreground"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          {formatQty(pulse.units)}
+        </p>
+        <p className={cn(dashboardHintClass(), "mt-2")}>
+          {formatQty(pulse.lines)} line{pulse.lines === 1 ? "" : "s"}
+          {pulse.heaviest && pulse.heaviestCount > 0 ? (
+            <>
+              {" · "}
+              <button
+                type="button"
+                onClick={() => onSelect(pulse.heaviest!)}
+                className="underline-offset-2 hover:text-foreground hover:underline"
+              >
+                {pulse.heaviest.name}
+              </button>
+              {` heaviest`}
+            </>
+          ) : null}
+        </p>
+        <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[12px] tabular-nums text-muted-foreground">
+          <span>
+            <span className="font-semibold text-foreground">
+              {loadingActivity ? "…" : formatQty(pulse.takeOuts)}
+            </span>{" "}
+            out today
+          </span>
+          <span>
+            <span className="font-semibold text-foreground">
+              {loadingActivity ? "…" : formatQty(pulse.putIns)}
+            </span>{" "}
+            in
+          </span>
+        </p>
+      </article>
+
+      {satellites.map((row, index) => {
+        const Icon = row.icon;
+        const place =
+          index === 0
+            ? "right-[7%] top-[14%]"
+            : index === 1
+              ? "right-[10%] top-[46%]"
+              : index === 2
+                ? "left-[12%] bottom-[12%]"
+                : "right-[18%] bottom-[10%]";
+        const body = (
+          <>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Watch
+            </p>
+            <p
+              className={cn(
+                "mt-1.5 flex items-center gap-1.5 text-[14px] font-semibold leading-snug",
+                toneText[row.tone],
+              )}
+            >
+              <Icon className="size-3.5 shrink-0" aria-hidden />
+              {row.label}
+            </p>
+            <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+              {row.detail}
+            </p>
+          </>
+        );
+        return row.onClick ? (
+          <button
+            key={row.id}
+            type="button"
+            onClick={row.onClick}
+            className={cn(card, place, "text-left transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]")}
+          >
+            {body}
+          </button>
+        ) : (
+          <article key={row.id} className={cn(card, place)}>
+            {body}
+          </article>
+        );
+      })}
+
+      {satellites.length === 0 ? (
+        <article className={cn(card, "right-[10%] top-[38%]")}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Quiet
+          </p>
+          <p className="mt-1.5 text-[14px] font-semibold text-foreground">
+            Nothing needs a glance
+          </p>
+          <p className={cn(dashboardHintClass(), "mt-1")}>
+            Pick a line on the left to see what moved.
+          </p>
+        </article>
+      ) : null}
     </div>
   );
 }

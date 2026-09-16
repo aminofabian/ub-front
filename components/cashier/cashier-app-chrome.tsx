@@ -425,7 +425,7 @@ export function CashierBottomNav({
     >
       <div
         className={cn(
-          "tablet-bottom-nav-dock pointer-events-auto flex w-full max-w-md items-stretch gap-1 px-1.5 py-1",
+          "tablet-bottom-nav-dock pointer-events-auto flex w-full max-w-md items-stretch gap-1 rounded-none px-1.5 py-1",
           "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
           // Solid first (older Chromium gets an opaque bar); the translucent
           // blur is the progressive enhancement that reads as a native tab bar.

@@ -42,7 +42,7 @@ import { StoreRoomPulse } from "./store-room-pulse";
 function LiveDot() {
   return (
     <span
-      className="inline-block size-1.5 shrink-0 rounded-full bg-[var(--pos-primary,#0f766e)]"
+      className="inline-block size-1.5 shrink-0 bg-[var(--pos-primary,#0f766e)]"
       aria-hidden
     />
   );
@@ -155,14 +155,16 @@ export function StoreRoomTheatre({
     return (
     <div
       className={cn(
-        "flex min-h-0 flex-col bg-white",
-        fill && "h-full",
+        "flex min-h-0 flex-col",
+        fill ? "h-full bg-transparent" : "bg-white",
       )}
     >
       <div
         className={cn(
-          "shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-2.5 py-2 sm:px-3",
-          !fill && "sticky top-0 z-[1]",
+          "shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3",
+          fill
+            ? "bg-transparent"
+            : "sticky top-0 z-[1] bg-white",
         )}
       >
         <div className="flex items-center gap-1.5">
@@ -255,16 +257,21 @@ export function StoreRoomTheatre({
                         ? "px-2.5 py-2 sm:px-3"
                         : "min-h-[3.25rem] px-3 py-3",
                       active
-                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]"
+                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
                         : "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
                     )}
                   >
-                    {active ? (
-                      <span
-                        className="absolute inset-y-0 left-0 w-0.5 bg-[var(--pos-primary,#0f766e)]"
-                        aria-hidden
-                      />
-                    ) : null}
+                    <span
+                      className={cn(
+                        "grid size-7 shrink-0 place-items-center border text-[10px] font-bold uppercase tracking-wide",
+                        active
+                          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]"
+                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
+                      )}
+                      aria-hidden
+                    >
+                      {row.name.slice(0, 1)}
+                    </span>
                     <div className="min-w-0 flex-1">
                       <p
                         className={cn(
@@ -400,14 +407,21 @@ export function StoreRoomTheatre({
         </p>
       </div>
     ) : (
-      <div className="flex h-full flex-col items-center justify-center bg-white px-6 py-10 text-center">
-        <Package className="size-8 text-muted-foreground/50" aria-hidden />
-        <p className="mt-3 text-[14px] font-semibold text-foreground">
-          Pick an item
-        </p>
-        <p className={cn(dashboardHintClass(), "mt-1 max-w-[14rem]")}>
-          Select from the list to see history and edit its details.
-        </p>
+      <div className="flex h-full flex-col justify-between bg-white px-4 py-6">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Dossier
+          </p>
+          <h3
+            className="mt-2 text-[1.35rem] font-semibold leading-none tracking-[-0.03em]"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            Pick an item
+          </h3>
+          <p className={cn(dashboardHintClass(), "mt-3 max-w-[16rem]")}>
+            The map in the middle is the room. The list on the left names what is in it.
+          </p>
+        </div>
       </div>
     );
 
@@ -415,20 +429,29 @@ export function StoreRoomTheatre({
     <div className="flex min-h-0 flex-col gap-1.5">
       {settingsBanner}
 
-      {/* Desktop theatre */}
+      {/* Desktop theatre — roster | map | dossier */}
       <div
         className={cn(
-          "hidden h-[min(72dvh,44rem)] overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white lg:grid",
-          "lg:grid-cols-[minmax(15rem,18rem)_minmax(12.5rem,15rem)_minmax(17rem,1fr)]",
+          "hidden h-[min(80dvh,52rem)] overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] lg:grid",
+          "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]",
+          "lg:grid-cols-[minmax(15.5rem,17.5rem)_minmax(0,1fr)_minmax(20rem,23.5rem)]",
         )}
       >
-        <div className="flex h-full min-h-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+        <div className="flex h-full min-h-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]">
           {roster({ fill: true, denser: true })}
         </div>
-        <div className="flex h-full min-h-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]">
+        <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+          <p
+            className="pointer-events-none absolute bottom-3 left-4 z-[1] text-[10px] font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]"
+            aria-hidden
+          >
+            The store room
+          </p>
           {history}
         </div>
-        <div className="flex h-full min-h-0 flex-col bg-white">{inspect}</div>
+        <div className="flex h-full min-h-0 flex-col border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+          {inspect}
+        </div>
       </div>
 
       {/* Mobile: full item list on the page; tap opens an edit sheet. */}
@@ -540,51 +563,53 @@ function InspectPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h3 className="truncate text-[13px] font-semibold tracking-tight text-foreground">
-              {row.name}
-            </h3>
-            <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-              {[
-                row.barcode || null,
-                row.expiryDate || null,
-                row.buyingPrice == null || row.buyingPrice === ""
-                  ? null
-                  : formatMoney(
-                      row.buyingPrice,
-                      resolveCurrencyCode(currency),
-                    ),
-              ]
-                .filter(Boolean)
-                .join(" · ") || "No barcode · no expiry"}
-            </p>
-          </div>
-          <span className="inline-flex shrink-0 flex-col items-end gap-0.5 tabular-nums">
-            <span className="inline-flex items-baseline gap-1">
-              {connected && row.itemId ? <LiveDot /> : null}
-              <span className="text-[1.35rem] font-semibold leading-none tracking-[-0.03em] text-foreground">
-                {onHandBreakdown
-                  ? formatQuantity(onHandEach)
-                  : formatQuantity(count)}
-              </span>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
-                {onHandBreakdown
-                  ? "each"
-                  : packCatalog && packCatalog.displayToHolderFactor > 1
-                    ? packCatalog.catalogPackUnit
-                    : null}
-              </span>
+      <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          {connected && row.itemId ? "Following stock" : "On hand"}
+        </p>
+        <h3
+          className="mt-1 truncate text-[1.35rem] font-semibold leading-none tracking-[-0.03em] text-foreground"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          {row.name}
+        </h3>
+        <p className="mt-1.5 truncate font-mono text-[10px] text-muted-foreground">
+          {[
+            row.barcode || null,
+            row.expiryDate || null,
+            row.buyingPrice == null || row.buyingPrice === ""
+              ? null
+              : formatMoney(row.buyingPrice, resolveCurrencyCode(currency)),
+          ]
+            .filter(Boolean)
+            .join(" · ") || "No barcode · no expiry"}
+        </p>
+        <div className="mt-3 flex items-end justify-between gap-2">
+          <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+            Count
+          </span>
+          <span className="inline-flex items-baseline gap-1 tabular-nums">
+            {connected && row.itemId ? <LiveDot /> : null}
+            <span className="text-[1.65rem] font-semibold leading-none tracking-[-0.04em] text-foreground">
+              {onHandBreakdown
+                ? formatQuantity(onHandEach)
+                : formatQuantity(count)}
             </span>
-            {onHandBreakdown ? (
-              <span className="max-w-[11rem] text-right text-[10px] font-medium leading-tight text-muted-foreground">
-                {onHandBreakdown}
-              </span>
-            ) : null}
+            <span className="text-[10px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+              {onHandBreakdown
+                ? "each"
+                : packCatalog && packCatalog.displayToHolderFactor > 1
+                  ? packCatalog.catalogPackUnit
+                  : null}
+            </span>
           </span>
         </div>
-        <div className="mt-1.5 h-0.5 w-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+        {onHandBreakdown ? (
+          <p className="mt-1 text-right text-[10px] font-medium leading-tight text-muted-foreground">
+            {onHandBreakdown}
+          </p>
+        ) : null}
+        <div className="mt-2 h-1 w-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
           <div
             className="h-full bg-[var(--pos-primary,#0f766e)] transition-[width] duration-200"
             style={{ width: `${fill}%` }}
@@ -666,7 +691,7 @@ function InspectPanel({
           <Button
             type="button"
             size="sm"
-            className="h-8 gap-1.5 shadow-none"
+            className="h-8 gap-1.5 rounded-none shadow-none"
             onClick={onTakeOut}
           >
             <ArrowUpFromLine className="size-3.5" aria-hidden />
@@ -676,7 +701,7 @@ function InspectPanel({
             type="button"
             size="sm"
             variant="outline"
-            className="h-8 shadow-none"
+            className="h-8 rounded-none shadow-none"
             disabled={busy}
             onClick={onSave}
           >

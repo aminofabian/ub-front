@@ -2139,6 +2139,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                         className={cn(
                           POS_MICRO_LABEL,
                           "shrink-0",
+                          mobilePhone && "hidden",
                           (veryStale || stale) && "text-foreground/70",
                         )}
                       >
@@ -2315,7 +2316,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               {searchBanner}
             </p>
           ) : null}
-          {categoryFilterId ? (
+          {categoryFilterId && !mobilePhone ? (
             <div className="mt-2 flex flex-wrap items-center gap-2 px-0.5 text-xs">
               <span className="bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] px-2.5 py-0.5 font-medium text-foreground">
                 Aisle: {categoryFilterLabel ?? categoryFilterId}
@@ -2357,13 +2358,99 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             </div>
           ) : null}
         </section>
+
+        {mobilePhone && canBrowseCategories ? (
+          <div className="flex items-center gap-1 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,transparent)] py-1 dark:border-border/40 dark:bg-background/90">
+            {categoryBrowseStack.length > 0 ? (
+              <button
+                type="button"
+                className="flex size-8 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] text-foreground disabled:opacity-40"
+                disabled={!online}
+                aria-label="Back to previous aisle"
+                onClick={() => setCategoryBrowseStack((s) => s.slice(0, -1))}
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+            ) : null}
+            <div className="pos-snap-row min-w-0 flex-1 overflow-x-auto">
+              <div className="flex w-max gap-1">
+                {categoryTreeBusy ? (
+                  <span className="px-1 py-1.5 text-[11px] text-muted-foreground">
+                    Loading aisles…
+                  </span>
+                ) : visibleCategoryTiles.length === 0 ? (
+                  <span className="px-1 py-1.5 text-[11px] text-muted-foreground">
+                    {online ? "No aisles" : "Go online for aisles"}
+                  </span>
+                ) : (
+                  visibleCategoryTiles.map((node) => {
+                    const kids = (node.children ?? []).filter((c) => c.active);
+                    const drillable = kids.length > 0;
+                    const active = categoryFilterId === node.id;
+                    return (
+                      <button
+                        key={node.id}
+                        type="button"
+                        disabled={!online}
+                        onClick={() => {
+                          if (!online) return;
+                          if (drillable) {
+                            setCategoryBrowseStack((s) => [...s, node]);
+                            return;
+                          }
+                          applySubtreeFilter(node.id, node.name);
+                        }}
+                        className={cn(
+                          "h-8 shrink-0 border px-2 text-[11px] font-semibold leading-none",
+                          active
+                            ? "border-[var(--pos-ink,#1c1915)] bg-card text-foreground"
+                            : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-transparent text-[var(--pos-ink,#1c1915)]",
+                          "disabled:opacity-40",
+                        )}
+                      >
+                        {node.name}
+                      </button>
+                    );
+                  })
+                )}
+                {categoryBrowseParentId ? (
+                  <button
+                    type="button"
+                    disabled={!online}
+                    className="h-8 shrink-0 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] px-2 text-[11px] font-semibold text-muted-foreground disabled:opacity-40"
+                    onClick={() => {
+                      const cur =
+                        categoryBrowseStack[categoryBrowseStack.length - 1];
+                      applySubtreeFilter(cur.id, cur.name);
+                    }}
+                  >
+                    All here
+                  </button>
+                ) : null}
+                {categoryFilterId ? (
+                  <button
+                    type="button"
+                    className="h-8 shrink-0 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2 text-[11px] font-semibold text-muted-foreground"
+                    onClick={clearCategoryFilter}
+                  >
+                    Clear
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {hasSearch ? (
           <section
             className={cn(
               "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
-              compactShelf ? "space-y-2 pt-2" : "space-y-2.5 pt-3",
+              mobilePhone
+                ? "space-y-1 pt-1"
+                : compactShelf
+                  ? "space-y-2 pt-2"
+                  : "space-y-2.5 pt-3",
             )}
           >
             <div className="flex items-baseline justify-between gap-2">
@@ -2489,13 +2576,22 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           aria-label="Top selling products"
           className={cn(
             "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
-            compactShelf ? "space-y-2 pt-2" : "space-y-3 pt-3",
+            mobilePhone
+              ? "space-y-1 pt-1"
+              : compactShelf
+                ? "space-y-2 pt-2"
+                : "space-y-3 pt-3",
           )}
         >
           <div className="flex items-end justify-between gap-2">
             <div className="min-w-0">
-              {compactShelf ? (
-                <h3 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+              {compactShelf || mobilePhone ? (
+                <h3
+                  className={cn(
+                    "pos-market-section-label leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground",
+                    mobilePhone ? "text-[0.82rem]" : "text-[0.95rem]",
+                  )}
+                >
                   {topProductsTitle}
                 </h3>
               ) : (
@@ -2559,7 +2655,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         )
       ) : null}
 
-      {showCatalog && canBrowseCategories ? (
+      {showCatalog && canBrowseCategories && !mobilePhone ? (
         <section
           className={cn(
             "border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] dark:border-border/40",

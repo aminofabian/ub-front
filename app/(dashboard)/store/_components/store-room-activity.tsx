@@ -201,12 +201,15 @@ export function StoreRoomActivity({
         className={cn(
           "flex shrink-0 items-center justify-between gap-2",
           theatre
-            ? "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2.5 py-2 sm:px-3"
+            ? "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] px-3 py-2.5 sm:px-4"
             : "px-3 pt-3 sm:px-3.5",
         )}
       >
         <div className="min-w-0">
-          <h2 className="truncate text-[13px] font-semibold tracking-tight text-foreground">
+          <h2
+            className="truncate text-[15px] font-semibold tracking-tight text-foreground"
+            style={theatre ? { fontFamily: "var(--font-heading)" } : undefined}
+          >
             {focusLabel
               ? focusLabel
               : range === "today"
@@ -255,7 +258,9 @@ export function StoreRoomActivity({
       <div
         className={cn(
           "shrink-0",
-          theatre ? "px-2.5 pt-1.5 sm:px-3" : "px-3 sm:px-3.5",
+          theatre
+            ? "px-3 pt-3 sm:px-4"
+            : "px-3 sm:px-3.5",
         )}
       >
         {summary && summary.pending > 0 ? (
@@ -364,7 +369,7 @@ export function StoreRoomActivity({
       <div
         className={cn(
           "min-h-0 flex-1 overflow-y-auto overscroll-contain",
-          theatre ? "px-2.5 pb-2.5 sm:px-3" : "px-3 pb-3 sm:px-3.5",
+          theatre ? "px-4 pb-10 sm:px-6" : "px-3 pb-3 sm:px-3.5",
         )}
       >
         {failed ? (
@@ -385,7 +390,14 @@ export function StoreRoomActivity({
               : "Nothing has moved yet."}
           </p>
         ) : (
-          <ol className={cn("relative", theatre ? "mt-1.5" : "mt-3")}>
+          <ol
+            className={cn(
+              "relative",
+              theatre
+                ? "mt-4 flex flex-wrap content-start items-start gap-x-6 gap-y-8"
+                : "mt-3",
+            )}
+          >
             {!theatre ? (
               <span
                 className="pointer-events-none absolute bottom-2 left-[0.7rem] top-2 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
@@ -413,7 +425,7 @@ export function StoreRoomActivity({
                   className={cn(
                     "relative flex items-start gap-2",
                     theatre
-                      ? "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] py-2 last:border-b-0"
+                      ? "w-[min(17rem,100%)] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] bg-white p-3 shadow-[0_10px_28px_color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]"
                       : "gap-2.5 py-2.5 pl-0",
                   )}
                 >
