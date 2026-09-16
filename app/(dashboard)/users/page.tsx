@@ -2,35 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  BookOpen,
-  Building2,
-  Eye,
-  EyeOff,
-  Hash,
-  IdCard,
-  KeyRound,
-  Loader2,
-  LogOut,
-  MapPin,
-  Package,
-  Pencil,
-  Palette,
-  Save,
-  Trash2,
-  UserPlus,
-  Users as UsersIcon,
-  UserX,
-} from "lucide-react";
+import { Loader2, UserPlus, Users as UsersIcon } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
-  DASHBOARD_TABLE_SURFACE,
   DashboardFeedback,
   DashboardLoadError,
   DashboardLoading,
   DashboardPageHero,
-  DashboardQuickLinks,
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
@@ -40,7 +19,6 @@ import { StaffProfileDrawer } from "@/components/staff/staff-profile-drawer";
 import { Button } from "@/components/ui/button";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { APP_ROUTES } from "@/lib/config";
-import { helpHostUrl } from "@/lib/help/help-url";
 import { cn } from "@/lib/utils";
 import {
   assignUserRole,
@@ -66,13 +44,7 @@ import {
 import { JOIN_PAY_MODES } from "@/lib/payroll-utils";
 import { hasPermission, Permission } from "@/lib/permissions";
 
-const USER_STATUS_FILTERS = [
-  { value: "", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "invited", label: "Invited" },
-  { value: "suspended", label: "Suspended" },
-  { value: "locked", label: "Locked" },
-] as const;
+import { UsersTheatre } from "./_components/users-theatre";
 
 type CredentialMethod = "invite" | "pin";
 
@@ -99,280 +71,6 @@ const DEFAULT_DRAFT: UserDraft = {
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
 
-/** Roles whose catalog access is scoped by admin-assigned departments. */
-function roleUsesDepartmentAssignments(roleKey?: string): boolean {
-  return roleKey?.trim().toLowerCase() === "grocery_clerk";
-}
-
-/** Owner and admin accounts cannot be hard-removed from the tenant. */
-function isProtectedFromDelete(roleKey?: string): boolean {
-  const key = roleKey?.trim().toLowerCase();
-  return key === "owner" || key === "admin";
-}
-
-// ─── Helpers ───────────────────────────────────────────────────────────────
-
-function userInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) {
-    return "?";
-  }
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function UserAvatar({ name, className }: { name: string; className?: string }) {
-  return (
-    <span
-      className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white text-[10px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]",
-        className,
-      )}
-      aria-hidden
-    >
-      {userInitials(name)}
-    </span>
-  );
-}
-
-function statusBadgeClass(status: string): string {
-  switch (status) {
-    case "active":
-      return "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white";
-    case "invited":
-      return "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground";
-    case "suspended":
-      return "border-[#9a2e16]/35 bg-transparent text-[#9a2e16]";
-    case "locked":
-      return "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_8%,white)] text-[#9a2e16]";
-    default:
-      return "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground";
-  }
-}
-
-function ActionIconButton({
-  label,
-  onClick,
-  icon: Icon,
-  disabled,
-  tone = "default",
-  spinning,
-}: {
-  label: string;
-  onClick: () => void;
-  icon: typeof Pencil;
-  disabled?: boolean;
-  tone?: "default" | "danger";
-  spinning?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "inline-flex size-7 shrink-0 items-center justify-center rounded-none transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
-        "disabled:pointer-events-none disabled:opacity-40",
-        tone === "danger"
-          ? "text-destructive hover:bg-destructive/10"
-          : "text-muted-foreground hover:bg-background hover:text-foreground",
-      )}
-      aria-label={label}
-      title={label}
-    >
-      <Icon
-        className={cn("size-3.5", spinning && "animate-spin")}
-        aria-hidden
-      />
-    </button>
-  );
-}
-
-// ─── Sub-components ────────────────────────────────────────────────────────
-
-function InlineIconButton({
-  label,
-  onClick,
-  icon: Icon,
-  className,
-}: {
-  label: string;
-  onClick: () => void;
-  icon: typeof Pencil;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex size-6 shrink-0 items-center justify-center rounded-none text-muted-foreground/80 transition-colors",
-        "hover:bg-muted hover:text-foreground",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
-        "active:scale-[0.97]",
-        className,
-      )}
-      aria-label={label}
-      title={label}
-    >
-      <Icon className="size-3" aria-hidden />
-    </button>
-  );
-}
-
-/**
- * Departments (item types) a grocery_clerk is allowed to invoice from.
- *
- * Renders read-only badges with a pencil; tapping the pencil opens an inline
- * multi-select chip list. The catalog API ANDs this set into every request
- * coming from this user, so an empty selection means the clerk sees nothing
- * — make sure to leave at least one ticked before saving.
- */
-function UserDepartmentsControl({
-  user,
-  itemTypes,
-  canEdit,
-  isEditing,
-  selected,
-  saving,
-  onStartEdit,
-  onChangeSelected,
-  onCancel,
-  onSave,
-}: {
-  user: UserRecord;
-  itemTypes: ReadonlyArray<{ id: string; label: string; active: boolean }>;
-  canEdit: boolean;
-  isEditing: boolean;
-  selected: string[] | undefined;
-  saving: boolean;
-  onStartEdit: () => void;
-  onChangeSelected: (ids: string[]) => void;
-  onCancel: () => void;
-  onSave: () => void;
-}) {
-  const labelById = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const t of itemTypes) {
-      map.set(t.id, t.label?.trim() || t.id);
-    }
-    return map;
-  }, [itemTypes]);
-
-  const assigned = user.itemTypeIds ?? [];
-  const visibleSelection = isEditing ? (selected ?? assigned) : assigned;
-  const selectionSet = useMemo(
-    () => new Set(visibleSelection),
-    [visibleSelection],
-  );
-
-  if (isEditing) {
-    return (
-      <div className="flex flex-col gap-2 rounded-none border border-border/40 bg-muted/20 p-2">
-        <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-          Departments
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          {itemTypes
-            .filter((t) => t.active)
-            .map((t) => {
-              const isOn = selectionSet.has(t.id);
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => {
-                    const next = new Set(selectionSet);
-                    if (isOn) {
-                      next.delete(t.id);
-                    } else {
-                      next.add(t.id);
-                    }
-                    onChangeSelected(Array.from(next));
-                  }}
-                  className={cn(
-                    "rounded-none border px-2.5 py-1 text-[11px] font-semibold tracking-[-0.02em] transition-colors",
-                    isOn
-                      ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
-                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
-                  )}
-                >
-                  {t.label}
-                </button>
-              );
-            })}
-          {itemTypes.filter((t) => t.active).length === 0 ? (
-            <span className="text-[11px] text-muted-foreground">
-              No active departments — create one first.
-            </span>
-          ) : null}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="h-7 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[11px] font-medium text-white"
-            disabled={saving}
-            onClick={onSave}
-          >
-            {saving ? (
-              <Loader2 className="size-3 animate-spin" aria-hidden />
-            ) : (
-              <Save className="size-3" aria-hidden />
-            )}
-            Save
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-7 rounded-none px-2 text-[11px]"
-            disabled={saving}
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex min-w-[8rem] items-start gap-1">
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-        {assigned.length > 0 ? (
-          assigned.map((id) => (
-            <span
-              key={id}
-              className="inline-flex max-w-[7rem] truncate rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-foreground"
-              title={labelById.get(id) ?? id}
-            >
-              {labelById.get(id) ?? id}
-            </span>
-          ))
-        ) : (
-          <span className="text-[10px] text-[#9a2e16]">
-            None
-          </span>
-        )}
-      </div>
-      {canEdit ? (
-        <InlineIconButton
-          icon={Package}
-          label={`Assign departments for ${user.email}`}
-          onClick={onStartEdit}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-// ─── Page ──────────────────────────────────────────────────────────────────
-
 export default function UsersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -397,12 +95,8 @@ export default function UsersPage() {
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [signingOutId, setSigningOutId] = useState<string | null>(null);
-  const [nameEditUserId, setNameEditUserId] = useState<string | null>(null);
-  const [roleEditUserId, setRoleEditUserId] = useState<string | null>(null);
-  const [branchEditUserId, setBranchEditUserId] = useState<string | null>(null);
   const [branchChange, setBranchChange] = useState<Record<string, string>>({});
   const [savingBranchId, setSavingBranchId] = useState<string | null>(null);
-  const [deptEditUserId, setDeptEditUserId] = useState<string | null>(null);
   const [deptChange, setDeptChange] = useState<Record<string, string[]>>({});
   const [savingDeptId, setSavingDeptId] = useState<string | null>(null);
   const [passwordEditUserId, setPasswordEditUserId] = useState<string | null>(
@@ -431,6 +125,9 @@ export default function UsersPage() {
     {},
   );
   const [payrollSavingId, setPayrollSavingId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
   const isOwner = me?.role?.key === "owner";
   const canCreate = hasPermission(me?.permissions, Permission.UsersCreate);
@@ -614,7 +311,6 @@ export default function UsersPage() {
     try {
       await updateUser(userId, { name });
       await loadData();
-      setNameEditUserId(null);
       setEditingName((previous) => {
         const next = { ...previous };
         delete next[userId];
@@ -650,7 +346,6 @@ export default function UsersPage() {
         delete next[userId];
         return next;
       });
-      setRoleEditUserId(null);
       await loadData();
       await refreshSession();
       setFeedback({ kind: "success", text: "Role updated." });
@@ -705,6 +400,10 @@ export default function UsersPage() {
           if (profileUserId === userId) {
             setProfileUserId(null);
             setProfileUserLabel("");
+          }
+          if (selectedId === userId) {
+            setSelectedId(null);
+            setMobileShowDetail(false);
           }
           await loadData();
           await refreshSession();
@@ -962,7 +661,6 @@ export default function UsersPage() {
     setFeedback(null);
     try {
       await setUserItemTypes(userId, selected);
-      setDeptEditUserId(null);
       setDeptChange((previous) => {
         const next = { ...previous };
         delete next[userId];
@@ -990,7 +688,6 @@ export default function UsersPage() {
     setFeedback(null);
     try {
       await updateUser(userId, { branchId: branchId || undefined });
-      setBranchEditUserId(null);
       setBranchChange((previous) => {
         const next = { ...previous };
         delete next[userId];
@@ -1016,6 +713,48 @@ export default function UsersPage() {
     }
   };
 
+  const clearSelection = () => {
+    setSelectedId(null);
+    setMobileShowDetail(false);
+    setPasswordEditUserId(null);
+    setPinEditUserId(null);
+    setPinViewUserId(null);
+  };
+
+  const selectUser = (user: UserRecord) => {
+    if (selectedId === user.id) {
+      clearSelection();
+      return;
+    }
+    setSelectedId(user.id);
+    setMobileShowDetail(true);
+    setEditingName((previous) => ({ ...previous, [user.id]: user.name }));
+    setRoleChange((previous) => ({
+      ...previous,
+      [user.id]: user.role?.id ?? "",
+    }));
+    setBranchChange((previous) => ({
+      ...previous,
+      [user.id]: user.branchId ?? "",
+    }));
+    setDeptChange((previous) => ({
+      ...previous,
+      [user.id]: user.itemTypeIds ?? [],
+    }));
+    setFeedback(null);
+  };
+
+  const selectedUser = useMemo(
+    () => users.find((u) => u.id === selectedId) ?? null,
+    [users, selectedId],
+  );
+
+  useEffect(() => {
+    if (!selectedId) return;
+    if (users.some((u) => u.id === selectedId)) return;
+    clearSelection();
+  }, [users, selectedId]);
+
   if (!firstLoadDone) {
     return <DashboardLoading label="Loading users…" />;
   }
@@ -1035,47 +774,17 @@ export default function UsersPage() {
 
   return (
     <>
-      <div className={DASHBOARD_MAX_WIDE}>
+      <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
         <DashboardPageHero
-          compact
           icon={UsersIcon}
           title="Users"
           description="Invite staff, assign roles, and manage sign-in credentials."
         >
-          <DashboardQuickLinks
-            compact
-            links={[
-              {
-                href: APP_ROUTES.business,
-                label: "Business",
-                desc: "Core settings",
-                icon: Building2,
-              },
-              {
-                href: APP_ROUTES.branches,
-                label: "Branches",
-                desc: "Locations",
-                icon: MapPin,
-              },
-              {
-                href: APP_ROUTES.businessBranding,
-                label: "Branding",
-                desc: "Logo & colors",
-                icon: Palette,
-              },
-              {
-                href: helpHostUrl(APP_ROUTES.helpUserRoles),
-                label: "Guide",
-                desc: "Roles & invites",
-                icon: BookOpen,
-              },
-            ]}
-          />
           {canCreate ? (
             <Button
               type="button"
               size="sm"
-              className="h-8 shrink-0 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] text-white"
+              className="h-8 gap-1.5 shadow-none"
               disabled={roles.length === 0}
               onClick={() => {
                 skipInviteDrawerResetAfterCreate.current = false;
@@ -1102,881 +811,108 @@ export default function UsersPage() {
           </p>
         ) : null}
 
-        <section className={DASHBOARD_TABLE_SURFACE}>
-          <div className="space-y-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5 sm:px-3.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex min-w-0 items-baseline gap-2">
-                <h2 className="text-sm font-semibold tracking-tight text-foreground">
-                  Directory
-                </h2>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {users.length} {users.length === 1 ? "user" : "users"}
-                  {activeFilterCount > 0 ? " · filtered" : ""}
-                </span>
-              </div>
-              {activeFilterCount > 0 ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={clearAllFilters}
-                >
-                  Clear filters
-                </Button>
-              ) : null}
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                  Status
-                </span>
-                <select
-                  className={cn(dashboardSelectClass(), "h-8 py-1 text-xs")}
-                  value={filterStatus}
-                  onChange={(event) => setFilterStatus(event.target.value)}
-                  aria-label="Filter by status"
-                >
-                  {USER_STATUS_FILTERS.map((option) => (
-                    <option key={option.value || "all"} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                  Role
-                </span>
-                <select
-                  className={cn(dashboardSelectClass(), "h-8 py-1 text-xs")}
-                  value={filterRoleId}
-                  onChange={(event) => setFilterRoleId(event.target.value)}
-                  aria-label="Filter by role"
-                >
-                  <option value="">All roles</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                  Branch{!isOwner ? " · yours" : ""}
-                </span>
-                <select
-                  className={cn(
-                    dashboardSelectClass(!isOwner),
-                    "h-8 py-1 text-xs",
-                  )}
-                  value={filterBranchId}
-                  onChange={(event) => setFilterBranchId(event.target.value)}
-                  aria-label="Filter by branch"
-                  disabled={!isOwner}
-                >
-                  <option value="">All branches</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </div>
-
-          {users.length === 0 ? (
-            <p className="px-4 py-10 text-center text-sm text-muted-foreground sm:px-5">
-              No one matches these filters.
-              {activeFilterCount > 0 ? " Try clearing filters." : ""}{" "}
-              {canCreate && activeFilterCount === 0
-                ? "Invite someone to get started."
-                : ""}
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[820px] text-left text-sm">
-                <thead className="border-b border-border/40 bg-muted/15">
-                  <tr>
-                    {(
-                      [
-                        ["User", false],
-                        ["Role", false],
-                        ["Departments", false],
-                        ["Branch", false],
-                        ...(canTogglePayroll
-                          ? ([["Payroll", false]] as const)
-                          : []),
-                        ["Status", false],
-                        ["Actions", true],
-                      ] as const
-                    ).map(([label, right]) => (
-                      <th
-                        key={label}
-                        scope="col"
-                        className={cn(
-                          "px-3 py-2.5 font-sans text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground sm:px-4",
-                          right && "text-right",
-                        )}
-                      >
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/35">
-                  {users.map((user) => {
-                    const isEditingName = nameEditUserId === user.id;
-                    const isEditingRole = roleEditUserId === user.id;
-                    const isEditingBranch = branchEditUserId === user.id;
-                    const usesDepartments = roleUsesDepartmentAssignments(
-                      user.role?.key,
-                    );
-                    const pendingRoleId = isEditingRole
-                      ? (roleChange[user.id] ?? user.role?.id ?? "")
-                      : "";
-                    const pendingRoleKey = pendingRoleId
-                      ? roles.find((role) => role.id === pendingRoleId)?.key
-                      : undefined;
-                    const pendingUsesDepartments =
-                      isEditingRole &&
-                      roleUsesDepartmentAssignments(pendingRoleKey) &&
-                      !usesDepartments;
-                    const branchName =
-                      branchById.get(user.branchId ?? "")?.name ?? "";
-                    const credentialsBusy =
-                      savingPasswordId === user.id || savingPinId === user.id;
-                    return (
-                      <tr
-                        key={user.id}
-                        className="transition-colors hover:bg-muted/25"
-                      >
-                        {/* USER */}
-                        <td className="px-3 py-2.5 align-middle sm:px-4">
-                          {canUpdate && isEditingName ? (
-                            <div className="flex max-w-sm items-start gap-2.5">
-                              <UserAvatar name={user.name} />
-                              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                                <input
-                                  className={cn(
-                                    dashboardInputClass(),
-                                    "h-8 py-1 text-sm",
-                                  )}
-                                  value={editingName[user.id] ?? user.name}
-                                  onChange={(event) =>
-                                    setEditingName((previous) => ({
-                                      ...previous,
-                                      [user.id]: event.target.value,
-                                    }))
-                                  }
-                                  aria-label={`Edit name for ${user.email}`}
-                                  autoFocus
-                                />
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    type="button"
-                                    className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
-                                    disabled={savingNameId === user.id}
-                                    onClick={() => void onSaveName(user.id)}
-                                  >
-                                    {savingNameId === user.id ? (
-                                      <Loader2
-                                        className="size-3 animate-spin"
-                                        aria-hidden
-                                      />
-                                    ) : (
-                                      <Save className="size-3" aria-hidden />
-                                    )}
-                                    Save
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    type="button"
-                                    className="h-7 rounded-none px-2 text-xs"
-                                    disabled={savingNameId === user.id}
-                                    onClick={() => {
-                                      setNameEditUserId(null);
-                                      setEditingName((previous) => {
-                                        const next = { ...previous };
-                                        delete next[user.id];
-                                        return next;
-                                      });
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2.5">
-                              <UserAvatar name={user.name} />
-                              <div className="flex min-w-0 flex-1 items-center gap-1">
-                                <div className="min-w-0 flex-1">
-                                  <span className="block truncate text-sm font-semibold leading-tight text-foreground">
-                                    {user.name}
-                                  </span>
-                                  <span
-                                    className="block truncate text-[11px] leading-tight text-muted-foreground"
-                                    title={user.email}
-                                  >
-                                    {user.email}
-                                  </span>
-                                </div>
-                                {canUpdate ? (
-                                  <InlineIconButton
-                                    icon={Pencil}
-                                    label={`Edit name for ${user.email}`}
-                                    onClick={() => {
-                                      setNameEditUserId(user.id);
-                                      setEditingName((previous) => ({
-                                        ...previous,
-                                        [user.id]: user.name,
-                                      }));
-                                    }}
-                                  />
-                                ) : null}
-                              </div>
-                            </div>
-                          )}
-                        </td>
-
-                        {/* ROLE */}
-                        <td className="px-3 py-2.5 align-middle sm:px-4">
-                          {canAssign && isEditingRole ? (
-                            <div className="flex max-w-[14rem] flex-col gap-1.5">
-                              <select
-                                className={cn(
-                                  dashboardSelectClass(),
-                                  "h-8 py-1 text-xs",
-                                )}
-                                value={
-                                  roleChange[user.id] ?? user.role?.id ?? ""
-                                }
-                                onChange={(event) =>
-                                  setRoleChange((previous) => ({
-                                    ...previous,
-                                    [user.id]: event.target.value,
-                                  }))
-                                }
-                                aria-label={`Role for ${user.email}`}
-                              >
-                                {roles.length === 0 ? (
-                                  <option value={user.role?.id ?? ""}>
-                                    {user.role?.name ?? "Loading roles…"}
-                                  </option>
-                                ) : null}
-                                {roles.map((role) => (
-                                  <option key={role.id} value={role.id}>
-                                    {role.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  type="button"
-                                  className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
-                                  disabled={savingRoleId === user.id}
-                                  onClick={() => void onAssignRole(user.id)}
-                                >
-                                  {savingRoleId === user.id ? (
-                                    <Loader2
-                                      className="size-3 animate-spin"
-                                      aria-hidden
-                                    />
-                                  ) : (
-                                    <Save className="size-3" aria-hidden />
-                                  )}
-                                  Save
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  type="button"
-                                  className="h-7 rounded-none px-2 text-xs"
-                                  disabled={savingRoleId === user.id}
-                                  onClick={() => {
-                                    setRoleEditUserId(null);
-                                    setRoleChange((previous) => {
-                                      const next = { ...previous };
-                                      delete next[user.id];
-                                      return next;
-                                    });
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              {user.role?.name ? (
-                                <span className="inline-flex max-w-full truncate rounded border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-foreground">
-                                  {user.role.name}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-muted-foreground/70">
-                                  —
-                                </span>
-                              )}
-                              {canAssign ? (
-                                <InlineIconButton
-                                  icon={Pencil}
-                                  label={`Change role for ${user.email}`}
-                                  onClick={() => {
-                                    setRoleEditUserId(user.id);
-                                    setRoleChange((previous) => ({
-                                      ...previous,
-                                      [user.id]: user.role?.id ?? "",
-                                    }));
-                                  }}
-                                />
-                              ) : null}
-                            </div>
-                          )}
-                        </td>
-
-                        {/* DEPARTMENTS */}
-                        <td className="px-3 py-2.5 align-middle sm:px-4">
-                          {usesDepartments ? (
-                            <UserDepartmentsControl
-                              user={user}
-                              itemTypes={itemTypes}
-                              canEdit={canUpdate}
-                              isEditing={deptEditUserId === user.id}
-                              selected={deptChange[user.id]}
-                              saving={savingDeptId === user.id}
-                              onStartEdit={() => {
-                                setDeptEditUserId(user.id);
-                                setDeptChange((previous) => ({
-                                  ...previous,
-                                  [user.id]: user.itemTypeIds ?? [],
-                                }));
-                              }}
-                              onChangeSelected={(ids) =>
-                                setDeptChange((previous) => ({
-                                  ...previous,
-                                  [user.id]: ids,
-                                }))
-                              }
-                              onCancel={() => {
-                                setDeptEditUserId(null);
-                                setDeptChange((previous) => {
-                                  const next = { ...previous };
-                                  delete next[user.id];
-                                  return next;
-                                });
-                              }}
-                              onSave={() => void onSaveDepartments(user.id)}
-                            />
-                          ) : pendingUsesDepartments ? (
-                            <span className="text-[11px] leading-snug text-muted-foreground">
-                              Save role, then assign departments.
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/50">
-                              —
-                            </span>
-                          )}
-                        </td>
-
-                        {/* BRANCH */}
-                        <td className="px-3 py-2.5 align-middle sm:px-4">
-                          {canUpdate && isEditingBranch ? (
-                            <div className="flex max-w-[14rem] flex-col gap-1.5">
-                              <select
-                                className={cn(
-                                  dashboardSelectClass(),
-                                  "h-8 py-1 text-xs",
-                                )}
-                                value={
-                                  branchChange[user.id] ?? user.branchId ?? ""
-                                }
-                                onChange={(event) =>
-                                  setBranchChange((previous) => ({
-                                    ...previous,
-                                    [user.id]: event.target.value,
-                                  }))
-                                }
-                                aria-label={`Branch for ${user.email}`}
-                              >
-                                <option value="">No branch</option>
-                                {branches.map((branch) => (
-                                  <option key={branch.id} value={branch.id}>
-                                    {branch.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  type="button"
-                                  className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
-                                  disabled={savingBranchId === user.id}
-                                  onClick={() => void onSaveBranch(user.id)}
-                                >
-                                  {savingBranchId === user.id ? (
-                                    <Loader2
-                                      className="size-3 animate-spin"
-                                      aria-hidden
-                                    />
-                                  ) : (
-                                    <Save className="size-3" aria-hidden />
-                                  )}
-                                  Save
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  type="button"
-                                  className="h-7 rounded-none px-2 text-xs"
-                                  disabled={savingBranchId === user.id}
-                                  onClick={() => {
-                                    setBranchEditUserId(null);
-                                    setBranchChange((previous) => {
-                                      const next = { ...previous };
-                                      delete next[user.id];
-                                      return next;
-                                    });
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              {branchName ? (
-                                <span className="inline-flex max-w-[10rem] items-center gap-1 truncate text-xs font-medium text-foreground">
-                                  <MapPin
-                                    className="size-3 shrink-0 text-muted-foreground/70"
-                                    aria-hidden
-                                  />
-                                  <span className="truncate">{branchName}</span>
-                                </span>
-                              ) : (
-                                <span className="text-xs text-muted-foreground/70">
-                                  —
-                                </span>
-                              )}
-                              {canUpdate ? (
-                                <InlineIconButton
-                                  icon={Pencil}
-                                  label={`Change branch for ${user.email}`}
-                                  onClick={() => {
-                                    setBranchEditUserId(user.id);
-                                    setBranchChange((previous) => ({
-                                      ...previous,
-                                      [user.id]: user.branchId ?? "",
-                                    }));
-                                  }}
-                                />
-                              ) : null}
-                            </div>
-                          )}
-                        </td>
-
-                        {/* PAYROLL */}
-                        {canTogglePayroll ? (
-                          <td className="px-3 py-2.5 align-middle sm:px-4">
-                            {user.role?.key === "buyer" ? (
-                              <span className="text-xs text-muted-foreground/60">
-                                —
-                              </span>
-                            ) : (
-                              <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-                                <input
-                                  type="checkbox"
-                                  className="size-4 accent-[var(--pos-primary,#0f766e)]"
-                                  checked={payrollInclude[user.id] !== false}
-                                  disabled={payrollSavingId === user.id}
-                                  aria-label={`Include ${user.email} in payroll`}
-                                  onChange={(event) =>
-                                    void onTogglePayroll(
-                                      user.id,
-                                      event.target.checked,
-                                    )
-                                  }
-                                />
-                                <span className="tabular-nums">
-                                  {payrollSavingId === user.id
-                                    ? "Saving…"
-                                    : payrollInclude[user.id] !== false
-                                      ? "On"
-                                      : "Off"}
-                                </span>
-                              </label>
-                            )}
-                          </td>
-                        ) : null}
-                        {/* STATUS */}
-                        <td className="px-3 py-2.5 align-middle sm:px-4">
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-[10px] font-semibold capitalize tracking-[-0.02em] tabular-nums",
-                                statusBadgeClass(user.status),
-                              )}
-                            >
-                              {user.status}
-                            </span>
-                            {user.hasPin ? (
-                              <span
-                                className="inline-flex size-5 items-center justify-center rounded-none bg-muted/60 text-muted-foreground"
-                                title="PIN set"
-                              >
-                                <Hash className="size-3" aria-hidden />
-                              </span>
-                            ) : null}
-                          </div>
-                        </td>
-
-                        {/* ACTIONS */}
-                        <td className="px-3 py-2.5 text-right align-middle sm:px-4">
-                          {canUpdate && passwordEditUserId === user.id ? (
-                            <div className="ml-auto flex w-full max-w-[13rem] flex-col gap-1.5 text-left">
-                              <input
-                                type="password"
-                                autoComplete="new-password"
-                                className={cn(
-                                  dashboardInputClass(),
-                                  "h-8 py-1 text-xs",
-                                )}
-                                placeholder="New password"
-                                value={passwordDraft[user.id]?.password ?? ""}
-                                onChange={(event) =>
-                                  setPasswordDraft((previous) => ({
-                                    ...previous,
-                                    [user.id]: {
-                                      password: event.target.value,
-                                      confirm: previous[user.id]?.confirm ?? "",
-                                    },
-                                  }))
-                                }
-                                aria-label={`New password for ${user.email}`}
-                                autoFocus
-                              />
-                              <input
-                                type="password"
-                                autoComplete="new-password"
-                                className={cn(
-                                  dashboardInputClass(),
-                                  "h-8 py-1 text-xs",
-                                )}
-                                placeholder="Confirm"
-                                value={passwordDraft[user.id]?.confirm ?? ""}
-                                onChange={(event) =>
-                                  setPasswordDraft((previous) => ({
-                                    ...previous,
-                                    [user.id]: {
-                                      password:
-                                        previous[user.id]?.password ?? "",
-                                      confirm: event.target.value,
-                                    },
-                                  }))
-                                }
-                                aria-label={`Confirm password for ${user.email}`}
-                              />
-                              <div className="flex flex-wrap items-center justify-end gap-1.5">
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  type="button"
-                                  className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
-                                  disabled={savingPasswordId === user.id}
-                                  onClick={() => void onSavePassword(user.id)}
-                                >
-                                  {savingPasswordId === user.id ? (
-                                    <Loader2
-                                      className="size-3 animate-spin"
-                                      aria-hidden
-                                    />
-                                  ) : (
-                                    <Save className="size-3" aria-hidden />
-                                  )}
-                                  Save
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  type="button"
-                                  className="h-7 rounded-none px-2 text-xs"
-                                  disabled={savingPasswordId === user.id}
-                                  onClick={() => clearPasswordEdit(user.id)}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : canUpdate && pinEditUserId === user.id ? (
-                            <div className="ml-auto flex w-full max-w-[11rem] flex-col gap-1.5 text-left">
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                autoComplete="off"
-                                maxLength={6}
-                                className={cn(
-                                  dashboardInputClass(),
-                                  "h-8 py-1 font-mono text-xs tracking-widest",
-                                )}
-                                placeholder="PIN 4–6"
-                                value={pinDraft[user.id]?.pin ?? ""}
-                                onChange={(event) =>
-                                  setPinDraft((previous) => ({
-                                    ...previous,
-                                    [user.id]: {
-                                      pin: event.target.value.replace(
-                                        /\D/g,
-                                        "",
-                                      ),
-                                      confirm: previous[user.id]?.confirm ?? "",
-                                    },
-                                  }))
-                                }
-                                aria-label={`New PIN for ${user.email}`}
-                                autoFocus
-                              />
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                autoComplete="off"
-                                maxLength={6}
-                                className={cn(
-                                  dashboardInputClass(),
-                                  "h-8 py-1 font-mono text-xs tracking-widest",
-                                )}
-                                placeholder="Confirm"
-                                value={pinDraft[user.id]?.confirm ?? ""}
-                                onChange={(event) =>
-                                  setPinDraft((previous) => ({
-                                    ...previous,
-                                    [user.id]: {
-                                      pin: previous[user.id]?.pin ?? "",
-                                      confirm: event.target.value.replace(
-                                        /\D/g,
-                                        "",
-                                      ),
-                                    },
-                                  }))
-                                }
-                                aria-label={`Confirm PIN for ${user.email}`}
-                              />
-                              <div className="flex flex-wrap items-center justify-end gap-1.5">
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  type="button"
-                                  className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
-                                  disabled={savingPinId === user.id}
-                                  onClick={() => void onSavePin(user.id)}
-                                >
-                                  {savingPinId === user.id ? (
-                                    <Loader2
-                                      className="size-3 animate-spin"
-                                      aria-hidden
-                                    />
-                                  ) : (
-                                    <Save className="size-3" aria-hidden />
-                                  )}
-                                  Save
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  type="button"
-                                  className="h-7 rounded-none px-2 text-xs"
-                                  disabled={savingPinId === user.id}
-                                  onClick={() => clearPinEdit(user.id)}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : canUpdate && pinViewUserId === user.id ? (
-                            <div className="ml-auto flex w-full max-w-[11rem] flex-col gap-1.5 text-left">
-                              {pinViewValue[user.id]?.loading ? (
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <Loader2
-                                    className="size-3 animate-spin"
-                                    aria-hidden
-                                  />
-                                  Loading…
-                                </div>
-                              ) : pinViewValue[user.id]?.pin ? (
-                                <div className="flex items-center gap-1">
-                                  <p
-                                    className="font-mono text-base font-semibold tracking-[0.3em] text-foreground"
-                                    aria-label={`PIN for ${user.email}`}
-                                  >
-                                    {pinRevealed[user.id]
-                                      ? pinViewValue[user.id]?.pin
-                                      : "•".repeat(
-                                          pinViewValue[user.id]?.pin?.length ??
-                                            4,
-                                        )}
-                                  </p>
-                                  <ActionIconButton
-                                    icon={pinRevealed[user.id] ? EyeOff : Eye}
-                                    label={
-                                      pinRevealed[user.id]
-                                        ? "Hide PIN"
-                                        : "Show PIN"
-                                    }
-                                    onClick={() =>
-                                      setPinRevealed((previous) => ({
-                                        ...previous,
-                                        [user.id]: !previous[user.id],
-                                      }))
-                                    }
-                                  />
-                                </div>
-                              ) : (
-                                <p className="text-[11px] leading-snug text-muted-foreground">
-                                  {pinViewValue[user.id]?.message ??
-                                    "PIN unavailable."}
-                                </p>
-                              )}
-                              <div className="flex flex-wrap items-center justify-end gap-1.5">
-                                {!pinViewValue[user.id]?.loading &&
-                                !pinViewValue[user.id]?.pin ? (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    type="button"
-                                    className="h-7 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-xs text-white"
-                                    onClick={() => beginPinEdit(user.id)}
-                                  >
-                                    <Hash className="size-3" aria-hidden />
-                                    Set PIN
-                                  </Button>
-                                ) : null}
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  type="button"
-                                  className="h-7 rounded-none px-2 text-xs"
-                                  onClick={() => clearPinView(user.id)}
-                                >
-                                  Close
-                                </Button>
-                              </div>
-                            </div>
-                          ) : canUpdate ||
-                            canDeactivate ||
-                            canReadStaffProfile ? (
-                            <div className="inline-flex items-center justify-end gap-0.5 rounded-none border border-border/55 bg-muted/25 p-0.5">
-                              {canReadStaffProfile ? (
-                                <ActionIconButton
-                                  icon={IdCard}
-                                  label={`Staff profile for ${user.email}`}
-                                  onClick={() => {
-                                    setProfileUserId(user.id);
-                                    setProfileUserLabel(
-                                      `${user.name} · ${user.email}`,
-                                    );
-                                  }}
-                                />
-                              ) : null}
-                              {canUpdate ? (
-                                <>
-                                  <ActionIconButton
-                                    icon={KeyRound}
-                                    label={`Set password for ${user.email}`}
-                                    disabled={credentialsBusy}
-                                    onClick={() => beginPasswordEdit(user.id)}
-                                  />
-                                  <ActionIconButton
-                                    icon={Hash}
-                                    label={`Set PIN for ${user.email}`}
-                                    disabled={credentialsBusy}
-                                    onClick={() => beginPinEdit(user.id)}
-                                  />
-                                  {user.hasPin ? (
-                                    <ActionIconButton
-                                      icon={Eye}
-                                      label={`View PIN for ${user.email}`}
-                                      disabled={credentialsBusy}
-                                      onClick={() => void onViewPin(user.id)}
-                                    />
-                                  ) : null}
-                                  {/* Self-signout would 401 this page mid-action. */}
-                                  {user.id !== me?.id ? (
-                                    <ActionIconButton
-                                      icon={
-                                        signingOutId === user.id
-                                          ? Loader2
-                                          : LogOut
-                                      }
-                                      label={`Sign ${user.email} out of all devices`}
-                                      spinning={signingOutId === user.id}
-                                      disabled={
-                                        credentialsBusy ||
-                                        signingOutId === user.id
-                                      }
-                                      onClick={() =>
-                                        void onForceLogout(user.id, user.email)
-                                      }
-                                    />
-                                  ) : null}
-                                </>
-                              ) : null}
-                              {canDeactivate ? (
-                                <ActionIconButton
-                                  icon={
-                                    deactivatingId === user.id ? Loader2 : UserX
-                                  }
-                                  label={`Deactivate ${user.email}`}
-                                  tone="danger"
-                                  spinning={deactivatingId === user.id}
-                                  disabled={
-                                    deactivatingId === user.id ||
-                                    deletingId === user.id
-                                  }
-                                  onClick={() => void onDeactivate(user.id)}
-                                />
-                              ) : null}
-                              {canDeactivate &&
-                              user.id !== me?.id &&
-                              !isProtectedFromDelete(user.role?.key) ? (
-                                <ActionIconButton
-                                  icon={
-                                    deletingId === user.id ? Loader2 : Trash2
-                                  }
-                                  label={`Delete ${user.email}`}
-                                  tone="danger"
-                                  spinning={deletingId === user.id}
-                                  disabled={
-                                    deletingId === user.id ||
-                                    deactivatingId === user.id
-                                  }
-                                  onClick={() =>
-                                    void onDelete(user.id, user.email)
-                                  }
-                                />
-                              ) : null}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/50">
-                              —
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+        <UsersTheatre
+          users={users}
+          roles={roles}
+          branches={branches}
+          branchById={branchById}
+          itemTypes={itemTypes}
+          currentUserId={me?.id ?? null}
+          isOwner={isOwner}
+          canCreate={canCreate}
+          canUpdate={canUpdate}
+          canAssign={canAssign}
+          canDeactivate={canDeactivate}
+          canReadStaffProfile={canReadStaffProfile}
+          canTogglePayroll={canTogglePayroll}
+          query={query}
+          onQueryChange={setQuery}
+          filterStatus={filterStatus}
+          onFilterStatus={setFilterStatus}
+          filterRoleId={filterRoleId}
+          onFilterRoleId={setFilterRoleId}
+          filterBranchId={filterBranchId}
+          onFilterBranchId={setFilterBranchId}
+          activeFilterCount={activeFilterCount}
+          onClearFilters={clearAllFilters}
+          selectedId={selectedId}
+          selectedUser={selectedUser}
+          onSelect={selectUser}
+          onClearSelection={clearSelection}
+          mobileShowDetail={mobileShowDetail}
+          editingName={editingName}
+          onEditingName={(userId, name) =>
+            setEditingName((previous) => ({ ...previous, [userId]: name }))
+          }
+          savingNameId={savingNameId}
+          onSaveName={(userId) => void onSaveName(userId)}
+          roleChange={roleChange}
+          onRoleChange={(userId, roleId) =>
+            setRoleChange((previous) => ({ ...previous, [userId]: roleId }))
+          }
+          savingRoleId={savingRoleId}
+          onAssignRole={(userId) => void onAssignRole(userId)}
+          branchChange={branchChange}
+          onBranchChange={(userId, branchId) =>
+            setBranchChange((previous) => ({ ...previous, [userId]: branchId }))
+          }
+          savingBranchId={savingBranchId}
+          onSaveBranch={(userId) => void onSaveBranch(userId)}
+          deptChange={deptChange}
+          onDeptChange={(userId, ids) =>
+            setDeptChange((previous) => ({ ...previous, [userId]: ids }))
+          }
+          savingDeptId={savingDeptId}
+          onSaveDepartments={(userId) => void onSaveDepartments(userId)}
+          payrollInclude={payrollInclude}
+          payrollSavingId={payrollSavingId}
+          onTogglePayroll={(userId, include) =>
+            void onTogglePayroll(userId, include)
+          }
+          passwordEditUserId={passwordEditUserId}
+          passwordDraft={passwordDraft}
+          savingPasswordId={savingPasswordId}
+          onBeginPasswordEdit={beginPasswordEdit}
+          onPasswordDraft={(userId, next) =>
+            setPasswordDraft((previous) => ({ ...previous, [userId]: next }))
+          }
+          onSavePassword={(userId) => void onSavePassword(userId)}
+          onClearPasswordEdit={clearPasswordEdit}
+          pinEditUserId={pinEditUserId}
+          pinDraft={pinDraft}
+          savingPinId={savingPinId}
+          onBeginPinEdit={beginPinEdit}
+          onPinDraft={(userId, next) =>
+            setPinDraft((previous) => ({ ...previous, [userId]: next }))
+          }
+          onSavePin={(userId) => void onSavePin(userId)}
+          onClearPinEdit={clearPinEdit}
+          pinViewUserId={pinViewUserId}
+          pinViewValue={pinViewValue}
+          pinRevealed={pinRevealed}
+          onViewPin={(userId) => void onViewPin(userId)}
+          onTogglePinReveal={(userId) =>
+            setPinRevealed((previous) => ({
+              ...previous,
+              [userId]: !previous[userId],
+            }))
+          }
+          onClearPinView={clearPinView}
+          signingOutId={signingOutId}
+          deactivatingId={deactivatingId}
+          deletingId={deletingId}
+          onOpenProfile={(user) => {
+            setProfileUserId(user.id);
+            setProfileUserLabel(`${user.name} · ${user.email}`);
+          }}
+          onForceLogout={onForceLogout}
+          onDeactivate={onDeactivate}
+          onDelete={onDelete}
+          onInvite={() => {
+            skipInviteDrawerResetAfterCreate.current = false;
+            setInviteDrawerOpen(true);
+          }}
+        />
       </div>
 
       {canCreate ? (
