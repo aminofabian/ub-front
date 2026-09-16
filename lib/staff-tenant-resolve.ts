@@ -57,10 +57,20 @@ export async function fetchStaffSignInDestinationsByEmail(
   return rows.filter((row) => row.door === "STAFF" && row.slug?.trim());
 }
 
+export async function fetchUnverifiedStaffDestinationsByEmail(
+  email: string,
+): Promise<PublicSignInDestination[]> {
+  const rows = await fetchSignInDestinationsByEmail(email);
+  return rows.filter(
+    (row) => row.door === "STAFF_UNVERIFIED" && row.slug?.trim(),
+  );
+}
+
 export type ApexStaffTenantResolution =
   | { kind: "none" }
   | { kind: "single"; destination: PublicSignInDestination; tenantId: string }
-  | { kind: "multiple"; destinations: PublicSignInDestination[] };
+  | { kind: "multiple"; destinations: PublicSignInDestination[] }
+  | { kind: "unverified"; destinations: PublicSignInDestination[] };
 
 /** Resolves staff shops for an email on the platform apex (no host tenant). */
 export async function resolveApexStaffTenant(
@@ -68,6 +78,10 @@ export async function resolveApexStaffTenant(
 ): Promise<ApexStaffTenantResolution> {
   const destinations = await fetchStaffSignInDestinationsByEmail(email);
   if (destinations.length === 0) {
+    const unverified = await fetchUnverifiedStaffDestinationsByEmail(email);
+    if (unverified.length > 0) {
+      return { kind: "unverified", destinations: unverified };
+    }
     return { kind: "none" };
   }
   if (destinations.length === 1) {
@@ -78,4 +92,25 @@ export async function resolveApexStaffTenant(
     return { kind: "single", destination: destinations[0]!, tenantId };
   }
   return { kind: "multiple", destinations };
+}
+
+export function buildStaffDestinationVerifyUrl(
+  row: PublicSignInDestination,
+  email: string,
+): string {
+  const normalizedEmail = email.trim().toLowerCase();
+  const params = new URLSearchParams();
+  if (normalizedEmail) params.set("email", normalizedEmail);
+  const qs = params.toString();
+  const path = `${APP_ROUTES.verifyEmail}${qs ? `?${qs}` : ""}`;
+  if (!row.slug?.trim()) return "";
+  return buildApexForwardUrl(
+    {
+      slug: row.slug.trim(),
+      name: row.name,
+      logoUrl: row.logoUrl,
+      primaryHost: row.primaryHost,
+    },
+    path,
+  );
 }

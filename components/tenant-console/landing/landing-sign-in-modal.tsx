@@ -79,6 +79,8 @@ function destinationKey(row: PublicSignInDestination): string {
 
 function doorStamp(door: PublicSignInDestination["door"]): string {
   if (door === "STAFF") return "Till";
+  if (door === "STAFF_UNVERIFIED") return "Verify";
+  if (door === "SHOPPER_UNVERIFIED") return "Verify";
   if (door === "SUPPLIER") return "Supply";
   if (door === "SUPPLIER_CLAIM") return "Claim";
   return "Shop";
@@ -86,6 +88,9 @@ function doorStamp(door: PublicSignInDestination["door"]): string {
 
 function doorHint(row: PublicSignInDestination): string {
   if (row.hint) return row.hint;
+  if (row.door === "STAFF_UNVERIFIED" || row.door === "SHOPPER_UNVERIFIED") {
+    return "Open the verification page — then you can sign in";
+  }
   if (row.door === "SUPPLIER") return "PIN or password — opens the portal";
   if (row.door === "SUPPLIER_CLAIM") return "Verify your phone by SMS to open it";
   return "PIN or password — opens in the shop";
@@ -101,7 +106,9 @@ function doorAddress(row: PublicSignInDestination): string {
 /** Doors in the order a person expects to see them, with a group heading. */
 const DOOR_GROUPS: { door: PublicSignInDestination["door"]; label: string }[] = [
   { door: "STAFF", label: "Tills you run" },
+  { door: "STAFF_UNVERIFIED", label: "Shops waiting on email verification" },
   { door: "SHOPPER", label: "Shops you buy from" },
+  { door: "SHOPPER_UNVERIFIED", label: "Shop accounts waiting on email verification" },
   { door: "SUPPLIER", label: "Supply portal" },
   { door: "SUPPLIER_CLAIM", label: "Supply portal — not opened yet" },
 ];
@@ -230,13 +237,18 @@ export function LandingSignInModal({
     setForwarding(row);
 
     forwardTimer.current = window.setTimeout(() => {
-      const path = buildStorefrontSignInHref({
-        path: APP_ROUTES.shop,
-        email: idPayload?.email,
-        phone: idPayload?.phone,
-        door: row.door === "STAFF" ? "staff" : "shopper",
-        next: row.door === "STAFF" ? APP_ROUTES.business : APP_ROUTES.shopAccount,
-      });
+      const unverified =
+        row.door === "STAFF_UNVERIFIED" || row.door === "SHOPPER_UNVERIFIED";
+      const path = unverified
+        ? `${APP_ROUTES.verifyEmail}?email=${encodeURIComponent(idPayload?.email ?? "")}`
+        : buildStorefrontSignInHref({
+            path: APP_ROUTES.shop,
+            email: idPayload?.email,
+            phone: idPayload?.phone,
+            door: row.door === "STAFF" ? "staff" : "shopper",
+            next:
+              row.door === "STAFF" ? APP_ROUTES.business : APP_ROUTES.shopAccount,
+          });
       const url = buildApexForwardUrl(
         {
           slug: row.slug!,

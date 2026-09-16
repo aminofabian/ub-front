@@ -45,6 +45,7 @@ import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import {
   buildStaffDestinationLoginUrl,
+  buildStaffDestinationVerifyUrl,
   resolveApexStaffTenant,
   resolveTenantIdForStaffDestination,
 } from "@/lib/staff-tenant-resolve";
@@ -253,12 +254,9 @@ function LoginPageContent() {
       // to test.kiosk.ke and appear as a logout loop).
       //
       // `{kind:"none"}` must NOT be read as "this person has no account". It
-      // also covers "one destination, but we could not mint a tenant id", and
-      // every email lookup behind it filters `status='active'`
-      // (UserRepository.findFirstActiveByEmail / findAllActiveByEmail), so an
-      // unverified (INVITED) signup is invisible. Jumping straight to a signup
-      // form both loses real accounts and manufactures duplicate tenants — so
-      // let the API adjudicate from the email, and handle the failure below.
+      // also covers "one destination, but we could not mint a tenant id".
+      // `{kind:"unverified"}` is an INVITED self-signup — send them to
+      // verify-email on their shop host instead of inventing a new business.
       if (!tenantId && !IS_DESKTOP) {
         const resolution = await resolveApexStaffTenant(email);
         if (resolution.kind === "multiple") {
@@ -266,7 +264,18 @@ function LoginPageContent() {
           setShopPickerOpen(true);
           return;
         }
-        if (resolution.kind === "single") {
+        if (resolution.kind === "unverified") {
+          const first = resolution.destinations[0];
+          if (first) {
+            const url = buildStaffDestinationVerifyUrl(first, email);
+            if (url) {
+              window.location.assign(url);
+              navigatedAway = true;
+              return;
+            }
+          }
+          apexHostUnresolved = true;
+        } else if (resolution.kind === "single") {
           tenantId = resolution.tenantId;
         } else {
           apexHostUnresolved = true;

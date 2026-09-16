@@ -711,7 +711,13 @@ export type PublicShopSearchResult = {
  * the platform knows (a shop stocks from them, or an invite minted a passport)
  * who has never opened a portal account — the pass sends them to claim it.
  */
-export type SignInDoor = "STAFF" | "SHOPPER" | "SUPPLIER" | "SUPPLIER_CLAIM";
+export type SignInDoor =
+  | "STAFF"
+  | "SHOPPER"
+  | "SUPPLIER"
+  | "SUPPLIER_CLAIM"
+  | "STAFF_UNVERIFIED"
+  | "SHOPPER_UNVERIFIED";
 
 export type PublicSignInDestination = {
   /** Present for shop hosts; omitted for platform supplier portal. */
@@ -731,6 +737,8 @@ const SIGN_IN_DOORS: readonly SignInDoor[] = [
   "SHOPPER",
   "SUPPLIER",
   "SUPPLIER_CLAIM",
+  "STAFF_UNVERIFIED",
+  "SHOPPER_UNVERIFIED",
 ];
 
 /** Shared by the email lookup and the phone lookup in `apex-identify`. */
@@ -746,7 +754,11 @@ export function parseSignInDestinations(payload: unknown): PublicSignInDestinati
     const name = typeof r.name === "string" ? r.name.trim() : "";
     if (!name) continue;
     const slug = typeof r.slug === "string" ? r.slug.trim() : "";
-    const needsShop = door === "STAFF" || door === "SHOPPER";
+    const needsShop =
+      door === "STAFF" ||
+      door === "SHOPPER" ||
+      door === "STAFF_UNVERIFIED" ||
+      door === "SHOPPER_UNVERIFIED";
     if (needsShop && !slug) continue;
     out.push({
       slug: slug || undefined,
