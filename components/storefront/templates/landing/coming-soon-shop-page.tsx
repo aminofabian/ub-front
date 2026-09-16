@@ -7,11 +7,9 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type CSSProperties,
 } from "react";
-import { Check, Lock } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { dmSans } from "@/app/fonts/dm-sans";
@@ -115,35 +113,13 @@ function ShopPage({
     () => buildComingSoonTheme(primaryHex, accentHex),
     [primaryHex, accentHex],
   );
-  const [email, setEmail] = useState("");
-  const [emailDone, setEmailDone] = useState(false);
-  const [watching, setWatching] = useState<string | null>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
-
-  const onNotify = () => {
-    const trimmed = email.trim();
-    if (!trimmed.includes("@")) return;
-    setEmailDone(true);
-  };
-
-  const watch = (name: string) => {
-    setWatching(name);
-    emailRef.current?.focus();
-    document.getElementById("notify")?.scrollIntoView({
-      behavior: "smooth",
-      block: "end",
-    });
-  };
 
   const { displayName, featured, products } = content;
   const thumbs = products.filter((p) => p.imageUrl).slice(0, 3);
   const hasShelf = Boolean(featured) || products.length > 0;
-  const tillHint = watching
-    ? "We'll tell you when it's in the bag"
-    : "Bag locked";
-  const tillLine = watching
-    ? watching
-    : content.productCount > 0
+  const tillHint = "Bag locked";
+  const tillLine =
+    content.productCount > 0
       ? `${formatCount(content.productCount)} on the shelf`
       : "Stocking the shelf";
 
@@ -243,16 +219,13 @@ function ShopPage({
               <Link href={loginHref} className={styles.notifyBtn}>
                 Owner sign in
               </Link>
-            ) : (
-              <button
-                type="button"
-                className={styles.notifyBtn}
-                onClick={() => watch(featured.name)}
-              >
-                <Lock className="size-3.5" strokeWidth={2} aria-hidden />
-                Notify me about this
-              </button>
-            )}
+            ) : ownerState === "other" ? (
+              // Signed-in shopper: the shop has no catalogue to sell from yet,
+              // but their account may already hold orders, credit or a tab.
+              <Link href={APP_ROUTES.shopAccount} className={styles.notifyBtn}>
+                See your orders
+              </Link>
+            ) : null}
             {thumbs.length > 0 ? (
               <div className={styles.thumbs} aria-hidden>
                 {thumbs.map((thumb) => (
@@ -307,11 +280,7 @@ function ShopPage({
           </div>
           <div className={styles.grid}>
             {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onWatch={() => watch(product.name)}
-              />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         </section>
@@ -342,44 +311,17 @@ function ShopPage({
           <Link href={loginHref} className={styles.tillLink}>
             Owner sign in to set up
           </Link>
-        ) : emailDone ? (
-          <p className={styles.tillDone}>
-            <Check className="size-4 shrink-0" aria-hidden />
-            You&apos;re on the list. We&apos;ll write before launch.
-          </p>
-        ) : (
-          <form
-            className={styles.tillForm}
-            onSubmit={(e) => {
-              e.preventDefault();
-              onNotify();
-            }}
-          >
-            <input
-              ref={emailRef}
-              id="notify-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Your email"
-              autoComplete="email"
-              aria-label="Your email"
-            />
-            <button type="submit">Tell me when we open</button>
-          </form>
-        )}
+        ) : ownerState === "other" ? (
+          <Link href={APP_ROUTES.shopAccount} className={styles.tillLink}>
+            See your orders
+          </Link>
+        ) : null}
       </aside>
     </div>
   );
 }
 
-function ProductCard({
-  product,
-  onWatch,
-}: {
-  product: ComingSoonShopProduct;
-  onWatch: () => void;
-}) {
+function ProductCard({ product }: { product: ComingSoonShopProduct }) {
   return (
     <article className={styles.card}>
       <div className={styles.cardFace}>
@@ -406,14 +348,8 @@ function ProductCard({
             </p>
           ) : null}
         </div>
-        <button
-          type="button"
-          className={styles.lockBtn}
-          onClick={onWatch}
-          aria-label={`Notify me about ${product.name}`}
-        >
-          <Lock className="size-3.5" strokeWidth={2} aria-hidden />
-        </button>
+        {/* No per-product "notify me" here: the shop has no notifier behind it,
+            so the button only promised something that could not happen (F11). */}
       </div>
     </article>
   );

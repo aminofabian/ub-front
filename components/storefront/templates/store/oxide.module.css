@@ -681,6 +681,29 @@
   white-space: nowrap;
 }
 
+/* Standalone account CTA — mirrors the signupForm button without the input row. */
+.signupCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--oxide-accent);
+  color: var(--oxide-ink);
+  border: 1px solid var(--oxide-bone);
+  padding: 16px 26px;
+  font-family: var(--font-oxide-mono), ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 160ms ease;
+}
+
+.signupCta:hover {
+  opacity: 0.86;
+}
+
 .footer {
   border-top: 1px solid var(--oxide-ink);
 }

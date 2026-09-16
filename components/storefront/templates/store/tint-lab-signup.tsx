@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 
+import { useStorefrontSignUpDoor } from "@/components/storefront/storefront-account-link";
 import styles from "@/components/storefront/templates/store/tint-lab.module.css";
 
+/**
+ * Tint Lab's account panel.
+ *
+ * This was an email box that set `done` on submit and rendered "You're on the
+ * list." without calling anything — a confirmation for something that never
+ * happened. It now opens the storefront sign-up sheet (F8).
+ */
 export function TintLabSignup() {
-  const [done, setDone] = useState(false);
+  const { href, label, onActivate } = useStorefrontSignUpDoor();
 
   return (
     <section className={styles.section} id="signup">
@@ -13,26 +21,13 @@ export function TintLabSignup() {
         <div>
           <h3>Find your shade before it sells out.</h3>
           <p>
-            New formulas, restock alerts, and the occasional honest opinion about
-            what&apos;s actually worth your money.
+            An account keeps your orders, your saved cart, and restock alerts
+            together — so you hear about it when it matters.
           </p>
         </div>
-        {done ? (
-          <p className={styles.mono} style={{ letterSpacing: "0.08em" }}>
-            You&apos;re on the list.
-          </p>
-        ) : (
-          <form
-            className={styles.signupForm}
-            onSubmit={(e) => {
-              e.preventDefault();
-              setDone(true);
-            }}
-          >
-            <input type="email" placeholder="your@email.com" required />
-            <button type="submit">Join →</button>
-          </form>
-        )}
+        <Link href={href} onClick={onActivate} className={styles.signupCta}>
+          {label} →
+        </Link>
       </div>
     </section>
   );

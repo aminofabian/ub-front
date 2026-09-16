@@ -127,3 +127,47 @@ export function StorefrontAccountLink({
     </>
   );
 }
+
+/**
+ * Sign-up door for surfaces that render their own markup — the newsletter and
+ * subscribe panels in the store themes.
+ *
+ * Same contract as {@link useStorefrontAccountLink}: the `<a href>` works without
+ * JS, and the click opens the sheet on the create-account form when the provider
+ * is mounted. `label`/`href` flip to the account page for a signed-in shopper, so
+ * a panel never offers to create an account that already exists.
+ *
+ * These panels used to be forms that stored nothing, so a shopper could
+ * "subscribe", see a confirmation, and never become a record (F8).
+ */
+export function useStorefrontSignUpDoor(): {
+  href: string;
+  label: string;
+  onActivate: (event: MouseEvent<HTMLAnchorElement>) => void;
+} {
+  const ready = useClientSessionReady();
+  const hasSession = useClientHasSession();
+  const restoreFailed = useSessionRestoreFailed();
+  const pathname = usePathname();
+  const { available, open, hasPresence } = useStorefrontSignIn();
+
+  const clientSignedIn = ready && hasSession;
+  const signedIn = clientSignedIn || (hasPresence && !restoreFailed);
+  const next = isShopNextPath(pathname) ? pathname : APP_ROUTES.shopAccount;
+
+  return {
+    href: signedIn
+      ? APP_ROUTES.shopAccount
+      : buildStorefrontSignInHref({ path: next, next, signup: true }),
+    label: signedIn ? "Your account" : "Create an account",
+    onActivate: (event) => {
+      if (signedIn || !available) {
+        return;
+      }
+      event.preventDefault();
+      // "header" is the in-chrome bucket: not apex, not landing, so the sheet
+      // keeps the shopper on the page they signed up from.
+      open({ reason: "header", next, initialPhase: "signup" });
+    },
+  };
+}

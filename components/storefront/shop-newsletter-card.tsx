@@ -1,10 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { Send } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { useStorefrontSignUpDoor } from "@/components/storefront/storefront-account-link";
 import { cn } from "@/lib/utils";
 
+/**
+ * Sidebar panel pointing at the shopper's real account.
+ *
+ * This was an email box whose submit handler only called `preventDefault()` — it
+ * told the shopper nothing and stored nothing, so anyone who used it became no
+ * record at all. It now opens the storefront sign-up sheet (F8).
+ */
 export function ShopNewsletterCard({
   primary,
   accent,
@@ -12,6 +20,8 @@ export function ShopNewsletterCard({
   primary: string | null;
   accent: string | null;
 }) {
+  const { href, label, onActivate } = useStorefrontSignUpDoor();
+
   return (
     <aside
       className="relative overflow-hidden rounded-xl px-4 py-4 text-white shadow-sm"
@@ -19,9 +29,9 @@ export function ShopNewsletterCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-bold">Stay Updated</p>
+          <p className="text-sm font-bold">Offers &amp; restock alerts</p>
           <p className="mt-0.5 text-[11px] text-white/70">
-            Best offers delivered to your inbox.
+            Keep them with your orders — no inbox needed.
           </p>
         </div>
         <Send
@@ -29,34 +39,19 @@ export function ShopNewsletterCard({
           aria-hidden
         />
       </div>
-      <form
-        className="mt-3 flex gap-1.5"
-        onSubmit={(e) => {
-          e.preventDefault();
-        }}
+      <Link
+        href={href}
+        onClick={onActivate}
+        className={cn(
+          "mt-3 flex h-8 items-center justify-center rounded-lg px-3 text-xs font-semibold text-white shadow-sm transition hover:opacity-90",
+          !accent && "bg-amber-500 hover:bg-amber-600",
+        )}
+        style={
+          accent ? { backgroundColor: accent, color: "#fff" } : undefined
+        }
       >
-        <label htmlFor="shop-newsletter-email" className="sr-only">
-          Email
-        </label>
-        <input
-          id="shop-newsletter-email"
-          type="email"
-          placeholder="Enter your email"
-          className="h-8 flex-1 rounded-lg border border-white/25 bg-white/12 px-2.5 text-xs text-white placeholder:text-white/50 focus:border-white/50 focus:outline-none"
-        />
-        <Button
-          type="submit"
-          className={cn(
-            "h-8 shrink-0 rounded-lg px-3 text-xs font-semibold text-white shadow-sm",
-            !accent && "bg-amber-500 hover:bg-amber-600",
-          )}
-          style={
-            accent ? { backgroundColor: accent, color: "#fff" } : undefined
-          }
-        >
-          Subscribe
-        </Button>
-      </form>
+        {label}
+      </Link>
     </aside>
   );
 }

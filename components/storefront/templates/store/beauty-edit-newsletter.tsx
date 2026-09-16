@@ -1,32 +1,31 @@
 "use client";
 
+import Link from "next/link";
+
+import { useStorefrontSignUpDoor } from "@/components/storefront/storefront-account-link";
 import styles from "@/components/storefront/templates/store/beauty-edit.module.css";
 
+/**
+ * Beauty Edit's account panel.
+ *
+ * This was an email box whose submit handler only called `preventDefault()` — no
+ * call, no feedback, no record. It now opens the storefront sign-up sheet (F8).
+ */
 export function BeautyEditNewsletter() {
+  const { href, label, onActivate } = useStorefrontSignUpDoor();
+
   return (
     <section className={styles.newsletter} aria-labelledby="be-newsletter-title">
       <h2 id="be-newsletter-title" className={styles.newsletterTitle}>
-        Join the List
+        Your list, in one place
       </h2>
       <p className={styles.newsletterSub}>
-        Be first to know about promotions or product launches
+        Create an account to track orders, save your cart, and hear about
+        promotions and launches.
       </p>
-      <form
-        className={styles.newsletterForm}
-        onSubmit={(e) => e.preventDefault()}
-      >
-        <label className="sr-only" htmlFor="be-email">
-          Email address
-        </label>
-        <input
-          id="be-email"
-          type="email"
-          name="email"
-          placeholder="Your email"
-          autoComplete="email"
-        />
-        <button type="submit">Join</button>
-      </form>
+      <Link href={href} onClick={onActivate} className={styles.newsletterCta}>
+        {label}
+      </Link>
     </section>
   );
 }

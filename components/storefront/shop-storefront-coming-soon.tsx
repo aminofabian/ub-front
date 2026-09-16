@@ -13,7 +13,6 @@ import {
 } from "react";
 import {
   ArrowRight,
-  Check,
   Clock,
   CreditCard,
   MapPin,
@@ -144,17 +143,6 @@ function ComingSoonPage({
     [primaryHex, accentHex],
   );
 
-  const [email, setEmail] = useState("");
-  const [emailDone, setEmailDone] = useState(false);
-
-  const onNotify = () => {
-    const trimmed = email.trim();
-    if (!trimmed.includes("@")) {
-      return;
-    }
-    setEmailDone(true);
-  };
-
   return (
     <ComingSoonPageBody
       logoUrl={logoUrl}
@@ -163,10 +151,6 @@ function ComingSoonPage({
       ownerState={ownerState}
       ownerHubHref={ownerHubHref}
       loginHref={loginHref}
-      email={email}
-      emailDone={emailDone}
-      onEmailChange={setEmail}
-      onNotify={onNotify}
     />
   );
 }
@@ -178,10 +162,6 @@ function ComingSoonPageBody({
   ownerState,
   ownerHubHref,
   loginHref,
-  email,
-  emailDone,
-  onEmailChange,
-  onNotify,
 }: {
   logoUrl?: string | null;
   theme: ComingSoonTheme;
@@ -189,10 +169,6 @@ function ComingSoonPageBody({
   ownerState: "unknown" | "guest" | "owner" | "other";
   ownerHubHref: string;
   loginHref: string;
-  email: string;
-  emailDone: boolean;
-  onEmailChange: (v: string) => void;
-  onNotify: () => void;
 }) {
   const promiseRefs = useRef<(HTMLDivElement | null)[]>([]);
   const { displayName } = content;
@@ -361,19 +337,20 @@ function ComingSoonPageBody({
                 <span className="relative z-[1]">Owner sign in</span>
                 <ArrowRight className="relative z-[1] size-3.5" aria-hidden />
               </Link>
-            ) : (
-              <button
-                type="button"
+            ) : ownerState === "other" ? (
+              // Signed-in shopper: no catalogue to sell from yet, but their
+              // account may already hold orders, credit or a tab.
+              <Link
+                href={APP_ROUTES.shopAccount}
                 className={cn(
                   styles.btnPrimary,
-                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 px-8 py-4 text-[13px] font-medium uppercase tracking-[0.08em]",
+                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 px-8 py-4 text-[13px] font-medium uppercase tracking-[0.08em] no-underline transition-colors",
                 )}
-                onClick={() => scrollTo("notify")}
               >
-                <span className="relative z-[1]">Notify me first</span>
+                <span className="relative z-[1]">See your orders</span>
                 <ArrowRight className="relative z-[1] size-3.5" aria-hidden />
-              </button>
-            )}
+              </Link>
+            ) : null}
             {content.promises.length > 0 || content.teasers.length > 0 ? (
               <button
                 type="button"
@@ -551,7 +528,7 @@ function ComingSoonPageBody({
             <p className="text-sm font-light leading-[1.7] text-[var(--cs-on-dark-muted)]">
               {ownerState === "owner"
                 ? "Choose your branch location and enable your public catalog. Shoppers will see stock and prices from that branch."
-                : `Leave your email and we will tell you when ${displayName} opens.`}
+                : `${displayName} is still setting up. Once the catalogue is published, stock and prices appear right here.`}
             </p>
           </div>
 
@@ -578,48 +555,18 @@ function ComingSoonPageBody({
               >
                 Owner sign in to set up
               </Link>
-            ) : emailDone ? (
-              <div
-                className="flex items-center gap-2.5 border px-5 py-4 text-[13px] font-light tracking-[0.04em]"
+            ) : ownerState === "other" ? (
+              <Link
+                href={APP_ROUTES.shopAccount}
+                className="block w-full px-7 py-4 text-center text-xs font-semibold uppercase tracking-[0.1em] no-underline transition-colors hover:brightness-110"
                 style={{
-                  borderColor: `color-mix(in srgb, ${theme.primary} 45%, transparent)`,
-                  backgroundColor: `color-mix(in srgb, ${theme.primary} 14%, transparent)`,
-                  color: theme.accentLight,
+                  backgroundColor: theme.primary,
+                  color: theme.onPrimary,
                 }}
               >
-                <Check className="size-4 shrink-0" aria-hidden />
-                You&apos;re on the list. We&apos;ll write before launch.
-              </div>
-            ) : (
-              <>
-                <div className="flex border border-[color-mix(in_srgb,var(--cs-on-dark)_22%,transparent)] transition-colors focus-within:border-[var(--cs-primary)]">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => onEmailChange(e.target.value)}
-                    placeholder="Your email address"
-                    className="min-w-0 flex-1 border-0 bg-transparent px-5 py-4 text-sm font-light tracking-[0.02em] text-[var(--cs-on-dark)] outline-none placeholder:text-[var(--cs-on-dark-muted)]"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") onNotify();
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="shrink-0 border-0 px-7 py-4 text-xs font-semibold uppercase tracking-[0.1em] transition-colors hover:brightness-110"
-                    style={{
-                      backgroundColor: theme.primary,
-                      color: theme.onPrimary,
-                    }}
-                    onClick={onNotify}
-                  >
-                    Notify me
-                  </button>
-                </div>
-                <p className="text-[11px] tracking-[0.02em] text-[var(--cs-on-dark-muted)]">
-                  No spam. Unsubscribe anytime.
-                </p>
-              </>
-            )}
+                See your orders
+              </Link>
+            ) : null}
           </div>
         </div>
       </section>
