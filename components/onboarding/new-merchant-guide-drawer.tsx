@@ -24,6 +24,7 @@ import { FormDrawer } from "@/components/form-drawer";
 import { useDashboard } from "@/components/dashboard-provider";
 import { fetchCatalogListStats } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { cashierFirstSaleActivateHref } from "@/lib/first-sale-activate";
 import { getOnboardingQuestionnaireState } from "@/lib/onboarding-questionnaire";
 import { cn } from "@/lib/utils";
 
@@ -386,7 +387,7 @@ export function NewMerchantGuideDrawer() {
   const goOpenTill = useCallback(() => {
     writeDismissed(businessId);
     setOpen(false);
-    router.push(APP_ROUTES.cashier);
+    router.push(cashierFirstSaleActivateHref());
   }, [businessId, router]);
 
   const goReadGuide = useCallback(() => {

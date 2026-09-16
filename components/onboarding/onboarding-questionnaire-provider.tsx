@@ -17,6 +17,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { OnboardingCatalogDrawer } from "@/components/onboarding/onboarding-catalog-drawer";
 import { OnboardingQuestionnaire } from "@/components/onboarding/onboarding-questionnaire";
 import { APP_ROUTES } from "@/lib/config";
+import { cashierFirstSaleActivateHref } from "@/lib/first-sale-activate";
 import {
   isButcheryOnlyBusiness,
   isCatalogEligibleStoreTypes,
@@ -328,8 +329,11 @@ export function OnboardingQuestionnaireProvider({
   const handleCatalogImportSuccess = useCallback(() => {
     completeOnboardingQuestionnaire(answers);
     setCatalogDrawerOpen(false);
-    finish();
-  }, [answers, finish]);
+    setActive(false);
+    setCelebrate(false);
+    // Stock is on the shelf — push straight into till registration + shift gate.
+    router.replace(cashierFirstSaleActivateHref());
+  }, [answers, router]);
 
   const dismissLayer = useCallback(() => {
     softSkipOnboardingQuestionnaire();

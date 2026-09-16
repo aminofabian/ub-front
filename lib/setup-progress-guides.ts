@@ -159,7 +159,7 @@ export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide
   },
   first_sale: {
     title: "How to make your first sale",
-    doItUrl: "/cashier",
+    doItUrl: "/cashier?activate=first-sale",
     shots: [
       {
         src: `${SP}/sale-01-shift.png`,

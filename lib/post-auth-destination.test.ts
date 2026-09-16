@@ -96,13 +96,16 @@ describe("resolvePostAuthDestination", () => {
         completedOnboarding,
       ),
     ).toBe(APP_ROUTES.overview);
+  });
+
+  it("sends dismissed onboarding owners to the business hub for Resume", () => {
     expect(
       resolvePostAuthDestination(
         { role: { key: "owner" } },
         null,
         dismissedOnboarding,
       ),
-    ).toBe(APP_ROUTES.overview);
+    ).toBe(APP_ROUTES.business);
   });
 
   it("sends stock managers to take stock", () => {
@@ -328,20 +331,23 @@ describe("resolvePostAuthDestination", () => {
         completedOnboarding,
       ),
     ).toBe(APP_ROUTES.overview);
+  });
+
+  it("keeps dismissed onboarding on the business hub over storefront next", () => {
     expect(
       resolvePostAuthDestination(
         { role: { key: "owner" } },
         null,
         dismissedOnboarding,
       ),
-    ).toBe(APP_ROUTES.overview);
+    ).toBe(APP_ROUTES.business);
     expect(
       resolvePostAuthDestination(
         { role: { key: "owner" } },
         APP_ROUTES.shop,
         dismissedOnboarding,
       ),
-    ).toBe(APP_ROUTES.shop);
+    ).toBe(APP_ROUTES.business);
   });
 
   it("ignores storefront next on office login for configured owners", () => {
@@ -357,10 +363,21 @@ describe("resolvePostAuthDestination", () => {
       resolvePostAuthDestination(
         { role: { key: "admin" } },
         APP_ROUTES.shop,
-        dismissedOnboarding,
+        completedOnboarding,
         { office: true },
       ),
     ).toBe(APP_ROUTES.overview);
+  });
+
+  it("office login still sends dismissed owners to the business hub", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "admin" } },
+        APP_ROUTES.shop,
+        dismissedOnboarding,
+        { office: true },
+      ),
+    ).toBe(APP_ROUTES.business);
   });
 
   it("honours the business hub next on office login", () => {

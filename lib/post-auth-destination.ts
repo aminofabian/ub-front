@@ -187,15 +187,18 @@ function isStorefrontHome(path: string): boolean {
 }
 
 /**
- * True when the merchant has not finished (or dismissed) business onboarding.
- * While onboarding is pending/active, the business hub must gate routing so a
- * brand-new owner is never dropped onto the storefront or role apps.
+ * True when the merchant still needs the business hub before day-to-day apps.
+ * Pending/active are unfinished setup. Dismissed means they soft-left the
+ * questionnaire — send them to the hub so Resume setup can pick them up again
+ * instead of dropping them on /overview with an empty shop.
  */
 export function isOnboardingIncomplete(
   business?: BusinessRecord | null,
 ): boolean {
   const status = business?.onboarding?.status?.trim().toLowerCase() ?? "";
-  return status === "pending" || status === "active";
+  return (
+    status === "pending" || status === "active" || status === "dismissed"
+  );
 }
 
 /**
