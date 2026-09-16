@@ -197,6 +197,34 @@ export function isEmailNotVerifiedError(error: unknown): boolean {
 }
 
 /**
+ * Backend {@code AuthRegistrationService} duplicate-signup detail (409).
+ *
+ * Also matched loosely and scoped to "this email" so it cannot collide with the
+ * other 409s that use "already" (shop address taken, domain registered,
+ * person already verified).
+ */
+const ACCOUNT_EXISTS_DETAIL = /account with this email already exists/i;
+
+/**
+ * True when sign-up was refused because this shop already has an account for
+ * that email.
+ *
+ * The account may be unverified (the user never got in) or already fine — the
+ * API does not say which, so callers should offer both ways forward rather than
+ * a bare "already exists" that leaves the user with nothing to click.
+ */
+export function isAccountExistsError(error: unknown): boolean {
+  const err = error as { status?: unknown; payload?: unknown } | null | undefined;
+  const payload = err?.payload ?? error;
+  const problem = parseProblem(payload);
+  if (!problem) {
+    return false;
+  }
+  const status = typeof err?.status === "number" ? err.status : problem.status;
+  return status === 409 && ACCOUNT_EXISTS_DETAIL.test(problem.detail ?? "");
+}
+
+/**
  * Whether an API failure means the stored session is unusable and the client should
  * clear auth data and redirect to login. Skips public/unauthenticated calls (e.g. login).
  *

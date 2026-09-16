@@ -35,14 +35,40 @@ import { cn } from "@/lib/utils";
 
 const REDIRECT_SECONDS = 10;
 const RESEND_COOLDOWN_SECONDS = 45;
-/** Fallback when verify-email cannot mint a session (older API). */
+
+/**
+ * Fallback when verify-email cannot mint a session (older API, or a failed
+ * handoff): the CUSTOMER door.
+ *
+ * This used to be `/login/staff?mode=office&next=/business`, which dropped a
+ * shopper on the office/PIN door bound for an operator surface they have no
+ * account for — the dead end in F3. Staff are safe here too: signing in on the
+ * customer door runs `resolvePostAuthDestination`, which promotes them to their
+ * role home (or the business hub) rather than pinning them to the shop.
+ */
 function postVerifyLoginHref(email?: string): string {
+  const params = new URLSearchParams({
+    next: APP_ROUTES.shopAccount,
+  });
+  const trimmed = email?.trim();
+  if (trimmed) {
+    params.set("email", trimmed);
+  }
+  return `${APP_ROUTES.login}?${params.toString()}`;
+}
+
+/**
+ * The office/staff door, kept only for the explicitly-labelled "Staff sign in"
+ * affordance — never as the automatic fallback for a verified shopper.
+ */
+function staffSignInHref(email?: string): string {
   const params = new URLSearchParams({
     mode: "office",
     next: APP_ROUTES.business,
   });
-  if (email?.trim()) {
-    params.set("email", email.trim());
+  const trimmed = email?.trim();
+  if (trimmed) {
+    params.set("email", trimmed);
   }
   return `${APP_ROUTES.staffLogin}?${params.toString()}`;
 }
@@ -74,6 +100,7 @@ function VerifyEmailContent() {
   const loginAfterVerifyHref = postVerifyLoginHref(
     resendEmail || emailFromQuery,
   );
+  const staffLoginHref = staffSignInHref(resendEmail || emailFromQuery);
 
   const hasAutoToken = tokenFromQuery.trim().length >= 16;
   const showManualForm = !hasAutoToken;
@@ -116,7 +143,7 @@ function VerifyEmailContent() {
         await completeAuthAndNavigate(dest, tenant?.slug);
         return;
       } catch {
-        /* fall through to staff sign-in with next=/business */
+        /* fall through to the customer sign-in door */
       }
     }
     router.replace(loginAfterVerifyHref);
@@ -404,7 +431,7 @@ function VerifyEmailContent() {
           ) : (
             <>
               <AuthAlert variant="success">
-                Redirecting to staff sign-in in{" "}
+                Redirecting to sign-in in{" "}
                 <span className="font-semibold tabular-nums">{redirectSeconds}</span>
                 {redirectSeconds === 1 ? " second" : " seconds"}.
               </AuthAlert>
@@ -485,7 +512,7 @@ function VerifyEmailContent() {
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Already verified?{" "}
         <Link
-          href={loginAfterVerifyHref}
+          href={staffLoginHref}
           className="font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
         >
           Staff sign in

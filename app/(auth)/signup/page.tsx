@@ -35,6 +35,7 @@ import {
   handleRegistrationResult,
   resolveDestinationAfterAuth,
 } from "@/lib/post-registration-auth";
+import { isAccountExistsError } from "@/lib/problem";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass =
@@ -53,6 +54,8 @@ function SignupPageContent() {
   const [verificationLink, setVerificationLink] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  /** Set when signup was refused because this shop already has that email. */
+  const [recoveryEmail, setRecoveryEmail] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
   const [countryCode, setCountryCode] = useState(DEFAULT_SELFSERVE_COUNTRY_CODE);
   const [isOnboarding, setIsOnboarding] = useState(false);
@@ -90,6 +93,7 @@ function SignupPageContent() {
     setErrorMessage("");
     setSuccessMessage("");
     setVerificationLink(null);
+    setRecoveryEmail(null);
 
     try {
       const id = await ensureTenantResolved();
@@ -125,6 +129,12 @@ function SignupPageContent() {
         setVerificationLink(null);
       }
     } catch (error) {
+      // A duplicate signup is not a dead end: the account may simply never have
+      // been verified, so offer the verification and sign-in doors instead of a
+      // bare "already exists" with nothing to click.
+      if (isAccountExistsError(error)) {
+        setRecoveryEmail(email.trim().toLowerCase());
+      }
       setErrorMessage(
         error instanceof Error ? error.message : "Sign up failed.",
       );
@@ -504,8 +514,32 @@ function SignupPageContent() {
       ) : null}
 
       {errorMessage ? (
-        <div className="mt-5">
+        <div className="mt-5 space-y-3">
           <AuthAlert variant="error">{errorMessage}</AuthAlert>
+          {recoveryEmail ? (
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="h-12 w-full rounded-2xl border-2"
+                asChild
+              >
+                <Link
+                  href={`${APP_ROUTES.verifyEmail}?email=${encodeURIComponent(recoveryEmail)}`}
+                >
+                  Open verification page
+                </Link>
+              </Button>
+              <p className="text-center text-sm text-muted-foreground">
+                Already verified?{" "}
+                <Link
+                  href={`${APP_ROUTES.staffLogin}?mode=office&email=${encodeURIComponent(recoveryEmail)}&next=${encodeURIComponent(APP_ROUTES.business)}`}
+                  className="font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
+                >
+                  Continue to your account
+                </Link>
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

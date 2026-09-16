@@ -7,6 +7,7 @@ import {
   isAuthRecoveryUserMessage,
   isBareRequestFailureMessage,
   isEmailNotVerifiedError,
+  isAccountExistsError,
   isItemNotFoundProblem,
   isSessionRelatedProblem,
   isTenantContextMissingProblem,
@@ -455,5 +456,45 @@ describe("isEmailNotVerifiedError", () => {
     );
     expect(isEmailNotVerifiedError(null)).toBe(false);
     expect(isEmailNotVerifiedError(undefined)).toBe(false);
+  });
+});
+
+describe("isAccountExistsError", () => {
+  const problem = {
+    type: "about:blank",
+    title: "Conflict",
+    status: 409,
+    detail: "An account with this email already exists for this business",
+  };
+
+  it("matches the documented duplicate-signup 409", () => {
+    expect(isAccountExistsError({ status: 409, payload: problem })).toBe(true);
+  });
+
+  it("accepts a raw payload with no error wrapper", () => {
+    expect(isAccountExistsError(problem)).toBe(true);
+  });
+
+  it("does not swallow other 409s that mention already", () => {
+    // These are real 409s elsewhere on the signup path (onboard, super-admin).
+    for (const detail of [
+      "That shop address is already taken. Try a different one.",
+      "A business is already registered for acme.kiosk.ke",
+      "This person already verified. You can't skip the inbox from here.",
+    ]) {
+      expect(
+        isAccountExistsError({ status: 409, payload: { ...problem, detail } }),
+      ).toBe(false);
+    }
+  });
+
+  it("does not match the same detail at another status", () => {
+    expect(isAccountExistsError({ status: 400, payload: problem })).toBe(false);
+  });
+
+  it("ignores unrelated failures", () => {
+    expect(isAccountExistsError(new Error("Network unreachable"))).toBe(false);
+    expect(isAccountExistsError(null)).toBe(false);
+    expect(isAccountExistsError(undefined)).toBe(false);
   });
 });
