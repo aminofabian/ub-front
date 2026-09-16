@@ -62,6 +62,7 @@ import {
   storeItemCountInput,
 } from "../_lib/store-item-count";
 import {
+  catalogDisplayToPacks,
   catalogNativePack,
   isPacked,
   packsToCatalogDisplay,
@@ -104,11 +105,21 @@ const EMPTY_DRAFT: Draft = {
   buyingPrice: "",
 };
 
-function draftFromRow(row: StoreItemRecord, connected: boolean): Draft {
+function draftFromRow(
+  row: StoreItemRecord,
+  connected: boolean,
+  pack?: SupplyPackMode | null,
+  displayToHolderFactor = 1,
+): Draft {
+  const live = storeItemCount(row, connected);
+  const typed =
+    connected && row.itemId != null && isPacked(pack)
+      ? catalogDisplayToPacks(live, pack, displayToHolderFactor)
+      : live;
   return {
     name: row.name,
     barcode: row.barcode ?? "",
-    quantity: storeItemCountInput(storeItemCount(row, connected)),
+    quantity: storeItemCountInput(typed),
     expiryDate: row.expiryDate ?? "",
     buyingPrice:
       row.buyingPrice == null || row.buyingPrice === ""
@@ -780,6 +791,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     setEditBusy(true);
     setFeedback(null);
     try {
+      let stockWritten = false;
       if (followsInventory && qtyChanged && latest.itemId) {
         // Compare against branch stock (the source Save mutates), not a stale
         // list snapshot, so we neither no-op nor write a zero delta by mistake.
@@ -797,6 +809,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
             unitCost: buyingPrice ?? 0,
             notes: "Stock set from store room",
           });
+          stockWritten = true;
         }
       }
       const updated = await updateStoreItem(
@@ -812,33 +825,61 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         },
         { branchId },
       );
-      // After an inventory write, re-read the list so the on-hand figure is
-      // branch-batch stock (same source Save just mutated), not a stale snapshot.
-      const nextRows =
-        followsInventory && qtyChanged
-          ? await fetchStoreItems({ branchId })
-          : null;
-      const fresh =
-        nextRows?.find((r) => r.id === updated.id) ??
-        (followsInventory && qtyChanged
-          ? {
-              ...updated,
-              inventoryQuantity: targetDisplay,
-            }
-          : updated);
-      if (nextRows) {
-        setRows(nextRows);
-      } else {
-        setRows((prev) =>
-          prev
-            .map((r) => (r.id === fresh.id ? fresh : r))
-            .sort((a, b) => a.name.localeCompare(b.name)),
-        );
-      }
+      // Paint the count we just saved immediately. A follow-up list read can lag
+      // behind the stock write, which used to snap On hand / Number back to the
+      // old figure until a full page reload.
+      const fresh: StoreItemRecord = followsInventory
+        ? {
+            ...updated,
+            inventoryQuantity: targetDisplay,
+          }
+        : {
+            ...updated,
+            quantity,
+          };
+      setRows((prev) =>
+        prev
+          .map((r) => (r.id === fresh.id ? fresh : r))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      );
       setEditRow(fresh);
-      setEditDraft(draftFromRow(fresh, connected));
+      setEditDraft(
+        draftFromRow(
+          fresh,
+          connected,
+          packMode,
+          packCatalog?.displayToHolderFactor ?? 1,
+        ),
+      );
       setSelectedId(fresh.id);
       setFeedback({ kind: "success", text: `Updated “${fresh.name}”.` });
+      if (stockWritten) {
+        // Background reconcile — keep the optimistic count if the read is stale.
+        void fetchStoreItems({ branchId })
+          .then((nextRows) => {
+            setRows((prev) => {
+              const byId = new Map(nextRows.map((r) => [r.id, r]));
+              return prev
+                .map((r) => {
+                  const remote = byId.get(r.id);
+                  if (!remote) return r;
+                  if (r.id !== fresh.id) return remote;
+                  const remoteCount = storeItemCount(remote, true);
+                  if (Math.abs(remoteCount - targetDisplay) < 0.0001) {
+                    return remote;
+                  }
+                  return {
+                    ...remote,
+                    inventoryQuantity: targetDisplay,
+                  };
+                })
+                .sort((a, b) => a.name.localeCompare(b.name));
+            });
+          })
+          .catch(() => {
+            // Optimistic row already shows the saved count.
+          });
+      }
     } catch (err) {
       setFeedback({
         kind: "error",
