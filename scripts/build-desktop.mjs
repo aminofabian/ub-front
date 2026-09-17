@@ -100,6 +100,11 @@ const CLOUD_ONLY_PATHS = [
   // `"use client"` pages into server wrappers to add it, which is more
   // invasive than just keeping them out of the static build.
   "app/(dashboard)/customers/[id]",
+  // Customer email-campaign detail — same client-only dynamic-route pattern.
+  "app/(dashboard)/customers/email-campaigns/[id]",
+  // Public product landing under the merchant catalog — dynamic slug, no
+  // generateStaticParams; SPA fallback covers hard refresh on desktop.
+  "app/(dashboard)/products/p",
   // Restock-digest review page — same client-only dynamic-route pattern as
   // customers/[id]; the parent list page stays in the export.
   "app/(dashboard)/inventory/restock-digest/[runId]",
@@ -122,6 +127,16 @@ const CLOUD_ONLY_PATHS = [
   // SEO metadata routes — irrelevant on a localhost desktop install.
   "app/sitemap.ts",
   "app/robots.ts",
+  // Shopper PWA (per-tenant dynamic manifest) — storefront is cloud-only, and
+  // Next 16 export rejects the force-dynamic route handler.
+  "app/pwa",
+  // Tenant-host shortcut `/app` → shopper PWA install page (force-dynamic).
+  "app/app",
+  // MetadataRoute.Manifest becomes /manifest.webmanifest. On cloud it reads
+  // headers() for tenant branding; on desktop export that path must not exist
+  // (Next 16 requires force-static). The till uses the platform favicon /
+  // icon assets instead of an installable PWA manifest.
+  "app/manifest.ts",
 ];
 
 const swapped = [];
