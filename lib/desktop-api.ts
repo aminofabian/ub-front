@@ -105,6 +105,8 @@ export type DesktopSyncPlan = {
   tier: string | null;
   /** Cloud billing status, e.g. "ACTIVE" (null = unknown). */
   status: string | null;
+  /** Cloud billing period end (ISO), null when unknown/free. */
+  expiresAt?: string | null;
 };
 
 export function fetchDesktopSyncPlan(): Promise<DesktopSyncPlan> {

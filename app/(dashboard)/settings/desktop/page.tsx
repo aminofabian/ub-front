@@ -413,6 +413,13 @@ export default function DesktopSettingsPage() {
                       </span>
                     </>
                   ) : null}
+                  {cloudPlan.expiresAt ? (
+                    <>
+                      {" "}
+                      · renews{" "}
+                      {new Date(cloudPlan.expiresAt).toLocaleDateString()}
+                    </>
+                  ) : null}
                 </p>
               ) : null}
             </div>

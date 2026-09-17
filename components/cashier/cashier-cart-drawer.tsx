@@ -747,42 +747,40 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                     <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                       Payment
                     </h3>
-                    {!IS_DESKTOP ? (
-                      <label className="flex cursor-pointer items-center gap-1.5 text-[10px] text-muted-foreground">
-                        <input
-                          type="checkbox"
-                          className="size-3 rounded border-border/60 accent-[var(--pos-primary)]"
-                          checked={splitPay}
-                          disabled={
-                            payMethod === "customer_credit" ||
-                            payMethod === "loyalty_redeem" ||
-                            payMethod === "remote_bill" ||
-                            creditChangeToWallet
+                    <label className="flex cursor-pointer items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        className="size-3 rounded border-border/60 accent-[var(--pos-primary)]"
+                        checked={splitPay}
+                        disabled={
+                          payMethod === "customer_credit" ||
+                          payMethod === "loyalty_redeem" ||
+                          payMethod === "remote_bill" ||
+                          creditChangeToWallet
+                        }
+                        onChange={(e) => {
+                          const next = e.target.checked;
+                          if (
+                            next &&
+                            (payMethod === "customer_credit" ||
+                              payMethod === "loyalty_redeem" ||
+                              payMethod === "remote_bill")
+                          ) {
+                            return;
                           }
-                          onChange={(e) => {
-                            const next = e.target.checked;
-                            if (
-                              next &&
-                              (payMethod === "customer_credit" ||
-                                payMethod === "loyalty_redeem" ||
-                                payMethod === "remote_bill")
-                            ) {
-                              return;
-                            }
-                            if (next && payMethod === "customer_wallet") {
-                              // Keep wallet as part of the split mix.
-                            } else if (next && payMethodNeedsCustomer(payMethod)) {
-                              setPayMethod("cash");
-                            }
-                            if (next) {
-                              setCreditChangeToWallet(false);
-                            }
-                            setSplitPay(next);
-                          }}
-                        />
-                        Split
-                      </label>
-                    ) : null}
+                          if (next && payMethod === "customer_wallet") {
+                            // Keep wallet as part of the split mix.
+                          } else if (next && payMethodNeedsCustomer(payMethod)) {
+                            setPayMethod("cash");
+                          }
+                          if (next) {
+                            setCreditChangeToWallet(false);
+                          }
+                          setSplitPay(next);
+                        }}
+                      />
+                      Split
+                    </label>
                   </div>
 
                   {!splitPay &&
@@ -801,14 +799,13 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         icon={<Banknote className="size-3" aria-hidden />}
                         label="Cash"
                       />
-                      {!IS_DESKTOP ? (
-                        <PayMethodChip
-                          active={payMethod === "mpesa_manual"}
-                          onClick={() => setPayMethod("mpesa_manual")}
-                          icon={<Smartphone className="size-3" aria-hidden />}
-                          label="M-Pesa"
-                        />
-                      ) : null}
+                      <PayMethodChip
+                        active={payMethod === "mpesa_manual"}
+                        onClick={() => setPayMethod("mpesa_manual")}
+                        icon={<Smartphone className="size-3" aria-hidden />}
+                        label="M-Pesa"
+                      />
+                      {/* Kiosk Pay STK needs the cloud wallet — hide on offline desktop. */}
                       {!IS_DESKTOP && kioskPayAvailable ? (
                         <PayMethodChip
                           active={payMethod === "kiosk_pay"}
