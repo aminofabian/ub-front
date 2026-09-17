@@ -394,9 +394,10 @@ export default function DesktopSettingsPage() {
                 Sync with your online shop
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Pull the latest products, prices and settings from kiosk.ke onto
-                this PC, and upload any sales from closed shifts. The counter
-                keeps working offline either way.
+                This till syncs automatically when it starts and about every 30
+                minutes — products, prices, staff, and sales. Use Sync now only
+                when you need an immediate refresh. Reconnect only if the online
+                session expires after a long offline stretch.
               </p>
               {cloudPlan?.tier ? (
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -501,8 +502,9 @@ export default function DesktopSettingsPage() {
                 onSubmit={onReconnect}
               >
                 <p className="text-xs text-muted-foreground">
-                  If “session expired” keeps appearing, sign in again to refresh
-                  the connection to your online shop.
+                  Only needed if sync says the online session expired. Sign in
+                  with the shop owner email and password to refresh it — you do
+                  not need to reconnect on every launch.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <input

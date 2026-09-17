@@ -8,10 +8,12 @@ import { cn } from "@/lib/utils";
 type DesktopBootShellProps = {
   message: string;
   title?: string;
-  /** When omitted, no progress indicator is shown (e.g. setup form idle). */
-  status?: "loading" | "error" | "success";
+  /** When omitted or idle, no progress dots (form-ready state). */
+  status?: "loading" | "error" | "success" | "idle";
   children?: ReactNode;
   className?: string;
+  /** Wider panel for multi-step setup wizards. */
+  wide?: boolean;
 };
 
 /**
@@ -25,17 +27,35 @@ export function DesktopBootShell({
   status = "loading",
   children,
   className,
+  wide = false,
 }: DesktopBootShellProps) {
   return (
     <main
       className={cn(
-        "flex min-h-dvh items-center justify-center px-6 py-10",
-        "bg-[linear-gradient(145deg,#fafafa_0%,#eef3ef_48%,#f5f7f5_100%)]",
-        "dark:bg-[linear-gradient(145deg,#0f1410_0%,#1a221c_48%,#0d120e_100%)]",
+        "relative flex min-h-dvh items-center justify-center overflow-hidden px-5 py-10 sm:px-8",
         className,
       )}
+      style={{
+        background:
+          "radial-gradient(120% 80% at 10% 0%, #e8f2ea 0%, transparent 55%), radial-gradient(90% 70% at 100% 100%, #dfe8e2 0%, transparent 50%), linear-gradient(165deg, #f7faf7 0%, #eef3ef 45%, #f4f6f4 100%)",
+      }}
     >
-      <div className="flex w-full max-w-sm flex-col items-center gap-6 text-center">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.35]"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E\")",
+          backgroundSize: "180px 180px",
+        }}
+      />
+
+      <div
+        className={cn(
+          "relative z-[1] flex w-full flex-col items-center gap-5 text-center",
+          wide ? "max-w-lg" : "max-w-sm",
+        )}
+      >
         <KioskLogo
           size="lg"
           variant="auth"
@@ -46,14 +66,17 @@ export function DesktopBootShell({
           markClassName={status === "loading" ? "animate-pulse" : undefined}
         />
 
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 px-1">
           {title ? (
-            <p className="text-base font-semibold tracking-tight text-foreground">
+            <h1
+              className="text-[1.35rem] font-semibold tracking-[-0.02em] text-foreground sm:text-2xl"
+              style={{ fontFamily: "var(--font-heading), sans-serif" }}
+            >
               {title}
-            </p>
+            </h1>
           ) : null}
           <p
-            className="text-sm text-muted-foreground"
+            className="mx-auto max-w-[36ch] text-sm leading-relaxed text-[#3d4a40]"
             role={status === "loading" ? "status" : undefined}
             aria-live="polite"
           >
@@ -66,7 +89,7 @@ export function DesktopBootShell({
             {[0, 1, 2].map((i) => (
               <span
                 key={i}
-                className="h-1.5 w-1.5 rounded-full bg-primary/75 animate-pulse"
+                className="h-1.5 w-1.5 rounded-full bg-[#1f7a3a]/75 animate-pulse"
                 style={{ animationDelay: `${i * 180}ms` }}
               />
             ))}

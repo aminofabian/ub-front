@@ -73,6 +73,14 @@ function LoginPageContent() {
   const tenantGreeting =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
   const [, ensureTenantResolved] = useTenantIdPrefill(tenant?.tenantId);
+  const [desktopShopName, setDesktopShopName] = useState<string | null>(null);
+  const [desktopShopHost, setDesktopShopHost] = useState<string | null>(null);
+  const [desktopCloudOrigin, setDesktopCloudOrigin] = useState<string | null>(
+    null,
+  );
+  const [desktopStatusReady, setDesktopStatusReady] = useState(!IS_DESKTOP);
+  const [desktopResetBusy, setDesktopResetBusy] = useState(false);
+  const [desktopResetConfirm, setDesktopResetConfirm] = useState(false);
   const [email, setEmail] = useState(
     () => searchParams.get("email")?.trim() ?? "",
   );
@@ -144,6 +152,95 @@ function LoginPageContent() {
     };
   }, [searchParams]);
 
+  // Desktop till: bind X-Tenant-Id to the local APP_DESKTOP_BUSINESS_ID and
+  // surface which cloud shop this install mirrors. A stale cloud UUID in
+  // session storage otherwise makes correct passwords look wrong.
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/v1/desktop/setup/status", {
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        });
+        if (!res.ok || cancelled) return;
+        const body = (await res.json()) as {
+          setupRequired?: boolean;
+          businessId?: string | null;
+          shopName?: string | null;
+          shopHost?: string | null;
+          cloudOrigin?: string | null;
+        };
+        if (cancelled) return;
+        if (body.setupRequired) {
+          window.location.replace("/setup");
+          return;
+        }
+        const localId = body.businessId?.trim() ?? "";
+        if (localId) {
+          const stale = getSessionTenantId();
+          if (stale && stale !== localId) {
+            clearSessionTenantId();
+          }
+          setSessionTenantId(localId);
+        }
+        if (body.shopName?.trim()) {
+          setDesktopShopName(body.shopName.trim());
+        }
+        if (body.shopHost?.trim()) {
+          setDesktopShopHost(body.shopHost.trim().toLowerCase());
+        }
+        if (body.cloudOrigin?.trim()) {
+          setDesktopCloudOrigin(body.cloudOrigin.trim());
+        }
+      } catch {
+        // Login still works — AuthService forces the local business id.
+      } finally {
+        if (!cancelled) {
+          setDesktopStatusReady(true);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const resetDesktopTillSetup = useCallback(async () => {
+    if (!IS_DESKTOP || desktopResetBusy) return;
+    setDesktopResetBusy(true);
+    setErrorMessage("");
+    try {
+      const res = await fetch("/api/v1/desktop/setup/reset", {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const problem = (await res.json().catch(() => null)) as {
+          detail?: string;
+          title?: string;
+        } | null;
+        throw new Error(
+          problem?.detail?.trim() ||
+            problem?.title?.trim() ||
+            "Could not reset this till.",
+        );
+      }
+      clearSessionTenantId();
+      window.location.assign("/setup");
+    } catch (error) {
+      setDesktopResetConfirm(false);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not reset this till. Try again.",
+      );
+      setDesktopResetBusy(false);
+    }
+  }, [desktopResetBusy]);
+
   /**
    * Password: honor `?next=` (including shop account). PIN: role home only —
    * till sign-in should not bounce to the storefront. Office login ignores
@@ -196,20 +293,41 @@ function LoginPageContent() {
     const usePin = looksLikeStaffPin(secret);
     persistTenantId(tenantId);
 
+    const signInWithSecret = async () => {
+      if (usePin && !isOffice) {
+        try {
+          await loginWithPin(email, secret.trim());
+        } catch (pinError) {
+          // Desktop: 4–6 digit office passwords are often misclassified as
+          // PINs. Fall through to password so the same cloud secret works.
+          if (!IS_DESKTOP) throw pinError;
+          await loginWithPassword(email, secret);
+        }
+        return;
+      }
+      if (usePin) {
+        try {
+          await loginWithPin(email, secret.trim());
+        } catch (pinError) {
+          if (!IS_DESKTOP) throw pinError;
+          await loginWithPassword(email, secret);
+        }
+      } else {
+        await loginWithPassword(email, secret);
+      }
+    };
+
+    await signInWithSecret();
+
     if (usePin && !isOffice) {
-      await loginWithPin(email, secret.trim());
       const pinDest = await resolveAfterStaffAuth({ honorNext: false });
       const pinPath =
         pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest;
+      // If we fell back to password, still honor the PIN path for cashiers.
       await completeAuthAndNavigate(pinPath, tenant?.slug);
       return;
     }
 
-    if (usePin) {
-      await loginWithPin(email, secret.trim());
-    } else {
-      await loginWithPassword(email, secret);
-    }
     // A fresh desktop install (or a staff account with no PIN yet) has
     // no till PIN — prompt to set one before entering the counter. The
     // cloud web app does not force this: password-only sign-in is valid
@@ -248,6 +366,14 @@ function LoginPageContent() {
       }
 
       let tenantId = (await ensureTenantResolved())?.trim() ?? "";
+      // Desktop: always use the till's local business id — never a cloud
+      // UUID from session storage or an apex resolve.
+      if (IS_DESKTOP) {
+        const localId = getSessionTenantId()?.trim() ?? "";
+        if (localId) {
+          tenantId = localId;
+        }
+      }
       // The desktop SKU is single-tenant: its backend resolves the business
       // itself, so a bare 127.0.0.1 host must NOT fall through to the
       // cloud's email → subdomain redirect (which would bounce the webview
@@ -303,7 +429,10 @@ function LoginPageContent() {
             : usePin
               ? "PIN login failed."
               : "Login failed.",
-        ),
+        ) +
+          (IS_DESKTOP
+            ? " If this is a staff account, open Settings → Sync now after an owner signs in, then try again."
+            : ""),
       );
     } finally {
       if (!navigatedAway) {
@@ -462,16 +591,107 @@ function LoginPageContent() {
       <AuthPageHeader
         title={isOffice ? "Office sign-in" : "Staff sign-in"}
         description={
-          isOffice
-            ? tenantGreeting
-              ? `Use your email and office password to run ${shortBrandName(tenantGreeting)}.`
-              : "Use your email and office password to run your shop."
-            : tenantGreeting
-              ? `Sign in with email and your till PIN or office password. Your branch at ${shortBrandName(tenantGreeting)} is applied automatically.`
-              : "Sign in with email and your till PIN or office password. Your branch is applied automatically."
+          IS_DESKTOP && desktopShopName
+            ? isOffice
+              ? `You are signing into ${desktopShopName}${desktopShopHost ? ` (${desktopShopHost})` : ""} on this till.`
+              : `You are signing into ${desktopShopName}${desktopShopHost ? ` (${desktopShopHost})` : ""} — use your email and till PIN or office password.`
+            : isOffice
+              ? tenantGreeting
+                ? `Use your email and office password to run ${shortBrandName(tenantGreeting)}.`
+                : "Use your email and office password to run your shop."
+              : tenantGreeting
+                ? `Sign in with email and your till PIN or office password. Your branch at ${shortBrandName(tenantGreeting)} is applied automatically.`
+                : "Sign in with email and your till PIN or office password. Your branch is applied automatically."
         }
       />
 
+      {IS_DESKTOP && desktopStatusReady ? (
+        <div className="mt-5 overflow-hidden rounded-2xl border border-[#1f7a3a]/20 bg-[linear-gradient(135deg,#e8f2ea_0%,#f7faf7_100%)] px-4 py-3.5 text-left shadow-[0_8px_24px_-16px_rgba(31,122,58,0.5)]">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-[#1f7a3a]/90">
+            Signing in to
+          </p>
+          <p
+            className="mt-0.5 text-base font-semibold tracking-tight text-foreground"
+            style={{ fontFamily: "var(--font-heading), sans-serif" }}
+          >
+            {desktopShopName ?? "This till"}
+          </p>
+          {desktopShopHost ? (
+            <p className="mt-1 truncate font-mono text-xs text-[#1f7a3a]">
+              {desktopShopHost}
+            </p>
+          ) : null}
+          {desktopCloudOrigin ? (
+            <p className="mt-1 truncate text-xs text-[#3d4a40]">
+              Staff accounts sync from your online shop
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-[#3d4a40]">
+              Use the same staff email and password (or PIN) as online.
+            </p>
+          )}
+          {desktopResetConfirm ? (
+            <div className="mt-3 space-y-2 rounded-xl border border-[#1f7a3a]/15 bg-white/70 px-3 py-2.5">
+              <p className="text-xs leading-relaxed text-[#3d4a40]">
+                This clears the shop on this till so you can connect a different
+                one. Sales already on this device stay offline until you set up
+                again — nothing is deleted from your online shop.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-lg bg-[#1f7a3a] px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                  disabled={desktopResetBusy}
+                  aria-busy={desktopResetBusy}
+                  onClick={() => {
+                    void resetDesktopTillSetup();
+                  }}
+                >
+                  {desktopResetBusy ? (
+                    <>
+                      <Loader2
+                        className="mr-1.5 h-3.5 w-3.5 animate-spin"
+                        aria-hidden
+                      />
+                      Resetting…
+                    </>
+                  ) : (
+                    "Yes, set up again"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-[#3d4a40] transition-colors hover:bg-black/[0.04] disabled:opacity-60"
+                  disabled={desktopResetBusy}
+                  onClick={() => setDesktopResetConfirm(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="mt-2.5 text-left text-xs font-medium text-[#1f7a3a] underline-offset-2 hover:underline"
+              onClick={() => {
+                setDesktopResetConfirm(true);
+                setErrorMessage("");
+              }}
+            >
+              Wrong shop? Set up this till again
+            </button>
+          )}
+        </div>
+      ) : IS_DESKTOP ? (
+        <div className="mt-5 rounded-2xl border border-black/[0.08] bg-black/[0.02] px-4 py-3.5 text-left dark:border-white/10 dark:bg-white/[0.04]">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            This till
+          </p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Loading which shop this device is connected to…
+          </p>
+        </div>
+      ) : null}
       {sessionEndedNotice ? (
         <div className="mt-6">
           <AuthAlert variant="info">
