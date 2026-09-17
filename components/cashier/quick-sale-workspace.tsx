@@ -154,7 +154,6 @@ import { toKenyanMsisdn254 } from "@/lib/kenyan-phone";
 import { resolveReceiptWebsite } from "@/lib/branch-receipt";
 import { isApiReachable } from "@/lib/browser-network";
 import { kickCashDrawer, printPosReceipt } from "@/lib/desktop-print";
-import { IS_DESKTOP } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 import {
   buildPosReceiptSnapshot,
@@ -4884,16 +4883,14 @@ export function QuickSaleWorkspace({
             : null
         }
         tillPrinterStatus={
-          !IS_DESKTOP ? (
-            <TillPrinterStatus
-              compact
-              cupsName={
-                branches.find((b) => b.id === branchId.trim())?.receipt
-                  ?.printerCupsName ?? null
-              }
-              branchId={branchId.trim() || null}
-            />
-          ) : null
+          <TillPrinterStatus
+            compact
+            cupsName={
+              branches.find((b) => b.id === branchId.trim())?.receipt
+                ?.printerCupsName ?? null
+            }
+            branchId={branchId.trim() || null}
+          />
         }
         cartTabs={carts.map((c) => ({
           grandTotal: cartSessionGrandTotal(c),

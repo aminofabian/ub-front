@@ -755,9 +755,9 @@ export default function DesktopSettingsPage() {
             <div>
               <h2 className="text-base font-semibold">Receipt printer</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                ESC/POS over the network (port 9100) or append to a file for
-                testing. POS receipts use this instead of the browser print
-                dialog on desktop.
+                USB / system queue (CUPS), ESC/POS over the network (port 9100),
+                or append to a file for testing. POS receipts use this instead of
+                the browser print dialog on desktop.
               </p>
             </div>
 
@@ -778,11 +778,35 @@ export default function DesktopSettingsPage() {
                       setPrinter({ ...printer, mode: e.target.value })
                     }
                   >
-                    <option value="file">File (dev / test)</option>
+                    <option value="cups">USB / system printer (CUPS)</option>
                     <option value="network">Network (RAW 9100)</option>
+                    <option value="file">File (dev / test)</option>
                     <option value="none">Disabled</option>
                   </select>
                 </div>
+                {printer.mode === "cups" ? (
+                  <div>
+                    <label
+                      className={dashboardLabelClass()}
+                      htmlFor="printer-cups"
+                    >
+                      Printer queue name
+                    </label>
+                    <input
+                      id="printer-cups"
+                      className={dashboardInputClass()}
+                      value={printer.cupsName ?? ""}
+                      onChange={(e) =>
+                        setPrinter({ ...printer, cupsName: e.target.value })
+                      }
+                      placeholder="XP-80C"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Prefer Cashier → Connect a printer → Detect. Or paste the
+                      exact queue from System Settings → Printers.
+                    </p>
+                  </div>
+                ) : null}
                 {printer.mode === "network" ? (
                   <>
                     <div>

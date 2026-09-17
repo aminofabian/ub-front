@@ -11,6 +11,11 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import { patchBranch } from "@/lib/api";
 import { EMPTY_BRANCH_RECEIPT } from "@/lib/branch-receipt";
+import {
+  fetchDesktopPrinterConfig,
+  saveDesktopPrinterConfig,
+  type DesktopPrinterConfig,
+} from "@/lib/desktop-api";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
   fetchTillBridgeHealth,
@@ -33,8 +38,9 @@ type TillPrinterStatusProps = {
 };
 
 /**
- * Cloud cashier — paper receipts are optional.
- * Default: a quiet chip. Setup (download / detect) stays behind a tap.
+ * Cashier printer chip — paper receipts are optional.
+ * Cloud: Till Print Bridge download + Detect.
+ * Desktop: built-in device bridge; Detect (CUPS) or network IP.
  */
 export function TillPrinterStatus({
   cupsName,
@@ -54,17 +60,17 @@ export function TillPrinterStatus({
   const [panelOpen, setPanelOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [desktopCfg, setDesktopCfg] = useState<DesktopPrinterConfig | null>(
+    null,
+  );
+  const [netHost, setNetHost] = useState("");
+  const [netPort, setNetPort] = useState(9100);
 
   useEffect(() => {
     setLocalName(getLocalTillCupsName());
   }, [branchName]);
 
   useEffect(() => {
-    if (IS_DESKTOP) {
-      setBridgeUp(null);
-      setHealth(null);
-      return;
-    }
     let cancelled = false;
 
     const check = async () => {
@@ -82,13 +88,49 @@ export function TillPrinterStatus({
     };
   }, []);
 
-  const effectiveName = branchName || localName;
-  const printerConfigured = Boolean(effectiveName);
-  const showInstallGuide = isOwnerOrAdmin && !printerConfigured;
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const cfg = await fetchDesktopPrinterConfig();
+        if (cancelled) return;
+        setDesktopCfg(cfg);
+        if (cfg.host?.trim()) setNetHost(cfg.host.trim());
+        if (cfg.port > 0) setNetPort(cfg.port);
+      } catch {
+        // Settings page still works if this fails.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const desktopCupsName =
+    desktopCfg?.mode === "cups" ? desktopCfg.cupsName?.trim() || null : null;
+  const desktopNetworkReady =
+    desktopCfg?.mode === "network" && Boolean(desktopCfg.host?.trim());
+  const effectiveName =
+    desktopCupsName || branchName || localName || null;
+  const printerConfigured = Boolean(
+    effectiveName || (IS_DESKTOP && desktopNetworkReady),
+  );
+  const showInstallGuide = !IS_DESKTOP && isOwnerOrAdmin && !printerConfigured;
   const winEngineStale =
+    !IS_DESKTOP &&
     health?.platform === "win32" &&
     health.printEngine !== REQUIRED_WIN_PRINT_ENGINE;
-  const printerReady = Boolean(bridgeUp && effectiveName && !winEngineStale);
+  const printerReady = Boolean(
+    bridgeUp &&
+      !winEngineStale &&
+      (effectiveName || (IS_DESKTOP && desktopNetworkReady)),
+  );
+  const readyLabel = effectiveName
+    ? effectiveName
+    : desktopNetworkReady
+      ? `${desktopCfg?.host}:${desktopCfg?.port || 9100}`
+      : null;
 
   const openSetupFromGuide = useCallback(() => {
     setGuideOpen(false);
@@ -103,6 +145,29 @@ export function TillPrinterStatus({
       setLocalTillCupsName(cups);
       setLocalName(cups);
       onCupsNameChosen?.(cups);
+
+      if (IS_DESKTOP) {
+        setSaving(true);
+        try {
+          const saved = await saveDesktopPrinterConfig({
+            mode: "cups",
+            host: "",
+            port: 9100,
+            path: "",
+            cupsName: cups,
+          });
+          setDesktopCfg(saved);
+          toast.success(`Using ${cups} on this till.`);
+        } catch {
+          toast.message(
+            `Remembered ${cups} on this PC. Could not write Desktop printer settings — try Settings → Desktop & LAN.`,
+            { duration: 10_000 },
+          );
+        } finally {
+          setSaving(false);
+        }
+        return;
+      }
 
       const bid = branchId?.trim();
       if (bid && canManageBusinessSettings) {
@@ -131,7 +196,33 @@ export function TillPrinterStatus({
     [branchId, canManageBusinessSettings, onCupsNameChosen, refreshBranches],
   );
 
-  if (IS_DESKTOP) return null;
+  const handleSaveNetwork = useCallback(async () => {
+    const host = netHost.trim();
+    if (!host) {
+      toast.error("Enter the printer IP or hostname.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const saved = await saveDesktopPrinterConfig({
+        mode: "network",
+        host,
+        port: netPort > 0 ? netPort : 9100,
+        path: "",
+        cupsName: "",
+      });
+      setDesktopCfg(saved);
+      setLocalTillCupsName(null);
+      setLocalName(null);
+      toast.success(`Network printer ${host}:${saved.port} saved.`);
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Could not save network printer.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }, [netHost, netPort]);
 
   const chipClass = cn(
     "inline-flex max-w-full items-center gap-1.5",
@@ -146,21 +237,77 @@ export function TillPrinterStatus({
 
   const setupTools = (
     <div className="flex flex-col gap-1.5 border-t border-border/50 pt-1.5">
-      {!bridgeUp || winEngineStale ? (
-        <TillBridgeDownloadButton compact={compact} update={Boolean(winEngineStale)} />
-      ) : null}
-      {bridgeUp ? (
-        <CupsPrinterPicker
-          compact={compact}
-          value={effectiveName}
-          disabled={saving}
-          onSelect={(n) => void handleSelect(n)}
-        />
-      ) : null}
+      {IS_DESKTOP ? (
+        <>
+          {bridgeUp === false ? (
+            <p className="leading-snug text-muted-foreground">
+              Printer bridge is not running. Restart Kiosk Desktop, then try
+              Detect again.
+            </p>
+          ) : null}
+          {bridgeUp ? (
+            <CupsPrinterPicker
+              compact={compact}
+              value={effectiveName}
+              disabled={saving}
+              onSelect={(n) => void handleSelect(n)}
+            />
+          ) : null}
+          <div className="flex flex-col gap-1.5 border-t border-border/40 pt-1.5">
+            <p className="font-medium text-foreground">
+              Or network printer (Ethernet / Wi‑Fi)
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <input
+                className="h-7 min-w-[8rem] flex-1 border border-border bg-background px-2 text-[11px] outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="192.168.1.50"
+                value={netHost}
+                disabled={saving}
+                onChange={(e) => setNetHost(e.target.value)}
+                aria-label="Printer IP or hostname"
+              />
+              <input
+                className="h-7 w-16 border border-border bg-background px-2 text-[11px] outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                type="number"
+                value={netPort}
+                disabled={saving}
+                onChange={(e) => setNetPort(Number(e.target.value) || 9100)}
+                aria-label="Printer port"
+              />
+              <Button
+                type="button"
+                size={compact ? "xs" : "sm"}
+                variant="outline"
+                disabled={saving}
+                onClick={() => void handleSaveNetwork()}
+              >
+                Save IP
+              </Button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {!bridgeUp || winEngineStale ? (
+            <TillBridgeDownloadButton
+              compact={compact}
+              update={Boolean(winEngineStale)}
+            />
+          ) : null}
+          {bridgeUp ? (
+            <CupsPrinterPicker
+              compact={compact}
+              value={effectiveName}
+              disabled={saving}
+              onSelect={(n) => void handleSelect(n)}
+            />
+          ) : null}
+        </>
+      )}
     </div>
   );
 
-  if (printerReady) {
+  if (printerReady && readyLabel) {
     return (
       <div className={cn("inline-flex max-w-full flex-col gap-1", className)}>
         <Button
@@ -180,7 +327,7 @@ export function TillPrinterStatus({
             aria-hidden
           />
           <Printer className={cn("shrink-0", compact ? "size-3" : "size-3.5")} aria-hidden />
-          <span className="min-w-0 truncate font-medium">{effectiveName}</span>
+          <span className="min-w-0 truncate font-medium">{readyLabel}</span>
           <ChevronDown
             className={cn(
               "size-3 shrink-0 text-muted-foreground transition-transform",
@@ -196,14 +343,24 @@ export function TillPrinterStatus({
             aria-label="Receipt printer options"
             className={panelClass}
           >
-            <p className="text-muted-foreground">Change printer, or update the helper on this PC.</p>
-            <CupsPrinterPicker
-              compact={compact}
-              value={effectiveName}
-              disabled={saving}
-              onSelect={(n) => void handleSelect(n)}
-            />
-            <TillBridgeDownloadButton compact={compact} update />
+            <p className="text-muted-foreground">
+              {IS_DESKTOP
+                ? "Change printer — Detect a USB queue or save a network IP."
+                : "Change printer, or update the helper on this PC."}
+            </p>
+            {IS_DESKTOP ? (
+              setupTools
+            ) : (
+              <>
+                <CupsPrinterPicker
+                  compact={compact}
+                  value={effectiveName}
+                  disabled={saving}
+                  onSelect={(n) => void handleSelect(n)}
+                />
+                <TillBridgeDownloadButton compact={compact} update />
+              </>
+            )}
           </div>
         ) : null}
       </div>

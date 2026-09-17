@@ -199,10 +199,12 @@ export function fetchDesktopSyncStatus(): Promise<DesktopSyncStatus> {
 
 /** {@code GET/PUT /api/v1/desktop/printer} */
 export type DesktopPrinterConfig = {
-  mode: "none" | "file" | "network" | string;
+  mode: "none" | "file" | "network" | "cups" | string;
   host: string;
   port: number;
   path: string;
+  /** System / CUPS queue when mode is `cups`. */
+  cupsName?: string;
 };
 
 export function fetchDesktopPrinterConfig(): Promise<DesktopPrinterConfig> {

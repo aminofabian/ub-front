@@ -5,6 +5,7 @@ import { Loader2, Printer, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { IS_DESKTOP } from "@/lib/runtime";
 import {
   fetchTillBridgeHealth,
   fetchTillCupsPrinters,
@@ -70,9 +71,11 @@ export function CupsPrinterPicker({
     try {
       const health = await fetchTillBridgeHealth();
       if (!health?.ok) {
-        const msg = compact
-          ? "Printer helper is not running on this PC. Download it first, then detect."
-          : `Till Print Bridge is not running. ${TILL_BRIDGE_START_HINT}`;
+        const msg = IS_DESKTOP
+          ? "Printer bridge is not running. Restart Kiosk Desktop, then Detect again."
+          : compact
+            ? "Printer helper is not running on this PC. Download it first, then detect."
+            : `Till Print Bridge is not running. ${TILL_BRIDGE_START_HINT}`;
         setError(msg);
         toast.error(msg, { duration: compact ? 8_000 : 12_000 });
         setPrinters(null);
