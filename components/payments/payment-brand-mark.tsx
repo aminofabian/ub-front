@@ -60,7 +60,10 @@ export function PaymentBrandMark({
       )}
       aria-hidden
     >
-      {glyph ?? (displayName || gatewayType || "?").trim().slice(0, 1).toUpperCase() || "?"}
+      {(
+        glyph ??
+        (displayName || gatewayType || "?").trim().slice(0, 1).toUpperCase()
+      ) || "?"}
     </span>
   );
 }
