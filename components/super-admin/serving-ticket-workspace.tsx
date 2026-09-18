@@ -148,7 +148,7 @@ export function ServingTicketWorkspace({
   ) as ServingTicketStatus[];
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "grocery-market-paper gap-1.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
       <DashboardPageHero
         icon={Ticket}
         title={ticket ? ticket.displayNumber : "Ticket"}
@@ -214,7 +214,7 @@ export function ServingTicketWorkspace({
           <div
             className={cn(
               SERVING_THEATRE,
-              "grid min-h-[32rem] lg:h-[min(72dvh,46rem)] lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]",
+              "grid min-h-[32rem] lg:h-[min(80dvh,52rem)] lg:grid-cols-[minmax(0,1fr)_minmax(20rem,23.5rem)]",
             )}
           >
             <section className={cn("flex min-h-[28rem] flex-col border-b lg:min-h-0 lg:border-b-0 lg:border-r", SERVING_COL_RULE, SERVING_PAPER_COL)}>

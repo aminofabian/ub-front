@@ -83,7 +83,7 @@ export function ServingStaffRoster() {
   };
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "grocery-market-paper gap-1.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
       <DashboardPageHero
         icon={UsersRound}
         title="Serving staff"

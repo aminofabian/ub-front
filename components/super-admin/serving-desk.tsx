@@ -18,6 +18,7 @@ import {
   dashboardTextareaClass,
 } from "@/components/dashboard-page-ui";
 import {
+  LiveDot,
   SERVING_COL_RULE,
   SERVING_DIVIDE,
   SERVING_HAIRLINE,
@@ -26,7 +27,9 @@ import {
   SERVING_SHARP_BTN,
   SERVING_THEATRE,
   ServingColumn,
+  ServingDeskMap,
   ServingEmptyHint,
+  ServingRosterSearch,
   ServingStatusChip,
   ServingTicketRow,
   isStaleUnassigned,
@@ -167,9 +170,45 @@ export function ServingDesk({ deskRole }: { deskRole?: SaDeskRole | string | nul
   const waiting = board?.waiting ?? [];
   const resolved = board?.resolved ?? [];
   const agents = board?.agents ?? [];
+  const openCount =
+    unassigned.length + agents.reduce((sum, agent) => sum + agent.openCount, 0);
+  const staleCount = unassigned.filter(isStaleUnassigned).length;
+
+  const rosterFilters = (
+    <div className="space-y-1.5">
+      <ServingRosterSearch value={q} onChange={setQ} />
+      <div className="grid grid-cols-2 gap-1.5">
+        <select
+          className={cn(dashboardSelectClass(), "h-7 text-[11px]")}
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          aria-label="Ticket type"
+        >
+          <option value="">All types</option>
+          <option value="TENANT">Shops</option>
+          <option value="SHOPPER">Shoppers</option>
+        </select>
+        <select
+          className={cn(dashboardSelectClass(), "h-7 text-[11px]")}
+          value={assignee}
+          onChange={(e) => setAssignee(e.target.value)}
+          aria-label="Assignee"
+        >
+          <option value="">Anyone</option>
+          <option value="unassigned">Unassigned</option>
+          <option value="me">Assigned to me</option>
+          {assignees.map((row) => (
+            <option key={row.id} value={row.id}>
+              {row.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "grocery-market-paper gap-1.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
       <DashboardPageHero
         icon={Ticket}
         title="Serving"
@@ -300,12 +339,24 @@ export function ServingDesk({ deskRole }: { deskRole?: SaDeskRole | string | nul
         </form>
       ) : null}
 
+      {/* Status strip — same grammar as StoreModeBanner / Messages */}
       <div
         className={cn(
-          "flex flex-wrap items-center gap-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
+          "flex flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
           SERVING_HAIRLINE,
         )}
       >
+        <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-foreground">
+          <span className="inline-flex items-center gap-1.5 font-semibold">
+            <LiveDot />
+            {unassigned.length === 0 ? "Queue clear" : `${unassigned.length} unassigned`}
+          </span>
+          <span className={dashboardHintClass()}>
+            {openCount} open
+            {staleCount > 0 ? ` · ${staleCount} over 15m` : ""}
+            {waiting.length > 0 ? ` · ${waiting.length} waiting` : ""}
+          </span>
+        </p>
         <div
           className={cn("flex gap-0.5 border bg-white p-0.5", SERVING_HAIRLINE)}
           role="group"
@@ -338,129 +389,151 @@ export function ServingDesk({ deskRole }: { deskRole?: SaDeskRole | string | nul
             );
           })}
         </div>
-        <select
-          className={cn(dashboardSelectClass(), "h-7 w-[8.5rem] text-[11px]")}
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          aria-label="Status"
-        >
-          <option value="">All statuses</option>
-          <option value="NEW">New</option>
-          <option value="OPEN">Open</option>
-          <option value="WAITING">Waiting</option>
-          <option value="RESOLVED">Resolved</option>
-        </select>
-        <select
-          className={cn(dashboardSelectClass(), "h-7 w-[9.5rem] text-[11px]")}
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          aria-label="Ticket type"
-        >
-          <option value="">Shops & shoppers</option>
-          <option value="TENANT">Shops</option>
-          <option value="SHOPPER">Shoppers</option>
-        </select>
-        <select
-          className={cn(dashboardSelectClass(), "h-7 w-[9.5rem] text-[11px]")}
-          value={assignee}
-          onChange={(e) => setAssignee(e.target.value)}
-          aria-label="Assignee"
-        >
-          <option value="">Anyone</option>
-          <option value="unassigned">Unassigned</option>
-          <option value="me">Assigned to me</option>
-          {assignees.map((row) => (
-            <option key={row.id} value={row.id}>
-              {row.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className={cn(dashboardSelectClass(), "h-7 max-w-[11rem] text-[11px]")}
-          value={shopId}
-          onChange={(e) => setShopId(e.target.value)}
-          aria-label="Shop"
-        >
-          <option value="">All shops</option>
-          {shops.map((shop) => (
-            <option key={shop.id} value={shop.id}>
-              {shop.name}
-            </option>
-          ))}
-        </select>
-        <input
-          className={cn(dashboardInputClass(), "h-7 max-w-xs flex-1 text-[12px]")}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search K-number or subject"
-          aria-label="Search tickets"
-        />
       </div>
 
       {view === "queue" ? (
-        <div className={DASHBOARD_TABLE_SURFACE}>
-          {tickets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-              <Ticket className="mb-3 size-7 text-muted-foreground/50" aria-hidden />
-              <p className={cn("text-[14px] font-semibold", SERVING_INK)}>No tickets match</p>
-              <p className={cn(dashboardHintClass(), "mt-1 max-w-[18rem]")}>
-                New chats and Talk to Us forms land here automatically.
-              </p>
-            </div>
-          ) : (
-            <ul className={cn("divide-y", SERVING_DIVIDE)}>
-              {tickets.map((ticket) => (
-                <li
-                  key={ticket.id}
-                  className={cn(
-                    "flex flex-wrap items-center gap-3 px-3 py-2.5",
-                    isStaleUnassigned(ticket) && "bg-[color-mix(in_srgb,#b45309_6%,white)]",
-                  )}
-                >
-                  <Link
-                    href={APP_ROUTES.superAdminServingTicket(ticket.id)}
-                    className="font-mono text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] hover:underline"
-                  >
-                    {ticketLabel(ticket)}
-                  </Link>
-                  <ServingStatusChip ticket={ticket} />
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{ticket.subject}</span>
-                  {(ticket.pointCount ?? 0) > 0 ? (
-                    <span className={cn(dashboardHintClass(), "tabular-nums")}>
-                      {ticket.doneCount ?? 0}/{ticket.pointCount}
-                    </span>
-                  ) : null}
-                  <span className={cn(dashboardHintClass(), "hidden sm:inline")}>
-                    {ticket.assignedToName || "Unassigned"}
-                  </span>
-                  <span className={cn(dashboardHintClass(), "hidden md:inline")}>{ticketWho(ticket)}</span>
-                  {!ticket.assignedTo ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className={cn(SERVING_SHARP_BTN, "h-7 text-[11px]")}
-                      onClick={() => void onClaim(ticket.id)}
-                    >
-                      Claim
-                    </Button>
-                  ) : null}
-                </li>
+        <div className="flex min-h-0 flex-col gap-1.5">
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
+              SERVING_HAIRLINE,
+            )}
+          >
+            <select
+              className={cn(dashboardSelectClass(), "h-7 w-[8.5rem] text-[11px]")}
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              aria-label="Status"
+            >
+              <option value="">All statuses</option>
+              <option value="NEW">New</option>
+              <option value="OPEN">Open</option>
+              <option value="WAITING">Waiting</option>
+              <option value="RESOLVED">Resolved</option>
+            </select>
+            <select
+              className={cn(dashboardSelectClass(), "h-7 w-[9.5rem] text-[11px]")}
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              aria-label="Ticket type"
+            >
+              <option value="">Shops & shoppers</option>
+              <option value="TENANT">Shops</option>
+              <option value="SHOPPER">Shoppers</option>
+            </select>
+            <select
+              className={cn(dashboardSelectClass(), "h-7 w-[9.5rem] text-[11px]")}
+              value={assignee}
+              onChange={(e) => setAssignee(e.target.value)}
+              aria-label="Assignee"
+            >
+              <option value="">Anyone</option>
+              <option value="unassigned">Unassigned</option>
+              <option value="me">Assigned to me</option>
+              {assignees.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name}
+                </option>
               ))}
-            </ul>
-          )}
+            </select>
+            <select
+              className={cn(dashboardSelectClass(), "h-7 max-w-[11rem] text-[11px]")}
+              value={shopId}
+              onChange={(e) => setShopId(e.target.value)}
+              aria-label="Shop"
+            >
+              <option value="">All shops</option>
+              {shops.map((shop) => (
+                <option key={shop.id} value={shop.id}>
+                  {shop.name}
+                </option>
+              ))}
+            </select>
+            <div className="min-w-[12rem] flex-1">
+              <ServingRosterSearch value={q} onChange={setQ} />
+            </div>
+          </div>
+          <div className={DASHBOARD_TABLE_SURFACE}>
+            {tickets.length === 0 ? (
+              <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                <Ticket className="mb-3 size-7 text-muted-foreground/50" aria-hidden />
+                <p className={cn("text-[14px] font-semibold", SERVING_INK)}>No tickets match</p>
+                <p className={cn(dashboardHintClass(), "mt-1 max-w-[18rem]")}>
+                  New chats and Talk to Us forms land here automatically.
+                </p>
+              </div>
+            ) : (
+              <ul className={cn("divide-y", SERVING_DIVIDE)}>
+                {tickets.map((ticket) => (
+                  <li
+                    key={ticket.id}
+                    className={cn(
+                      "flex flex-wrap items-center gap-3 px-3 py-2.5",
+                      isStaleUnassigned(ticket) && "bg-[color-mix(in_srgb,#b45309_6%,white)]",
+                    )}
+                  >
+                    <Link
+                      href={APP_ROUTES.superAdminServingTicket(ticket.id)}
+                      className="font-mono text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] hover:underline"
+                    >
+                      {ticketLabel(ticket)}
+                    </Link>
+                    <ServingStatusChip ticket={ticket} />
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+                      {ticket.subject}
+                    </span>
+                    {(ticket.pointCount ?? 0) > 0 ? (
+                      <span className={cn(dashboardHintClass(), "tabular-nums")}>
+                        {ticket.doneCount ?? 0}/{ticket.pointCount}
+                      </span>
+                    ) : null}
+                    <span className={cn(dashboardHintClass(), "hidden sm:inline")}>
+                      {ticket.assignedToName || "Unassigned"}
+                    </span>
+                    <span className={cn(dashboardHintClass(), "hidden md:inline")}>
+                      {ticketWho(ticket)}
+                    </span>
+                    {!ticket.assignedTo ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className={cn(SERVING_SHARP_BTN, "h-7 text-[11px]")}
+                        onClick={() => void onClaim(ticket.id)}
+                      >
+                        Claim
+                      </Button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       ) : (
         <>
+          {/* Desktop theatre — roster | desk map | waiting+resolved (store proportions) */}
           <div
             className={cn(
               SERVING_THEATRE,
               "hidden h-[min(80dvh,52rem)] lg:grid",
-              "lg:grid-cols-[minmax(16rem,18.5rem)_minmax(0,1fr)_minmax(16rem,18.5rem)]",
+              "lg:grid-cols-[minmax(15.5rem,17.5rem)_minmax(0,1fr)_minmax(20rem,23.5rem)]",
             )}
           >
-            <div className={cn("flex h-full min-h-0 flex-col border-r", SERVING_COL_RULE, SERVING_PAPER_COL)}>
-              <ServingColumn title="Unassigned" count={unassigned.length} paper className="h-full">
+            <div
+              className={cn(
+                "flex h-full min-h-0 flex-col border-r",
+                SERVING_COL_RULE,
+                SERVING_PAPER_COL,
+              )}
+            >
+              <ServingColumn
+                title="Unassigned"
+                count={unassigned.length}
+                paper
+                className="h-full bg-transparent"
+                toolbar={rosterFilters}
+              >
                 {unassigned.length === 0 ? (
                   <ServingEmptyHint>Queue is clear.</ServingEmptyHint>
                 ) : (
@@ -480,49 +553,22 @@ export function ServingDesk({ deskRole }: { deskRole?: SaDeskRole | string | nul
                 )}
               </ServingColumn>
             </div>
-            <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
-              <p
-                className="pointer-events-none absolute bottom-3 left-4 z-[1] text-[10px] font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]"
-                aria-hidden
-              >
-                The desk
-              </p>
-              <ServingColumn title="Staff" className="h-full bg-transparent">
-                {agents.length === 0 ? (
-                  <ServingEmptyHint>No agents on the roster yet.</ServingEmptyHint>
-                ) : (
-                  <div className="grid min-h-full gap-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] sm:grid-cols-2">
-                    {agents.map((agent) => (
-                      <div key={agent.id} className="min-h-0 bg-white/80">
-                        <div className={cn("flex items-baseline justify-between gap-2 border-b px-2.5 py-2", SERVING_COL_RULE)}>
-                          <p className="truncate text-[12.5px] font-semibold tracking-[-0.015em]">{agent.name}</p>
-                          <p className={cn(dashboardHintClass(), "shrink-0 tabular-nums")}>
-                            {agent.openCount} open
-                          </p>
-                        </div>
-                        {agent.tickets.length === 0 ? (
-                          <p className={cn(dashboardHintClass(), "px-2.5 py-4")}>Nothing open.</p>
-                        ) : (
-                          <ul className={cn("divide-y", SERVING_DIVIDE)}>
-                            {agent.tickets.map((ticket) => (
-                              <li key={ticket.id}>
-                                <ServingTicketRow
-                                  ticket={ticket}
-                                  onAssign={onAssign}
-                                  assignees={assignees}
-                                  compact
-                                />
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </ServingColumn>
-            </div>
-            <div className={cn("flex h-full min-h-0 flex-col border-l bg-white", SERVING_COL_RULE)}>
+
+            <ServingDeskMap
+              agents={agents}
+              unassignedCount={unassigned.length}
+              waitingCount={waiting.length}
+              openCount={openCount}
+              onAssign={onAssign}
+              assignees={assignees}
+            />
+
+            <div
+              className={cn(
+                "flex h-full min-h-0 flex-col border-l bg-white",
+                SERVING_COL_RULE,
+              )}
+            >
               <ServingColumn title="Waiting" count={waiting.length} className="min-h-0 flex-1">
                 {waiting.length === 0 ? (
                   <ServingEmptyHint>Nobody is waiting.</ServingEmptyHint>
@@ -556,9 +602,14 @@ export function ServingDesk({ deskRole }: { deskRole?: SaDeskRole | string | nul
             </div>
           </div>
 
+          {/* Mobile: stacked panels like store roster */}
           <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
             <div className={cn(SERVING_THEATRE, "bg-white")}>
-              <ServingColumn title="Unassigned" count={unassigned.length}>
+              <ServingColumn
+                title="Unassigned"
+                count={unassigned.length}
+                toolbar={rosterFilters}
+              >
                 {unassigned.length === 0 ? (
                   <ServingEmptyHint>Queue is clear.</ServingEmptyHint>
                 ) : (
@@ -577,38 +628,15 @@ export function ServingDesk({ deskRole }: { deskRole?: SaDeskRole | string | nul
                 )}
               </ServingColumn>
             </div>
-            <div className={cn("overflow-hidden border bg-white", SERVING_HAIRLINE)}>
-              <ServingColumn title="Staff">
-                {agents.length === 0 ? (
-                  <ServingEmptyHint>No agents on the roster yet.</ServingEmptyHint>
-                ) : (
-                  agents.map((agent) => (
-                    <div key={agent.id} className={cn("border-b last:border-b-0", SERVING_COL_RULE)}>
-                      <div className="flex items-baseline justify-between gap-2 px-3 py-2">
-                        <p className="text-[13px] font-semibold">{agent.name}</p>
-                        <p className={cn(dashboardHintClass(), "tabular-nums")}>
-                          {agent.openCount} open
-                        </p>
-                      </div>
-                      {agent.tickets.length === 0 ? (
-                        <p className={cn(dashboardHintClass(), "px-3 pb-3")}>Nothing open.</p>
-                      ) : (
-                        <ul className={cn("divide-y", SERVING_DIVIDE)}>
-                          {agent.tickets.map((ticket) => (
-                            <li key={ticket.id}>
-                              <ServingTicketRow
-                                ticket={ticket}
-                                onAssign={onAssign}
-                                assignees={assignees}
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ))
-                )}
-              </ServingColumn>
+            <div className={cn(SERVING_THEATRE, "min-h-[22rem]")}>
+              <ServingDeskMap
+                agents={agents}
+                unassignedCount={unassigned.length}
+                waitingCount={waiting.length}
+                openCount={openCount}
+                onAssign={onAssign}
+                assignees={assignees}
+              />
             </div>
             <div className={cn("overflow-hidden border bg-white", SERVING_HAIRLINE)}>
               <ServingColumn title="Waiting" count={waiting.length}>
