@@ -183,6 +183,8 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     allowSupplierOrder = false,
     allowOrderConfirm = false,
     allowClearSale = true,
+    allowClearAllSales = false,
+    clearableSaleCount = 0,
     allowAirtime = false,
     allowNegativeStock = false,
     itemTypes = [],
@@ -765,6 +767,55 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   }, [keyTarget, selectedKey, activeField, allowPriceEdit, cart, onLineChange, discPctByKey, search, setSearch]);
 
   const applyClear = useCallback(() => {
+    const clearFieldOnly = () => {
+      if (keyTarget === "tender") {
+        if (cart.cashTenderStr.trim()) {
+          cart.setCashTenderStr("");
+          return true;
+        }
+        return false;
+      }
+      if (selectedKey && activeField === "qty") {
+        const line = cart.lines.find((l) => l.key === selectedKey);
+        if (line?.quantity.trim()) {
+          onLineChange(selectedKey, "quantity", "");
+          return true;
+        }
+        return false;
+      }
+      if (selectedKey && activeField === "price" && allowPriceEdit) {
+        const line = cart.lines.find((l) => l.key === selectedKey);
+        if (line?.unitPrice.trim()) {
+          onLineChange(selectedKey, "unitPrice", "");
+          return true;
+        }
+        return false;
+      }
+      if (selectedKey && activeField === "disc" && allowPriceEdit) {
+        const disc = discPctByKey[selectedKey] ?? "0";
+        if (disc.trim() && disc.trim() !== "0") {
+          onLineChange(selectedKey, "disc", "0");
+          return true;
+        }
+        return false;
+      }
+      if (search.trim()) {
+        setSearch("");
+        return true;
+      }
+      return false;
+    };
+
+    // Admin override: when the keypad field is already empty, Clear voids every
+    // open till tab. Otherwise it still clears the active field first.
+    if (allowClearAllSales && cart.onClearSale) {
+      if (clearFieldOnly()) return;
+      if (clearableSaleCount > 0 || cart.lines.length > 0) {
+        cart.onClearSale();
+      }
+      return;
+    }
+
     if (keyTarget === "tender") {
       cart.setCashTenderStr("");
       return;
@@ -782,7 +833,19 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
       return;
     }
     setSearch("");
-  }, [keyTarget, selectedKey, activeField, allowPriceEdit, cart, onLineChange, setSearch]);
+  }, [
+    allowClearAllSales,
+    allowPriceEdit,
+    cart,
+    clearableSaleCount,
+    discPctByKey,
+    keyTarget,
+    selectedKey,
+    activeField,
+    onLineChange,
+    search,
+    setSearch,
+  ]);
 
   const applyEnter = useCallback(() => {
     if (keyTarget === "tender") {
@@ -1419,6 +1482,13 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
             disabled={tillLocked}
             targetLabel={keypadTargetLabel}
             enterLabel={keypadEnterLabel}
+            clearHint={
+              allowClearAllSales
+                ? clearableSaleCount > 1
+                  ? `Clear all ${clearableSaleCount} open sales`
+                  : "Clear open sale"
+                : undefined
+            }
           />
 
           {cart.error ? <p className="text-[11px] text-red-700">{cart.error}</p> : null}
@@ -1426,7 +1496,11 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           </div>
 
           <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] p-3 dark:border-border/40">
-          {allowClearSale && cart.onClearSale && cart.lines.length > 0 && !completeIdle ? (
+          {allowClearSale &&
+          cart.onClearSale &&
+          !completeIdle &&
+          (cart.lines.length > 0 ||
+            (allowClearAllSales && clearableSaleCount > 0)) ? (
             <button
               type="button"
               disabled={cart.loading || tillLocked}
@@ -1437,7 +1511,9 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               )}
             >
               <Trash2 className="size-3" aria-hidden />
-              Clear sale
+              {allowClearAllSales && clearableSaleCount > 1
+                ? `Clear all sales (${clearableSaleCount})`
+                : "Clear sale"}
             </button>
           ) : null}
           <button

@@ -134,12 +134,37 @@ export function isAuthRecoveryError(error: unknown): boolean {
   return false;
 }
 
+/**
+ * Depth counter for best-effort / dashboard loads that `.catch()` failures.
+ * Without this, `request()` toasts a 500 before the caller's catch runs — the
+ * sticky "Internal server error" toast on Business Hub after login.
+ */
+let suppressedHttpErrorToastDepth = 0;
+
+/** Run `fn` without firing Sonner for HTTP failures (callers own the UX). */
+export async function withSuppressedHttpErrorToasts<T>(
+  fn: () => Promise<T>,
+): Promise<T> {
+  suppressedHttpErrorToastDepth += 1;
+  try {
+    return await fn();
+  } finally {
+    suppressedHttpErrorToastDepth = Math.max(
+      0,
+      suppressedHttpErrorToastDepth - 1,
+    );
+  }
+}
+
 function notifyHttpErrorToast(
   message: string,
   status?: number,
   payload?: unknown,
 ) {
   if (typeof window === "undefined" || !message.trim()) {
+    return;
+  }
+  if (suppressedHttpErrorToastDepth > 0) {
     return;
   }
   if (shouldOmitHttpErrorToast(message, status, payload)) {
@@ -1613,6 +1638,8 @@ export type FeatureFlagsPatchPayload = {
   posCashierDrawout?: boolean;
   /** Show Clear sale on the till (default on when absent). */
   posCashierClearSale?: boolean;
+  /** Clear voids every open till tab/draft at once (default off). */
+  posCashierClearAllSales?: boolean;
   /** Which cashiers may draw out when the flag is on. */
   posCashierDrawoutAccess?: {
     scope?: "all" | "selected" | string;
@@ -3019,8 +3046,8 @@ export async function logoutRemoteAndRedirectToLogin(): Promise<void> {
   }
 }
 
-export async function fetchMe(): Promise<MeResponse> {
-  return request<MeResponse>(API_ROUTES.me);
+export async function fetchMe(options?: { toast?: boolean }): Promise<MeResponse> {
+  return request<MeResponse>(API_ROUTES.me, { toast: options?.toast });
 }
 
 export async function updateMe(body: {
@@ -3295,6 +3322,7 @@ export type StaffNotificationRow = {
 export async function fetchStaffNotifications(): Promise<StaffNotificationRow[]> {
   return request<StaffNotificationRow[]>(API_ROUTES.notifications, {
     requiresAuth: true,
+    toast: false,
   });
 }
 
@@ -3302,6 +3330,7 @@ export async function markStaffNotificationRead(id: string): Promise<void> {
   await request(`${API_ROUTES.notifications}/${encodeURIComponent(id)}/read`, {
     method: "POST",
     requiresAuth: true,
+    toast: false,
   });
 }
 
@@ -3379,8 +3408,12 @@ export async function unsubscribeShopperNotification(
   );
 }
 
-export async function fetchBusiness(): Promise<BusinessRecord> {
-  return request<BusinessRecord>(API_ROUTES.businessMe);
+export async function fetchBusiness(options?: {
+  toast?: boolean;
+}): Promise<BusinessRecord> {
+  return request<BusinessRecord>(API_ROUTES.businessMe, {
+    toast: options?.toast,
+  });
 }
 
 export async function updateBusiness(
@@ -12727,7 +12760,9 @@ export type OnboardingSequenceStatusRecord = {
 };
 
 export async function fetchOnboardingSequenceStatus(): Promise<OnboardingSequenceStatusRecord> {
-  return request<OnboardingSequenceStatusRecord>("/api/v1/me/onboarding-sequence");
+  return request<OnboardingSequenceStatusRecord>("/api/v1/me/onboarding-sequence", {
+    toast: false,
+  });
 }
 
 export async function muteOnboardingSequenceTips(): Promise<OnboardingSequenceStatusRecord> {
@@ -12774,7 +12809,9 @@ export type SetupProgressRewardRecord = {
 };
 
 export async function fetchSetupProgress(): Promise<SetupProgressRecord> {
-  return request<SetupProgressRecord>("/api/v1/me/setup-progress");
+  return request<SetupProgressRecord>("/api/v1/me/setup-progress", {
+    toast: false,
+  });
 }
 
 export async function snoozeSetupProgress(hours = 24): Promise<SetupProgressRecord> {
@@ -13163,7 +13200,10 @@ export async function fetchSubscriptionPlans(): Promise<SubscriptionPlanRecord[]
 }
 
 export async function fetchSubscriptionBillingStatus(): Promise<SubscriptionBillingStatusRecord> {
-  return request<SubscriptionBillingStatusRecord>(API_ROUTES.subscriptionBillingStatus);
+  return request<SubscriptionBillingStatusRecord>(
+    API_ROUTES.subscriptionBillingStatus,
+    { toast: false },
+  );
 }
 
 export type SubscriptionRenewalQuoteRecord = {

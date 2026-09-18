@@ -24,11 +24,15 @@ import {
   getLoginBillingGate,
 } from "@/lib/auth";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { isBillingAccessLocked } from "@/lib/subscription-plan-fit";
 
 /**
  * Blocking renewal modal when grace ends or the tenant is already
  * billing-suspended (SUBSCRIPTION_BILLING_SCOPE.md §8).
+ *
+ * Hidden on desktop — SaaS billing walls do not apply to the offline till;
+ * license/plan live under Settings → Desktop.
  */
 export function SubscriptionRenewalWall() {
   const [status, setStatus] = useState<SubscriptionBillingStatusRecord | null>(
@@ -45,10 +49,11 @@ export function SubscriptionRenewalWall() {
   });
 
   useEffect(() => {
+    if (IS_DESKTOP) return;
     let cancelled = false;
     void (async () => {
       try {
-        const me = await fetchMe();
+        const me = await fetchMe({ toast: false });
         if (!cancelled) {
           setCanPay(
             hasPermission(me.permissions, Permission.BusinessManageSubscription),
@@ -64,6 +69,7 @@ export function SubscriptionRenewalWall() {
   }, []);
 
   useEffect(() => {
+    if (IS_DESKTOP) return;
     let cancelled = false;
     void (async () => {
       const stored = getLoginBillingGate();
@@ -85,17 +91,18 @@ export function SubscriptionRenewalWall() {
   }, []);
 
   const locked =
-    loginSuspended ||
-    (status != null &&
-      isBillingAccessLocked(
-        {
-          status: status.status,
-          billingEnabled: status.billingEnabled,
-          graceEndsAt: status.graceEndsAt,
-          currentPeriodEnd: status.currentPeriodEnd,
-        },
-        now,
-      ));
+    !IS_DESKTOP &&
+    (loginSuspended ||
+      (status != null &&
+        isBillingAccessLocked(
+          {
+            status: status.status,
+            billingEnabled: status.billingEnabled,
+            graceEndsAt: status.graceEndsAt,
+            currentPeriodEnd: status.currentPeriodEnd,
+          },
+          now,
+        )));
 
   useEffect(() => {
     if (locked) return;
@@ -119,7 +126,7 @@ export function SubscriptionRenewalWall() {
     };
   }, [locked, quote]);
 
-  if (!locked) {
+  if (IS_DESKTOP || !locked) {
     return null;
   }
 

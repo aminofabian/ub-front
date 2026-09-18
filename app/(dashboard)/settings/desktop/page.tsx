@@ -31,9 +31,11 @@ import {
   fetchDesktopLanStatus,
   fetchDesktopMediaStatus,
   fetchDesktopPrinterConfig,
+  fetchDesktopSetupStatus,
   fetchDesktopSyncPlan,
   fetchDesktopSyncStatus,
   reconnectDesktop,
+  refreshDesktopCloudSession,
   renewDesktopLicense,
   restoreDesktopBackup,
   runDesktopBackupNow,
@@ -102,13 +104,13 @@ export default function DesktopSettingsPage() {
     null,
   );
   const [cloudPlan, setCloudPlan] = useState<DesktopSyncPlan | null>(null);
+  const [cloudOrigin, setCloudOrigin] = useState<string | null>(null);
   const [reconnectOpen, setReconnectOpen] = useState(false);
-  const [reconnectOrigin, setReconnectOrigin] = useState(
-    "https://kiosk.zelisline.com",
-  );
+  const [reconnectOrigin, setReconnectOrigin] = useState("");
   const [reconnectEmail, setReconnectEmail] = useState("");
   const [reconnectPassword, setReconnectPassword] = useState("");
   const [reconnecting, setReconnecting] = useState(false);
+  const [passwordReconnect, setPasswordReconnect] = useState(false);
 
   const pollMediaStatus = useCallback(async () => {
     try {
@@ -132,17 +134,24 @@ export default function DesktopSettingsPage() {
     setLoadError("");
     setLoading(true);
     try {
-      const [lanStatus, backupList, printerCfg, plan] = await Promise.all([
-        fetchDesktopLanStatus(),
-        fetchDesktopBackups(),
-        fetchDesktopPrinterConfig(),
-        fetchDesktopSyncPlan(),
-      ]);
+      const [lanStatus, backupList, printerCfg, plan, setup] =
+        await Promise.all([
+          fetchDesktopLanStatus(),
+          fetchDesktopBackups(),
+          fetchDesktopPrinterConfig(),
+          fetchDesktopSyncPlan(),
+          fetchDesktopSetupStatus().catch(() => null),
+        ]);
       await refreshLicense();
       setLan(lanStatus);
       setBackups(backupList);
       setPrinter(printerCfg);
       setCloudPlan(plan);
+      const origin = setup?.cloudOrigin?.trim() || "";
+      if (origin) {
+        setCloudOrigin(origin);
+        setReconnectOrigin(origin);
+      }
       void pollMediaStatus();
     } catch (e) {
       setLoadError(
@@ -151,11 +160,18 @@ export default function DesktopSettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [refreshLicense]);
+  }, [refreshLicense, pollMediaStatus]);
 
   useEffect(() => {
     if (IS_DESKTOP) void reload();
   }, [reload]);
+
+  useEffect(() => {
+    const email = me?.email?.trim() ?? "";
+    if (email && !reconnectEmail) {
+      setReconnectEmail(email);
+    }
+  }, [me?.email, reconnectEmail]);
 
   async function onRenewLicense() {
     if (!licenseKey.trim()) {
@@ -340,13 +356,39 @@ export default function DesktopSettingsPage() {
     e.preventDefault();
     setReconnecting(true);
     try {
+      // Prefer silent refresh from the stored token — no password needed.
+      if (!passwordReconnect) {
+        try {
+          const refreshed = await refreshDesktopCloudSession();
+          setReconnectOpen(false);
+          setReconnectPassword("");
+          setPasswordReconnect(false);
+          toast.success(
+            refreshed.message || "Refreshed connection to your online shop.",
+          );
+          void onSyncNow();
+          return;
+        } catch {
+          setPasswordReconnect(true);
+          toast.message(
+            "Saved session expired — enter the shop owner password once.",
+          );
+          return;
+        }
+      }
+      const origin = (reconnectOrigin || cloudOrigin || "").trim();
+      if (!origin) {
+        toast.error("Missing online shop address. Enter it below.");
+        return;
+      }
       const res = await reconnectDesktop(
-        reconnectOrigin,
+        origin,
         reconnectEmail,
         reconnectPassword,
       );
       setReconnectOpen(false);
       setReconnectPassword("");
+      setPasswordReconnect(false);
       toast.success(res.message || "Reconnected to your online shop.");
       void onSyncNow();
     } catch (err) {
@@ -490,7 +532,12 @@ export default function DesktopSettingsPage() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setReconnectOpen((v) => !v)}
+                onClick={() => {
+                  setReconnectOpen((v) => !v);
+                  setPasswordReconnect(false);
+                  if (cloudOrigin) setReconnectOrigin(cloudOrigin);
+                  if (me?.email?.trim()) setReconnectEmail(me.email.trim());
+                }}
               >
                 Reconnect…
               </Button>
@@ -502,37 +549,73 @@ export default function DesktopSettingsPage() {
                 onSubmit={onReconnect}
               >
                 <p className="text-xs text-muted-foreground">
-                  Only needed if sync says the online session expired. Sign in
-                  with the shop owner email and password to refresh it — you do
-                  not need to reconnect on every launch.
+                  {passwordReconnect
+                    ? "Saved session expired. Sign in once with the shop owner password — we keep the same online shop already linked to this till."
+                    : "Click Refresh connection to reuse the session already on this PC. You only need a password if that session has expired."}
                 </p>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <input
-                    className="h-9 rounded-none border border-border bg-background px-3 text-sm"
-                    placeholder="Shop address"
-                    value={reconnectOrigin}
-                    onChange={(e) => setReconnectOrigin(e.target.value)}
-                  />
-                  <input
-                    className="h-9 rounded-none border border-border bg-background px-3 text-sm"
-                    type="email"
-                    placeholder="Email"
-                    value={reconnectEmail}
-                    onChange={(e) => setReconnectEmail(e.target.value)}
-                    required
-                  />
-                  <input
-                    className="h-9 rounded-none border border-border bg-background px-3 text-sm"
-                    type="password"
-                    placeholder="Password"
-                    value={reconnectPassword}
-                    onChange={(e) => setReconnectPassword(e.target.value)}
-                    required
-                  />
+                {cloudOrigin || reconnectOrigin ? (
+                  <p className="text-xs text-muted-foreground">
+                    Online shop:{" "}
+                    <span className="font-medium text-foreground">
+                      {cloudOrigin || reconnectOrigin}
+                    </span>
+                  </p>
+                ) : null}
+                {passwordReconnect ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {!cloudOrigin ? (
+                      <input
+                        className="h-9 rounded-none border border-border bg-background px-3 text-sm sm:col-span-2"
+                        placeholder="Online shop address (e.g. https://palmart.co.ke)"
+                        value={reconnectOrigin}
+                        onChange={(e) => setReconnectOrigin(e.target.value)}
+                        required
+                      />
+                    ) : null}
+                    <input
+                      className="h-9 rounded-none border border-border bg-background px-3 text-sm"
+                      type="email"
+                      placeholder="Owner email"
+                      value={reconnectEmail}
+                      onChange={(e) => setReconnectEmail(e.target.value)}
+                      required
+                    />
+                    <input
+                      className="h-9 rounded-none border border-border bg-background px-3 text-sm"
+                      type="password"
+                      placeholder="Password"
+                      value={reconnectPassword}
+                      onChange={(e) => setReconnectPassword(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                ) : null}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" disabled={reconnecting}>
+                    {reconnecting ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Working…
+                      </>
+                    ) : passwordReconnect ? (
+                      "Reconnect"
+                    ) : (
+                      "Refresh connection"
+                    )}
+                  </Button>
+                  {passwordReconnect ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={reconnecting}
+                      onClick={() => setPasswordReconnect(false)}
+                    >
+                      Try without password
+                    </Button>
+                  ) : null}
                 </div>
-                <Button type="submit" disabled={reconnecting}>
-                  {reconnecting ? "Reconnecting…" : "Reconnect"}
-                </Button>
               </form>
             ) : null}
           </div>

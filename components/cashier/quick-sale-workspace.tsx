@@ -77,6 +77,7 @@ import {
 import {
   cashierMayRecordDrawout,
   POS_CASHIER_CAPABILITY_FLAGS,
+  posClearAllSalesEnabled,
   posClearSaleEnabled,
 } from "@/lib/pos-cashier-capabilities";
 import {
@@ -436,6 +437,8 @@ export function QuickSaleWorkspace({
     hasPermission(me?.permissions, Permission.PurchasingPathAWrite) &&
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false;
   const allowClearSale = posClearSaleEnabled(featureFlags);
+  const allowClearAllSales =
+    allowClearSale && posClearAllSalesEnabled(featureFlags);
   const allowAirtime = hasPermission(me?.permissions, Permission.AirtimeSell);
   const requirePhoneVerification = phoneVerificationRequiredForNewTab(business);
   const allowSearchCustomersByName = canSearchCustomersByName(business);
@@ -4332,7 +4335,92 @@ export function QuickSaleWorkspace({
     posDraftPersistence,
   ]);
 
+  /**
+   * Void every open till tab (and its pending draft) and leave a single empty
+   * cart. Used when the admin opts into clear-all so cashiers need not void
+   * unfinished sales one by one under Sales → Unfinished sales.
+   */
+  const onClearAllOpenSales = useCallback(() => {
+    cancelInFlightMpesa("All sales cleared");
+
+    const bizId = business?.id?.trim();
+    const bid = branchId.trim();
+    const uid = me?.id?.trim();
+    let cancelledAnyDraft = false;
+
+    for (const cart of carts) {
+      if (
+        cart.draftId &&
+        cart.lines.length > 0 &&
+        posDraftPersistence &&
+        online
+      ) {
+        cancelledAnyDraft = true;
+        void cancelPosDraft(cart.draftId, "Cleared all from till").catch(() => {
+          // Best-effort — draft may already be completed / cancelled.
+        });
+      }
+      if (cart.groceryInvoiceId && online) {
+        void unlockGroceryInvoice(cart.groceryInvoiceId);
+      }
+      if (cartLocalMirror && bizId && bid && uid && cart.lines.length > 0) {
+        void removeMirroredCart(bizId, bid, uid, cart.id);
+      }
+    }
+
+    if (cancelledAnyDraft) {
+      setPendingSalesRefreshKey((k) => k + 1);
+    }
+
+    dismissCompletedSaleUi();
+    setNotice("");
+    setError("");
+    const fresh = createEmptyCartSession();
+    setActiveCartId(fresh.id);
+    setCarts([fresh]);
+    setCheckoutDrawerOpen(false);
+  }, [
+    branchId,
+    business?.id,
+    cancelInFlightMpesa,
+    cartLocalMirror,
+    carts,
+    dismissCompletedSaleUi,
+    me?.id,
+    online,
+    posDraftPersistence,
+  ]);
+
+  const clearableSaleCount = useMemo(
+    () => carts.filter((c) => c.lines.length > 0).length,
+    [carts],
+  );
+
   const onClearSale = useCallback(() => {
+    if (allowClearAllSales) {
+      if (clearableSaleCount === 0) {
+        return;
+      }
+      const blockedMsg = cartEditBlockedByMpesa(stkPushStatusRef.current);
+      showThemedConfirmToast({
+        id: "clear-all-open-sales",
+        title:
+          clearableSaleCount === 1
+            ? "Clear this open sale?"
+            : `Clear all ${clearableSaleCount} open sales?`,
+        description: blockedMsg
+          ? "An M-Pesa prompt is on a customer's phone. Clearing will cancel it and void every open tab and unfinished sale on this till."
+          : "Voids every open tab on this till (and their unfinished sales). This cannot be undone — use Sales → Unfinished sales if you need to void tickets one by one instead.",
+        confirmLabel:
+          clearableSaleCount === 1 ? "Clear sale" : "Clear all sales",
+        confirmVariant: "destructive",
+        onConfirm: () => {
+          onClearAllOpenSales();
+        },
+      });
+      return;
+    }
+
     const active = carts.find((c) => c.id === activeCartId) ?? carts[0];
     if (!active?.lines.length) {
       return;
@@ -4372,7 +4460,14 @@ export function QuickSaleWorkspace({
         setCheckoutDrawerOpen(false);
       },
     });
-  }, [activeCartId, carts, onStartNewSale]);
+  }, [
+    activeCartId,
+    allowClearAllSales,
+    carts,
+    clearableSaleCount,
+    onClearAllOpenSales,
+    onStartNewSale,
+  ]);
 
   const onDownloadReceiptPdf = useCallback(async () => {
     if (!lastSale) {
@@ -4934,6 +5029,8 @@ export function QuickSaleWorkspace({
         allowSupplierOrder={allowSupplierOrder}
         allowOrderConfirm={allowOrderConfirm}
         allowClearSale={allowClearSale}
+        allowClearAllSales={allowClearAllSales}
+        clearableSaleCount={clearableSaleCount}
         allowAirtime={allowAirtime}
         allowWeighedToggle={allowWeighedToggle}
         weighedToggleBusyItemId={weighedToggleBusyItemId}
@@ -5099,9 +5196,27 @@ export function QuickSaleWorkspace({
                   branchOpenShift.id,
                 );
               }
+              // Closing the shift voids its unfinished sales server-side; wipe
+              // local till tabs so abandoned carts do not linger on this register.
+              cancelInFlightMpesa("Shift closed");
+              const bizId = business?.id?.trim();
+              const bid = branchId.trim();
+              const uid = me?.id?.trim();
+              if (cartLocalMirror && bizId && bid && uid) {
+                for (const cart of carts) {
+                  if (cart.lines.length > 0) {
+                    void removeMirroredCart(bizId, bid, uid, cart.id);
+                  }
+                }
+              }
+              const fresh = createEmptyCartSession();
+              setActiveCartId(fresh.id);
+              setCarts([fresh]);
+              setPendingSalesRefreshKey((k) => k + 1);
+              setCheckoutDrawerOpen(false);
               setCloseShiftModal(false);
               setStaleClosePrompt(false);
-              setNotice("Shift closed successfully.");
+              setNotice("Shift closed — unfinished sales on this shift were voided.");
               notifyPosGuidance("open-shift");
               refetchBranchOpenShift();
             }}

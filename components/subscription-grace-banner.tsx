@@ -14,10 +14,13 @@ import {
   type SubscriptionBillingStatusRecord,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { IS_DESKTOP } from "@/lib/runtime";
 
 /**
  * Sticky grace-period banner — visible on all dashboard routes while the
  * subscription is in GRACE (SUBSCRIPTION_BILLING_SCOPE.md §6).
+ *
+ * Hidden on desktop — SaaS billing grace does not apply to the offline till.
  */
 export function SubscriptionGraceBanner() {
   const [status, setStatus] = useState<SubscriptionBillingStatusRecord | null>(
@@ -25,6 +28,7 @@ export function SubscriptionGraceBanner() {
   );
 
   useEffect(() => {
+    if (IS_DESKTOP) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -38,6 +42,10 @@ export function SubscriptionGraceBanner() {
       cancelled = true;
     };
   }, []);
+
+  if (IS_DESKTOP) {
+    return null;
+  }
 
   if (!status?.billingEnabled || status.status !== "GRACE") {
     return null;

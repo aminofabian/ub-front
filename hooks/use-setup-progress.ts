@@ -6,6 +6,7 @@ import {
   fetchSetupProgress,
   type SetupProgressRecord,
 } from "@/lib/api";
+import { IS_DESKTOP } from "@/lib/runtime";
 
 type UseSetupProgressOptions = {
   enabled?: boolean;
@@ -17,14 +18,15 @@ export function useSetupProgress({
   enabled = true,
   pollMs = 30_000,
 }: UseSetupProgressOptions = {}) {
+  const active = enabled && !IS_DESKTOP;
   const [data, setData] = useState<SetupProgressRecord | null>(null);
-  const [loading, setLoading] = useState(enabled);
+  const [loading, setLoading] = useState(active);
   const [error, setError] = useState<string | null>(null);
   const prevEarnedRef = useRef<number | null>(null);
   const prevStepRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!enabled) {
+    if (!active) {
       setData(null);
       setLoading(false);
       return null;
@@ -65,26 +67,26 @@ export function useSetupProgress({
     } finally {
       setLoading(false);
     }
-  }, [enabled]);
+  }, [active]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   useSetupProgressRealtime({
-    enabled: enabled && (data?.visible ?? true),
+    enabled: active && (data?.visible ?? true),
     onInvalidate: () => {
       void load();
     },
   });
 
   useEffect(() => {
-    if (!enabled || !data?.visible) return;
+    if (!active || !data?.visible) return;
     const id = window.setInterval(() => {
       void load();
     }, pollMs);
     return () => window.clearInterval(id);
-  }, [enabled, data?.visible, load, pollMs]);
+  }, [active, data?.visible, load, pollMs]);
 
   return { data, loading, error, reload: load };
 }

@@ -3,7 +3,47 @@ import { describe, expect, it } from "bun:test";
 import {
   POS_CASHIER_CAPABILITY_FLAGS,
   cashierMayRecordDrawout,
+  posClearAllSalesEnabled,
+  posClearSaleEnabled,
 } from "@/lib/pos-cashier-capabilities";
+
+describe("posClearSaleEnabled", () => {
+  it("defaults on when the flag is absent", () => {
+    expect(posClearSaleEnabled({})).toBe(true);
+    expect(posClearSaleEnabled(undefined)).toBe(true);
+  });
+
+  it("honours an explicit off", () => {
+    expect(
+      posClearSaleEnabled({
+        [POS_CASHIER_CAPABILITY_FLAGS.clearSale]: false,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("posClearAllSalesEnabled", () => {
+  it("defaults off so unfinished sales stay accountable", () => {
+    expect(posClearAllSalesEnabled({})).toBe(false);
+    expect(posClearAllSalesEnabled(undefined)).toBe(false);
+  });
+
+  it("requires an explicit opt-in", () => {
+    expect(
+      posClearAllSalesEnabled({
+        [POS_CASHIER_CAPABILITY_FLAGS.clearAllSales]: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("stays off when explicitly false", () => {
+    expect(
+      posClearAllSalesEnabled({
+        [POS_CASHIER_CAPABILITY_FLAGS.clearAllSales]: false,
+      }),
+    ).toBe(false);
+  });
+});
 
 describe("cashierMayRecordDrawout", () => {
   it("lets owners and managers record drawouts without the flag", () => {

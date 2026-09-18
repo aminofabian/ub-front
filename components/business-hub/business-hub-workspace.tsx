@@ -114,6 +114,7 @@ import {
   fetchShiftDrawouts,
   fetchShifts,
   fetchWebOrders,
+  withSuppressedHttpErrorToasts,
   type BatchDashboardResponse,
   type CreditsActivitySummaryRecord,
   type DrawoutRecord,
@@ -297,6 +298,7 @@ export function BusinessHubWorkspace() {
     const gen = ++loadGen.current;
     setRefreshing(true);
     try {
+      await withSuppressedHttpErrorToasts(async () => {
       const todayRange = presetRange("today")!;
       const weekRange = presetRange("last7")!;
       const activeRange = period === "today" ? todayRange : weekRange;
@@ -526,6 +528,7 @@ export function BusinessHubWorkspace() {
       } else {
         setRecentDrawouts([]);
       }
+      });
     } catch {
       /* gracefully degrade */
     } finally {

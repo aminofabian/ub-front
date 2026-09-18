@@ -1434,7 +1434,7 @@ export function CloseShiftModal({
               <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
                 {staleDuration
                   ? `Open for ${staleDuration} without a close. Count out, or continue this shift.`
-                  : "Count notes, then coins."}
+                  : "Count notes, then coins. Closing voids unfinished sales on this shift."}
               </DialogDescription>
             </div>
           </DialogHeader>

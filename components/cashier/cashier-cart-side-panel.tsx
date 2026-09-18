@@ -53,6 +53,9 @@ type CashierCartSidePanelProps = {
   onCheckout: () => void;
   /** Show Clear sale beside Checkout / Pay (tenant setting). */
   allowClearSale?: boolean;
+  /** Clear voids every open till tab (admin override). */
+  allowClearAllSales?: boolean;
+  clearableSaleCount?: number;
   onClearSale?: () => void;
   onEditPrice?: (key: string) => void;
   onToggleWeighed?: (lineKey: string) => void;
@@ -81,6 +84,8 @@ export function CashierCartSidePanel({
   updateLine,
   onCheckout,
   allowClearSale = true,
+  allowClearAllSales = false,
+  clearableSaleCount = 0,
   onClearSale,
   onEditPrice,
   onToggleWeighed,
@@ -263,7 +268,10 @@ export function CashierCartSidePanel({
           >
             {loading ? "Recording…" : "Checkout / Pay"}
           </Button>
-          {allowClearSale && onClearSale && lines.length > 0 ? (
+          {allowClearSale &&
+          onClearSale &&
+          (lines.length > 0 ||
+            (allowClearAllSales && clearableSaleCount > 0)) ? (
             <Button
               type="button"
               variant="outline"
@@ -271,7 +279,9 @@ export function CashierCartSidePanel({
               disabled={loading}
               onClick={onClearSale}
             >
-              Clear sale
+              {allowClearAllSales && clearableSaleCount > 1
+                ? `Clear all sales (${clearableSaleCount})`
+                : "Clear sale"}
             </Button>
           ) : null}
           <p className="mt-1.5 text-center text-[10px] leading-snug text-muted-foreground">

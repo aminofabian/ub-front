@@ -132,6 +132,36 @@ export function reconnectDesktop(
   );
 }
 
+/** {@code POST /api/v1/desktop/reconnect/refresh} — reuse stored refresh token. */
+export function refreshDesktopCloudSession(): Promise<{
+  businessId: string;
+  message: string;
+}> {
+  return apiRequest<{ businessId: string; message: string }>(
+    "/api/v1/desktop/reconnect/refresh",
+    {
+      method: "POST",
+      toast: false,
+    },
+  );
+}
+
+/** {@code GET /api/v1/desktop/setup/status} — which shop this till is linked to. */
+export type DesktopSetupStatus = {
+  setupRequired: boolean;
+  businessId?: string | null;
+  shopName?: string | null;
+  shopHost?: string | null;
+  cloudOrigin?: string | null;
+};
+
+export function fetchDesktopSetupStatus(): Promise<DesktopSetupStatus> {
+  return apiRequest<DesktopSetupStatus>("/api/v1/desktop/setup/status", {
+    requiresAuth: false,
+    toast: false,
+  });
+}
+
 /** Pull counts of a finished sync ({@code GET /api/v1/desktop/sync/status}). */
 export type DesktopSyncPullResult = {
   branches: number;

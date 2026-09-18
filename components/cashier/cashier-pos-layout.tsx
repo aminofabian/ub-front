@@ -301,6 +301,13 @@ export type CashierPosLayoutProps = {
   allowOrderConfirm?: boolean;
   /** One-tap Clear sale beside Checkout / Pay (tenant setting). */
   allowClearSale?: boolean;
+  /**
+   * When set, Clear / Clear sale voids every open till tab (admin override).
+   * Default off so unfinished sales stay accountable.
+   */
+  allowClearAllSales?: boolean;
+  /** Open carts that still have lines (for clear-all affordances). */
+  clearableSaleCount?: number;
   /** Offer the airtime chip — the panel hides itself if airtime is switched off. */
   allowAirtime?: boolean;
   /** Mark cart lines as sold by weight (permission or admin flag). */
@@ -1112,6 +1119,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     allowSupplierOrder = false,
     allowOrderConfirm = false,
     allowClearSale = true,
+    allowClearAllSales = false,
+    clearableSaleCount = 0,
     allowAirtime = false,
     allowWeighedToggle = false,
     weighedToggleBusyItemId = null,
@@ -2848,6 +2857,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           updateLine={cart.updateLine}
           onCheckout={() => setCheckoutDrawerOpen(true)}
           allowClearSale={allowClearSale}
+          allowClearAllSales={allowClearAllSales}
+          clearableSaleCount={clearableSaleCount}
           onClearSale={cart.onClearSale}
           onEditPrice={(key) => setEditPriceKey(key)}
           onToggleWeighed={onToggleWeighed}
@@ -3149,6 +3160,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         weighedToggleBusyItemId={weighedToggleBusyItemId}
         onToggleWeighed={onToggleWeighed}
         allowClearSale={allowClearSale}
+        allowClearAllSales={allowClearAllSales}
+        clearableSaleCount={clearableSaleCount}
         {...cart}
       />
 

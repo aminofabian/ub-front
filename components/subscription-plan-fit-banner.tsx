@@ -21,6 +21,7 @@ import {
   isBillingAccessLocked,
 } from "@/lib/subscription-plan-fit";
 import { cn } from "@/lib/utils";
+import { IS_DESKTOP } from "@/lib/runtime";
 
 const DISMISS_KEY = "ub.planFit.dismissedTier";
 
@@ -123,6 +124,10 @@ function LockClock({
 /**
  * Shown on every dashboard route when live usage no longer fits the
  * subscribed plan. Picks the cheapest published plan that does.
+ *
+ * Hidden on desktop: the till stores {@code subscription_tier=desktop} on
+ * purpose (cloud billing must not treat the PC as a SaaS tenant). The real
+ * online plan lives under Settings → Desktop and the license card.
  */
 export function SubscriptionPlanFitBanner() {
   const [status, setStatus] = useState<SubscriptionBillingStatusRecord | null>(
@@ -131,6 +136,7 @@ export function SubscriptionPlanFitBanner() {
   const [dismissedTier, setDismissedTier] = useState<string | null>(null);
 
   useEffect(() => {
+    if (IS_DESKTOP) return;
     let cancelled = false;
     try {
       const stored = sessionStorage.getItem(DISMISS_KEY);
@@ -150,6 +156,10 @@ export function SubscriptionPlanFitBanner() {
       cancelled = true;
     };
   }, []);
+
+  if (IS_DESKTOP) {
+    return null;
+  }
 
   const fit = status?.planFit;
   if (!status || !fit?.needsUpgrade) {

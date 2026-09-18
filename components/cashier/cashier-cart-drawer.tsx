@@ -208,6 +208,9 @@ export type CashierCartDrawerProps = {
   onOpenShift?: () => void;
   /** Show Clear sale in checkout (tenant setting). */
   allowClearSale?: boolean;
+  /** Clear voids every open till tab (admin override). */
+  allowClearAllSales?: boolean;
+  clearableSaleCount?: number;
   /** Branch CUPS / network printer for raw ESC/POS + cut. */
   receiptPrinter?: LocalReceiptPrinterTarget | null;
   /** Branch setting: show WhatsApp digital receipt after sale. */
@@ -355,6 +358,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     onClearSale,
     onOpenShift,
     allowClearSale = true,
+    allowClearAllSales = false,
+    clearableSaleCount = 0,
     receiptPrinter,
     whatsappReceiptEnabled = false,
   } = props;
@@ -1604,15 +1609,26 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 </p>
               ) : null}
               <div className="flex items-stretch gap-1.5">
-                {allowClearSale && onClearSale && lines.length > 0 ? (
+                {allowClearSale &&
+                onClearSale &&
+                (lines.length > 0 ||
+                  (allowClearAllSales && clearableSaleCount > 0)) ? (
                   <Button
                     type="button"
                     variant="outline"
                     className="h-12 w-12 shrink-0 rounded-none border-destructive/35 p-0 text-destructive hover:bg-destructive/5 hover:text-destructive"
                     disabled={loading}
                     onClick={onClearSale}
-                    aria-label="Clear sale"
-                    title="Clear sale"
+                    aria-label={
+                      allowClearAllSales && clearableSaleCount > 1
+                        ? `Clear all ${clearableSaleCount} sales`
+                        : "Clear sale"
+                    }
+                    title={
+                      allowClearAllSales && clearableSaleCount > 1
+                        ? `Clear all ${clearableSaleCount} sales`
+                        : "Clear sale"
+                    }
                   >
                     <Trash2 className="size-4" aria-hidden />
                   </Button>

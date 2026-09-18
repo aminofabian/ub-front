@@ -234,7 +234,10 @@ export function DashboardProvider({
   const sessionFetchedRef = useRef(false);
 
   const refreshSession = useCallback(async () => {
-    const [meData, biz] = await Promise.all([fetchMe(), fetchBusiness()]);
+    const [meData, biz] = await Promise.all([
+      fetchMe({ toast: false }),
+      fetchBusiness({ toast: false }),
+    ]);
     setMe(meData);
     setBusiness(biz);
     writeSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me, meData);

@@ -12,6 +12,8 @@ type LedgerKeypadProps = {
   disabled?: boolean;
   targetLabel?: string;
   enterLabel?: string;
+  /** Tooltip when Clear can void open till tabs (admin override). */
+  clearHint?: string;
 };
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0"] as const;
@@ -40,6 +42,7 @@ export function LedgerKeypad({
   disabled = false,
   targetLabel,
   enterLabel = "Enter",
+  clearHint,
 }: LedgerKeypadProps) {
   return (
     <div className="space-y-1.5">
@@ -90,6 +93,8 @@ export function LedgerKeypad({
           type="button"
           disabled={disabled}
           onClick={onClear}
+          title={clearHint}
+          aria-label={clearHint ?? "Clear"}
           className={cn(
             KEY_BASE,
             "border-red-500/30 bg-red-500/5 text-[13px] font-semibold text-red-700",

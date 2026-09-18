@@ -25,6 +25,12 @@ export const POS_CASHIER_CAPABILITY_FLAGS = {
    * enabled; set false to hide the one-tap abandon control.
    */
   clearSale: "pos.cashier_clear_sale",
+  /**
+   * When Clear sale / keypad Clear runs, void every open till tab (and its
+   * pending draft) in one action. Absent / false keeps single-tab clear so
+   * unfinished sales stay accountable via Sales → Unfinished sales.
+   */
+  clearAllSales: "pos.cashier_clear_all_sales",
   /** Auto-add scanned barcodes straight to cart (skip search) when the
    * barcode resolves to exactly one sellable product. */
   scanToCart: "pos.scan_to_cart",
@@ -40,6 +46,16 @@ export function posClearSaleEnabled(
   featureFlags: Record<string, boolean> | null | undefined,
 ): boolean {
   return featureFlags?.[POS_CASHIER_CAPABILITY_FLAGS.clearSale] !== false;
+}
+
+/**
+ * Opt-in override: Clear voids every open till tab at once.
+ * Default off — unfinished sales remain trackable until voided individually.
+ */
+export function posClearAllSalesEnabled(
+  featureFlags: Record<string, boolean> | null | undefined,
+): boolean {
+  return featureFlags?.[POS_CASHIER_CAPABILITY_FLAGS.clearAllSales] === true;
 }
 
 /** How the till presents the product shelf. */

@@ -119,6 +119,11 @@ export type CashierCapabilitiesForm = {
   catalogHybrid: boolean;
   /** One-tap Clear sale beside Checkout / Pay on the till. */
   clearSale: boolean;
+  /**
+   * Clear voids every open till tab (and pending drafts) at once.
+   * Default off — unfinished sales stay trackable until voided one by one.
+   */
+  clearAllSales: boolean;
 };
 
 export type ShiftSettingsForm = {
@@ -139,6 +144,8 @@ export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
   catalogHybrid: false,
   /** Default on — cashiers can abandon a wrong sale in one tap. */
   clearSale: true,
+  /** Default off — keep unfinished sales accountable unless admin opts in. */
+  clearAllSales: false,
 };
 
 export const DEFAULT_SHIFT_SETTINGS: ShiftSettingsForm = {
@@ -160,6 +167,7 @@ export function cashierCapabilitiesFromRecord(
     drawout: ff[POS_CASHIER_CAPABILITY_FLAGS.drawout] === true,
     catalogHybrid: ff[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true,
     clearSale: ff[POS_CASHIER_CAPABILITY_FLAGS.clearSale] !== false,
+    clearAllSales: ff[POS_CASHIER_CAPABILITY_FLAGS.clearAllSales] === true,
   };
 }
 

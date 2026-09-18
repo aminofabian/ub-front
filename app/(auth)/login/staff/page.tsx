@@ -301,7 +301,7 @@ function LoginPageContent() {
           // Desktop: 4–6 digit office passwords are often misclassified as
           // PINs. Fall through to password so the same cloud secret works.
           if (!IS_DESKTOP) throw pinError;
-          await loginWithPassword(email, secret);
+          await loginWithPassword(email, secret, { toast: false });
         }
         return;
       }
@@ -310,10 +310,10 @@ function LoginPageContent() {
           await loginWithPin(email, secret.trim());
         } catch (pinError) {
           if (!IS_DESKTOP) throw pinError;
-          await loginWithPassword(email, secret);
+          await loginWithPassword(email, secret, { toast: false });
         }
       } else {
-        await loginWithPassword(email, secret);
+        await loginWithPassword(email, secret, { toast: false });
       }
     };
 
@@ -869,7 +869,9 @@ function LoginPageContent() {
             setErrorMessage("");
             try {
               if (!signedIn) {
-                await loginWithPassword(email.trim().toLowerCase(), secret);
+                await loginWithPassword(email.trim().toLowerCase(), secret, {
+                  toast: false,
+                });
               }
               if (IS_DESKTOP && !isOffice) {
                 const me = await fetchMe().catch(() => null);

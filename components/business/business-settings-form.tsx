@@ -1562,10 +1562,24 @@ export function BusinessSettingsForm({
                   setCashierCapabilities((previous) => ({
                     ...previous,
                     clearSale: checked,
+                    // Clear-all only makes sense when Clear sale is available.
+                    clearAllSales: checked ? previous.clearAllSales : false,
                   }))
                 }
                 title="Clear sale on the till"
                 description="Show a Clear sale button beside Checkout / Pay so cashiers can abandon a wrong sale in one tap."
+              />
+              <ToggleRow
+                checked={cashierCapabilities.clearAllSales}
+                onChange={(checked) =>
+                  setCashierCapabilities((previous) => ({
+                    ...previous,
+                    clearAllSales: checked,
+                    clearSale: checked ? true : previous.clearSale,
+                  }))
+                }
+                title="Clear all open till tabs"
+                description="Override accountability: Clear / Clear sale voids every open tab and its unfinished sale at once. When off, cashiers must void leftover tickets under Sales → Unfinished sales one by one."
               />
               <div className="space-y-2 border-t border-border/60 pt-3">
                 <p className="text-sm font-medium text-foreground">
