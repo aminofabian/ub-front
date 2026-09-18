@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { PaymentBrandMark } from "@/components/payments/payment-brand-mark";
 import { PlatformAirtimeSection } from "@/components/super-admin/platform-airtime-section";
 import { SaSection, saSelectClass } from "@/components/super-admin/sa-section";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
@@ -887,12 +888,21 @@ export default function SuperAdminPlatformPaymentsPage() {
                 key={gw.gatewayType}
                 className="flex items-start justify-between gap-4 px-4 py-3.5 sm:px-5"
               >
-                <div className="min-w-0">
-                  <p className="font-medium">{gw.displayName}</p>
-                  {gw.description ? (
-                    <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{gw.description}</p>
-                  ) : null}
-                  <p className="mt-1 font-mono text-xs text-muted-foreground">{gw.gatewayType}</p>
+                <div className="flex min-w-0 items-start gap-3">
+                  <PaymentBrandMark
+                    gatewayType={gw.gatewayType}
+                    displayName={gw.displayName}
+                    logoUrl={gw.logoUrl}
+                    size="md"
+                    className="mt-0.5"
+                  />
+                  <div className="min-w-0">
+                    <p className="font-medium">{gw.displayName}</p>
+                    {gw.description ? (
+                      <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{gw.description}</p>
+                    ) : null}
+                    <p className="mt-1 font-mono text-xs text-muted-foreground">{gw.gatewayType}</p>
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Badge variant={gw.isEnabled ? "success" : "secondary"}>

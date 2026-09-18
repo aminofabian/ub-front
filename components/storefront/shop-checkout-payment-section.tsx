@@ -3,6 +3,7 @@
 import { Banknote, Check, ChevronRight, Copy, CreditCard, MessageCircle, Smartphone, Sparkles, Truck, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { PaymentBrandMark } from "@/components/payments/payment-brand-mark";
 import { Button } from "@/components/ui/button";
 import { useShopCartOptional } from "@/hooks/use-shop-cart";
 import {
@@ -582,7 +583,11 @@ function AlternativePayList({
                 onClick={() => onRedirectPay?.(method.configId)}
                 className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-background/70 disabled:opacity-60"
               >
-                <CreditCard className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                <PaymentBrandMark
+                  gatewayType={method.gatewayType}
+                  displayName={label}
+                  size="sm"
+                />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[13px] font-medium text-foreground">{label}</span>
                   <span className="block text-[10px] leading-snug text-muted-foreground">

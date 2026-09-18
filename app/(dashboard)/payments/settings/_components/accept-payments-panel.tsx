@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { GatewayStatusBadge } from "@/components/payments/gateway-status-badge";
+import { PaymentBrandMark } from "@/components/payments/payment-brand-mark";
 import { Button } from "@/components/ui/button";
 import type {
   AvailableGatewayRecord,
@@ -146,19 +147,17 @@ export function AcceptPaymentsPanel({
                 className="flex flex-col gap-2.5 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-start gap-2.5">
-                  <span
-                    className={cn(
-                      "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-none font-mono text-sm font-bold",
-                      config.status === "ACTIVE"
-                        ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                        : config.status === "ERROR"
-                          ? "border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_8%,white)] text-[#9a2e16]"
-                          : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666]",
-                    )}
-                    aria-hidden
-                  >
-                    {gatewayGlyph(config.gatewayType)}
-                  </span>
+                  <PaymentBrandMark
+                    gatewayType={config.gatewayType}
+                    displayName={name}
+                    logoUrl={
+                      available.find((a) => a.gatewayType === config.gatewayType)
+                        ?.logoUrl
+                    }
+                    glyph={gatewayGlyph(config.gatewayType)}
+                    size="md"
+                    className="mt-0.5"
+                  />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <p className="truncate text-sm font-medium text-foreground">

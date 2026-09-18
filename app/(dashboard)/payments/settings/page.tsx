@@ -26,6 +26,7 @@ import { FormDrawer } from "@/components/form-drawer";
 import { AirtimeSettingsSection } from "@/components/payments/airtime-settings-section";
 import { GatewayConfigForm } from "@/components/payments/gateway-config-form";
 import { GatewayStatusBadge } from "@/components/payments/gateway-status-badge";
+import { PaymentBrandMark } from "@/components/payments/payment-brand-mark";
 import { ManualMethodForm } from "@/components/payments/manual-method-form";
 import { SupplierPayoutSettingsSection } from "@/components/payments/supplier-payout-settings-section";
 import { KioskPaySettingsSection } from "@/components/payments/kiosk-pay-settings-section";
@@ -694,15 +695,23 @@ export default function PaymentGatewaySettingsPage() {
                   })
                 }
               >
-                <span>
-                  <span className="block text-sm font-medium text-foreground">
-                    {gw.displayName}
-                  </span>
-                  {gw.description ? (
-                    <span className="mt-0.5 block text-xs text-muted-foreground">
-                      {gw.description}
+                <span className="flex min-w-0 items-center gap-3">
+                  <PaymentBrandMark
+                    gatewayType={gw.gatewayType}
+                    displayName={gw.displayName}
+                    logoUrl={gw.logoUrl}
+                    size="md"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-foreground">
+                      {gw.displayName}
                     </span>
-                  ) : null}
+                    {gw.description ? (
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        {gw.description}
+                      </span>
+                    ) : null}
+                  </span>
                 </span>
                 <Plus className="size-4 shrink-0 text-muted-foreground" />
               </button>

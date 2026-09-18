@@ -2,7 +2,21 @@
 
 import * as React from "react";
 
+import {
+  dashboardHintClass,
+  dashboardInputClass,
+  dashboardTextareaClass,
+} from "@/components/dashboard-page-ui";
 import { ServingWorklist, shopTicketLabel } from "@/components/serving/serving-worklist";
+import {
+  SERVING_COL_RULE,
+  SERVING_DIVIDE,
+  SERVING_HAIRLINE,
+  SERVING_INK,
+  SERVING_PAPER_COL,
+  SERVING_SHARP_BTN,
+  SERVING_THEATRE,
+} from "@/components/serving/serving-ui";
 import { Button } from "@/components/ui/button";
 import {
   completeTenantServingPoint,
@@ -85,37 +99,37 @@ export function TenantServingTickets() {
   };
 
   return (
-    <div className="grid min-h-[520px] overflow-hidden rounded-2xl border md:grid-cols-[220px_minmax(0,1fr)]">
-      <aside className="border-b md:border-b-0 md:border-r">
-        <div className="border-b p-3">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+    <div className={cn(SERVING_THEATRE, "grid min-h-[520px] md:grid-cols-[220px_minmax(0,1fr)]")}>
+      <aside className={cn("border-b md:border-b-0 md:border-r", SERVING_COL_RULE, SERVING_PAPER_COL)}>
+        <div className={cn("border-b p-3", SERVING_COL_RULE)}>
+          <p className={cn("mb-2 text-[13px] font-semibold tracking-[-0.02em]", SERVING_INK)}>
             Numbered with Palmart
           </p>
-          <Button type="button" size="sm" className="w-full" onClick={() => setCreating((v) => !v)}>
+          <Button type="button" size="sm" className={cn(SERVING_SHARP_BTN, "w-full")} onClick={() => setCreating((v) => !v)}>
             {creating ? "Cancel" : "New ticket"}
           </Button>
         </div>
         {creating ? (
-          <form onSubmit={openTicket} className="space-y-2 border-b p-3">
+          <form onSubmit={openTicket} className={cn("space-y-2 border-b bg-white p-3", SERVING_COL_RULE)}>
             <input
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className={dashboardInputClass()}
               value={newSubject}
               onChange={(e) => setNewSubject(e.target.value)}
               placeholder="Subject"
               required
             />
             <textarea
-              className="min-h-[64px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className={dashboardTextareaClass()}
               value={newBody}
               onChange={(e) => setNewBody(e.target.value)}
               placeholder="What do you need Palmart to look at?"
             />
-            <Button type="submit" size="sm" disabled={busy || !newSubject.trim()}>
+            <Button type="submit" size="sm" className={SERVING_SHARP_BTN} disabled={busy || !newSubject.trim()}>
               Open ticket
             </Button>
           </form>
         ) : null}
-        <ol className="divide-y">
+        <ol className={cn("divide-y", SERVING_DIVIDE)}>
           {tickets.map((ticket) => {
             const done = ticket.doneCount ?? 0;
             const total = ticket.pointCount ?? 0;
@@ -125,23 +139,27 @@ export function TenantServingTickets() {
                   type="button"
                   onClick={() => setActiveId(ticket.id)}
                   className={cn(
-                    "flex w-full items-start gap-3 px-3 py-3 text-left",
-                    activeId === ticket.id ? "bg-muted" : "hover:bg-muted/50",
+                    "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors",
+                    activeId === ticket.id
+                      ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
+                      : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
                   )}
                 >
                   <span
                     className={cn(
-                      "w-6 shrink-0 font-mono text-lg font-semibold tabular-nums leading-none",
+                      "grid size-7 shrink-0 place-items-center border text-[10px] font-bold tabular-nums",
                       ticket.status === "RESOLVED" || ticket.status === "CLOSED"
-                        ? "text-muted-foreground"
-                        : "text-primary",
+                        ? cn(SERVING_HAIRLINE, "text-muted-foreground")
+                        : "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
                     )}
                   >
                     {shopTicketLabel(ticket)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="line-clamp-2 text-sm text-foreground">{ticket.subject}</span>
-                    <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                    <span className="line-clamp-2 text-[13px] font-semibold tracking-[-0.015em] text-foreground">
+                      {ticket.subject}
+                    </span>
+                    <span className={cn(dashboardHintClass(), "mt-0.5 block")}>
                       {total > 0 ? `${done}/${total} points` : ticket.status.toLowerCase()}
                     </span>
                   </span>
@@ -151,19 +169,20 @@ export function TenantServingTickets() {
           })}
         </ol>
         {tickets.length === 0 ? (
-          <p className="px-3 py-8 text-center text-sm text-muted-foreground">No numbered tickets yet.</p>
+          <p className={cn(dashboardHintClass(), "px-3 py-8 text-center")}>No numbered tickets yet.</p>
         ) : null}
       </aside>
-      <section className="flex min-h-0 flex-col">
-        {error ? <p className="px-4 pt-3 text-sm text-destructive">{error}</p> : null}
+      <section className="flex min-h-0 flex-col bg-white">
+        {error ? <p className="px-3 pt-3 text-sm text-destructive">{error}</p> : null}
         {!detail ? (
-          <p className="m-auto px-6 text-sm text-muted-foreground">
+          <p className={cn(dashboardHintClass(), "m-auto max-w-[18rem] px-6 text-center")}>
             Pick a number. Palmart breaks each ask into points you can tick when they are done.
           </p>
         ) : (
           <>
-            <div className="border-b p-3">
+            <div className={cn("border-b", SERVING_COL_RULE)}>
               <ServingWorklist
+                className="border-0"
                 ticket={detail.ticket}
                 points={detail.points ?? []}
                 variant="tenant"
@@ -182,13 +201,15 @@ export function TenantServingTickets() {
                 }}
               />
             </div>
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3">
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
               {(detail.messages ?? []).map((message) => (
                 <div
                   key={message.id}
                   className={cn(
-                    "max-w-[85%] rounded-2xl px-3 py-2 text-sm",
-                    message.senderType === "TENANT" ? "ml-auto bg-primary text-primary-foreground" : "bg-muted",
+                    "max-w-[85%] px-3 py-2 text-sm",
+                    message.senderType === "TENANT"
+                      ? "ml-auto bg-[var(--pos-primary,#0f766e)] text-white"
+                      : cn("border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] text-foreground", SERVING_HAIRLINE),
                   )}
                 >
                   <p className="text-[11px] opacity-70">{message.senderName}</p>
@@ -196,14 +217,14 @@ export function TenantServingTickets() {
                 </div>
               ))}
             </div>
-            <form onSubmit={send} className="flex gap-2 border-t p-3">
+            <form onSubmit={send} className={cn("flex gap-2 border-t p-3", SERVING_COL_RULE)}>
               <input
-                className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+                className={cn(dashboardInputClass(), "flex-1")}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Reply to Palmart…"
               />
-              <Button type="submit" size="sm" disabled={busy || !draft.trim()}>
+              <Button type="submit" size="sm" className={SERVING_SHARP_BTN} disabled={busy || !draft.trim()}>
                 Send
               </Button>
             </form>
