@@ -1,7 +1,7 @@
 "use client";
 
 import { Menu, PanelRight, Sparkles, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
@@ -62,6 +62,8 @@ export function CampaignsCommandCentre({
   campaignId?: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const reuseId = searchParams.get("reuse");
   const [nav, setNav] = useState<CampaignNavId>(
     initialMode === "compose"
       ? "drafts"
@@ -241,6 +243,32 @@ export function CampaignsCommandCentre({
         setLoadError(e instanceof Error ? e.message : "Could not load campaign."),
       );
   }, [campaignId]);
+
+  useEffect(() => {
+    if (initialMode !== "compose" || !reuseId) return;
+    let cancelled = false;
+    void fetchSaEmailCampaign(reuseId)
+      .then((c) => {
+        if (cancelled) return;
+        setCopiedFrom(c.name);
+        setCampaignName(`${c.name} (copy)`);
+        setSubject(c.subject);
+        setBody(c.bodyMarkdown);
+        setCta(c.ctaLabel || "Continue");
+        setPickingIntent(false);
+        setMode("compose");
+        router.replace(APP_ROUTES.superAdminCampaignNew);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setLoadError(
+          e instanceof Error ? e.message : "Could not reuse campaign.",
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialMode, reuseId, router]);
 
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
