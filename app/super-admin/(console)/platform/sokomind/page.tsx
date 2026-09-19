@@ -1,14 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { RefreshCw, Sparkles } from "lucide-react";
 
-import { AuthAlert } from "@/components/auth/auth-alert";
-import { SaSection, SaToggleRow, saSelectClass } from "@/components/super-admin/sa-section";
-import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
+import {
+  DASHBOARD_MAX_WIDE,
+  DashboardFeedback,
+  DashboardPageHero,
+  dashboardHintClass,
+  dashboardInputClass,
+  dashboardLabelClass,
+  dashboardSelectClass,
+  dashboardTextareaClass,
+} from "@/components/dashboard-page-ui";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   fetchSokoMindSettings,
@@ -17,29 +26,118 @@ import {
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
+import {
+  SOKOMIND_NAV,
+  SokoMindTheatre,
+  type SokoMindSectionId,
+} from "./_components/sokomind-theatre";
+
+const HAIRLINE =
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+const PRIMARY_BTN =
+  "h-8 rounded-none bg-[var(--pos-primary,#0f766e)] px-3.5 text-white shadow-none hover:bg-[#0d6b63]";
+
+function sectionFromHash(hash: string): SokoMindSectionId | null {
+  const id = hash.replace(/^#/, "");
+  if (!id) return null;
+  if (SOKOMIND_NAV.some((item) => item.id === id)) {
+    return id as SokoMindSectionId;
+  }
+  return null;
+}
+
 function Field({
   id,
   label,
+  className,
   children,
 }: {
   id?: string;
   label: string;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id}>{label}</Label>
+    <div className={cn("space-y-1.5", className)}>
+      {id ? (
+        <Label htmlFor={id} className={dashboardLabelClass()}>
+          {label}
+        </Label>
+      ) : (
+        <p className={dashboardLabelClass()}>{label}</p>
+      )}
       {children}
     </div>
+  );
+}
+
+function ToggleRow({
+  id,
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-start justify-between gap-3 border bg-white px-3 py-2.5",
+        HAIRLINE,
+      )}
+    >
+      <label htmlFor={id} className="min-w-0 cursor-pointer">
+        <span className="block text-[13px] font-semibold tracking-[-0.015em] text-foreground">
+          {label}
+        </span>
+        {description ? (
+          <span className={cn(dashboardHintClass(), "mt-0.5 block")}>
+            {description}
+          </span>
+        ) : null}
+      </label>
+      <Switch id={id} checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
+
+function KeyStatus({ ready }: { ready: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+        ready
+          ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]"
+          : "border-amber-700/35 text-amber-800",
+      )}
+    >
+      <span
+        className={cn(
+          "size-1.5",
+          ready ? "bg-[var(--pos-primary,#0f766e)]" : "bg-amber-600",
+        )}
+        aria-hidden
+      />
+      {ready ? "Key ready" : "Needs a key"}
+    </span>
   );
 }
 
 export default function SuperAdminSokoMindSettingsPage() {
   const [settings, setSettings] = useState<SokoMindSettingsRecord | null>(null);
   const [loadError, setLoadError] = useState("");
+  const [booting, setBooting] = useState(true);
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [activeSection, setActiveSection] = useState<SokoMindSectionId | null>(
+    null,
+  );
 
   const [sokomindEnabled, setSokomindEnabled] = useState(false);
   const [guideEnabled, setGuideEnabled] = useState(true);
@@ -56,24 +154,39 @@ export default function SuperAdminSokoMindSettingsPage() {
 
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
   const [anthropicBaseUrl, setAnthropicBaseUrl] = useState("");
-  const [anthropicMiniModel, setAnthropicMiniModel] = useState("claude-haiku-4-5-20251001");
-  const [anthropicSmartModel, setAnthropicSmartModel] = useState("claude-sonnet-4-5-20250929");
+  const [anthropicMiniModel, setAnthropicMiniModel] = useState(
+    "claude-haiku-4-5-20251001",
+  );
+  const [anthropicSmartModel, setAnthropicSmartModel] = useState(
+    "claude-sonnet-4-5-20250929",
+  );
 
   const [openrouterApiKey, setOpenrouterApiKey] = useState("");
-  const [openrouterBaseUrl, setOpenrouterBaseUrl] = useState("https://openrouter.ai/api/v1");
-  const [openrouterMiniModel, setOpenrouterMiniModel] = useState("z-ai/glm-5.3-flash");
-  const [openrouterSmartModel, setOpenrouterSmartModel] = useState("z-ai/glm-4.6");
-  const [openrouterImageModel, setOpenrouterImageModel] = useState("google/gemini-2.5-flash-image");
+  const [openrouterBaseUrl, setOpenrouterBaseUrl] = useState(
+    "https://openrouter.ai/api/v1",
+  );
+  const [openrouterMiniModel, setOpenrouterMiniModel] =
+    useState("z-ai/glm-5.3-flash");
+  const [openrouterSmartModel, setOpenrouterSmartModel] =
+    useState("z-ai/glm-4.6");
+  const [openrouterImageModel, setOpenrouterImageModel] = useState(
+    "google/gemini-2.5-flash-image",
+  );
 
   const [deepseekApiKey, setDeepseekApiKey] = useState("");
-  const [deepseekBaseUrl, setDeepseekBaseUrl] = useState("https://api.deepseek.com/chat/completions");
-  const [deepseekHost, setDeepseekHost] = useState("deepseek-v31.p.rapidapi.com");
+  const [deepseekBaseUrl, setDeepseekBaseUrl] = useState(
+    "https://api.deepseek.com/chat/completions",
+  );
+  const [deepseekHost, setDeepseekHost] = useState(
+    "deepseek-v31.p.rapidapi.com",
+  );
   const [deepseekModel, setDeepseekModel] = useState("DeepSeek-V3-0324");
   const [rapidapiDeepseekApiKey, setRapidapiDeepseekApiKey] = useState("");
 
   const [industryCompareEnabled, setIndustryCompareEnabled] = useState(false);
   const [industryCompareMinTwins, setIndustryCompareMinTwins] = useState(8);
-  const [dailyTokenBudgetPerTenant, setDailyTokenBudgetPerTenant] = useState("");
+  const [dailyTokenBudgetPerTenant, setDailyTokenBudgetPerTenant] =
+    useState("");
   const [maxToolCallsPerRequest, setMaxToolCallsPerRequest] = useState(8);
   const [systemPromptExtra, setSystemPromptExtra] = useState("");
 
@@ -91,18 +204,28 @@ export default function SuperAdminSokoMindSettingsPage() {
     setOpenaiVisionModel(row.openaiVisionModel || "gpt-4o");
     setAnthropicBaseUrl(row.anthropicBaseUrl ?? "");
     setAnthropicMiniModel(row.anthropicMiniModel || "claude-haiku-4-5-20251001");
-    setAnthropicSmartModel(row.anthropicSmartModel || "claude-sonnet-4-5-20250929");
-    setOpenrouterBaseUrl(row.openrouterBaseUrl || "https://openrouter.ai/api/v1");
+    setAnthropicSmartModel(
+      row.anthropicSmartModel || "claude-sonnet-4-5-20250929",
+    );
+    setOpenrouterBaseUrl(
+      row.openrouterBaseUrl || "https://openrouter.ai/api/v1",
+    );
     setOpenrouterMiniModel(row.openrouterMiniModel || "z-ai/glm-5.3-flash");
     setOpenrouterSmartModel(row.openrouterSmartModel || "z-ai/glm-4.6");
-    setOpenrouterImageModel(row.openrouterImageModel || "google/gemini-2.5-flash-image");
-    setDeepseekBaseUrl(row.deepseekBaseUrl || "https://api.deepseek.com/chat/completions");
+    setOpenrouterImageModel(
+      row.openrouterImageModel || "google/gemini-2.5-flash-image",
+    );
+    setDeepseekBaseUrl(
+      row.deepseekBaseUrl || "https://api.deepseek.com/chat/completions",
+    );
     setDeepseekHost(row.deepseekHost || "deepseek-v31.p.rapidapi.com");
     setDeepseekModel(row.deepseekModel || "DeepSeek-V3-0324");
     setIndustryCompareEnabled(row.industryCompareEnabled);
     setIndustryCompareMinTwins(row.industryCompareMinTwins || 8);
     setDailyTokenBudgetPerTenant(
-      row.dailyTokenBudgetPerTenant != null ? String(row.dailyTokenBudgetPerTenant) : "",
+      row.dailyTokenBudgetPerTenant != null
+        ? String(row.dailyTokenBudgetPerTenant)
+        : "",
     );
     setMaxToolCallsPerRequest(row.maxToolCallsPerRequest || 8);
     setSystemPromptExtra(row.systemPromptExtra ?? "");
@@ -116,10 +239,13 @@ export default function SuperAdminSokoMindSettingsPage() {
   const load = useCallback(async () => {
     setLoadError("");
     try {
-      const row = await fetchSokoMindSettings();
-      applySettings(row);
+      applySettings(await fetchSokoMindSettings());
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Could not load SokoMind settings.");
+      setLoadError(
+        e instanceof Error ? e.message : "Could not load SokoMind settings.",
+      );
+    } finally {
+      setBooting(false);
     }
   }, [applySettings]);
 
@@ -127,8 +253,17 @@ export default function SuperAdminSokoMindSettingsPage() {
     void load();
   }, [load]);
 
-  const onSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    const applyHash = () => {
+      const id = sectionFromHash(window.location.hash);
+      if (id) setActiveSection(id);
+    };
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, []);
+
+  const onSave = async () => {
     setError("");
     setSuccess("");
     setBusy(true);
@@ -165,7 +300,9 @@ export default function SuperAdminSokoMindSettingsPage() {
       } else {
         const parsed = Number.parseInt(budgetTrim, 10);
         if (!Number.isFinite(parsed) || parsed < 0) {
-          throw new Error("Daily token budget must be a non-negative integer (or blank).");
+          throw new Error(
+            "Daily token budget must be a non-negative integer (or blank).",
+          );
         }
         body.dailyTokenBudgetPerTenant = parsed;
       }
@@ -188,7 +325,12 @@ export default function SuperAdminSokoMindSettingsPage() {
   };
 
   const clearKey = (
-    field: "openaiApiKey" | "anthropicApiKey" | "openrouterApiKey" | "deepseekApiKey" | "rapidapiDeepseekApiKey",
+    field:
+      | "openaiApiKey"
+      | "anthropicApiKey"
+      | "openrouterApiKey"
+      | "deepseekApiKey"
+      | "rapidapiDeepseekApiKey",
     label: string,
   ) => {
     showThemedConfirmToast({
@@ -224,77 +366,174 @@ export default function SuperAdminSokoMindSettingsPage() {
       id: "anthropic",
       name: "Anthropic",
       description: "Claude models via api.anthropic.com",
-      ready: Boolean(settings?.hasAnthropicApiKey || settings?.envAnthropicConfigured),
+      ready: Boolean(
+        settings?.hasAnthropicApiKey || settings?.envAnthropicConfigured,
+      ),
     },
     {
       id: "openrouter",
       name: "OpenRouter · GLM",
       description: "GLM chat + logos via openrouter.ai — one key",
-      ready: Boolean(settings?.hasOpenrouterApiKey || settings?.envOpenrouterConfigured),
+      ready: Boolean(
+        settings?.hasOpenrouterApiKey || settings?.envOpenrouterConfigured,
+      ),
     },
     {
       id: "deepseek",
       name: "DeepSeek · direct",
       description: "api.deepseek.com — your platform.deepseek.com key",
-      ready: Boolean(settings?.hasDeepseekApiKey || settings?.envDeepseekConfigured),
+      ready: Boolean(
+        settings?.hasDeepseekApiKey || settings?.envDeepseekConfigured,
+      ),
     },
     {
       id: "rapidapi_deepseek",
       name: "DeepSeek · RapidAPI",
       description: "RapidAPI proxy — needs its own RapidAPI key",
-      ready: Boolean(settings?.hasRapidapiDeepseekApiKey || settings?.envDeepseekConfigured),
+      ready: Boolean(
+        settings?.hasRapidapiDeepseekApiKey || settings?.envDeepseekConfigured,
+      ),
     },
   ] as const;
 
-  return (
-    <div className="space-y-6">
-      <SuperAdminPageHeader
-        title="SokoMind"
-        description="Paste API keys here — OpenAI, Anthropic, OpenRouter (GLM), or DeepSeek. They are encrypted in the database and never shown again after save. Pick a primary provider, then Save SokoMind."
-      />
+  const keysReady = providerCards.filter((c) => c.ready).length;
 
-      {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
-      {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
-      {success ? <AuthAlert variant="success">{success}</AuthAlert> : null}
+  const sectionSummary = useCallback(
+    (sectionId: SokoMindSectionId) => {
+      switch (sectionId) {
+        case "faces":
+          return (
+            <>
+              Master{" "}
+              <span className="font-semibold">
+                {sokomindEnabled ? "on" : "off"}
+              </span>
+              {" · "}
+              Primary{" "}
+              <span className="font-semibold">{primaryProvider}</span>
+              {" · "}
+              {[
+                guideEnabled ? "Guide" : null,
+                brainEnabled ? "Brain" : null,
+                eyeEnabled ? "Eye" : null,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "no faces"}
+            </>
+          );
+        case "openai":
+          return (
+            <>
+              Key{" "}
+              <span className="font-semibold">
+                {settings?.hasOpenaiApiKey ? "stored" : "not set"}
+              </span>
+              {" · "}
+              {openaiMiniModel}
+            </>
+          );
+        case "anthropic":
+          return (
+            <>
+              Key{" "}
+              <span className="font-semibold">
+                {settings?.hasAnthropicApiKey ? "stored" : "not set"}
+              </span>
+              {" · "}
+              {anthropicMiniModel}
+            </>
+          );
+        case "openrouter":
+          return (
+            <>
+              Key{" "}
+              <span className="font-semibold">
+                {settings?.hasOpenrouterApiKey ? "stored" : "not set"}
+              </span>
+              {" · "}
+              {openrouterSmartModel}
+            </>
+          );
+        case "deepseek":
+          return (
+            <>
+              Direct{" "}
+              <span className="font-semibold">
+                {settings?.hasDeepseekApiKey ? "yes" : "no"}
+              </span>
+              {" · "}
+              RapidAPI{" "}
+              <span className="font-semibold">
+                {settings?.hasRapidapiDeepseekApiKey ? "yes" : "no"}
+              </span>
+            </>
+          );
+        case "guardrails":
+          return (
+            <>
+              Twins{" "}
+              <span className="font-semibold">
+                {industryCompareEnabled ? "on" : "off"}
+              </span>
+              {" · "}
+              k=
+              <span className="font-semibold tabular-nums">
+                {industryCompareMinTwins}
+              </span>
+              {" · "}
+              tools{" "}
+              <span className="font-semibold tabular-nums">
+                {maxToolCallsPerRequest}
+              </span>
+            </>
+          );
+        default:
+          return null;
+      }
+    },
+    [
+      sokomindEnabled,
+      primaryProvider,
+      guideEnabled,
+      brainEnabled,
+      eyeEnabled,
+      settings,
+      openaiMiniModel,
+      anthropicMiniModel,
+      openrouterSmartModel,
+      industryCompareEnabled,
+      industryCompareMinTwins,
+      maxToolCallsPerRequest,
+    ],
+  );
 
-      {settings?.encryptionEphemeral ? (
-        <AuthAlert variant="error">
-          APP_PAYMENTS_ENCRYPTION_KEY is not set on the server. Keys you paste here
-          will be lost on restart until that key is set.
-        </AuthAlert>
-      ) : null}
-      {settings && !settings.secretsReadable && settings.secretsError ? (
-        <AuthAlert variant="error">{settings.secretsError}</AuthAlert>
-      ) : null}
-
-      <form onSubmit={onSave} className="space-y-6">
-        <SaSection
-          title="Faces & master switch"
-          description="Master off disables all SokoMind traffic. Face toggles gate Guide / Brain / Eye. API keys belong in the provider sections below — not in .env."
-        >
+  const drawerBody = (() => {
+    switch (activeSection) {
+      case "faces":
+        return (
           <div className="space-y-3">
-            <SaToggleRow
+            <ToggleRow
               id="sokomind-enabled"
               label="Enable SokoMind"
               description="Platform-wide kill switch. Off = no LLM calls from the gateway."
               checked={sokomindEnabled}
               onChange={setSokomindEnabled}
             />
-            <SaToggleRow
+            <ToggleRow
               id="guide-enabled"
               label="Guide"
               description="Contextual help, page explain, message drafts, error translator."
               checked={guideEnabled}
               onChange={setGuideEnabled}
             />
-            <SaToggleRow
+            <ToggleRow
               id="brain-enabled"
               label="Brain"
               description="Industry twins, Price Radar, NL analytics, restock recommendations."
               checked={brainEnabled}
               onChange={setBrainEnabled}
             />
-            <SaToggleRow
+            <ToggleRow
               id="eye-enabled"
               label="Eye"
               description="Photo → product, invoice OCR, Cloudinary AI transforms."
@@ -302,11 +541,9 @@ export default function SuperAdminSokoMindSettingsPage() {
               onChange={setEyeEnabled}
             />
             <div className="space-y-2">
-              <span className="text-sm font-medium leading-none text-foreground">
-                Primary provider
-              </span>
+              <p className={dashboardLabelClass()}>Primary provider</p>
               <div
-                className="grid gap-2 sm:grid-cols-2"
+                className="grid gap-2"
                 role="radiogroup"
                 aria-label="Primary AI provider"
               >
@@ -320,40 +557,27 @@ export default function SuperAdminSokoMindSettingsPage() {
                       aria-checked={active}
                       onClick={() => setPrimaryProvider(card.id)}
                       className={cn(
-                        "relative rounded-xl border p-3 text-left transition-colors",
+                        "relative border p-3 text-left transition-colors",
                         active
-                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                          : "border-border/70 bg-background hover:border-foreground/25",
+                          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]"
+                          : cn(HAIRLINE, "bg-white hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]"),
                       )}
                     >
                       <span className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-foreground">
+                        <span className="text-[13px] font-semibold tracking-[-0.015em]">
                           {card.name}
                         </span>
                         {active ? (
-                          <span className="text-[10px] font-bold uppercase tracking-wide text-primary">
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--pos-primary,#0f766e)]">
                             Active
                           </span>
                         ) : null}
                       </span>
-                      <span className="mt-1 block text-xs leading-snug text-muted-foreground">
+                      <span className={cn(dashboardHintClass(), "mt-1 block")}>
                         {card.description}
                       </span>
-                      <span
-                        className={cn(
-                          "mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                          card.ready
-                            ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
-                            : "bg-amber-500/10 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "size-1.5 rounded-full",
-                            card.ready ? "bg-emerald-500" : "bg-amber-500",
-                          )}
-                        />
-                        {card.ready ? "Key ready" : "Needs a key"}
+                      <span className="mt-2 inline-flex">
+                        <KeyStatus ready={card.ready} />
                       </span>
                     </button>
                   );
@@ -363,7 +587,7 @@ export default function SuperAdminSokoMindSettingsPage() {
             <Field label="Default locale" id="sa-soko-locale">
               <select
                 id="sa-soko-locale"
-                className={saSelectClass}
+                className={dashboardSelectClass()}
                 value={defaultLocale}
                 onChange={(e) => setDefaultLocale(e.target.value)}
               >
@@ -372,25 +596,24 @@ export default function SuperAdminSokoMindSettingsPage() {
               </select>
             </Field>
           </div>
-        </SaSection>
-
-        <SaSection
-          title="OpenAI"
-          description={
-            <>
-              Paste the OpenAI key here and Save. Stored: {settings?.hasOpenaiApiKey ? "yes" : "no"}
-            </>
-          }
-        >
+        );
+      case "openai":
+        return (
           <div className="space-y-3">
+            <p className={dashboardHintClass()}>
+              Stored: {settings?.hasOpenaiApiKey ? "yes" : "no"}
+            </p>
             <Field label="API key" id="sa-openai-key">
               <div className="flex gap-2">
                 <Input
                   id="sa-openai-key"
+                  className={dashboardInputClass()}
                   type="password"
                   autoComplete="off"
                   placeholder={
-                    settings?.hasOpenaiApiKey ? "•••••••• (leave blank to keep)" : "sk-…"
+                    settings?.hasOpenaiApiKey
+                      ? "•••••••• (leave blank to keep)"
+                      : "sk-…"
                   }
                   value={openaiApiKey}
                   onChange={(e) => setOpenaiApiKey(e.target.value)}
@@ -399,6 +622,7 @@ export default function SuperAdminSokoMindSettingsPage() {
                   <Button
                     type="button"
                     variant="outline"
+                    className="h-8 shrink-0 rounded-none"
                     disabled={busy}
                     onClick={() => clearKey("openaiApiKey", "OpenAI API key")}
                   >
@@ -410,6 +634,7 @@ export default function SuperAdminSokoMindSettingsPage() {
             <Field label="Base URL (optional)" id="sa-openai-base">
               <Input
                 id="sa-openai-base"
+                className={dashboardInputClass()}
                 value={openaiBaseUrl}
                 onChange={(e) => setOpenaiBaseUrl(e.target.value)}
                 placeholder="https://api.openai.com/v1"
@@ -417,35 +642,49 @@ export default function SuperAdminSokoMindSettingsPage() {
             </Field>
             <div className="grid gap-3 sm:grid-cols-3">
               <Field label="Mini model" id="sa-openai-mini">
-                <Input id="sa-openai-mini" value={openaiMiniModel} onChange={(e) => setOpenaiMiniModel(e.target.value)} />
+                <Input
+                  id="sa-openai-mini"
+                  className={dashboardInputClass()}
+                  value={openaiMiniModel}
+                  onChange={(e) => setOpenaiMiniModel(e.target.value)}
+                />
               </Field>
               <Field label="Smart model" id="sa-openai-smart">
-                <Input id="sa-openai-smart" value={openaiSmartModel} onChange={(e) => setOpenaiSmartModel(e.target.value)} />
+                <Input
+                  id="sa-openai-smart"
+                  className={dashboardInputClass()}
+                  value={openaiSmartModel}
+                  onChange={(e) => setOpenaiSmartModel(e.target.value)}
+                />
               </Field>
               <Field label="Vision model" id="sa-openai-vision">
-                <Input id="sa-openai-vision" value={openaiVisionModel} onChange={(e) => setOpenaiVisionModel(e.target.value)} />
+                <Input
+                  id="sa-openai-vision"
+                  className={dashboardInputClass()}
+                  value={openaiVisionModel}
+                  onChange={(e) => setOpenaiVisionModel(e.target.value)}
+                />
               </Field>
             </div>
           </div>
-        </SaSection>
-
-        <SaSection
-          title="Anthropic"
-          description={
-            <>
-              Paste the Anthropic key here and Save. Stored: {settings?.hasAnthropicApiKey ? "yes" : "no"}
-            </>
-          }
-        >
+        );
+      case "anthropic":
+        return (
           <div className="space-y-3">
+            <p className={dashboardHintClass()}>
+              Stored: {settings?.hasAnthropicApiKey ? "yes" : "no"}
+            </p>
             <Field label="API key" id="sa-anthropic-key">
               <div className="flex gap-2">
                 <Input
                   id="sa-anthropic-key"
+                  className={dashboardInputClass()}
                   type="password"
                   autoComplete="off"
                   placeholder={
-                    settings?.hasAnthropicApiKey ? "•••••••• (leave blank to keep)" : "sk-ant-…"
+                    settings?.hasAnthropicApiKey
+                      ? "•••••••• (leave blank to keep)"
+                      : "sk-ant-…"
                   }
                   value={anthropicApiKey}
                   onChange={(e) => setAnthropicApiKey(e.target.value)}
@@ -454,8 +693,11 @@ export default function SuperAdminSokoMindSettingsPage() {
                   <Button
                     type="button"
                     variant="outline"
+                    className="h-8 shrink-0 rounded-none"
                     disabled={busy}
-                    onClick={() => clearKey("anthropicApiKey", "Anthropic API key")}
+                    onClick={() =>
+                      clearKey("anthropicApiKey", "Anthropic API key")
+                    }
                   >
                     Clear
                   </Button>
@@ -465,6 +707,7 @@ export default function SuperAdminSokoMindSettingsPage() {
             <Field label="Base URL (optional)" id="sa-anthropic-base">
               <Input
                 id="sa-anthropic-base"
+                className={dashboardInputClass()}
                 value={anthropicBaseUrl}
                 onChange={(e) => setAnthropicBaseUrl(e.target.value)}
                 placeholder="https://api.anthropic.com"
@@ -472,29 +715,36 @@ export default function SuperAdminSokoMindSettingsPage() {
             </Field>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Mini model" id="sa-anthropic-mini">
-                <Input id="sa-anthropic-mini" value={anthropicMiniModel} onChange={(e) => setAnthropicMiniModel(e.target.value)} />
+                <Input
+                  id="sa-anthropic-mini"
+                  className={dashboardInputClass()}
+                  value={anthropicMiniModel}
+                  onChange={(e) => setAnthropicMiniModel(e.target.value)}
+                />
               </Field>
               <Field label="Smart model" id="sa-anthropic-smart">
-                <Input id="sa-anthropic-smart" value={anthropicSmartModel} onChange={(e) => setAnthropicSmartModel(e.target.value)} />
+                <Input
+                  id="sa-anthropic-smart"
+                  className={dashboardInputClass()}
+                  value={anthropicSmartModel}
+                  onChange={(e) => setAnthropicSmartModel(e.target.value)}
+                />
               </Field>
             </div>
           </div>
-        </SaSection>
-
-        <SaSection
-          title="OpenRouter (GLM)"
-          description={
-            <>
-              Paste the OpenRouter key here — one key for GLM chat and logos. Stored:{" "}
-              {settings?.hasOpenrouterApiKey ? "yes" : "no"}
-            </>
-          }
-        >
+        );
+      case "openrouter":
+        return (
           <div className="space-y-3">
+            <p className={dashboardHintClass()}>
+              One key for GLM chat and logos. Stored:{" "}
+              {settings?.hasOpenrouterApiKey ? "yes" : "no"}
+            </p>
             <Field label="API key" id="sa-openrouter-key">
               <div className="flex gap-2">
                 <Input
                   id="sa-openrouter-key"
+                  className={dashboardInputClass()}
                   type="password"
                   autoComplete="off"
                   placeholder={
@@ -509,8 +759,11 @@ export default function SuperAdminSokoMindSettingsPage() {
                   <Button
                     type="button"
                     variant="outline"
+                    className="h-8 shrink-0 rounded-none"
                     disabled={busy}
-                    onClick={() => clearKey("openrouterApiKey", "OpenRouter API key")}
+                    onClick={() =>
+                      clearKey("openrouterApiKey", "OpenRouter API key")
+                    }
                   >
                     Clear
                   </Button>
@@ -520,15 +773,17 @@ export default function SuperAdminSokoMindSettingsPage() {
             <Field label="Base URL (optional)" id="sa-openrouter-base">
               <Input
                 id="sa-openrouter-base"
+                className={dashboardInputClass()}
                 value={openrouterBaseUrl}
                 onChange={(e) => setOpenrouterBaseUrl(e.target.value)}
                 placeholder="https://openrouter.ai/api/v1"
               />
             </Field>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3">
               <Field label="Mini model (GLM)" id="sa-openrouter-mini">
                 <Input
                   id="sa-openrouter-mini"
+                  className={dashboardInputClass()}
                   value={openrouterMiniModel}
                   onChange={(e) => setOpenrouterMiniModel(e.target.value)}
                   placeholder="z-ai/glm-5.3-flash"
@@ -537,6 +792,7 @@ export default function SuperAdminSokoMindSettingsPage() {
               <Field label="Smart model (GLM)" id="sa-openrouter-smart">
                 <Input
                   id="sa-openrouter-smart"
+                  className={dashboardInputClass()}
                   value={openrouterSmartModel}
                   onChange={(e) => setOpenrouterSmartModel(e.target.value)}
                   placeholder="z-ai/glm-4.6"
@@ -545,201 +801,164 @@ export default function SuperAdminSokoMindSettingsPage() {
               <Field label="Image model (logos)" id="sa-openrouter-image">
                 <Input
                   id="sa-openrouter-image"
+                  className={dashboardInputClass()}
                   value={openrouterImageModel}
                   onChange={(e) => setOpenrouterImageModel(e.target.value)}
                   placeholder="google/gemini-2.5-flash-image"
                 />
               </Field>
             </div>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              GLM chat slugs are OpenRouter model IDs (for example{" "}
-              <code className="rounded bg-muted px-1 font-mono text-[11px]">z-ai/glm-4.6</code>
-              ). Logos use OpenRouter’s Image API — Gemini Flash Image is the default. Paste{" "}
-              <code className="rounded bg-muted px-1 font-mono text-[11px]">z-ai/glm-image</code>{" "}
-              if it appears in the catalog, or any other image slug.
+            <p className={cn(dashboardHintClass(), "leading-relaxed")}>
+              GLM chat slugs are OpenRouter model IDs. Logos use OpenRouter’s
+              Image API — Gemini Flash Image is the default.
             </p>
           </div>
-        </SaSection>
-
-        <SaSection
-          title="DeepSeek"
-          description={
-            <>
-              Two separate setups with two separate keys — a direct key will not
-              work against the RapidAPI proxy and vice versa. Stored: direct{" "}
-              {settings?.hasDeepseekApiKey ? "yes" : "no"}, RapidAPI{" "}
-              {settings?.hasRapidapiDeepseekApiKey ? "yes" : "no"}. Independent
-              from catalog DeepSeek under Integrations (product descriptions).
-            </>
-          }
-        >
+        );
+      case "deepseek":
+        return (
           <div className="space-y-4">
-            <div className="rounded-xl border border-sky-500/25 bg-sky-500/[0.04] p-4">
+            <p className={cn(dashboardHintClass(), "leading-relaxed")}>
+              Two separate setups with two separate keys. Direct{" "}
+              {settings?.hasDeepseekApiKey ? "yes" : "no"}, RapidAPI{" "}
+              {settings?.hasRapidapiDeepseekApiKey ? "yes" : "no"}.
+            </p>
+            <div className={cn("space-y-3 border bg-white p-3", HAIRLINE)}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-foreground">
-                  Direct API <span className="font-normal text-muted-foreground">— platform.deepseek.com</span>
+                <p className="text-[13px] font-semibold tracking-[-0.015em]">
+                  Direct API
                 </p>
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                    primaryProvider === "deepseek"
-                      ? "bg-primary/10 text-primary"
-                      : settings?.hasDeepseekApiKey
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {primaryProvider === "deepseek"
-                    ? "Active provider"
-                    : settings?.hasDeepseekApiKey
-                      ? "Key stored"
-                      : "No key"}
-                </span>
+                <KeyStatus ready={Boolean(settings?.hasDeepseekApiKey)} />
               </div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Your key from platform.deepseek.com, sent with Bearer auth to{" "}
-                <code className="rounded bg-muted px-1 font-mono text-[11px]">api.deepseek.com</code>.
-              </p>
-              <div className="mt-3 space-y-3">
-                <Field label="Direct API key" id="sa-deepseek-key">
-                  <div className="flex gap-2">
-                    <Input
-                      id="sa-deepseek-key"
-                      type="password"
-                      autoComplete="off"
-                      placeholder={
-                        settings?.hasDeepseekApiKey ? "•••••••• (leave blank to keep)" : "sk-…"
-                      }
-                      value={deepseekApiKey}
-                      onChange={(e) => setDeepseekApiKey(e.target.value)}
-                    />
-                    {settings?.hasDeepseekApiKey ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => clearKey("deepseekApiKey", "DeepSeek direct API key")}
-                      >
-                        Clear
-                      </Button>
-                    ) : null}
-                  </div>
-                </Field>
-                <Field label="Base URL (optional)" id="sa-deepseek-base">
+              <Field label="Direct API key" id="sa-deepseek-key">
+                <div className="flex gap-2">
                   <Input
-                    id="sa-deepseek-base"
-                    value={deepseekBaseUrl}
-                    onChange={(e) => setDeepseekBaseUrl(e.target.value)}
-                    placeholder="https://api.deepseek.com/chat/completions"
+                    id="sa-deepseek-key"
+                    className={dashboardInputClass()}
+                    type="password"
+                    autoComplete="off"
+                    placeholder={
+                      settings?.hasDeepseekApiKey
+                        ? "•••••••• (leave blank to keep)"
+                        : "sk-…"
+                    }
+                    value={deepseekApiKey}
+                    onChange={(e) => setDeepseekApiKey(e.target.value)}
                   />
-                </Field>
-              </div>
+                  {settings?.hasDeepseekApiKey ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-8 shrink-0 rounded-none"
+                      disabled={busy}
+                      onClick={() =>
+                        clearKey("deepseekApiKey", "DeepSeek direct API key")
+                      }
+                    >
+                      Clear
+                    </Button>
+                  ) : null}
+                </div>
+              </Field>
+              <Field label="Base URL (optional)" id="sa-deepseek-base">
+                <Input
+                  id="sa-deepseek-base"
+                  className={dashboardInputClass()}
+                  value={deepseekBaseUrl}
+                  onChange={(e) => setDeepseekBaseUrl(e.target.value)}
+                  placeholder="https://api.deepseek.com/chat/completions"
+                />
+              </Field>
             </div>
-
-            <div className="rounded-xl border border-violet-500/25 bg-violet-500/[0.04] p-4">
+            <div className={cn("space-y-3 border bg-white p-3", HAIRLINE)}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-foreground">
-                  Via RapidAPI <span className="font-normal text-muted-foreground">— rapidapi.com key</span>
+                <p className="text-[13px] font-semibold tracking-[-0.015em]">
+                  Via RapidAPI
                 </p>
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                    primaryProvider === "rapidapi_deepseek"
-                      ? "bg-primary/10 text-primary"
-                      : settings?.hasRapidapiDeepseekApiKey
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {primaryProvider === "rapidapi_deepseek"
-                    ? "Active provider"
-                    : settings?.hasRapidapiDeepseekApiKey
-                      ? "Key stored"
-                      : "No key"}
-                </span>
+                <KeyStatus
+                  ready={Boolean(settings?.hasRapidapiDeepseekApiKey)}
+                />
               </div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Your <span className="font-medium text-foreground">RapidAPI</span> key, sent with{" "}
-                <code className="rounded bg-muted px-1 font-mono text-[11px]">x-rapidapi-key</code>{" "}
-                to the proxy host. Needs its own key from rapidapi.com — a direct
-                DeepSeek key will not work here.
-              </p>
-              <div className="mt-3 space-y-3">
-                <Field label="RapidAPI key" id="sa-rapidapi-deepseek-key">
-                  <div className="flex gap-2">
-                    <Input
-                      id="sa-rapidapi-deepseek-key"
-                      type="password"
-                      autoComplete="off"
-                      placeholder={
-                        settings?.hasRapidapiDeepseekApiKey
-                          ? "•••••••• (leave blank to keep)"
-                          : "RapidAPI key"
-                      }
-                      value={rapidapiDeepseekApiKey}
-                      onChange={(e) => setRapidapiDeepseekApiKey(e.target.value)}
-                    />
-                    {settings?.hasRapidapiDeepseekApiKey ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() =>
-                          clearKey("rapidapiDeepseekApiKey", "DeepSeek RapidAPI key")
-                        }
-                      >
-                        Clear
-                      </Button>
-                    ) : null}
-                  </div>
-                </Field>
-                <Field label="RapidAPI host (optional)" id="sa-deepseek-host">
+              <Field label="RapidAPI key" id="sa-rapidapi-deepseek-key">
+                <div className="flex gap-2">
                   <Input
-                    id="sa-deepseek-host"
-                    value={deepseekHost}
-                    onChange={(e) => setDeepseekHost(e.target.value)}
-                    placeholder="deepseek-v31.p.rapidapi.com"
+                    id="sa-rapidapi-deepseek-key"
+                    className={dashboardInputClass()}
+                    type="password"
+                    autoComplete="off"
+                    placeholder={
+                      settings?.hasRapidapiDeepseekApiKey
+                        ? "•••••••• (leave blank to keep)"
+                        : "RapidAPI key"
+                    }
+                    value={rapidapiDeepseekApiKey}
+                    onChange={(e) => setRapidapiDeepseekApiKey(e.target.value)}
                   />
-                </Field>
-              </div>
+                  {settings?.hasRapidapiDeepseekApiKey ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-8 shrink-0 rounded-none"
+                      disabled={busy}
+                      onClick={() =>
+                        clearKey(
+                          "rapidapiDeepseekApiKey",
+                          "DeepSeek RapidAPI key",
+                        )
+                      }
+                    >
+                      Clear
+                    </Button>
+                  ) : null}
+                </div>
+              </Field>
+              <Field label="RapidAPI host (optional)" id="sa-deepseek-host">
+                <Input
+                  id="sa-deepseek-host"
+                  className={dashboardInputClass()}
+                  value={deepseekHost}
+                  onChange={(e) => setDeepseekHost(e.target.value)}
+                  placeholder="deepseek-v31.p.rapidapi.com"
+                />
+              </Field>
             </div>
-
             <Field label="Model (shared by both setups)" id="sa-deepseek-model">
               <Input
                 id="sa-deepseek-model"
+                className={dashboardInputClass()}
                 value={deepseekModel}
                 onChange={(e) => setDeepseekModel(e.target.value)}
               />
             </Field>
           </div>
-        </SaSection>
-
-        <SaSection
-          title="Guardrails"
-          description="Cost and privacy controls for Brain industry compare and tool-calling loops."
-        >
+        );
+      case "guardrails":
+        return (
           <div className="space-y-3">
-            <SaToggleRow
+            <ToggleRow
               id="industry-compare"
               label="Industry compare (twins)"
               description="Anonymized benchmarks across similar shops. Requires k-anonymity below."
               checked={industryCompareEnabled}
               onChange={setIndustryCompareEnabled}
             />
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Min twins (k-anonymity)" id="sa-min-twins">
                 <Input
                   id="sa-min-twins"
+                  className={dashboardInputClass()}
                   type="number"
                   min={2}
                   max={100}
                   value={industryCompareMinTwins}
-                  onChange={(e) => setIndustryCompareMinTwins(Number(e.target.value) || 8)}
+                  onChange={(e) =>
+                    setIndustryCompareMinTwins(Number(e.target.value) || 8)
+                  }
                 />
               </Field>
               <Field label="Daily token budget / tenant" id="sa-token-budget">
                 <Input
                   id="sa-token-budget"
+                  className={dashboardInputClass()}
                   type="number"
                   min={0}
                   placeholder="Unlimited"
@@ -750,35 +969,111 @@ export default function SuperAdminSokoMindSettingsPage() {
               <Field label="Max tool calls / request" id="sa-max-tools">
                 <Input
                   id="sa-max-tools"
+                  className={dashboardInputClass()}
                   type="number"
                   min={1}
                   max={32}
                   value={maxToolCallsPerRequest}
-                  onChange={(e) => setMaxToolCallsPerRequest(Number(e.target.value) || 8)}
+                  onChange={(e) =>
+                    setMaxToolCallsPerRequest(Number(e.target.value) || 8)
+                  }
                 />
               </Field>
             </div>
             <Field label="Extra system prompt (optional)" id="sa-system-prompt">
               <Textarea
                 id="sa-system-prompt"
-                className="min-h-[88px]"
+                className={cn(dashboardTextareaClass(), "min-h-[88px]")}
                 value={systemPromptExtra}
                 onChange={(e) => setSystemPromptExtra(e.target.value)}
                 placeholder="Platform-wide tone or policy notes appended to every skill…"
               />
             </Field>
           </div>
-        </SaSection>
+        );
+      default:
+        return null;
+    }
+  })();
 
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" disabled={busy} onClick={() => void load()}>
-            Reload
-          </Button>
-          <Button type="submit" disabled={busy || Boolean(loadError)}>
+  return (
+    <div
+      className={cn(
+        DASHBOARD_MAX_WIDE,
+        "flex flex-col gap-1.5 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8",
+      )}
+    >
+      <DashboardPageHero
+        icon={Sparkles}
+        eyebrow="Platform"
+        title="SokoMind"
+        description="API keys for OpenAI, Anthropic, OpenRouter, or DeepSeek — encrypted and never shown again after save."
+      >
+        <button
+          type="button"
+          disabled={busy || booting}
+          onClick={() => void load()}
+          className={cn(
+            "inline-flex size-7 items-center justify-center rounded-none border bg-white text-[#666666]",
+            HAIRLINE,
+            "transition-colors hover:border-[#0f766e] hover:text-[#0f766e]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/30",
+            "disabled:cursor-not-allowed disabled:opacity-60",
+          )}
+          aria-label="Refresh SokoMind settings"
+        >
+          <RefreshCw
+            className={cn("size-3.5", (busy || booting) && "animate-spin")}
+            aria-hidden
+          />
+        </button>
+        <Button
+          type="button"
+          size="sm"
+          className={PRIMARY_BTN}
+          disabled={busy || Boolean(loadError)}
+          onClick={() => void onSave()}
+        >
+          {busy ? "Saving…" : "Save SokoMind"}
+        </Button>
+      </DashboardPageHero>
+
+      {loadError ? <DashboardFeedback kind="error" text={loadError} /> : null}
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      {success ? <DashboardFeedback kind="success" text={success} /> : null}
+      {settings?.encryptionEphemeral ? (
+        <DashboardFeedback
+          kind="error"
+          text="APP_PAYMENTS_ENCRYPTION_KEY is not set on the server. Keys you paste here will be lost on restart until that key is set."
+        />
+      ) : null}
+      {settings && !settings.secretsReadable && settings.secretsError ? (
+        <DashboardFeedback kind="error" text={settings.secretsError} />
+      ) : null}
+
+      <SokoMindTheatre
+        activeSectionId={activeSection}
+        onActiveSectionChange={setActiveSection}
+        sokomindEnabled={sokomindEnabled}
+        guideEnabled={guideEnabled}
+        brainEnabled={brainEnabled}
+        eyeEnabled={eyeEnabled}
+        primaryProvider={primaryProvider}
+        keysReady={keysReady}
+        loading={booting || !settings}
+        sectionSummary={sectionSummary}
+        drawerBody={drawerBody}
+        drawerFooter={
+          <Button
+            type="button"
+            className={PRIMARY_BTN}
+            disabled={busy || Boolean(loadError)}
+            onClick={() => void onSave()}
+          >
             {busy ? "Saving…" : "Save SokoMind"}
           </Button>
-        </div>
-      </form>
+        }
+      />
     </div>
   );
 }
