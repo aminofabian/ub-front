@@ -473,9 +473,11 @@ export default function PaymentGatewaySettingsPage() {
       const result = await testGatewayConnection(config.id);
       if (result.success) {
         toast.success(
-          config.status === "ACTIVE"
-            ? "Connection OK — gateway is ACTIVE."
-            : "Connection OK — click Activate, then Till webhooks.",
+          isCustodyMpesaGateway(config)
+            ? "Kiosk rail reachable — collect and settle on KopoKopo."
+            : config.status === "ACTIVE"
+              ? "Connection OK — gateway is ACTIVE."
+              : "Connection OK — click Activate, then Till webhooks.",
         );
       } else {
         toast.error(
@@ -581,6 +583,7 @@ export default function PaymentGatewaySettingsPage() {
             canWrite={canWrite}
             rowBusyId={rowBusyId}
             kopokopoNeedsAttention={kopokopoNeedsAttention}
+            custodyAvailability={custodyAvailability}
             onAddMethod={() => setDrawer({ kind: "pick" })}
             onEdit={(config) => void openEdit(config)}
             onManage={(config) => setDrawer({ kind: "manage", config })}
@@ -606,6 +609,7 @@ export default function PaymentGatewaySettingsPage() {
     canWrite,
     rowBusyId,
     kopokopoNeedsAttention,
+    custodyAvailability,
     openEdit,
   ]);
 
@@ -836,6 +840,38 @@ export default function PaymentGatewaySettingsPage() {
               )}
             </div>
 
+            {(() => {
+              const raw = manageConfig.testErrorJson;
+              if (!raw) return null;
+              let code: string | null = null;
+              let message = "";
+              try {
+                const parsed = JSON.parse(raw) as {
+                  code?: string;
+                  message?: string;
+                };
+                code = parsed.code ?? null;
+                message = parsed.message ?? "";
+              } catch {
+                return null;
+              }
+              if (!message) return null;
+              return (
+                <p
+                  role="status"
+                  className="border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-[12px] text-[#9a2e16]"
+                >
+                  <span className="font-semibold">Last test failed</span>
+                  {code ? (
+                    <span className="opacity-80"> · {code}</span>
+                  ) : null}
+                  <span className="mt-0.5 block leading-relaxed opacity-90">
+                    {message}
+                  </span>
+                </p>
+              );
+            })()}
+
             {manageConfig.gatewayType === "KOPOKOPO" ? (
               <ol className="list-decimal space-y-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3 pl-8 text-xs leading-relaxed text-muted-foreground">
                 <li>Edit credentials if needed, then Test connection.</li>
@@ -911,7 +947,6 @@ export default function PaymentGatewaySettingsPage() {
               ) : null}
 
               {!isManualGateway(manageConfig) &&
-              !isCustodyMpesaGateway(manageConfig) &&
               canWrite &&
               ["DRAFT", "ERROR", "TESTED", "ACTIVE"].includes(
                 manageConfig.status,
@@ -924,7 +959,9 @@ export default function PaymentGatewaySettingsPage() {
                   onClick={() => void testConnection(manageConfig)}
                 >
                   <Zap className="size-3.5" aria-hidden />
-                  Test connection
+                  {isCustodyMpesaGateway(manageConfig)
+                    ? "Test Kiosk rail"
+                    : "Test connection"}
                 </Button>
               ) : null}
 

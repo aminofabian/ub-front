@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import type {
   AvailableGatewayRecord,
   GatewayConfigRecord,
+  MpesaCustodyAvailabilityRecord,
 } from "@/lib/api";
 import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
@@ -64,6 +65,8 @@ export type AcceptPaymentsPanelProps = {
   canWrite: boolean;
   rowBusyId: string | null;
   kopokopoNeedsAttention: boolean;
+  /** Live platform custody readiness for CUSTODY_MPESA rows. */
+  custodyAvailability?: MpesaCustodyAvailabilityRecord | null;
   onAddMethod: () => void;
   onEdit: (config: GatewayConfigRecord) => void;
   onManage: (config: GatewayConfigRecord) => void;
@@ -77,6 +80,7 @@ export function AcceptPaymentsPanel({
   canWrite,
   rowBusyId,
   kopokopoNeedsAttention,
+  custodyAvailability = null,
   onAddMethod,
   onEdit,
   onManage,
@@ -193,6 +197,21 @@ export function AcceptPaymentsPanel({
                           {custodyProviderLabel(config.custodyProvider)
                             ? ` · ${custodyProviderLabel(config.custodyProvider)}`
                             : ""}
+                        </span>
+                      ) : null}
+                      {custody && custodyAvailability ? (
+                        <span
+                          title={custodyAvailability.message ?? undefined}
+                          className={cn(
+                            "border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                            custodyAvailability.available
+                              ? "border-[#007a3d]/40 text-[#007a3d]"
+                              : "border-destructive/40 text-destructive",
+                          )}
+                        >
+                          {custodyAvailability.available
+                            ? "Kiosk rail ready"
+                            : "Kiosk rail off"}
                         </span>
                       ) : null}
                       {config.isDefault ? (

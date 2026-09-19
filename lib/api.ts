@@ -12921,6 +12921,8 @@ export type GatewayConfigRecord = {
   displayInstructionsJson?: string | null;
   /** For CUSTODY_MPESA: the platform rail that collects and settles (KOPOKOPO | DARAJA | OFF). */
   custodyProvider?: string | null;
+  /** Last failed connection/rail test as JSON: { code, message, timestamp }. */
+  testErrorJson?: string | null;
 };
 
 export type TestConnectionResult = {
