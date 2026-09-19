@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { MpesaRailPicker } from "@/components/payments/mpesa-rail-picker";
 import {
   Dialog,
   DialogClose,
@@ -120,6 +121,16 @@ export type CashierCartDrawerProps = {
   kioskPayAvailable?: boolean;
   /** Optional setup hint when Kiosk Pay STK is not fully ready. */
   kioskPayHint?: string | null;
+  /** Active STK / custody rails for the M-Pesa lane picker. */
+  stkRails?: Array<{
+    configId: string;
+    gatewayType: string;
+    label: string;
+    displayName: string;
+    isDefault: boolean;
+  }>;
+  stkConfigId?: string | null;
+  setStkConfigId?: (id: string) => void;
   mpesaRef: string;
   setMpesaRef: (s: string) => void;
   splitPay: boolean;
@@ -287,6 +298,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     setPayMethod,
     kioskPayAvailable = false,
     kioskPayHint = null,
+    stkRails = [],
+    stkConfigId = null,
+    setStkConfigId,
     mpesaRef,
     setSplitPay,
     splitPay,
@@ -1248,6 +1262,18 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 ? kioskPayHint
                                 : "Payment settles to your Kiosk Pay balance (provider fees only). Withdraw from Payments → Kiosk Pay."}
                             </p>
+                          ) : null}
+                          {payMethod === "mpesa_manual" && setStkConfigId ? (
+                            <MpesaRailPicker
+                              rails={stkRails}
+                              selectedConfigId={stkConfigId}
+                              onSelect={setStkConfigId}
+                              disabled={
+                                stkPushStatus === "sending" ||
+                                stkPushStatus === "sent"
+                              }
+                              compact
+                            />
                           ) : null}
                           {stkPushStatus === "failed" ? (
                             <p className="rounded-none border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">

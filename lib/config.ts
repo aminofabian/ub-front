@@ -300,6 +300,10 @@ export const API_ROUTES = {
   superAdminKioskPay: "/api/v1/super-admin/payments/kiosk-pay",
   superAdminDaraja: "/api/v1/super-admin/payments/daraja",
   superAdminMpesaCustody: "/api/v1/super-admin/payments/mpesa-custody",
+  superAdminMpesaCustodySettlements:
+    "/api/v1/super-admin/payments/mpesa-custody/settlements",
+  superAdminMpesaCustodySettlementRetry: (id: string) =>
+    `/api/v1/super-admin/payments/mpesa-custody/settlements/${encodeURIComponent(id)}/retry`,
   superAdminAirtime: "/api/v1/super-admin/airtime",
   superAdminPlatformIntegrations: "/api/v1/super-admin/platform/integrations",
   superAdminPlatformAuth: "/api/v1/super-admin/platform/auth",
@@ -339,6 +343,7 @@ export const API_ROUTES = {
   supplierPortalAiFeedback: "/api/v1/supplier-portal/ai/feedback",
   supplierPortalAiRouteGuide: "/api/v1/supplier-portal/ai/route-guide",
   paymentGatewaysAvailable: "/api/v1/payments/gateways/available",
+  paymentGatewaysMpesaCustody: "/api/v1/payments/gateways/mpesa-custody",
   paymentGateways: "/api/v1/payments/gateways",
   paymentKioskPay: "/api/v1/payments/kiosk-pay",
   smsCreditsBalance: "/api/v1/sms-credits/balance",

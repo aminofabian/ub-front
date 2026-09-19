@@ -12045,7 +12045,13 @@ export type PosStkPushResponseRecord = {
 
 /** Cashier/POS: STK push to an explicit phone (no wallet intent). */
 export async function initiatePosStkPush(
-  body: { phoneNumber: string; amount: number | string; description?: string },
+  body: {
+    phoneNumber: string;
+    amount: number | string;
+    description?: string;
+    /** ACTIVE STK / custody config id from {@link fetchPosStkRails}. */
+    configId?: string;
+  },
   idempotencyKey: string,
 ): Promise<PosStkPushResponseRecord> {
   return request<PosStkPushResponseRecord>("/api/v1/payments/mpesa/stk/push", {
@@ -12055,6 +12061,19 @@ export async function initiatePosStkPush(
     // Backend may poll KopoKopo + backoff ~45–60s when Safaricom still holds a phone lock.
     timeoutMs: 70_000,
   });
+}
+
+export type PosStkRailRecord = {
+  configId: string;
+  gatewayType: string;
+  label: string;
+  displayName: string;
+  isDefault: boolean;
+};
+
+/** Active STK / custody rails for the cashier M-Pesa lane picker. */
+export async function fetchPosStkRails(): Promise<PosStkRailRecord[]> {
+  return request<PosStkRailRecord[]>("/api/v1/payments/mpesa/stk/rails");
 }
 
 export type StkPushStatusRecord = {
@@ -12900,6 +12919,8 @@ export type GatewayConfigRecord = {
   createdAt: string;
   updatedAt: string;
   displayInstructionsJson?: string | null;
+  /** For CUSTODY_MPESA: the platform rail that collects and settles (KOPOKOPO | DARAJA | OFF). */
+  custodyProvider?: string | null;
 };
 
 export type TestConnectionResult = {
@@ -12964,6 +12985,19 @@ export async function fetchAvailableGateways(): Promise<
   AvailableGatewayRecord[]
 > {
   return request<AvailableGatewayRecord[]>(API_ROUTES.paymentGatewaysAvailable);
+}
+
+/** Whether till/paybill-only (Kiosk settles) can be added right now, and on which rail. */
+export type MpesaCustodyAvailabilityRecord = {
+  available: boolean;
+  provider: string;
+  message: string | null;
+};
+
+export async function fetchMpesaCustodyAvailability(): Promise<MpesaCustodyAvailabilityRecord> {
+  return request<MpesaCustodyAvailabilityRecord>(
+    API_ROUTES.paymentGatewaysMpesaCustody,
+  );
 }
 
 export async function fetchGatewayConfigs(): Promise<GatewayConfigRecord[]> {

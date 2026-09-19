@@ -4,6 +4,11 @@ import { Banknote, Check, ChevronRight, Copy, CreditCard, MessageCircle, Smartph
 import { useEffect, useState } from "react";
 
 import { PaymentBrandMark } from "@/components/payments/payment-brand-mark";
+import {
+  MpesaRailPicker,
+  mpesaRailHint,
+  type MpesaRailOption,
+} from "@/components/payments/mpesa-rail-picker";
 import { Button } from "@/components/ui/button";
 import { useShopCartOptional } from "@/hooks/use-shop-cart";
 import {
@@ -330,6 +335,15 @@ function OnlineStkFields({
 }: OnlineStkProps) {
   const [areaCode, setAreaCode] = useState(defaultAreaCode);
   const [phone, setPhone] = useState(defaultPhone);
+  const rails: MpesaRailOption[] = methods.map((m) => ({
+    configId: m.configId,
+    gatewayType: m.gatewayType,
+    label: m.label,
+    displayName: m.displayName,
+  }));
+  const [selectedConfigId, setSelectedConfigId] = useState(
+    () => methods[0]?.configId ?? "",
+  );
 
   useEffect(() => {
     setAreaCode(defaultAreaCode);
@@ -338,17 +352,28 @@ function OnlineStkFields({
 
   useEffect(() => {
     if (methods.length === 0) {
+      setSelectedConfigId("");
+      return;
+    }
+    if (!methods.some((m) => m.configId === selectedConfigId)) {
+      setSelectedConfigId(methods[0]!.configId);
+    }
+  }, [methods, selectedConfigId]);
+
+  const selectedMethod =
+    methods.find((m) => m.configId === selectedConfigId) ?? methods[0];
+
+  useEffect(() => {
+    if (methods.length === 0 || !selectedMethod) {
       onStkSendActionChange?.(null);
       return;
     }
-    if (!actionsInDock || !onStkSendActionChange || !methods[0]) {
+    if (!actionsInDock || !onStkSendActionChange) {
       onStkSendActionChange?.(null);
       return;
     }
-    const primaryMethod = methods[0];
     const phoneValid = isStkPhoneValid(areaCode, phone);
     const fullPhone = buildStkPhoneNumber(areaCode, phone);
-    // Don't surface a greyed Send control before the order exists — it reads as a phone error.
     if (promptDisabled) {
       onStkSendActionChange(null);
       return;
@@ -356,10 +381,11 @@ function OnlineStkFields({
     onStkSendActionChange({
       label: busy ? "Sending…" : stkSent ? "Waiting…" : "Click to pay",
       disabled: busy || stkSent || !phoneValid,
-      onSend: () => onPay(primaryMethod.configId, fullPhone),
+      onSend: () => onPay(selectedMethod.configId, fullPhone),
     });
   }, [
     methods,
+    selectedMethod,
     promptDisabled,
     actionsInDock,
     onStkSendActionChange,
@@ -370,14 +396,35 @@ function OnlineStkFields({
     onPay,
   ]);
 
-  if (methods.length === 0) return null;
+  if (methods.length === 0 || !selectedMethod) return null;
 
   const phoneValid = isStkPhoneValid(areaCode, phone);
   const fullPhone = buildStkPhoneNumber(areaCode, phone);
-  const primaryMethod = methods[0];
+  const singleHint =
+    methods.length === 1 && methods[0]!.gatewayType !== "CUSTODY_MPESA"
+      ? mpesaRailHint(methods[0]!)
+      : null;
+  const custodySelected = selectedMethod.gatewayType === "CUSTODY_MPESA";
 
   return (
     <div className={cn("space-y-2", featured && "rounded-lg bg-background/60 p-2.5 ring-1 ring-[#00a651]/10")}>
+      <MpesaRailPicker
+        rails={rails}
+        selectedConfigId={selectedConfigId}
+        onSelect={setSelectedConfigId}
+        disabled={busy || stkSent}
+        compact={compact}
+      />
+      {singleHint ? (
+        <p className="text-[11px] leading-snug text-muted-foreground">{singleHint}</p>
+      ) : null}
+      {custodySelected ? (
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Collected on Kiosk&apos;s M-Pesa first, then sent to the shop&apos;s till or
+          paybill — not paid directly to their shortcode.
+        </p>
+      ) : null}
+
       {stkSent ? (
         <div
           className="flex items-center gap-3 rounded-lg bg-[#00a651]/12 px-2.5 py-2"
@@ -450,14 +497,13 @@ function OnlineStkFields({
             disabled={busy || stkSent}
           />
         </label>
-        {/* Hide Send until the order exists — a greyed button looks like a phone validation error. */}
         {compact && !actionsInDock && !promptDisabled ? (
           <Button
             type="button"
             size="sm"
             className="h-9 shrink-0 rounded-xl bg-[#00a651] px-3 text-xs font-bold text-white shadow-md hover:bg-[#008f47]"
             disabled={busy || stkSent || !phoneValid}
-            onClick={() => onPay(primaryMethod.configId, fullPhone)}
+            onClick={() => onPay(selectedMethod.configId, fullPhone)}
           >
             {busy ? "Sending…" : stkSent ? "Sent ✓" : "Send prompt"}
           </Button>
@@ -474,7 +520,7 @@ function OnlineStkFields({
           size="sm"
           className="h-10 w-full rounded-xl bg-[#00a651] text-sm font-bold text-white shadow-md hover:bg-[#008f47] sm:w-auto sm:px-6"
           disabled={busy || stkSent || !phoneValid}
-          onClick={() => onPay(primaryMethod.configId, fullPhone)}
+          onClick={() => onPay(selectedMethod.configId, fullPhone)}
         >
           {busy ? "Sending…" : stkSent ? "Prompt sent ✓" : "Send M-Pesa prompt"}
         </Button>

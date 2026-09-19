@@ -92,6 +92,7 @@ import {
   CASHIER_TOOL_SECTIONS,
 } from "../cashier-pos-tools";
 import { cn } from "@/lib/utils";
+import { MpesaRailPicker } from "@/components/payments/mpesa-rail-picker";
 
 import type { CashierPosLayoutProps } from "../cashier-pos-layout";
 import { LedgerBestSellers } from "./ledger-best-sellers";
@@ -1444,6 +1445,18 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
 
           {cart.payMethod === "mpesa_manual" ? (
             <div className="space-y-1.5">
+              {cart.setStkConfigId ? (
+                <MpesaRailPicker
+                  rails={cart.stkRails ?? []}
+                  selectedConfigId={cart.stkConfigId ?? null}
+                  onSelect={cart.setStkConfigId}
+                  disabled={
+                    cart.stkPushStatus === "sending" ||
+                    cart.stkPushStatus === "sent"
+                  }
+                  compact
+                />
+              ) : null}
               <div className="flex gap-1">
                 <input
                   value={cart.stkAreaCode}

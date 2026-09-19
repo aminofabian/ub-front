@@ -43,7 +43,9 @@ import {
   fetchGatewayCheckouts,
   fetchGatewayConfigs,
   fetchGatewayCredentialSettings,
+  fetchMpesaCustodyAvailability,
   type DisplayInstructionRecord,
+  type MpesaCustodyAvailabilityRecord,
   subscribeGatewayWebhookTills,
   testGatewayConnection,
   updateGatewayConfig,
@@ -200,6 +202,8 @@ export default function PaymentGatewaySettingsPage() {
 
   const [available, setAvailable] = useState<AvailableGatewayRecord[]>([]);
   const [configs, setConfigs] = useState<GatewayConfigRecord[]>([]);
+  const [custodyAvailability, setCustodyAvailability] =
+    useState<MpesaCustodyAvailabilityRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<DrawerState>({ kind: "closed" });
@@ -223,12 +227,14 @@ export default function PaymentGatewaySettingsPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      const [avail, list] = await Promise.all([
+      const [avail, list, custody] = await Promise.all([
         fetchAvailableGateways(),
         fetchGatewayConfigs(),
+        fetchMpesaCustodyAvailability().catch(() => null),
       ]);
       setAvailable(avail);
       setConfigs(list);
+      setCustodyAvailability(custody);
     } catch (e) {
       const msg =
         e instanceof Error ? e.message : "Could not load payment gateways.";
@@ -716,7 +722,13 @@ export default function PaymentGatewaySettingsPage() {
             <li>
               <button
                 type="button"
-                className="flex w-full items-center gap-2.5 px-3 py-3 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]"
+                disabled={custodyAvailability != null && !custodyAvailability.available}
+                className={cn(
+                  "flex w-full items-center gap-2.5 px-3 py-3 text-left transition-colors",
+                  custodyAvailability != null && !custodyAvailability.available
+                    ? "cursor-not-allowed opacity-60"
+                    : "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]",
+                )}
                 onClick={() => setDrawer({ kind: "custody-create" })}
               >
                 <span
@@ -730,7 +742,10 @@ export default function PaymentGatewaySettingsPage() {
                     M-Pesa till / paybill only
                   </span>
                   <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                    No API keys — STK via Kiosk, then settle to your till/paybill
+                    {custodyAvailability != null && !custodyAvailability.available
+                      ? (custodyAvailability.message ??
+                        "Not available yet — ask Super Admin to enable a custody rail.")
+                      : "No API keys — STK via Kiosk, then settle to your till/paybill"}
                   </span>
                 </span>
                 <Plus className="size-4 shrink-0 text-muted-foreground" aria-hidden />

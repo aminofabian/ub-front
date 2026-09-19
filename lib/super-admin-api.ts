@@ -657,6 +657,44 @@ export async function patchPlatformMpesaCustodySettings(body: {
   });
 }
 
+export type PlatformCustodySettlementRecord = {
+  id: string;
+  businessId: string;
+  gatewayConfigId: string;
+  stkPushId: string;
+  provider: string;
+  amount: number | string;
+  currency: string;
+  destinationType: string;
+  destinationTill: string | null;
+  destinationPaybill: string | null;
+  destinationAccount: string | null;
+  status: string;
+  disbursementId: string | null;
+  failureReason: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  settledAt: string | null;
+};
+
+export async function fetchPlatformCustodySettlements(
+  limit = 50,
+): Promise<PlatformCustodySettlementRecord[]> {
+  const qs = new URLSearchParams({ limit: String(limit) });
+  return saRequest<PlatformCustodySettlementRecord[]>(
+    `${API_ROUTES.superAdminMpesaCustodySettlements}?${qs.toString()}`,
+  );
+}
+
+export async function retryPlatformCustodySettlement(
+  id: string,
+): Promise<PlatformCustodySettlementRecord> {
+  return saRequest<PlatformCustodySettlementRecord>(
+    API_ROUTES.superAdminMpesaCustodySettlementRetry(id),
+    { method: "POST" },
+  );
+}
+
 // ── Airtime (platform Instalipa) ────────────────────────────────────
 
 export type PlatformAirtimeSettingsRecord = {

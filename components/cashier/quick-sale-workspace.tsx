@@ -486,6 +486,16 @@ export function QuickSaleWorkspace({
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [kioskPayAvailable, setKioskPayAvailable] = useState(false);
   const [kioskPayHint, setKioskPayHint] = useState<string | null>(null);
+  const [stkRails, setStkRails] = useState<
+    Array<{
+      configId: string;
+      gatewayType: string;
+      label: string;
+      displayName: string;
+      isDefault: boolean;
+    }>
+  >([]);
+  const [stkConfigId, setStkConfigId] = useState<string | null>(null);
   const [outboxCount, setOutboxCount] = useState(0);
   const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
   const [pendingSalesRefreshKey, setPendingSalesRefreshKey] = useState(0);
@@ -526,13 +536,20 @@ export function QuickSaleWorkspace({
     if (!online || !business?.id) {
       setKioskPayAvailable(false);
       setKioskPayHint(null);
+      setStkRails([]);
+      setStkConfigId(null);
       return;
     }
     let cancelled = false;
     void (async () => {
       try {
-        const { fetchKioskPayPosAvailability } = await import("@/lib/api");
-        const avail = await fetchKioskPayPosAvailability();
+        const { fetchKioskPayPosAvailability, fetchPosStkRails } = await import(
+          "@/lib/api"
+        );
+        const [avail, rails] = await Promise.all([
+          fetchKioskPayPosAvailability(),
+          fetchPosStkRails().catch(() => []),
+        ]);
         if (cancelled) return;
         setKioskPayAvailable(Boolean(avail?.available));
         setKioskPayHint(
@@ -540,11 +557,22 @@ export function QuickSaleWorkspace({
             ? avail.reason.trim()
             : null,
         );
+        setStkRails(rails);
+        setStkConfigId((prev) => {
+          if (prev && rails.some((r) => r.configId === prev)) return prev;
+          return (
+            rails.find((r) => r.isDefault)?.configId ??
+            rails[0]?.configId ??
+            null
+          );
+        });
       } catch {
         if (cancelled) return;
         // Fail closed — do not offer Kiosk Pay when availability cannot be confirmed.
         setKioskPayAvailable(false);
         setKioskPayHint(null);
+        setStkRails([]);
+        setStkConfigId(null);
       }
     })();
     return () => {
@@ -2897,6 +2925,7 @@ export function QuickSaleWorkspace({
                 phoneNumber,
                 amount: chargeAmount,
                 description: "POS sale",
+                ...(stkConfigId ? { configId: stkConfigId } : {}),
               },
               nextIdempotencyKey(),
             );
@@ -2919,7 +2948,7 @@ export function QuickSaleWorkspace({
         });
       }
     },
-    [online, payableTotal, linkStkPhoneInBackground, updateActiveCart, payMethod],
+    [online, payableTotal, linkStkPhoneInBackground, updateActiveCart, payMethod, stkConfigId],
   );
 
   useEffect(() => {
@@ -5046,6 +5075,9 @@ export function QuickSaleWorkspace({
           setPayMethod,
           kioskPayAvailable,
           kioskPayHint,
+          stkRails,
+          stkConfigId,
+          setStkConfigId,
           mpesaRef,
           setMpesaRef,
           splitPay,

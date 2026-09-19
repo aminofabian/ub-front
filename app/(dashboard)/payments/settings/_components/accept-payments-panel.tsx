@@ -26,6 +26,12 @@ export function isCustodyMpesaGateway(config: GatewayConfigRecord) {
   return config.gatewayType === "CUSTODY_MPESA";
 }
 
+export function custodyProviderLabel(provider: string | null | undefined) {
+  if (provider === "KOPOKOPO") return "KopoKopo";
+  if (provider === "DARAJA") return "Daraja";
+  return null;
+}
+
 export function gatewayDisplayName(
   config: GatewayConfigRecord,
   available: AvailableGatewayRecord[],
@@ -184,6 +190,9 @@ export function AcceptPaymentsPanel({
                       {custody ? (
                         <span className="border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
                           Settles via Kiosk
+                          {custodyProviderLabel(config.custodyProvider)
+                            ? ` · ${custodyProviderLabel(config.custodyProvider)}`
+                            : ""}
                         </span>
                       ) : null}
                       {config.isDefault ? (

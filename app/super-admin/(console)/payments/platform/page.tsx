@@ -26,6 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   type PlatformGatewayRecord,
   type PatchPlatformGatewayPayload,
+  type PlatformCustodySettlementRecord,
   type PlatformDarajaSettingsRecord,
   type PlatformKioskPaySettingsRecord,
   type PlatformMpesaCustodySettingsRecord,
@@ -33,6 +34,7 @@ import {
   type SaKioskPayAccountSummary,
   type SaKioskPayWithdrawalRow,
   adjustSaKioskPayAccount,
+  fetchPlatformCustodySettlements,
   fetchPlatformDarajaSettings,
   fetchPlatformGateways,
   fetchPlatformMpesaCustodySettings,
@@ -45,6 +47,7 @@ import {
   patchPlatformKioskPaySettings,
   patchPlatformMpesaCustodySettings,
   resumeSaKioskPayWithdrawals,
+  retryPlatformCustodySettlement,
   testPlatformDarajaConnection,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
@@ -93,6 +96,10 @@ export default function SuperAdminPlatformPaymentsPage() {
   const [adjustSaving, setAdjustSaving] = useState(false);
   const [withdrawals, setWithdrawals] = useState<SaKioskPayWithdrawalRow[]>([]);
   const [resumingFloat, setResumingFloat] = useState(false);
+  const [custodySettlements, setCustodySettlements] = useState<
+    PlatformCustodySettlementRecord[]
+  >([]);
+  const [retryingSettlement, setRetryingSettlement] = useState<string | null>(null);
 
   const [minWithdraw, setMinWithdraw] = useState("20");
   const [dailyLimit, setDailyLimit] = useState("200000");
@@ -116,7 +123,7 @@ export default function SuperAdminPlatformPaymentsPage() {
     setLoadError("");
     setAccountsLoading(true);
     try {
-      const [gws, kp, dj, custody, accs, summ, wds] = await Promise.all([
+      const [gws, kp, dj, custody, accs, summ, wds, sx] = await Promise.all([
         fetchPlatformGateways(),
         fetchPlatformKioskPaySettings(),
         fetchPlatformDarajaSettings(),
@@ -124,6 +131,7 @@ export default function SuperAdminPlatformPaymentsPage() {
         fetchSaKioskPayAccounts(50).catch(() => []),
         fetchSaKioskPayAccountSummary().catch(() => null),
         fetchSaKioskPayWithdrawals(20).catch(() => []),
+        fetchPlatformCustodySettlements(20).catch(() => []),
       ]);
       setGateways(gws);
       setKioskPay(kp);
@@ -132,6 +140,7 @@ export default function SuperAdminPlatformPaymentsPage() {
       setAccounts(accs);
       setAccountSummary(summ);
       setWithdrawals(wds);
+      setCustodySettlements(sx);
       setMinWithdraw(String(kp.minWithdrawAmount ?? 20));
       setDailyLimit(String(kp.dailyWithdrawLimit ?? 200000));
       setPaystackEnv(kp.paystackEnvironment ?? "sandbox");
@@ -213,6 +222,19 @@ export default function SuperAdminPlatformPaymentsPage() {
       toast.error(e instanceof Error ? e.message : "Could not resume withdrawals.");
     } finally {
       setResumingFloat(false);
+    }
+  };
+
+  const retrySettlement = async (id: string) => {
+    setRetryingSettlement(id);
+    try {
+      await retryPlatformCustodySettlement(id);
+      toast.success("Settlement retry queued.");
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not retry settlement.");
+    } finally {
+      setRetryingSettlement(null);
     }
   };
 
@@ -1038,6 +1060,82 @@ export default function SuperAdminPlatformPaymentsPage() {
           </Button>
         </div>
       </section>
+
+      <SaSection
+        title="Custody settlements"
+        description="Model B auto-settle: platform collect → KopoKopo Send Money to the shop's till/paybill. Retry a FAILED row to re-send on the same rail."
+      >
+        {custodySettlements.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No custody settlements yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-y border-border/60 text-muted-foreground">
+                <tr>
+                  <th className="px-1 py-2 font-medium">Business</th>
+                  <th className="px-1 py-2 font-medium">Rail</th>
+                  <th className="px-1 py-2 text-right font-medium">Amount</th>
+                  <th className="px-1 py-2 font-medium">Destination</th>
+                  <th className="px-1 py-2 font-medium">Status</th>
+                  <th className="px-1 py-2 font-medium">Reason</th>
+                  <th className="px-1 py-2" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {custodySettlements.map((s) => (
+                  <tr key={s.id}>
+                    <td className="px-1 py-2 font-mono text-xs">{shortId(s.businessId)}</td>
+                    <td className="px-1 py-2">{s.provider}</td>
+                    <td className="px-1 py-2 text-right tabular-nums">
+                      {money(Number(s.amount))}
+                    </td>
+                    <td className="px-1 py-2 text-xs">
+                      {s.destinationType === "till"
+                        ? `Till ${s.destinationTill ?? "—"}`
+                        : `Paybill ${s.destinationPaybill ?? "—"} · ${s.destinationAccount ?? "—"}`}
+                    </td>
+                    <td className="px-1 py-2">
+                      <Badge
+                        variant={
+                          s.status === "SETTLED"
+                            ? "success"
+                            : s.status === "FAILED"
+                              ? "destructive"
+                              : "secondary"
+                        }
+                      >
+                        {s.status}
+                      </Badge>
+                    </td>
+                    <td className="max-w-[240px] px-1 py-2 text-muted-foreground">
+                      <span className="line-clamp-2" title={s.failureReason ?? undefined}>
+                        {s.failureReason ?? "—"}
+                      </span>
+                    </td>
+                    <td className="px-1 py-2 text-right">
+                      {s.status === "FAILED" ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={retryingSettlement === s.id}
+                          onClick={() => void retrySettlement(s.id)}
+                        >
+                          {retryingSettlement === s.id ? (
+                            <Loader2 className="size-4 animate-spin" aria-hidden />
+                          ) : (
+                            "Retry"
+                          )}
+                        </Button>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SaSection>
 
       <PlatformAirtimeSection />
 
