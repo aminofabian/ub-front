@@ -100,7 +100,11 @@ function StatusStamp({ status }: { status: string }) {
  * shared — a single busy shop can drain it, which is why the low-float warning
  * and the per-tenant daily cap both live on this screen.
  */
-export function PlatformAirtimeSection() {
+export function PlatformAirtimeSection({
+  theatreMode = false,
+}: {
+  theatreMode?: boolean;
+}) {
   const [settings, setSettings] = useState<PlatformAirtimeSettingsRecord | null>(null);
   const [orders, setOrders] = useState<SaAirtimeOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -266,28 +270,7 @@ export function PlatformAirtimeSection() {
   const currency = settings?.currency || "KES";
   const paused = Boolean(settings?.floatConstrainedUntil);
 
-  return (
-    <SaSection
-      title="Airtime (Instalipa)"
-      description="One platform float sells airtime for every tenant. Merchants pay from their Kiosk Pay wallet and keep the commission you set below."
-      actions={
-        <div className="flex items-center gap-2">
-          <Badge variant={settings?.enabled ? "success" : "secondary"}>
-            {settings?.enabled ? "On" : "Off"}
-          </Badge>
-          <Switch
-            checked={Boolean(settings?.enabled)}
-            disabled={saving || loading || !settings}
-            onCheckedChange={(on) => void save(on)}
-          />
-        </div>
-      }
-      footer={
-        <Button disabled={saving || loading} onClick={() => void save()}>
-          {saving ? "Saving…" : "Save airtime settings"}
-        </Button>
-      }
-    >
+  const fields = (
       <div className="space-y-4">
         {loading ? (
           <div className="flex items-center gap-2 px-1 py-6 text-sm text-muted-foreground">
@@ -578,6 +561,64 @@ export function PlatformAirtimeSection() {
           </>
         )}
       </div>
+  );
+
+  if (theatreMode) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5">
+          <div>
+            <p className="text-[13px] font-semibold tracking-[-0.015em]">Enabled</p>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              One platform float sells airtime for every tenant from their Kiosk Pay wallet.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={settings?.enabled ? "success" : "secondary"}>
+              {settings?.enabled ? "On" : "Off"}
+            </Badge>
+            <Switch
+              checked={Boolean(settings?.enabled)}
+              disabled={saving || loading || !settings}
+              onCheckedChange={(on) => void save(on)}
+            />
+          </div>
+        </div>
+        {fields}
+        <Button
+          className="h-8 rounded-none bg-[var(--pos-primary,#0f766e)] text-white shadow-none hover:bg-[#0d6b63]"
+          disabled={saving || loading}
+          onClick={() => void save()}
+        >
+          {saving ? "Saving…" : "Save airtime settings"}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <SaSection
+      title="Airtime (Instalipa)"
+      description="One platform float sells airtime for every tenant. Merchants pay from their Kiosk Pay wallet and keep the commission you set below."
+      actions={
+        <div className="flex items-center gap-2">
+          <Badge variant={settings?.enabled ? "success" : "secondary"}>
+            {settings?.enabled ? "On" : "Off"}
+          </Badge>
+          <Switch
+            checked={Boolean(settings?.enabled)}
+            disabled={saving || loading || !settings}
+            onCheckedChange={(on) => void save(on)}
+          />
+        </div>
+      }
+      footer={
+        <Button disabled={saving || loading} onClick={() => void save()}>
+          {saving ? "Saving…" : "Save airtime settings"}
+        </Button>
+      }
+    >
+      {fields}
     </SaSection>
   );
 }
