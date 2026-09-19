@@ -1268,10 +1268,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               rails={stkRails}
                               selectedConfigId={stkConfigId}
                               onSelect={setStkConfigId}
-                              disabled={
-                                stkPushStatus === "sending" ||
-                                stkPushStatus === "sent"
-                              }
                               compact
                             />
                           ) : null}
