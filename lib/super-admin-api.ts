@@ -600,6 +600,10 @@ export type PlatformDarajaSettingsRecord = {
   shortcode: string | null;
   hasCredentials: boolean;
   consumerKeyHint: string | null;
+  /** True when B2B initiator credentials are set — enables Daraja custody settle. */
+  disburseConfigured: boolean;
+  initiatorName: string | null;
+  b2bShortcode: string | null;
   updatedAt: string | null;
 };
 
@@ -611,6 +615,12 @@ export type PatchPlatformDarajaSettingsPayload = {
   consumerKey?: string;
   consumerSecret?: string;
   passkey?: string;
+  /** B2B disburse: Safaricom initiator name + password (write-only). */
+  initiatorName?: string;
+  initiatorPassword?: string;
+  b2bShortcode?: string;
+  b2bRequester?: string;
+  clearDisburseCredentials?: boolean;
   clearCredentials?: boolean;
 };
 

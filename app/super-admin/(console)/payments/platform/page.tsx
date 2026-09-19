@@ -118,6 +118,9 @@ export default function SuperAdminPlatformPaymentsPage() {
   const [darajaConsumerKey, setDarajaConsumerKey] = useState("");
   const [darajaConsumerSecret, setDarajaConsumerSecret] = useState("");
   const [darajaPasskey, setDarajaPasskey] = useState("");
+  const [darajaInitiatorName, setDarajaInitiatorName] = useState("");
+  const [darajaInitiatorPassword, setDarajaInitiatorPassword] = useState("");
+  const [darajaB2bShortcode, setDarajaB2bShortcode] = useState("");
 
   const reload = useCallback(async () => {
     setLoadError("");
@@ -148,6 +151,8 @@ export default function SuperAdminPlatformPaymentsPage() {
       setDarajaEnv(dj.environment ?? "sandbox");
       setDarajaShortcodeType(dj.shortcodeType ?? "paybill");
       setDarajaShortcode(dj.shortcode ?? "");
+      setDarajaInitiatorName(dj.initiatorName ?? "");
+      setDarajaB2bShortcode(dj.b2bShortcode ?? "");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Could not load platform payments.");
     } finally {
@@ -337,11 +342,17 @@ export default function SuperAdminPlatformPaymentsPage() {
         ...(darajaConsumerKey.trim() ? { consumerKey: darajaConsumerKey.trim() } : {}),
         ...(darajaConsumerSecret.trim() ? { consumerSecret: darajaConsumerSecret.trim() } : {}),
         ...(darajaPasskey.trim() ? { passkey: darajaPasskey.trim() } : {}),
+        ...(darajaInitiatorName.trim() ? { initiatorName: darajaInitiatorName.trim() } : {}),
+        ...(darajaInitiatorPassword.trim()
+          ? { initiatorPassword: darajaInitiatorPassword.trim() }
+          : {}),
+        ...(darajaB2bShortcode.trim() ? { b2bShortcode: darajaB2bShortcode.trim() } : {}),
       });
       setDaraja(next);
       setDarajaConsumerKey("");
       setDarajaConsumerSecret("");
       setDarajaPasskey("");
+      setDarajaInitiatorPassword("");
       toast.success("Daraja settings saved.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save Daraja.");
@@ -398,6 +409,42 @@ export default function SuperAdminPlatformPaymentsPage() {
           await reload();
         } catch (e) {
           toast.error(e instanceof Error ? e.message : "Could not clear credentials.");
+        } finally {
+          setDarajaSaving(false);
+        }
+      },
+    });
+  };
+
+  const clearDarajaDisburseCreds = () => {
+    const custodyUsesDaraja = mpesaCustody?.custodyProvider === "DARAJA";
+    showThemedConfirmToast({
+      id: "clear-daraja-disburse",
+      title: "Clear Daraja B2B credentials?",
+      description: custodyUsesDaraja
+        ? "Daraja is the active custody provider. Clearing B2B stops till/paybill-only settlement and will switch Platform custody provider to Off."
+        : "Kiosk-collected payments will no longer settle to tenant tills/paybills on Daraja.",
+      confirmLabel: "Clear B2B credentials",
+      onConfirm: async () => {
+        setDarajaSaving(true);
+        try {
+          const next = await patchPlatformDarajaSettings({
+            clearDisburseCredentials: true,
+          });
+          setDaraja(next);
+          setDarajaInitiatorName("");
+          setDarajaInitiatorPassword("");
+          setDarajaB2bShortcode("");
+          if (custodyUsesDaraja) {
+            const custody = await patchPlatformMpesaCustodySettings({
+              custodyProvider: "OFF",
+            });
+            setMpesaCustody(custody);
+          }
+          toast.success("Daraja B2B credentials cleared.");
+          await reload();
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Could not clear B2B credentials.");
         } finally {
           setDarajaSaving(false);
         }
@@ -910,6 +957,67 @@ export default function SuperAdminPlatformPaymentsPage() {
                 autoComplete="off"
               />
             </div>
+            <div className="flex items-center justify-between gap-2 sm:col-span-2">
+              <p className="text-sm font-medium">
+                B2B disburse{" "}
+                {daraja?.disburseConfigured ? (
+                  <span className="font-normal text-muted-foreground">
+                    (configured{daraja.initiatorName ? ` · ${daraja.initiatorName}` : ""})
+                  </span>
+                ) : (
+                  <span className="font-normal text-muted-foreground">(not set)</span>
+                )}
+              </p>
+              {daraja?.disburseConfigured ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearDarajaDisburseCreds}
+                >
+                  Clear
+                </Button>
+              ) : null}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-daraja-initiator">B2B initiator name</Label>
+              <Input
+                id="sa-daraja-initiator"
+                value={darajaInitiatorName}
+                onChange={(e) => setDarajaInitiatorName(e.target.value)}
+                placeholder="e.g. kioskapi"
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-daraja-initiator-pw">B2B initiator password</Label>
+              <Input
+                id="sa-daraja-initiator-pw"
+                type="password"
+                value={darajaInitiatorPassword}
+                onChange={(e) => setDarajaInitiatorPassword(e.target.value)}
+                placeholder={
+                  daraja?.disburseConfigured ? "Leave blank to keep" : "Required for custody settle"
+                }
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="sa-daraja-b2b-shortcode">B2B sending shortcode</Label>
+              <Input
+                id="sa-daraja-b2b-shortcode"
+                value={darajaB2bShortcode}
+                onChange={(e) => setDarajaB2bShortcode(e.target.value)}
+                placeholder={daraja?.shortcode ?? "Defaults to the shortcode above"}
+                autoComplete="off"
+              />
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                Used to settle a shop&apos;s till/paybill after a Kiosk-collected payment
+                (Daraja B2B). Requires the Safaricom B2B product on this shortcode. The
+                Safaricom public certificate is supplied at deploy time via
+                APP_PAYMENTS_DARAJA_SECURITY_CERTIFICATE_PEM.
+              </p>
+            </div>
           </div>
         </div>
       </SaSection>
@@ -954,7 +1062,7 @@ export default function SuperAdminPlatformPaymentsPage() {
                   ready: !!mpesaCustody?.darajaDisburseAvailable,
                   detail: mpesaCustody?.darajaDisburseAvailable
                     ? "Ready"
-                    : "Not shipped",
+                    : "Not configured",
                 },
               ] as const
             ).map((chip) => (
