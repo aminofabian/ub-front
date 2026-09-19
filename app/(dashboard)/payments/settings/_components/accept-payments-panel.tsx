@@ -22,12 +22,19 @@ export function isManualGateway(config: GatewayConfigRecord) {
   return config.gatewayType === "MANUAL";
 }
 
+export function isCustodyMpesaGateway(config: GatewayConfigRecord) {
+  return config.gatewayType === "CUSTODY_MPESA";
+}
+
 export function gatewayDisplayName(
   config: GatewayConfigRecord,
   available: AvailableGatewayRecord[],
 ) {
   if (isManualGateway(config)) {
     return "Manual payment";
+  }
+  if (isCustodyMpesaGateway(config)) {
+    return "M-Pesa till / paybill (Kiosk settles)";
   }
   return (
     available.find((a) => a.gatewayType === config.gatewayType)?.displayName ??
@@ -37,9 +44,10 @@ export function gatewayDisplayName(
 
 export function gatewayGlyph(type: string) {
   if (type === "KOPOKOPO") return "K";
-  if (type === "MPESA_STK" || type === "SAFARICOM") return "M";
+  if (type === "MPESA_STK" || type === "SAFARICOM" || type === "DARAJA") return "M";
   if (type === "PAYSTACK") return "P";
   if (type === "MANUAL") return "T";
+  if (type === "CUSTODY_MPESA") return "C";
   return type.slice(0, 1).toUpperCase() || "?";
 }
 
@@ -71,7 +79,7 @@ export function AcceptPaymentsPanel({
   return (
     <div className={cn("space-y-4", compact && "space-y-3")}>
       {!compact ? (
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        <p className="text-[12px] leading-relaxed text-muted-foreground">
           API gateways need a successful connection test before activation. Manual
           till / paybill methods go live immediately.
         </p>
@@ -80,7 +88,7 @@ export function AcceptPaymentsPanel({
       {kopokopoNeedsAttention ? (
         <div
           role="status"
-          className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2.5 text-xs text-[#9a2e16]"
+          className="border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2.5 text-[12px] text-[#9a2e16]"
         >
           <p className="font-semibold">KopoKopo is not active yet</p>
           <p className="mt-1 leading-relaxed opacity-90">
@@ -94,7 +102,7 @@ export function AcceptPaymentsPanel({
         <Button
           type="button"
           size="sm"
-          className="h-8 w-full gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63] sm:w-auto"
+          className="h-8 w-full gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] text-white shadow-none hover:bg-[#0d6b63] sm:w-auto"
           onClick={onAddMethod}
         >
           <Plus className="size-4" aria-hidden />
@@ -106,28 +114,23 @@ export function AcceptPaymentsPanel({
         <div
           className={cn(
             HUB_SURFACE,
-            "flex items-center gap-2 px-4 py-8 text-sm text-[#666666]",
+            "flex items-center gap-2 px-4 py-8 text-[13px] text-[#666666]",
           )}
         >
           <Loader2 className="size-4 animate-spin" aria-hidden />
           Loading payment methods…
         </div>
       ) : configs.length === 0 ? (
-        <div
-          className={cn(
-            HUB_SURFACE,
-            "border-dashed px-4 py-10 text-center",
-          )}
-        >
-          <span className="mx-auto flex size-10 items-center justify-center rounded-none bg-white text-[#0f766e]">
+        <div className={cn(HUB_SURFACE, "border-dashed px-4 py-10 text-center")}>
+          <span className="mx-auto flex size-10 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white text-[var(--pos-primary,#0f766e)]">
             <CreditCard className="size-5" aria-hidden />
           </span>
-          <p className="mt-3 text-sm font-semibold text-[#141414]">
+          <p className="mt-3 text-[14px] font-semibold tracking-[-0.015em] text-[#141414]">
             No payment methods yet
           </p>
-          <p className="mx-auto mt-1 max-w-md text-xs text-[#666666]">
+          <p className="mx-auto mt-1 max-w-md text-[12px] text-[#666666]">
             {canWrite
-              ? "Add KopoKopo for M-Pesa STK and supplier Send Money, or a manual till / paybill."
+              ? "Add KopoKopo for M-Pesa STK and supplier Send Money, or a till / paybill."
               : "Ask an admin to connect a payment gateway."}
           </p>
         </div>
@@ -135,37 +138,56 @@ export function AcceptPaymentsPanel({
         <ul
           className={cn(
             HUB_SURFACE,
-            "divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+            "divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
           )}
         >
           {configs.map((config) => {
             const busy = rowBusyId === config.id;
             const name = gatewayDisplayName(config, available);
+            const custody = isCustodyMpesaGateway(config);
             return (
               <li
                 key={config.id}
-                className="flex flex-col gap-2.5 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className={cn(
+                  "flex flex-col gap-2.5 px-3 py-3 transition-colors sm:flex-row sm:items-center sm:justify-between",
+                  custody &&
+                    "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)]",
+                )}
               >
                 <div className="flex min-w-0 items-start gap-2.5">
-                  <PaymentBrandMark
-                    gatewayType={config.gatewayType}
-                    displayName={name}
-                    logoUrl={
-                      available.find((a) => a.gatewayType === config.gatewayType)
-                        ?.logoUrl
-                    }
-                    glyph={gatewayGlyph(config.gatewayType)}
-                    size="md"
-                    className="mt-0.5"
-                  />
+                  {custody ? (
+                    <span
+                      className="mt-0.5 grid size-7 shrink-0 place-items-center border border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[10px] font-bold uppercase tracking-wide text-[var(--pos-primary,#0f766e)]"
+                      aria-hidden
+                    >
+                      C
+                    </span>
+                  ) : (
+                    <PaymentBrandMark
+                      gatewayType={config.gatewayType}
+                      displayName={name}
+                      logoUrl={
+                        available.find((a) => a.gatewayType === config.gatewayType)
+                          ?.logoUrl
+                      }
+                      glyph={gatewayGlyph(config.gatewayType)}
+                      size="md"
+                      className="mt-0.5"
+                    />
+                  )}
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <p className="truncate text-[14px] font-semibold tracking-[-0.015em] text-foreground">
                         {config.label}
                       </p>
                       <GatewayStatusBadge status={config.status} />
+                      {custody ? (
+                        <span className="border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
+                          Settles via Kiosk
+                        </span>
+                      ) : null}
                       {config.isDefault ? (
-                        <span className="rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
+                        <span className="border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
                           Default
                         </span>
                       ) : null}
@@ -196,7 +218,7 @@ export function AcceptPaymentsPanel({
                   <Button
                     type="button"
                     size="sm"
-                    className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
+                    className="h-8 gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] text-white shadow-none hover:bg-[#0d6b63]"
                     disabled={busy}
                     onClick={() => onManage(config)}
                   >

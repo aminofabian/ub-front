@@ -138,7 +138,7 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
       {methodType === "till" && (
         <FormDrawerFields
           legend="Till number *"
-          hint="One Buy Goods till for display on receipts / checkout only. This does not activate KopoKopo webhooks — use an ACTIVE KopoKopo gateway + Till webhooks for that."
+          hint="One Buy Goods till for display on receipts / checkout only. This does not run STK Push or KopoKopo webhooks — connect an ACTIVE KopoKopo or Daraja gateway (full API credentials + till/shortcode) for that."
         >
           <input
             type="text"
@@ -155,7 +155,10 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
 
       {methodType === "paybill" && (
         <>
-          <FormDrawerFields legend="Business number *" hint="The M-Pesa Paybill business number.">
+          <FormDrawerFields
+            legend="Business number *"
+            hint="The M-Pesa Paybill business number for display only. Does not activate STK — use Daraja or KopoKopo BYO for online push."
+          >
             <input
               type="text"
               className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"

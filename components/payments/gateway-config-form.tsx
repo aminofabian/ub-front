@@ -224,12 +224,19 @@ export function GatewayConfigForm({
         <p className="mt-2 text-xs text-muted-foreground">
           {gatewayType === "PAYSTACK"
             ? "Sandbox keys start with pk_test_ / sk_test_. Production keys start with pk_live_ / sk_live_. Do not mix them."
-            : "Sandbox and Production have different Client ID / Secret pairs. Switching environment requires credentials from that environment's Applications page."}
+            : gatewayType === "DARAJA"
+              ? "Sandbox and Production use different Consumer Key / Secret / Passkey pairs from the Daraja portal. The shortcode must belong to the same app that owns those keys."
+              : "Sandbox and Production have different Client ID / Secret pairs. Switching environment requires credentials from that environment's Applications page."}
         </p>
       </FormDrawerFields>
 
       {gatewayType === "KOPOKOPO" && (
         <>
+          <p className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            Direct M-Pesa STK (money to your till) needs your KopoKopo{" "}
+            <span className="font-medium text-foreground">Client ID, Client Secret, API Key, and till</span>
+            . A till number alone does not activate STK — use Manual payment only for display on receipts.
+          </p>
           <FormDrawerFields
             legend="Client ID *"
             hint={
@@ -278,7 +285,7 @@ export function GatewayConfigForm({
           </FormDrawerFields>
           <FormDrawerFields
             legend="Till number *"
-            hint="Single M-Pesa till for STK Push (from your KopoKopo dashboard). One number only."
+            hint="Single M-Pesa till registered on this KopoKopo account — used as the STK receiving till. One number only; not a substitute for Client ID / Secret / API Key."
           >
             <input
               type="text"
@@ -362,7 +369,21 @@ export function GatewayConfigForm({
 
       {gatewayType === "DARAJA" && (
         <>
-          <FormDrawerFields legend="Consumer Key *">
+          <p className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            Direct Safaricom STK needs{" "}
+            <span className="font-medium text-foreground">
+              Consumer Key, Consumer Secret, Passkey, and your shop&apos;s shortcode
+            </span>{" "}
+            from a Daraja app that went live with that Paybill or Till. Pasting another
+            merchant&apos;s shortcode while using different keys does not route money there
+            (Party B must match the shortcode on those keys). Without this gateway,
+            platform STK (if enabled) collects to Kiosk&apos;s shortcode — custody, not
+            your till.
+          </p>
+          <FormDrawerFields
+            legend="Consumer Key *"
+            hint="From Daraja → My Apps for the app tied to your Paybill/Till."
+          >
             <input
               type="text"
               className={secretInputClass}
@@ -373,7 +394,10 @@ export function GatewayConfigForm({
               spellCheck={false}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend="Consumer Secret *">
+          <FormDrawerFields
+            legend="Consumer Secret *"
+            hint="Paired with Consumer Key from the same Daraja app."
+          >
             <input
               type="text"
               className={secretInputClass}
@@ -384,7 +408,10 @@ export function GatewayConfigForm({
               spellCheck={false}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend="Passkey *">
+          <FormDrawerFields
+            legend="Passkey *"
+            hint="Lipa Na M-Pesa Online passkey for this shortcode (issued when the app goes live)."
+          >
             <input
               type="text"
               className={secretInputClass}
@@ -417,7 +444,10 @@ export function GatewayConfigForm({
               </label>
             </div>
           </FormDrawerFields>
-          <FormDrawerFields legend={`Shortcode${isEdit ? "" : " *"}`}>
+          <FormDrawerFields
+            legend={`Shortcode${isEdit ? "" : " *"}`}
+            hint="Your Paybill or Till (Party B). Must be the shortcode registered to these keys — not an arbitrary receiving account."
+          >
             <input
               type="text"
               className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm shadow-none"

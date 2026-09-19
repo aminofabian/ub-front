@@ -28,12 +28,14 @@ import {
   type PatchPlatformGatewayPayload,
   type PlatformDarajaSettingsRecord,
   type PlatformKioskPaySettingsRecord,
+  type PlatformMpesaCustodySettingsRecord,
   type SaKioskPayAccountRow,
   type SaKioskPayAccountSummary,
   type SaKioskPayWithdrawalRow,
   adjustSaKioskPayAccount,
   fetchPlatformDarajaSettings,
   fetchPlatformGateways,
+  fetchPlatformMpesaCustodySettings,
   fetchSaKioskPayAccountSummary,
   fetchSaKioskPayAccounts,
   fetchSaKioskPayWithdrawals,
@@ -41,9 +43,11 @@ import {
   patchPlatformGateway,
   fetchPlatformKioskPaySettings,
   patchPlatformKioskPaySettings,
+  patchPlatformMpesaCustodySettings,
   resumeSaKioskPayWithdrawals,
   testPlatformDarajaConnection,
 } from "@/lib/super-admin-api";
+import { cn } from "@/lib/utils";
 
 function money(n: number | null | undefined) {
   const v = typeof n === "number" && Number.isFinite(n) ? n : 0;
@@ -70,11 +74,15 @@ export default function SuperAdminPlatformPaymentsPage() {
   const [gateways, setGateways] = useState<PlatformGatewayRecord[]>([]);
   const [kioskPay, setKioskPay] = useState<PlatformKioskPaySettingsRecord | null>(null);
   const [daraja, setDaraja] = useState<PlatformDarajaSettingsRecord | null>(null);
+  const [mpesaCustody, setMpesaCustody] = useState<PlatformMpesaCustodySettingsRecord | null>(
+    null,
+  );
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
   const [kioskSaving, setKioskSaving] = useState(false);
   const [darajaSaving, setDarajaSaving] = useState(false);
   const [darajaTesting, setDarajaTesting] = useState(false);
+  const [custodySaving, setCustodySaving] = useState(false);
 
   const [accounts, setAccounts] = useState<SaKioskPayAccountRow[]>([]);
   const [accountSummary, setAccountSummary] = useState<SaKioskPayAccountSummary | null>(null);
@@ -108,10 +116,11 @@ export default function SuperAdminPlatformPaymentsPage() {
     setLoadError("");
     setAccountsLoading(true);
     try {
-      const [gws, kp, dj, accs, summ, wds] = await Promise.all([
+      const [gws, kp, dj, custody, accs, summ, wds] = await Promise.all([
         fetchPlatformGateways(),
         fetchPlatformKioskPaySettings(),
         fetchPlatformDarajaSettings(),
+        fetchPlatformMpesaCustodySettings().catch(() => null),
         fetchSaKioskPayAccounts(50).catch(() => []),
         fetchSaKioskPayAccountSummary().catch(() => null),
         fetchSaKioskPayWithdrawals(20).catch(() => []),
@@ -119,6 +128,7 @@ export default function SuperAdminPlatformPaymentsPage() {
       setGateways(gws);
       setKioskPay(kp);
       setDaraja(dj);
+      setMpesaCustody(custody);
       setAccounts(accs);
       setAccountSummary(summ);
       setWithdrawals(wds);
@@ -327,6 +337,23 @@ export default function SuperAdminPlatformPaymentsPage() {
       toast.error(e instanceof Error ? e.message : "Daraja connection test failed.");
     } finally {
       setDarajaTesting(false);
+    }
+  };
+
+  const saveCustodyProvider = async () => {
+    if (!mpesaCustody) return;
+    setCustodySaving(true);
+    try {
+      const next = await patchPlatformMpesaCustodySettings({
+        custodyProvider: mpesaCustody.custodyProvider,
+      });
+      setMpesaCustody(next);
+      toast.success("Platform custody provider saved.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save custody provider.");
+      void reload();
+    } finally {
+      setCustodySaving(false);
     }
   };
 
@@ -864,6 +891,153 @@ export default function SuperAdminPlatformPaymentsPage() {
           </div>
         </div>
       </SaSection>
+
+      <section
+        className={cn(
+          "overflow-hidden border",
+          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]",
+        )}
+      >
+        <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] px-4 py-4 sm:px-5">
+          <h2 className="font-heading text-lg font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+            Platform custody provider
+          </h2>
+          <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+            When a shop enters only their till or paybill (no API keys), Kiosk
+            collects and settles on one rail end-to-end. Never mix Daraja collect
+            with KopoKopo settle.
+          </p>
+        </div>
+
+        <div className="space-y-4 bg-white/70 px-4 py-5 sm:px-5">
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                {
+                  key: "kk",
+                  label: "KopoKopo",
+                  ready: !!mpesaCustody?.kopokopoReady,
+                  detail: mpesaCustody?.kopokopoReady ? "Ready" : "Not ready",
+                },
+                {
+                  key: "dj-collect",
+                  label: "Daraja collect",
+                  ready: !!mpesaCustody?.darajaReady,
+                  detail: mpesaCustody?.darajaReady ? "Ready" : "Not ready",
+                },
+                {
+                  key: "dj-disburse",
+                  label: "Daraja disburse",
+                  ready: !!mpesaCustody?.darajaDisburseAvailable,
+                  detail: mpesaCustody?.darajaDisburseAvailable
+                    ? "Ready"
+                    : "Not shipped",
+                },
+              ] as const
+            ).map((chip) => (
+              <span
+                key={chip.key}
+                className={cn(
+                  "inline-flex items-center gap-1.5 border px-2 py-1 text-[11px] font-semibold tracking-[-0.02em]",
+                  chip.ready
+                    ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]"
+                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white text-muted-foreground",
+                )}
+              >
+                <span
+                  className={cn(
+                    "size-1.5 shrink-0",
+                    chip.ready
+                      ? "bg-[var(--pos-primary,#0f766e)]"
+                      : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)]",
+                  )}
+                  aria-hidden
+                />
+                {chip.label}
+                <span className="font-medium opacity-80">· {chip.detail}</span>
+              </span>
+            ))}
+          </div>
+
+          <fieldset className="space-y-2">
+            <legend className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+              Active provider
+            </legend>
+            <div className="grid gap-px border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] sm:grid-cols-3">
+              {(
+                [
+                  {
+                    value: "OFF",
+                    title: "Off",
+                    hint: "Tenants cannot use till-only",
+                    disabled: false,
+                  },
+                  {
+                    value: "KOPOKOPO",
+                    title: "KopoKopo",
+                    hint: "STK + Send Money",
+                    disabled: !mpesaCustody?.kopokopoReady,
+                  },
+                  {
+                    value: "DARAJA",
+                    title: "Daraja",
+                    hint: "Unavailable until disburse ships",
+                    disabled: !mpesaCustody?.darajaDisburseAvailable,
+                  },
+                ] as const
+              ).map((opt) => {
+                const active =
+                  (mpesaCustody?.custodyProvider ?? "OFF") === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    disabled={custodySaving || !mpesaCustody || opt.disabled}
+                    onClick={() =>
+                      setMpesaCustody((prev) =>
+                        prev ? { ...prev, custodyProvider: opt.value } : prev,
+                      )
+                    }
+                    className={cn(
+                      "flex min-h-[4.25rem] flex-col items-start gap-0.5 px-3 py-2.5 text-left transition-colors",
+                      "disabled:cursor-not-allowed disabled:opacity-50",
+                      active
+                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]"
+                        : "bg-white text-[var(--order-ink,#15231f)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
+                    )}
+                    aria-pressed={active}
+                  >
+                    <span className="text-[13px] font-semibold tracking-[-0.02em]">
+                      {opt.title}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[11px] leading-snug",
+                        active
+                          ? "text-[color-mix(in_srgb,var(--pos-primary,#0f766e)_78%,transparent)]"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {opt.hint}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        </div>
+
+        <div className="flex justify-end border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3 sm:px-5">
+          <Button
+            className="h-8 rounded-none bg-[var(--pos-primary,#0f766e)] text-white shadow-none hover:bg-[#0d6b63]"
+            disabled={custodySaving || !mpesaCustody}
+            onClick={() => void saveCustodyProvider()}
+          >
+            {custodySaving ? "Saving…" : "Save custody provider"}
+          </Button>
+        </div>
+      </section>
 
       <PlatformAirtimeSection />
 

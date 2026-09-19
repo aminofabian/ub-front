@@ -28,6 +28,7 @@ import { GatewayConfigForm } from "@/components/payments/gateway-config-form";
 import { GatewayStatusBadge } from "@/components/payments/gateway-status-badge";
 import { PaymentBrandMark } from "@/components/payments/payment-brand-mark";
 import { ManualMethodForm } from "@/components/payments/manual-method-form";
+import { CustodyMpesaMethodForm } from "@/components/payments/custody-mpesa-method-form";
 import { SupplierPayoutSettingsSection } from "@/components/payments/supplier-payout-settings-section";
 import { KioskPaySettingsSection } from "@/components/payments/kiosk-pay-settings-section";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
@@ -58,6 +59,7 @@ import { cn } from "@/lib/utils";
 import {
   AcceptPaymentsPanel,
   gatewayDisplayName,
+  isCustodyMpesaGateway,
   isManualGateway,
 } from "./_components/accept-payments-panel";
 import {
@@ -71,6 +73,8 @@ type DrawerState =
   | { kind: "pick" }
   | { kind: "manual-create" }
   | { kind: "manual-edit"; config: GatewayConfigRecord }
+  | { kind: "custody-create" }
+  | { kind: "custody-edit"; config: GatewayConfigRecord }
   | {
       kind: "api-create";
       gatewayType: string;
@@ -204,6 +208,9 @@ export default function PaymentGatewaySettingsPage() {
   const [manualEditInitial, setManualEditInitial] = useState<
     Partial<{ label: string; displayInstructionsJson: string }> | undefined
   >(undefined);
+  const [custodyEditInitial, setCustodyEditInitial] = useState<
+    Partial<{ label: string; displayInstructionsJson: string }> | undefined
+  >(undefined);
   const [checkoutRows, setCheckoutRows] = useState<
     GatewayCheckoutRecord[] | null
   >(null);
@@ -261,9 +268,18 @@ export default function PaymentGatewaySettingsPage() {
   }, [canReadAirtime]);
 
   const addableApi = useMemo(
-    () => available.filter((a) => a.gatewayType !== "MANUAL" && !a.configured),
+    () =>
+      available.filter(
+        (a) =>
+          a.gatewayType !== "MANUAL" &&
+          a.gatewayType !== "CUSTODY_MPESA" &&
+          !a.configured,
+      ),
     [available],
   );
+
+  const hasCustodyConfigured = configs.some((c) => c.gatewayType === "CUSTODY_MPESA");
+  const hasManualConfigured = configs.some((c) => c.gatewayType === "MANUAL");
 
   const activeCount = configs.filter((c) => c.status === "ACTIVE").length;
   const draftOrErrorCount = configs.filter((c) =>
@@ -377,6 +393,14 @@ export default function PaymentGatewaySettingsPage() {
         displayInstructionsJson,
       });
       setDrawer({ kind: "manual-edit", config });
+      return;
+    }
+    if (isCustodyMpesaGateway(config)) {
+      setCustodyEditInitial({
+        label: config.label,
+        displayInstructionsJson: config.displayInstructionsJson ?? undefined,
+      });
+      setDrawer({ kind: "custody-edit", config });
       return;
     }
     const displayName =
@@ -662,23 +686,54 @@ export default function PaymentGatewaySettingsPage() {
           </Button>
         }
       >
-        <ul className="space-y-2">
-          {canWrite ? (
+        <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+          {canWrite && !hasManualConfigured ? (
             <li>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3.5 text-left transition-colors hover:border-[#0f766e]/55 hover:bg-[#ffffff]"
+                className="flex w-full items-center gap-2.5 px-3 py-3 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]"
                 onClick={() => setDrawer({ kind: "manual-create" })}
               >
-                <span>
-                  <span className="block text-sm font-medium text-foreground">
+                <span
+                  className="grid size-7 shrink-0 place-items-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-[10px] font-bold uppercase tracking-wide text-muted-foreground"
+                  aria-hidden
+                >
+                  T
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-semibold tracking-[-0.015em] text-foreground">
                     Manual payment
                   </span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    Till, paybill, or bank transfer instructions
+                  <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                    Till, paybill, or bank — display only (no STK)
                   </span>
                 </span>
-                <Plus className="size-4 shrink-0 text-muted-foreground" />
+                <Plus className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              </button>
+            </li>
+          ) : null}
+          {canWrite && !hasCustodyConfigured ? (
+            <li>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 px-3 py-3 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]"
+                onClick={() => setDrawer({ kind: "custody-create" })}
+              >
+                <span
+                  className="grid size-7 shrink-0 place-items-center border border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[10px] font-bold uppercase tracking-wide text-[var(--pos-primary,#0f766e)]"
+                  aria-hidden
+                >
+                  C
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-semibold tracking-[-0.015em] text-foreground">
+                    M-Pesa till / paybill only
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                    No API keys — STK via Kiosk, then settle to your till/paybill
+                  </span>
+                </span>
+                <Plus className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               </button>
             </li>
           ) : null}
@@ -686,7 +741,7 @@ export default function PaymentGatewaySettingsPage() {
             <li key={gw.gatewayType}>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3.5 text-left transition-colors hover:border-[#0f766e]/55 hover:bg-[#ffffff]"
+                className="flex w-full items-center gap-2.5 px-3 py-3 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]"
                 onClick={() =>
                   setDrawer({
                     kind: "api-create",
@@ -695,30 +750,29 @@ export default function PaymentGatewaySettingsPage() {
                   })
                 }
               >
-                <span className="flex min-w-0 items-center gap-3">
-                  <PaymentBrandMark
-                    gatewayType={gw.gatewayType}
-                    displayName={gw.displayName}
-                    logoUrl={gw.logoUrl}
-                    size="md"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-foreground">
-                      {gw.displayName}
-                    </span>
-                    {gw.description ? (
-                      <span className="mt-0.5 block text-xs text-muted-foreground">
-                        {gw.description}
-                      </span>
-                    ) : null}
+                <PaymentBrandMark
+                  gatewayType={gw.gatewayType}
+                  displayName={gw.displayName}
+                  logoUrl={gw.logoUrl}
+                  size="md"
+                  className="shrink-0"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-semibold tracking-[-0.015em] text-foreground">
+                    {gw.displayName}
                   </span>
+                  {gw.description ? (
+                    <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                      {gw.description}
+                    </span>
+                  ) : null}
                 </span>
-                <Plus className="size-4 shrink-0 text-muted-foreground" />
+                <Plus className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               </button>
             </li>
           ))}
           {addableApi.length === 0 && !canWrite ? (
-            <li className="text-sm text-muted-foreground">
+            <li className="px-3 py-8 text-center text-[12px] text-muted-foreground">
               No additional gateways available.
             </li>
           ) : null}
@@ -842,6 +896,7 @@ export default function PaymentGatewaySettingsPage() {
               ) : null}
 
               {!isManualGateway(manageConfig) &&
+              !isCustodyMpesaGateway(manageConfig) &&
               canWrite &&
               ["DRAFT", "ERROR", "TESTED", "ACTIVE"].includes(
                 manageConfig.status,
@@ -859,7 +914,7 @@ export default function PaymentGatewaySettingsPage() {
               ) : null}
 
               {canWrite &&
-              (isManualGateway(manageConfig)
+              (isManualGateway(manageConfig) || isCustodyMpesaGateway(manageConfig)
                 ? manageConfig.status !== "ACTIVE"
                 : manageConfig.status === "TESTED") ? (
                 <Button
@@ -1035,6 +1090,45 @@ export default function PaymentGatewaySettingsPage() {
           <ManualMethodForm
             saving={saving}
             initial={manualEditInitial}
+            onCancel={closeDrawer}
+            onSave={(payload) => onUpdate(drawer.config.id, payload)}
+          />
+        ) : null}
+      </FormDrawer>
+
+      <FormDrawer
+        open={drawer.kind === "custody-create"}
+        onOpenChange={(open) => {
+          if (!open) closeDrawer();
+        }}
+        title="M-Pesa till / paybill only"
+        description="Kiosk collects, then settles to your destination. Requires Super Admin custody rail."
+        contextLabel="Payments"
+        width="wide"
+      >
+        <CustodyMpesaMethodForm
+          saving={saving}
+          onCancel={closeDrawer}
+          onSave={(payload) => onCreate(payload)}
+        />
+      </FormDrawer>
+
+      <FormDrawer
+        open={drawer.kind === "custody-edit"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCustodyEditInitial(undefined);
+            closeDrawer();
+          }
+        }}
+        title="Edit till / paybill destination"
+        contextLabel="Payments"
+        width="wide"
+      >
+        {drawer.kind === "custody-edit" ? (
+          <CustodyMpesaMethodForm
+            saving={saving}
+            initial={custodyEditInitial}
             onCancel={closeDrawer}
             onSave={(payload) => onUpdate(drawer.config.id, payload)}
           />

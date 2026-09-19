@@ -634,6 +634,29 @@ export async function testPlatformDarajaConnection(): Promise<PlatformDarajaSett
   });
 }
 
+// ── Platform M-Pesa custody (till/paybill-only tenants) ─────────────
+
+export type PlatformMpesaCustodySettingsRecord = {
+  custodyProvider: string;
+  kopokopoReady: boolean;
+  darajaReady: boolean;
+  darajaDisburseAvailable: boolean;
+  updatedAt: string | null;
+};
+
+export async function fetchPlatformMpesaCustodySettings(): Promise<PlatformMpesaCustodySettingsRecord> {
+  return saRequest<PlatformMpesaCustodySettingsRecord>(API_ROUTES.superAdminMpesaCustody);
+}
+
+export async function patchPlatformMpesaCustodySettings(body: {
+  custodyProvider: string;
+}): Promise<PlatformMpesaCustodySettingsRecord> {
+  return saRequest<PlatformMpesaCustodySettingsRecord>(API_ROUTES.superAdminMpesaCustody, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
 // ── Airtime (platform Instalipa) ────────────────────────────────────
 
 export type PlatformAirtimeSettingsRecord = {

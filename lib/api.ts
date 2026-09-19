@@ -12899,6 +12899,7 @@ export type GatewayConfigRecord = {
   lastTestedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  displayInstructionsJson?: string | null;
 };
 
 export type TestConnectionResult = {
