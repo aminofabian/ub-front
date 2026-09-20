@@ -7,29 +7,27 @@ import {
   Check,
   Copy,
   Mail,
-  Plus,
   RefreshCw,
-  Search,
   Trash2,
-  X,
 } from "lucide-react";
 
-import { AuthAlert } from "@/components/auth/auth-alert";
+import {
+  DASHBOARD_MAX_WIDE,
+  DashboardFeedback,
+  DashboardPageHero,
+  dashboardHintClass,
+  dashboardInputClass,
+  dashboardLabelClass,
+} from "@/components/dashboard-page-ui";
 import {
   showThemedConfirmToast,
   showThemedErrorToast,
   showThemedSuccessToast,
 } from "@/components/super-admin/themed-confirm-toast";
-import { SuperAdminDrawer } from "@/components/super-admin/super-admin-drawer";
-import {
-  SA_SURFACE,
-  SuperAdminPageLayout,
-} from "@/components/super-admin/super-admin-page-layout";
-import { SaStatusSegment } from "@/components/super-admin/sa-status-segment";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import {
   type CreateSaBusinessPayload,
   type SaBusinessRow,
@@ -38,26 +36,18 @@ import {
   fetchAllSaBusinesses,
   fetchSaEmailRecipients,
 } from "@/lib/super-admin-api";
-import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
-type StatusFilter = "all" | "active" | "inactive" | "stuck";
+import {
+  BusinessesTheatre,
+  type BusinessesPanel,
+  type StatusFilter,
+} from "./_components/businesses-theatre";
 
-const CHECK_CLASS =
-  "size-4 shrink-0 rounded-[4px] border border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40";
-
-const SELECT_CLASS = cn(
-  "h-9 min-w-[8.5rem] rounded-lg border border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_12%,transparent)] bg-white px-2.5 text-sm shadow-none outline-none",
-  "focus-visible:border-[var(--sa-accent,#6366f1)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sa-accent,#6366f1)_25%,transparent)]",
-);
-
-const headerBtnOutline = cn(
-  "h-9 gap-1.5 rounded-lg border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_12%,transparent)] px-3 text-[13px] shadow-none",
-);
-
-const headerBtnPrimary = cn(
-  "h-9 gap-1.5 rounded-lg bg-[var(--sa-ink,#0f172a)] px-3.5 text-[13px] text-white shadow-none hover:bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_88%,#000)]",
-);
+const HAIRLINE =
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+const PRIMARY_BTN =
+  "h-8 rounded-none bg-[var(--pos-primary,#0f766e)] px-3.5 text-white shadow-none hover:bg-[#0d6b63]";
 
 function slugifyName(name: string) {
   return name
@@ -68,19 +58,9 @@ function slugifyName(name: string) {
     .slice(0, 48);
 }
 
-function formatTenantDate(iso: string) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function formatTenantDateTime(iso: string) {
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString();
 }
 
@@ -94,27 +74,15 @@ function tenantManageHref(b: SaBusinessRow) {
   return `${APP_ROUTES.superAdminBusinesses}/${encodeURIComponent(b.id)}?${q.toString()}`;
 }
 
-function SelectAllCheckbox({
-  allSelected,
-  someSelected,
-  onToggle,
-}: {
-  allSelected: boolean;
-  someSelected: boolean;
-  onToggle: (checked: boolean) => void;
-}) {
-  return (
-    <input
-      type="checkbox"
-      className={CHECK_CLASS}
-      aria-label="Select all visible tenants"
-      checked={allSelected}
-      ref={(el) => {
-        if (el) el.indeterminate = someSelected && !allSelected;
-      }}
-      onChange={(ev) => onToggle(ev.target.checked)}
-    />
-  );
+function panelFromHash(hash: string): BusinessesPanel | null {
+  const id = hash.replace(/^#/, "");
+  if (!id) return null;
+  if (id === "create") return { kind: "create" };
+  if (id.startsWith("business-")) {
+    const businessId = id.slice("business-".length);
+    if (businessId) return { kind: "business", id: businessId };
+  }
+  return null;
 }
 
 export default function SuperAdminBusinessesPage() {
@@ -135,14 +103,13 @@ export default function SuperAdminBusinessesPage() {
   const [deleteError, setDeleteError] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterActive, setFilterActive] = useState<StatusFilter>("all");
   const [filterTier, setFilterTier] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [stuckIds, setStuckIds] = useState<Set<string>>(() => new Set());
+  const [selected, setSelected] = useState<BusinessesPanel | null>(null);
 
-  const searchRef = useRef<HTMLInputElement>(null);
   const slugTouched = useRef(false);
   const copyTimer = useRef<number | null>(null);
   const loadedOnce = useRef(false);
@@ -154,15 +121,19 @@ export default function SuperAdminBusinessesPage() {
     try {
       const [tenants, stuck] = await Promise.all([
         fetchAllSaBusinesses(100),
-        fetchSaEmailRecipients({ segment: "stuck_signup" }, 0, 500).catch(() => ({
-          rows: [] as { businessId: string }[],
-          total: 0,
-        })),
+        fetchSaEmailRecipients({ segment: "stuck_signup" }, 0, 500).catch(
+          () => ({
+            rows: [] as { businessId: string }[],
+            total: 0,
+          }),
+        ),
       ]);
       setRows(tenants);
       setStuckIds(new Set(stuck.rows.map((row) => row.businessId)));
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Could not load businesses.");
+      setLoadError(
+        e instanceof Error ? e.message : "Could not load businesses.",
+      );
     } finally {
       loadedOnce.current = true;
       setLoading(false);
@@ -175,27 +146,19 @@ export default function SuperAdminBusinessesPage() {
   }, [reload]);
 
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (createOpen) return;
-      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)
-      ) {
-        return;
-      }
-      event.preventDefault();
-      searchRef.current?.focus();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [createOpen]);
-
-  useEffect(() => {
     return () => {
       if (copyTimer.current) window.clearTimeout(copyTimer.current);
     };
+  }, []);
+
+  useEffect(() => {
+    const apply = () => {
+      const next = panelFromHash(window.location.hash);
+      if (next) setSelected(next);
+    };
+    apply();
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
   }, []);
 
   const counts = useMemo(() => {
@@ -217,41 +180,13 @@ export default function SuperAdminBusinessesPage() {
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [rows]);
 
-  const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((b) => {
-      const phone = b.ownerPhone?.trim().toLowerCase() ?? "";
-      if (
-        q &&
-        !b.name.toLowerCase().includes(q) &&
-        !b.slug.toLowerCase().includes(q) &&
-        !b.id.toLowerCase().includes(q) &&
-        !phone.includes(q)
-      ) {
-        return false;
-      }
-      if (filterActive === "active" && !b.active) return false;
-      if (filterActive === "inactive" && b.active) return false;
-      if (filterActive === "stuck" && !stuckIds.has(b.id)) return false;
-      if (filterTier.trim() && b.subscriptionTier.toLowerCase() !== filterTier.trim().toLowerCase()) return false;
-      return true;
-    });
-  }, [rows, search, filterActive, filterTier, stuckIds]);
+  const selectedBusiness =
+    selected?.kind === "business"
+      ? (rows.find((r) => r.id === selected.id) ?? null)
+      : null;
 
-  const filtersOn = Boolean(search.trim()) || filterActive !== "all" || Boolean(filterTier.trim());
-
-  const allVisibleSelected =
-    filteredRows.length > 0 && filteredRows.every((b) => selectedIds.includes(b.id));
-  const someVisibleSelected = filteredRows.some((b) => selectedIds.includes(b.id));
-
-  const resetFilters = () => {
-    setSearch("");
-    setFilterActive("all");
-    setFilterTier("");
-  };
-
-  const onCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onCreate = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setFormError("");
     setBusy(true);
     const payload: CreateSaBusinessPayload = {
@@ -270,7 +205,8 @@ export default function SuperAdminBusinessesPage() {
       setPrimaryDomain("");
       slugTouched.current = false;
       await reload();
-      setCreateOpen(false);
+      setSelected(null);
+      showThemedSuccessToast("Tenant created.");
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Create failed.");
     } finally {
@@ -295,6 +231,9 @@ export default function SuperAdminBusinessesPage() {
     try {
       await deleteSaBusiness(b.id);
       setSelectedIds((prev) => prev.filter((id) => id !== b.id));
+      if (selected?.kind === "business" && selected.id === b.id) {
+        setSelected(null);
+      }
       showThemedSuccessToast(`Tenant “${b.name}” removed.`);
       await reload();
     } catch (err) {
@@ -318,32 +257,29 @@ export default function SuperAdminBusinessesPage() {
 
   const toggleSelected = (id: string, checked: boolean) => {
     setSelectedIds((prev) =>
-      checked ? (prev.includes(id) ? prev : [...prev, id]) : prev.filter((item) => item !== id),
+      checked
+        ? prev.includes(id)
+          ? prev
+          : [...prev, id]
+        : prev.filter((item) => item !== id),
     );
   };
 
-  const statusOptions: { value: StatusFilter; label: string; count: number }[] = [
-    { value: "all", label: "All", count: counts.all },
-    { value: "active", label: "Active", count: counts.active },
-    { value: "inactive", label: "Inactive", count: counts.inactive },
-    { value: "stuck", label: "Stuck", count: counts.stuck },
-  ];
-
-  const createForm = (
-    <form className="space-y-7" onSubmit={onCreate}>
-      <fieldset className="min-w-0 space-y-4 p-0">
-        <legend className="float-none w-full p-0 text-sm font-medium text-foreground">Identity</legend>
-        <p className="text-sm leading-relaxed text-muted-foreground">
+  const drawerBody =
+    selected?.kind === "create" ? (
+      <form className="space-y-4" onSubmit={(e) => void onCreate(e)}>
+        <p className={dashboardHintClass()}>
           Slug drives the default hostname{" "}
-          <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs">{"{slug}.{parent}"}</code>. Parent is
-          the host from{" "}
-          <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs">NEXT_PUBLIC_APP_BASE_URL</code>. Add a
-          custom domain only when the tenant has a dedicated host.
+          <code className="font-mono text-[10px]">{"{slug}.{parent}"}</code>.
+          Add a custom domain only when the tenant has a dedicated host.
         </p>
-        <div className="space-y-2">
-          <Label htmlFor="sa-new-name">Name</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="sa-new-name" className={dashboardLabelClass()}>
+            Name
+          </Label>
           <Input
             id="sa-new-name"
+            className={dashboardInputClass()}
             value={name}
             onChange={(ev) => {
               const next = ev.target.value;
@@ -354,10 +290,13 @@ export default function SuperAdminBusinessesPage() {
             required
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="sa-new-slug">Slug</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="sa-new-slug" className={dashboardLabelClass()}>
+            Slug
+          </Label>
           <Input
             id="sa-new-slug"
+            className={dashboardInputClass()}
             value={slug}
             onChange={(ev) => {
               slugTouched.current = true;
@@ -368,526 +307,380 @@ export default function SuperAdminBusinessesPage() {
             required
           />
           {slug.trim() ? (
-            <p className="text-xs text-muted-foreground">
+            <p className={dashboardHintClass()}>
               Default URL{" "}
-              <code className="rounded bg-muted px-1 font-mono">{slugDerivedShopUrl(slug)}</code>
+              <code className="font-mono text-[10px]">
+                {slugDerivedShopUrl(slug)}
+              </code>
             </p>
           ) : null}
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="sa-new-domain">Custom domain</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="sa-new-domain" className={dashboardLabelClass()}>
+            Custom domain
+          </Label>
           <Input
             id="sa-new-domain"
+            className={dashboardInputClass()}
             value={primaryDomain}
             onChange={(ev) => setPrimaryDomain(ev.target.value)}
             placeholder="Optional — e.g. shop.acme.co.ke"
           />
         </div>
-      </fieldset>
-
-      <fieldset className="min-w-0 space-y-4 p-0">
-        <legend className="float-none w-full p-0 text-sm font-medium text-foreground">Locale</legend>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="sa-new-currency">Currency</Label>
-            <Input id="sa-new-currency" value={currency} onChange={(ev) => setCurrency(ev.target.value)} maxLength={3} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="sa-new-currency" className={dashboardLabelClass()}>
+              Currency
+            </Label>
+            <Input
+              id="sa-new-currency"
+              className={dashboardInputClass()}
+              value={currency}
+              onChange={(ev) => setCurrency(ev.target.value)}
+              maxLength={3}
+            />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="sa-new-country">Country</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="sa-new-country" className={dashboardLabelClass()}>
+              Country
+            </Label>
             <Input
               id="sa-new-country"
+              className={dashboardInputClass()}
               value={countryCode}
               onChange={(ev) => setCountryCode(ev.target.value)}
               maxLength={2}
             />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="sa-new-tz">Timezone</Label>
-          <Input id="sa-new-tz" value={timezone} onChange={(ev) => setTimezone(ev.target.value)} />
+        <div className="space-y-1.5">
+          <Label htmlFor="sa-new-tz" className={dashboardLabelClass()}>
+            Timezone
+          </Label>
+          <Input
+            id="sa-new-tz"
+            className={dashboardInputClass()}
+            value={timezone}
+            onChange={(ev) => setTimezone(ev.target.value)}
+          />
         </div>
-      </fieldset>
-
-      <fieldset className="min-w-0 space-y-4 p-0">
-        <legend className="float-none w-full p-0 text-sm font-medium text-foreground">Plan</legend>
-        <div className="space-y-2">
-          <Label htmlFor="sa-new-tier">Subscription tier</Label>
-          <Input id="sa-new-tier" value={tier} onChange={(ev) => setTier(ev.target.value)} />
+        <div className="space-y-1.5">
+          <Label htmlFor="sa-new-tier" className={dashboardLabelClass()}>
+            Subscription tier
+          </Label>
+          <Input
+            id="sa-new-tier"
+            className={dashboardInputClass()}
+            value={tier}
+            onChange={(ev) => setTier(ev.target.value)}
+          />
         </div>
-      </fieldset>
+        {formError ? (
+          <DashboardFeedback kind="error" text={formError} />
+        ) : null}
+      </form>
+    ) : selectedBusiness ? (
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <p className="text-[15px] font-semibold tracking-[-0.02em]">
+            {selectedBusiness.name}
+          </p>
+          <p className={cn(dashboardHintClass(), "font-mono")}>
+            {selectedBusiness.slug}
+          </p>
+        </div>
 
-      {formError ? <AuthAlert variant="error">{formError}</AuthAlert> : null}
-      <div className="flex flex-wrap gap-2 pt-1">
-        <Button type="submit" disabled={busy}>
-          {busy ? "Creating…" : "Create tenant"}
+        <dl className="grid gap-2 text-[12px]">
+          <div
+            className={cn(
+              "flex justify-between gap-3 border px-3 py-2",
+              HAIRLINE,
+            )}
+          >
+            <dt className="text-muted-foreground">Status</dt>
+            <dd className="font-medium">
+              {selectedBusiness.active ? "Active" : "Inactive"}
+              {stuckIds.has(selectedBusiness.id) ? " · stuck" : ""}
+            </dd>
+          </div>
+          <div
+            className={cn(
+              "flex justify-between gap-3 border px-3 py-2",
+              HAIRLINE,
+            )}
+          >
+            <dt className="text-muted-foreground">Tier</dt>
+            <dd className="font-medium capitalize">
+              {selectedBusiness.subscriptionTier}
+            </dd>
+          </div>
+          <div
+            className={cn(
+              "flex justify-between gap-3 border px-3 py-2",
+              HAIRLINE,
+            )}
+          >
+            <dt className="text-muted-foreground">Phone</dt>
+            <dd className="font-medium tabular-nums">
+              {selectedBusiness.ownerPhone?.trim() || "—"}
+            </dd>
+          </div>
+          <div
+            className={cn(
+              "flex justify-between gap-3 border px-3 py-2",
+              HAIRLINE,
+            )}
+          >
+            <dt className="text-muted-foreground">Created</dt>
+            <dd className="text-right font-medium">
+              {formatTenantDateTime(selectedBusiness.createdAt)}
+            </dd>
+          </div>
+          <div className={cn("space-y-1 border px-3 py-2", HAIRLINE)}>
+            <dt className="text-muted-foreground">Tenant ID</dt>
+            <dd className="flex items-center gap-2">
+              <code className="min-w-0 flex-1 break-all font-mono text-[11px]">
+                {selectedBusiness.id}
+              </code>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 shrink-0 rounded-none"
+                onClick={() => void copyId(selectedBusiness.id)}
+              >
+                {copiedId === selectedBusiness.id ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  <Copy className="size-3.5" />
+                )}
+                {copiedId === selectedBusiness.id ? "Copied" : "Copy"}
+              </Button>
+            </dd>
+          </div>
+        </dl>
+
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" className={PRIMARY_BTN} asChild>
+            <Link href={tenantManageHref(selectedBusiness)}>Manage</Link>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 rounded-none"
+            asChild
+          >
+            <Link href={`${tenantManageHref(selectedBusiness)}#sa-subscription`}>
+              Plan
+            </Link>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-8 rounded-none text-[#9a2e16] hover:text-[#9a2e16]"
+            disabled={deletingId !== null}
+            onClick={() => onDeleteTenant(selectedBusiness)}
+          >
+            {deletingId === selectedBusiness.id ? (
+              <RefreshCw className="size-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="size-3.5" />
+            )}
+            Remove
+          </Button>
+        </div>
+      </div>
+    ) : (
+      <p className={dashboardHintClass()}>
+        This tenant is not in the current list. Refresh and try again.
+      </p>
+    );
+
+  const drawerFooter =
+    selected?.kind === "create" ? (
+      <Button
+        type="button"
+        className={PRIMARY_BTN}
+        disabled={busy}
+        onClick={() => void onCreate()}
+      >
+        {busy ? "Creating…" : "Create tenant"}
+      </Button>
+    ) : selectedBusiness ? (
+      <Button type="button" className={PRIMARY_BTN} asChild>
+        <Link href={tenantManageHref(selectedBusiness)}>Manage</Link>
+      </Button>
+    ) : undefined;
+
+  const selectionBar =
+    selectedIds.length > 0 ? (
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-2 border bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-2.5 py-2 sm:px-3",
+          HAIRLINE,
+        )}
+      >
+        <p className="mr-auto text-[12px] font-semibold tabular-nums">
+          {selectedIds.length} selected
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1.5 rounded-none"
+          asChild
+        >
+          <Link
+            href={`${APP_ROUTES.superAdminCampaignNew}?segment=selected_tenants&businessIds=${encodeURIComponent(selectedIds.join(","))}`}
+          >
+            <Mail className="size-3.5" />
+            Email selected
+          </Link>
         </Button>
-        <Button type="button" variant="outline" disabled={busy} onClick={() => setCreateOpen(false)}>
-          Cancel
+        {stuckIds.size > 0 ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 rounded-none"
+            onClick={() => setSelectedIds([...stuckIds])}
+          >
+            Select stuck
+          </Button>
+        ) : null}
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 rounded-none"
+          onClick={() => setSelectedIds([])}
+        >
+          Clear
         </Button>
       </div>
-    </form>
-  );
-
-  const rowActions = (b: SaBusinessRow, compact: boolean) => (
-    <div className={cn("flex items-center", compact ? "justify-end gap-0.5" : "gap-1")}>
-      <Button variant="outline" size="sm" type="button" asChild>
-        <Link href={tenantManageHref(b)}>Manage</Link>
-      </Button>
-      <Button variant="ghost" size="sm" type="button" asChild>
-        <Link href={`${tenantManageHref(b)}#sa-subscription`}>Plan</Link>
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        type="button"
-        aria-label={copiedId === b.id ? "Tenant ID copied" : `Copy tenant ID for ${b.name}`}
-        title={copiedId === b.id ? "Copied" : "Copy tenant ID"}
-        onClick={() => void copyId(b.id)}
-      >
-        {copiedId === b.id ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        type="button"
-        className="gap-1.5 text-muted-foreground hover:text-destructive"
-        aria-label={`Remove ${b.name}`}
-        title="Remove tenant"
-        disabled={deletingId !== null}
-        onClick={() => onDeleteTenant(b)}
-      >
-        {deletingId === b.id ? (
-          <RefreshCw className="size-3.5 animate-spin" />
-        ) : (
-          <Trash2 className="size-3.5" />
-        )}
-        <span>Remove</span>
-      </Button>
-    </div>
-  );
+    ) : null;
 
   return (
-    <SuperAdminPageLayout
-      title="Tenants"
-      description="Find a business, open it to manage domains and users, or provision a new tenant."
-      headerActions={
-        <>
-          <button
-            type="button"
-            disabled={refreshing}
-            onClick={() => void reload()}
-            className={cn(
-              "inline-flex size-9 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_58%,transparent)]",
-              "transition-colors hover:border-[var(--sa-accent,#6366f1)] hover:text-[var(--sa-ink,#0f172a)]",
-              "disabled:cursor-not-allowed disabled:opacity-60",
-            )}
-            aria-label="Refresh tenants"
-          >
-            <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} aria-hidden />
-          </button>
-          {stuckIds.size > 0 ? (
-            <Button type="button" variant="outline" size="sm" className={headerBtnOutline} asChild>
-              <Link href={`${APP_ROUTES.superAdminCampaignNew}?segment=stuck_signup`}>
-                <Mail className="size-3.5" />
-                Email stuck
-                <span className="tabular-nums">({stuckIds.size})</span>
-              </Link>
-            </Button>
-          ) : null}
-          <Button type="button" size="sm" className={headerBtnPrimary} onClick={() => setCreateOpen(true)}>
-            <Plus className="size-3.5" />
-            New tenant
-          </Button>
-        </>
-      }
+    <div
+      className={cn(
+        DASHBOARD_MAX_WIDE,
+        "flex flex-col gap-1.5 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8",
+      )}
     >
-      {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
-      {deleteError ? <AuthAlert variant="error">{deleteError}</AuthAlert> : null}
+      <DashboardPageHero
+        icon={Building2}
+        eyebrow="Platform"
+        title="Tenants"
+        description="Find a business, open it to manage domains and users, or provision a new tenant."
+      >
+        <button
+          type="button"
+          disabled={refreshing || loading}
+          onClick={() => void reload()}
+          className={cn(
+            "inline-flex size-7 items-center justify-center rounded-none border bg-white text-[#666666]",
+            HAIRLINE,
+            "transition-colors hover:border-[#0f766e] hover:text-[#0f766e]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/30",
+            "disabled:cursor-not-allowed disabled:opacity-60",
+          )}
+          aria-label="Refresh tenants"
+        >
+          <RefreshCw
+            className={cn("size-3.5", refreshing && "animate-spin")}
+            aria-hidden
+          />
+        </button>
+        {stuckIds.size > 0 ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 rounded-none"
+            asChild
+          >
+            <Link
+              href={`${APP_ROUTES.superAdminCampaignNew}?segment=stuck_signup`}
+            >
+              <Mail className="size-3.5" />
+              Email stuck
+              <span className="tabular-nums">({stuckIds.size})</span>
+            </Link>
+          </Button>
+        ) : null}
+        <Button
+          type="button"
+          size="sm"
+          className={PRIMARY_BTN}
+          onClick={() => {
+            setSelected({ kind: "create" });
+            history.replaceState(null, "", "#create");
+          }}
+        >
+          New tenant
+        </Button>
+      </DashboardPageHero>
+
+      {loadError ? <DashboardFeedback kind="error" text={loadError} /> : null}
+      {deleteError ? (
+        <DashboardFeedback kind="error" text={deleteError} />
+      ) : null}
       <p className="sr-only" aria-live="polite">
         {copiedId ? "Tenant ID copied to clipboard." : ""}
       </p>
 
-      <SuperAdminDrawer
-        open={createOpen}
-        onOpenChange={(open) => {
-          setCreateOpen(open);
-          if (!open) {
-            slugTouched.current = false;
-            setFormError("");
-          }
+      <BusinessesTheatre
+        rows={rows}
+        stuckIds={stuckIds}
+        counts={counts}
+        tiers={tiers}
+        loading={loading}
+        statusFilter={filterActive}
+        onStatusFilterChange={setFilterActive}
+        tierFilter={filterTier}
+        onTierFilterChange={setFilterTier}
+        searchInput={search}
+        onSearchInputChange={setSearch}
+        selectedIds={selectedIds}
+        onToggleSelected={toggleSelected}
+        onSelectAllVisible={(checked) => {
+          const q = search.trim().toLowerCase();
+          const visible = rows.filter((b) => {
+            const phone = b.ownerPhone?.trim().toLowerCase() ?? "";
+            if (
+              q &&
+              !b.name.toLowerCase().includes(q) &&
+              !b.slug.toLowerCase().includes(q) &&
+              !b.id.toLowerCase().includes(q) &&
+              !phone.includes(q)
+            ) {
+              return false;
+            }
+            if (filterActive === "active" && !b.active) return false;
+            if (filterActive === "inactive" && b.active) return false;
+            if (filterActive === "stuck" && !stuckIds.has(b.id)) return false;
+            if (
+              filterTier.trim() &&
+              b.subscriptionTier.toLowerCase() !==
+                filterTier.trim().toLowerCase()
+            ) {
+              return false;
+            }
+            return true;
+          });
+          setSelectedIds(checked ? visible.map((b) => b.id) : []);
         }}
-        title="Create tenant"
-        description="Provision a new business with Nairobi defaults. Attach a custom domain after creation if needed."
-        width="wide"
-      >
-        {createForm}
-      </SuperAdminDrawer>
-
-      <dl className={cn(SA_SURFACE, "grid gap-px bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] sm:grid-cols-4")}>
-        {[
-          { label: "Total", value: loading ? "—" : counts.all },
-          { label: "Active", value: loading ? "—" : counts.active, tone: "text-emerald-700" },
-          { label: "Inactive", value: loading ? "—" : counts.inactive },
-          {
-            label: "Stuck",
-            value: loading ? "—" : counts.stuck,
-            tone: counts.stuck > 0 ? "text-amber-700" : undefined,
-          },
-        ].map(({ label, value, tone }) => (
-          <div key={label} className="bg-white px-4 py-3">
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_42%,transparent)]">
-              {label}
-            </dt>
-            <dd
-              className={cn(
-                "mt-1 font-mono text-lg font-semibold tabular-nums text-[var(--sa-ink,#0f172a)]",
-                tone,
-              )}
-            >
-              {value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-
-      <section className={SA_SURFACE}>
-        <div className="flex flex-col gap-3 border-b border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] bg-[color-mix(in_srgb,var(--sa-shelf,#f1f5f9)_55%,transparent)] px-4 py-3 sm:px-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative min-w-0 flex-1">
-              <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_42%,transparent)]"
-                aria-hidden
-              />
-              <Input
-                ref={searchRef}
-                id="sa-tenant-search"
-                value={search}
-                onChange={(ev) => setSearch(ev.target.value)}
-                placeholder="Search name, slug, phone, or ID"
-                className={cn(
-                  "h-9 rounded-lg border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_12%,transparent)] bg-white pl-8 shadow-none",
-                  search ? "pr-9" : "sm:pr-12",
-                )}
-                aria-label="Search tenants"
-              />
-              {search ? (
-                <button
-                  type="button"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
-                  aria-label="Clear search"
-                  onClick={() => setSearch("")}
-                >
-                  <X className="size-3.5" />
-                </button>
-              ) : (
-                <span className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-border/80 px-1.5 py-px font-mono text-[10px] leading-4 text-muted-foreground sm:inline">
-                  /
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <SaStatusSegment
-                ariaLabel="Filter by status"
-                options={statusOptions}
-                value={filterActive}
-                onChange={(value) => setFilterActive(value as StatusFilter)}
-              />
-              {tiers.length > 0 ? (
-                <select
-                  aria-label="Filter by subscription tier"
-                  className={SELECT_CLASS}
-                  value={filterTier}
-                  onChange={(ev) => setFilterTier(ev.target.value)}
-                >
-                  <option value="">All tiers</option>
-                  {tiers.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              ) : null}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_58%,transparent)]">
-            <div className="flex flex-wrap items-center gap-3">
-              {!loading && filteredRows.length > 0 ? (
-                <label className="inline-flex items-center gap-2 lg:hidden">
-                  <SelectAllCheckbox
-                    allSelected={allVisibleSelected}
-                    someSelected={someVisibleSelected}
-                    onToggle={(checked) =>
-                      setSelectedIds(checked ? filteredRows.map((b) => b.id) : [])
-                    }
-                  />
-                  <span className="text-foreground">Select visible</span>
-                </label>
-              ) : null}
-              <p>
-                {loading ? (
-                  "Loading tenants…"
-                ) : (
-                  <>
-                    <span className="font-medium text-[var(--sa-ink,#0f172a)] tabular-nums">{filteredRows.length}</span>
-                    {filtersOn ? (
-                      <>
-                        {" "}
-                        of <span className="tabular-nums">{rows.length}</span> match
-                      </>
-                    ) : (
-                      <> tenant{filteredRows.length === 1 ? "" : "s"}</>
-                    )}
-                  </>
-                )}
-              </p>
-            </div>
-            {filtersOn ? (
-              <Button type="button" variant="ghost" size="sm" onClick={resetFilters}>
-                Reset filters
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        {selectedIds.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2 border-b border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] bg-[color-mix(in_srgb,var(--sa-accent,#6366f1)_6%,transparent)] px-4 py-2.5 sm:px-5">
-            <p className="mr-auto text-sm font-medium text-[var(--sa-ink,#0f172a)]">
-              <span className="tabular-nums">{selectedIds.length}</span> selected
-            </p>
-            <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
-              <Link
-                href={`${APP_ROUTES.superAdminCampaignNew}?segment=selected_tenants&businessIds=${encodeURIComponent(selectedIds.join(","))}`}
-              >
-                <Mail className="size-3.5" />
-                Email selected
-              </Link>
-            </Button>
-            {stuckIds.size > 0 ? (
-              <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedIds([...stuckIds])}>
-                Select stuck
-              </Button>
-            ) : null}
-            <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
-              Clear
-            </Button>
-          </div>
-        ) : null}
-
-        {loading ? (
-          <TenantListSkeleton />
-        ) : filteredRows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-            <span className="mb-3 flex size-12 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--sa-accent,#6366f1)_10%,transparent)] text-[var(--sa-accent,#6366f1)]">
-              <Building2 className="size-6" aria-hidden />
-            </span>
-            <p className="text-sm font-medium text-[var(--sa-ink,#0f172a)]">
-              {rows.length === 0 ? "No tenants yet" : "No tenants match"}
-            </p>
-            <p className="mt-1 max-w-sm text-sm text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_58%,transparent)]">
-              {rows.length === 0
-                ? "Provision the first business to start managing domains, users, and campaigns from this list."
-                : "Try a different name, status, or tier — or reset filters to see the full fleet."}
-            </p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {rows.length === 0 ? (
-                <Button type="button" size="sm" className={headerBtnPrimary} onClick={() => setCreateOpen(true)}>
-                  <Plus className="size-3.5" />
-                  New tenant
-                </Button>
-              ) : (
-                <Button type="button" variant="outline" size="sm" onClick={resetFilters}>
-                  Reset filters
-                </Button>
-              )}
-            </div>
-          </div>
-        ) : (
-          <>
-            <ul className="divide-y divide-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] lg:hidden">
-              {filteredRows.map((b) => {
-                const selected = selectedIds.includes(b.id);
-                return (
-                  <li
-                    key={b.id}
-                    className={cn(
-                      "flex gap-3 px-4 py-3.5 sm:px-5",
-                      selected && "bg-[color-mix(in_srgb,var(--sa-accent,#6366f1)_6%,transparent)]",
-                    )}
-                  >
-                    <label className="flex size-9 shrink-0 items-center justify-center">
-                      <input
-                        type="checkbox"
-                        className={CHECK_CLASS}
-                        aria-label={`Select ${b.name}`}
-                        checked={selected}
-                        onChange={(ev) => toggleSelected(b.id, ev.target.checked)}
-                      />
-                    </label>
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <Link
-                            href={tenantManageHref(b)}
-                            className="block truncate font-medium text-[var(--sa-ink,#0f172a)] hover:text-[var(--sa-accent,#6366f1)]"
-                          >
-                            {b.name}
-                          </Link>
-                          <p className="truncate font-mono text-xs text-muted-foreground">{b.slug}</p>
-                          {b.ownerPhone?.trim() ? (
-                            <a
-                              href={`tel:${b.ownerPhone.trim()}`}
-                              className="mt-0.5 block truncate text-xs tabular-nums text-muted-foreground hover:text-[var(--sa-accent,#6366f1)]"
-                            >
-                              {b.ownerPhone.trim()}
-                            </a>
-                          ) : null}
-                        </div>
-                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                          {stuckIds.has(b.id) ? <Badge variant="warning">Stuck</Badge> : null}
-                          <Badge variant={b.active ? "success" : "secondary"}>
-                            {b.active ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="capitalize">
-                          {b.subscriptionTier}
-                        </Badge>
-                        <time
-                          className="text-xs text-muted-foreground tabular-nums"
-                          dateTime={b.createdAt}
-                          title={formatTenantDateTime(b.createdAt)}
-                        >
-                          {formatTenantDate(b.createdAt)}
-                        </time>
-                      </div>
-                      {rowActions(b, false)}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full min-w-[820px] text-left text-sm">
-                <thead className="border-b border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_4%,transparent)] text-[11px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_42%,transparent)]">
-                  <tr>
-                    <th className="w-12 px-4 py-3">
-                      <SelectAllCheckbox
-                        allSelected={allVisibleSelected}
-                        someSelected={someVisibleSelected}
-                        onToggle={(checked) =>
-                          setSelectedIds(checked ? filteredRows.map((b) => b.id) : [])
-                        }
-                      />
-                    </th>
-                    <th className="px-4 py-3 font-medium">Tenant</th>
-                    <th className="px-4 py-3 font-medium">Phone</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Tier</th>
-                    <th className="px-4 py-3 font-medium">Created</th>
-                    <th className="px-4 py-3 text-right font-medium">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)]">
-                  {filteredRows.map((b) => {
-                    const selected = selectedIds.includes(b.id);
-                    return (
-                      <tr
-                        key={b.id}
-                        className={cn(
-                          "transition-colors hover:bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_3%,transparent)]",
-                          selected &&
-                            "bg-[color-mix(in_srgb,var(--sa-accent,#6366f1)_6%,transparent)] hover:bg-[color-mix(in_srgb,var(--sa-accent,#6366f1)_8%,transparent)]",
-                        )}
-                      >
-                        <td className="px-4 py-2.5">
-                          <label className="flex size-9 items-center justify-center">
-                            <input
-                              type="checkbox"
-                              className={CHECK_CLASS}
-                              aria-label={`Select ${b.name}`}
-                              checked={selected}
-                              onChange={(ev) => toggleSelected(b.id, ev.target.checked)}
-                            />
-                          </label>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <div className="flex min-w-0 items-start gap-2">
-                            <div className="min-w-0">
-                              <Link
-                                href={tenantManageHref(b)}
-                                className="block truncate font-medium text-[var(--sa-ink,#0f172a)] hover:text-[var(--sa-accent,#6366f1)]"
-                              >
-                                {b.name}
-                              </Link>
-                              <p className="truncate font-mono text-xs text-muted-foreground">{b.slug}</p>
-                            </div>
-                            {stuckIds.has(b.id) ? (
-                              <Badge variant="warning" className="mt-0.5 shrink-0">
-                                Stuck
-                              </Badge>
-                            ) : null}
-                          </div>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-muted-foreground">
-                          {b.ownerPhone?.trim() ? (
-                            <a
-                              href={`tel:${b.ownerPhone.trim()}`}
-                              className="text-[var(--sa-ink,#0f172a)] hover:text-[var(--sa-accent,#6366f1)]"
-                            >
-                              {b.ownerPhone.trim()}
-                            </a>
-                          ) : (
-                            <span className="text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_28%,transparent)]">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <Badge variant={b.active ? "success" : "secondary"}>
-                            {b.active ? "Active" : "Inactive"}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <Badge variant="outline" className="capitalize">
-                            {b.subscriptionTier}
-                          </Badge>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground tabular-nums">
-                          <time dateTime={b.createdAt} title={formatTenantDateTime(b.createdAt)}>
-                            {formatTenantDate(b.createdAt)}
-                          </time>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-right">{rowActions(b, true)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </section>
-    </SuperAdminPageLayout>
-  );
-}
-
-function TenantListSkeleton() {
-  return (
-    <div className="divide-y divide-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)]" aria-hidden>
-      {Array.from({ length: 8 }, (_, i) => (
-        <div key={i} className="flex items-center gap-4 px-4 py-4 sm:px-5">
-          <div className="size-4 animate-pulse rounded bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)]" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="h-3.5 w-40 max-w-full animate-pulse rounded bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)]" />
-            <div className="h-2.5 w-24 max-w-[50%] animate-pulse rounded bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_6%,transparent)]" />
-          </div>
-          <div className="hidden h-5 w-14 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] sm:block" />
-          <div className="hidden h-5 w-16 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] md:block" />
-          <div className="hidden h-3 w-20 animate-pulse rounded bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_6%,transparent)] lg:block" />
-        </div>
-      ))}
+        selected={selected}
+        onSelect={setSelected}
+        onClearSelection={() => {
+          setSelected(null);
+          setFormError("");
+          slugTouched.current = false;
+        }}
+        drawerBody={drawerBody}
+        drawerFooter={drawerFooter}
+        selectionBar={selectionBar}
+      />
     </div>
   );
 }
