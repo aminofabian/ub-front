@@ -538,6 +538,11 @@ export function DarajaPanel({
             placeholder="174379"
             autoComplete="off"
           />
+          <p className={cn(dashboardHintClass(), "leading-snug")}>
+            Must be the exact shortcode used on Daraja Go Live. Changing it
+            without re-pasting the matching passkey produces ResultCode 4999
+            Wrong credentials on every STK.
+          </p>
         </Field>
       </div>
 
@@ -597,6 +602,11 @@ export function DarajaPanel({
             placeholder={daraja?.hasCredentials ? "Leave blank to keep" : "Required"}
             autoComplete="off"
           />
+          <p className={cn(dashboardHintClass(), "leading-snug")}>
+            From the Go Live email for shortcode above — not the B2C initiator
+            password, not the sandbox simulator passkey. Test connection now
+            checks this against Daraja (OAuth alone can still pass).
+          </p>
         </Field>
       </div>
 
