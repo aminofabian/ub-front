@@ -1,15 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Globe, RefreshCw } from "lucide-react";
 
-import { AuthAlert } from "@/components/auth/auth-alert";
+import {
+  DASHBOARD_MAX_WIDE,
+  DashboardFeedback,
+  DashboardPageHero,
+  dashboardHintClass,
+  dashboardInputClass,
+  dashboardLabelClass,
+  dashboardTextareaClass,
+} from "@/components/dashboard-page-ui";
 import { PlatformDomainOrdersPanel } from "@/components/super-admin/platform-domain-orders-panel";
-import { SaSection, SaToggleRow } from "@/components/super-admin/sa-section";
-import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
@@ -19,7 +27,38 @@ import {
   type PlatformDomainSettingsRecord,
 } from "@/lib/super-admin-api";
 
-type DomainsTab = "settings" | "orders";
+import {
+  DOMAINS_NAV,
+  DomainsTheatre,
+  type DomainsSectionId,
+} from "./_components/domains-theatre";
+
+const HAIRLINE =
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+const PRIMARY_BTN =
+  "h-8 rounded-none bg-[var(--pos-primary,#0f766e)] px-3.5 text-white shadow-none hover:bg-[#0d6b63]";
+
+const WHOIS_REQUIRED = [
+  "firstname",
+  "lastname",
+  "companyname",
+  "email",
+  "address1",
+  "city",
+  "state",
+  "postcode",
+  "country",
+  "phonenumber",
+] as const;
+
+function sectionFromHash(hash: string): DomainsSectionId | null {
+  const id = hash.replace(/^#/, "");
+  if (!id) return null;
+  if (DOMAINS_NAV.some((item) => item.id === id)) {
+    return id as DomainsSectionId;
+  }
+  return null;
+}
 
 function defaultsToText(map: Record<string, string> | null | undefined): string {
   if (!map || Object.keys(map).length === 0) return "";
@@ -61,23 +100,87 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className={dashboardLabelClass()}>
+        {label}
+      </Label>
       <Input
         id={id}
         type={type}
+        className={dashboardInputClass()}
         value={value}
         placeholder={placeholder}
         autoComplete="off"
         spellCheck={false}
         onChange={(e) => onChange(e.target.value)}
       />
-      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      {hint ? <p className={dashboardHintClass()}>{hint}</p> : null}
     </div>
   );
 }
 
+function ToggleRow({
+  id,
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-start justify-between gap-3 border bg-white px-3 py-2.5",
+        HAIRLINE,
+      )}
+    >
+      <label htmlFor={id} className="min-w-0 cursor-pointer">
+        <span className="block text-[13px] font-semibold tracking-[-0.015em] text-foreground">
+          {label}
+        </span>
+        {description ? (
+          <span className={cn(dashboardHintClass(), "mt-0.5 block")}>
+            {description}
+          </span>
+        ) : null}
+      </label>
+      <Switch id={id} checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
+
+function ClearBtn({
+  disabled,
+  onClick,
+  children,
+}: {
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="h-8 rounded-none"
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  );
+}
+
 export default function SuperAdminPlatformDomainsPage() {
-  const [tab, setTab] = useState<DomainsTab>("settings");
+  const [activeSection, setActiveSection] = useState<DomainsSectionId | null>(
+    null,
+  );
+  const [booting, setBooting] = useState(true);
   const [settings, setSettings] = useState<PlatformDomainSettingsRecord | null>(null);
   const [loadError, setLoadError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -167,18 +270,31 @@ export default function SuperAdminPlatformDomainsPage() {
   }, []);
 
   const load = useCallback(async () => {
+    setBooting(true);
     setLoadError("");
     try {
       const row = await fetchPlatformDomainSettings();
       applySettings(row);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Could not load domain settings.");
+    } finally {
+      setBooting(false);
     }
   }, [applySettings]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const apply = () => {
+      const next = sectionFromHash(window.location.hash);
+      if (next) setActiveSection(next);
+    };
+    apply();
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
+  }, []);
 
   const onSave = async () => {
     setBusy(true);
@@ -286,78 +402,135 @@ export default function SuperAdminPlatformDomainsPage() {
     });
   };
 
-  return (
-    <div className={cn("mx-auto space-y-6 pb-16", tab === "orders" ? "max-w-6xl" : "max-w-3xl")}>
-      <SuperAdminPageHeader
-        title="Domains"
-        description="HostAfrica (Kenyan TLDs) and Vercel DNS/SSL for merchant custom domains. Secrets are encrypted at rest."
-      />
+  const whoisComplete = WHOIS_REQUIRED.every((k) => {
+    const map: Record<string, string> = {
+      firstname: whoisFirstname,
+      lastname: whoisLastname,
+      companyname: whoisCompany,
+      email: whoisEmail,
+      address1: whoisAddress1,
+      city: whoisCity,
+      state: whoisState,
+      postcode: whoisPostcode,
+      country: whoisCountry,
+      phonenumber: whoisPhone,
+    };
+    return !!map[k]?.trim();
+  });
 
-      <div className="flex flex-wrap gap-1.5">
-        <Button
-          type="button"
-          size="sm"
-          variant={tab === "settings" ? "default" : "outline"}
-          onClick={() => setTab("settings")}
-        >
-          Settings
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={tab === "orders" ? "default" : "outline"}
-          onClick={() => setTab("orders")}
-        >
-          Orders
-        </Button>
-      </div>
-
-      {tab === "orders" ? <PlatformDomainOrdersPanel /> : null}
-
-      {tab === "settings" ? (
-        <>
-      {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
-      {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
-      {success ? <AuthAlert variant="success">{success}</AuthAlert> : null}
-
-      {settings?.encryptionEphemeral ? (
-        <AuthAlert variant="error">
-          APP_PAYMENTS_ENCRYPTION_KEY is not set. Saved secrets work until restart, then must be re-entered.
-        </AuthAlert>
-      ) : null}
-      {settings && !settings.secretsReadable && settings.secretsError ? (
-        <AuthAlert variant="error">{settings.secretsError}</AuthAlert>
-      ) : null}
-
-      <SaSection
-        title="HostAfrica"
-        description={
+  const sectionSummary = (sectionId: DomainsSectionId): ReactNode => {
+    switch (sectionId) {
+      case "hostafrica":
+        return (
           <>
-            Registrar for .ke / .co.ke purchases. Domains are registered on the platform HostAfrica account.
-            {settings?.envHostafricaConfigured ? " Env fallback is present." : ""}
+            Key{" "}
+            <span className="font-semibold">
+              {settings?.hasHostafricaApiKey ? "stored" : "missing"}
+            </span>
+            {settings?.envHostafricaConfigured ? " · env also set" : null}
+            {" · "}
+            stub{" "}
+            <span className="font-semibold">
+              {hostafricaBillingStubEnabled ? "on" : "off"}
+            </span>
           </>
-        }
-      >
+        );
+      case "reseller":
+        return (
+          <>
+            <span className="font-semibold">
+              {settings?.hostafricaResellerConfigured ? "Ready" : "Incomplete"}
+            </span>
+            {" · "}
+            key{" "}
+            <span className="font-semibold">
+              {settings?.hasHostafricaResellerApiKey ? "yes" : "no"}
+            </span>
+          </>
+        );
+      case "mpesa":
+        return (
+          <>
+            Credentials{" "}
+            <span className="font-semibold">
+              {settings?.hasPalmartStkCredentials ? "saved" : "missing"}
+            </span>
+            {settings?.palmartStkTillNumber
+              ? ` · till ${settings.palmartStkTillNumber}`
+              : null}
+          </>
+        );
+      case "vercel":
+        return (
+          <>
+            Token{" "}
+            <span className="font-semibold">
+              {settings?.hasVercelToken ? "stored" : "missing"}
+            </span>
+            {settings?.envVercelConfigured ? " · env also set" : null}
+          </>
+        );
+      case "sync":
+        return (
+          <>
+            Sync{" "}
+            <span className="font-semibold">
+              {domainOrderSyncEnabled ? "on" : "off"}
+            </span>
+            {" · "}
+            every{" "}
+            <span className="font-semibold tabular-nums">
+              {domainOrderSyncFixedDelayMs}
+            </span>
+            ms
+          </>
+        );
+      case "orders":
+        return <>Merchant domain purchase pipeline and ops actions.</>;
+      default:
+        return null;
+    }
+  };
+
+  const drawerBody = (() => {
+    if (!activeSection) return null;
+
+    if (activeSection === "orders") {
+      return <PlatformDomainOrdersPanel />;
+    }
+
+    if (activeSection === "hostafrica") {
+      return (
         <div className="space-y-4">
+          <p className={dashboardHintClass()}>
+            Registrar for .ke / .co.ke purchases. Domains register on the
+            platform HostAfrica account.
+            {settings?.envHostafricaConfigured ? " Env fallback is present." : ""}
+          </p>
           <Field
             id="ha-key"
             label="API key"
             type="password"
-            placeholder={settings?.hasHostafricaApiKey ? "•••••••• (saved — leave blank to keep)" : "Paste HostAfrica API token"}
-            hint={settings?.hasHostafricaApiKey ? "A key is stored. Leave blank to keep it, or clear below." : undefined}
+            placeholder={
+              settings?.hasHostafricaApiKey
+                ? "•••••••• (saved — leave blank to keep)"
+                : "Paste HostAfrica API token"
+            }
+            hint={
+              settings?.hasHostafricaApiKey
+                ? "A key is stored. Leave blank to keep it, or clear below."
+                : undefined
+            }
             value={hostafricaApiKey}
             onChange={setHostafricaApiKey}
           />
           {settings?.hasHostafricaApiKey ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+            <ClearBtn
               disabled={busy}
               onClick={() => clearSecret("hostafricaApiKey", "HostAfrica API key")}
             >
               Clear HostAfrica key
-            </Button>
+            </ClearBtn>
           ) : null}
           <Field
             id="ha-base"
@@ -380,68 +553,68 @@ export default function SuperAdminPlatformDomainsPage() {
             onChange={setHostafricaKenyanTlds}
             hint="Used when a merchant searches a bare label like mama-njeri."
           />
-          <SaToggleRow
+          <ToggleRow
             id="ha-billing-stub"
             label="Billing stub (skip M-Pesa)"
-            description="WARNING: when on, Buy skips STK entirely — no phone prompt, no money collected, order looks “paid.” Keep OFF in production. Requires Palmart M-Pesa credentials below when off."
+            description="WARNING: when on, Buy skips STK entirely. Keep OFF in production."
             checked={hostafricaBillingStubEnabled}
             onChange={setHostafricaBillingStubEnabled}
           />
           <div className="space-y-1.5">
-            <Label htmlFor="ha-registrant-defaults">Registrant required-data defaults</Label>
+            <Label htmlFor="ha-registrant-defaults" className={dashboardLabelClass()}>
+              Registrant required-data defaults
+            </Label>
             <Textarea
               id="ha-registrant-defaults"
-              className="min-h-[7rem] font-mono text-xs"
+              className={cn(dashboardTextareaClass(), "min-h-[7rem] font-mono text-[11px]")}
               spellCheck={false}
-              placeholder={"# one field per line — HostAfrica additionalFields.name=value\nCompanyName=Palmart Limited\nRegistrantID=P051234567X"}
+              placeholder={
+                "# one field per line\nCompanyName=Palmart Limited\nRegistrantID=P051234567X"
+              }
               value={hostafricaRegistrantDefaultsText}
               onChange={(e) => setHostafricaRegistrantDefaultsText(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              Used after purchase when HostAfrica lists the domain under requiring-data. Keys must match HA field{" "}
-              <span className="font-mono">name</span> values (case-insensitive). Leave blank to force ops to complete in
-              the HA panel.
+            <p className={dashboardHintClass()}>
+              Used after purchase when HostAfrica lists the domain under
+              requiring-data. Leave blank to force ops to complete in the HA
+              panel.
             </p>
           </div>
         </div>
-      </SaSection>
+      );
+    }
 
-      <SaSection
-        title="DomainsReseller (zero-touch register)"
-        description={
-          <>
-            HMAC API for RegisterDomain on the platform HostAfrica account. When configured, paid orders register
-            automatically — no ops register_url step.
-            {settings?.hostafricaResellerConfigured
-              ? " Ready."
-              : " Incomplete — fill email, API key, and every required WHOIS field, then Save."}
-          </>
-        }
-      >
+    if (activeSection === "reseller") {
+      return (
         <div className="space-y-4">
+          <p className={dashboardHintClass()}>
+            HMAC API for RegisterDomain. When configured, paid orders register
+            automatically.
+          </p>
           {!settings?.hostafricaResellerConfigured ? (
-            <ul className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-950 dark:text-amber-100">
-              <li className="font-medium">Required before zero-touch register / Test:</li>
+            <ul
+              className={cn(
+                "border border-amber-700/30 bg-amber-50/80 px-3 py-2 text-[12px] text-amber-950",
+                HAIRLINE,
+              )}
+            >
+              <li className="font-semibold">Required before zero-touch / Test:</li>
               <li className="mt-1">
-                {settings?.hostafricaResellerEmail ? "✓" : "○"} Reseller login email
-                {settings?.hostafricaResellerEmail ? ` (${settings.hostafricaResellerEmail})` : ""}
-              </li>
-              <li>
-                {settings?.hasHostafricaResellerApiKey ? "✓" : "○"} Reseller API key
-                {settings?.hasHostafricaResellerApiKey ? " (saved)" : " — paste and Save"}
-              </li>
-              <li>
-                {settings?.hostafricaResellerWhois &&
-                ["firstname", "lastname", "companyname", "email", "address1", "city", "state", "postcode", "country", "phonenumber"].every(
-                  (k) => !!(settings.hostafricaResellerWhois as Record<string, string>)?.[k]?.trim(),
-                )
+                {hostafricaResellerEmail.trim() || settings?.hostafricaResellerEmail
                   ? "✓"
                   : "○"}{" "}
-                Platform WHOIS (all fields marked * below)
+                Reseller login email
               </li>
-              <li className="mt-1 text-muted-foreground">
-                Fill the form → click <span className="font-medium text-foreground">Save domain settings</span> at the
-                bottom → then Test. Test reads the database, not unsaved form values.
+              <li>
+                {settings?.hasHostafricaResellerApiKey ||
+                hostafricaResellerApiKey.trim()
+                  ? "✓"
+                  : "○"}{" "}
+                Reseller API key
+              </li>
+              <li>{whoisComplete ? "✓" : "○"} Platform WHOIS (all * fields)</li>
+              <li className={cn(dashboardHintClass(), "mt-1")}>
+                Save first, then Test — Test reads the database.
               </li>
             </ul>
           ) : null}
@@ -451,7 +624,7 @@ export default function SuperAdminPlatformDomainsPage() {
             value={hostafricaResellerEmail}
             onChange={setHostafricaResellerEmail}
             placeholder="you@company.com"
-            hint="Sent as the username header. Must match the HostAfrica account that owns the DomainsReseller API key."
+            hint="Sent as the username header."
           />
           <Field
             id="ha-reseller-key"
@@ -462,24 +635,18 @@ export default function SuperAdminPlatformDomainsPage() {
                 ? "•••••••• (saved — leave blank to keep)"
                 : "Paste DomainsReseller API key"
             }
-            hint={
-              settings?.hasHostafricaResellerApiKey
-                ? "A key is stored. Leave blank to keep it, or clear below."
-                : "Required — paste the key from HostAfrica, then Save."
-            }
             value={hostafricaResellerApiKey}
             onChange={setHostafricaResellerApiKey}
           />
           {settings?.hasHostafricaResellerApiKey ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+            <ClearBtn
               disabled={busy}
-              onClick={() => clearSecret("hostafricaResellerApiKey", "DomainsReseller API key")}
+              onClick={() =>
+                clearSecret("hostafricaResellerApiKey", "DomainsReseller API key")
+              }
             >
               Clear reseller API key
-            </Button>
+            </ClearBtn>
           ) : null}
           <Field
             id="ha-reseller-base"
@@ -488,12 +655,13 @@ export default function SuperAdminPlatformDomainsPage() {
             onChange={setHostafricaResellerApiBaseUrl}
             placeholder="https://my.hostafrica.com/modules/addons/DomainsReseller/api/index.php"
           />
-          <div className="space-y-3 rounded-lg border p-3">
+          <div className={cn("space-y-3 border p-3", HAIRLINE)}>
             <div>
-              <p className="text-sm font-medium">Platform WHOIS contact *</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Used for Registrant, Admin, Technical, and Billing on RegisterDomain. Address line 2 is optional; every
-                other field is required.
+              <p className="text-[13px] font-semibold tracking-[-0.015em]">
+                Platform WHOIS contact *
+              </p>
+              <p className={cn(dashboardHintClass(), "mt-0.5")}>
+                Address line 2 is optional; every other field is required.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -507,13 +675,7 @@ export default function SuperAdminPlatformDomainsPage() {
               <Field id="whois-state" label="State / county *" value={whoisState} onChange={setWhoisState} />
               <Field id="whois-pc" label="Postcode *" value={whoisPostcode} onChange={setWhoisPostcode} />
               <Field id="whois-cc" label="Country (ISO) *" value={whoisCountry} onChange={setWhoisCountry} placeholder="KE" />
-              <Field
-                id="whois-phone"
-                label="Phone *"
-                value={whoisPhone}
-                onChange={setWhoisPhone}
-                placeholder="+2547…"
-              />
+              <Field id="whois-phone" label="Phone *" value={whoisPhone} onChange={setWhoisPhone} placeholder="+2547…" />
             </div>
           </div>
           <div className="space-y-2">
@@ -521,6 +683,7 @@ export default function SuperAdminPlatformDomainsPage() {
               type="button"
               variant="outline"
               size="sm"
+              className="h-8 rounded-none"
               disabled={busy || resellerTesting}
               onClick={async () => {
                 setResellerTesting(true);
@@ -542,7 +705,10 @@ export default function SuperAdminPlatformDomainsPage() {
                 } catch (e) {
                   setResellerTest({
                     ok: false,
-                    text: e instanceof Error ? e.message : "Could not reach the reseller API.",
+                    text:
+                      e instanceof Error
+                        ? e.message
+                        : "Could not reach the reseller API.",
                   });
                 } finally {
                   setResellerTesting(false);
@@ -552,35 +718,46 @@ export default function SuperAdminPlatformDomainsPage() {
               {resellerTesting ? "Testing…" : "Test reseller connection"}
             </Button>
             {resellerTest ? (
-              <p className={cn("text-xs", resellerTest.ok ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>
+              <p
+                className={cn(
+                  "text-[12px]",
+                  resellerTest.ok
+                    ? "text-[var(--pos-primary,#0f766e)]"
+                    : "text-[#9a2e16]",
+                )}
+              >
                 {resellerTest.text}
               </p>
             ) : (
-              <p className="text-xs text-muted-foreground">
-                Save settings first, then test — calls GetCredits with the stored HMAC credentials.
+              <p className={dashboardHintClass()}>
+                Save settings first, then test — calls GetCredits with stored
+                HMAC credentials.
               </p>
             )}
           </div>
         </div>
-      </SaSection>
+      );
+    }
 
-      <SaSection
-        title="Palmart M-Pesa (domain checkout)"
-        description={
-          <>
-            Platform KopoKopo till that receives Kenyan domain purchase payments. Turn billing stub off to require this.
+    if (activeSection === "mpesa") {
+      return (
+        <div className="space-y-4">
+          <p className={dashboardHintClass()}>
+            Platform KopoKopo till for Kenyan domain purchase payments. Turn
+            billing stub off to require this.
             {settings?.hasPalmartStkCredentials
               ? ` Till ${settings.palmartStkTillNumber || "saved"} is configured.`
-              : " Not configured yet — ops Mark paid remains the fallback."}
-          </>
-        }
-      >
-        <div className="space-y-4">
+              : " Not configured yet."}
+          </p>
           <Field
             id="stk-client-id"
             label="Client ID"
             type="password"
-            placeholder={settings?.hasPalmartStkCredentials ? "•••••••• (leave blank to keep)" : "KopoKopo client id"}
+            placeholder={
+              settings?.hasPalmartStkCredentials
+                ? "•••••••• (leave blank to keep)"
+                : "KopoKopo client id"
+            }
             value={palmartStkClientId}
             onChange={setPalmartStkClientId}
           />
@@ -589,7 +766,9 @@ export default function SuperAdminPlatformDomainsPage() {
             label="Client secret"
             type="password"
             placeholder={
-              settings?.hasPalmartStkCredentials ? "•••••••• (leave blank to keep)" : "KopoKopo client secret"
+              settings?.hasPalmartStkCredentials
+                ? "•••••••• (leave blank to keep)"
+                : "KopoKopo client secret"
             }
             value={palmartStkClientSecret}
             onChange={setPalmartStkClientSecret}
@@ -599,7 +778,9 @@ export default function SuperAdminPlatformDomainsPage() {
             label="API key (webhook signature)"
             type="password"
             placeholder={
-              settings?.hasPalmartStkCredentials ? "•••••••• (leave blank to keep)" : "Optional but recommended"
+              settings?.hasPalmartStkCredentials
+                ? "•••••••• (leave blank to keep)"
+                : "Optional but recommended"
             }
             value={palmartStkApiKey}
             onChange={setPalmartStkApiKey}
@@ -620,47 +801,44 @@ export default function SuperAdminPlatformDomainsPage() {
             hint="Use sandbox while testing; production for live collections."
           />
           {settings?.hasPalmartStkCredentials ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+            <ClearBtn
               disabled={busy}
               onClick={() => clearSecret("palmartStk", "Palmart STK credentials")}
             >
               Clear Palmart STK credentials
-            </Button>
+            </ClearBtn>
           ) : null}
         </div>
-      </SaSection>
+      );
+    }
 
-      <SaSection
-        title="Vercel"
-        description={
-          <>
-            DNS zone, records, project domains, and SSL for purchased / connected hostnames.
-            {settings?.envVercelConfigured ? " Env fallback is present." : ""}
-          </>
-        }
-      >
+    if (activeSection === "vercel") {
+      return (
         <div className="space-y-4">
+          <p className={dashboardHintClass()}>
+            DNS zone, records, project domains, and SSL for purchased /
+            connected hostnames.
+            {settings?.envVercelConfigured ? " Env fallback is present." : ""}
+          </p>
           <Field
             id="vercel-token"
             label="API token"
             type="password"
-            placeholder={settings?.hasVercelToken ? "•••••••• (saved — leave blank to keep)" : "Paste Vercel token"}
+            placeholder={
+              settings?.hasVercelToken
+                ? "•••••••• (saved — leave blank to keep)"
+                : "Paste Vercel token"
+            }
             value={vercelToken}
             onChange={setVercelToken}
           />
           {settings?.hasVercelToken ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+            <ClearBtn
               disabled={busy}
               onClick={() => clearSecret("vercelToken", "Vercel token")}
             >
               Clear Vercel token
-            </Button>
+            </ClearBtn>
           ) : null}
           <Field
             id="vercel-team"
@@ -685,44 +863,126 @@ export default function SuperAdminPlatformDomainsPage() {
             placeholder="https://api.vercel.com"
           />
         </div>
-      </SaSection>
+      );
+    }
 
-      <SaSection
-        title="Order sync"
-        description="Background poll advances registering → owned → provisioning → live. Requires HostAfrica + Vercel keys above."
-      >
-        <div className="space-y-4">
-          <SaToggleRow
-            id="sync-enabled"
-            label="Enable domain order sync"
-            checked={domainOrderSyncEnabled}
-            onChange={setDomainOrderSyncEnabled}
-          />
-          <Field
-            id="sync-fixed"
-            label="Poll interval (ms)"
-            value={domainOrderSyncFixedDelayMs}
-            onChange={setDomainOrderSyncFixedDelayMs}
-          />
-          <Field
-            id="sync-initial"
-            label="Initial delay (ms)"
-            value={domainOrderSyncInitialDelayMs}
-            onChange={setDomainOrderSyncInitialDelayMs}
-          />
-        </div>
-      </SaSection>
-
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" disabled={busy} onClick={() => void load()}>
-          Reload
-        </Button>
-        <Button type="button" disabled={busy || !settings} onClick={() => void onSave()}>
-          {busy ? "Saving…" : "Save domain settings"}
-        </Button>
+    return (
+      <div className="space-y-4">
+        <p className={dashboardHintClass()}>
+          Background poll advances registering → owned → provisioning → live.
+          Requires HostAfrica + Vercel keys.
+        </p>
+        <ToggleRow
+          id="sync-enabled"
+          label="Enable domain order sync"
+          checked={domainOrderSyncEnabled}
+          onChange={setDomainOrderSyncEnabled}
+        />
+        <Field
+          id="sync-fixed"
+          label="Poll interval (ms)"
+          value={domainOrderSyncFixedDelayMs}
+          onChange={setDomainOrderSyncFixedDelayMs}
+        />
+        <Field
+          id="sync-initial"
+          label="Initial delay (ms)"
+          value={domainOrderSyncInitialDelayMs}
+          onChange={setDomainOrderSyncInitialDelayMs}
+        />
       </div>
-        </>
+    );
+  })();
+
+  return (
+    <div
+      className={cn(
+        DASHBOARD_MAX_WIDE,
+        "flex flex-col gap-1.5 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8",
+      )}
+    >
+      <DashboardPageHero
+        icon={Globe}
+        eyebrow="Platform"
+        title="Domains"
+        description="HostAfrica (Kenyan TLDs) and Vercel DNS/SSL for merchant custom domains. Secrets are encrypted at rest."
+      >
+        <button
+          type="button"
+          disabled={busy || booting}
+          onClick={() => void load()}
+          className={cn(
+            "inline-flex size-7 items-center justify-center rounded-none border bg-white text-[#666666]",
+            HAIRLINE,
+            "transition-colors hover:border-[#0f766e] hover:text-[#0f766e]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/30",
+            "disabled:cursor-not-allowed disabled:opacity-60",
+          )}
+          aria-label="Refresh domain settings"
+        >
+          <RefreshCw
+            className={cn("size-3.5", (busy || booting) && "animate-spin")}
+            aria-hidden
+          />
+        </button>
+        {activeSection && activeSection !== "orders" ? (
+          <Button
+            type="button"
+            size="sm"
+            className={PRIMARY_BTN}
+            disabled={busy || !settings || Boolean(loadError)}
+            onClick={() => void onSave()}
+          >
+            {busy ? "Saving…" : "Save settings"}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            className={PRIMARY_BTN}
+            onClick={() => setActiveSection("orders")}
+          >
+            Orders
+          </Button>
+        )}
+      </DashboardPageHero>
+
+      {loadError ? <DashboardFeedback kind="error" text={loadError} /> : null}
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      {success ? <DashboardFeedback kind="success" text={success} /> : null}
+      {settings?.encryptionEphemeral ? (
+        <DashboardFeedback
+          kind="error"
+          text="APP_PAYMENTS_ENCRYPTION_KEY is not set. Saved secrets work until restart, then must be re-entered."
+        />
       ) : null}
+      {settings && !settings.secretsReadable && settings.secretsError ? (
+        <DashboardFeedback kind="error" text={settings.secretsError} />
+      ) : null}
+
+      <DomainsTheatre
+        activeSectionId={activeSection}
+        onActiveSectionChange={setActiveSection}
+        hostafricaReady={Boolean(settings?.hasHostafricaApiKey)}
+        resellerReady={Boolean(settings?.hostafricaResellerConfigured)}
+        mpesaReady={Boolean(settings?.hasPalmartStkCredentials)}
+        syncEnabled={domainOrderSyncEnabled}
+        loading={booting || !settings}
+        sectionSummary={sectionSummary}
+        drawerBody={drawerBody}
+        drawerFooter={
+          activeSection && activeSection !== "orders" ? (
+            <Button
+              type="button"
+              className={PRIMARY_BTN}
+              disabled={busy || !settings || Boolean(loadError)}
+              onClick={() => void onSave()}
+            >
+              {busy ? "Saving…" : "Save domain settings"}
+            </Button>
+          ) : undefined
+        }
+      />
     </div>
   );
 }
