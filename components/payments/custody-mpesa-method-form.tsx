@@ -99,9 +99,10 @@ export function CustodyMpesaMethodForm({ onSave, onCancel, saving, initial }: Pr
           Lipa Na M-Pesa prompt — no API keys
         </p>
         <p className={cn(dashboardHintClass(), "mt-1 leading-relaxed")}>
-          Enter only your Buy Goods till or Paybill. Kiosk sends Lipa Na M-Pesa
-          (Daraja) with that destination. The customer confirms with PIN — no
-          till or amount to type.
+          Enter a Buy Goods till under Kiosk&apos;s Head Office. Kiosk sends
+          M-Pesa Express with PartyB = that till — customer enters PIN only.
+          No API keys, no B2B. Bank paybills (NCBA, Equity, …) cannot receive
+          this prompt from Kiosk&apos;s Daraja app.
         </p>
       </div>
 

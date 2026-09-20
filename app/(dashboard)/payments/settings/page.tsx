@@ -1288,8 +1288,9 @@ function CustodyManagePanel({
           {destination}
         </p>
         <p className="mt-2 text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
-          Kiosk sends Lipa Na M-Pesa to the customer&apos;s phone with this
-          till or paybill as the receiving account. They only enter PIN.
+          Lipa Na M-Pesa Express to this Buy Goods till (PIN only). Party B =
+          till under Kiosk&apos;s Head Office. No B2B. Bank paybills cannot use
+          this lane.
         </p>
       </div>
 

@@ -21,7 +21,7 @@ export function mpesaRailTitle(rail: MpesaRailOption): string {
 
 export function mpesaRailHint(rail: MpesaRailOption): string {
   if (rail.gatewayType === "CUSTODY_MPESA") {
-    return "Lipa Na M-Pesa (Daraja) · customer enters PIN only";
+    return "M-Pesa Express · till on Kiosk HO · PIN only · no B2B";
   }
   if (rail.gatewayType === "KOPOKOPO") {
     return "Your KopoKopo till · money lands on your till";

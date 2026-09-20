@@ -682,15 +682,14 @@ export function CustodyPanel({
   return (
     <div className="space-y-4">
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
-        Till/paybill-only uses Lipa Na M-Pesa (Daraja). The shop enters a till or
-        paybill — no API keys. Kiosk sends the prompt with that destination as
-        Party B, so the money lands on the shop&apos;s shortcode directly.
-        KopoKopo is not used on this path.
+        Till-only uses Lipa Na M-Pesa Express (Daraja) with no B2B. The shop
+        enters a Buy Goods till under this Head Office — no API keys. Request
+        shape: BusinessShortCode = Go Live shortcode above, PartyB = shop till,
+        TransactionType = CustomerBuyGoodsOnline.
       </p>
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
-        Safaricom only credits a Party B that sits under the same Head Office as
-        the Daraja shortcode above. Onboard shop tills as stores on that HO
-        before switching this on.
+        Bank paybills (NCBA 880100, Equity, …) are not on this HO. Express
+        cannot STK to them — only a Buy Goods till under this Head Office.
       </p>
       <div className="flex flex-wrap gap-1.5">
         {(
@@ -747,7 +746,7 @@ export function CustodyPanel({
               {
                 value: "DARAJA" as const,
                 title: "Daraja",
-                hint: "Lipa Na M-Pesa to the shop till or paybill",
+                hint: "M-Pesa Express · PartyB = shop till on this HO",
                 disabled: !mpesaCustody?.darajaReady,
               },
             ]
