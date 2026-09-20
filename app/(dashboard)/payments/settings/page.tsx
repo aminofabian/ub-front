@@ -28,7 +28,10 @@ import { GatewayConfigForm } from "@/components/payments/gateway-config-form";
 import { GatewayStatusBadge } from "@/components/payments/gateway-status-badge";
 import { PaymentBrandMark } from "@/components/payments/payment-brand-mark";
 import { ManualMethodForm } from "@/components/payments/manual-method-form";
-import { CustodyMpesaMethodForm } from "@/components/payments/custody-mpesa-method-form";
+import {
+  CustodyMpesaMethodForm,
+  parseCustodyDestination,
+} from "@/components/payments/custody-mpesa-method-form";
 import { SupplierPayoutSettingsSection } from "@/components/payments/supplier-payout-settings-section";
 import { KioskPaySettingsSection } from "@/components/payments/kiosk-pay-settings-section";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
@@ -60,6 +63,7 @@ import { cn } from "@/lib/utils";
 
 import {
   AcceptPaymentsPanel,
+  custodyProviderLabel,
   gatewayDisplayName,
   isCustodyMpesaGateway,
   isManualGateway,
@@ -743,13 +747,13 @@ export default function PaymentGatewaySettingsPage() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[14px] font-semibold tracking-[-0.015em] text-foreground">
-                    M-Pesa till / paybill only
+                    Lipa Na M-Pesa — till or paybill
                   </span>
                   <span className="mt-0.5 block text-[11px] text-muted-foreground">
                     {custodyAvailability != null && !custodyAvailability.available
                       ? (custodyAvailability.message ??
                         "Not available yet — ask Super Admin to enable a custody rail.")
-                      : "No API keys — STK via Kiosk, then settle to your till/paybill"}
+                      : "No API keys. Prompt the customer; they enter PIN only."}
                   </span>
                 </span>
                 <Plus className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -807,7 +811,9 @@ export default function PaymentGatewaySettingsPage() {
         title={manageConfig?.label ?? "Manage method"}
         description={
           manageConfig
-            ? `${gatewayDisplayName(manageConfig, available)} · ${manageConfig.status}`
+            ? isCustodyMpesaGateway(manageConfig)
+              ? "Lipa Na M-Pesa prompt — till or paybill only, no API keys"
+              : `${gatewayDisplayName(manageConfig, available)} · ${manageConfig.status}`
             : undefined
         }
         contextLabel="Manage"
@@ -821,26 +827,34 @@ export default function PaymentGatewaySettingsPage() {
       >
         {manageConfig ? (
           <div className="space-y-5">
-            <div className="flex flex-wrap items-center gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3.5 py-3">
-              <GatewayStatusBadge status={manageConfig.status} />
-              {manageConfig.isDefault ? (
-                <span className="rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
-                  Default
-                </span>
-              ) : null}
-              {manageConfig.lastTestedAt ? (
-                <span className="text-xs text-muted-foreground">
-                  Last tested{" "}
-                  {new Date(manageConfig.lastTestedAt).toLocaleString()}
-                </span>
-              ) : (
-                <span className="text-xs text-muted-foreground">
-                  Not tested yet
-                </span>
-              )}
-            </div>
+            {isCustodyMpesaGateway(manageConfig) ? (
+              <CustodyManagePanel
+                config={manageConfig}
+                availability={custodyAvailability}
+              />
+            ) : (
+              <div className="flex flex-wrap items-center gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3.5 py-3">
+                <GatewayStatusBadge status={manageConfig.status} />
+                {manageConfig.isDefault ? (
+                  <span className="rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
+                    Default
+                  </span>
+                ) : null}
+                {manageConfig.lastTestedAt ? (
+                  <span className="text-xs text-muted-foreground">
+                    Last tested{" "}
+                    {new Date(manageConfig.lastTestedAt).toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    Not tested yet
+                  </span>
+                )}
+              </div>
+            )}
 
-            {(() => {
+            {!isCustodyMpesaGateway(manageConfig) ? (
+            (() => {
               const raw = manageConfig.testErrorJson;
               if (!raw) return null;
               let code: string | null = null;
@@ -870,7 +884,8 @@ export default function PaymentGatewaySettingsPage() {
                   </span>
                 </p>
               );
-            })()}
+            })()
+            ) : null}
 
             {manageConfig.gatewayType === "KOPOKOPO" ? (
               <ol className="list-decimal space-y-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3 pl-8 text-xs leading-relaxed text-muted-foreground">
@@ -894,6 +909,7 @@ export default function PaymentGatewaySettingsPage() {
             ) : null}
 
             {(() => {
+              if (isCustodyMpesaGateway(manageConfig)) return null;
               const dash = providerDashboardUrl(
                 manageConfig.gatewayType,
                 manageEnvironment,
@@ -947,6 +963,7 @@ export default function PaymentGatewaySettingsPage() {
               ) : null}
 
               {!isManualGateway(manageConfig) &&
+              !isCustodyMpesaGateway(manageConfig) &&
               canWrite &&
               ["DRAFT", "ERROR", "TESTED", "ACTIVE"].includes(
                 manageConfig.status,
@@ -959,9 +976,7 @@ export default function PaymentGatewaySettingsPage() {
                   onClick={() => void testConnection(manageConfig)}
                 >
                   <Zap className="size-3.5" aria-hidden />
-                  {isCustodyMpesaGateway(manageConfig)
-                    ? "Test Kiosk rail"
-                    : "Test connection"}
+                  Test connection
                 </Button>
               ) : null}
 
@@ -1153,8 +1168,8 @@ export default function PaymentGatewaySettingsPage() {
         onOpenChange={(open) => {
           if (!open) closeDrawer();
         }}
-        title="M-Pesa till / paybill only"
-        description="Kiosk collects, then settles to your destination. Requires Super Admin custody rail."
+        title="Lipa Na M-Pesa — till or paybill"
+        description="No keys. Enter your till or paybill. Kiosk sends the prompt; the customer only enters PIN."
         contextLabel="Payments"
         width="wide"
       >
@@ -1237,6 +1252,74 @@ export default function PaymentGatewaySettingsPage() {
           />
         ) : null}
       </FormDrawer>
+    </div>
+  );
+}
+
+function CustodyManagePanel({
+  config,
+  availability,
+}: {
+  config: GatewayConfigRecord;
+  availability: MpesaCustodyAvailabilityRecord | null;
+}) {
+  const dest = parseCustodyDestination(config.displayInstructionsJson);
+  const destination =
+    dest.type === "paybill"
+      ? `Paybill ${dest.businessNumber || "—"}${
+          dest.accountNumber ? ` · ${dest.accountNumber}` : ""
+        }`
+      : `Till ${dest.tillNumber || "—"}`;
+  const rail = custodyProviderLabel(config.custodyProvider);
+
+  return (
+    <div className="space-y-3">
+      <div
+        className={cn(
+          "border px-3.5 py-3",
+          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]",
+        )}
+      >
+        <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+          Receiving account
+        </p>
+        <p className="mt-1 font-heading text-lg font-semibold tabular-nums tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+          {destination}
+        </p>
+        <p className="mt-2 text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
+          Kiosk sends Lipa Na M-Pesa to the customer&apos;s phone with this
+          till or paybill as the receiving account. They only enter PIN.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3.5 py-2.5">
+        <GatewayStatusBadge status={config.status} />
+        {config.isDefault ? (
+          <span className="border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
+            Default
+          </span>
+        ) : null}
+        {rail ? (
+          <span className="text-[11px] text-muted-foreground">
+            Prompt via {rail}
+          </span>
+        ) : null}
+        {availability ? (
+          <span
+            className={cn(
+              "text-[11px]",
+              availability.available
+                ? "text-[var(--pos-primary,#0f766e)]"
+                : "text-[#9a2e16]",
+            )}
+          >
+            {availability.available
+              ? "Ready on cashier & storefront"
+              : availability.message ?? "Platform rail not ready"}
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }

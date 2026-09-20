@@ -13,13 +13,13 @@ export type MpesaRailOption = {
 export function mpesaRailTitle(rail: MpesaRailOption): string {
   const label = rail.label?.trim();
   if (label) return label;
-  if (rail.gatewayType === "CUSTODY_MPESA") return "Till via Kiosk";
+  if (rail.gatewayType === "CUSTODY_MPESA") return "Till / paybill";
   return rail.displayName || "M-Pesa";
 }
 
 export function mpesaRailHint(rail: MpesaRailOption): string {
   if (rail.gatewayType === "CUSTODY_MPESA") {
-    return "Kiosk collects, then settles to your till";
+    return "Lipa Na M-Pesa to this till or paybill";
   }
   if (rail.gatewayType === "KOPOKOPO" || rail.gatewayType === "DARAJA") {
     return "Prompt lands on your shop till";

@@ -96,12 +96,12 @@ export function CustodyMpesaMethodForm({ onSave, onCancel, saving, initial }: Pr
         )}
       >
         <p className="text-[12px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-          Kiosk collects first
+          Lipa Na M-Pesa prompt — no API keys
         </p>
         <p className={cn(dashboardHintClass(), "mt-1 leading-relaxed")}>
-          Payments hit Kiosk&apos;s M-Pesa, then settle to your till or paybill. For
-          money to land on your shortcode on the STK itself, connect KopoKopo or
-          Daraja with your API keys.
+          Enter only your Buy Goods till or Paybill. Kiosk sends Lipa Na M-Pesa
+          (Daraja) with that destination. The customer confirms with PIN — no
+          till or amount to type.
         </p>
       </div>
 
@@ -165,7 +165,7 @@ export function CustodyMpesaMethodForm({ onSave, onCancel, saving, initial }: Pr
             disabled={saving}
           />
           <span className={dashboardHintClass()}>
-            Buy Goods till that will receive settlements.
+            Buy Goods till that receives the settlement after the prompt.
           </span>
         </label>
       ) : (
@@ -240,4 +240,22 @@ function parseInitialField(json: string | undefined, key: string): string {
   } catch {
     return "";
   }
+}
+
+export type CustodyDestination = {
+  type: "till" | "paybill";
+  tillNumber: string;
+  businessNumber: string;
+  accountNumber: string;
+};
+
+export function parseCustodyDestination(
+  json: string | null | undefined,
+): CustodyDestination {
+  return {
+    type: parseInitialType(json ?? undefined),
+    tillNumber: parseInitialField(json ?? undefined, "tillNumber"),
+    businessNumber: parseInitialField(json ?? undefined, "businessNumber"),
+    accountNumber: parseInitialField(json ?? undefined, "accountNumber"),
+  };
 }

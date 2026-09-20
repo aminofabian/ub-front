@@ -41,7 +41,7 @@ export function gatewayDisplayName(
     return "Manual payment";
   }
   if (isCustodyMpesaGateway(config)) {
-    return "M-Pesa till / paybill (Kiosk settles)";
+    return "Lipa Na M-Pesa (till / paybill)";
   }
   return (
     available.find((a) => a.gatewayType === config.gatewayType)?.displayName ??
@@ -193,7 +193,7 @@ export function AcceptPaymentsPanel({
                       <GatewayStatusBadge status={config.status} />
                       {custody ? (
                         <span className="border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
-                          Settles via Kiosk
+                          PIN prompt
                           {custodyProviderLabel(config.custodyProvider)
                             ? ` · ${custodyProviderLabel(config.custodyProvider)}`
                             : ""}

@@ -682,22 +682,16 @@ export function CustodyPanel({
   return (
     <div className="space-y-4">
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
-        When a shop enters only their till or paybill (no API keys), Kiosk collects
-        and settles on one rail end-to-end. Never mix Daraja collect with KopoKopo
-        settle.
+        Till/paybill-only uses Lipa Na M-Pesa (Daraja). The shop enters a till or
+        paybill — no API keys. Kiosk sends the prompt with that destination as
+        Party B. KopoKopo is not used on this path.
       </p>
       <div className="flex flex-wrap gap-1.5">
         {(
           [
             {
-              key: "kk",
-              label: "KopoKopo",
-              ready: !!mpesaCustody?.kopokopoReady,
-              detail: mpesaCustody?.kopokopoReady ? "Ready" : "Not ready",
-            },
-            {
               key: "dj-collect",
-              label: "Daraja collect",
+              label: "Daraja",
               ready: !!mpesaCustody?.darajaReady,
               detail: mpesaCustody?.darajaReady
                 ? "Ready"
@@ -706,20 +700,6 @@ export function CustodyPanel({
                   : !daraja?.hasCredentials
                     ? "Add Daraja keys"
                     : "Not ready",
-            },
-            {
-              key: "dj-disburse",
-              label: "Daraja disburse",
-              ready: !!mpesaCustody?.darajaDisburseAvailable,
-              detail: mpesaCustody?.darajaDisburseAvailable
-                ? "Ready"
-                : !daraja?.enabled
-                  ? "Enable Daraja"
-                  : !daraja?.hasCredentials
-                    ? "Add Daraja keys"
-                    : !daraja?.disburseConfigured
-                      ? "Add B2B initiator"
-                      : "Check certificate env",
             },
           ] as const
         ).map((chip) => (
@@ -749,7 +729,7 @@ export function CustodyPanel({
 
       <fieldset className="space-y-2">
         <legend className={dashboardLabelClass()}>Active provider</legend>
-        <div className={cn("grid gap-px border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] sm:grid-cols-3", HAIRLINE)}>
+        <div className={cn("grid gap-px border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] sm:grid-cols-2", HAIRLINE)}>
           {(
             [
               {
@@ -759,16 +739,10 @@ export function CustodyPanel({
                 disabled: false,
               },
               {
-                value: "KOPOKOPO" as const,
-                title: "KopoKopo",
-                hint: "STK + Send Money",
-                disabled: !mpesaCustody?.kopokopoReady,
-              },
-              {
                 value: "DARAJA" as const,
                 title: "Daraja",
-                hint: "Unavailable until disburse ships",
-                disabled: !mpesaCustody?.darajaDisburseAvailable,
+                hint: "Lipa Na M-Pesa to the shop till or paybill",
+                disabled: !mpesaCustody?.darajaReady,
               },
             ]
           ).map((opt) => {
