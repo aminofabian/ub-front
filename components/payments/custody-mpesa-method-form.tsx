@@ -99,10 +99,11 @@ export function CustodyMpesaMethodForm({ onSave, onCancel, saving, initial }: Pr
           Lipa Na M-Pesa prompt — no API keys
         </p>
         <p className={cn(dashboardHintClass(), "mt-1 leading-relaxed")}>
-          Enter a Buy Goods till under Kiosk&apos;s Head Office. Kiosk sends
-          M-Pesa Express with PartyB = that till — customer enters PIN only.
-          No API keys, no B2B. Bank paybills (NCBA, Equity, …) cannot receive
-          this prompt from Kiosk&apos;s Daraja app.
+          Enter your till, or your paybill and its account number. Kiosk sends
+          M-Pesa Express on its own shortcode and tags the payment with this
+          number, so the customer only enters their PIN. No API keys, no B2B —
+          the money reaches Kiosk first and is reconciled to you. To have M-Pesa
+          credit your own account directly, connect your own keys instead.
         </p>
       </div>
 

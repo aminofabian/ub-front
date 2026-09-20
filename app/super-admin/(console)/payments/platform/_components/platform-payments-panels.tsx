@@ -683,13 +683,22 @@ export function CustodyPanel({
     <div className="space-y-4">
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
         Till-only uses Lipa Na M-Pesa Express (Daraja) with no B2B. The shop
-        enters a Buy Goods till under this Head Office — no API keys. Request
-        shape: BusinessShortCode = Go Live shortcode above, PartyB = shop till,
-        TransactionType = CustomerBuyGoodsOnline.
+        enters its till or paybill account — no API keys. Request shape:
+        BusinessShortCode and PartyB are both the Go Live shortcode above,
+        AccountReference carries the shop&apos;s till/account, and
+        TransactionType follows this shortcode&apos;s type.
       </p>
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
-        Bank paybills (NCBA 880100, Equity, …) are not on this HO. Express
-        cannot STK to them — only a Buy Goods till under this Head Office.
+        Money lands in this shortcode&apos;s M-Pesa account, tagged per shop by
+        AccountReference. Express only ever credits the Go Live merchant, so a
+        shop&apos;s own bank paybill (NCBA 880100, Equity, …) is a recon tag
+        here, not the credit party. Shops that need funds direct should connect
+        their own keys (BYO).
+      </p>
+      <p className={cn(dashboardHintClass(), "leading-relaxed")}>
+        The Daraja app must be on production with a Go Live shortcode. A sandbox
+        app still returns a CheckoutRequestID but only pushes the prompt to
+        Safaricom&apos;s test numbers, so real handsets see nothing.
       </p>
       <div className="flex flex-wrap gap-1.5">
         {(
