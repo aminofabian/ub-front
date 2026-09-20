@@ -12989,7 +12989,7 @@ export async function fetchAvailableGateways(): Promise<
   return request<AvailableGatewayRecord[]>(API_ROUTES.paymentGatewaysAvailable);
 }
 
-/** Whether till/paybill-only (Kiosk settles) can be added right now, and on which rail. */
+/** Whether till/paybill-only (Lipa Na M-Pesa, no keys) can be added right now, and on which rail. */
 export type MpesaCustodyAvailabilityRecord = {
   available: boolean;
   provider: string;

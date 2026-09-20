@@ -68,13 +68,13 @@ export function CustodyMpesaMethodForm({ onSave, onCancel, saving, initial }: Pr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (methodType === "till" && tillNumber.replace(/\D/g, "").length < 5) {
-      setFormError("Enter a valid Buy Goods till number.");
+    if (methodType === "till" && !/^\d{5,7}$/.test(tillNumber.replace(/\D/g, ""))) {
+      setFormError("Enter a valid Buy Goods till number (5–7 digits).");
       return;
     }
     if (methodType === "paybill") {
-      if (businessNumber.replace(/\D/g, "").length < 5) {
-        setFormError("Enter a valid Paybill business number.");
+      if (!/^\d{5,7}$/.test(businessNumber.replace(/\D/g, ""))) {
+        setFormError("Enter a valid Paybill business number (5–7 digits).");
         return;
       }
       if (!accountNumber.trim()) {

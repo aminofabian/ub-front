@@ -234,19 +234,22 @@ function PayMethodChip({
   onClick,
   icon,
   label,
+  hint,
 }: {
   active: boolean;
   disabled?: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
+  /** Short second line — what this tender actually does. */
+  hint?: string;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      title={label}
+      title={hint ? `${label} — ${hint}` : label}
       aria-pressed={active}
       className={cn(
         "inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-none border px-2 py-1.5 text-center transition-all duration-150 sm:min-h-9 sm:w-auto sm:justify-start sm:px-2.5 sm:text-left",
@@ -275,8 +278,22 @@ function PayMethodChip({
       >
         {icon}
       </span>
-      <span className="text-[12px] font-semibold leading-none tracking-tight">
-        {label}
+      <span className="min-w-0 text-left">
+        <span className="block text-[12px] font-semibold leading-none tracking-tight">
+          {label}
+        </span>
+        {hint ? (
+          <span
+            className={cn(
+              "mt-0.5 block text-[9px] font-medium leading-tight",
+              active
+                ? "text-[color-mix(in_srgb,var(--pos-primary-ink)_72%,transparent)]"
+                : "text-muted-foreground",
+            )}
+          >
+            {hint}
+          </span>
+        ) : null}
       </span>
     </button>
   );
@@ -817,12 +834,26 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         onClick={() => setPayMethod("cash")}
                         icon={<Banknote className="size-3" aria-hidden />}
                         label="Cash"
+                        hint="Handed over"
                       />
                       <PayMethodChip
                         active={payMethod === "mpesa_manual"}
                         onClick={() => setPayMethod("mpesa_manual")}
                         icon={<Smartphone className="size-3" aria-hidden />}
                         label="M-Pesa"
+                        hint={
+                          stkRails.length > 1
+                            ? "Pick lane below"
+                            : stkRails[0]
+                              ? stkRails[0].gatewayType === "CUSTODY_MPESA"
+                                ? "Till / paybill"
+                                : stkRails[0].gatewayType === "KOPOKOPO"
+                                  ? "KopoKopo"
+                                  : stkRails[0].gatewayType === "DARAJA"
+                                    ? "Daraja"
+                                    : "STK prompt"
+                              : "Not set up"
+                        }
                       />
                       {/* Kiosk Pay STK needs the cloud wallet — hide on offline desktop. */}
                       {!IS_DESKTOP && kioskPayAvailable ? (
@@ -830,7 +861,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           active={payMethod === "kiosk_pay"}
                           onClick={() => setPayMethod("kiosk_pay")}
                           icon={<Store className="size-3" aria-hidden />}
-                          label="Kiosk"
+                          label="Kiosk Pay"
+                          hint="To your wallet"
                         />
                       ) : null}
                       {canCreateRemoteBill ? (
@@ -844,6 +876,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           }}
                           icon={<Send className="size-3" aria-hidden />}
                           label="Send bill"
+                          hint="Pay later"
                         />
                       ) : null}
                       {canLookupCustomers ? (
@@ -863,6 +896,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               ? "Tab suspended"
                               : "Tab"
                           }
+                          hint="On account"
                         />
                       ) : null}
                       {canLookupCustomers ? (
@@ -876,6 +910,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           }}
                           icon={<Wallet className="size-3" aria-hidden />}
                           label="Wallet"
+                          hint="Customer balance"
                         />
                       ) : null}
                       {canLookupCustomers ? (
@@ -889,6 +924,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           }}
                           icon={<Gift className="size-3" aria-hidden />}
                           label="Loyalty"
+                          hint="Redeem points"
                         />
                       ) : null}
                     </div>
@@ -1260,16 +1296,27 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             <p className="text-[11px] text-muted-foreground">
                               {kioskPayHint?.trim()
                                 ? kioskPayHint
-                                : "Payment settles to your Kiosk Pay balance (provider fees only). Withdraw from Payments → Kiosk Pay."}
+                                : "Not shop till STK — settles to your Kiosk Pay wallet. Withdraw under Payments → Kiosk Pay."}
                             </p>
                           ) : null}
-                          {payMethod === "mpesa_manual" && setStkConfigId ? (
-                            <MpesaRailPicker
-                              rails={stkRails}
-                              selectedConfigId={stkConfigId}
-                              onSelect={setStkConfigId}
-                              compact
-                            />
+                          {payMethod === "mpesa_manual" ? (
+                            stkRails.length === 0 ? (
+                              <p className="border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-[12px] text-[#9a2e16]">
+                                No M-Pesa lane set up. Add{" "}
+                                <span className="font-semibold">
+                                  Lipa Na M-Pesa till/paybill
+                                </span>{" "}
+                                or connect KopoKopo / Daraja under Payments →
+                                Settings.
+                              </p>
+                            ) : setStkConfigId ? (
+                              <MpesaRailPicker
+                                rails={stkRails}
+                                selectedConfigId={stkConfigId}
+                                onSelect={setStkConfigId}
+                                compact
+                              />
+                            ) : null
                           ) : null}
                           {stkPushStatus === "failed" ? (
                             <p className="rounded-none border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
@@ -1310,7 +1357,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             type="button"
                             className="h-11 w-full rounded-none bg-emerald-600 text-sm font-semibold text-white hover:bg-emerald-700"
                             disabled={
-                              !online || !isStkPhoneValid(stkAreaCode, stkPhone)
+                              !online ||
+                              !isStkPhoneValid(stkAreaCode, stkPhone) ||
+                              (payMethod === "mpesa_manual" &&
+                                stkRails.length === 0)
                             }
                             onClick={() =>
                               onStkPush(

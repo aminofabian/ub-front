@@ -684,7 +684,13 @@ export function CustodyPanel({
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
         Till/paybill-only uses Lipa Na M-Pesa (Daraja). The shop enters a till or
         paybill — no API keys. Kiosk sends the prompt with that destination as
-        Party B. KopoKopo is not used on this path.
+        Party B, so the money lands on the shop&apos;s shortcode directly.
+        KopoKopo is not used on this path.
+      </p>
+      <p className={cn(dashboardHintClass(), "leading-relaxed")}>
+        Safaricom only credits a Party B that sits under the same Head Office as
+        the Daraja shortcode above. Onboard shop tills as stores on that HO
+        before switching this on.
       </p>
       <div className="flex flex-wrap gap-1.5">
         {(

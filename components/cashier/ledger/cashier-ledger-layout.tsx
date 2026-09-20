@@ -918,14 +918,32 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   const showCustomerPicker =
     cart.payMethod === "customer_credit" || captureCustomerSimple;
   const payMethods = [
-    { id: "cash" as const, label: "Cash", icon: Banknote, disabled: false },
-    { id: "mpesa_manual" as const, label: "M-Pesa", icon: Smartphone, disabled: false },
-    { id: "card" as const, label: "Card", icon: CreditCard, disabled: false },
+    { id: "cash" as const, label: "Cash", hint: "Handed over", icon: Banknote, disabled: false },
+    {
+      id: "mpesa_manual" as const,
+      label: "M-Pesa",
+      hint:
+        (cart.stkRails?.length ?? 0) > 1
+          ? "Pick lane"
+          : cart.stkRails?.[0]?.gatewayType === "CUSTODY_MPESA"
+            ? "Till / paybill"
+            : cart.stkRails?.[0]?.gatewayType === "KOPOKOPO"
+              ? "KopoKopo"
+              : cart.stkRails?.[0]?.gatewayType === "DARAJA"
+                ? "Daraja"
+                : cart.stkRails?.length
+                  ? "STK"
+                  : "Not set up",
+      icon: Smartphone,
+      disabled: false,
+    },
+    { id: "card" as const, label: "Card", hint: "Swipe / tap", icon: CreditCard, disabled: false },
     ...(cart.canLookupCustomers
       ? [
           {
             id: "customer_credit" as const,
             label: "Tab",
+            hint: "On account",
             icon: UserRound,
             disabled: tabSuspended,
           },
@@ -1316,7 +1334,9 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   title={
                     m.id === "customer_credit" && tabSuspended
                       ? "Tab suspended"
-                      : undefined
+                      : m.hint
+                        ? `${m.label} — ${m.hint}`
+                        : m.label
                   }
                   onClick={() => {
                     if (m.id === "customer_credit") {
@@ -1330,7 +1350,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                     if (m.id === "cash") focusPay();
                   }}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-none border px-1 py-2 text-[11px] font-semibold transition-colors",
+                    "flex flex-col items-center gap-0.5 rounded-none border px-1 py-2 text-[11px] font-semibold transition-colors",
                     active
                       ? "border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_16%,var(--card))] text-[var(--pos-ink,#1c1915)]"
                       : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-card text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
@@ -1338,7 +1358,12 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   )}
                 >
                   <Icon className="size-4" aria-hidden />
-                  {m.label}
+                  <span>{m.label}</span>
+                  {m.hint ? (
+                    <span className="text-[8px] font-medium leading-tight opacity-70">
+                      {m.hint}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
@@ -1445,7 +1470,12 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
 
           {cart.payMethod === "mpesa_manual" ? (
             <div className="space-y-1.5">
-              {cart.setStkConfigId ? (
+              {(cart.stkRails?.length ?? 0) === 0 ? (
+                <p className="border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-2 py-1.5 text-[11px] text-[#9a2e16]">
+                  No M-Pesa lane set up. Add till/paybill or connect Daraja /
+                  KopoKopo under Payments.
+                </p>
+              ) : cart.setStkConfigId ? (
                 <MpesaRailPicker
                   rails={cart.stkRails ?? []}
                   selectedConfigId={cart.stkConfigId ?? null}
@@ -1473,7 +1503,11 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               </div>
               <button
                 type="button"
-                disabled={!online || !isStkPhoneValid(cart.stkAreaCode, cart.stkPhone)}
+                disabled={
+                  !online ||
+                  !isStkPhoneValid(cart.stkAreaCode, cart.stkPhone) ||
+                  (cart.stkRails?.length ?? 0) === 0
+                }
                 onClick={() =>
                   cart.onStkPush(buildStkPhoneNumber(cart.stkAreaCode, cart.stkPhone))
                 }
