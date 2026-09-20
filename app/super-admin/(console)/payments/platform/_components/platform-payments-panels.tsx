@@ -696,9 +696,11 @@ export function CustodyPanel({
         their own keys (BYO).
       </p>
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
-        The Daraja app must be on production with a Go Live shortcode. A sandbox
-        app still returns a CheckoutRequestID but only pushes the prompt to
-        Safaricom&apos;s test numbers, so real handsets see nothing.
+        The Daraja app must be on production with a Go Live shortcode, subscribed
+        to <strong>Lipa Na M-Pesa Online</strong>, and using the passkey emailed
+        after Go Live. An app on sandbox, on another product (Daraja Direct
+        Payments), or on the sandbox passkey still returns a CheckoutRequestID
+        while no prompt ever reaches the handset.
       </p>
       <div className="flex flex-wrap gap-1.5">
         {(
