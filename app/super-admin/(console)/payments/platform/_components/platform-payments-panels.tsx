@@ -692,25 +692,21 @@ export function CustodyPanel({
   return (
     <div className="space-y-4">
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
-        Till-only uses Lipa Na M-Pesa Express (Daraja) with no B2B. The shop
-        enters its till or paybill account — no API keys. Request shape:
-        BusinessShortCode and PartyB are both the Go Live shortcode above,
-        AccountReference carries the shop&apos;s till/account, and
-        TransactionType follows this shortcode&apos;s type.
+        Till-only uses Lipa Na M-Pesa Express with <strong>no B2B</strong>. Request
+        shape (Safaricom FAQ): BusinessShortCode = Go Live shortcode above,
+        PartyB = the shop&apos;s Buy Goods till (or paybill under this Head
+        Office), TransactionType = CustomerBuyGoodsOnline for tills. Money
+        credits PartyB directly.
       </p>
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
-        Money lands in this shortcode&apos;s M-Pesa account, tagged per shop by
-        AccountReference. Express only ever credits the Go Live merchant, so a
-        shop&apos;s own bank paybill (NCBA 880100, Equity, …) is a recon tag
-        here, not the credit party. Shops that need funds direct should connect
-        their own keys (BYO).
+        The shop till must sit under this Head Office on the M-Pesa Org portal.
+        Bank paybills (NCBA 880100, Equity, …) are not on this HO — Express
+        cannot PartyB-credit them without B2B. Those shops should use BYO keys.
       </p>
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
         The Daraja app must be on production with a Go Live shortcode, subscribed
         to <strong>Lipa Na M-Pesa Online</strong>, and using the passkey emailed
-        after Go Live. An app on sandbox, on another product (Daraja Direct
-        Payments), or on the sandbox passkey still returns a CheckoutRequestID
-        while no prompt ever reaches the handset.
+        after Go Live.
       </p>
       <div className="flex flex-wrap gap-1.5">
         {(

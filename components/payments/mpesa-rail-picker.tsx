@@ -21,7 +21,7 @@ export function mpesaRailTitle(rail: MpesaRailOption): string {
 
 export function mpesaRailHint(rail: MpesaRailOption): string {
   if (rail.gatewayType === "CUSTODY_MPESA") {
-    return "M-Pesa Express on Kiosk's shortcode · PIN only · no B2B";
+    return "M-Pesa Express · PartyB = your till · PIN only · no B2B";
   }
   if (rail.gatewayType === "KOPOKOPO") {
     return "Your KopoKopo till · money lands on your till";
