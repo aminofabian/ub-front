@@ -192,7 +192,11 @@ export function ReceiveMpesaSetupCard({
         open={open}
         onOpenChange={setOpen}
         title={configured ? "Update M-Pesa destination" : "Set up M-Pesa receive"}
-        description="Till, paybill, or bank — then prove it with KES 1."
+        description={
+          configured
+            ? "Tap a type, edit the numbers, then save with a KES 1 proof."
+            : "Tap till, paybill, or bank — fill it in — save with KES 1."
+        }
         contextLabel="Business"
         appearance="sharp"
         width="wide"
@@ -202,6 +206,7 @@ export function ReceiveMpesaSetupCard({
       >
         <ReceiveMpesaFlow
           appearance="sharp"
+          mode={configured ? "update" : "setup"}
           ownerPhone={ownerPhone}
           countryCode={countryCode}
           initial={initial}

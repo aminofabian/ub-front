@@ -1170,13 +1170,14 @@ export default function PaymentGatewaySettingsPage() {
           if (!open) closeDrawer();
         }}
         title="Where should M-Pesa land?"
-        description="Till, paybill, or bank — then prove it with KES 1. No API keys."
+        description="Tap till, paybill, or bank — fill it in — save with a KES 1 proof."
         contextLabel="Payments"
         appearance="sharp"
         width="wide"
       >
         <ReceiveMpesaFlow
           appearance="sharp"
+          mode="setup"
           ownerPhone={me?.phone}
           countryCode={business?.countryCode}
           showSkip={false}
@@ -1198,7 +1199,7 @@ export default function PaymentGatewaySettingsPage() {
           }
         }}
         title="Update M-Pesa destination"
-        description="Change till, paybill, or bank — then re-test with KES 1."
+        description="Tap a type, edit the numbers, then save with a KES 1 proof."
         contextLabel="Payments"
         appearance="sharp"
         width="wide"
@@ -1206,6 +1207,7 @@ export default function PaymentGatewaySettingsPage() {
         {drawer.kind === "custody-edit" ? (
           <ReceiveMpesaFlow
             appearance="sharp"
+            mode="update"
             ownerPhone={me?.phone}
             countryCode={business?.countryCode}
             initial={receiveInitialFromCustodyJson(

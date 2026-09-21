@@ -26,6 +26,7 @@ export function OnboardingReceiveMpesaStep({
   return (
     <ReceiveMpesaFlow
       appearance="soft"
+      mode="onboarding"
       ownerPhone={ownerPhone}
       countryCode={countryCode}
       showSkip
