@@ -11173,7 +11173,7 @@ export type SupplierRecord = {
   payoutTillNumber?: string | null;
   payoutPaybillNumber?: string | null;
   payoutPaybillAccount?: string | null;
-  /** ISO timestamp when M-Pesa payout phone was OTP-verified; null = unverified. */
+  /** ISO timestamp when M-Pesa payout phone was OTP-verified; null = unverified (still payable). */
   payoutPhoneVerifiedAt?: string | null;
   marketplaceSupplierId?: string | null;
   supplierNumber?: string | null;

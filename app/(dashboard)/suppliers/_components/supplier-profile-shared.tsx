@@ -371,7 +371,7 @@ export function SupplierProfileFields({
           {draft.payoutType === "mobile_wallet" ? (
             <SupFormRow
               label="M-Pesa payout phone"
-              hint="Save, then verify with an SMS code in the supplier Payment panel before Send Money."
+              hint="Save an M-Pesa number to enable KopoKopo Send Money. SMS verification is optional."
             >
               <input
                 className={cn(supFormCellInput, "font-mono")}

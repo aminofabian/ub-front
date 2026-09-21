@@ -927,7 +927,7 @@ function SupplierSidebarPaymentSection({
       onPayoutPhoneVerified?.(res.payoutPhoneVerifiedAt);
       setOtpCode("");
       setOtpSent(false);
-      toast.success("Payout phone verified — Send Money is enabled.");
+      toast.success("Payout phone verified.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Verification failed");
     } finally {
@@ -1031,8 +1031,8 @@ function SupplierSidebarPaymentSection({
             </select>
             <span className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
               Supplies → Pay can Send Money to this destination (and auto-pay if
-              enabled under Payments settings). M-Pesa phones must be verified by
-              SMS before Send Money.
+              enabled under Payments settings). SMS verification is optional —
+              a saved phone is enough to pay.
             </span>
           </label>
 
@@ -1058,10 +1058,10 @@ function SupplierSidebarPaymentSection({
           ) : null}
 
           {needsPhoneVerify ? (
-            <div className="space-y-2 rounded-none border border-amber-300/70 bg-amber-50/80 px-2.5 py-2">
-              <p className="text-[11px] leading-snug text-amber-950">
-                Verify this phone with an SMS code before KopoKopo Send Money can
-                pay the supplier.
+            <div className="space-y-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-2.5 py-2">
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                Optional: verify this phone with an SMS code to confirm the
+                number belongs to the supplier.
                 {otpMasked ? ` Code sent to ${otpMasked}.` : null}
               </p>
               {otpSent ? (
