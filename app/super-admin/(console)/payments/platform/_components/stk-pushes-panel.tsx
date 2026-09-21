@@ -1,8 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ExternalLink, Search, Smartphone } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Check,
+  ExternalLink,
+  KeyRound,
+  Radio,
+  Search,
+  Smartphone,
+  X,
+} from "lucide-react";
 
 import {
   dashboardHintClass,
@@ -14,9 +22,7 @@ import type { GatewayStkPushOpsRecord } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
 import { money, shortId } from "./platform-payments-panels";
-
-const HAIRLINE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+import styles from "./stk-pushes-panel.module.css";
 
 type StatusFilter = "all" | "pending" | "success" | "failed";
 
@@ -27,8 +33,52 @@ const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "failed", label: "Failed" },
 ];
 
+type FlowPhase = 0 | 1 | 2 | 3;
+
+const FLOW_STEPS: {
+  label: string;
+  copy: string;
+  caption: string;
+  body: string;
+  meta: string;
+  Icon: typeof Radio;
+}[] = [
+  {
+    label: "Push",
+    copy: "Kiosk asks Safaricom to prompt the phone.",
+    caption: "1 · Push sent",
+    body: "STK leaves the till and hits Daraja / KopoKopo.",
+    meta: "CheckoutRequestID is minted. The row lands as pending.",
+    Icon: Radio,
+  },
+  {
+    label: "Phone",
+    copy: "Customer sees Pay KES … on their handset.",
+    caption: "2 · Prompt on phone",
+    body: "Safaricom opens the M-Pesa PIN screen.",
+    meta: "No money has moved yet — the phone is waiting.",
+    Icon: Smartphone,
+  },
+  {
+    label: "PIN",
+    copy: "They unlock and enter their M-Pesa PIN.",
+    caption: "3 · Waiting on PIN",
+    body: "We poll until Safaricom confirms or times out.",
+    meta: "Live pending rows keep this phase warm.",
+    Icon: KeyRound,
+  },
+  {
+    label: "Settled",
+    copy: "Receipt lands. Sale / tab / top-up unlocks.",
+    caption: "4 · Confirmed",
+    body: "GatewayTransactionID becomes the M-Pesa receipt.",
+    meta: "Success rows stamp green. Failures keep the reason.",
+    Icon: Check,
+  },
+];
+
 /**
- * Super-admin ledger of STK pushes across tenants — prompts, receipts, failures.
+ * Super-admin ledger of STK pushes — with a live “how it works” stage.
  */
 export function StkPushesPanel({
   pushes,
@@ -39,6 +89,8 @@ export function StkPushesPanel({
 }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [phase, setPhase] = useState<FlowPhase>(0);
+  const [listKey, setListKey] = useState(0);
 
   const filtered = useMemo(() => {
     if (!pushes) return [];
@@ -77,29 +129,186 @@ export function StkPushesPanel({
     return base;
   }, [pushes]);
 
+  const demoAmount = useMemo(() => {
+    const hit = pushes?.find((p) => p.status === "pending" || p.status === "success");
+    if (!hit) return 250;
+    const n = typeof hit.amount === "number" ? hit.amount : Number(hit.amount);
+    return Number.isFinite(n) && n > 0 ? n : 250;
+  }, [pushes]);
+
+  const demoReceipt = useMemo(() => {
+    const hit = pushes?.find((p) => p.gatewayTransactionId);
+    return hit?.gatewayTransactionId ?? "QKZ7X2M91A";
+  }, [pushes]);
+
+  // Cycle the explainer; dwell longer on PIN when real pending exists.
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mq.matches) {
+      setPhase(counts.pending > 0 ? 2 : 3);
+      return;
+    }
+
+    const dwell = (p: FlowPhase) => {
+      if (p === 2 && counts.pending > 0) return 3200;
+      if (p === 3) return 2400;
+      return 1800;
+    };
+
+    let current: FlowPhase = 0;
+    setPhase(0);
+    let timer: ReturnType<typeof setTimeout>;
+
+    const tick = () => {
+      timer = setTimeout(() => {
+        current = ((current + 1) % 4) as FlowPhase;
+        setPhase(current);
+        tick();
+      }, dwell(current));
+    };
+    tick();
+
+    return () => clearTimeout(timer);
+  }, [counts.pending]);
+
+  const onFilter = (id: StatusFilter) => {
+    setStatus(id);
+    setListKey((k) => k + 1);
+  };
+
   if (pushes === null || loading) {
     return (
-      <p className={cn(dashboardHintClass(), "px-1 py-8 text-center")}>
-        Loading STK pushes…
-      </p>
+      <div className={styles.panel}>
+        <p className={styles.loading}>
+          <span className={styles.loadingPulse} aria-hidden />
+          Listening for STK pushes…
+        </p>
+      </div>
     );
   }
 
+  const active = FLOW_STEPS[phase];
+
   return (
-    <div className="space-y-4">
-      <div className={cn("border bg-white px-3 py-3", HAIRLINE)}>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-primary,#0f766e)]">
-          STK push ledger
+    <div className={styles.panel}>
+      <section className={styles.stage} aria-label="How STK push works">
+        <div className={styles.stageEyebrow}>
+          <p className={styles.stageEyebrowLabel}>How STK push works</p>
+          <span className={styles.livePill}>
+            <span className={styles.liveDot} aria-hidden />
+            {counts.pending > 0 ? `${counts.pending} live` : "Rail idle"}
+          </span>
+        </div>
+        <h3 className={styles.stageTitle}>Phone → PIN → receipt</h3>
+        <p className={styles.stageHint}>
+          Every row below is one prompt on a customer&apos;s handset. Watch the
+          stages cycle — real pending pushes hold on PIN.
         </p>
-        <p className="mt-0.5 text-[13px] text-muted-foreground">
-          Every M-Pesa prompt sent through Daraja, KopoKopo, or custody — across
-          all shops.
-        </p>
-        <p className={cn(dashboardHintClass(), "mt-2 tabular-nums")}>
-          {counts.success} success · {counts.pending} pending · {counts.failed}{" "}
-          failed
-        </p>
-      </div>
+
+        <ol className={styles.pipeline}>
+          {FLOW_STEPS.map((step, i) => {
+            const Icon = step.Icon;
+            const done = i < phase;
+            const isActive = i === phase;
+            return (
+              <li
+                key={step.label}
+                className={cn(
+                  styles.step,
+                  isActive && styles.stepActive,
+                  done && styles.stepDone,
+                )}
+              >
+                <span className={styles.stepIcon} aria-hidden>
+                  <Icon className="size-3.5" />
+                </span>
+                <span className={styles.stepLabel}>{step.label}</span>
+                <span className={styles.stepCopy}>{step.copy}</span>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className={styles.phoneRail}>
+          <div className={styles.phone} aria-hidden>
+            <div className={styles.phoneEar} />
+            <div className={styles.phoneScreen}>
+              <p className={styles.phoneBrand}>M-Pesa</p>
+              {(phase === 1 || phase === 2 || phase === 3) && (
+                <p key={`amt-${phase}`} className={styles.phoneAmount}>
+                  {money(demoAmount)}
+                </p>
+              )}
+              {phase === 0 && (
+                <p className={styles.phonePrompt}>Sending request…</p>
+              )}
+              {phase === 1 && (
+                <p className={styles.phonePrompt}>
+                  Pay {money(demoAmount)} to shop till
+                </p>
+              )}
+              {phase === 2 && (
+                <>
+                  <p className={styles.phonePrompt}>Enter M-Pesa PIN</p>
+                  <div className={styles.phoneDots}>
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </>
+              )}
+              {phase === 3 && (
+                <p key={demoReceipt} className={styles.phoneReceipt}>
+                  Confirmed · {demoReceipt}
+                </p>
+              )}
+            </div>
+            {(phase === 0 || phase === 1) && (
+              <div className={styles.signalRings}>
+                <span />
+                <span />
+                <span />
+              </div>
+            )}
+          </div>
+
+          <div key={phase} className={styles.captionCard}>
+            <p className={styles.captionPhase}>{active.caption}</p>
+            <p className={styles.captionBody}>{active.body}</p>
+            <p className={styles.captionMeta}>{active.meta}</p>
+          </div>
+        </div>
+
+        <div className={styles.statsRow}>
+          <div className={styles.statCell}>
+            <p className={styles.statLabel}>Success</p>
+            <p
+              key={`s-${counts.success}`}
+              className={cn(styles.statValue, styles.statValueSuccess)}
+            >
+              {counts.success}
+            </p>
+          </div>
+          <div className={styles.statCell}>
+            <p className={styles.statLabel}>Pending</p>
+            <p
+              key={`p-${counts.pending}`}
+              className={cn(styles.statValue, styles.statValuePending)}
+            >
+              {counts.pending}
+            </p>
+          </div>
+          <div className={styles.statCell}>
+            <p className={styles.statLabel}>Failed</p>
+            <p
+              key={`f-${counts.failed}`}
+              className={cn(styles.statValue, styles.statValueFailed)}
+            >
+              {counts.failed}
+            </p>
+          </div>
+        </div>
+      </section>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <label className="relative block min-w-0 flex-1">
@@ -120,39 +329,36 @@ export function StkPushesPanel({
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
+      <div className={styles.filters} role="tablist" aria-label="Filter by status">
         {STATUS_FILTERS.map((f) => {
-          const active = status === f.id;
+          const activeFilter = status === f.id;
           return (
             <button
               key={f.id}
               type="button"
-              onClick={() => setStatus(f.id)}
+              role="tab"
+              aria-selected={activeFilter}
+              onClick={() => onFilter(f.id)}
               className={cn(
-                "border px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                HAIRLINE,
-                active
-                  ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]"
-                  : "bg-white text-muted-foreground hover:border-[var(--pos-primary,#0f766e)] hover:text-foreground",
+                styles.filterBtn,
+                activeFilter && styles.filterActive,
               )}
             >
               {f.label}
-              <span className="ml-1 tabular-nums opacity-70">
-                {counts[f.id]}
-              </span>
+              <span className={styles.filterCount}>{counts[f.id]}</span>
             </button>
           );
         })}
       </div>
 
       {filtered.length === 0 ? (
-        <p className={cn(dashboardHintClass(), "px-1 py-10 text-center")}>
+        <p className={styles.empty}>
           {pushes.length === 0
             ? "No STK pushes yet. Prompts from POS, storefront, Kiosk Pay, and onboarding tests appear here."
             : "No pushes match this filter."}
         </p>
       ) : (
-        <ul className={cn("divide-y border bg-white", HAIRLINE)}>
+        <ul key={listKey} className={styles.list}>
           {filtered.map((p) => (
             <StkPushRow key={p.id} push={p} />
           ))}
@@ -164,27 +370,32 @@ export function StkPushesPanel({
 
 function StkPushRow({ push: p }: { push: GatewayStkPushOpsRecord }) {
   const amount = typeof p.amount === "number" ? p.amount : Number(p.amount);
+  const Icon =
+    p.status === "success" ? Check : p.status === "failed" ? X : Smartphone;
 
   return (
-    <li className="flex flex-col gap-2 px-3 py-3">
-      <div className="flex items-start gap-3">
+    <li
+      className={cn(
+        styles.row,
+        p.status === "pending" && styles.rowPending,
+        p.status === "success" && styles.rowSuccess,
+      )}
+    >
+      <div className={styles.rowInner}>
         <span
           className={cn(
-            "mt-0.5 grid size-9 shrink-0 place-items-center border",
-            HAIRLINE,
-            p.status === "success"
-              ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]"
-              : p.status === "failed"
-                ? "border-red-300 bg-red-50 text-red-700"
-                : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,#f3eee6)] text-muted-foreground",
+            styles.icon,
+            p.status === "success" && styles.iconSuccess,
+            p.status === "failed" && styles.iconFailed,
+            p.status === "pending" && styles.iconPending,
           )}
           aria-hidden
         >
-          <Smartphone className="size-3.5" />
+          <Icon className="size-3.5" />
         </span>
-        <div className="min-w-0 flex-1 overflow-hidden">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="min-w-0 max-w-full truncate text-[14px] font-semibold tracking-[-0.015em] text-foreground">
+        <div className={styles.body}>
+          <div className={styles.head}>
+            <p className={styles.shop}>
               {p.businessName?.trim() || shortId(p.businessId)}
             </p>
             <Badge
@@ -200,38 +411,31 @@ function StkPushRow({ push: p }: { push: GatewayStkPushOpsRecord }) {
               {p.status}
             </Badge>
           </div>
-          <p className="mt-0.5 text-[15px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+          <p className={styles.amount}>
             {money(Number.isFinite(amount) ? amount : 0)}
           </p>
-          <p className={cn(dashboardHintClass(), "mt-0.5 break-words")}>
+          <p className={styles.meta}>
             {formatPhone(p.phoneNumber)}
             {p.contextType ? ` · ${formatContext(p.contextType)}` : ""}
             {p.gatewayType ? ` · ${p.gatewayType}` : ""}
           </p>
           {p.gatewayTransactionId ? (
-            <p className="mt-1 font-mono text-[11px] tabular-nums text-foreground">
-              Receipt {p.gatewayTransactionId}
-            </p>
+            <p className={styles.receipt}>Receipt {p.gatewayTransactionId}</p>
           ) : (
-            <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground" title={p.gatewayCheckoutId}>
+            <p className={styles.checkout} title={p.gatewayCheckoutId}>
               Checkout {p.gatewayCheckoutId}
             </p>
           )}
           {p.failureReason ? (
-            <p
-              className={cn(dashboardHintClass(), "mt-1 line-clamp-2 text-red-700")}
-              title={p.failureReason}
-            >
+            <p className={styles.fail} title={p.failureReason}>
               {p.failureReason}
             </p>
           ) : null}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p className={cn(dashboardHintClass(), "tabular-nums")}>
-              {formatWhen(p.createdAt)}
-            </p>
+          <div className={styles.footer}>
+            <p className={styles.when}>{formatWhen(p.createdAt)}</p>
             <Link
               href={`${APP_ROUTES.superAdminBusinesses}/${p.businessId}`}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] hover:underline"
+              className={styles.openLink}
             >
               Open tenant
               <ExternalLink className="size-3" aria-hidden />
@@ -244,8 +448,6 @@ function StkPushRow({ push: p }: { push: GatewayStkPushOpsRecord }) {
 }
 
 function formatPhone(phone: string) {
-  const d = phone.replace(/\D/g, "");
-  if (d.length >= 9) return phone;
   return phone || "—";
 }
 
