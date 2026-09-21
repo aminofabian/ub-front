@@ -9,10 +9,16 @@ import {
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
-import { postFinanceExpense } from "@/lib/api";
 import {
+  getCloudinarySignature,
+  postFinanceExpense,
+  uploadToCloudinary,
+} from "@/lib/api";
+import {
+  EXPENSE_CATEGORY_CODE_OPTIONS,
   EXPENSE_PAYMENT_METHOD_OPTIONS,
   FIXED_COST_PRESETS,
+  type ExpenseCategoryCode,
 } from "@/lib/fixed-costs-utils";
 
 type BranchOption = { id: string; name: string };
@@ -38,20 +44,26 @@ export function OneOffExpenseDrawer({
 }: Props) {
   const [name, setName] = useState("");
   const [categoryType, setCategoryType] = useState<"fixed" | "variable">("variable");
+  const [categoryCode, setCategoryCode] = useState<ExpenseCategoryCode | "">("");
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [vendorMpesaNumber, setVendorMpesaNumber] = useState("");
   const [includeInCashDrawer, setIncludeInCashDrawer] = useState(true);
   const [branchId, setBranchId] = useState("");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setName("");
       setCategoryType("variable");
+      setCategoryCode("");
       setAmount("");
       setPaymentMethod("cash");
+      setVendorMpesaNumber("");
       setIncludeInCashDrawer(true);
       setBranchId("");
+      setReceiptFile(null);
     }
   }, [open]);
 
@@ -68,6 +80,12 @@ export function OneOffExpenseDrawer({
     }
     setSaving(true);
     try {
+      let receiptS3Key: string | null = null;
+      if (receiptFile) {
+        const sig = await getCloudinarySignature("expenses");
+        const uploaded = await uploadToCloudinary(receiptFile, sig);
+        receiptS3Key = uploaded.public_id || uploaded.secure_url;
+      }
       await postFinanceExpense({
         expenseDate: expenseDate.slice(0, 10),
         name: name.trim(),
@@ -76,6 +94,13 @@ export function OneOffExpenseDrawer({
         paymentMethod,
         includeInCashDrawer,
         branchId: branchId.trim() || null,
+        categoryCode: categoryCode || null,
+        receiptS3Key,
+        source: "manual",
+        vendorMpesaNumber:
+          paymentMethod === "mpesa_manual"
+            ? vendorMpesaNumber.trim() || null
+            : null,
       });
       onSaved();
       onOpenChange(false);
@@ -104,6 +129,7 @@ export function OneOffExpenseDrawer({
               if (!preset || preset.id === "other") return;
               setName(preset.name);
               setCategoryType(preset.categoryType);
+              setCategoryCode(preset.categoryCode);
             }}
           >
             <option value="">Choose…</option>
@@ -136,7 +162,25 @@ export function OneOffExpenseDrawer({
         </label>
 
         <label className="space-y-1 text-sm">
-          <span className="font-medium">Category</span>
+          <span className="font-medium">Category code</span>
+          <select
+            className={dashboardSelectClass(false)}
+            value={categoryCode}
+            onChange={(e) =>
+              setCategoryCode(e.target.value as ExpenseCategoryCode | "")
+            }
+          >
+            <option value="">Unspecified</option>
+            {EXPENSE_CATEGORY_CODE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="space-y-1 text-sm">
+          <span className="font-medium">Fixed / variable</span>
           <select
             className={dashboardSelectClass(false)}
             value={categoryType}
@@ -164,6 +208,22 @@ export function OneOffExpenseDrawer({
           </select>
         </label>
 
+        {paymentMethod === "mpesa_manual" ? (
+          <label className="space-y-1 text-sm">
+            <span className="font-medium">Vendor M-Pesa (optional)</span>
+            <input
+              className={dashboardInputClass(false)}
+              value={vendorMpesaNumber}
+              onChange={(e) => setVendorMpesaNumber(e.target.value)}
+              placeholder="07… or 2547… for Send Money later"
+            />
+            <span className="block text-xs text-muted-foreground">
+              Leave blank if already paid outside the app. With a number, the
+              hub can Send Money after posting.
+            </span>
+          </label>
+        ) : null}
+
         {branches.length > 0 ? (
           <label className="space-y-1 text-sm">
             <span className="font-medium">Branch</span>
@@ -181,6 +241,16 @@ export function OneOffExpenseDrawer({
             </select>
           </label>
         ) : null}
+
+        <label className="space-y-1 text-sm">
+          <span className="font-medium">Receipt (optional)</span>
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            className={dashboardInputClass(false)}
+            onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
+          />
+        </label>
 
         <label className="flex items-center gap-2 text-sm">
           <input

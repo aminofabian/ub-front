@@ -69,6 +69,8 @@ export const APP_ROUTES = {
   payroll: "/payroll",
   /** Recurring rent, utilities, and other fixed costs. */
   fixedCosts: "/fixed-costs",
+  /** Expenses & net operating profit hub. */
+  expenses: "/expenses",
   /** Staff self-service payslip portal (login required). */
   myPay: "/my-pay",
   /** Staff self-service profile — pay, advances, workplace concern. */

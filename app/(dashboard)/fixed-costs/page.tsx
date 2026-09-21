@@ -42,6 +42,7 @@ export default function FixedCostsPage() {
     loading: dashLoading,
     canReadFinanceExpenses,
     canWriteFinanceExpenses,
+    canManageFinanceExpenses,
     branches,
   } = useDashboard();
 
@@ -306,7 +307,7 @@ export default function FixedCostsPage() {
             month={month}
             branchFilter={branchFilter}
             branches={branchOptions}
-            canManage={canWriteFinanceExpenses}
+            canManage={canManageFinanceExpenses}
             onAdd={() => setScheduleOpen(true)}
             onEdit={(schedule) => {
               setEditingSchedule(schedule);

@@ -14,15 +14,49 @@ export const EXPENSE_PAYMENT_METHOD_OPTIONS = [
   { value: "cash" as const, label: "Cash" },
 ];
 
+export const EXPENSE_CATEGORY_CODE_OPTIONS = [
+  { value: "rent", label: "Rent" },
+  { value: "utilities", label: "Utilities" },
+  { value: "salaries", label: "Salaries" },
+  { value: "transport", label: "Transport" },
+  { value: "maintenance", label: "Maintenance" },
+  { value: "packaging", label: "Packaging" },
+  { value: "other", label: "Other" },
+] as const;
+
+export type ExpenseCategoryCode =
+  (typeof EXPENSE_CATEGORY_CODE_OPTIONS)[number]["value"];
+
+export function expenseCategoryCodeLabel(code: string | null | undefined): string {
+  if (!code) return "—";
+  const found = EXPENSE_CATEGORY_CODE_OPTIONS.find((o) => o.value === code);
+  return found?.label ?? code;
+}
+
+export function expenseSourceLabel(source: string | null | undefined): string {
+  switch (source) {
+    case "manual":
+      return "Manual";
+    case "recurring":
+      return "Recurring";
+    case "payroll":
+      return "Payroll";
+    case "drawer":
+      return "Drawer";
+    default:
+      return source || "—";
+  }
+}
+
 export const FIXED_COST_PRESETS = [
-  { id: "shop_rent", label: "Shop rent", name: "Shop rent", categoryType: "fixed" as const },
-  { id: "stall_rent", label: "Stall rent", name: "Stall rent", categoryType: "fixed" as const },
-  { id: "kplc", label: "KPLC / power", name: "KPLC / power", categoryType: "variable" as const },
-  { id: "water", label: "Water", name: "Water", categoryType: "variable" as const },
-  { id: "security", label: "Security", name: "Security", categoryType: "fixed" as const },
-  { id: "internet", label: "Internet", name: "Internet", categoryType: "fixed" as const },
-  { id: "loan", label: "Loan repayment", name: "Loan repayment", categoryType: "fixed" as const },
-  { id: "other", label: "Other", name: "", categoryType: "fixed" as const },
+  { id: "shop_rent", label: "Shop rent", name: "Shop rent", categoryType: "fixed" as const, categoryCode: "rent" as const },
+  { id: "stall_rent", label: "Stall rent", name: "Stall rent", categoryType: "fixed" as const, categoryCode: "rent" as const },
+  { id: "kplc", label: "KPLC / power", name: "KPLC / power", categoryType: "variable" as const, categoryCode: "utilities" as const },
+  { id: "water", label: "Water", name: "Water", categoryType: "variable" as const, categoryCode: "utilities" as const },
+  { id: "security", label: "Security", name: "Security", categoryType: "fixed" as const, categoryCode: "other" as const },
+  { id: "internet", label: "Internet", name: "Internet", categoryType: "fixed" as const, categoryCode: "utilities" as const },
+  { id: "loan", label: "Loan repayment", name: "Loan repayment", categoryType: "fixed" as const, categoryCode: "other" as const },
+  { id: "other", label: "Other", name: "", categoryType: "fixed" as const, categoryCode: "other" as const },
 ] as const;
 
 export function formatFixedCostMoney(n: number): string {

@@ -11,12 +11,14 @@ import {
 } from "@/components/dashboard-page-ui";
 import { createExpenseSchedule, type ExpenseScheduleRecord } from "@/lib/api";
 import {
+  EXPENSE_CATEGORY_CODE_OPTIONS,
   EXPENSE_FREQUENCY_OPTIONS,
   EXPENSE_PAYMENT_METHOD_OPTIONS,
   FIXED_COST_PRESETS,
   formatFixedCostDate,
   formatFixedCostMoney,
   nextDueDate,
+  type ExpenseCategoryCode,
   type ExpenseFrequency,
 } from "@/lib/fixed-costs-utils";
 
@@ -47,6 +49,9 @@ export function ScheduleFormDrawer({
   const [categoryType, setCategoryType] = useState<"fixed" | "variable">(
     "fixed",
   );
+  const [categoryCode, setCategoryCode] = useState<ExpenseCategoryCode | "">(
+    "rent",
+  );
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<ExpenseFrequency>("monthly");
   const [startDate, setStartDate] = useState(() =>
@@ -70,6 +75,7 @@ export function ScheduleFormDrawer({
       setPresetId("shop_rent");
       setName("Shop rent");
       setCategoryType("fixed");
+      setCategoryCode("rent");
       setAmount("");
       setFrequency("monthly");
       setStartDate(new Date().toISOString().slice(0, 10));
@@ -104,6 +110,7 @@ export function ScheduleFormDrawer({
     if (!preset) return;
     if (preset.name) setName(preset.name);
     setCategoryType(preset.categoryType);
+    setCategoryCode(preset.categoryCode);
   };
 
   const submit = async () => {
@@ -121,6 +128,7 @@ export function ScheduleFormDrawer({
       const schedule = await createExpenseSchedule({
         name: name.trim(),
         categoryType,
+        categoryCode: categoryCode || null,
         amount: parsed,
         paymentMethod,
         frequency,
@@ -212,6 +220,23 @@ export function ScheduleFormDrawer({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              Category code
+              <select
+                className={dashboardSelectClass(false)}
+                value={categoryCode}
+                onChange={(e) =>
+                  setCategoryCode(e.target.value as ExpenseCategoryCode | "")
+                }
+              >
+                <option value="">Unspecified</option>
+                {EXPENSE_CATEGORY_CODE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </label>
           </>
         ) : null}

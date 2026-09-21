@@ -8,9 +8,8 @@ import {
   DashboardLoading,
 } from "@/components/dashboard-page-ui";
 import { cn } from "@/lib/utils";
-import { fetchFinanceExpenses, type FinanceExpenseResponse } from "@/lib/api";
+import { fetchFinanceExpensesRange, type FinanceExpenseResponse } from "@/lib/api";
 import {
-  daysInMonth,
   fixedCostMonthLabel,
   formatFixedCostDate,
   formatFixedCostMoney,
@@ -23,6 +22,13 @@ type Props = {
   refreshKey: number;
 };
 
+function monthRange(year: number, month: number): { from: string; to: string } {
+  const from = `${year}-${String(month).padStart(2, "0")}-01`;
+  const last = new Date(year, month, 0).getDate();
+  const to = `${year}-${String(month).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
+  return { from, to };
+}
+
 export function ExpenseHistoryPanel({ year, month, refreshKey }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,14 +38,22 @@ export function ExpenseHistoryPanel({ year, month, refreshKey }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const dates = daysInMonth(year, month);
-      const batches = await Promise.all(
-        dates.map((date) => fetchFinanceExpenses(date)),
-      );
-      const merged = batches
-        .flat()
-        .sort((a, b) => b.expenseDate.localeCompare(a.expenseDate));
-      setRows(merged);
+      const { from, to } = monthRange(year, month);
+      const all: FinanceExpenseResponse[] = [];
+      let page = 0;
+      let hasMore = true;
+      while (hasMore && page < 40) {
+        const batch = await fetchFinanceExpensesRange({
+          from,
+          to,
+          page,
+          size: 100,
+        });
+        all.push(...batch.expenses);
+        hasMore = batch.hasMore;
+        page += 1;
+      }
+      setRows(all);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load expenses");
       setRows([]);

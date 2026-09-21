@@ -400,9 +400,10 @@ const NAV_SECTIONS: readonly NavSection[] = [
     shortLabel: "Money",
     blurb: "Today's takings, kiosk pay, airtime, and how you get paid",
     icon: CreditCard,
-    entryHref: APP_ROUTES.paymentsDayLedger,
+    entryHref: APP_ROUTES.expenses,
     items: [
       { href: APP_ROUTES.paymentsDayLedger, label: "Today's takings" },
+      { href: APP_ROUTES.expenses, label: "Expenses & profit" },
       { href: APP_ROUTES.fixedCosts, label: "Fixed costs" },
       { href: APP_ROUTES.paymentsKioskPay, label: "Kiosk Pay" },
       { href: APP_ROUTES.airtime, label: "Airtime" },
@@ -516,6 +517,7 @@ type NavGate = {
   canListUsers: boolean;
   canViewPayroll: boolean;
   canReadFinanceExpenses: boolean;
+  canReadFinanceReports: boolean;
   canManageBusinessSettings: boolean;
   canViewAuditLog: boolean;
   canViewCategories: boolean;
@@ -690,6 +692,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.payroll) return gate.canViewPayroll;
   if (item.href === APP_ROUTES.myProfile) return true;
   if (item.href === APP_ROUTES.fixedCosts) return gate.canReadFinanceExpenses;
+  if (item.href === APP_ROUTES.expenses)
+    return gate.canReadFinanceExpenses || gate.canReadFinanceReports;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
   if (item.href === APP_ROUTES.inventoryStockTakeDailyAuditReview)
     return gate.canApproveStockTake;
@@ -972,6 +976,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewPayroll,
     canViewPayrollSelf,
     canReadFinanceExpenses,
+    canReadFinanceReports,
     canManageBusinessSettings,
     canViewAuditLog,
     canViewCategories,
@@ -1092,6 +1097,7 @@ export function AppShell({ children }: AppShellProps) {
       canListUsers,
       canViewPayroll,
       canReadFinanceExpenses,
+      canReadFinanceReports,
       canManageBusinessSettings,
       canViewAuditLog,
       canViewCategories,
@@ -1151,6 +1157,7 @@ export function AppShell({ children }: AppShellProps) {
     canListUsers,
     canViewPayroll,
     canReadFinanceExpenses,
+    canReadFinanceReports,
     canManageBusinessSettings,
     canViewAuditLog,
     canViewCategories,

@@ -85,6 +85,8 @@ export const Permission = {
   PayrollSelfRead: "payroll.self.read",
   FinanceExpensesRead: "finance.expenses.read",
   FinanceExpensesWrite: "finance.expenses.write",
+  FinanceExpensesManage: "finance.expenses.manage",
+  FinanceReportsRead: "finance.reports.read",
   /** Grocery Checkout */
   GroceryInvoicesCreate: "grocery.invoices.create",
   GroceryInvoicesRead: "grocery.invoices.read",

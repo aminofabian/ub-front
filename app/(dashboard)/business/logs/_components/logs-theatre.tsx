@@ -45,6 +45,7 @@ export const CATEGORY_LABELS: Record<AuditEventCategory, string> = {
   PRODUCTS: "Products",
   SUPPLIERS: "Suppliers",
   SYSTEM: "System",
+  FINANCE: "Finance",
 };
 
 export const CATEGORY_OPTIONS = Object.keys(
