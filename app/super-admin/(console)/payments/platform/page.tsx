@@ -32,6 +32,7 @@ import {
   type SaKioskPayAccountRow,
   type SaKioskPayAccountSummary,
   type SaKioskPayWithdrawalRow,
+  type TenantPaymentMethodsOverview,
   adjustSaKioskPayAccount,
   fetchPlatformCustodySettlements,
   fetchPlatformDarajaSettings,
@@ -40,6 +41,7 @@ import {
   fetchSaKioskPayAccountSummary,
   fetchSaKioskPayAccounts,
   fetchSaKioskPayWithdrawals,
+  fetchTenantPaymentMethodsOverview,
   patchPlatformDarajaSettings,
   patchPlatformGateway,
   fetchPlatformKioskPaySettings,
@@ -61,6 +63,7 @@ import {
   money,
   shortId,
 } from "./_components/platform-payments-panels";
+import { TenantMethodsPanel } from "./_components/tenant-methods-panel";
 import {
   PLATFORM_PAYMENTS_NAV,
   PlatformPaymentsTheatre,
@@ -106,6 +109,8 @@ export default function SuperAdminPlatformPaymentsPage() {
     PlatformCustodySettlementRecord[]
   >([]);
   const [retryingSettlement, setRetryingSettlement] = useState<string | null>(null);
+  const [tenantMethods, setTenantMethods] =
+    useState<TenantPaymentMethodsOverview | null>(null);
 
   const [minWithdraw, setMinWithdraw] = useState("20");
   const [dailyLimit, setDailyLimit] = useState("200000");
@@ -135,7 +140,7 @@ export default function SuperAdminPlatformPaymentsPage() {
     setLoadError("");
     setAccountsLoading(true);
     try {
-      const [gws, kp, dj, custody, accs, summ, wds, sx] = await Promise.all([
+      const [gws, kp, dj, custody, accs, summ, wds, sx, methods] = await Promise.all([
         fetchPlatformGateways(),
         fetchPlatformKioskPaySettings(),
         fetchPlatformDarajaSettings(),
@@ -144,6 +149,7 @@ export default function SuperAdminPlatformPaymentsPage() {
         fetchSaKioskPayAccountSummary().catch(() => null),
         fetchSaKioskPayWithdrawals(20).catch(() => []),
         fetchPlatformCustodySettlements(20).catch(() => []),
+        fetchTenantPaymentMethodsOverview().catch(() => null),
       ]);
       setGateways(gws);
       setKioskPay(kp);
@@ -153,6 +159,7 @@ export default function SuperAdminPlatformPaymentsPage() {
       setAccountSummary(summ);
       setWithdrawals(wds);
       setCustodySettlements(sx);
+      setTenantMethods(methods);
       setMinWithdraw(String(kp.minWithdrawAmount ?? 20));
       setDailyLimit(String(kp.dailyWithdrawLimit ?? 200000));
       setPaystackEnv(kp.paystackEnvironment ?? "sandbox");
@@ -492,6 +499,24 @@ export default function SuperAdminPlatformPaymentsPage() {
   const sectionSummary = useCallback(
     (sectionId: PlatformPaymentsSectionId) => {
       switch (sectionId) {
+        case "tenant-methods":
+          return (
+            <>
+              <span className="font-semibold tabular-nums">
+                {tenantMethods?.tenantsWithAnyMethod ?? "—"}
+              </span>
+              {" of "}
+              <span className="font-semibold tabular-nums">
+                {tenantMethods?.totalBusinesses ?? "—"}
+              </span>{" "}
+              tenants configured
+              {" · "}
+              <span className="font-semibold tabular-nums">
+                {tenantMethods?.tenantsWithCustody ?? 0}
+              </span>{" "}
+              Lipa
+            </>
+          );
         case "kiosk-pay":
           return (
             <>
@@ -557,6 +582,7 @@ export default function SuperAdminPlatformPaymentsPage() {
       }
     },
     [
+      tenantMethods,
       kioskPay,
       accountSummary,
       accounts.length,
@@ -570,6 +596,8 @@ export default function SuperAdminPlatformPaymentsPage() {
 
   const theatreDrawerBody = (() => {
     switch (activeSection) {
+      case "tenant-methods":
+        return <TenantMethodsPanel overview={tenantMethods} />;
       case "kiosk-pay":
         return (
           <KioskPayPanel
@@ -747,7 +775,7 @@ export default function SuperAdminPlatformPaymentsPage() {
         icon={CreditCard}
         eyebrow="Platform"
         title="Payments"
-        description="Kiosk Pay, Daraja, custody settle, airtime, and tenant BYO gateways."
+        description="Tenant methods, Kiosk Pay, Daraja, custody settle, airtime, and BYO gateways."
       >
         <button
           type="button"
@@ -779,6 +807,8 @@ export default function SuperAdminPlatformPaymentsPage() {
         enabledCount={enabledCount}
         kioskPayOn={Boolean(kioskPay?.enabled)}
         custodyLabel={custodyLabel}
+        tenantsConfigured={tenantMethods?.tenantsWithAnyMethod ?? null}
+        totalTenants={tenantMethods?.totalBusinesses ?? null}
         loading={booting}
         attentionHint={attentionHint}
         sectionSummary={sectionSummary}

@@ -709,6 +709,47 @@ export async function retryPlatformCustodySettlement(
   );
 }
 
+// ── Cross-tenant payment method inventory ──────────────────────────
+
+export type TenantPaymentMethodRow = {
+  configId: string;
+  businessId: string;
+  businessName: string | null;
+  businessSlug: string | null;
+  businessActive: boolean;
+  gatewayType: string;
+  label: string;
+  status: string;
+  isDefault: boolean;
+  destinationType: string | null;
+  tillNumber: string | null;
+  businessNumber: string | null;
+  accountNumber: string | null;
+  destinationSummary: string | null;
+  custodyProvider: string | null;
+  updatedAt: string | null;
+};
+
+export type TenantPaymentMethodsOverview = {
+  totalBusinesses: number;
+  activeBusinesses: number;
+  tenantsWithAnyMethod: number;
+  tenantsWithCustody: number;
+  tenantsWithByo: number;
+  tenantsWithManual: number;
+  tenantsWithoutMethods: number;
+  activeConfigs: number;
+  inactiveConfigs: number;
+  custodyProvider: string;
+  methods: TenantPaymentMethodRow[];
+};
+
+export async function fetchTenantPaymentMethodsOverview(): Promise<TenantPaymentMethodsOverview> {
+  return saRequest<TenantPaymentMethodsOverview>(
+    API_ROUTES.superAdminTenantPaymentMethods,
+  );
+}
+
 // ── Airtime (platform Instalipa) ────────────────────────────────────
 
 export type PlatformAirtimeSettingsRecord = {

@@ -306,6 +306,8 @@ export const API_ROUTES = {
     "/api/v1/super-admin/payments/mpesa-custody/settlements",
   superAdminMpesaCustodySettlementRetry: (id: string) =>
     `/api/v1/super-admin/payments/mpesa-custody/settlements/${encodeURIComponent(id)}/retry`,
+  superAdminTenantPaymentMethods:
+    "/api/v1/super-admin/payments/tenant-methods",
   superAdminAirtime: "/api/v1/super-admin/airtime",
   superAdminPlatformIntegrations: "/api/v1/super-admin/platform/integrations",
   superAdminPlatformAuth: "/api/v1/super-admin/platform/auth",

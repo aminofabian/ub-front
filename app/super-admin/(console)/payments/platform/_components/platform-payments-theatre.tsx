@@ -9,6 +9,7 @@ import {
   Receipt,
   Search,
   Signal,
+  Store,
   Vault,
   Wallet,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import { useMediaLg } from "@/hooks/use-media-lg";
 import { cn } from "@/lib/utils";
 
 export type PlatformPaymentsSectionId =
+  | "tenant-methods"
   | "kiosk-pay"
   | "wallets"
   | "daraja"
@@ -38,6 +40,12 @@ export type PlatformPaymentsNavItem = {
 };
 
 export const PLATFORM_PAYMENTS_NAV: PlatformPaymentsNavItem[] = [
+  {
+    id: "tenant-methods",
+    label: "Tenant methods",
+    hint: "Who configured till, paybill, bank, or BYO — with destinations.",
+    icon: Store,
+  },
   {
     id: "kiosk-pay",
     label: "Kiosk Pay",
@@ -107,12 +115,16 @@ function PlatformContextBanner({
   enabledCount,
   kioskPayOn,
   custodyLabel,
+  tenantsConfigured,
+  totalTenants,
   loading,
 }: {
   gatewayCount: number;
   enabledCount: number;
   kioskPayOn: boolean;
   custodyLabel: string;
+  tenantsConfigured: number | null;
+  totalTenants: number | null;
   loading: boolean;
 }) {
   return (
@@ -125,11 +137,13 @@ function PlatformContextBanner({
       <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-foreground">
         <span className="inline-flex items-center gap-1.5 font-semibold">
           <LiveDot />
-          {loading ? "—" : gatewayCount} BYO gateway
-          {gatewayCount === 1 ? "" : "s"}
+          {loading || tenantsConfigured == null
+            ? "—"
+            : `${tenantsConfigured}${totalTenants != null ? ` / ${totalTenants}` : ""}`}{" "}
+          tenants with methods
         </span>
         <span className={dashboardHintClass()}>
-          {loading ? "—" : enabledCount} enabled
+          {loading ? "—" : enabledCount}/{loading ? "—" : gatewayCount} BYO
           {" · "}
           Kiosk Pay{" "}
           <span className="font-semibold text-foreground">
@@ -158,6 +172,8 @@ function PlatformPulse({
   enabledCount,
   kioskPayOn,
   custodyLabel,
+  tenantsConfigured,
+  totalTenants,
   loading,
   attentionHint,
   onSelectSection,
@@ -167,6 +183,8 @@ function PlatformPulse({
   enabledCount: number;
   kioskPayOn: boolean;
   custodyLabel: string;
+  tenantsConfigured: number | null;
+  totalTenants: number | null;
   loading: boolean;
   attentionHint: string;
   onSelectSection: (id: PlatformPaymentsSectionId) => void;
@@ -201,20 +219,33 @@ function PlatformPulse({
         />
       </svg>
 
-      <div className={cn(card, "left-3 top-[16%]")}>
+      <button
+        type="button"
+        className={cn(
+          card,
+          "left-3 top-[14%] text-left transition-colors hover:border-[var(--pos-primary,#0f766e)]",
+        )}
+        onClick={() => onSelectSection("tenant-methods")}
+      >
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          BYO gateways
+          Tenant methods
         </p>
         <p
-          className="mt-1 text-2xl font-semibold tabular-nums tracking-tight"
+          className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-[var(--pos-primary,#0f766e)]"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          {loading ? "—" : gatewayCount}
+          {loading || tenantsConfigured == null ? "—" : tenantsConfigured}
+          {totalTenants != null ? (
+            <span className="text-base font-medium text-muted-foreground">
+              {" "}
+              / {totalTenants}
+            </span>
+          ) : null}
         </p>
         <p className={cn(dashboardHintClass(), "mt-2")}>
-          {loading ? "Loading" : `${enabledCount} enabled for tenants`}
+          Shops with till, paybill, bank, or BYO configured
         </p>
-      </div>
+      </button>
 
       <div className={cn(card, "right-3 top-[10%]")}>
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -241,7 +272,9 @@ function PlatformPulse({
         >
           {loading ? "—" : custodyLabel}
         </p>
-        <p className={cn(dashboardHintClass(), "mt-2")}>{attentionHint}</p>
+        <p className={cn(dashboardHintClass(), "mt-2")}>
+          {loading ? "Loading" : `${enabledCount}/${gatewayCount} BYO · ${attentionHint}`}
+        </p>
       </div>
 
       <button
@@ -250,17 +283,17 @@ function PlatformPulse({
           card,
           "bottom-[8%] right-3 text-left transition-colors hover:border-[var(--pos-primary,#0f766e)]",
         )}
-        onClick={() => onSelectSection("kiosk-pay")}
+        onClick={() => onSelectSection("tenant-methods")}
       >
         <p className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
-          <Wallet
+          <Store
             className="size-3.5 text-[var(--pos-primary,#0f766e)]"
             aria-hidden
           />
-          Start with Kiosk Pay
+          See destinations
         </p>
         <p className={cn(dashboardHintClass(), "mt-1 line-clamp-2")}>
-          {sectionMeta("kiosk-pay").hint}
+          {sectionMeta("tenant-methods").hint}
         </p>
       </button>
     </div>
@@ -321,6 +354,8 @@ export type PlatformPaymentsTheatreProps = {
   enabledCount: number;
   kioskPayOn: boolean;
   custodyLabel: string;
+  tenantsConfigured?: number | null;
+  totalTenants?: number | null;
   loading: boolean;
   attentionHint: string;
   sectionSummary: (sectionId: PlatformPaymentsSectionId) => ReactNode;
@@ -335,6 +370,8 @@ export function PlatformPaymentsTheatre({
   enabledCount,
   kioskPayOn,
   custodyLabel,
+  tenantsConfigured = null,
+  totalTenants = null,
   loading,
   attentionHint,
   sectionSummary,
@@ -503,6 +540,8 @@ export function PlatformPaymentsTheatre({
       enabledCount={enabledCount}
       kioskPayOn={kioskPayOn}
       custodyLabel={custodyLabel}
+      tenantsConfigured={tenantsConfigured}
+      totalTenants={totalTenants}
       loading={loading}
       attentionHint={attentionHint}
       onSelectSection={selectSection}
@@ -523,8 +562,8 @@ export function PlatformPaymentsTheatre({
           Pick a section
         </h3>
         <p className={cn(dashboardHintClass(), "mt-3 max-w-[16rem]")}>
-          Kiosk Pay, Daraja, custody settle, airtime, and tenant BYO providers.
-          One section at a time in the panel.
+          Tenant methods, Kiosk Pay, Daraja, custody settle, airtime, and BYO
+          providers. One section at a time in the panel.
         </p>
       </div>
       <p className={cn(dashboardHintClass(), "flex items-center gap-1.5")}>
@@ -541,6 +580,8 @@ export function PlatformPaymentsTheatre({
         enabledCount={enabledCount}
         kioskPayOn={kioskPayOn}
         custodyLabel={custodyLabel}
+        tenantsConfigured={tenantsConfigured}
+        totalTenants={totalTenants}
         loading={loading}
       />
 
