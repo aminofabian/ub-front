@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import { OnboardingReceiveMpesaStep } from "@/components/onboarding/onboarding-receive-mpesa-step";
 import { OnboardingBrandingColorPicker } from "@/components/onboarding/onboarding-branding-color-picker";
 import { OnboardingBrandingPreviewModal } from "@/components/onboarding/onboarding-branding-preview-modal";
 import { useLogoObjectUrl } from "@/components/onboarding/onboarding-branding-preview";
@@ -49,6 +50,7 @@ import {
   formatStoreTypesLabel,
   suggestDisplayName,
   QUESTIONNAIRE_PHONE_STEP,
+  QUESTIONNAIRE_RECEIVE_STEP,
   QUESTIONNAIRE_STOCK_STEP,
   type BranchCountChoice,
   type OnboardingQuestionnaireAnswers,
@@ -143,6 +145,9 @@ type Props = {
   onProductSourceChange?: (source: ProductSourceChoice) => void;
   /** Open spreadsheet import after choosing migrating path. */
   onOpenImport?: () => void;
+  /** Optional till/paybill receive step — skip or finish advances to stock. */
+  onReceiveSkip?: () => void;
+  onReceiveDone?: () => void;
   /** ISO country for locality placeholders (defaults to KE examples). */
   countryCode?: string | null;
   currency?: string | null;
@@ -165,6 +170,7 @@ const STEP_LABELS = [
   "Look",
   "Branding",
   "Shop line",
+  "Receive M-Pesa",
 ] as const;
 
 function QuestionnaireProgress({ step }: { step: number }) {
@@ -386,6 +392,8 @@ export function OnboardingQuestionnaire({
   onFinishLater,
   onProductSourceChange,
   onOpenImport,
+  onReceiveSkip,
+  onReceiveDone,
   countryCode = null,
   currency = null,
   accountPhone = null,
@@ -983,7 +991,8 @@ export function OnboardingQuestionnaire({
                 </p>
               ) : null}
             </div>
-            {step === QUESTIONNAIRE_PHONE_STEP ? (
+            {step === QUESTIONNAIRE_PHONE_STEP ||
+            step === QUESTIONNAIRE_RECEIVE_STEP ? (
               <span className="inline-flex size-11 shrink-0 sm:hidden" aria-hidden />
             ) : (
               <button
@@ -1688,6 +1697,15 @@ export function OnboardingQuestionnaire({
               </>
             ) : null}
 
+            {step === QUESTIONNAIRE_RECEIVE_STEP ? (
+              <OnboardingReceiveMpesaStep
+                ownerPhone={ownerPhone}
+                countryCode={countryCode}
+                onSkip={() => onReceiveSkip?.()}
+                onDone={() => onReceiveDone?.()}
+              />
+            ) : null}
+
             {step === QUESTIONNAIRE_STOCK_STEP ? (
               <>
                 <StepHeading
@@ -1980,6 +1998,20 @@ export function OnboardingQuestionnaire({
                   : "Continue to dashboard"}
               </button>
             </>
+          ) : step === QUESTIONNAIRE_RECEIVE_STEP ? (
+            <div className="hidden items-center justify-between text-sm sm:flex">
+              <button
+                type="button"
+                onClick={onBack}
+                disabled={submitting}
+                className="min-h-10 text-[#6B7280] transition hover:text-[#1F2937] disabled:opacity-50"
+              >
+                Back
+              </button>
+              <span className="text-[11px] text-[#9CA3AF]">
+                Optional — skip anytime above
+              </span>
+            </div>
           ) : (
             <button
               type="button"
@@ -2015,7 +2047,7 @@ export function OnboardingQuestionnaire({
                 Skip for now
               </button>
             </div>
-          ) : (
+          ) : step === QUESTIONNAIRE_RECEIVE_STEP ? null : (
             <div className="hidden items-center justify-between text-sm sm:flex">
               {step > 1 ? (
                 <button

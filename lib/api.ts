@@ -4854,7 +4854,8 @@ export type AuditEventCategory =
   | "CUSTOMERS"
   | "PRODUCTS"
   | "SUPPLIERS"
-  | "SYSTEM";
+  | "SYSTEM"
+  | "FINANCE";
 
 export type AuditEventSeverity = "DEBUG" | "INFO" | "WARN" | "ERROR" | "CRITICAL";
 
@@ -7254,18 +7255,33 @@ export async function fetchFinancePL(
 
 export type FinanceExpenseResponse = {
   id: string;
-  branchId: string;
+  branchId: string | null;
   expenseDate: string;
   name: string;
   categoryType: string;
+  source: string;
+  categoryCode: string | null;
   amount: number | string;
   paymentMethod: string;
+  vendorMpesaNumber: string | null;
+  paidAt: string | null;
   includeInCashDrawer: boolean;
+  approvalStatus: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
   receiptS3Key: string | null;
   expenseLedgerAccountId: string;
-  journalEntryId: string;
+  journalEntryId: string | null;
   createdBy: string;
   createdAt: string;
+};
+
+export type FinanceExpenseListResponse = {
+  expenses: FinanceExpenseResponse[];
+  totalCount: number;
+  page: number;
+  size: number;
+  hasMore: boolean;
 };
 
 export async function fetchFinanceExpenses(
@@ -7279,11 +7295,46 @@ export async function fetchFinanceExpenses(
   );
 }
 
+export async function fetchFinanceExpensesRange(options: {
+  from: string;
+  to: string;
+  branchId?: string;
+  categoryType?: string;
+  categoryCode?: string;
+  source?: string;
+  approvalStatus?: string;
+  q?: string;
+  page?: number;
+  size?: number;
+}): Promise<FinanceExpenseListResponse> {
+  const params = new URLSearchParams();
+  params.set("from", options.from.trim());
+  params.set("to", options.to.trim());
+  if (options.branchId?.trim()) params.set("branchId", options.branchId.trim());
+  if (options.categoryType?.trim()) {
+    params.set("categoryType", options.categoryType.trim());
+  }
+  if (options.categoryCode?.trim()) {
+    params.set("categoryCode", options.categoryCode.trim());
+  }
+  if (options.source?.trim()) params.set("source", options.source.trim());
+  if (options.approvalStatus?.trim()) {
+    params.set("approvalStatus", options.approvalStatus.trim());
+  }
+  if (options.q?.trim()) params.set("q", options.q.trim());
+  if (options.page != null) params.set("page", String(options.page));
+  if (options.size != null) params.set("size", String(options.size));
+  return request<FinanceExpenseListResponse>(
+    `/api/v1/finance/expenses?${params.toString()}`,
+  );
+}
+
 export type ExpenseScheduleRecord = {
   id: string;
   branchId: string | null;
   name: string;
   categoryType: string;
+  categoryCode?: string | null;
   amount: number;
   paymentMethod: string;
   frequency: string;
@@ -7309,6 +7360,7 @@ export async function fetchExpenseSchedules(): Promise<ExpenseScheduleRecord[]> 
 export async function createExpenseSchedule(body: {
   name: string;
   categoryType: string;
+  categoryCode?: string | null;
   amount: number;
   paymentMethod: string;
   frequency: string;
@@ -7348,6 +7400,7 @@ export async function patchExpenseSchedule(
     vendorPhone?: string | null;
     vendorMpesaNumber?: string | null;
     vendorLeaseNote?: string | null;
+    categoryCode?: string | null;
   },
 ): Promise<ExpenseScheduleRecord> {
   return request<ExpenseScheduleRecord>(
@@ -7491,11 +7544,92 @@ export async function postFinanceExpense(body: {
   paymentMethod: string;
   includeInCashDrawer: boolean;
   branchId?: string | null;
+  receiptS3Key?: string | null;
+  expenseLedgerAccountId?: string | null;
+  paidAt?: string | null;
+  categoryCode?: string | null;
+  source?: string | null;
+  vendorMpesaNumber?: string | null;
 }): Promise<FinanceExpenseResponse> {
   return request<FinanceExpenseResponse>("/api/v1/finance/expenses", {
     method: "POST",
     body,
   });
+}
+
+export type ExpensePayOptionsRecord = {
+  amount: number | string;
+  payoutEnabled: boolean;
+  payoutGatewayReady: boolean;
+  payoutGatewayLabel: string | null;
+  destinationConfigured: boolean;
+  destinationPhone: string | null;
+  kopokopoPayEligible: boolean;
+  pendingDisbursement: boolean;
+  pendingDisbursementId: string | null;
+  latestDisbursementStatus: string | null;
+  latestDisbursementMessage: string | null;
+  alreadyPaid: boolean;
+};
+
+export type ExpenseKopokopoPayRecord = {
+  accepted: boolean;
+  disbursementId: string | null;
+  kopokopoSendMoneyId: string | null;
+  status: string;
+  message: string | null;
+};
+
+export async function fetchExpensePayOptions(
+  expenseId: string,
+): Promise<ExpensePayOptionsRecord> {
+  return request<ExpensePayOptionsRecord>(
+    `/api/v1/finance/expenses/${encodeURIComponent(expenseId)}/pay-options`,
+  );
+}
+
+export async function initiateExpenseKopokopoPay(
+  expenseId: string,
+): Promise<ExpenseKopokopoPayRecord> {
+  return request<ExpenseKopokopoPayRecord>(
+    `/api/v1/finance/expenses/${encodeURIComponent(expenseId)}/pay/kopokopo`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchExpenseKopokopoPayStatus(
+  expenseId: string,
+): Promise<ExpenseKopokopoPayRecord> {
+  return request<ExpenseKopokopoPayRecord>(
+    `/api/v1/finance/expenses/${encodeURIComponent(expenseId)}/pay/kopokopo`,
+  );
+}
+
+export async function cancelExpenseKopokopoPay(
+  expenseId: string,
+): Promise<ExpenseKopokopoPayRecord> {
+  return request<ExpenseKopokopoPayRecord>(
+    `/api/v1/finance/expenses/${encodeURIComponent(expenseId)}/pay/kopokopo/cancel`,
+    { method: "POST" },
+  );
+}
+
+export async function approveFinanceExpense(
+  expenseId: string,
+): Promise<FinanceExpenseResponse> {
+  return request<FinanceExpenseResponse>(
+    `/api/v1/finance/expenses/${encodeURIComponent(expenseId)}/approve`,
+    { method: "POST" },
+  );
+}
+
+export async function rejectFinanceExpense(
+  expenseId: string,
+): Promise<FinanceExpenseResponse> {
+  return request<FinanceExpenseResponse>(
+    `/api/v1/finance/expenses/${encodeURIComponent(expenseId)}/reject`,
+    { method: "POST" },
+  );
 }
 
 export type OwnerDashboardResponse = {
@@ -13002,6 +13136,40 @@ export type MpesaCustodyAvailabilityRecord = {
 export async function fetchMpesaCustodyAvailability(): Promise<MpesaCustodyAvailabilityRecord> {
   return request<MpesaCustodyAvailabilityRecord>(
     API_ROUTES.paymentGatewaysMpesaCustody,
+  );
+}
+
+export type CustodyReceiveTestRequest = {
+  type: "till" | "paybill";
+  tillNumber?: string;
+  businessNumber?: string;
+  accountNumber?: string;
+  label?: string;
+  phoneNumber: string;
+  amount?: number;
+};
+
+export type CustodyReceiveTestRecord = {
+  accepted: boolean;
+  configId: string;
+  checkoutRequestId: string | null;
+  message: string;
+  amount: number | string;
+  phoneNumber: string;
+  destinationSummary: string;
+};
+
+/** Save till/paybill destination and send a KES 1 STK receive test. */
+export async function runCustodyReceiveTest(
+  body: CustodyReceiveTestRequest,
+): Promise<CustodyReceiveTestRecord> {
+  return request<CustodyReceiveTestRecord>(
+    `${API_ROUTES.paymentGateways}/custody/receive-test`,
+    {
+      method: "POST",
+      body,
+      timeoutMs: 70_000,
+    },
   );
 }
 

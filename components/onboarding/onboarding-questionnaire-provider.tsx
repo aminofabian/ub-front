@@ -48,6 +48,7 @@ import {
   shouldStartOnboardingQuestionnaire,
   softSkipOnboardingQuestionnaire,
   QUESTIONNAIRE_PHONE_STEP,
+  QUESTIONNAIRE_RECEIVE_STEP,
   QUESTIONNAIRE_STOCK_STEP,
   QUESTIONNAIRE_STEP_COUNT,
   type OnboardingQuestionnaireAnswers,
@@ -398,23 +399,11 @@ export function OnboardingQuestionnaireProvider({
             setErrorMessage(formatApplyFailureMessage(result));
             return;
           }
-          // Entities applied — stay incomplete until the shelf has stock.
+          // Entities applied — optional M-Pesa receive next, then stock.
           markOnboardingAwaitingStock(merged);
           setCelebrate(true);
-          setStep(QUESTIONNAIRE_STOCK_STEP);
-          if (!isCatalogEligibleStoreTypes(merged.storeTypes)) {
-            // No catalog packs path — soft-close; Resume keeps nudging.
-            softSkipOnboardingQuestionnaire();
-            setActive(false);
-            router.replace(
-              isButcheryOnlyBusiness({
-                profile: { storeTypes: merged.storeTypes },
-                onboarding: { answers: merged },
-              })
-                ? APP_ROUTES.butcher
-                : APP_ROUTES.business,
-            );
-          }
+          setStep(QUESTIONNAIRE_RECEIVE_STEP);
+          saveQuestionnaireProgress(QUESTIONNAIRE_RECEIVE_STEP, merged);
         } catch (error) {
           setErrorMessage(
             error instanceof Error
@@ -438,6 +427,24 @@ export function OnboardingQuestionnaireProvider({
       router,
     ],
   );
+
+  const advanceAfterReceive = useCallback(() => {
+    const merged = answers;
+    setStep(QUESTIONNAIRE_STOCK_STEP);
+    saveQuestionnaireProgress(QUESTIONNAIRE_STOCK_STEP, merged);
+    if (!isCatalogEligibleStoreTypes(merged.storeTypes)) {
+      softSkipOnboardingQuestionnaire();
+      setActive(false);
+      router.replace(
+        isButcheryOnlyBusiness({
+          profile: { storeTypes: merged.storeTypes },
+          onboarding: { answers: merged },
+        })
+          ? APP_ROUTES.butcher
+          : APP_ROUTES.business,
+      );
+    }
+  }, [answers, router]);
 
   /**
    * Hardware/browser back-button guard. While onboarding covers the screen,
@@ -552,6 +559,8 @@ export function OnboardingQuestionnaireProvider({
               onFinishLater={handleFinishLater}
               onProductSourceChange={handleProductSourceChange}
               onOpenImport={handleOpenImport}
+              onReceiveSkip={advanceAfterReceive}
+              onReceiveDone={advanceAfterReceive}
             />
             <OnboardingCatalogDrawer
               open={catalogDrawerOpen}

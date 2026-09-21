@@ -83,11 +83,12 @@ export type OnboardingQuestionnaireState = {
   updatedAt: string;
 };
 
-/** Answer steps 1–7 (incl. shop line) + final stock step 8. */
+/** Answer steps 1–7 (phone) + optional receive M-Pesa (8) + stock (9). */
 export const QUESTIONNAIRE_BRANDING_STEP = 6;
 export const QUESTIONNAIRE_PHONE_STEP = 7;
-export const QUESTIONNAIRE_STOCK_STEP = 8;
-export const QUESTIONNAIRE_STEP_COUNT = 8;
+export const QUESTIONNAIRE_RECEIVE_STEP = 8;
+export const QUESTIONNAIRE_STOCK_STEP = 9;
+export const QUESTIONNAIRE_STEP_COUNT = 9;
 
 export const BRANCH_COUNT_OPTIONS: readonly {
   value: BranchCountChoice;
@@ -626,7 +627,8 @@ export function needsOnboardingQuestionnaireResume(
 }
 
 /**
- * After configure-shop apply: park on the stock step without marking completed.
+ * After configure-shop apply: park on the optional receive-M-Pesa step
+ * (then stock) without marking completed.
  */
 export function markOnboardingAwaitingStock(
   answers?: Partial<OnboardingQuestionnaireAnswers>,
@@ -636,13 +638,13 @@ export function markOnboardingAwaitingStock(
   const finalAnswers = answers ?? current.answers;
   writeState({
     status: "active",
-    step: QUESTIONNAIRE_STOCK_STEP,
+    step: QUESTIONNAIRE_RECEIVE_STEP,
     answers: finalAnswers,
     updatedAt: new Date().toISOString(),
   });
   void persistOnboardingQuestionnaireToServer({
     status: "active",
-    step: QUESTIONNAIRE_STOCK_STEP,
+    step: QUESTIONNAIRE_RECEIVE_STEP,
     answers: finalAnswers,
   });
 }

@@ -107,7 +107,7 @@ describe("soft skip + resume", () => {
     ).toBe(true);
   });
 
-  it("markOnboardingAwaitingStock parks on stock step without completing", () => {
+  it("markOnboardingAwaitingStock parks on receive step without completing", () => {
     markOnboardingQuestionnairePending();
     markOnboardingAwaitingStock({ displayName: "Demo" });
     const state = getOnboardingQuestionnaireState();
