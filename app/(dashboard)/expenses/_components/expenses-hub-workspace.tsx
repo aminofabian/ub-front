@@ -570,7 +570,7 @@ export function ExpensesHubWorkspace() {
           <label className="text-sm">
             <span className="mb-1 block text-muted-foreground">Branch</span>
             <select
-              className={dashboardSelectClass}
+              className={dashboardSelectClass()}
               value={branchFilter}
               onChange={(e) => {
                 setBranchFilter(e.target.value);
@@ -812,7 +812,7 @@ export function ExpensesHubWorkspace() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <select
-                    className={dashboardSelectClass}
+                    className={dashboardSelectClass()}
                     value={categoryFilter}
                     onChange={(e) => {
                       setCategoryFilter(e.target.value);
@@ -824,7 +824,7 @@ export function ExpensesHubWorkspace() {
                     <option value="variable">Variable</option>
                   </select>
                   <select
-                    className={dashboardSelectClass}
+                    className={dashboardSelectClass()}
                     value={categoryCodeFilter}
                     onChange={(e) => {
                       setCategoryCodeFilter(e.target.value);
