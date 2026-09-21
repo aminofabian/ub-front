@@ -29,6 +29,7 @@ import {
   type PlatformDarajaSettingsRecord,
   type PlatformKioskPaySettingsRecord,
   type PlatformMpesaCustodySettingsRecord,
+  type GatewayStkPushOpsRecord,
   type SaKioskPayAccountRow,
   type SaKioskPayAccountSummary,
   type SaKioskPayWithdrawalRow,
@@ -38,6 +39,7 @@ import {
   fetchPlatformDarajaSettings,
   fetchPlatformGateways,
   fetchPlatformMpesaCustodySettings,
+  fetchPlatformStkPushes,
   fetchSaKioskPayAccountSummary,
   fetchSaKioskPayAccounts,
   fetchSaKioskPayWithdrawals,
@@ -64,6 +66,7 @@ import {
   shortId,
 } from "./_components/platform-payments-panels";
 import { TenantMethodsPanel } from "./_components/tenant-methods-panel";
+import { StkPushesPanel } from "./_components/stk-pushes-panel";
 import {
   PLATFORM_PAYMENTS_NAV,
   PlatformPaymentsTheatre,
@@ -111,6 +114,9 @@ export default function SuperAdminPlatformPaymentsPage() {
   const [retryingSettlement, setRetryingSettlement] = useState<string | null>(null);
   const [tenantMethods, setTenantMethods] =
     useState<TenantPaymentMethodsOverview | null>(null);
+  const [stkPushes, setStkPushes] = useState<GatewayStkPushOpsRecord[] | null>(
+    null,
+  );
 
   const [minWithdraw, setMinWithdraw] = useState("20");
   const [dailyLimit, setDailyLimit] = useState("200000");
@@ -140,7 +146,8 @@ export default function SuperAdminPlatformPaymentsPage() {
     setLoadError("");
     setAccountsLoading(true);
     try {
-      const [gws, kp, dj, custody, accs, summ, wds, sx, methods] = await Promise.all([
+      const [gws, kp, dj, custody, accs, summ, wds, sx, methods, pushes] =
+        await Promise.all([
         fetchPlatformGateways(),
         fetchPlatformKioskPaySettings(),
         fetchPlatformDarajaSettings(),
@@ -150,6 +157,7 @@ export default function SuperAdminPlatformPaymentsPage() {
         fetchSaKioskPayWithdrawals(20).catch(() => []),
         fetchPlatformCustodySettlements(20).catch(() => []),
         fetchTenantPaymentMethodsOverview().catch(() => null),
+        fetchPlatformStkPushes({ limit: 100 }).catch(() => []),
       ]);
       setGateways(gws);
       setKioskPay(kp);
@@ -160,6 +168,7 @@ export default function SuperAdminPlatformPaymentsPage() {
       setWithdrawals(wds);
       setCustodySettlements(sx);
       setTenantMethods(methods);
+      setStkPushes(pushes);
       setMinWithdraw(String(kp.minWithdrawAmount ?? 20));
       setDailyLimit(String(kp.dailyWithdrawLimit ?? 200000));
       setPaystackEnv(kp.paystackEnvironment ?? "sandbox");
@@ -517,6 +526,21 @@ export default function SuperAdminPlatformPaymentsPage() {
               Lipa
             </>
           );
+        case "stk-pushes":
+          return (
+            <>
+              <span className="font-semibold tabular-nums">
+                {stkPushes?.length ?? "—"}
+              </span>{" "}
+              recent STK push
+              {(stkPushes?.length ?? 0) === 1 ? "" : "es"}
+              {" · "}
+              <span className="font-semibold tabular-nums">
+                {stkPushes?.filter((p) => p.status === "success").length ?? 0}
+              </span>{" "}
+              success
+            </>
+          );
         case "kiosk-pay":
           return (
             <>
@@ -583,6 +607,7 @@ export default function SuperAdminPlatformPaymentsPage() {
     },
     [
       tenantMethods,
+      stkPushes,
       kioskPay,
       accountSummary,
       accounts.length,
@@ -598,6 +623,13 @@ export default function SuperAdminPlatformPaymentsPage() {
     switch (activeSection) {
       case "tenant-methods":
         return <TenantMethodsPanel overview={tenantMethods} />;
+      case "stk-pushes":
+        return (
+          <StkPushesPanel
+            pushes={stkPushes}
+            loading={booting && stkPushes === null}
+          />
+        );
       case "kiosk-pay":
         return (
           <KioskPayPanel

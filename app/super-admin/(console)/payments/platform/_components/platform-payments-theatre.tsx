@@ -9,6 +9,7 @@ import {
   Receipt,
   Search,
   Signal,
+  Smartphone,
   Store,
   Vault,
   Wallet,
@@ -24,6 +25,7 @@ import { cn } from "@/lib/utils";
 
 export type PlatformPaymentsSectionId =
   | "tenant-methods"
+  | "stk-pushes"
   | "kiosk-pay"
   | "wallets"
   | "daraja"
@@ -45,6 +47,12 @@ export const PLATFORM_PAYMENTS_NAV: PlatformPaymentsNavItem[] = [
     label: "Tenant methods",
     hint: "Who configured till, paybill, bank, or BYO — with destinations.",
     icon: Store,
+  },
+  {
+    id: "stk-pushes",
+    label: "STK pushes",
+    hint: "Every M-Pesa prompt across shops — success, pending, failed.",
+    icon: Smartphone,
   },
   {
     id: "kiosk-pay",

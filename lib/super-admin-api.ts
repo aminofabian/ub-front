@@ -717,6 +717,41 @@ export async function retryPlatformCustodySettlement(
   );
 }
 
+// ── STK push ledger (cross-tenant) ─────────────────────────────────
+
+export type GatewayStkPushOpsRecord = {
+  id: string;
+  businessId: string;
+  businessName: string | null;
+  businessSlug: string | null;
+  gatewayType: string | null;
+  gatewayCheckoutId: string;
+  merchantReference: string;
+  contextType: string | null;
+  contextId: string | null;
+  amount: number | string;
+  phoneNumber: string;
+  status: string;
+  gatewayTransactionId: string | null;
+  failureReason: string | null;
+  confirmedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export async function fetchPlatformStkPushes(opts?: {
+  status?: string;
+  limit?: number;
+}): Promise<GatewayStkPushOpsRecord[]> {
+  const qs = new URLSearchParams({
+    limit: String(opts?.limit ?? 50),
+  });
+  if (opts?.status) qs.set("status", opts.status);
+  return saRequest<GatewayStkPushOpsRecord[]>(
+    `${API_ROUTES.superAdminStkPushes}?${qs.toString()}`,
+  );
+}
+
 // ── Cross-tenant payment method inventory ──────────────────────────
 
 export type TenantPaymentMethodRow = {
