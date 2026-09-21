@@ -199,6 +199,7 @@ export function PosSaleReceipt({
             <span>Item</span>
             <span>Qty</span>
             <span>Price</span>
+            <span>Total</span>
           </div>
           <ul className="pos-receipt-lines">
             {receipt.lines.map((line, i) => (
@@ -207,6 +208,9 @@ export function PosSaleReceipt({
                 <span className="pos-receipt-line-qty tabular-nums">{line.quantity}</span>
                 <span className="pos-receipt-line-price tabular-nums">
                   {line.unitPrice.toFixed(2)}
+                </span>
+                <span className="pos-receipt-line-total tabular-nums">
+                  {line.lineTotal.toFixed(2)}
                 </span>
               </li>
             ))}

@@ -4061,7 +4061,8 @@ export type StoreRoomReason =
   | "staff_use"
   | "count_correction"
   | "other"
-  | "received_into_room";
+  | "received_into_room"
+  | "from_purchase_order";
 
 /** Where a movement stands. Only `pending` means stock has NOT moved yet. */
 export type StoreRoomMovementStatus = "applied" | "pending" | "rejected";

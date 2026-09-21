@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import {
+  ArrowDownToLine,
   ArrowUpFromLine,
   ChevronRight,
   Link2,
@@ -134,7 +135,7 @@ export function StoreRoomTheatre({
   mobileDetailTab: "history" | "edit";
   onMobileDetailTab: (tab: "history" | "edit") => void;
   activityToken: number;
-  onPutIn: () => void;
+  onPutIn: (row?: StoreItemRecord | null) => void;
   onInheritOrder?: () => void;
   onRecorded: () => void;
   onTakeOut: (row: StoreItemRecord) => void;
@@ -365,7 +366,7 @@ export function StoreRoomTheatre({
       rows={rows}
       connected={connected}
       reloadToken={activityToken}
-      onPutIn={canWrite ? onPutIn : undefined}
+      onPutIn={canWrite ? () => onPutIn() : undefined}
       onInheritOrder={canWrite ? onInheritOrder : undefined}
       onSelect={onSelect}
       onShowUnlinked={
@@ -411,6 +412,7 @@ export function StoreRoomTheatre({
         rowBusyId={rowBusyId}
         onSave={onSave}
         onTakeOut={() => onTakeOut(selectedRow)}
+        onPutIn={() => onPutIn(selectedRow)}
         onLink={() => onLink(selectedRow)}
         onUnlink={() => onUnlink(selectedRow)}
         onDelete={() => onDelete(selectedRow)}
@@ -565,6 +567,7 @@ function InspectPanel({
   rowBusyId,
   onSave,
   onTakeOut,
+  onPutIn,
   onLink,
   onUnlink,
   onDelete,
@@ -582,6 +585,7 @@ function InspectPanel({
   rowBusyId: string | null;
   onSave: () => void;
   onTakeOut: () => void;
+  onPutIn: () => void;
   onLink: () => void;
   onUnlink: () => void;
   onDelete: () => void;
@@ -736,6 +740,18 @@ function InspectPanel({
             type="button"
             size="sm"
             variant="outline"
+            className="h-8 gap-1.5 rounded-none shadow-none"
+            onClick={onPutIn}
+          >
+            <ArrowDownToLine className="size-3.5" aria-hidden />
+            Put in
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
             className="h-8 rounded-none shadow-none"
             disabled={busy}
             onClick={onSave}

@@ -5211,8 +5211,8 @@ html:has([data-store-theme-id="daily-gazette"]) ::selection {
 #pos-receipt-print .pos-receipt-lines-head,
 #pos-receipt-print .pos-receipt-line-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 2.5rem minmax(4.5rem, max-content);
-    column-gap: 0.5rem;
+    grid-template-columns: minmax(0, 1fr) 2.25rem minmax(3.25rem, max-content) minmax(3.75rem, max-content);
+    column-gap: 0.35rem;
     align-items: baseline;
 }
 
@@ -5233,7 +5233,9 @@ html:has([data-store-theme-id="daily-gazette"]) ::selection {
 }
 
 #pos-receipt-print .pos-receipt-lines-head span:nth-child(3),
-#pos-receipt-print .pos-receipt-line-price {
+#pos-receipt-print .pos-receipt-line-price,
+#pos-receipt-print .pos-receipt-lines-head span:nth-child(4),
+#pos-receipt-print .pos-receipt-line-total {
     justify-self: end;
     width: 100%;
     text-align: right;
@@ -5251,7 +5253,8 @@ html:has([data-store-theme-id="daily-gazette"]) ::selection {
 }
 
 #pos-receipt-print .pos-receipt-line-qty,
-#pos-receipt-print .pos-receipt-line-price {
+#pos-receipt-print .pos-receipt-line-price,
+#pos-receipt-print .pos-receipt-line-total {
     font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
@@ -5420,8 +5423,9 @@ html:has([data-store-theme-id="daily-gazette"]) ::selection {
 
     #pos-receipt-print .pos-receipt-line-item,
     #pos-receipt-print .pos-receipt-line-qty,
-    #pos-receipt-print .pos-receipt-line-price {
-        font-size: 9.5pt !important;
+    #pos-receipt-print .pos-receipt-line-price,
+    #pos-receipt-print .pos-receipt-line-total {
+        font-size: 9pt !important;
         font-weight: 600 !important;
     }
 

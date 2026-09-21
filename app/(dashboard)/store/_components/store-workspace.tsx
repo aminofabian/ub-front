@@ -1059,7 +1059,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         mobileDetailTab={mobileDetailTab}
         onMobileDetailTab={setMobileDetailTab}
         activityToken={activityToken}
-        onPutIn={() => openMovement(null, "in")}
+        onPutIn={(row) => openMovement(row ?? null, "in")}
         onInheritOrder={() => setInheritOpen(true)}
         onRecorded={refreshQuietly}
         onTakeOut={(row) => openMovement(row, "out")}
@@ -1099,6 +1099,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         rows={rows}
         connected={connected}
         approvalThreshold={approvalThreshold}
+        branchId={branchId}
         initial={movementInitial}
         onRecorded={handleRecorded}
       />

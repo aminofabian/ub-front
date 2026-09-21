@@ -138,8 +138,8 @@ export const STORE_ROOM_REASONS: readonly {
     value: "received_into_room",
     label: "Back into the store room",
     direction: "in",
-    changesStock: false,
-    hint: "A note in the log — stock is unchanged.",
+    changesStock: true,
+    hint: "Adds to on-hand for this product.",
   },
 ];
 
@@ -183,6 +183,7 @@ export function StoreRoomMovementDrawer({
   rows,
   connected,
   approvalThreshold = null,
+  branchId = null,
   initial,
   onRecorded,
 }: {
@@ -192,6 +193,11 @@ export function StoreRoomMovementDrawer({
   connected: boolean;
   /** Above this, the take-out is recorded but waits for approval. */
   approvalThreshold?: number | null;
+  /**
+   * Shop whose on-hand the store room is showing. Must match the list query so a
+   * linked write-off actually moves the quantity the operator sees.
+   */
+  branchId?: string | null;
   /** Pre-selected row + direction, e.g. from a table row action. */
   initial: { storeItemId?: string | null; direction: StoreRoomDirection } | null;
   onRecorded: (movement: StoreRoomMovementRecord) => void;
@@ -316,6 +322,7 @@ export function StoreRoomMovementDrawer({
         reason,
         quantity: movementQty,
         note: note.trim() || null,
+        branchId: branchId?.trim() || null,
       });
       onOpenChange(false);
       onRecorded(movement);
@@ -341,7 +348,7 @@ export function StoreRoomMovementDrawer({
       description={
         direction === "out"
           ? "Say what left and why. Only a loss changes stock — restocking the shelf does not."
-          : "Record what came back into the back room."
+          : "Say what came back. This adds to on-hand for linked products."
       }
       icon={
         direction === "out" ? (
@@ -508,8 +515,12 @@ export function StoreRoomMovementDrawer({
             {meta.hint}
             {changesStock
               ? linked
-                ? " This reduces stock for the linked product."
-                : " This reduces this list's count."
+                ? direction === "in"
+                  ? " This adds stock for the linked product."
+                  : " This reduces stock for the linked product."
+                : direction === "in"
+                  ? " This increases this list's count."
+                  : " This reduces this list's count."
               : null}
           </p>
         ) : null}
