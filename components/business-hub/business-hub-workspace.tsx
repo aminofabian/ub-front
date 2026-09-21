@@ -37,6 +37,7 @@ import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { OpenWorkBoard } from "@/components/business-hub/open-work-board";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
+import { ReceiveMpesaSetupCard } from "@/components/business-hub/receive-mpesa-setup-card";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
 import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnaire-resume-banner";
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
@@ -1284,30 +1285,38 @@ export function BusinessHubWorkspace() {
               )}
             >
               {shopNotReady ? (
-                <ShopOpenBoard
-                  shopName={
-                    business?.branding?.displayName?.trim() ||
-                    business?.name?.trim() ||
-                    ""
-                  }
-                  shopHost={
-                    business?.primaryDomain?.trim() ||
-                    (business?.slug?.trim()
-                      ? `${business.slug.trim()}.${PLATFORM_DOMAIN}`
-                      : null)
-                  }
-                  storefrontEnabled={Boolean(business?.storefront?.enabled)}
-                  themeId={business?.storefront?.storeThemeId}
-                  landingTemplateId={business?.storefront?.landingTemplateId}
-                  logoUrl={business?.branding?.logoUrl}
-                  brandPrimary={business?.branding?.primaryColor}
-                  hours={business?.storefront?.landingContent?.hours}
-                  address={business?.storefront?.landingContent?.address}
-                  currency={business?.currency}
-                  shopEnabled={shopEnabled}
-                  canManageStorefront={canManageBusinessSettings}
-                  canListUsers={canListUsers}
-                />
+                <>
+                  <ShopOpenBoard
+                    shopName={
+                      business?.branding?.displayName?.trim() ||
+                      business?.name?.trim() ||
+                      ""
+                    }
+                    shopHost={
+                      business?.primaryDomain?.trim() ||
+                      (business?.slug?.trim()
+                        ? `${business.slug.trim()}.${PLATFORM_DOMAIN}`
+                        : null)
+                    }
+                    storefrontEnabled={Boolean(business?.storefront?.enabled)}
+                    themeId={business?.storefront?.storeThemeId}
+                    landingTemplateId={business?.storefront?.landingTemplateId}
+                    logoUrl={business?.branding?.logoUrl}
+                    brandPrimary={business?.branding?.primaryColor}
+                    hours={business?.storefront?.landingContent?.hours}
+                    address={business?.storefront?.landingContent?.address}
+                    currency={business?.currency}
+                    shopEnabled={shopEnabled}
+                    canManageStorefront={canManageBusinessSettings}
+                    canListUsers={canListUsers}
+                  />
+                  <ReceiveMpesaSetupCard
+                    compact
+                    ownerPhone={me?.phone}
+                    countryCode={business?.countryCode}
+                    permissions={me?.permissions}
+                  />
+                </>
               ) : salesEmpty ? (
                 <BusinessHubEmptyState
                   period={period}
@@ -1355,10 +1364,17 @@ export function BusinessHubWorkspace() {
                     )
                   ) : null}
 
-                  {/* 3 — Jump in: the board a shop actually navigates with */}
+                  {/* 3 — Where cash lands (till / paybill / bank) */}
+                  <ReceiveMpesaSetupCard
+                    ownerPhone={me?.phone}
+                    countryCode={business?.countryCode}
+                    permissions={me?.permissions}
+                  />
+
+                  {/* 4 — Jump in: the board a shop actually navigates with */}
                   <JumpInGrid links={jumpInLinks} />
 
-                  {/* 4 — Open work (phone: column tabs; sm+: multi-column grid) */}
+                  {/* 5 — Open work (phone: column tabs; sm+: multi-column grid) */}
                   {(canViewSupplyBills &&
                     !(salesEmpty && todaySupplies.length === 0)) ||
                   (canViewCreditTabs &&

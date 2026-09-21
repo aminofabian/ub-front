@@ -28,10 +28,11 @@ import { GatewayConfigForm } from "@/components/payments/gateway-config-form";
 import { GatewayStatusBadge } from "@/components/payments/gateway-status-badge";
 import { PaymentBrandMark } from "@/components/payments/payment-brand-mark";
 import { ManualMethodForm } from "@/components/payments/manual-method-form";
+import { parseCustodyDestination } from "@/components/payments/custody-mpesa-method-form";
 import {
-  CustodyMpesaMethodForm,
-  parseCustodyDestination,
-} from "@/components/payments/custody-mpesa-method-form";
+  ReceiveMpesaFlow,
+  receiveInitialFromCustodyJson,
+} from "@/components/payments/receive-mpesa-flow";
 import { SupplierPayoutSettingsSection } from "@/components/payments/supplier-payout-settings-section";
 import { KioskPaySettingsSection } from "@/components/payments/kiosk-pay-settings-section";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
@@ -188,7 +189,7 @@ function sectionFromHash(hash: string): PaymentsSettingsSectionId | null {
 }
 
 export default function PaymentGatewaySettingsPage() {
-  const { me } = useDashboard();
+  const { me, business } = useDashboard();
   const canRead = hasPermission(
     me?.permissions,
     Permission.PaymentsGatewaysRead,
@@ -747,13 +748,13 @@ export default function PaymentGatewaySettingsPage() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[14px] font-semibold tracking-[-0.015em] text-foreground">
-                    Lipa Na M-Pesa — till or paybill
+                    Lipa Na M-Pesa — till, paybill, or bank
                   </span>
                   <span className="mt-0.5 block text-[11px] text-muted-foreground">
                     {custodyAvailability != null && !custodyAvailability.available
                       ? (custodyAvailability.message ??
                         "Not available yet — ask Super Admin to enable a custody rail.")
-                      : "No API keys. Prompt the customer; they enter PIN only."}
+                      : "No API keys. Prove it with a KES 1 prompt."}
                   </span>
                 </span>
                 <Plus className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -1168,15 +1169,23 @@ export default function PaymentGatewaySettingsPage() {
         onOpenChange={(open) => {
           if (!open) closeDrawer();
         }}
-        title="Lipa Na M-Pesa — till or paybill"
-        description="No keys. Enter your till or paybill. Kiosk sends the prompt; the customer only enters PIN."
+        title="Where should M-Pesa land?"
+        description="Till, paybill, or bank — then prove it with KES 1. No API keys."
         contextLabel="Payments"
+        appearance="sharp"
         width="wide"
       >
-        <CustodyMpesaMethodForm
-          saving={saving}
+        <ReceiveMpesaFlow
+          appearance="sharp"
+          ownerPhone={me?.phone}
+          countryCode={business?.countryCode}
+          showSkip={false}
           onCancel={closeDrawer}
-          onSave={(payload) => onCreate(payload)}
+          onDone={() => {
+            closeDrawer();
+            void reload();
+          }}
+          doneLabel="Done"
         />
       </FormDrawer>
 
@@ -1188,16 +1197,33 @@ export default function PaymentGatewaySettingsPage() {
             closeDrawer();
           }
         }}
-        title="Edit till / paybill destination"
+        title="Update M-Pesa destination"
+        description="Change till, paybill, or bank — then re-test with KES 1."
         contextLabel="Payments"
+        appearance="sharp"
         width="wide"
       >
         {drawer.kind === "custody-edit" ? (
-          <CustodyMpesaMethodForm
-            saving={saving}
-            initial={custodyEditInitial}
-            onCancel={closeDrawer}
-            onSave={(payload) => onUpdate(drawer.config.id, payload)}
+          <ReceiveMpesaFlow
+            appearance="sharp"
+            ownerPhone={me?.phone}
+            countryCode={business?.countryCode}
+            initial={receiveInitialFromCustodyJson(
+              custodyEditInitial?.displayInstructionsJson ??
+                drawer.config.displayInstructionsJson,
+              custodyEditInitial?.label ?? drawer.config.label,
+            )}
+            showSkip={false}
+            onCancel={() => {
+              setCustodyEditInitial(undefined);
+              closeDrawer();
+            }}
+            onDone={() => {
+              setCustodyEditInitial(undefined);
+              closeDrawer();
+              void reload();
+            }}
+            doneLabel="Done"
           />
         ) : null}
       </FormDrawer>

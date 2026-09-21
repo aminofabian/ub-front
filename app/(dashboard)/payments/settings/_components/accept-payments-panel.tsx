@@ -41,7 +41,7 @@ export function gatewayDisplayName(
     return "Manual payment";
   }
   if (isCustodyMpesaGateway(config)) {
-    return "Lipa Na M-Pesa (till / paybill)";
+    return "Lipa Na M-Pesa (till / paybill / bank)";
   }
   return (
     available.find((a) => a.gatewayType === config.gatewayType)?.displayName ??

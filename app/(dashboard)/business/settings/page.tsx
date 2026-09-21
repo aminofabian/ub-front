@@ -103,7 +103,7 @@ export default function BusinessSettingsPage() {
       {
         href: APP_ROUTES.paymentsSettings,
         label: "Payments",
-        hint: "Gateways & payouts",
+        hint: "Where M-Pesa lands",
         icon: CreditCard,
         group: "Money",
       },
