@@ -52,6 +52,14 @@ export type SaBusinessRow = {
   ownerName?: string | null;
   /** Oldest owner user email when linked. */
   ownerEmail?: string | null;
+  /** Storefront branding when the API includes it on GET business. */
+  branding?: {
+    displayName?: string | null;
+    logoUrl?: string | null;
+    primaryColor?: string | null;
+    accentColor?: string | null;
+    heroBannerUrls?: string[] | null;
+  } | null;
 };
 
 export type SaDomainRow = {

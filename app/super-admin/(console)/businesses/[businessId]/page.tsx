@@ -8,7 +8,12 @@ import { Check, Copy, CreditCard, ExternalLink, Globe, Inbox, Mail, MessageCircl
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SaSmsCreditsPanel } from "@/components/super-admin/sa-sms-credits-panel";
 import { SaSubscriptionPanel } from "@/components/super-admin/sa-subscription-panel";
-import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
+import {
+  SaShopHeroButton,
+  SaShopPanel,
+  SaTenantShopFrame,
+  type SaTenantShopBrand,
+} from "@/components/super-admin/sa-tenant-shop-frame";
 import { showThemedConfirmToast, showThemedErrorToast, showThemedSuccessToast } from "@/components/super-admin/themed-confirm-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +24,7 @@ import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
 import {
   APP_ROUTES,
   PLATFORM_DOMAIN,
+  apiUrl,
   hostDerivedShopUrl,
   slugDerivedShopUrl,
 } from "@/lib/config";
@@ -43,8 +49,8 @@ import {
 import { cn } from "@/lib/utils";
 
 const SELECT_CLASS = cn(
-  "h-9 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-sm shadow-sm outline-none",
-  "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/35",
+  "h-9 w-full min-w-0 rounded-[8px] border border-[color-mix(in_srgb,#15231f_14%,transparent)] bg-white px-2.5 text-sm outline-none",
+  "focus-visible:border-[var(--sa-shop-primary,#2555a5)] focus-visible:ring-[3px] focus-visible:ring-[color-mix(in_srgb,var(--sa-shop-primary,#2555a5)_22%,transparent)]",
   "disabled:cursor-not-allowed disabled:opacity-50",
 );
 
@@ -164,12 +170,12 @@ function BusinessDetailInner() {
   const [bizTimezone, setBizTimezone] = useState("Africa/Nairobi");
   const [selectedUserId, setSelectedUserId] = useState("");
   const [copied, setCopied] = useState(false);
-  const [bizLoaded, setBizLoaded] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
   const [postingWelcome, setPostingWelcome] = useState(false);
   const [sendingOnboarding, setSendingOnboarding] = useState(false);
   const [stats, setStats] = useState<SaBusinessStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [brand, setBrand] = useState<SaTenantShopBrand | null>(null);
   const copyTimer = useRef<number | null>(null);
 
   const loadBusiness = useCallback(async () => {
@@ -184,10 +190,34 @@ function BusinessDetailInner() {
       setBizCountry(row.countryCode || "KE");
       setBizCurrency(row.currency || "KES");
       setBizTimezone(row.timezone || "Africa/Nairobi");
+      if (row.branding) {
+        setBrand({
+          displayName: row.branding.displayName,
+          logoUrl: row.branding.logoUrl,
+          primaryColor: row.branding.primaryColor,
+          accentColor: row.branding.accentColor,
+          heroBannerUrls: row.branding.heroBannerUrls,
+        });
+      } else if (row.slug) {
+        // Fall back to public host-resolve so the page picks up live storefront branding.
+        try {
+          const host = `${row.slug}.${PLATFORM_DOMAIN}`;
+          const res = await fetch(
+            `${apiUrl("/api/v1/public/host/resolve")}?host=${encodeURIComponent(host)}`,
+            { headers: { Accept: "application/json" }, cache: "no-store" },
+          );
+          if (res.ok) {
+            const ctx = (await res.json()) as {
+              branding?: SaTenantShopBrand | null;
+            };
+            if (ctx.branding) setBrand(ctx.branding);
+          }
+        } catch {
+          /* keep page usable without branding */
+        }
+      }
     } catch {
       /* name/tier still come from query params as fallback */
-    } finally {
-      setBizLoaded(true);
     }
   }, [businessId]);
 
@@ -563,114 +593,68 @@ function BusinessDetailInner() {
   const locked =
     busy || impersonating || startingChat || postingWelcome || sendingOnboarding;
 
-  return (
-    <div className="space-y-6">
-      <SuperAdminPageHeader
-        title={bizName || "Tenant"}
-        description={
-          bizSlug || "Support session, people, domains, and tenant settings."
-        }
-        actions={
-          <>
-            <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
-              <a href="#sa-subscription">
-                <CreditCard className="size-3.5" />
-                Override plan
-              </a>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => void copyId()}
-            >
-              {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
-              {copied ? "Copied" : "Copy ID"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              disabled={locked}
-              onClick={() => void onMessageTenant()}
-            >
-              <MessageCircle className="size-3.5" />
-              {startingChat ? "Opening…" : "Message tenant"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              disabled={locked}
-              onClick={() => void onPostWelcomeCard()}
-            >
-              <Mail className="size-3.5" />
-              {postingWelcome ? "Posting…" : "Post welcome"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              disabled={locked}
-              onClick={() => onSendOnboardingSequence()}
-            >
-              <Users className="size-3.5" />
-              {sendingOnboarding ? "Sending…" : "Send onboarding"}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              className="gap-1.5 shadow-sm"
-              disabled={locked}
-              onClick={() => void onOpenTenant(true)}
-            >
-              <ExternalLink className="size-3.5" />
-              {impersonating ? "Opening…" : "Open as owner"}
-            </Button>
-          </>
-        }
-      />
+  const shopUrl =
+    hostDerivedShopUrl(primaryDomain) ||
+    (bizSlug ? slugDerivedShopUrl(bizSlug) : null);
+  const catalogHint = statsLoading
+    ? null
+    : `${formatInt(stats?.webPublishedProducts)} on storefront · ${formatInt(stats?.totalProducts)} in catalog`;
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={bizActive ? "success" : "secondary"}>{bizActive ? "Active" : "Inactive"}</Badge>
-        {bizTier ? (
-          <Badge variant="outline" className="capitalize">
-            {bizTier}
-          </Badge>
-        ) : null}
-        {stats?.onboardingStatus ? (
-          <Badge variant="outline" className="capitalize">
-            Onboarding · {stats.onboardingStatus}
-          </Badge>
-        ) : null}
-        {primaryDomain ? (
-          <a
-            href={hostDerivedShopUrl(primaryDomain) || undefined}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+  return (
+    <SaTenantShopFrame
+      name={bizName || titleName || "Tenant"}
+      slug={bizSlug || slugFromQuery}
+      shopUrl={shopUrl}
+      active={bizActive}
+      tier={bizTier}
+      onboardingStatus={stats?.onboardingStatus}
+      brand={brand}
+      catalogHint={catalogHint}
+      headerActions={
+        <>
+          <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 rounded-[8px]" asChild>
+            <a href="#sa-subscription">
+              <CreditCard className="size-3.5" />
+              Plan
+            </a>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 rounded-[8px]"
+            onClick={() => void copyId()}
           >
-            {primaryDomain}
-            <ExternalLink className="size-3 opacity-60" aria-hidden />
-          </a>
-        ) : bizSlug ? (
-          <a
-            href={slugDerivedShopUrl(bizSlug) || undefined}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          >
-            {bizSlug}.{PLATFORM_DOMAIN}
-            <ExternalLink className="size-3 opacity-60" aria-hidden />
-          </a>
-        ) : bizLoaded ? (
-          <span className="text-xs text-muted-foreground">No primary domain</span>
-        ) : null}
-      </div>
+            {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
+            {copied ? "Copied" : "ID"}
+          </Button>
+        </>
+      }
+      heroActions={
+        <>
+          <SaShopHeroButton disabled={locked} onClick={() => void onOpenTenant(true)}>
+            <ExternalLink className="size-3.5" />
+            {impersonating ? "Opening…" : "Open as owner"}
+          </SaShopHeroButton>
+          <SaShopHeroButton tone="ghost" disabled={locked} onClick={() => void onMessageTenant()}>
+            <MessageCircle className="size-3.5" />
+            {startingChat ? "Opening…" : "Message"}
+          </SaShopHeroButton>
+          <SaShopHeroButton tone="ghost" disabled={locked} onClick={() => void onPostWelcomeCard()}>
+            <Mail className="size-3.5" />
+            {postingWelcome ? "Posting…" : "Welcome"}
+          </SaShopHeroButton>
+          <SaShopHeroButton tone="ghost" disabled={locked} onClick={() => onSendOnboardingSequence()}>
+            <Users className="size-3.5" />
+            {sendingOnboarding ? "Sending…" : "Onboarding"}
+          </SaShopHeroButton>
+        </>
+      }
+    >
+      {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
+      <p className="sr-only" aria-live="polite">
+        {copied ? "Tenant ID copied to clipboard." : ""}
+      </p>
 
       {businessId ? (
         <div id="sa-subscription" className="scroll-mt-20">
@@ -678,26 +662,23 @@ function BusinessDetailInner() {
         </div>
       ) : null}
 
-      {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
-      <p className="sr-only" aria-live="polite">
-        {copied ? "Tenant ID copied to clipboard." : ""}
-      </p>
-
-      {/* Tenant intelligence */}
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h2 className="font-heading text-lg font-semibold tracking-tight">Tenant pulse</h2>
-            <p className="text-xs text-muted-foreground">
+            <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-[#15231f]">Tenant pulse</h2>
+            <p className="text-[12px] text-[#5b6470]">
               Sales, catalog, payments, and last activity — what you need before opening a session
             </p>
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[11px] text-[#5b6470]">
             Last sale {relativeWhen(stats?.lastSaleAt)} · Last login {relativeWhen(stats?.lastUserLoginAt)}
           </p>
         </div>
 
-        <div className="grid overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+        <div
+          className="grid overflow-hidden rounded-[10px] border bg-white sm:grid-cols-2 lg:grid-cols-4"
+          style={{ borderColor: "var(--sa-shop-rule, #e6e8ec)" }}
+        >
           <PulseCell
             label="Revenue today"
             value={statsLoading ? "—" : formatKes(stats?.sales.revenueToday, bizCurrency)}
@@ -737,90 +718,90 @@ function BusinessDetailInner() {
         </div>
 
         <div className="grid gap-3 lg:grid-cols-3">
-          <div className="rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-sm sm:px-5">
-            <h3 className="text-sm font-medium">Team & shifts</h3>
-            <dl className="mt-3 grid grid-cols-2 gap-3">
+          <SaShopPanel title="Team & shifts">
+            <dl className="grid grid-cols-2 gap-3 px-4 py-4 sm:px-5">
               <MiniStat label="Users" value={statsLoading ? "—" : formatInt(stats?.totalUsers)} />
               <MiniStat label="Active" value={statsLoading ? "—" : formatInt(stats?.activeUsers)} />
               <MiniStat label="Open shifts" value={statsLoading ? "—" : formatInt(stats?.openShifts)} />
-              <MiniStat
-                label="7d sales"
-                value={statsLoading ? "—" : formatInt(stats?.sales.salesLast7Days)}
-              />
+              <MiniStat label="7d sales" value={statsLoading ? "—" : formatInt(stats?.sales.salesLast7Days)} />
             </dl>
-          </div>
+          </SaShopPanel>
 
-          <div className="rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-sm sm:px-5">
-            <h3 className="text-sm font-medium">Storefront</h3>
-            <p className="mt-0.5 text-xs text-muted-foreground">Paid web / WhatsApp orders</p>
-            <dl className="mt-3 space-y-2.5">
+          <SaShopPanel title="Storefront" description="Paid web / WhatsApp orders">
+            <dl className="space-y-2.5 px-4 py-4 sm:px-5">
               <div className="flex items-baseline justify-between gap-2">
-                <dt className="text-xs text-muted-foreground">GMV · 30d</dt>
+                <dt className="text-xs text-[#5b6470]">GMV · 30d</dt>
                 <dd className="text-sm font-semibold tabular-nums">
                   {statsLoading ? "—" : formatKes(stats?.storefront.paidGmvLast30Days, bizCurrency)}
                 </dd>
               </div>
               <div className="flex items-baseline justify-between gap-2">
-                <dt className="text-xs text-muted-foreground">Orders · 30d</dt>
+                <dt className="text-xs text-[#5b6470]">Orders · 30d</dt>
                 <dd className="text-sm tabular-nums">
                   {statsLoading ? "—" : formatInt(stats?.storefront.paidOrdersLast30Days)}
                 </dd>
               </div>
-              <div className="flex items-baseline justify-between gap-2 border-t border-border/50 pt-2.5">
-                <dt className="text-xs text-muted-foreground">Orders all-time</dt>
-                <dd className="text-sm tabular-nums text-muted-foreground">
+              <div
+                className="flex items-baseline justify-between gap-2 border-t pt-2.5"
+                style={{ borderColor: "var(--sa-shop-rule, #e6e8ec)" }}
+              >
+                <dt className="text-xs text-[#5b6470]">Orders all-time</dt>
+                <dd className="text-sm tabular-nums text-[#5b6470]">
                   {statsLoading ? "—" : formatInt(stats?.storefront.paidOrdersAllTime)}
                 </dd>
               </div>
             </dl>
-          </div>
+          </SaShopPanel>
 
-          <div className="rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-sm sm:px-5">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h3 className="text-sm font-medium">Payment methods</h3>
-                <p className="mt-0.5 text-xs text-muted-foreground">Configured gateways for this shop</p>
-              </div>
-              <Badge variant={stats?.kioskPayActive ? "success" : "secondary"} className="shrink-0">
+          <SaShopPanel
+            title="Payment methods"
+            description="Configured gateways for this shop"
+            headerRight={
+              <Badge variant={stats?.kioskPayActive ? "success" : "secondary"} className="shrink-0 rounded-[6px]">
                 Kiosk Pay · {stats?.kioskPayStatus ?? "—"}
               </Badge>
-            </div>
+            }
+          >
             {statsLoading ? (
-              <div className="mt-3 space-y-2" aria-hidden>
-                <div className="h-8 animate-pulse rounded-lg bg-muted" />
-                <div className="h-8 animate-pulse rounded-lg bg-muted" />
+              <div className="space-y-2 px-4 py-4 sm:px-5" aria-hidden>
+                <div className="h-8 animate-pulse rounded-[8px] bg-muted" />
+                <div className="h-8 animate-pulse rounded-[8px] bg-muted" />
               </div>
             ) : !stats?.paymentMethods.length ? (
-              <p className="mt-4 text-sm text-muted-foreground">
+              <p className="px-4 py-4 text-sm text-[#5b6470] sm:px-5">
                 No gateway configs yet — cash / manual may still work at the till.
               </p>
             ) : (
-              <ul className="mt-3 space-y-1.5">
+              <ul className="space-y-1.5 px-4 py-3 sm:px-5">
                 {stats.paymentMethods.map((m) => (
                   <li
                     key={`${m.gatewayType}-${m.label}`}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-border/50 px-2.5 py-2"
+                    className="flex items-center justify-between gap-2 rounded-[8px] border px-2.5 py-2"
+                    style={{ borderColor: "var(--sa-shop-rule, #e6e8ec)" }}
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{m.label || m.gatewayType}</p>
-                      <p className="truncate font-mono text-[10px] uppercase text-muted-foreground">
+                      <p className="truncate font-mono text-[10px] uppercase text-[#5b6470]">
                         {m.gatewayType}
                         {m.isDefault ? " · default" : ""}
                       </p>
                     </div>
-                    <Badge variant={paymentStatusVariant(m.status)} className="shrink-0 capitalize">
+                    <Badge variant={paymentStatusVariant(m.status)} className="shrink-0 rounded-[6px] capitalize">
                       {m.status.toLowerCase()}
                     </Badge>
                   </li>
                 ))}
               </ul>
             )}
-          </div>
+          </SaShopPanel>
         </div>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:px-5">
-        <p className="min-w-0 flex-1 text-sm leading-relaxed text-muted-foreground">
+      <section
+        className="flex flex-col gap-3 rounded-[10px] border bg-white px-4 py-3 sm:flex-row sm:items-center sm:px-5"
+        style={{ borderColor: "var(--sa-shop-rule, #e6e8ec)" }}
+      >
+        <p className="min-w-0 flex-1 text-sm leading-relaxed text-[#5b6470]">
           A support session lasts four hours, stays alive while the tab is open, is audit-logged, and leaves this console for the tenant host.
         </p>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
@@ -846,8 +827,9 @@ function BusinessDetailInner() {
           </select>
           <Button
             type="button"
-            variant="outline"
             size="sm"
+            className="h-9 shrink-0 gap-1.5 rounded-[8px] text-white"
+            style={{ backgroundColor: "var(--sa-shop-primary, #2555a5)" }}
             disabled={locked || !selectedUserId || activeUsers.length === 0}
             onClick={() => void onOpenTenant(false)}
           >
@@ -856,15 +838,12 @@ function BusinessDetailInner() {
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-5">
-        <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm xl:col-span-3">
-          <div className="border-b border-border/60 px-4 py-4 sm:px-5">
-            <h2 className="font-heading text-lg font-semibold tracking-tight">Settings</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Display name, region, and catalog override. Plan and grace live in
-              Subscription below.
-            </p>
-          </div>
+      <div className="grid gap-5 xl:grid-cols-5">
+        <SaShopPanel
+          className="xl:col-span-3"
+          title="Settings"
+          description="Display name, region, and catalog override. Plan and grace live in Subscription below."
+        >
           <form className="grid gap-4 px-4 py-5 sm:grid-cols-2 sm:px-5" onSubmit={onSaveBusiness}>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="sa-biz-name">Display name</Label>
@@ -873,13 +852,14 @@ function BusinessDetailInner() {
                 value={bizName}
                 onChange={(ev) => setBizName(ev.target.value)}
                 disabled={locked}
+                className="rounded-[8px]"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="sa-biz-country">Country</Label>
               <Input
                 id="sa-biz-country"
-                className="font-mono uppercase"
+                className="rounded-[8px] font-mono uppercase"
                 value={bizCountry}
                 onChange={(ev) => setBizCountry(ev.target.value)}
                 maxLength={2}
@@ -891,7 +871,7 @@ function BusinessDetailInner() {
               <Label htmlFor="sa-biz-currency">Currency</Label>
               <Input
                 id="sa-biz-currency"
-                className="font-mono uppercase"
+                className="rounded-[8px] font-mono uppercase"
                 value={bizCurrency}
                 onChange={(ev) => setBizCurrency(ev.target.value)}
                 maxLength={3}
@@ -907,30 +887,34 @@ function BusinessDetailInner() {
                 onChange={(ev) => setBizTimezone(ev.target.value)}
                 placeholder="Africa/Nairobi"
                 disabled={locked}
+                className="rounded-[8px]"
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="sa-biz-catalog">Global catalog code</Label>
               <Input
                 id="sa-biz-catalog"
-                className="font-mono"
+                className="rounded-[8px] font-mono"
                 value={globalCatalogCode}
                 onChange={(ev) => setGlobalCatalogCode(ev.target.value)}
                 placeholder="Leave blank for country default"
                 disabled={locked}
               />
-              <p className="text-xs text-muted-foreground">Overrides regional resolution. Blank clears the override.</p>
+              <p className="text-xs text-[#5b6470]">Overrides regional resolution. Blank clears the override.</p>
             </div>
-            <p className="text-xs leading-relaxed text-muted-foreground sm:col-span-2">
+            <p className="text-xs leading-relaxed text-[#5b6470] sm:col-span-2">
               Changing country or currency re-labels existing amounts without converting them. Shops
               with products or sales require confirmation.
             </p>
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-border/70 px-3 py-2.5 sm:col-span-2">
+            <div
+              className="flex items-center justify-between gap-3 rounded-[10px] border px-3 py-2.5 sm:col-span-2"
+              style={{ borderColor: "var(--sa-shop-rule, #e6e8ec)" }}
+            >
               <div className="min-w-0 space-y-0.5">
                 <Label htmlFor="sa-biz-active" className="cursor-pointer">
                   Active
                 </Label>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-[#5b6470]">
                   Off locks the shop: staff are signed out and cannot log in until you turn this back on.
                 </p>
               </div>
@@ -942,19 +926,28 @@ function BusinessDetailInner() {
               />
             </div>
             <div className="sm:col-span-2">
-              <Button type="submit" disabled={locked}>
+              <Button
+                type="submit"
+                disabled={locked}
+                className="rounded-[8px] text-white"
+                style={{ backgroundColor: "var(--sa-shop-primary, #2555a5)" }}
+              >
                 {busy ? "Saving…" : "Save changes"}
               </Button>
             </div>
           </form>
-        </section>
+        </SaShopPanel>
 
-        <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm xl:col-span-2">
-          <div className="border-b border-border/60 px-4 py-4 sm:px-5">
-            <h2 className="font-heading text-lg font-semibold tracking-tight">Domains</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Hostnames for this tenant. One is primary.</p>
-          </div>
-          <form className="flex gap-2 border-b border-border/60 px-4 py-3 sm:px-5" onSubmit={onAddDomain}>
+        <SaShopPanel
+          className="xl:col-span-2"
+          title="Domains"
+          description="Hostnames for this tenant. One is primary."
+        >
+          <form
+            className="flex gap-2 border-b px-4 py-3 sm:px-5"
+            style={{ borderColor: "var(--sa-shop-rule, #e6e8ec)" }}
+            onSubmit={onAddDomain}
+          >
             <Label className="sr-only" htmlFor="sa-new-domain">
               New domain
             </Label>
@@ -964,29 +957,40 @@ function BusinessDetailInner() {
               onChange={(ev) => setNewDomain(ev.target.value)}
               placeholder="shop.example.co.ke"
               disabled={locked}
+              className="rounded-[8px]"
             />
-            <Button type="submit" size="sm" className="shrink-0 gap-1.5" disabled={locked || !newDomain.trim()}>
+            <Button
+              type="submit"
+              size="sm"
+              className="shrink-0 gap-1.5 rounded-[8px] text-white"
+              style={{ backgroundColor: "var(--sa-shop-primary, #2555a5)" }}
+              disabled={locked || !newDomain.trim()}
+            >
               <Plus className="size-3.5" />
               Add
             </Button>
           </form>
           {domains.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-              <Globe className="mb-3 size-8 text-muted-foreground/45" aria-hidden />
+              <Globe className="mb-3 size-8 text-[#5b6470]/45" aria-hidden />
               <p className="text-sm font-medium text-foreground">No domains</p>
-              <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+              <p className="mt-1 max-w-xs text-sm text-[#5b6470]">
                 Add a hostname above, or recreate the tenant with a primary domain.
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-border/50">
+            <ul>
               {domains.map((d) => (
-                <li key={d.id} className="flex items-start justify-between gap-3 px-4 py-3 sm:px-5">
+                <li
+                  key={d.id}
+                  className="flex items-start justify-between gap-3 border-b px-4 py-3 last:border-b-0 sm:px-5"
+                  style={{ borderColor: "var(--sa-shop-rule, #e6e8ec)" }}
+                >
                   <div className="min-w-0">
                     <p className="truncate font-mono text-xs text-foreground">{d.domain}</p>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {d.primary ? <Badge variant="default">Primary</Badge> : null}
-                      <Badge variant={d.active ? "success" : "secondary"}>
+                      {d.primary ? <Badge variant="default" className="rounded-[6px]">Primary</Badge> : null}
+                      <Badge variant={d.active ? "success" : "secondary"} className="rounded-[6px]">
                         {d.active ? "Active" : "Inactive"}
                       </Badge>
                     </div>
@@ -996,6 +1000,7 @@ function BusinessDetailInner() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="rounded-[8px]"
                       disabled={locked}
                       onClick={() => void onSetPrimary(d.id)}
                     >
@@ -1006,39 +1011,37 @@ function BusinessDetailInner() {
               ))}
             </ul>
           )}
-        </section>
+        </SaShopPanel>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-        <div className="border-b border-border/60 px-4 py-4 sm:px-5">
-          <h2 className="font-heading text-lg font-semibold tracking-tight">People</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Change a person&apos;s status, email them, or open the shop as them.
-            Invited owners stay invited until they tap the verification link —
-            that can&apos;t be skipped from here. Moving someone out of Active
-            revokes their sessions.
-          </p>
-        </div>
+      <SaShopPanel
+        title="People"
+        description="Change a person's status, email them, or open the shop as them. Invited owners stay invited until they tap the verification link — that can't be skipped from here. Moving someone out of Active revokes their sessions."
+      >
         {users.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-            <Users className="mb-3 size-8 text-muted-foreground/45" aria-hidden />
+            <Users className="mb-3 size-8 text-[#5b6470]/45" aria-hidden />
             <p className="text-sm font-medium text-foreground">No users on this tenant</p>
           </div>
         ) : (
           <>
-            <ul className="divide-y divide-border/50 lg:hidden">
+            <ul className="lg:hidden">
               {users.map((u) => {
                 const isActive = u.status.toLowerCase() === "active";
                 return (
-                  <li key={u.id} className="space-y-2 px-4 py-3.5 sm:px-5">
+                  <li
+                    key={u.id}
+                    className="space-y-2 border-b px-4 py-3.5 last:border-b-0 sm:px-5"
+                    style={{ borderColor: "var(--sa-shop-rule, #e6e8ec)" }}
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate font-medium text-foreground">{u.name || "Unnamed"}</p>
-                        <p className="truncate font-mono text-xs text-muted-foreground">{u.email}</p>
+                        <p className="truncate font-mono text-xs text-[#5b6470]">{u.email}</p>
                       </div>
-                      <Badge variant={userStatusVariant(u.status)}>{u.status}</Badge>
+                      <Badge variant={userStatusVariant(u.status)} className="rounded-[6px]">{u.status}</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-[#5b6470]">
                       {u.roleName || u.roleKey}
                       {u.branchName ? ` · ${u.branchName}` : ""}
                     </p>
@@ -1061,7 +1064,7 @@ function BusinessDetailInner() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="gap-1.5"
+                          className="gap-1.5 rounded-[8px]"
                           disabled={locked}
                           onClick={() => onResendVerification(u.id)}
                         >
@@ -1073,12 +1076,13 @@ function BusinessDetailInner() {
                         type="button"
                         variant="outline"
                         size="sm"
+                        className="rounded-[8px]"
                         disabled={locked || !isActive}
                         onClick={() => void onOpenTenant(false, u.id)}
                       >
                         Open as
                       </Button>
-                      <Button type="button" variant="ghost" size="sm" className="gap-1.5" asChild>
+                      <Button type="button" variant="ghost" size="sm" className="gap-1.5 rounded-[8px]" asChild>
                         <Link
                           href={`${APP_ROUTES.superAdminCampaignNew}?segment=selected_users&userIds=${encodeURIComponent(u.id)}`}
                         >
@@ -1093,7 +1097,10 @@ function BusinessDetailInner() {
             </ul>
             <div className="hidden overflow-x-auto lg:block">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-border bg-muted/35 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <thead
+                  className="border-b text-[11px] font-semibold uppercase tracking-wide text-[#5b6470]"
+                  style={{ borderColor: "var(--sa-shop-rule, #e6e8ec)", backgroundColor: "#f3f5f8" }}
+                >
                   <tr>
                     <th className="px-4 py-3 font-medium">Person</th>
                     <th className="px-4 py-3 font-medium">Role</th>
@@ -1103,28 +1110,27 @@ function BusinessDetailInner() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/50">
+                <tbody>
                   {users.map((u) => {
                     const isActive = u.status.toLowerCase() === "active";
                     return (
-                      <tr key={u.id} className="transition-colors hover:bg-muted/35">
-                        <td className="px-4 py-2.5">
+                      <tr
+                        key={u.id}
+                        className="border-b last:border-b-0 transition-colors hover:bg-[#f7f8fa]"
+                        style={{ borderColor: "var(--sa-shop-rule, #e6e8ec)" }}
+                      >
+                        <td className="px-4 py-3">
                           <p className="font-medium text-foreground">{u.name || "Unnamed"}</p>
-                          <p className="font-mono text-xs text-muted-foreground">{u.email}</p>
+                          <p className="font-mono text-xs text-[#5b6470]">{u.email}</p>
                         </td>
-                        <td className="px-4 py-2.5 text-muted-foreground">
+                        <td className="px-4 py-3 text-[#5b6470]">
                           {u.roleName || u.roleKey}
-                          {u.branchName ? (
-                            <span className="mt-0.5 block text-xs">{u.branchName}</span>
-                          ) : null}
+                          {u.branchName ? <span className="block text-xs">{u.branchName}</span> : null}
                         </td>
-                        <td className="px-4 py-2.5">
-                          <Badge variant={userStatusVariant(u.status)}>{u.status}</Badge>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                        <td className="px-4 py-3">
                           <select
                             aria-label={`Change status for ${u.name || u.email}`}
-                            className={cn(SELECT_CLASS, "mr-1.5 inline-block h-8 w-auto py-0")}
+                            className={cn(SELECT_CLASS, "h-8 w-auto min-w-[7.5rem] py-0")}
                             value={u.status}
                             disabled={locked}
                             onChange={(ev) => onChangeUserStatus(u.id, ev.target.value)}
@@ -1135,36 +1141,40 @@ function BusinessDetailInner() {
                               </option>
                             ))}
                           </select>
-                          {u.status.toLowerCase() === "invited" ? (
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap justify-end gap-1.5">
+                            {u.status.toLowerCase() === "invited" ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 rounded-[8px]"
+                                disabled={locked}
+                                onClick={() => onResendVerification(u.id)}
+                              >
+                                <Inbox className="size-3.5" />
+                                Resend
+                              </Button>
+                            ) : null}
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="mr-1.5 gap-1.5"
-                              disabled={locked}
-                              onClick={() => onResendVerification(u.id)}
+                              className="rounded-[8px]"
+                              disabled={locked || !isActive}
+                              onClick={() => void onOpenTenant(false, u.id)}
                             >
-                              <Inbox className="size-3.5" />
-                              Resend inbox
+                              Open as
                             </Button>
-                          ) : null}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={locked || !isActive}
-                            onClick={() => void onOpenTenant(false, u.id)}
-                          >
-                            Open as
-                          </Button>
-                          <Button type="button" variant="ghost" size="sm" className="ml-1 gap-1.5" asChild>
-                            <Link
-                              href={`${APP_ROUTES.superAdminCampaignNew}?segment=selected_users&userIds=${encodeURIComponent(u.id)}`}
-                            >
-                              <Mail className="size-3.5" />
-                              Email
-                            </Link>
-                          </Button>
+                            <Button type="button" variant="ghost" size="sm" className="rounded-[8px]" asChild>
+                              <Link
+                                href={`${APP_ROUTES.superAdminCampaignNew}?segment=selected_users&userIds=${encodeURIComponent(u.id)}`}
+                              >
+                                Email
+                              </Link>
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1174,11 +1184,10 @@ function BusinessDetailInner() {
             </div>
           </>
         )}
-      </section>
+      </SaShopPanel>
 
-      {/* SMS credits & quotas */}
       {businessId ? <SaSmsCreditsPanel businessId={businessId} /> : null}
-    </div>
+    </SaTenantShopFrame>
   );
 }
 
@@ -1192,10 +1201,13 @@ function PulseCell({
   hint: string;
 }) {
   return (
-    <div className="border-b border-border/60 px-4 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:px-5 sm:last:border-r-0 lg:[&:nth-child(2)]:border-r lg:[&:nth-child(4)]:border-r-0">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 font-heading text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+    <div
+      className="border-b px-4 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:px-5 sm:last:border-r-0 lg:[&:nth-child(2)]:border-r lg:[&:nth-child(4)]:border-r-0"
+      style={{ borderColor: "var(--sa-shop-rule, #e6e8ec)" }}
+    >
+      <p className="text-xs text-[#5b6470]">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-[#15231f]">{value}</p>
+      <p className="mt-1 text-xs text-[#5b6470]">{hint}</p>
     </div>
   );
 }
@@ -1203,8 +1215,8 @@ function PulseCell({
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[11px] text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 font-heading text-lg font-semibold tabular-nums">{value}</dd>
+      <dt className="text-[11px] text-[#5b6470]">{label}</dt>
+      <dd className="mt-0.5 text-lg font-semibold tabular-nums text-[#15231f]">{value}</dd>
     </div>
   );
 }

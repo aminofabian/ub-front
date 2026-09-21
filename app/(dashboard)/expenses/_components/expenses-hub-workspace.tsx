@@ -1,18 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Plus, RefreshCw, Scale } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
-  DASHBOARD_SECTION_SURFACE,
-  DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoadError,
   DashboardLoading,
-  DashboardPageHero,
+  dashboardHintClass,
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
@@ -57,9 +55,19 @@ import {
   formatFixedCostDate,
   paymentMethodLabel,
 } from "@/lib/fixed-costs-utils";
+import { parseStorefrontHex } from "@/lib/storefront-theme";
 import { cn } from "@/lib/utils";
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
+
+const HAIRLINE =
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+const PAPER = "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,#faf8f4)]";
+const PRIMARY_BTN =
+  "h-9 rounded-none border-0 bg-[var(--pos-primary,#0f766e)] px-3 text-[13px] font-semibold text-white shadow-none hover:bg-[#0d6b63]";
+const OUTLINE_BTN =
+  "h-9 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-3 text-[13px] font-semibold text-[var(--order-ink,#15231f)] shadow-none hover:border-[var(--pos-primary,#0f766e)]";
+
 
 export function ExpensesHubWorkspace() {
   const {
@@ -70,7 +78,15 @@ export function ExpensesHubWorkspace() {
     canReadFinanceReports,
     canViewPayroll,
     branches,
+    business,
   } = useDashboard();
+
+  const shopName =
+    business?.branding?.displayName?.trim() ||
+    business?.name?.trim() ||
+    "Your shop";
+  const brandPrimary =
+    parseStorefrontHex(business?.branding?.primaryColor) ?? "#0f766e";
 
   const canOpen = canReadFinanceExpenses || canReadFinanceReports;
 
@@ -467,59 +483,139 @@ export function ExpensesHubWorkspace() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-6 pb-16")}>
-      <DashboardPageHero
-        icon={Scale}
-        title="Expenses & profit"
-        description="Sales, cost of goods, operating expenses, and net operating profit — in one place."
+    <div
+      className={cn(DASHBOARD_MAX_WIDE, "overflow-hidden border", HAIRLINE, PAPER)}
+      style={
+        {
+          "--pos-primary": brandPrimary,
+        } as CSSProperties
+      }
+    >
+      {/* Storefront-style utility strip */}
+      <div
+        className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1.5 text-[11px] font-medium text-white/90 sm:px-4"
+        style={{ backgroundColor: brandPrimary }}
       >
-        <div className="flex flex-wrap gap-2">
-          {canWriteFinanceExpenses ? (
-            <Button type="button" onClick={() => setAddOpen(true)}>
-              <Plus className="size-4" />
-              Add expense
-            </Button>
-          ) : null}
-          {canManageFinanceExpenses ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setRecurringOpen(true)}
-            >
-              Recurring
-            </Button>
-          ) : null}
-          {canReadFinanceExpenses ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={downloadExpensesCsv}
-            >
-              CSV expenses
-            </Button>
-          ) : null}
-          {pl ? (
-            <Button type="button" variant="outline" onClick={downloadPlCsv}>
-              CSV P&amp;L
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => bump()}
-            aria-label="Refresh"
-          >
-            <RefreshCw className="size-4" />
-          </Button>
-        </div>
-      </DashboardPageHero>
+        <p className="min-w-0 truncate">
+          <span className="font-semibold opacity-100">{shopName}</span>
+          <span className="opacity-80"> · Expenses &amp; profit</span>
+        </p>
+        <p className="shrink-0 opacity-85">
+          Posted books · not proof money left the account
+        </p>
+      </div>
 
+      {/* Brand hero — mirrors storefront banner energy */}
+      <section
+        className="relative overflow-hidden text-white"
+        style={{ backgroundColor: brandPrimary }}
+      >
+        <div
+          className="pointer-events-none absolute inset-0 opacity-30"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 78% 35%, color-mix(in srgb, white 35%, transparent), transparent 48%), linear-gradient(135deg, color-mix(in srgb, white 12%, transparent), transparent 55%)",
+          }}
+          aria-hidden
+        />
+        <div className="relative z-10 flex flex-col gap-4 px-3 py-6 sm:flex-row sm:items-end sm:justify-between sm:px-4 sm:py-7">
+          <div className="min-w-0 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex size-8 items-center justify-center border border-white/35 bg-white/10">
+                <Scale className="size-4" aria-hidden />
+              </span>
+              <h1 className="text-[1.45rem] font-bold leading-none tracking-[-0.03em] sm:text-[1.75rem]">
+                Expenses &amp; profit
+              </h1>
+            </div>
+            <p className="max-w-xl text-sm leading-relaxed text-white/80">
+              Sales, cost of goods, operating expenses, and net operating profit
+              — for {shopName}, in one place.
+            </p>
+            {canReadFinanceReports && pl && !loading ? (
+              <div className="pt-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
+                  Net operating profit
+                </p>
+                <p
+                  className={cn(
+                    "mt-0.5 text-[1.85rem] font-semibold tabular-nums tracking-tight sm:text-[2.15rem]",
+                    moneyNumber(pl.netOperating) < 0 && "text-[#ffe4e0]",
+                  )}
+                >
+                  {formatFixedCostMoney(moneyNumber(pl.netOperating))}
+                </p>
+              </div>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {canWriteFinanceExpenses ? (
+              <Button
+                type="button"
+                className="h-9 rounded-none border-0 bg-[#d8f3ee] px-3 text-[13px] font-semibold text-[#0a4f48] shadow-none hover:bg-white"
+                onClick={() => setAddOpen(true)}
+              >
+                <Plus className="size-4" />
+                Add expense
+              </Button>
+            ) : null}
+            {canManageFinanceExpenses ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 rounded-none border-white/50 bg-transparent px-3 text-[13px] font-semibold text-white shadow-none hover:bg-white/10 hover:text-white"
+                onClick={() => setRecurringOpen(true)}
+              >
+                Recurring
+              </Button>
+            ) : null}
+            {canReadFinanceExpenses ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 rounded-none border-white/50 bg-transparent px-3 text-[13px] font-semibold text-white shadow-none hover:bg-white/10 hover:text-white"
+                onClick={downloadExpensesCsv}
+              >
+                CSV expenses
+              </Button>
+            ) : null}
+            {pl ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 rounded-none border-white/50 bg-transparent px-3 text-[13px] font-semibold text-white shadow-none hover:bg-white/10 hover:text-white"
+                onClick={downloadPlCsv}
+              >
+                CSV P&amp;L
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-9 rounded-none border border-white/40 text-white hover:bg-white/10 hover:text-white"
+              onClick={() => bump()}
+              aria-label="Refresh"
+            >
+              <RefreshCw className="size-4" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <div className="space-y-3 px-0 pb-16 pt-0 sm:space-y-3">
       {feedback ? (
-        <DashboardFeedback kind={feedback.kind} text={feedback.text} />
+        <div className="px-0 sm:px-0">
+          <DashboardFeedback kind={feedback.kind} text={feedback.text} />
+        </div>
       ) : null}
 
-      <section className={cn(DASHBOARD_SECTION_SURFACE, "space-y-3 p-4")}>
+      <section
+        className={cn(
+          "space-y-3 border border-x-0 border-t-0 bg-white p-3 sm:border-x sm:p-4",
+          HAIRLINE,
+        )}
+      >
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-wrap gap-1">
             {(
@@ -535,6 +631,12 @@ export function ExpensesHubWorkspace() {
                 type="button"
                 size="sm"
                 variant={preset === key ? "default" : "outline"}
+                className={cn(
+                  "h-8 rounded-none px-2.5 text-[12px] font-semibold shadow-none",
+                  preset === key
+                    ? "border-0 bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
+                    : OUTLINE_BTN,
+                )}
                 onClick={() => applyPreset(key)}
               >
                 {label}
@@ -542,10 +644,10 @@ export function ExpensesHubWorkspace() {
             ))}
           </div>
           <label className="text-sm">
-            <span className="mb-1 block text-muted-foreground">From</span>
+            <span className={cn("mb-1 block", dashboardHintClass())}>From</span>
             <input
               type="date"
-              className={dashboardInputClass()}
+              className={cn(dashboardInputClass(), "rounded-none")}
               value={from}
               onChange={(e) => {
                 setPreset("custom");
@@ -555,10 +657,10 @@ export function ExpensesHubWorkspace() {
             />
           </label>
           <label className="text-sm">
-            <span className="mb-1 block text-muted-foreground">To</span>
+            <span className={cn("mb-1 block", dashboardHintClass())}>To</span>
             <input
               type="date"
-              className={dashboardInputClass()}
+              className={cn(dashboardInputClass(), "rounded-none")}
               value={to}
               onChange={(e) => {
                 setPreset("custom");
@@ -568,9 +670,9 @@ export function ExpensesHubWorkspace() {
             />
           </label>
           <label className="text-sm">
-            <span className="mb-1 block text-muted-foreground">Branch</span>
+            <span className={cn("mb-1 block", dashboardHintClass())}>Branch</span>
             <select
-              className={dashboardSelectClass()}
+              className={cn(dashboardSelectClass(), "rounded-none")}
               value={branchFilter}
               onChange={(e) => {
                 setBranchFilter(e.target.value);
@@ -586,34 +688,34 @@ export function ExpensesHubWorkspace() {
             </select>
           </label>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className={dashboardHintClass()}>
           Stock purchases stay in inventory / COGS — they are not operating
           expenses. Amounts below are{" "}
-          <span className="font-medium text-foreground">Posted (books)</span>,
+          <span className="font-semibold text-[var(--order-ink,#15231f)]">Posted (books)</span>,
           not proof that money left the account.
         </p>
-        <div className="flex flex-wrap gap-3 text-sm">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-semibold text-[var(--pos-primary,#0f766e)]">
           <Link
             href={APP_ROUTES.fixedCosts}
-            className="text-primary underline-offset-2 hover:underline"
+            className="underline-offset-2 hover:underline"
           >
             Fixed costs
           </Link>
           <Link
             href={APP_ROUTES.payroll}
-            className="text-primary underline-offset-2 hover:underline"
+            className="underline-offset-2 hover:underline"
           >
             Payroll
           </Link>
           <Link
             href={APP_ROUTES.purchasingApAging}
-            className="text-primary underline-offset-2 hover:underline"
+            className="underline-offset-2 hover:underline"
           >
             Supplier bills
           </Link>
           <Link
             href={APP_ROUTES.paymentsDayLedger}
-            className="text-primary underline-offset-2 hover:underline"
+            className="underline-offset-2 hover:underline"
           >
             Today&apos;s takings
           </Link>
@@ -631,7 +733,12 @@ export function ExpensesHubWorkspace() {
       ) : (
         <>
           {canReadFinanceReports && pl ? (
-            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <section
+              className={cn(
+                "grid overflow-hidden border border-x-0 bg-white sm:grid-cols-2 sm:border-x lg:grid-cols-5",
+                HAIRLINE,
+              )}
+            >
               <MetricCard label="Sales" value={pl.revenue} />
               <MetricCard label="COGS" value={pl.cogs} />
               <MetricCard label="Gross profit" value={pl.grossProfit} />
@@ -643,15 +750,15 @@ export function ExpensesHubWorkspace() {
               />
             </section>
           ) : canReadFinanceReports ? (
-            <p className="text-sm text-muted-foreground">
+            <p className={cn("px-3 text-sm sm:px-4", dashboardHintClass())}>
               No P&amp;L data for this period.
             </p>
           ) : null}
 
           {otherAdjustments != null && Math.abs(otherAdjustments) >= 0.01 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className={cn("px-3 text-sm sm:px-4", dashboardHintClass())}>
               Other adjustments (ledger OpEx not in the expense table):{" "}
-              <span className="font-medium text-foreground">
+              <span className="font-semibold text-[var(--order-ink,#15231f)]">
                 {formatFixedCostMoney(otherAdjustments)}
               </span>
             </p>
@@ -660,17 +767,17 @@ export function ExpensesHubWorkspace() {
           {unpostedPayroll && unpostedPayroll.count > 0 ? (
             <div
               className={cn(
-                DASHBOARD_SECTION_SURFACE,
-                "border-amber-700/30 bg-amber-50/40 px-4 py-3 text-sm",
+                "border border-x-0 border-amber-800/25 bg-[#fff8e8] px-3 py-3 text-sm sm:border-x sm:px-4",
+                HAIRLINE,
               )}
             >
-              <p className="font-medium text-amber-950">
+              <p className="font-semibold text-[#5c3d0a]">
                 {unpostedPayroll.count} payslip
                 {unpostedPayroll.count === 1 ? "" : "s"} not posted to expenses
               </p>
-              <p className="mt-1 text-amber-900/80">
+              <p className="mt-1 text-[#5c3d0a]/80">
                 Net paid{" "}
-                <span className="font-medium tabular-nums">
+                <span className="font-semibold tabular-nums">
                   {formatFixedCostMoney(unpostedPayroll.netTotal)}
                 </span>{" "}
                 is missing from operating expenses for this period. Post from
@@ -679,7 +786,7 @@ export function ExpensesHubWorkspace() {
               </p>
               <Link
                 href={APP_ROUTES.payroll}
-                className="mt-2 inline-block text-primary underline-offset-2 hover:underline"
+                className="mt-2 inline-block font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
               >
                 Open payroll
               </Link>
@@ -689,19 +796,19 @@ export function ExpensesHubWorkspace() {
           {salaryScheduleWarning ? (
             <div
               className={cn(
-                DASHBOARD_SECTION_SURFACE,
-                "border-amber-700/30 bg-amber-50/40 px-4 py-3 text-sm",
+                "border border-x-0 border-amber-800/25 bg-[#fff8e8] px-3 py-3 text-sm sm:border-x sm:px-4",
+                HAIRLINE,
               )}
             >
-              <p className="font-medium text-amber-950">
+              <p className="font-semibold text-[#5c3d0a]">
                 Salary-like recurring schedule detected
               </p>
-              <p className="mt-1 text-amber-900/80">
+              <p className="mt-1 text-[#5c3d0a]/80">
                 Paying staff through a fixed-cost schedule can double-count
                 salaries already posted from payroll. Prefer{" "}
                 <Link
                   href={APP_ROUTES.payroll}
-                  className="text-primary underline-offset-2 hover:underline"
+                  className="font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
                 >
                   payroll
                 </Link>{" "}
@@ -711,19 +818,32 @@ export function ExpensesHubWorkspace() {
           ) : null}
 
           {canManageFinanceExpenses && pendingApprovals.length > 0 ? (
-            <section className={cn(DASHBOARD_SECTION_SURFACE, "space-y-3 p-4")}>
-              <h2 className="text-sm font-semibold tracking-tight">
+            <section
+              className={cn(
+                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
+                HAIRLINE,
+              )}
+            >
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--order-ink,#15231f)]">
                 Pending approval
               </h2>
-              <ul className="divide-y divide-border/60">
+              <ul
+                className={cn(
+                  "divide-y border-t",
+                  "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+                  HAIRLINE,
+                )}
+              >
                 {pendingApprovals.map((e) => (
                   <li
                     key={e.id}
-                    className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                    className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"
                   >
                     <div>
-                      <p className="font-medium">{e.name}</p>
-                      <p className="text-muted-foreground">
+                      <p className="font-semibold text-[var(--order-ink,#15231f)]">
+                        {e.name}
+                      </p>
+                      <p className={dashboardHintClass()}>
                         {formatFixedCostDate(e.expenseDate)} ·{" "}
                         {formatFixedCostMoney(moneyNumber(e.amount))} ·{" "}
                         {expenseSourceLabel(e.source)}
@@ -733,7 +853,7 @@ export function ExpensesHubWorkspace() {
                       <Button
                         type="button"
                         size="sm"
-                        variant="outline"
+                        className={PRIMARY_BTN}
                         onClick={() => void approvePending(e.id)}
                       >
                         Approve
@@ -742,6 +862,7 @@ export function ExpensesHubWorkspace() {
                         type="button"
                         size="sm"
                         variant="ghost"
+                        className="h-9 rounded-none px-3 text-[13px] font-semibold text-[var(--order-ink,#15231f)]"
                         onClick={() => void rejectPending(e.id)}
                       >
                         Reject
@@ -754,19 +875,32 @@ export function ExpensesHubWorkspace() {
           ) : null}
 
           {canReadFinanceExpenses && upcoming.length > 0 ? (
-            <section className={cn(DASHBOARD_SECTION_SURFACE, "space-y-3 p-4")}>
-              <h2 className="text-sm font-semibold tracking-tight">
+            <section
+              className={cn(
+                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
+                HAIRLINE,
+              )}
+            >
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--order-ink,#15231f)]">
                 Upcoming & overdue
               </h2>
-              <ul className="divide-y divide-border/60">
+              <ul
+                className={cn(
+                  "divide-y border-t",
+                  "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+                  HAIRLINE,
+                )}
+              >
                 {upcoming.map((o) => (
                   <li
                     key={`${o.scheduleId}-${o.occurrenceDate}-${o.id ?? "x"}`}
-                    className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                    className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"
                   >
                     <div>
-                      <p className="font-medium">{o.scheduleName}</p>
-                      <p className="text-muted-foreground">
+                      <p className="font-semibold text-[var(--order-ink,#15231f)]">
+                        {o.scheduleName}
+                      </p>
+                      <p className={dashboardHintClass()}>
                         {formatFixedCostDate(o.occurrenceDate)} ·{" "}
                         {formatFixedCostMoney(o.amount)} · {o.status}
                       </p>
@@ -777,7 +911,7 @@ export function ExpensesHubWorkspace() {
                         <Button
                           type="button"
                           size="sm"
-                          variant="outline"
+                          className={PRIMARY_BTN}
                           onClick={() => void postOcc(o)}
                         >
                           Post
@@ -786,6 +920,7 @@ export function ExpensesHubWorkspace() {
                           type="button"
                           size="sm"
                           variant="ghost"
+                          className="h-9 rounded-none px-3 text-[13px] font-semibold text-[var(--order-ink,#15231f)]"
                           onClick={() => void skipOcc(o)}
                         >
                           Skip
@@ -799,20 +934,27 @@ export function ExpensesHubWorkspace() {
           ) : null}
 
           {canReadFinanceExpenses ? (
-            <section className={cn(DASHBOARD_SECTION_SURFACE, "space-y-4 p-4")}>
+            <section
+              className={cn(
+                "space-y-4 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
+                HAIRLINE,
+              )}
+            >
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold tracking-tight">
+                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--order-ink,#15231f)]">
                     Expenses
                   </h2>
-                  <p className="text-xs text-muted-foreground">
+                  <p className={cn("mt-1", dashboardHintClass())}>
                     {totalCount} in range · this page{" "}
-                    {formatFixedCostMoney(tableSum)}
+                    <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                      {formatFixedCostMoney(tableSum)}
+                    </span>
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <select
-                    className={dashboardSelectClass()}
+                    className={cn(dashboardSelectClass(), "rounded-none")}
                     value={categoryFilter}
                     onChange={(e) => {
                       setCategoryFilter(e.target.value);
@@ -824,7 +966,7 @@ export function ExpensesHubWorkspace() {
                     <option value="variable">Variable</option>
                   </select>
                   <select
-                    className={dashboardSelectClass()}
+                    className={cn(dashboardSelectClass(), "rounded-none")}
                     value={categoryCodeFilter}
                     onChange={(e) => {
                       setCategoryCodeFilter(e.target.value);
@@ -839,7 +981,7 @@ export function ExpensesHubWorkspace() {
                     ))}
                   </select>
                   <input
-                    className={cn(dashboardInputClass(), "w-40")}
+                    className={cn(dashboardInputClass(), "w-40 rounded-none")}
                     placeholder="Search name"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -853,7 +995,7 @@ export function ExpensesHubWorkspace() {
                   <Button
                     type="button"
                     size="sm"
-                    variant="outline"
+                    className={OUTLINE_BTN}
                     onClick={() => {
                       setSearchApplied(search.trim());
                       setPage(0);
@@ -865,10 +1007,10 @@ export function ExpensesHubWorkspace() {
               </div>
 
               {categoryBreakdown.length > 0 ? (
-                <ul className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
                   {categoryBreakdown.map((row) => (
-                    <li key={row.code}>
-                      <span className="font-medium text-foreground">
+                    <li key={row.code} className={dashboardHintClass()}>
+                      <span className="font-semibold text-[var(--order-ink,#15231f)]">
                         {expenseCategoryCodeLabel(row.code)}
                       </span>{" "}
                       {formatFixedCostMoney(row.total)}
@@ -877,21 +1019,30 @@ export function ExpensesHubWorkspace() {
                 </ul>
               ) : null}
 
-              <div className={cn(DASHBOARD_TABLE_SURFACE, "overflow-x-auto")}>
+              <div
+                className={cn(
+                  "overflow-x-auto border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_1.5%,white)]",
+                  HAIRLINE,
+                )}
+              >
                 <table className="w-full min-w-[720px] text-left text-sm">
-                  <thead className="border-b border-border/60 text-xs text-muted-foreground">
+                  <thead
+                    className={cn(
+                      "border-b bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3.5%,white)] text-[10px] font-semibold uppercase tracking-[0.1em]",
+                      HAIRLINE,
+                      dashboardHintClass(),
+                    )}
+                  >
                     <tr>
-                      <th className="px-3 py-2 font-medium">Date</th>
-                      <th className="px-3 py-2 font-medium">Name</th>
-                      <th className="px-3 py-2 font-medium">Category</th>
-                      <th className="px-3 py-2 font-medium">Source</th>
-                      <th className="px-3 py-2 font-medium">Method</th>
-                      <th className="px-3 py-2 font-medium text-right">
-                        Amount
-                      </th>
-                      <th className="px-3 py-2 font-medium">Books</th>
-                      <th className="px-3 py-2 font-medium">Paid</th>
-                      <th className="px-3 py-2 font-medium">Pay</th>
+                      <th className="px-3 py-2.5">Date</th>
+                      <th className="px-3 py-2.5">Name</th>
+                      <th className="px-3 py-2.5">Category</th>
+                      <th className="px-3 py-2.5">Source</th>
+                      <th className="px-3 py-2.5">Method</th>
+                      <th className="px-3 py-2.5 text-right">Amount</th>
+                      <th className="px-3 py-2.5">Books</th>
+                      <th className="px-3 py-2.5">Paid</th>
+                      <th className="px-3 py-2.5">Pay</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -899,7 +1050,7 @@ export function ExpensesHubWorkspace() {
                       <tr>
                         <td
                           colSpan={9}
-                          className="px-3 py-8 text-center text-muted-foreground"
+                          className={cn("px-3 py-10 text-center", dashboardHintClass())}
                         >
                           No expenses in this range.
                         </td>
@@ -908,44 +1059,54 @@ export function ExpensesHubWorkspace() {
                       expenses.map((e) => (
                         <tr
                           key={e.id}
-                          className="border-b border-border/40 last:border-0"
+                          className={cn(
+                            "border-b last:border-0",
+                            "border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
+                          )}
                         >
-                          <td className="px-3 py-2 whitespace-nowrap">
+                          <td className="px-3 py-2.5 whitespace-nowrap text-[var(--order-ink,#15231f)]">
                             {formatFixedCostDate(e.expenseDate)}
                           </td>
-                          <td className="px-3 py-2">{e.name}</td>
-                          <td className="px-3 py-2">
+                          <td className="px-3 py-2.5 font-medium text-[var(--order-ink,#15231f)]">
+                            {e.name}
+                          </td>
+                          <td className="px-3 py-2.5 text-[var(--order-ink,#15231f)]">
                             {expenseCategoryCodeLabel(e.categoryCode)}{" "}
-                            <span className="text-muted-foreground">
+                            <span className={dashboardHintClass()}>
                               ({categoryTypeLabel(e.categoryType)})
                             </span>
                           </td>
-                          <td className="px-3 py-2">
-                            <span className="inline-block border border-border/60 px-1.5 py-0.5 text-xs">
+                          <td className="px-3 py-2.5">
+                            <span
+                              className={cn(
+                                "inline-block border px-1.5 py-0.5 text-[11px] font-medium",
+                                HAIRLINE,
+                              )}
+                            >
                               {expenseSourceLabel(e.source)}
                             </span>
                           </td>
-                          <td className="px-3 py-2">
+                          <td className={cn("px-3 py-2.5", dashboardHintClass())}>
                             {paymentMethodLabel(e.paymentMethod)}
                           </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
+                          <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
                             {formatFixedCostMoney(moneyNumber(e.amount))}
                           </td>
-                          <td className="px-3 py-2 text-muted-foreground">
+                          <td className={cn("px-3 py-2.5", dashboardHintClass())}>
                             {e.approvalStatus === "pending_approval"
                               ? "Pending"
                               : e.approvalStatus === "rejected"
                                 ? "Rejected"
                                 : "Posted"}
                           </td>
-                          <td className="px-3 py-2 text-muted-foreground">
+                          <td className={cn("px-3 py-2.5", dashboardHintClass())}>
                             {e.paidAt
                               ? "Paid"
                               : e.paymentMethod === "mpesa_manual"
                                 ? "Unpaid"
                                 : "—"}
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-3 py-2.5">
                             {e.approvalStatus === "posted" &&
                             e.paymentMethod === "mpesa_manual" &&
                             !e.paidAt &&
@@ -954,7 +1115,7 @@ export function ExpensesHubWorkspace() {
                                 <Button
                                   type="button"
                                   size="sm"
-                                  variant="outline"
+                                  className={cn(PRIMARY_BTN, "h-8 px-2 text-[12px]")}
                                   disabled={payingId === e.id}
                                   onClick={() => void payViaMpesa(e)}
                                 >
@@ -964,6 +1125,7 @@ export function ExpensesHubWorkspace() {
                                   type="button"
                                   size="sm"
                                   variant="ghost"
+                                  className="h-8 rounded-none px-2 text-[12px] font-semibold"
                                   disabled={payingId === e.id}
                                   onClick={() => void cancelPay(e.id)}
                                   title="Stop waiting on a pending Send Money"
@@ -984,22 +1146,20 @@ export function ExpensesHubWorkspace() {
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
+                  className={OUTLINE_BTN}
                   disabled={page <= 0}
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                 >
                   Previous
                 </Button>
-                <span className="text-muted-foreground">
+                <span className={dashboardHintClass()}>
                   Page {page + 1}
-                  {totalCount > 0
-                    ? ` · ${totalCount} total`
-                    : null}
+                  {totalCount > 0 ? ` · ${totalCount} total` : null}
                 </span>
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
+                  className={OUTLINE_BTN}
                   disabled={!hasMore}
                   onClick={() => setPage((p) => p + 1)}
                 >
@@ -1037,6 +1197,7 @@ export function ExpensesHubWorkspace() {
         }}
         onError={(message) => setFeedback({ kind: "error", text: message })}
       />
+      </div>
     </div>
   );
 }
@@ -1067,22 +1228,27 @@ function MetricCard({
   value: number | string;
   emphasize?: boolean;
 }) {
+  const n = moneyNumber(value);
   return (
     <div
       className={cn(
-        DASHBOARD_SECTION_SURFACE,
-        "p-4",
-        emphasize && "ring-1 ring-foreground/15",
+        "border-b px-3 py-3.5 last:border-b-0 sm:border-b-0 sm:border-r sm:px-4 sm:last:border-r-0",
+        "lg:[&:nth-child(2)]:border-r lg:[&:nth-child(5)]:border-r-0",
+        emphasize && "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
+        HAIRLINE,
       )}
     >
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", dashboardHintClass())}>
+        {label}
+      </p>
       <p
         className={cn(
-          "mt-1 tabular-nums tracking-tight",
-          emphasize ? "text-2xl font-semibold" : "text-xl font-medium",
+          "mt-1 tabular-nums tracking-tight text-[var(--order-ink,#15231f)]",
+          emphasize ? "text-2xl font-semibold" : "text-xl font-semibold",
+          n < 0 && "text-[#9a2e16]",
         )}
       >
-        {formatFixedCostMoney(moneyNumber(value))}
+        {formatFixedCostMoney(n)}
       </p>
     </div>
   );
