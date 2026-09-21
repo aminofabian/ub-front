@@ -17,6 +17,7 @@ import {
   type CustodyReceiveTestRecord,
 } from "@/lib/api";
 import {
+  CUSTOM_BANK_ID,
   KENYA_MPESA_BANKS,
   kenyaBankById,
 } from "@/lib/kenya-mpesa-banks";
@@ -55,7 +56,7 @@ const DEST_OPTIONS: {
   {
     kind: "bank",
     title: "Bank account",
-    blurb: "Pick your bank, then enter the account number",
+    blurb: "Pick a bank or type your own paybill + account number",
     icon: Landmark,
   },
 ];
@@ -76,6 +77,7 @@ export function OnboardingReceiveMpesaStep({
   const [businessNumber, setBusinessNumber] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [bankId, setBankId] = useState("");
+  const [customBankName, setCustomBankName] = useState("");
   const [phone, setPhone] = useState(ownerPhone);
   const [error, setError] = useState("");
   const [availability, setAvailability] = useState<{
@@ -139,8 +141,16 @@ export function OnboardingReceiveMpesaStep({
       );
     }
     if (kind === "bank") {
+      const accountOk = accountNumber.trim().length > 0;
+      if (bankId === CUSTOM_BANK_ID) {
+        return (
+          customBankName.trim().length > 0 &&
+          /^\d{5,7}$/.test(businessNumber.replace(/\D/g, "")) &&
+          accountOk
+        );
+      }
       const bank = kenyaBankById(bankId);
-      return !!bank && accountNumber.trim().length > 0;
+      return !!bank && accountOk;
     }
     return false;
   };
@@ -203,22 +213,30 @@ export function OnboardingReceiveMpesaStep({
     }
 
     const bank = kenyaBankById(bankId);
+    const isCustomBank = kind === "bank" && bankId === CUSTOM_BANK_ID;
     const type = kind === "till" ? "till" : "paybill";
+    const resolvedBusiness =
+      kind === "till"
+        ? undefined
+        : kind === "bank"
+          ? isCustomBank
+            ? businessNumber.replace(/\D/g, "")
+            : bank!.businessNumber
+          : businessNumber.replace(/\D/g, "");
+    const label =
+      kind === "bank"
+        ? isCustomBank
+          ? `${customBankName.trim()} ${accountNumber.trim()}`
+          : bank
+            ? `${bank.name} ${accountNumber.trim()}`
+            : undefined
+        : undefined;
     const payload = {
       type: type as "till" | "paybill",
       tillNumber: kind === "till" ? tillNumber.replace(/\D/g, "") : undefined,
-      businessNumber:
-        kind === "till"
-          ? undefined
-          : kind === "bank"
-            ? bank!.businessNumber
-            : businessNumber.replace(/\D/g, ""),
-      accountNumber:
-        kind === "till" ? undefined : accountNumber.trim(),
-      label:
-        kind === "bank" && bank
-          ? `${bank.name} ${accountNumber.trim()}`
-          : undefined,
+      businessNumber: resolvedBusiness,
+      accountNumber: kind === "till" ? undefined : accountNumber.trim(),
+      label,
       phoneNumber: msisdn,
       amount: 1,
     };
@@ -366,9 +384,17 @@ export function OnboardingReceiveMpesaStep({
                     <select
                       value={bankId}
                       onChange={(e) => {
-                        setBankId(e.target.value);
-                        const b = kenyaBankById(e.target.value);
-                        if (b) setBusinessNumber(b.businessNumber);
+                        const next = e.target.value;
+                        setBankId(next);
+                        if (next === CUSTOM_BANK_ID) {
+                          setBusinessNumber("");
+                          return;
+                        }
+                        const b = kenyaBankById(next);
+                        if (b) {
+                          setBusinessNumber(b.businessNumber);
+                          setCustomBankName("");
+                        }
                       }}
                       className="h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#1F2937] outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:rounded-xl"
                     >
@@ -378,13 +404,34 @@ export function OnboardingReceiveMpesaStep({
                           {b.name} · {b.businessNumber}
                         </option>
                       ))}
+                      <option value={CUSTOM_BANK_ID}>
+                        Other bank — enter paybill yourself
+                      </option>
                     </select>
                   </label>
-                  {bankId ? (
+                  {bankId && bankId !== CUSTOM_BANK_ID ? (
                     <p className="text-[11px] text-[#9CA3AF]">
                       Paybill {kenyaBankById(bankId)?.businessNumber} — enter
                       the account number your bank gave you for M-Pesa.
                     </p>
+                  ) : null}
+                  {bankId === CUSTOM_BANK_ID ? (
+                    <>
+                      <Field
+                        label="Bank name"
+                        value={customBankName}
+                        onChange={setCustomBankName}
+                        placeholder="e.g. My Bank"
+                      />
+                      <Field
+                        label="Bank M-Pesa paybill"
+                        value={businessNumber}
+                        onChange={setBusinessNumber}
+                        placeholder="5–7 digit paybill"
+                        inputMode="numeric"
+                        hint="The paybill number on your bank’s Lipa Na M-Pesa instructions."
+                      />
+                    </>
                   ) : null}
                   <Field
                     label="Bank account number"
