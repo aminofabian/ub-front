@@ -145,6 +145,24 @@ export default function SuperAdminBusinessesPage() {
     void reload();
   }, [reload]);
 
+  // Browser back often restores this page from bfcache with stale rows.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) void reload();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && loadedOnce.current) {
+        void reload();
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [reload]);
+
   useEffect(() => {
     return () => {
       if (copyTimer.current) window.clearTimeout(copyTimer.current);

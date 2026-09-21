@@ -313,7 +313,7 @@ function BusinessDetailInner() {
         setBusy(true);
         setError("");
         try {
-          await patchSaBusiness(businessId, {
+          const updated = await patchSaBusiness(businessId, {
             name: bizName.trim() || undefined,
             subscriptionTier: bizTier.trim() || undefined,
             active: bizActive,
@@ -323,14 +323,22 @@ function BusinessDetailInner() {
             timezone: nextTimezone || undefined,
             acknowledgeRegionRisk,
           });
+          setBizActive(updated.active);
+          setBizName(updated.name);
+          setBizTier(updated.subscriptionTier ?? "");
           router.replace(
             tenantQuery({
               businessId,
-              name: bizName.trim(),
-              slug: bizSlug,
-              tier: bizTier.trim(),
-              active: bizActive,
+              name: updated.name,
+              slug: updated.slug || bizSlug,
+              tier: updated.subscriptionTier ?? bizTier.trim(),
+              active: updated.active,
             }),
+          );
+          showThemedSuccessToast(
+            updated.active
+              ? "Tenant is Active — staff can sign in again."
+              : "Tenant is Off — staff are locked out.",
           );
         } catch (err) {
           setError(err instanceof Error ? err.message : "Update failed.");
