@@ -148,8 +148,10 @@ import {
   type CartSession,
 } from "@/lib/cart-session";
 import {
+  customerFindLooksLikeName,
   customerPhoneValidationMessage,
   isValidCustomerPhone,
+  normalizeCustomerPhone,
 } from "@/lib/customer-phone";
 import { toKenyanMsisdn254 } from "@/lib/kenyan-phone";
 import { resolveReceiptWebsite } from "@/lib/branch-receipt";
@@ -1086,7 +1088,6 @@ export function QuickSaleWorkspace({
         customerNoPhoneMatch: false,
         customerRegisterName: "",
         customerRegisterPhone: "",
-        customerHits: [],
         selectedCustomer: null,
       });
     },
@@ -1747,89 +1748,168 @@ export function QuickSaleWorkspace({
     }
   }, []);
 
-  const onSearchCustomers = useCallback(async () => {
-    const q = customerPhoneQuery.trim();
-    if (!q) {
-      setCustomerHits([]);
-      return;
-    }
-    const tabOrWalletLookup =
-      payMethod === "customer_credit" || creditChangeToWallet;
-    // Capture on cash/M-Pesa is phone-first; when the shop enables name search,
-    // repeat customers can also be found by name at checkout.
-    const useNameSearch =
-      (tabOrWalletLookup || captureCustomerAtCheckout) &&
-      allowSearchCustomersByName;
-    if (tabOrWalletLookup && !useNameSearch) {
-      const phoneErr = customerPhoneValidationMessage(q);
-      if (phoneErr) {
-        setError(phoneErr);
-        setNotice("");
+  // Tab / wallet / loyalty / remote bill always Find by name or phone.
+  // Cash / M-Pesa capture stays phone-first unless the admin toggle is on.
+  const flexibleCustomerFind =
+    payMethodNeedsCustomer(payMethod) ||
+    creditChangeToWallet ||
+    (captureCustomerAtCheckout && allowSearchCustomersByName);
+
+  const customerSearchSeqRef = useRef(0);
+
+  const onSearchCustomers = useCallback(
+    async (opts?: { query?: string; quiet?: boolean }) => {
+      const q = (opts?.query ?? customerPhoneQuery).trim();
+      const quiet = Boolean(opts?.quiet);
+      if (!q) {
+        setCustomerHits([]);
         return;
       }
-    }
-    if (!online) {
-      setError("Go online to search customers.");
+      const tabOrWalletLookup =
+        payMethod === "customer_credit" || creditChangeToWallet;
+      const useNameSearch = flexibleCustomerFind;
+      if (tabOrWalletLookup && !useNameSearch) {
+        const phoneErr = customerPhoneValidationMessage(q);
+        if (phoneErr) {
+          if (!quiet) {
+            setError(phoneErr);
+            setNotice("");
+          }
+          return;
+        }
+      }
+      // Live search: don't hammer the API on every partial digit in phone-only mode.
+      if (
+        quiet &&
+        !useNameSearch &&
+        !isValidCustomerPhone(q) &&
+        !customerFindLooksLikeName(q)
+      ) {
+        return;
+      }
+      if (
+        quiet &&
+        useNameSearch &&
+        q.length < 2 &&
+        !isValidCustomerPhone(q)
+      ) {
+        return;
+      }
+      if (!online) {
+        if (!quiet) setError("Go online to search customers.");
+        return;
+      }
+      // Capture flow: a non-phone query (a name) can't match the phone index —
+      // skip the API call and go straight to the add-customer form, with the
+      // typed text prefilled as the name.
+      if (
+        captureCustomerAtCheckout &&
+        !tabOrWalletLookup &&
+        !payMethodNeedsCustomer(payMethod) &&
+        !isValidCustomerPhone(q) &&
+        !useNameSearch
+      ) {
+        setCustomerHits([]);
+        updateActiveCart({
+          customerNoPhoneMatch: true,
+          customerRegisterName: q,
+          customerRegisterPhone: "",
+          selectedCustomer: null,
+        });
+        if (!quiet) setNotice("");
+        return;
+      }
+      const seq = ++customerSearchSeqRef.current;
+      setCustomerSearchBusy(true);
+      if (!quiet) setError("");
+      resetPhoneVerification();
+      try {
+        const rows = await fetchCustomers(q, { flexible: useNameSearch });
+        if (seq !== customerSearchSeqRef.current) return;
+        const qDigits = normalizeCustomerPhone(q);
+        const exactPhoneHit =
+          rows.length === 1 &&
+          isValidCustomerPhone(q) &&
+          normalizeCustomerPhone(
+            customerPrimaryPhone(rows[0].phones) ?? "",
+          ) === qDigits
+            ? rows[0]
+            : null;
+        setCustomerHits(rows);
+        updateActiveCart({
+          customerNoPhoneMatch: rows.length === 0,
+          customerRegisterName:
+            rows.length === 0 && customerFindLooksLikeName(q) ? q : "",
+          customerRegisterPhone:
+            rows.length === 0 && isValidCustomerPhone(q) ? q : "",
+          selectedCustomer: exactPhoneHit,
+        });
+        if (!quiet) setNotice("");
+      } catch (e) {
+        if (seq !== customerSearchSeqRef.current) return;
+        setCustomerHits([]);
+        updateActiveCart({
+          customerNoPhoneMatch: false,
+          customerRegisterName: "",
+          customerRegisterPhone: "",
+        });
+        if (!quiet) {
+          setError(e instanceof Error ? e.message : "Customer search failed.");
+        }
+      } finally {
+        if (seq === customerSearchSeqRef.current) {
+          setCustomerSearchBusy(false);
+        }
+      }
+    },
+    [
+      customerPhoneQuery,
+      online,
+      payMethod,
+      creditChangeToWallet,
+      flexibleCustomerFind,
+      captureCustomerAtCheckout,
+      resetPhoneVerification,
+      setCustomerHits,
+      updateActiveCart,
+    ],
+  );
+
+  // Live Find — same cadence as the credit-tabs modal (type → results).
+  useEffect(() => {
+    const q = customerPhoneQuery.trim();
+    const pickerOpen =
+      payMethodNeedsCustomer(payMethod) ||
+      creditChangeToWallet ||
+      captureCustomerAtCheckout;
+    if (!pickerOpen) return;
+    if (!q) {
+      customerSearchSeqRef.current += 1;
+      setCustomerHits([]);
       return;
     }
-    // Capture flow: a non-phone query (a name) can't match the phone index —
-    // skip the API call and go straight to the add-customer form, with the
-    // typed text prefilled as the name.
-    if (
-      captureCustomerAtCheckout &&
-      !tabOrWalletLookup &&
-      !isValidCustomerPhone(q) &&
-      !useNameSearch
-    ) {
-      setCustomerHits([]);
-      updateActiveCart({
-        customerNoPhoneMatch: true,
-        customerRegisterName: q,
-        customerRegisterPhone: "",
-        selectedCustomer: null,
-      });
-      setNotice("");
-      return;
-    }
-    setCustomerSearchBusy(true);
-    setError("");
-    resetPhoneVerification();
-    try {
-      const rows = await fetchCustomers(q, { flexible: useNameSearch });
-      setCustomerHits(rows);
-      updateActiveCart({
-        customerNoPhoneMatch: rows.length === 0,
-        customerRegisterName:
-          rows.length === 0 && captureCustomerAtCheckout && useNameSearch ? q : "",
-        customerRegisterPhone: rows.length === 0 && isValidCustomerPhone(q) ? q : "",
-        selectedCustomer: null,
-      });
-      setNotice("");
-    } catch (e) {
-      setCustomerHits([]);
-      updateActiveCart({
-        customerNoPhoneMatch: false,
-        customerRegisterName: "",
-        customerRegisterPhone: "",
-      });
-      setError(e instanceof Error ? e.message : "Customer search failed.");
-    } finally {
-      setCustomerSearchBusy(false);
-    }
+    if (selectedCustomer) return;
+    const handle = window.setTimeout(() => {
+      void onSearchCustomers({ query: q, quiet: true });
+    }, 280);
+    return () => window.clearTimeout(handle);
   }, [
     customerPhoneQuery,
-    online,
     payMethod,
     creditChangeToWallet,
-    allowSearchCustomersByName,
     captureCustomerAtCheckout,
-    resetPhoneVerification,
+    selectedCustomer,
+    onSearchCustomers,
     setCustomerHits,
-    updateActiveCart,
   ]);
 
   const onSendPhoneVerification = useCallback(async () => {
-    const phone = customerPhoneQuery.trim();
+    const phone = (
+      customerRegisterPhone.trim() ||
+      (isValidCustomerPhone(customerPhoneQuery)
+        ? customerPhoneQuery.trim()
+        : "")
+    );
     const name = customerRegisterName.trim();
     if (!phone) {
       setError("Enter a phone number first.");
@@ -1892,6 +1972,7 @@ export function QuickSaleWorkspace({
     canManageCustomers,
     customerPhoneQuery,
     customerRegisterName,
+    customerRegisterPhone,
     online,
     phoneVerificationCooldownUntil,
   ]);
@@ -5123,7 +5204,7 @@ export function QuickSaleWorkspace({
           phoneVerificationChannel,
           phoneVerificationCooldownUntil,
           requirePhoneVerificationForNewTabCustomers: requirePhoneVerification,
-          allowSearchCustomersByName,
+          allowSearchCustomersByName: flexibleCustomerFind,
           captureCustomerForCashAndMpesa: captureCustomerAtCheckout,
           onSearchCustomers: () => void onSearchCustomers(),
           onSendPhoneVerification: () => void onSendPhoneVerification(),

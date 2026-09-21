@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Search } from "lucide-react";
 
 import type { CustomerRecord } from "@/lib/api";
 import {
+  customerFindLooksLikeName,
+  customerFindQueryKind,
   customerPhoneValidationMessage,
   isValidCustomerPhone,
 } from "@/lib/customer-phone";
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import { TillLastBasketHint } from "@/components/cashier/till-last-basket-hint";
-import { cn } from "@/lib/utils";
 
 type LedgerTabCustomerProps = {
   online: boolean;
@@ -82,16 +84,23 @@ export function LedgerTabCustomer({
   const registerNeedsOtp =
     !optional && requirePhoneVerificationForNewTabCustomers;
   const query = customerPhoneQuery.trim();
+  const queryKind = customerFindQueryKind(customerPhoneQuery);
+  const nameLike = customerFindLooksLikeName(customerPhoneQuery);
   const phoneInvalid =
     query.length > 0 &&
     !allowSearchCustomersByName &&
     !optional &&
     !isValidCustomerPhone(customerPhoneQuery);
+  const needsRegisterPhone =
+    !isValidCustomerPhone(customerPhoneQuery) &&
+    Boolean(setCustomerRegisterPhone);
   const showRegister =
     customerNoPhoneMatch &&
     !selectedCustomer &&
     query.length > 0 &&
-    (optional || isValidCustomerPhone(customerPhoneQuery));
+    (optional ||
+      isValidCustomerPhone(customerPhoneQuery) ||
+      (allowSearchCustomersByName && nameLike));
   const findDisabled =
     !online ||
     customerSearchBusy ||
@@ -100,8 +109,12 @@ export function LedgerTabCustomer({
       !allowSearchCustomersByName &&
       !isValidCustomerPhone(customerPhoneQuery));
   const registerPhoneInvalid =
-    optional &&
+    needsRegisterPhone &&
     customerRegisterPhone.trim().length > 0 &&
+    !isValidCustomerPhone(customerRegisterPhone);
+  const registerPhoneMissing =
+    !optional &&
+    needsRegisterPhone &&
     !isValidCustomerPhone(customerRegisterPhone);
   const [finderOpen, setFinderOpen] = useState(!optional);
   const findInputRef = useRef<HTMLInputElement>(null);
@@ -141,31 +154,52 @@ export function LedgerTabCustomer({
     );
   }
 
+  const modeHint =
+    queryKind === "phone"
+      ? "Matching phone…"
+      : queryKind === "name"
+        ? "Matching name…"
+        : queryKind === "mixed"
+          ? "Matching name & phone…"
+          : allowSearchCustomersByName
+            ? "Type a name or phone — matches appear as you type"
+            : "Enter a phone number";
+
   return (
     <div className="space-y-1.5">
       <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         {optional ? "Customer (optional)" : "Customer"}
       </p>
       <div className="flex gap-1">
-        <input
-          ref={findInputRef}
-          value={customerPhoneQuery}
-          onChange={(e) => setCustomerPhoneQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              if (!findDisabled) onSearchCustomers();
+        <div className="relative min-w-0 flex-1">
+          <Search
+            className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70"
+            aria-hidden
+          />
+          <input
+            ref={findInputRef}
+            value={customerPhoneQuery}
+            onChange={(e) => setCustomerPhoneQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (!findDisabled) onSearchCustomers();
+              }
+            }}
+            placeholder={
+              allowSearchCustomersByName
+                ? "Name or phone…"
+                : "Phone 07… or 7…"
             }
-          }}
-          placeholder={
-            allowSearchCustomersByName ? "Name or phone…" : "Phone 07… or 7…"
-          }
-          disabled={!online}
-          aria-label={
-            optional ? "Find customer for this sale" : "Find customer for tab"
-          }
-          className="h-8 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2 text-xs outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
-        />
+            disabled={!online}
+            aria-label={
+              optional
+                ? "Find customer for this sale"
+                : "Find customer for tab"
+            }
+            className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] py-0 pl-7 pr-2 text-xs outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
+          />
+        </div>
         <button
           type="button"
           disabled={findDisabled}
@@ -187,32 +221,31 @@ export function LedgerTabCustomer({
           </button>
         ) : null}
       </div>
+      {!selectedCustomer && !phoneInvalid ? (
+        <p className="text-[10px] text-muted-foreground">
+          {customerSearchBusy ? "Searching…" : modeHint}
+        </p>
+      ) : null}
       {phoneInvalid ? (
         <p className="text-[11px] text-red-700">
           {customerPhoneValidationMessage(customerPhoneQuery) ??
             "Enter a valid phone number."}
         </p>
       ) : null}
-      {customerHits.length > 0 ? (
-        <ul className="pos-scroll max-h-24 space-y-0.5 overflow-y-auto border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40">
+      {customerHits.length > 0 && !selectedCustomer ? (
+        <ul className="pos-scroll max-h-28 space-y-0.5 overflow-y-auto border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40">
           {customerHits.map((c) => {
             const hitPhone = customerPrimaryPhone(c.phones);
-            const active = selectedCustomer?.id === c.id;
             return (
               <li key={c.id}>
                 <button
                   type="button"
                   onClick={() => setSelectedCustomer(c)}
-                  className={cn(
-                    "w-full px-2 py-1.5 text-left text-[12px]",
-                    active
-                      ? "bg-[color-mix(in_srgb,var(--pos-primary)_14%,var(--card))] font-semibold"
-                      : "hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
-                  )}
+                  className="w-full px-2 py-1.5 text-left text-[12px] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
                 >
-                  {c.name}
+                  <span className="font-medium">{c.name}</span>
                   {hitPhone ? (
-                    <span className="ml-1 font-normal text-muted-foreground">
+                    <span className="mt-0.5 block font-normal text-muted-foreground">
                       {hitPhone}
                     </span>
                   ) : null}
@@ -222,20 +255,10 @@ export function LedgerTabCustomer({
           })}
         </ul>
       ) : null}
-      {customerNoPhoneMatch &&
-      !selectedCustomer &&
-      query &&
-      !isValidCustomerPhone(customerPhoneQuery) &&
-      !optional &&
-      allowSearchCustomersByName ? (
-        <p className="text-[11px] text-muted-foreground">
-          No match — try a phone number to register.
-        </p>
-      ) : null}
       {showRegister ? (
         <div className="space-y-1.5 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] p-2">
           <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            {optional ? "Add new customer" : "Register new number"}
+            {optional ? "Add new customer" : "Register for tab"}
           </p>
           {canManageCustomers ? (
             <>
@@ -250,14 +273,12 @@ export function LedgerTabCustomer({
                 }
                 className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2 text-xs outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
               />
-              {optional &&
-              setCustomerRegisterPhone &&
-              !isValidCustomerPhone(customerPhoneQuery) ? (
+              {needsRegisterPhone ? (
                 <input
                   value={customerRegisterPhone}
-                  onChange={(e) => setCustomerRegisterPhone(e.target.value)}
+                  onChange={(e) => setCustomerRegisterPhone?.(e.target.value)}
                   inputMode="tel"
-                  placeholder="Phone (optional)"
+                  placeholder={optional ? "Phone (optional)" : "Phone 07…"}
                   disabled={!online || customerRegisterBusy}
                   className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2 text-xs outline-none focus:ring-2 focus:ring-[var(--pos-primary)] disabled:opacity-40"
                 />
@@ -290,6 +311,7 @@ export function LedgerTabCustomer({
                   customerRegisterBusy ||
                   !customerRegisterName.trim() ||
                   registerPhoneInvalid ||
+                  registerPhoneMissing ||
                   (registerNeedsOtp &&
                     phoneVerificationSent &&
                     phoneVerificationCode.length !== 4) ||
@@ -364,13 +386,13 @@ export function LedgerTabCustomer({
           )}
           <TillLastBasketHint customerId={selectedCustomer.id} />
         </div>
-      ) : (
+      ) : !showRegister && customerHits.length === 0 ? (
         <p className="text-[11px] text-muted-foreground">
           {optional
             ? "Find a regular to attach this sale. Leave empty for a walk-in."
             : "Find a customer to put this sale on a tab."}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

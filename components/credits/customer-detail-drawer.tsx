@@ -24,6 +24,8 @@ type Props = {
   customerId: string | null;
   canEdit: boolean;
   canRemind: boolean;
+  /** Open the profile form ready to change name / phone. */
+  startInEditMode?: boolean;
   onCustomerUpdated?: (customer: CustomerRecord) => void;
 };
 
@@ -33,6 +35,7 @@ export function CustomerDetailDrawer({
   customerId,
   canEdit,
   canRemind,
+  startInEditMode = false,
   onCustomerUpdated,
 }: Props) {
   const { formatMoneyCompact: formatKes } = useFormatMoney();
@@ -194,8 +197,10 @@ export function CustomerDetailDrawer({
           <div className="min-h-0 flex-1 overflow-y-auto pb-4">
             {tab === "profile" ? (
               <CustomerEditCard
+                key={`${customer.id}-${startInEditMode ? "edit" : "view"}`}
                 customer={customer}
                 canEdit={canEdit}
+                initialEditing={startInEditMode}
                 onUpdated={onUpdated}
                 onFeedback={(kind, text) => setMessage({ kind, text })}
               />

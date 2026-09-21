@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import {
   BookOpen,
   Building2,
-  FileText,
   LayoutGrid,
   Lock,
   LockKeyhole,
@@ -352,9 +351,6 @@ export function CashierShell({ children }: CashierShellProps) {
           <MoreRow icon={ShoppingBag} href={APP_ROUTES.sales}>
             Sales
           </MoreRow>
-          <MoreRow icon={FileText} href={APP_ROUTES.salesQuick} tone="leave">
-            Admin sale
-          </MoreRow>
         </MoreSection>
       ) : roleKey !== "cashier" ? (
         <MoreSection label="Pages">
@@ -366,9 +362,6 @@ export function CashierShell({ children }: CashierShellProps) {
           </MoreRow>
           <MoreRow icon={Building2} href={APP_ROUTES.business}>
             Business
-          </MoreRow>
-          <MoreRow icon={FileText} href={APP_ROUTES.salesQuick} tone="leave">
-            Admin sale
           </MoreRow>
         </MoreSection>
       ) : null}
@@ -623,99 +616,114 @@ export function CashierShell({ children }: CashierShellProps) {
               </select>
             </div>
 
-            <div className="ml-auto hidden shrink-0 flex-wrap items-center justify-end gap-x-1 gap-y-1 lg:flex">
-              {canManageCashierCapabilities ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setCapsOpen(true)}
-                >
-                  <Settings2 className="size-3.5" aria-hidden />
-                  Till settings
-                </Button>
-              ) : null}
-              <RegisterTillControl
-                branchId={branchId}
-                disabled={tillLocked}
-                onRegistered={(label) => setTillLabel(label)}
-              />
-              {roleKey !== "cashier" ? (
-                <>
-                  <div
-                    className="mx-0.5 hidden h-4 w-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] sm:block dark:bg-border/60"
-                    aria-hidden
-                  />
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <Link href={APP_ROUTES.paymentsDayLedger}>Ledger</Link>
-                  </Button>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <Link href={APP_ROUTES.sales}>Sales</Link>
-                  </Button>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <Link href={APP_ROUTES.business}>Business</Link>
-                  </Button>
+            <div className="ml-auto hidden shrink-0 items-center gap-3 lg:flex">
+              <div className="flex items-center gap-1">
+                {canManageCashierCapabilities ? (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => setReceiptShopOpen(true)}
+                    className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => setCapsOpen(true)}
                   >
-                    Receipt details
+                    <Settings2 className="size-3.5" aria-hidden />
+                    Till settings
                   </Button>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                ) : null}
+                <RegisterTillControl
+                  branchId={branchId}
+                  disabled={tillLocked}
+                  onRegistered={(label) => setTillLabel(label)}
+                />
+              </div>
+
+              {roleKey !== "cashier" ? (
+                <>
+                  <div
+                    className="h-5 w-px shrink-0 bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] dark:bg-border/60"
+                    aria-hidden
+                  />
+                  <nav
+                    className="flex items-center gap-0.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,white)] p-0.5 dark:border-border/60 dark:bg-background/40"
+                    aria-label="Pages"
                   >
-                    <Link href={APP_ROUTES.salesQuick}>Admin sale</Link>
-                  </Button>
+                    {(
+                      [
+                        {
+                          href: APP_ROUTES.paymentsDayLedger,
+                          label: "Ledger",
+                        },
+                        { href: APP_ROUTES.sales, label: "Sales" },
+                        { href: APP_ROUTES.business, label: "Business" },
+                      ] as const
+                    ).map((item) => {
+                      const active =
+                        pathname === item.href ||
+                        pathname.startsWith(`${item.href}/`);
+                      return (
+                        <Button
+                          key={item.href}
+                          asChild
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            "h-7 rounded-none px-3 text-xs shadow-none",
+                            active
+                              ? "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] font-semibold text-foreground"
+                              : "text-muted-foreground hover:bg-transparent hover:text-foreground",
+                          )}
+                        >
+                          <Link href={item.href} aria-current={active ? "page" : undefined}>
+                            {item.label}
+                          </Link>
+                        </Button>
+                      );
+                    })}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 rounded-none px-3 text-xs text-muted-foreground shadow-none hover:bg-transparent hover:text-foreground"
+                      onClick={() => setReceiptShopOpen(true)}
+                    >
+                      Receipt details
+                    </Button>
+                  </nav>
                 </>
               ) : null}
-              <PushNotificationsEnable
-                label="Push alerts"
-                className="hidden sm:block"
+
+              <div
+                className="h-5 w-px shrink-0 bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] dark:bg-border/60"
+                aria-hidden
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
-                disabled={tillLocked}
-                onClick={() => lockTill({ reason: "manual" })}
-              >
-                <LockKeyhole className="size-3.5" aria-hidden />
-                Lock till
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
-                onClick={() => {
-                  void logoutRemoteAndRedirectToLogin().catch(() => undefined);
-                }}
-              >
-                Log out
-              </Button>
+              <div className="flex items-center gap-2">
+                <PushNotificationsEnable
+                  label="Push alerts"
+                  className="hidden sm:block"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
+                  disabled={tillLocked}
+                  onClick={() => lockTill({ reason: "manual" })}
+                >
+                  <LockKeyhole className="size-3.5" aria-hidden />
+                  Lock till
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
+                  onClick={() => {
+                    void logoutRemoteAndRedirectToLogin().catch(() => undefined);
+                  }}
+                >
+                  Log out
+                </Button>
+              </div>
             </div>
           </div>
         </header>

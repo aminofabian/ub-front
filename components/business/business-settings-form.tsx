@@ -1363,8 +1363,8 @@ export function BusinessSettingsForm({
                   }))
                 }
                 icon={<Users className="size-4 text-muted-foreground" />}
-                title="Allow cashiers to search customers by name"
-                description="On Tab checkout, Find accepts a customer name as well as a phone number. Leave off to keep phone-only lookup."
+                title="Allow cashiers to search customers by name on cash & M-Pesa"
+                description="Tab already accepts name or phone. Turn this on so optional cash / M-Pesa customer capture can also Find by name."
               />
             </FormDrawerFields>
           </SettingsAnchor>

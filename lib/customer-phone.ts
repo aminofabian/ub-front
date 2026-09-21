@@ -77,3 +77,23 @@ export function isUsableStoredCustomerPhone(
   if (!trimmed) return false;
   return storedCustomerPhoneIssue(trimmed) === null;
 }
+
+/** What the till Find field looks like it’s aiming at (for hints / live search). */
+export type CustomerFindQueryKind = "empty" | "phone" | "name" | "mixed";
+
+export function customerFindQueryKind(raw: string): CustomerFindQueryKind {
+  const trimmed = raw.trim();
+  if (!trimmed) return "empty";
+  const hasLetter = /[a-zA-ZÀ-ÿ]/.test(trimmed);
+  const digits = normalizeCustomerPhone(trimmed);
+  if (hasLetter && digits.length >= 3) return "mixed";
+  if (hasLetter) return "name";
+  if (digits.length > 0) return "phone";
+  return "name";
+}
+
+/** Prefill register-name when the cashier typed a name (or name+digits). */
+export function customerFindLooksLikeName(raw: string): boolean {
+  const kind = customerFindQueryKind(raw);
+  return kind === "name" || kind === "mixed";
+}

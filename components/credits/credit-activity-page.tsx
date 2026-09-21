@@ -7,6 +7,7 @@ import {
   Ban,
   CreditCard,
   IdCard,
+  Pencil,
   RefreshCw,
   Search,
   Users,
@@ -18,7 +19,11 @@ import {
   DashboardFeedback,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
-import { CustomerPhoneFlag } from "@/components/credits/customer-phone-flag";
+import { CustomerDetailDrawer } from "@/components/credits/customer-detail-drawer";
+import {
+  CustomerPhoneFlag,
+  customerPrimaryPhone,
+} from "@/components/credits/customer-phone-flag";
 import { MarkPaidDialog } from "@/components/credits/mark-paid-dialog";
 import { RemindPaymentButtons } from "@/components/credits/remind-payment-buttons";
 import { LoyaltyCardPreview } from "@/components/credits/loyalty-card-preview";
@@ -43,6 +48,7 @@ import {
   type CreditsActivitySummaryRecord,
   type CreditStatementLineRecord,
   type CreditStatementRecord,
+  type CustomerRecord,
   type OutstandingTabRowRecord,
   type PaymentLedgerRow,
   type SaleRecord,
@@ -263,6 +269,7 @@ export function CreditActivityPage({
   } | null>(null);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editCustomerId, setEditCustomerId] = useState<string | null>(null);
   const [payTarget, setPayTarget] = useState<OutstandingTabRowRecord | null>(
     null,
   );
@@ -770,6 +777,9 @@ export function CreditActivityPage({
                         phone: selectedTab.primaryPhone,
                       })
                     }
+                    onEditCustomer={() =>
+                      setEditCustomerId(selectedTab.customerId)
+                    }
                     onCreditSuspended={(customerId, creditSuspended) => {
                       setOpenTabs((prev) =>
                         prev.map((row) =>
@@ -1094,6 +1104,36 @@ export function CreditActivityPage({
           if (!next) setCardCustomer(null);
         }}
       />
+
+      <CustomerDetailDrawer
+        open={editCustomerId != null}
+        onOpenChange={(open) => {
+          if (!open) setEditCustomerId(null);
+        }}
+        customerId={editCustomerId}
+        canEdit={canManageCustomers}
+        canRemind={canRemind}
+        startInEditMode
+        onCustomerUpdated={(next: CustomerRecord) => {
+          const primary = customerPrimaryPhone(next.phones);
+          setOpenTabs((prev) =>
+            prev.map((row) =>
+              row.customerId === next.id
+                ? {
+                    ...row,
+                    name: next.name,
+                    primaryPhone: primary ?? row.primaryPhone,
+                    creditSuspended: Boolean(next.credit.creditSuspended),
+                  }
+                : row,
+            ),
+          );
+          setFeedback({
+            kind: "success",
+            text: `${next.name} updated.`,
+          });
+        }}
+      />
     </div>
   );
 }
@@ -1133,6 +1173,7 @@ function SelectedTabWorkspace({
   onRemindResult,
   onMarkPaid,
   onPrintCard,
+  onEditCustomer,
   onCreditSuspended,
   onSuspendError,
 }: {
@@ -1155,6 +1196,7 @@ function SelectedTabWorkspace({
   onRemindResult: (result: { ok: boolean; text: string }) => void;
   onMarkPaid: () => void;
   onPrintCard: () => void;
+  onEditCustomer: () => void;
   onCreditSuspended: (customerId: string, creditSuspended: boolean) => void;
   onSuspendError: (text: string) => void;
 }) {
@@ -1252,20 +1294,38 @@ function SelectedTabWorkspace({
     <div className={cn("flex h-full flex-col", styles.pageTurn)}>
       <div className={styles.personHead}>
         <div className="min-w-0">
-          <Link
-            href={`${APP_ROUTES.customers}/${encodeURIComponent(tab.customerId)}`}
-            className={styles.personName}
-          >
-            {tab.name}
-          </Link>
-          <p
+          {canManageCustomers ? (
+            <button
+              type="button"
+              onClick={onEditCustomer}
+              className={cn(styles.personName, "text-left hover:underline")}
+              title="Edit name, phone, and notes"
+            >
+              {tab.name}
+            </button>
+          ) : (
+            <Link
+              href={`${APP_ROUTES.customers}/${encodeURIComponent(tab.customerId)}`}
+              className={styles.personName}
+            >
+              {tab.name}
+            </Link>
+          )}
+          <button
+            type="button"
+            disabled={!canManageCustomers}
+            onClick={canManageCustomers ? onEditCustomer : undefined}
             className={cn(
-              "mt-1 text-sm",
+              "mt-1 block text-left text-sm",
               phoneOk ? styles.muted : styles.phoneBad,
+              canManageCustomers && "hover:underline",
             )}
+            title={
+              canManageCustomers ? "Edit phone number" : undefined
+            }
           >
             {tab.primaryPhone?.trim() || "No phone on file"}
-          </p>
+          </button>
           <CustomerPhoneFlag phone={tab.primaryPhone} />
           {suspended ? (
             <p className={styles.suspendedNote}>
@@ -1294,6 +1354,18 @@ function SelectedTabWorkspace({
       </dl>
 
       <div className={styles.actions}>
+        {canManageCustomers ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="rounded-none shadow-none"
+            onClick={onEditCustomer}
+          >
+            <Pencil className="size-3.5" aria-hidden />
+            Edit
+          </Button>
+        ) : null}
         {canReviewPaymentClaims ? (
         <Button type="button" size="sm" className="rounded-none shadow-none" onClick={onMarkPaid}>
             Mark paid

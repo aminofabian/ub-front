@@ -28,7 +28,6 @@ import {
   Settings2,
   ShoppingBag,
   Smartphone,
-  Store,
   Table2,
   Trash2,
   UserRound,
@@ -1798,13 +1797,6 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                     }}
                   >
                     Receipt details
-                  </MoreRow>
-                  <MoreRow
-                    icon={Store}
-                    href={APP_ROUTES.salesQuick}
-                    onClick={() => setMoreOpen(false)}
-                  >
-                    Admin sale
                   </MoreRow>
                 </MoreSection>
               ) : null}

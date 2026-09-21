@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil, Plus, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -16,11 +16,18 @@ import {
   type CustomerRecord,
 } from "@/lib/api";
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
+import {
+  customerPhoneValidationMessage,
+  isValidCustomerPhone,
+  normalizeCustomerPhone,
+} from "@/lib/customer-phone";
 import { cn } from "@/lib/utils";
 
 type Props = {
   customer: CustomerRecord;
   canEdit: boolean;
+  /** Open directly in the edit form (e.g. from the credits board). */
+  initialEditing?: boolean;
   onUpdated: (next: CustomerRecord) => void;
   onFeedback: (kind: "error" | "success", text: string) => void;
 };
@@ -28,16 +35,22 @@ type Props = {
 export function CustomerEditCard({
   customer,
   canEdit,
+  initialEditing = false,
   onUpdated,
   onFeedback,
 }: Props) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(initialEditing && canEdit);
   const [busy, setBusy] = useState(false);
   const [tagBusy, setTagBusy] = useState(false);
   const [name, setName] = useState(customer.name);
   const [email, setEmail] = useState(customer.email ?? "");
   const [notes, setNotes] = useState(customer.notes ?? "");
+  const [phone, setPhone] = useState(customerPrimaryPhone(customer.phones) ?? "");
   const [newPhone, setNewPhone] = useState("");
+
+  useEffect(() => {
+    if (initialEditing && canEdit) setEditing(true);
+  }, [initialEditing, canEdit, customer.id]);
 
   const tags = customer.tags ?? [];
   const wholesalePinned = tags.some((tag) => tag.toLowerCase() === "wholesale");
@@ -46,7 +59,39 @@ export function CustomerEditCard({
     setName(customer.name);
     setEmail(customer.email ?? "");
     setNotes(customer.notes ?? "");
+    setPhone(customerPrimaryPhone(customer.phones) ?? "");
     setNewPhone("");
+  };
+
+  const syncPrimaryPhone = async (
+    current: CustomerRecord,
+    nextPhoneRaw: string,
+  ): Promise<CustomerRecord> => {
+    const nextPhone = nextPhoneRaw.trim();
+    const currentPrimary = customerPrimaryPhone(current.phones) ?? "";
+    if (!nextPhone) {
+      return current;
+    }
+    if (
+      normalizeCustomerPhone(nextPhone) ===
+      normalizeCustomerPhone(currentPrimary)
+    ) {
+      return current;
+    }
+    const phoneErr = customerPhoneValidationMessage(nextPhone);
+    if (phoneErr) {
+      throw new Error(phoneErr);
+    }
+    const existing = current.phones.find(
+      (row) =>
+        normalizeCustomerPhone(row.phone ?? "") ===
+        normalizeCustomerPhone(nextPhone),
+    );
+    if (existing) {
+      if (existing.primary) return current;
+      return setPrimaryCustomerPhone(current.id, existing.id);
+    }
+    return addCustomerPhone(current.id, { phone: nextPhone, primary: true });
   };
 
   const onSave = async () => {
@@ -54,15 +99,25 @@ export function CustomerEditCard({
       onFeedback("error", "Name is required.");
       return;
     }
+    const nextPhone = phone.trim();
+    if (nextPhone && !isValidCustomerPhone(nextPhone)) {
+      onFeedback(
+        "error",
+        customerPhoneValidationMessage(nextPhone) ??
+          "Enter a valid phone number.",
+      );
+      return;
+    }
     setBusy(true);
     try {
-      const next = await patchCustomer(customer.id, {
+      let next = await patchCustomer(customer.id, {
         name: name.trim(),
         email: email.trim() || null,
         notes: notes.trim() || null,
         version: customer.version,
         creditAccountVersion: customer.credit.version,
       });
+      next = await syncPrimaryPhone(next, nextPhone);
       onUpdated(next);
       setEditing(false);
       onFeedback("success", "Customer updated.");
@@ -77,15 +132,15 @@ export function CustomerEditCard({
   };
 
   const onAddPhone = async () => {
-    const phone = newPhone.trim();
-    if (!phone) {
+    const nextPhone = newPhone.trim();
+    if (!nextPhone) {
       onFeedback("error", "Enter a phone number.");
       return;
     }
     setBusy(true);
     try {
       const next = await addCustomerPhone(customer.id, {
-        phone,
+        phone: nextPhone,
         primary: customer.phones.length === 0,
       });
       onUpdated(next);
@@ -183,6 +238,22 @@ export function CustomerEditCard({
                 onChange={(e) => setName(e.target.value)}
                 disabled={busy}
               />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-[11px] font-medium tracking-[-0.02em] text-muted-foreground">
+                Phone
+              </span>
+              <input
+                className={cn(dashboardInputClass(), "h-11 w-full")}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={busy}
+                inputMode="tel"
+                placeholder="07… or 2547…"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Changing this sets a new primary number for reminders and tabs.
+              </p>
             </label>
             <label className="block space-y-1.5">
               <span className="text-[11px] font-medium tracking-[-0.02em] text-muted-foreground">
@@ -296,28 +367,28 @@ export function CustomerEditCard({
           </p>
           {customer.phones.length > 0 ? (
             <ul className="space-y-1.5">
-              {customer.phones.map((phone) => (
+              {customer.phones.map((row) => (
                 <li
-                  key={phone.id}
+                  key={row.id}
                   className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-border/50 bg-muted/20 px-3 py-2.5 text-sm"
                 >
                   <span className="min-w-0">
-                    <span className="font-medium">{phone.phone}</span>
-                    {phone.primary ? (
+                    <span className="font-medium">{row.phone}</span>
+                    {row.primary ? (
                       <span className="ml-2 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-emerald-800 ring-1 ring-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-200">
                         Primary
                       </span>
                     ) : null}
-                    <CustomerPhoneFlag phone={phone.phone} className="block" />
+                    <CustomerPhoneFlag phone={row.phone} className="block" />
                   </span>
-                  {canEdit && !phone.primary ? (
+                  {canEdit && !row.primary ? (
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="h-8 rounded-none px-2 text-xs"
                       disabled={busy}
-                      onClick={() => void onSetPrimary(phone.id)}
+                      onClick={() => void onSetPrimary(row.id)}
                     >
                       <Star className="mr-1 size-3.5" />
                       Make primary
@@ -331,7 +402,7 @@ export function CustomerEditCard({
               No phone numbers yet.
             </p>
           )}
-          {canEdit ? (
+          {canEdit && !editing ? (
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 className={cn(dashboardInputClass(), "h-11 min-w-0 flex-1")}

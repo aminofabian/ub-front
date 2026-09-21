@@ -27,7 +27,9 @@ export function phoneVerificationRequiredForNewTab(
 }
 
 /**
- * When true, Tab checkout Find accepts name or phone.
+ * When true, cash / M-Pesa capture Find also accepts a customer name.
+ * Tab / wallet / loyalty checkout always accepts name or phone (see
+ * `flexibleCustomerFindAtCheckout` in the till workspace).
  * Default off — admin must opt in under Credit tabs settings.
  */
 export function canSearchCustomersByName(

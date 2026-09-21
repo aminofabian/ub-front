@@ -6,6 +6,7 @@ import {
   Check,
   ChevronDown,
   Gift,
+  Search,
   Send,
   ShoppingBag,
   Smartphone,
@@ -40,7 +41,13 @@ import {
 import { CashierCurrencySuffix } from "./cashier-currency-inline";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
 import { TillLastBasketHint } from "@/components/cashier/till-last-basket-hint";
-import { isValidCustomerPhone, customerPhoneValidationMessage, storedCustomerPhoneIssue } from "@/lib/customer-phone";
+import {
+  customerFindLooksLikeName,
+  customerFindQueryKind,
+  customerPhoneValidationMessage,
+  isValidCustomerPhone,
+  storedCustomerPhoneIssue,
+} from "@/lib/customer-phone";
 import {
   customerPrimaryPhone,
 } from "@/components/credits/customer-phone-flag";
@@ -964,26 +971,37 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 : "Customer"}
                       </p>
                       <div className="flex items-center gap-1.5">
-                        <input
-                          className={fieldClass("h-9 min-w-0 flex-1 text-[13px]")}
-                          value={customerPhoneQuery}
-                          onChange={(e) =>
-                            setCustomerPhoneQuery(e.target.value)
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              onSearchCustomers();
+                        <div className="relative min-w-0 flex-1">
+                          <Search
+                            className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70"
+                            aria-hidden
+                          />
+                          <input
+                            className={fieldClass(
+                              "h-9 w-full pl-8 text-[13px]",
+                            )}
+                            value={customerPhoneQuery}
+                            onChange={(e) =>
+                              setCustomerPhoneQuery(e.target.value)
                             }
-                          }}
-                          placeholder={
-                            allowSearchCustomersByName &&
-                            (creditRegisterContext || captureCustomerSimple)
-                              ? "Name or phone…"
-                              : "Phone 2547… or 07…"
-                          }
-                          disabled={!online}
-                        />
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                onSearchCustomers();
+                              }
+                            }}
+                            placeholder={
+                              allowSearchCustomersByName &&
+                              (creditRegisterContext ||
+                                captureCustomerSimple ||
+                                payMethodNeedsCustomer(payMethod))
+                                ? "Name or phone…"
+                                : "Phone 2547… or 07…"
+                            }
+                            disabled={!online}
+                            aria-label="Find customer by name or phone"
+                          />
+                        </div>
                         <Button
                           type="button"
                           variant="secondary"
@@ -1014,6 +1032,31 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           </button>
                         ) : null}
                       </div>
+                      {!selectedCustomer &&
+                      !(
+                        (payMethod === "customer_credit" ||
+                          creditChangeToWallet) &&
+                        !allowSearchCustomersByName &&
+                        customerPhoneQuery.trim() &&
+                        !isValidCustomerPhone(customerPhoneQuery)
+                      ) ? (
+                        <p className="text-[10px] text-muted-foreground">
+                          {customerSearchBusy
+                            ? "Searching…"
+                            : customerFindQueryKind(customerPhoneQuery) ===
+                                "phone"
+                              ? "Matching phone…"
+                              : customerFindQueryKind(customerPhoneQuery) ===
+                                  "name"
+                                ? "Matching name…"
+                                : customerFindQueryKind(customerPhoneQuery) ===
+                                    "mixed"
+                                  ? "Matching name & phone…"
+                                  : allowSearchCustomersByName
+                                    ? "Type a name or phone — matches appear as you type"
+                                    : "Enter a phone number"}
+                        </p>
+                      ) : null}
                       {(payMethod === "customer_credit" ||
                         creditChangeToWallet) &&
                       !allowSearchCustomersByName &&
@@ -1024,8 +1067,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             "Enter a valid phone number."}
                         </p>
                       ) : null}
-                      {customerHits.length > 0 ? (
-                        <ul className="max-h-24 space-y-0.5 overflow-y-auto">
+                      {customerHits.length > 0 && !selectedCustomer ? (
+                        <ul className="max-h-28 space-y-0.5 overflow-y-auto">
                           {customerHits.map((c) => {
                             const hitPhone = customerPrimaryPhone(c.phones);
                             const phoneIssue = storedCustomerPhoneIssue(hitPhone);
@@ -1034,18 +1077,15 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 <button
                                   type="button"
                                   className={cn(
-                                    "w-full rounded-none px-2 py-1.5 text-left text-[12px] transition-colors",
-                                    selectedCustomer?.id === c.id
-                                      ? "bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] font-semibold"
-                                      : "hover:bg-muted/50",
+                                    "w-full rounded-none px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-muted/50",
                                     phoneIssue && "ring-1 ring-destructive/40",
                                   )}
                                   onClick={() => setSelectedCustomer(c)}
                                 >
-                                  {c.name}
+                                  <span className="font-medium">{c.name}</span>
                                   <span
                                     className={cn(
-                                      "ml-1",
+                                      "mt-0.5 block",
                                       phoneIssue
                                         ? "text-destructive"
                                         : "text-muted-foreground",
@@ -1059,18 +1099,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           })}
                         </ul>
                       ) : null}
-                      {customerNoPhoneMatch &&
-                      !selectedCustomer &&
-                      customerPhoneQuery.trim() &&
-                      !isValidCustomerPhone(customerPhoneQuery) &&
-                      !captureCustomerSimple &&
-                      (!creditRegisterContext || allowSearchCustomersByName) ? (
-                        <p className="text-[10px] text-muted-foreground">
-                          No match — try a phone number to register.
-                        </p>
-                      ) : null}
                       {((creditRegisterContext &&
-                        isValidCustomerPhone(customerPhoneQuery)) ||
+                        (isValidCustomerPhone(customerPhoneQuery) ||
+                          (allowSearchCustomersByName &&
+                            customerFindLooksLikeName(customerPhoneQuery)))) ||
                         captureCustomerSimple) &&
                       customerNoPhoneMatch &&
                       !selectedCustomer &&
@@ -1079,7 +1111,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           <p className="text-[11px] font-semibold text-foreground">
                             {captureCustomerSimple
                               ? "Add new customer"
-                              : "Register new number"}
+                              : "Register for tab"}
                           </p>
                           {canManageCustomers ? (
                             <>
@@ -1096,7 +1128,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                   (registerNeedsOtp && phoneVerificationSent)
                                 }
                               />
-                              {captureCustomerSimple ? (
+                              {captureCustomerSimple ||
+                              !isValidCustomerPhone(customerPhoneQuery) ? (
                                 <input
                                   className={fieldClass("h-9 w-full text-[13px]")}
                                   value={customerRegisterPhone}
@@ -1104,9 +1137,21 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                     setCustomerRegisterPhone(e.target.value)
                                   }
                                   inputMode="tel"
-                                  placeholder="Phone (optional)"
+                                  placeholder={
+                                    captureCustomerSimple
+                                      ? "Phone (optional)"
+                                      : "Phone 07…"
+                                  }
                                   disabled={!online || customerRegisterBusy}
                                 />
+                              ) : null}
+                              {customerRegisterPhone.trim().length > 0 &&
+                              !isValidCustomerPhone(customerRegisterPhone) ? (
+                                <p className="text-[10px] text-destructive">
+                                  {customerPhoneValidationMessage(
+                                    customerRegisterPhone,
+                                  ) ?? "Enter a valid phone number."}
+                                </p>
                               ) : null}
                               {registerNeedsOtp && phoneVerificationSent ? (
                                 <input
@@ -1134,11 +1179,17 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                   customerRegisterBusy ||
                                   !customerRegisterName.trim() ||
                                   (registerNeedsOtp &&
+                                    !isValidCustomerPhone(
+                                      customerRegisterPhone.trim() ||
+                                        customerPhoneQuery,
+                                    )) ||
+                                  (registerNeedsOtp &&
                                     phoneVerificationSent &&
                                     phoneVerificationCode.length !== 4) ||
                                   (registerNeedsOtp &&
                                     !phoneVerificationSent &&
-                                    Date.now() < phoneVerificationCooldownUntil) ||
+                                    Date.now() <
+                                      phoneVerificationCooldownUntil) ||
                                   (customerRegisterPhone.trim().length > 0 &&
                                     !isValidCustomerPhone(customerRegisterPhone))
                                 }
