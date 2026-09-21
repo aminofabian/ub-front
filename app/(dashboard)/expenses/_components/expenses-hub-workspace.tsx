@@ -545,7 +545,7 @@ export function ExpensesHubWorkspace() {
             <span className="mb-1 block text-muted-foreground">From</span>
             <input
               type="date"
-              className={dashboardInputClass}
+              className={dashboardInputClass()}
               value={from}
               onChange={(e) => {
                 setPreset("custom");
@@ -558,7 +558,7 @@ export function ExpensesHubWorkspace() {
             <span className="mb-1 block text-muted-foreground">To</span>
             <input
               type="date"
-              className={dashboardInputClass}
+              className={dashboardInputClass()}
               value={to}
               onChange={(e) => {
                 setPreset("custom");
@@ -839,7 +839,7 @@ export function ExpensesHubWorkspace() {
                     ))}
                   </select>
                   <input
-                    className={cn(dashboardInputClass, "w-40")}
+                    className={cn(dashboardInputClass(), "w-40")}
                     placeholder="Search name"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
