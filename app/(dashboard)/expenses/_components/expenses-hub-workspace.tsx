@@ -28,17 +28,30 @@ import {
   fetchFinanceExpensesRange,
   fetchFinancePL,
   fetchPayrollPeriodPayslips,
+  fetchPendingDrawouts,
+  fetchShiftDrawouts,
+  fetchShifts,
   initiateExpenseKopokopoPay,
   postExpenseScheduleOccurrence,
   postExpenseScheduleOccurrenceByDate,
   rejectFinanceExpense,
   skipExpenseScheduleOccurrence,
   skipExpenseScheduleOccurrenceByDate,
+  type DrawoutRecord,
   type ExpenseScheduleOccurrenceRecord,
   type ExpenseScheduleRecord,
   type FinanceExpenseResponse,
   type ProfitAndLossResponse,
+  type ShiftListItem,
 } from "@/lib/api";
+import {
+  drawoutCategoryLabel,
+  drawoutStatusLabel,
+  hubDrawoutsFromRecords,
+  isActiveDrawoutStatus,
+  totalDrawoutAmount,
+  type HubDrawout,
+} from "@/lib/business-hub/drawouts-for-hub";
 import { APP_ROUTES } from "@/lib/config";
 import {
   expensesHubPresetRange,
@@ -55,6 +68,7 @@ import {
   formatFixedCostDate,
   paymentMethodLabel,
 } from "@/lib/fixed-costs-utils";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { parseStorefrontHex } from "@/lib/storefront-theme";
 import { cn } from "@/lib/utils";
 
@@ -77,8 +91,10 @@ export function ExpensesHubWorkspace() {
     canManageFinanceExpenses,
     canReadFinanceReports,
     canViewPayroll,
+    canViewShifts,
     branches,
     business,
+    me,
   } = useDashboard();
 
   const shopName =
@@ -87,6 +103,10 @@ export function ExpensesHubWorkspace() {
     "Your shop";
   const brandPrimary =
     parseStorefrontHex(business?.branding?.primaryColor) ?? "#0f766e";
+  const canApproveDrawouts = hasPermission(
+    me?.permissions,
+    Permission.ShiftsDrawoutsApprove,
+  );
 
   const canOpen = canReadFinanceExpenses || canReadFinanceReports;
 
@@ -115,6 +135,8 @@ export function ExpensesHubWorkspace() {
     count: number;
     netTotal: number;
   } | null>(null);
+  const [periodDrawouts, setPeriodDrawouts] = useState<HubDrawout[]>([]);
+  const [pendingDrawouts, setPendingDrawouts] = useState<HubDrawout[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -145,7 +167,7 @@ export function ExpensesHubWorkspace() {
       const year = Number(from.slice(0, 4));
       const month = Number(from.slice(5, 7));
 
-      const [plRes, listRes, occRes, payrollGap, pendingRes, schedulesRes] =
+      const [plRes, listRes, occRes, payrollGap, pendingRes, schedulesRes, drawoutBundle] =
         await Promise.all([
         canReadFinanceReports
           ? fetchFinancePL(from, to, branch).catch((err) => {
@@ -185,6 +207,14 @@ export function ExpensesHubWorkspace() {
         canReadFinanceExpenses
           ? fetchExpenseSchedules().catch(() => [])
           : Promise.resolve([]),
+        canViewShifts
+          ? loadDrawoutsForExpensesHub({
+              from,
+              to,
+              branchId: branch,
+              includePending: canApproveDrawouts,
+            }).catch(() => ({ period: [] as HubDrawout[], pending: [] as HubDrawout[] }))
+          : Promise.resolve({ period: [] as HubDrawout[], pending: [] as HubDrawout[] }),
       ]);
 
       setPl(plRes);
@@ -201,6 +231,8 @@ export function ExpensesHubWorkspace() {
       setUnpostedPayroll(payrollGap);
       setPendingApprovals(pendingRes?.expenses ?? []);
       setSchedules(Array.isArray(schedulesRes) ? schedulesRes : []);
+      setPeriodDrawouts(drawoutBundle.period);
+      setPendingDrawouts(drawoutBundle.pending);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load expenses");
       setPl(null);
@@ -209,6 +241,8 @@ export function ExpensesHubWorkspace() {
       setUnpostedPayroll(null);
       setPendingApprovals([]);
       setSchedules([]);
+      setPeriodDrawouts([]);
+      setPendingDrawouts([]);
     } finally {
       setLoading(false);
     }
@@ -218,6 +252,8 @@ export function ExpensesHubWorkspace() {
     canReadFinanceExpenses,
     canManageFinanceExpenses,
     canViewPayroll,
+    canViewShifts,
+    canApproveDrawouts,
     from,
     to,
     branchFilter,
@@ -274,6 +310,22 @@ export function ExpensesHubWorkspace() {
       .sort((a, b) => a.occurrenceDate.localeCompare(b.occurrenceDate))
       .slice(0, 8);
   }, [occurrences, branchFilter]);
+
+  const drawoutApprovedTotal = useMemo(
+    () =>
+      periodDrawouts
+        .filter((d) => d.status === "APPROVED")
+        .reduce((sum, d) => sum + d.amount, 0),
+    [periodDrawouts],
+  );
+  const drawoutActiveTotal = useMemo(
+    () => totalDrawoutAmount(periodDrawouts),
+    [periodDrawouts],
+  );
+  const recentDrawouts = useMemo(
+    () => periodDrawouts.filter((d) => isActiveDrawoutStatus(d.status)).slice(0, 8),
+    [periodDrawouts],
+  );
 
   const bump = () => setRefreshKey((k) => k + 1);
 
@@ -690,7 +742,9 @@ export function ExpensesHubWorkspace() {
         </div>
         <p className={dashboardHintClass()}>
           Stock purchases stay in inventory / COGS — they are not operating
-          expenses. Amounts below are{" "}
+          expenses. Till drawouts are cash from the drawer — they are{" "}
+          <span className="font-semibold text-[var(--order-ink,#15231f)]">not OpEx</span>.
+          Amounts below are{" "}
           <span className="font-semibold text-[var(--order-ink,#15231f)]">Posted (books)</span>,
           not proof that money left the account.
         </p>
@@ -719,6 +773,14 @@ export function ExpensesHubWorkspace() {
           >
             Today&apos;s takings
           </Link>
+          {canViewShifts ? (
+            <Link
+              href={APP_ROUTES.shifts}
+              className="underline-offset-2 hover:underline"
+            >
+              Shifts &amp; drawouts
+            </Link>
+          ) : null}
         </div>
       </section>
 
@@ -815,6 +877,116 @@ export function ExpensesHubWorkspace() {
                 for wages.
               </p>
             </div>
+          ) : null}
+
+          {canViewShifts ? (
+            <section
+              className={cn(
+                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
+                HAIRLINE,
+              )}
+            >
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--order-ink,#15231f)]">
+                    Till drawouts
+                  </h2>
+                  <p className={cn("mt-1", dashboardHintClass())}>
+                    Cash pulled from the drawer — not operating expenses.
+                    {periodDrawouts.length > 0 ? (
+                      <>
+                        {" "}
+                        Approved{" "}
+                        <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                          {formatFixedCostMoney(drawoutApprovedTotal)}
+                        </span>
+                        {drawoutActiveTotal !== drawoutApprovedTotal ? (
+                          <>
+                            {" "}
+                            · active (incl. pending){" "}
+                            <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                              {formatFixedCostMoney(drawoutActiveTotal)}
+                            </span>
+                          </>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+                <Link
+                  href={APP_ROUTES.shifts}
+                  className="text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                >
+                  Open shifts
+                </Link>
+              </div>
+
+              {pendingDrawouts.length > 0 ? (
+                <div
+                  className={cn(
+                    "border border-amber-800/25 bg-[#fff8e8] px-3 py-2.5 text-sm",
+                    HAIRLINE,
+                  )}
+                >
+                  <p className="font-semibold text-[#5c3d0a]">
+                    {pendingDrawouts.length} drawout
+                    {pendingDrawouts.length === 1 ? "" : "s"} waiting for approval
+                  </p>
+                  <ul className="mt-2 space-y-1.5">
+                    {pendingDrawouts.slice(0, 5).map((d) => (
+                      <li
+                        key={d.id}
+                        className="flex flex-wrap items-baseline justify-between gap-2 text-[#5c3d0a]/90"
+                      >
+                        <span>
+                          {d.recipientName || d.description || "Drawout"} ·{" "}
+                          {drawoutCategoryLabel(d.category)}
+                          {d.shiftCashierName ? ` · ${d.shiftCashierName}` : ""}
+                        </span>
+                        <span className="font-semibold tabular-nums">
+                          {formatFixedCostMoney(d.amount)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {recentDrawouts.length > 0 ? (
+                <ul
+                  className={cn(
+                    "divide-y border-t",
+                    "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+                    HAIRLINE,
+                  )}
+                >
+                  {recentDrawouts.map((d) => (
+                    <li
+                      key={d.id}
+                      className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"
+                    >
+                      <div>
+                        <p className="font-semibold text-[var(--order-ink,#15231f)]">
+                          {d.recipientName || d.description || "Drawout"}
+                        </p>
+                        <p className={dashboardHintClass()}>
+                          {drawoutCategoryLabel(d.category)} ·{" "}
+                          {drawoutStatusLabel(d.status)}
+                          {d.shiftCashierName ? ` · ${d.shiftCashierName}` : ""}
+                        </p>
+                      </div>
+                      <p className="font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                        {formatFixedCostMoney(d.amount)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={dashboardHintClass()}>
+                  No till drawouts on open or recent shifts in this period.
+                </p>
+              )}
+            </section>
           ) : null}
 
           {canManageFinanceExpenses && pendingApprovals.length > 0 ? (
@@ -1282,4 +1454,59 @@ async function loadUnpostedPayrollGap(
   } catch {
     return null;
   }
+}
+
+function shiftOverlapsRange(shift: ShiftListItem, from: string, to: string) {
+  const opened = shift.openedAt.slice(0, 10);
+  const closed = shift.closedAt?.slice(0, 10) ?? to;
+  return opened <= to && closed >= from;
+}
+
+async function loadDrawoutsForExpensesHub(opts: {
+  from: string;
+  to: string;
+  branchId?: string;
+  includePending: boolean;
+}): Promise<{ period: HubDrawout[]; pending: HubDrawout[] }> {
+  const branchId = opts.branchId;
+  const [openRes, recentRes, pendingRaw] = await Promise.all([
+    fetchShifts({ branchId, status: "OPEN", page: 0, size: 50 }).catch(() => null),
+    fetchShifts({ branchId, page: 0, size: 40 }).catch(() => null),
+    opts.includePending
+      ? fetchPendingDrawouts().catch(() => [] as DrawoutRecord[])
+      : Promise.resolve([] as DrawoutRecord[]),
+  ]);
+
+  const byId = new Map<string, ShiftListItem>();
+  for (const shift of openRes?.shifts ?? []) {
+    byId.set(shift.id, shift);
+  }
+  for (const shift of recentRes?.shifts ?? []) {
+    if (shift.status === "OPEN" || shiftOverlapsRange(shift, opts.from, opts.to)) {
+      byId.set(shift.id, shift);
+    }
+  }
+
+  const shifts = [...byId.values()].slice(0, 24);
+  const drawoutLists = await Promise.all(
+    shifts.map(async (shift) => {
+      const list = await fetchShiftDrawouts(shift.id).catch(
+        () => [] as DrawoutRecord[],
+      );
+      return list
+        .filter((row) => {
+          const day = row.createdAt.slice(0, 10);
+          return day >= opts.from && day <= opts.to;
+        })
+        .map((row) => ({
+          ...row,
+          shiftCashierName: shift.cashierName,
+        }));
+    }),
+  );
+
+  return {
+    period: hubDrawoutsFromRecords(drawoutLists.flat()),
+    pending: hubDrawoutsFromRecords(pendingRaw),
+  };
 }
