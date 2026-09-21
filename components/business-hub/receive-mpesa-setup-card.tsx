@@ -40,11 +40,11 @@ export function ReceiveMpesaSetupCard({
   compact = false,
 }: Props) {
   const canWrite = hasPermission(
-    permissions,
+    permissions ?? undefined,
     Permission.PaymentsGatewaysWrite,
   );
   const canRead = hasPermission(
-    permissions,
+    permissions ?? undefined,
     Permission.PaymentsGatewaysRead,
   );
 
