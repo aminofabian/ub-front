@@ -162,7 +162,7 @@ export function TenantMethodsPanel({
             : "No methods match this filter."}
         </p>
       ) : (
-        <ul className={cn("divide-y border bg-white", HAIRLINE)}>
+        <ul className={cn("@container divide-y border bg-white", HAIRLINE)}>
           {filtered.map((m) => (
             <MethodRow key={m.configId} method={m} />
           ))}
@@ -253,7 +253,7 @@ function MethodRow({ method: m }: { method: TenantPaymentMethodRow }) {
   const dest = destinationParts(m);
 
   return (
-    <li className="flex flex-col gap-2.5 px-3 py-3 sm:flex-row sm:items-stretch sm:gap-4">
+    <li className="flex flex-col gap-2.5 px-3 py-3 @[28rem]:flex-row @[28rem]:items-stretch @[28rem]:gap-3">
       <div className="flex min-w-0 flex-1 gap-3">
         <span
           className={cn(
@@ -267,9 +267,9 @@ function MethodRow({ method: m }: { method: TenantPaymentMethodRow }) {
         >
           <Icon className="size-3.5" />
         </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-[14px] font-semibold tracking-[-0.015em] text-foreground">
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="min-w-0 max-w-full truncate text-[14px] font-semibold tracking-[-0.015em] text-foreground">
               {m.businessName?.trim() || "Unnamed shop"}
             </p>
             <Badge
@@ -289,7 +289,7 @@ function MethodRow({ method: m }: { method: TenantPaymentMethodRow }) {
               </span>
             ) : null}
           </div>
-          <p className={cn(dashboardHintClass(), "mt-0.5")}>
+          <p className={cn(dashboardHintClass(), "mt-0.5 break-words")}>
             {kindLabel}
             {m.label?.trim() ? ` · ${m.label.trim()}` : ""}
             {m.businessSlug ? ` · ${m.businessSlug}` : ""}
@@ -319,12 +319,17 @@ function DestinationTicket({
   summary: string | null;
   gatewayType: string;
 }) {
+  const shell = cn(
+    "flex w-full min-w-0 shrink-0 flex-col justify-center border px-3 py-2.5 @[28rem]:w-[13.5rem]",
+    HAIRLINE,
+  );
+
   if (!dest.kind && !summary) {
     return (
       <div
         className={cn(
-          "flex w-full shrink-0 flex-col justify-center border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,#f3eee6)] px-3 py-2.5 sm:w-[14.5rem]",
-          HAIRLINE,
+          shell,
+          "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,#f3eee6)]",
         )}
       >
         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -342,8 +347,8 @@ function DestinationTicket({
   return (
     <div
       className={cn(
-        "relative w-full shrink-0 overflow-hidden border bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)] px-3 py-2.5 sm:w-[14.5rem]",
-        HAIRLINE,
+        shell,
+        "overflow-hidden bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]",
       )}
     >
       <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--pos-primary,#0f766e)]">
@@ -354,13 +359,13 @@ function DestinationTicket({
             : "Where money lands"}
       </p>
       {dest.kind === "till" && dest.primary ? (
-        <p className="mt-1 font-mono text-[18px] font-semibold tracking-wider tabular-nums text-[var(--order-ink,#15231f)]">
+        <p className="mt-1 break-all font-mono text-[18px] font-semibold tracking-wider tabular-nums text-[var(--order-ink,#15231f)]">
           {dest.primary}
         </p>
       ) : null}
       {dest.kind === "paybill" ? (
-        <div className="mt-1 space-y-0.5">
-          <p className="font-mono text-[15px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+        <div className="mt-1 min-w-0 space-y-0.5">
+          <p className="break-all font-mono text-[15px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
             {dest.primary ?? "—"}
           </p>
           {dest.secondary ? (
@@ -371,7 +376,9 @@ function DestinationTicket({
         </div>
       ) : null}
       {!dest.kind && summary ? (
-        <p className="mt-1 text-[13px] font-semibold text-foreground">{summary}</p>
+        <p className="mt-1 break-words text-[13px] font-semibold text-foreground">
+          {summary}
+        </p>
       ) : null}
       {summary && dest.kind ? (
         <p className="mt-1 truncate text-[11px] text-muted-foreground" title={summary}>
