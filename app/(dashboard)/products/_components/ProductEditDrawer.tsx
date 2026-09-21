@@ -21,6 +21,7 @@ import { FormDrawer, type FormDrawerProps } from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
 import {
   postStockIncrease,
+  patchItem,
   type AisleRecord,
   type CategoryRecord,
   type ItemSummaryRecord,
@@ -144,6 +145,7 @@ export function ProductEditDrawer({
   const [stockBranchId, setStockBranchId] = useState("");
   const [stockUnitCost, setStockUnitCost] = useState("");
   const [stockSaving, setStockSaving] = useState(false);
+  const [enablingStock, setEnablingStock] = useState(false);
 
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>(
     {
@@ -169,7 +171,7 @@ export function ProductEditDrawer({
       basics: true,
       package: isVariant,
       pricing: true,
-      inventory: false,
+      inventory: sharedStock || d.isStocked === false,
       visibility: false,
       media: false,
     });
@@ -177,6 +179,7 @@ export function ProductEditDrawer({
     open,
     d?.id,
     d?.buyingPrice,
+    d?.isStocked,
     headerBranchId,
     dr.buyingPriceStr,
     m.branches,
@@ -247,11 +250,34 @@ export function ProductEditDrawer({
     return cats.find((c) => c.id === id)?.name;
   }, [cats, dr.categoryId]);
 
+  const handleEnableStockTracking = async (): Promise<boolean> => {
+    if (!d) return false;
+    setEnablingStock(true);
+    setMessage("");
+    try {
+      await patchItem(d.id, { isStocked: true });
+      const updated = await refreshSelectedDetail();
+      if (updated) syncListRowFromDetail(updated);
+      setMessage(
+        "Stock tracking is on. Enter a quantity below, then save or tap Add stock now.",
+      );
+      setOpenSections((s) => ({ ...s, inventory: true }));
+      return true;
+    } catch (e) {
+      setMessage(
+        formatMutationError(e, "Could not turn on stock tracking."),
+      );
+      return false;
+    } finally {
+      setEnablingStock(false);
+    }
+  };
+
   const handleStockIncrease = async (): Promise<boolean> => {
     if (!d) return false;
     if (d.isStocked === false) {
       setMessage(
-        "This SKU is not stocked. Enable stock tracking or add quantity on a stocked variant.",
+        "Turn on stock tracking first — then you can add how many you have.",
       );
       return false;
     }
@@ -752,7 +778,9 @@ export function ProductEditDrawer({
             hint={
               sharedStock
                 ? "Count lives on the main product"
-                : "When to reorder, and add stock"
+                : d?.isStocked === false
+                  ? "Tracking is off — turn it on to add quantity"
+                  : "When to reorder, and add stock"
             }
             expanded={openSections.inventory}
             onToggle={() => toggleSection("inventory")}
@@ -819,45 +847,76 @@ export function ProductEditDrawer({
                     </ProductFormField>
                   </div>
                   {d.isStocked === false ? (
-                    <p className="text-[11px] text-amber-800 dark:text-amber-200">
-                      Stock tracking is off for this SKU — enable it before
-                      adding quantity.
-                    </p>
-                  ) : null}
-                  <StockIncreaseFields
-                    className="border-0 bg-transparent p-0 ring-0"
-                    branches={m.branches}
-                    branchId={stockBranchId}
-                    onBranchIdChange={setStockBranchId}
-                    quantity={stockQty}
-                    onQuantityChange={setStockQty}
-                    unitCost={stockUnitCost}
-                    onUnitCostChange={setStockUnitCost}
-                    itemId={d.id}
-                    currentUnitCost={
-                      toNumber(d.buyingPrice) ?? toNumber(dr.buyingPriceStr)
-                    }
-                    hint="Optional — applied when you save if qty is filled."
-                    minimal
-                  />
-                  {stockQty.trim() ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="h-9 w-full text-xs sm:w-auto"
-                      disabled={stockSaving}
-                      onClick={() => void handleStockIncrease()}
-                    >
-                      {stockSaving ? (
-                        <Loader2
-                          className="size-3.5 animate-spin"
-                          aria-hidden
-                        />
+                    <div className="space-y-2.5 rounded-none border border-amber-600/25 bg-amber-500/[0.07] px-3 py-3 dark:border-amber-400/25 dark:bg-amber-400/10">
+                      <div className="space-y-1">
+                        <p className="text-[13px] font-semibold tracking-tight text-foreground">
+                          Inventory isn’t counted for this product yet
+                        </p>
+                        <p className="text-[12px] leading-relaxed text-muted-foreground">
+                          Turn on stock tracking to keep an on-hand number and
+                          add quantity when you receive goods. Until then, the
+                          till won’t know how many you have.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-9 gap-1.5 shadow-none"
+                        disabled={enablingStock}
+                        onClick={() => void handleEnableStockTracking()}
+                      >
+                        {enablingStock ? (
+                          <Loader2
+                            className="size-3.5 animate-spin"
+                            aria-hidden
+                          />
+                        ) : (
+                          <Warehouse className="size-3.5" aria-hidden />
+                        )}
+                        {enablingStock
+                          ? "Turning on…"
+                          : "Turn on stock tracking"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <StockIncreaseFields
+                        className="border-0 bg-transparent p-0 ring-0"
+                        branches={m.branches}
+                        branchId={stockBranchId}
+                        onBranchIdChange={setStockBranchId}
+                        quantity={stockQty}
+                        onQuantityChange={setStockQty}
+                        unitCost={stockUnitCost}
+                        onUnitCostChange={setStockUnitCost}
+                        itemId={d.id}
+                        currentUnitCost={
+                          toNumber(d.buyingPrice) ??
+                          toNumber(dr.buyingPriceStr)
+                        }
+                        hint="Optional — applied when you save if qty is filled."
+                        minimal
+                      />
+                      {stockQty.trim() ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="h-9 w-full text-xs sm:w-auto"
+                          disabled={stockSaving}
+                          onClick={() => void handleStockIncrease()}
+                        >
+                          {stockSaving ? (
+                            <Loader2
+                              className="size-3.5 animate-spin"
+                              aria-hidden
+                            />
+                          ) : null}
+                          {stockSaving ? "Adding stock…" : "Add stock now"}
+                        </Button>
                       ) : null}
-                      {stockSaving ? "Adding stock…" : "Add stock now"}
-                    </Button>
-                  ) : null}
+                    </>
+                  )}
                 </>
               )}
             </div>

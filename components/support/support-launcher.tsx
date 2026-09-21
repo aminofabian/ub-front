@@ -12,7 +12,9 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useChromeFabSuppressed } from "@/hooks/use-chrome-fab-suppressed";
 import { useSupportUnread } from "@/hooks/use-support-unread";
+import { SUPPORT_FAB_POSITION } from "@/lib/chrome-fabs";
 import { APP_ROUTES } from "@/lib/config";
 import { OPEN_SUPPORT_CHAT_EVENT } from "@/lib/support-open";
 import { cn } from "@/lib/utils";
@@ -38,6 +40,7 @@ export function SupportLauncher() {
   const unread = useSupportUnread();
   const realtime = useOptionalRealtime();
   const [open, setOpen] = React.useState(false);
+  const fabSuppressed = useChromeFabSuppressed();
 
   // Close the drawer when navigating away (the page-level chat takes over).
   React.useEffect(() => {
@@ -86,12 +89,14 @@ export function SupportLauncher() {
         aria-label={open ? "Close support chat" : "Open support chat"}
         title={open ? "Close support" : "Chat with Kiosk Support"}
         className={cn(
-          "group fixed z-40 flex size-[3.6rem] items-center justify-center rounded-full text-primary-foreground outline-none transition-[transform,box-shadow,background-color] duration-200",
-          "bottom-[calc(4.15rem+env(safe-area-inset-bottom,0px))] left-4 2xl:bottom-6 2xl:left-6",
+          "group fixed z-40 flex size-[3.6rem] items-center justify-center rounded-full text-primary-foreground outline-none transition-[transform,box-shadow,background-color,opacity] duration-200",
+          SUPPORT_FAB_POSITION,
           "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          open
-            ? "bg-foreground shadow-[0_10px_28px_-12px_rgba(15,23,42,0.55)] hover:scale-[1.03]"
-            : "bg-primary shadow-[0_14px_36px_-12px_rgba(40,167,69,0.65)] hover:scale-[1.06] hover:shadow-[0_18px_40px_-12px_rgba(40,167,69,0.7)]",
+          fabSuppressed && !open
+            ? "pointer-events-none scale-90 opacity-0"
+            : open
+              ? "bg-foreground shadow-[0_10px_28px_-12px_rgba(15,23,42,0.55)] hover:scale-[1.03]"
+              : "bg-primary shadow-[0_14px_36px_-12px_rgba(40,167,69,0.65)] hover:scale-[1.06] hover:shadow-[0_18px_40px_-12px_rgba(40,167,69,0.7)]",
         )}
       >
         {unread > 0 && !open ? (

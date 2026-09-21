@@ -409,7 +409,7 @@ export function useQuickEdit({
     const shared = usesSharedPackageStock(detail);
     if (detail.isStocked === false && !shared) {
       setMessage(
-        "This SKU is not stocked. Enable stock tracking or add stock on a variant instead.",
+        "Turn on stock tracking first — then you can set how many you have on hand.",
       );
       return;
     }

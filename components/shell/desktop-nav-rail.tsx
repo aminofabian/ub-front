@@ -637,7 +637,10 @@ export function DesktopNavRail({
 
   return (
     <>
-      <aside className="sticky top-0 z-40 h-screen w-[4.75rem] shrink-0 border-r border-border/60 bg-background">
+      <aside
+        className="sticky top-0 z-40 h-screen w-[4.75rem] shrink-0 border-r border-border/60 bg-background"
+        style={{ ["--kiosk-nav-rail" as string]: "4.75rem" }}
+      >
         <div className="flex h-full flex-col items-center py-4">
           <Link
             href={homeHref}

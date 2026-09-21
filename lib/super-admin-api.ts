@@ -48,6 +48,10 @@ export type SaBusinessRow = {
   globalCatalogCode?: string | null;
   /** Owner shop phone when linked; omitted/null when unset. */
   ownerPhone?: string | null;
+  /** Oldest owner user display name when linked. */
+  ownerName?: string | null;
+  /** Oldest owner user email when linked. */
+  ownerEmail?: string | null;
 };
 
 export type SaDomainRow = {

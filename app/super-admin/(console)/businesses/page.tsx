@@ -420,6 +420,33 @@ export default function SuperAdminBusinessesPage() {
               HAIRLINE,
             )}
           >
+            <dt className="text-muted-foreground">Owner</dt>
+            <dd className="max-w-[60%] text-right font-medium">
+              {selectedBusiness.ownerName?.trim() ||
+                selectedBusiness.ownerEmail?.trim() ||
+                "—"}
+            </dd>
+          </div>
+          {selectedBusiness.ownerEmail?.trim() &&
+          selectedBusiness.ownerName?.trim() ? (
+            <div
+              className={cn(
+                "flex justify-between gap-3 border px-3 py-2",
+                HAIRLINE,
+              )}
+            >
+              <dt className="text-muted-foreground">Owner email</dt>
+              <dd className="max-w-[60%] break-all text-right font-medium">
+                {selectedBusiness.ownerEmail.trim()}
+              </dd>
+            </div>
+          ) : null}
+          <div
+            className={cn(
+              "flex justify-between gap-3 border px-3 py-2",
+              HAIRLINE,
+            )}
+          >
             <dt className="text-muted-foreground">Phone</dt>
             <dd className="font-medium tabular-nums">
               {selectedBusiness.ownerPhone?.trim() || "—"}
@@ -647,12 +674,16 @@ export default function SuperAdminBusinessesPage() {
           const q = search.trim().toLowerCase();
           const visible = rows.filter((b) => {
             const phone = b.ownerPhone?.trim().toLowerCase() ?? "";
+            const ownerName = b.ownerName?.trim().toLowerCase() ?? "";
+            const ownerEmail = b.ownerEmail?.trim().toLowerCase() ?? "";
             if (
               q &&
               !b.name.toLowerCase().includes(q) &&
               !b.slug.toLowerCase().includes(q) &&
               !b.id.toLowerCase().includes(q) &&
-              !phone.includes(q)
+              !phone.includes(q) &&
+              !ownerName.includes(q) &&
+              !ownerEmail.includes(q)
             ) {
               return false;
             }

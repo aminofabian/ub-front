@@ -313,6 +313,17 @@ function BusinessFocus({
             ? ` · ${business.ownerPhone.trim()}`
             : ""}
         </p>
+        {(business.ownerName?.trim() || business.ownerEmail?.trim()) ? (
+          <p className={cn(dashboardHintClass(), "text-[13px] leading-relaxed")}>
+            Owner{" "}
+            <span className="font-medium text-foreground">
+              {business.ownerName?.trim() || "—"}
+            </span>
+            {business.ownerEmail?.trim()
+              ? ` · ${business.ownerEmail.trim()}`
+              : ""}
+          </p>
+        ) : null}
         <p className="rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-3 py-2 text-[12px] text-foreground">
           <span
             className={cn(
@@ -397,12 +408,16 @@ export function BusinessesTheatre({
     const q = searchInput.trim().toLowerCase();
     return rows.filter((b) => {
       const phone = b.ownerPhone?.trim().toLowerCase() ?? "";
+      const ownerName = b.ownerName?.trim().toLowerCase() ?? "";
+      const ownerEmail = b.ownerEmail?.trim().toLowerCase() ?? "";
       if (
         q &&
         !b.name.toLowerCase().includes(q) &&
         !b.slug.toLowerCase().includes(q) &&
         !b.id.toLowerCase().includes(q) &&
-        !phone.includes(q)
+        !phone.includes(q) &&
+        !ownerName.includes(q) &&
+        !ownerEmail.includes(q)
       ) {
         return false;
       }
@@ -497,7 +512,7 @@ export function BusinessesTheatre({
               )}
               value={searchInput}
               onChange={(e) => onSearchInputChange(e.target.value)}
-              placeholder="Search name, slug, phone, ID…"
+              placeholder="Search name, owner, slug, phone, ID…"
               aria-label="Search tenants"
             />
           </label>
@@ -683,6 +698,19 @@ export function BusinessesTheatre({
                             {stuck ? (
                               <span className="text-amber-800"> · stuck</span>
                             ) : null}
+                          </p>
+                          <p className="mt-0.5 truncate text-[10px] leading-snug text-muted-foreground">
+                            {row.ownerName?.trim() || row.ownerEmail?.trim()
+                              ? [
+                                  row.ownerName?.trim() || null,
+                                  row.ownerEmail?.trim() || null,
+                                  row.ownerPhone?.trim() || null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")
+                              : row.ownerPhone?.trim()
+                                ? row.ownerPhone.trim()
+                                : "No owner linked"}
                           </p>
                           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-muted-foreground">
                             <span className="capitalize">

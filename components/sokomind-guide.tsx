@@ -6,6 +6,8 @@ import { Copy, MessageSquarePlus, Send, Sparkles, ThumbsDown, ThumbsUp, X } from
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
+import { useChromeFabSuppressed } from "@/hooks/use-chrome-fab-suppressed";
+import { GUIDE_FAB_POSITION } from "@/lib/chrome-fabs";
 import { cn } from "@/lib/utils";
 import {
   buildSokoMindContext,
@@ -58,8 +60,7 @@ function sanitizeThread(raw: unknown): ThreadItem[] {
 }
 
 /** Floating launch button — lives above the tablet bottom nav until 2xl. */
-const FAB_POSITION =
-  "bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-4 sm:right-6 2xl:bottom-6 2xl:right-6";
+const FAB_POSITION = GUIDE_FAB_POSITION;
 
 function AssistantAvatar({ className }: { className?: string }) {
   return (
@@ -92,6 +93,7 @@ function TypingDots() {
 export function SokoMindGuide() {
   const pathname = usePathname() || "/";
   const hidden = isSokoMindGuideHiddenRoute(pathname);
+  const fabSuppressed = useChromeFabSuppressed();
   const { branchId, business, me } = useDashboard();
 
   const [status, setStatus] = useState<SokoMindStatus | null>(null);
@@ -310,10 +312,11 @@ export function SokoMindGuide() {
   }
 
   const providerMissing = !status.providerConfigured;
+  const showLaunchFab = !open && !fabSuppressed;
 
   return (
     <>
-      {!open ? (
+      {showLaunchFab ? (
         <span
           aria-hidden
           className={cn(
@@ -338,7 +341,7 @@ export function SokoMindGuide() {
           "transition-all duration-200 ease-out",
           "hover:bg-[var(--primary-hover)] hover:shadow-[0_18px_40px_-12px_rgba(22,101,52,0.75)] hover:scale-[1.04]",
           "active:scale-95",
-          open && "pointer-events-none scale-90 opacity-0",
+          (open || fabSuppressed) && "pointer-events-none scale-90 opacity-0",
         )}
       >
         <Sparkles className="size-4.5" aria-hidden />

@@ -8,6 +8,7 @@ import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import { SheetGrabber, useSheetDragDismiss } from "@/components/ui/sheet-drag";
 import { dashboardBrandingAccentStops } from "@/lib/brand-theme";
+import { setFormDrawerOpen } from "@/lib/chrome-fabs";
 import type { OnboardingTargetId } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
 
@@ -107,7 +108,14 @@ export function catalogMessageBannerTone(text: string): "danger" | "notice" {
   if (/error|fail|invalid|required|unable|denied|forbidden|conflict/.test(t)) {
     return "danger";
   }
-  if (/created|saved|updated|added|success|linked|uploaded/.test(t)) {
+  if (
+    /created|saved|updated|added|success|linked|uploaded|turned on|tracking is on/.test(
+      t,
+    )
+  ) {
+    return "notice";
+  }
+  if (/turn on stock tracking|stock tracking first/.test(t)) {
     return "notice";
   }
   return "danger";
@@ -145,6 +153,11 @@ export function FormDrawer({
       ? window.matchMedia("(max-width: 639px)").matches
       : false,
   );
+  React.useEffect(() => {
+    if (!open) return;
+    setFormDrawerOpen(true);
+    return () => setFormDrawerOpen(false);
+  }, [open]);
   React.useEffect(() => {
     const mq = window.matchMedia("(max-width: 639px)");
     const sync = () => setPhone(mq.matches);

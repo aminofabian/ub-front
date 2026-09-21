@@ -1829,6 +1829,8 @@ export type PatchItemPayload = {
   unitType?: string;
   /** When true, sold by weight with fractional qty at the till. */
   isWeighed?: boolean;
+  /** When true, this SKU keeps an on-hand quantity. */
+  isStocked?: boolean;
 };
 
 /** Response from GET /api/v1/items/{id}/supplier-links */
