@@ -918,9 +918,14 @@ function BusinessDetailInner() {
               with products or sales require confirmation.
             </p>
             <div className="flex items-center justify-between gap-3 rounded-lg border border-border/70 px-3 py-2.5 sm:col-span-2">
-              <Label htmlFor="sa-biz-active" className="cursor-pointer">
-                Active
-              </Label>
+              <div className="min-w-0 space-y-0.5">
+                <Label htmlFor="sa-biz-active" className="cursor-pointer">
+                  Active
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Off locks the shop: staff are signed out and cannot log in until you turn this back on.
+                </p>
+              </div>
               <Switch
                 id="sa-biz-active"
                 checked={bizActive}
