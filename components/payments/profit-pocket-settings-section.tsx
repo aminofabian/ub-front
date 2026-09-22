@@ -210,6 +210,8 @@ function ProfitPocketConfigureForm({
   sendRail,
   setSendRail,
   availableSendRails,
+  stkPhone,
+  setStkPhone,
 }: {
   canWrite: boolean;
   saving: boolean;
@@ -240,6 +242,8 @@ function ProfitPocketConfigureForm({
   sendRail: string;
   setSendRail: (v: string) => void;
   availableSendRails: ProfitPocketSendRailOptionRecord[];
+  stkPhone: string;
+  setStkPhone: (v: string) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -391,11 +395,30 @@ function ProfitPocketConfigureForm({
                   );
                 })}
               </div>
+              {sendRail === "daraja" ? (
+                <label className="mt-2 flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
+                    M-Pesa phone for STK
+                  </span>
+                  <input
+                    className="h-10 border border-input bg-background px-3 font-mono text-sm"
+                    value={stkPhone}
+                    disabled={!canWrite || saving}
+                    onChange={(e) => setStkPhone(e.target.value)}
+                    placeholder="07XX XXX XXX"
+                    inputMode="tel"
+                  />
+                  <span className="text-[11px] text-muted-foreground">
+                    Same as receive test: PIN prompt on this phone; cash lands on
+                    your bank / till / paybill (PartyB).
+                  </span>
+                </label>
+              ) : null}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">
-              No send rails yet. Ask your platform admin to enable Daraja B2B,
-              or connect KopoKopo under Accept payments.
+              No send rails yet. Ask your platform admin to enable Daraja
+              Express, or connect KopoKopo under Accept payments.
             </p>
           )}
 
@@ -533,6 +556,7 @@ export function ProfitPocketSettingsSection({
   const [availableSendRails, setAvailableSendRails] = useState<
     ProfitPocketSendRailOptionRecord[]
   >([]);
+  const [stkPhone, setStkPhone] = useState("");
 
   const apply = useCallback((s: ProfitPocketSettingsRecord) => {
     setSettings(s);
@@ -560,6 +584,7 @@ export function ProfitPocketSettingsSection({
     );
     setSendRail(s.sendRail ?? "");
     setAvailableSendRails(s.availableSendRails ?? []);
+    setStkPhone(s.stkPhone ?? "");
   }, []);
 
   const reload = useCallback(async () => {
@@ -625,6 +650,7 @@ export function ProfitPocketSettingsSection({
       profitJarPct: jarN,
       marginBudgetDaily: budgetN,
       sendRail: sendRail || null,
+      stkPhone: stkPhone.trim() || null,
     } as const;
   };
 
@@ -655,9 +681,16 @@ export function ProfitPocketSettingsSection({
       }
       const result = await testProfitPocketDestination();
       if (result.status === "pending") {
-        toast.success("Test sent (KES 1)", {
-          description: result.message ?? "Check the destination for KES 1.",
-        });
+        toast.success(
+          sendRail === "daraja" ? "STK sent — enter PIN" : "Test sent (KES 1)",
+          {
+            description:
+              result.message ??
+              (sendRail === "daraja"
+                ? "Check your phone, then confirm cash landed on the destination."
+                : "Check the destination for KES 1."),
+          },
+        );
       } else if (result.status === "skipped") {
         toast.message("Test skipped", {
           description: result.message ?? "Enable Pay suppliers (KopoKopo) first.",
@@ -746,6 +779,8 @@ export function ProfitPocketSettingsSection({
       sendRail={sendRail}
       setSendRail={setSendRail}
       availableSendRails={availableSendRails}
+      stkPhone={stkPhone}
+      setStkPhone={setStkPhone}
     />
   );
 

@@ -11348,6 +11348,7 @@ export type ProfitPocketSettingsRecord = {
   marginBudgetDaily: number | string | null;
   sendRail: string | null;
   availableSendRails: ProfitPocketSendRailOptionRecord[];
+  stkPhone: string | null;
 };
 
 export type UpdateProfitPocketSettingsPayload = {
@@ -11364,6 +11365,7 @@ export type UpdateProfitPocketSettingsPayload = {
   profitJarPct?: number | null;
   marginBudgetDaily?: number | null;
   sendRail?: string | null;
+  stkPhone?: string | null;
 };
 
 export async function fetchProfitPocketSettings(): Promise<ProfitPocketSettingsRecord> {
@@ -11385,11 +11387,13 @@ export type ProfitPocketTestRecord = {
   message: string | null;
 };
 
-/** Send KES 1 to the saved Profit Pocket destination (Daraja B2B or KopoKopo). */
-export async function testProfitPocketDestination(): Promise<ProfitPocketTestRecord> {
+/** Send KES 1 to the saved Profit Pocket destination (Daraja Express or KopoKopo). */
+export async function testProfitPocketDestination(opts?: {
+  phoneNumber?: string;
+}): Promise<ProfitPocketTestRecord> {
   return request<ProfitPocketTestRecord>("/api/v1/payments/profit-pocket/test", {
     method: "POST",
-    body: {},
+    body: opts?.phoneNumber ? { phoneNumber: opts.phoneNumber } : {},
   });
 }
 
