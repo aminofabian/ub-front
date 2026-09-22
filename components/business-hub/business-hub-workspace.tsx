@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   BarChart3,
   Boxes,
   ClipboardCheck,
   CreditCard,
   MessageCircle,
+  MonitorSmartphone,
   Package,
   RefreshCw,
   ScanLine,
@@ -38,6 +40,7 @@ import { OpenWorkBoard } from "@/components/business-hub/open-work-board";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
 import { ReceiveMpesaSetupCard } from "@/components/business-hub/receive-mpesa-setup-card";
+import { ManageTillsHubCard } from "@/components/business-hub/manage-tills-hub-card";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
 import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnaire-resume-banner";
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
@@ -169,9 +172,14 @@ function isOpenWebOrder(order: WebOrderSummary): boolean {
 }
 
 export function BusinessHubWorkspace() {
+  const searchParams = useSearchParams();
+  const manageTillsInitiallyOpen =
+    searchParams.get("manageTills") === "1" ||
+    searchParams.get("manageTills") === "true";
   const {
     me,
     business,
+    branches,
     branchId,
     itemTypeId,
     headerScopeReady,
@@ -1064,6 +1072,13 @@ export function BusinessHubWorkspace() {
     }
     if (canManageBusinessSettings) {
       links.push({
+        href: `${APP_ROUTES.business}?manageTills=1`,
+        label: "Tills",
+        hint: "Register, activate, deactivate",
+        icon: MonitorSmartphone,
+        group: "Shop setup",
+      });
+      links.push({
         href: APP_ROUTES.businessConfiguration,
         label: "Configuration",
         hint: "How the shop runs",
@@ -1316,6 +1331,14 @@ export function BusinessHubWorkspace() {
                     countryCode={business?.countryCode}
                     permissions={me?.permissions}
                   />
+                  {canManageBusinessSettings ? (
+                    <ManageTillsHubCard
+                      compact
+                      branches={branches}
+                      branchId={branchId}
+                      initiallyOpen={manageTillsInitiallyOpen}
+                    />
+                  ) : null}
                 </>
               ) : salesEmpty ? (
                 <BusinessHubEmptyState
@@ -1370,6 +1393,15 @@ export function BusinessHubWorkspace() {
                     countryCode={business?.countryCode}
                     permissions={me?.permissions}
                   />
+
+                  {/* 3b — Trusted POS tills (activate / deactivate / approve waiting) */}
+                  {canManageBusinessSettings ? (
+                    <ManageTillsHubCard
+                      branches={branches}
+                      branchId={branchId}
+                      initiallyOpen={manageTillsInitiallyOpen}
+                    />
+                  ) : null}
 
                   {/* 4 — Jump in: the board a shop actually navigates with */}
                   <JumpInGrid links={jumpInLinks} />

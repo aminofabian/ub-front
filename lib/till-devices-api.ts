@@ -21,6 +21,26 @@ export type TillDeviceListResponse = {
   devices: TillDeviceRecord[];
 };
 
+export type TillAccessRequestRecord = {
+  id: string;
+  branchId: string;
+  branchName: string;
+  deviceKey: string;
+  deviceShortId: string;
+  requestedByName: string;
+  requestedByEmail: string;
+  suggestedLabel: string;
+  userAgent: string | null;
+  status: string;
+  lastSeenAt: string;
+  createdAt: string;
+  canApprove: boolean;
+};
+
+export type TillAccessRequestListResponse = {
+  requests: TillAccessRequestRecord[];
+};
+
 function normalizeTillDevice(row: TillDeviceRecord): TillDeviceRecord {
   return {
     ...row,
@@ -114,6 +134,56 @@ export async function revokeTillDevice(id: string): Promise<void> {
   await apiRequest(`/api/v1/till-devices/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
+}
+
+export async function reactivateTillDevice(
+  id: string,
+): Promise<TillDeviceRecord> {
+  const row = await apiRequest<TillDeviceRecord>(
+    `/api/v1/till-devices/${encodeURIComponent(id)}/reactivate`,
+    { method: "POST" },
+  );
+  return normalizeTillDevice(row);
+}
+
+export async function listTillAccessRequests(opts?: {
+  branchId?: string;
+  status?: "pending" | "approved" | "dismissed";
+}): Promise<TillAccessRequestRecord[]> {
+  const sp = new URLSearchParams();
+  if (opts?.branchId?.trim()) {
+    sp.set("branchId", opts.branchId.trim());
+  }
+  if (opts?.status) {
+    sp.set("status", opts.status);
+  }
+  const qs = sp.toString();
+  const payload = await apiRequest<TillAccessRequestListResponse>(
+    `/api/v1/till-access-requests${qs ? `?${qs}` : ""}`,
+  );
+  return Array.isArray(payload?.requests) ? payload.requests : [];
+}
+
+export async function approveTillAccessRequest(
+  id: string,
+  label?: string,
+): Promise<TillAccessRequestRecord> {
+  return apiRequest<TillAccessRequestRecord>(
+    `/api/v1/till-access-requests/${encodeURIComponent(id)}/approve`,
+    {
+      method: "POST",
+      body: label?.trim() ? { label: label.trim() } : {},
+    },
+  );
+}
+
+export async function dismissTillAccessRequest(
+  id: string,
+): Promise<TillAccessRequestRecord> {
+  return apiRequest<TillAccessRequestRecord>(
+    `/api/v1/till-access-requests/${encodeURIComponent(id)}/dismiss`,
+    { method: "POST" },
+  );
 }
 
 export function tillDeviceErrorMessage(error: unknown): string {

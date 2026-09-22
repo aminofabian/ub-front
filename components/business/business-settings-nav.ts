@@ -143,7 +143,7 @@ export const CONFIGURATION_SECTION_META: Record<
   },
   "settings-trusted-tills": {
     title: "Trusted tills",
-    hint: "Register devices that may open the till without repeating trust prompts.",
+    hint: "Register, activate, or deactivate counters. Waiting requests show when a cashier unlocks on a new computer.",
   },
   "settings-till-listen": {
     title: "When to listen for till payments",
