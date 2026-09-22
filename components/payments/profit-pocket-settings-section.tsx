@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Loader2, PiggyBank } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,6 +14,12 @@ import {
   type ProfitPocketSettingsRecord,
 } from "@/lib/api";
 import { fmtMoney } from "@/lib/business-hub/formatters";
+import {
+  CUSTOM_BANK_ID,
+  KENYA_MPESA_BANKS,
+  kenyaBankByBusinessNumber,
+  kenyaBankById,
+} from "@/lib/kenya-mpesa-banks";
 import { cn } from "@/lib/utils";
 
 type ProfitPocketSettingsSectionProps = {
@@ -41,6 +47,137 @@ const GUARD_MODES = [
     desc: "Never sell below catalog cost",
   },
 ] as const;
+
+function BankDestinationFields({
+  canWrite,
+  saving,
+  destinationBankName,
+  setDestinationBankName,
+  destinationPaybill,
+  setDestinationPaybill,
+  destinationAccount,
+  setDestinationAccount,
+}: {
+  canWrite: boolean;
+  saving: boolean;
+  destinationBankName: string;
+  setDestinationBankName: (v: string) => void;
+  destinationPaybill: string;
+  setDestinationPaybill: (v: string) => void;
+  destinationAccount: string;
+  setDestinationAccount: (v: string) => void;
+}) {
+  const matched = useMemo(
+    () => kenyaBankByBusinessNumber(destinationPaybill),
+    [destinationPaybill],
+  );
+  const [bankId, setBankId] = useState("");
+
+  useEffect(() => {
+    if (matched) {
+      setBankId(matched.id);
+      return;
+    }
+    if (destinationPaybill.trim() || destinationBankName.trim()) {
+      setBankId(CUSTOM_BANK_ID);
+    }
+  }, [matched, destinationPaybill, destinationBankName]);
+
+  const knownBank = bankId !== "" && bankId !== CUSTOM_BANK_ID && !!kenyaBankById(bankId);
+
+  return (
+    <div className="space-y-4">
+      <label className="flex flex-col gap-1.5">
+        <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
+          Bank
+        </span>
+        <select
+          className="h-10 border border-input bg-background px-3 text-sm"
+          value={bankId}
+          disabled={!canWrite || saving}
+          onChange={(e) => {
+            const id = e.target.value;
+            setBankId(id);
+            if (!id) {
+              setDestinationBankName("");
+              setDestinationPaybill("");
+              return;
+            }
+            if (id === CUSTOM_BANK_ID) {
+              if (matched) {
+                setDestinationBankName("");
+                setDestinationPaybill("");
+              }
+              return;
+            }
+            const bank = kenyaBankById(id);
+            if (bank) {
+              setDestinationBankName(bank.name);
+              setDestinationPaybill(bank.businessNumber);
+            }
+          }}
+        >
+          <option value="">Select bank…</option>
+          {KENYA_MPESA_BANKS.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name} · {b.businessNumber}
+            </option>
+          ))}
+          <option value={CUSTOM_BANK_ID}>Other bank — enter paybill yourself</option>
+        </select>
+      </label>
+
+      {bankId === CUSTOM_BANK_ID ? (
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
+            Bank name
+          </span>
+          <input
+            className="h-10 border border-input bg-background px-3 text-sm"
+            value={destinationBankName}
+            disabled={!canWrite || saving}
+            onChange={(e) => setDestinationBankName(e.target.value)}
+            placeholder="e.g. Equity Bank"
+          />
+        </label>
+      ) : null}
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
+          M-Pesa business number (paybill)
+        </span>
+        <input
+          className="h-10 border border-input bg-background px-3 font-mono text-sm"
+          value={destinationPaybill}
+          disabled={!canWrite || saving || knownBank}
+          onChange={(e) =>
+            setDestinationPaybill(e.target.value.replace(/[^\d]/g, ""))
+          }
+          placeholder="e.g. 247247"
+          inputMode="numeric"
+        />
+        <span className="text-[11px] text-muted-foreground">
+          {knownBank
+            ? "Filled from the bank you selected — used when sending via Lipa Na M-Pesa."
+            : "The bank’s Lipa Na M-Pesa paybill. Pick a bank above to autofill."}
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
+          Account number
+        </span>
+        <input
+          className="h-10 border border-input bg-background px-3 font-mono text-sm"
+          value={destinationAccount}
+          disabled={!canWrite || saving}
+          onChange={(e) => setDestinationAccount(e.target.value)}
+          placeholder="Your bank account number"
+        />
+      </label>
+    </div>
+  );
+}
 
 function ProfitPocketConfigureForm({
   canWrite,
@@ -157,31 +294,16 @@ function ProfitPocketConfigureForm({
           </label>
 
           {destinationType === "bank" ? (
-            <>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
-                  Bank name
-                </span>
-                <input
-                  className="h-10 border border-input bg-background px-3 text-sm"
-                  value={destinationBankName}
-                  disabled={!canWrite || saving}
-                  onChange={(e) => setDestinationBankName(e.target.value)}
-                  placeholder="Equity Bank"
-                />
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
-                  Account number
-                </span>
-                <input
-                  className="h-10 border border-input bg-background px-3 font-mono text-sm"
-                  value={destinationAccount}
-                  disabled={!canWrite || saving}
-                  onChange={(e) => setDestinationAccount(e.target.value)}
-                />
-              </label>
-            </>
+            <BankDestinationFields
+              canWrite={canWrite}
+              saving={saving}
+              destinationBankName={destinationBankName}
+              setDestinationBankName={setDestinationBankName}
+              destinationPaybill={destinationPaybill}
+              setDestinationPaybill={setDestinationPaybill}
+              destinationAccount={destinationAccount}
+              setDestinationAccount={setDestinationAccount}
+            />
           ) : null}
 
           {destinationType === "mpesa_phone" ? (

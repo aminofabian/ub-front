@@ -3351,7 +3351,9 @@ export function QuickSaleWorkspace({
     const belowCostLines = lines.filter(
       (line) =>
         !isAirtimeCartLine(line) &&
-        isSellBelowCost(line.unitPrice, line.item.buyingPrice),
+        isSellBelowCost(line.unitPrice, line.item.buyingPrice, {
+          clearance: line.item.isClearance === true,
+        }),
     );
     if (belowCostLines.length > 0 && marginGuardMode !== "warn") {
       if (marginGuardMode === "hard") {

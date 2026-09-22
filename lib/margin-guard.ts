@@ -8,11 +8,13 @@ export function toMoneyNumber(raw: number | string | null | undefined): number |
   return Number.isFinite(n) ? n : null;
 }
 
-/** True when sell is strictly below a positive reference cost. */
+/** True when sell is strictly below a positive reference cost (ignores clearance SKUs). */
 export function isSellBelowCost(
   sellPrice: number | string | null | undefined,
   costPrice: number | string | null | undefined,
+  opts?: { clearance?: boolean | null },
 ): boolean {
+  if (opts?.clearance === true) return false;
   const sell = toMoneyNumber(sellPrice);
   const cost = toMoneyNumber(costPrice);
   if (sell == null || cost == null || cost <= 0) return false;

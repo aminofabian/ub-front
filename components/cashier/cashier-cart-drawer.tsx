@@ -758,6 +758,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                     const belowCost = isSellBelowCost(
                       line.unitPrice,
                       line.item.buyingPrice,
+                      { clearance: line.item.isClearance === true },
                     );
                     return (
                       <li

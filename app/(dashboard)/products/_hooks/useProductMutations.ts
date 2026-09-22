@@ -934,6 +934,7 @@ export function useProductMutations(d: Dependencies) {
         description: patchDraft.description,
         active: patchDraft.active,
         webPublished: patchDraft.webPublished ?? true,
+        isClearance: patchDraft.isClearance === true,
         imageKey: patchDraft.imageKey,
         categoryId: patchDraft.categoryId.trim(),
         aisleId: patchDraft.aisleId.trim(),

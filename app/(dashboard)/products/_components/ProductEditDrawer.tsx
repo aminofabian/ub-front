@@ -969,6 +969,25 @@ export function ProductEditDrawer({
                   Listed on your public storefront when published.
                 </span>
               </label>
+              <label className={productFormToggleCardClass}>
+                <input
+                  type="checkbox"
+                  className="size-4 shrink-0 rounded-none border-input"
+                  checked={dr.isClearance === true}
+                  onChange={(e) =>
+                    detail.setPatchDraft((p) => ({
+                      ...p,
+                      isClearance: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="text-sm font-medium text-foreground">
+                  Clearance (allow below cost)
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  Margin Guard approve/hard will not block selling under cost.
+                </span>
+              </label>
             </div>
           ) : null}
 

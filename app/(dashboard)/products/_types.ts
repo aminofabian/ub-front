@@ -19,6 +19,8 @@ export type ProductEditDraft = {
   description?: string;
   active?: boolean;
   webPublished?: boolean;
+  /** Clearance / loss-leader — Margin Guard does not block below-cost. */
+  isClearance?: boolean;
   bundlePriceStr: string;
   bundleQtyStr: string;
   buyingPriceStr: string;
@@ -46,6 +48,7 @@ export const EMPTY_EDIT_DRAFT: ProductEditDraft = {
   description: "",
   active: true,
   webPublished: true,
+  isClearance: false,
   categoryId: "",
   aisleId: "",
   variantName: "",

@@ -98,7 +98,9 @@ export function CashierCartSidePanel({
   const belowCostCount = lines.filter(
     (line) =>
       !isAirtimeCartLine(line) &&
-      isSellBelowCost(line.unitPrice, line.item.buyingPrice),
+      isSellBelowCost(line.unitPrice, line.item.buyingPrice, {
+        clearance: line.item.isClearance === true,
+      }),
   ).length;
 
   return (
@@ -153,7 +155,9 @@ export function CashierCartSidePanel({
                 const airtime = isAirtimeCartLine(line);
                 const belowCost =
                   !airtime &&
-                  isSellBelowCost(line.unitPrice, line.item.buyingPrice);
+                  isSellBelowCost(line.unitPrice, line.item.buyingPrice, {
+                    clearance: line.item.isClearance === true,
+                  });
                 return (
                   <li
                     key={line.key}

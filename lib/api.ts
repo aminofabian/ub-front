@@ -930,6 +930,8 @@ export type ItemSummaryRecord = {
   isSellable?: boolean;
   /** True when sold by weight (kg/g/lb); fractional cart qty is allowed. */
   isWeighed?: boolean;
+  /** True when below-cost sales are allowed (clearance / loss-leader). */
+  isClearance?: boolean;
   /** Unit of measure from catalog list (each, kg, …). */
   unitType?: string;
   /** When true, item may appear in the public storefront catalog (Phase 15). */
@@ -1829,6 +1831,8 @@ export type PatchItemPayload = {
   unitType?: string;
   /** When true, sold by weight with fractional qty at the till. */
   isWeighed?: boolean;
+  /** When true, below-cost sales skip Margin Guard approve/hard. */
+  isClearance?: boolean;
   /** When true, this SKU keeps an on-hand quantity. */
   isStocked?: boolean;
 };
