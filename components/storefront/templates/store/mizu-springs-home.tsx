@@ -86,9 +86,9 @@ const CHECKLIST = [
 /**
  * THESIS: Premium purified-water brand site — navy ice chrome, cyan CTAs,
  * collection cards — not a supermarket aisle painted blue.
- * OWN-WORLD: Ice #f4f9ff, navy #172554, cyan→blue pills, Inter, wave hero.
+ * OWN-WORLD: Ice #f5f8fc, navy #172554, cyan accent, Inter, wave hero.
  * STORY: Land on the sip → browse collection → bag → WhatsApp order.
- * FIRST VIEWPORT: Sticky navy bar, badge, shimmer headline, dual CTAs, wave.
+ * FIRST VIEWPORT: Sticky navy bar, badge, cyan headline accent, dual CTAs, wave.
  * FORM: Mizu Springs · mizusprings.com collection grammar, merchant identity.
  */
 export function MizuSpringsStoreHome(props: StoreHomeTemplateProps) {
@@ -477,9 +477,9 @@ export function MizuSpringsStoreHome(props: StoreHomeTemplateProps) {
                 </div>
               </div>
               <div className={styles.customCopy}>
-                <span className={styles.servicePill}>Service Highlight</span>
+                <span className={styles.servicePill}>Custom labels</span>
                 <h2 className={styles.sectionTitle}>
-                  Your Brand, Our Pure Water.
+                  Your brand, our pure water
                 </h2>
                 <p className={styles.sectionLead} style={{ margin: "1rem 0 0", textAlign: "left" }}>
                   Elevate your weddings, corporate meetings, or family gatherings
@@ -519,7 +519,6 @@ export function MizuSpringsStoreHome(props: StoreHomeTemplateProps) {
           <section className={styles.passCta} aria-label="Spring pass">
             <span className={styles.passCtaOrb} aria-hidden />
             <div className={styles.passCtaInner}>
-              <p className={styles.passCtaEyebrow}>Member spring</p>
               <h2 className={styles.passCtaTitle}>
                 {account.signedIn
                   ? "Your spring pass is active"
