@@ -313,14 +313,13 @@ export default function SuperAdminBusinessesPage() {
     );
   };
 
-  const drawerBody =
+  const modalBody =
     selected?.kind === "create" ? (
-      <form className="space-y-4" onSubmit={(e) => void onCreate(e)}>
-        <p className={dashboardHintClass()}>
-          Slug drives the default hostname{" "}
-          <code className="font-mono text-[10px]">{"{slug}.{parent}"}</code>.
-          Add a custom domain only when the tenant has a dedicated host.
-        </p>
+      <form
+        id="sa-create-tenant"
+        className="space-y-3"
+        onSubmit={(e) => void onCreate(e)}
+      >
         <div className="space-y-1.5">
           <Label htmlFor="sa-new-name" className={dashboardLabelClass()}>
             Name
@@ -335,6 +334,7 @@ export default function SuperAdminBusinessesPage() {
               if (!slugTouched.current) setSlug(slugifyName(next));
             }}
             autoComplete="off"
+            autoFocus
             required
           />
         </div>
@@ -355,27 +355,25 @@ export default function SuperAdminBusinessesPage() {
             required
           />
           {slug.trim() ? (
-            <p className={dashboardHintClass()}>
-              Default URL{" "}
-              <code className="font-mono text-[10px]">
-                {slugDerivedShopUrl(slug)}
-              </code>
+            <p className={cn(dashboardHintClass(), "font-mono text-[10px]")}>
+              {slugDerivedShopUrl(slug)}
             </p>
           ) : null}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="sa-new-domain" className={dashboardLabelClass()}>
-            Custom domain
+            Custom domain{" "}
+            <span className="font-normal text-muted-foreground">(optional)</span>
           </Label>
           <Input
             id="sa-new-domain"
             className={dashboardInputClass()}
             value={primaryDomain}
             onChange={(ev) => setPrimaryDomain(ev.target.value)}
-            placeholder="Optional — e.g. shop.acme.co.ke"
+            placeholder="shop.acme.co.ke"
           />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="sa-new-currency" className={dashboardLabelClass()}>
               Currency
@@ -400,145 +398,96 @@ export default function SuperAdminBusinessesPage() {
               maxLength={2}
             />
           </div>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="sa-new-tz" className={dashboardLabelClass()}>
-            Timezone
-          </Label>
-          <Input
-            id="sa-new-tz"
-            className={dashboardInputClass()}
-            value={timezone}
-            onChange={(ev) => setTimezone(ev.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="sa-new-tier" className={dashboardLabelClass()}>
-            Subscription tier
-          </Label>
-          <Input
-            id="sa-new-tier"
-            className={dashboardInputClass()}
-            value={tier}
-            onChange={(ev) => setTier(ev.target.value)}
-          />
+          <div className="space-y-1.5">
+            <Label htmlFor="sa-new-tz" className={dashboardLabelClass()}>
+              Timezone
+            </Label>
+            <Input
+              id="sa-new-tz"
+              className={dashboardInputClass()}
+              value={timezone}
+              onChange={(ev) => setTimezone(ev.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="sa-new-tier" className={dashboardLabelClass()}>
+              Tier
+            </Label>
+            <Input
+              id="sa-new-tier"
+              className={dashboardInputClass()}
+              value={tier}
+              onChange={(ev) => setTier(ev.target.value)}
+            />
+          </div>
         </div>
         {formError ? (
           <DashboardFeedback kind="error" text={formError} />
         ) : null}
       </form>
     ) : selectedBusiness ? (
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <p className="text-[15px] font-semibold tracking-[-0.02em]">
-            {selectedBusiness.name}
-          </p>
-          <p className={cn(dashboardHintClass(), "font-mono")}>
-            {selectedBusiness.slug}
-          </p>
-        </div>
-
-        <dl className="grid gap-2 text-[12px]">
-          <div
-            className={cn(
-              "flex justify-between gap-3 border px-3 py-2",
-              HAIRLINE,
-            )}
-          >
-            <dt className="text-muted-foreground">Status</dt>
-            <dd className="font-medium">
-              {selectedBusiness.active ? "Active" : "Inactive"}
-              {stuckIds.has(selectedBusiness.id) ? " · stuck" : ""}
-            </dd>
-          </div>
-          <div
-            className={cn(
-              "flex justify-between gap-3 border px-3 py-2",
-              HAIRLINE,
-            )}
-          >
-            <dt className="text-muted-foreground">Tier</dt>
-            <dd className="font-medium capitalize">
-              {selectedBusiness.subscriptionTier}
-            </dd>
-          </div>
-          <div
-            className={cn(
-              "flex justify-between gap-3 border px-3 py-2",
-              HAIRLINE,
-            )}
-          >
-            <dt className="text-muted-foreground">Owner</dt>
-            <dd className="max-w-[60%] text-right font-medium">
-              {selectedBusiness.ownerName?.trim() ||
-                selectedBusiness.ownerEmail?.trim() ||
-                "—"}
-            </dd>
-          </div>
-          {selectedBusiness.ownerEmail?.trim() &&
-          selectedBusiness.ownerName?.trim() ? (
+      <div className="space-y-3">
+        <dl className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] text-[12px]">
+          {(
+            [
+              [
+                "Status",
+                `${selectedBusiness.active ? "Active" : "Inactive"}${stuckIds.has(selectedBusiness.id) ? " · stuck" : ""}`,
+              ],
+              ["Tier", selectedBusiness.subscriptionTier],
+              [
+                "Owner",
+                selectedBusiness.ownerName?.trim() ||
+                  selectedBusiness.ownerEmail?.trim() ||
+                  "—",
+              ],
+              ...(selectedBusiness.ownerEmail?.trim() &&
+              selectedBusiness.ownerName?.trim()
+                ? [["Email", selectedBusiness.ownerEmail.trim()] as const]
+                : []),
+              ["Phone", selectedBusiness.ownerPhone?.trim() || "—"],
+              ["Created", formatTenantDateTime(selectedBusiness.createdAt)],
+            ] as const
+          ).map(([label, value]) => (
             <div
-              className={cn(
-                "flex justify-between gap-3 border px-3 py-2",
-                HAIRLINE,
-              )}
+              key={label}
+              className="flex items-baseline justify-between gap-3 py-2 first:pt-0 last:pb-0"
             >
-              <dt className="text-muted-foreground">Owner email</dt>
-              <dd className="max-w-[60%] break-all text-right font-medium">
-                {selectedBusiness.ownerEmail.trim()}
+              <dt className="shrink-0 text-muted-foreground">{label}</dt>
+              <dd className="max-w-[65%] break-words text-right font-medium">
+                {label === "Tier" ? (
+                  <span className="capitalize">{value}</span>
+                ) : (
+                  value
+                )}
               </dd>
             </div>
-          ) : null}
-          <div
-            className={cn(
-              "flex justify-between gap-3 border px-3 py-2",
-              HAIRLINE,
-            )}
-          >
-            <dt className="text-muted-foreground">Phone</dt>
-            <dd className="font-medium tabular-nums">
-              {selectedBusiness.ownerPhone?.trim() || "—"}
-            </dd>
-          </div>
-          <div
-            className={cn(
-              "flex justify-between gap-3 border px-3 py-2",
-              HAIRLINE,
-            )}
-          >
-            <dt className="text-muted-foreground">Created</dt>
-            <dd className="text-right font-medium">
-              {formatTenantDateTime(selectedBusiness.createdAt)}
-            </dd>
-          </div>
-          <div className={cn("space-y-1 border px-3 py-2", HAIRLINE)}>
-            <dt className="text-muted-foreground">Tenant ID</dt>
-            <dd className="flex items-center gap-2">
-              <code className="min-w-0 flex-1 break-all font-mono text-[11px]">
+          ))}
+          <div className="flex items-center justify-between gap-3 py-2 last:pb-0">
+            <dt className="shrink-0 text-muted-foreground">ID</dt>
+            <dd className="flex min-w-0 items-center gap-1.5">
+              <code className="truncate font-mono text-[11px]">
                 {selectedBusiness.id}
               </code>
               <Button
                 type="button"
                 size="sm"
-                variant="outline"
-                className="h-7 shrink-0 rounded-none"
+                variant="ghost"
+                className="h-7 shrink-0 rounded-none px-1.5"
                 onClick={() => void copyId(selectedBusiness.id)}
+                aria-label="Copy tenant ID"
               >
                 {copiedId === selectedBusiness.id ? (
                   <Check className="size-3.5" />
                 ) : (
                   <Copy className="size-3.5" />
                 )}
-                {copiedId === selectedBusiness.id ? "Copied" : "Copy"}
               </Button>
             </dd>
           </div>
         </dl>
 
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" className={PRIMARY_BTN} asChild>
-            <Link href={tenantManageHref(selectedBusiness)}>Manage</Link>
-          </Button>
+        <div className="flex flex-wrap gap-2 pt-1">
           <Button
             type="button"
             variant="outline"
@@ -567,19 +516,19 @@ export default function SuperAdminBusinessesPage() {
       </div>
     ) : (
       <p className={dashboardHintClass()}>
-        This tenant is not in the current list. Refresh and try again.
+        Tenant not in this list. Refresh and try again.
       </p>
     );
 
-  const drawerFooter =
+  const modalFooter =
     selected?.kind === "create" ? (
       <Button
-        type="button"
+        type="submit"
+        form="sa-create-tenant"
         className={PRIMARY_BTN}
         disabled={busy}
-        onClick={() => void onCreate()}
       >
-        {busy ? "Creating…" : "Create tenant"}
+        {busy ? "Creating…" : "Create"}
       </Button>
     ) : selectedBusiness ? (
       <Button type="button" className={PRIMARY_BTN} asChild>
@@ -646,7 +595,7 @@ export default function SuperAdminBusinessesPage() {
         icon={Building2}
         eyebrow="Platform"
         title="Tenants"
-        description="Find a business, open it to manage domains and users, or provision a new tenant."
+        description="Search tenants, open one to manage, or create a new business."
       >
         <button
           type="button"
@@ -758,8 +707,8 @@ export default function SuperAdminBusinessesPage() {
           setFormError("");
           slugTouched.current = false;
         }}
-        drawerBody={drawerBody}
-        drawerFooter={drawerFooter}
+        modalBody={modalBody}
+        modalFooter={modalFooter}
         selectionBar={selectionBar}
       />
     </div>
