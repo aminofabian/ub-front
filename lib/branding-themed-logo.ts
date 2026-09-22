@@ -13,6 +13,7 @@ export const DARK_STOREFRONT_THEME_IDS: readonly StoreThemeId[] = [
   "boutique-shelf",
   "spirits-cellar",
   "chem-lab",
+  "mizu-springs",
 ];
 
 /** Coming-soon templates whose live chrome is a dark surface. */

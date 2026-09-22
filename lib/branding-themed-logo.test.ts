@@ -39,6 +39,7 @@ describe("resolveStorefrontLogoSurface", () => {
     expect(resolveStorefrontLogoSurface("boutique-shelf")).toBe("dark");
     expect(resolveStorefrontLogoSurface("spirits-cellar")).toBe("dark");
     expect(resolveStorefrontLogoSurface("chem-lab")).toBe("dark");
+    expect(resolveStorefrontLogoSurface("mizu-springs")).toBe("dark");
   });
 
   test("keeps light storefronts on the light mark", () => {

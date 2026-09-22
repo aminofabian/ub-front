@@ -175,9 +175,12 @@ export function MizuSpringsStoreHome(props: StoreHomeTemplateProps) {
     landingContent?.storyBody?.trim() ||
     `From our station to custom-branded bottled water for weddings, funerals, graduations, and corporate functions, ${heroTitle} is committed to purity, consistency, and professionalism.`;
 
-  const badgeLabel =
-    landingContent?.posterTagline?.trim() ||
-    heroTitle.replace(/\s+/g, "-").toUpperCase();
+  const badgeLabel = (() => {
+    const raw =
+      landingContent?.posterTagline?.trim() ||
+      heroTitle.replace(/\s+/g, "-").toUpperCase();
+    return raw.length > 28 ? `${raw.slice(0, 26)}…` : raw;
+  })();
 
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const account = useStorefrontAccountLink();
