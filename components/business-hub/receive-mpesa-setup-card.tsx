@@ -29,6 +29,8 @@ type Props = {
   compact?: boolean;
 };
 
+const METHOD_CHIPS = ["Till", "Paybill", "Bank"] as const;
+
 /**
  * Business hub card: show current M-Pesa landing spot + open guided setup
  * to add or update till / paybill / bank.
@@ -81,6 +83,7 @@ export function ReceiveMpesaSetupCard({
 
   const summary = custodySummary(custody);
   const configured = Boolean(custody);
+  const needsSetup = !loading && !configured;
   const initial = receiveInitialFromCustodyJson(
     custody?.displayInstructionsJson,
     custody?.label,
@@ -89,8 +92,13 @@ export function ReceiveMpesaSetupCard({
   return (
     <>
       <section
-        aria-label="Where M-Pesa lands"
-        className={cn(HUB_SURFACE, "text-left")}
+        aria-label="Payment method — where customers pay"
+        className={cn(
+          HUB_SURFACE,
+          "text-left",
+          needsSetup &&
+            "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_32%,transparent)] border-l-[3px] border-l-[var(--pos-primary,#0f766e)]",
+        )}
       >
         <div
           className={cn(
@@ -100,7 +108,10 @@ export function ReceiveMpesaSetupCard({
         >
           <span
             className={cn(
-              "grid shrink-0 place-items-center border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)] text-[var(--pos-primary,#0f766e)]",
+              "grid shrink-0 place-items-center border text-[var(--pos-primary,#0f766e)]",
+              needsSetup
+                ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)]"
+                : "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]",
               compact ? "size-10" : "size-11",
             )}
             aria-hidden
@@ -115,9 +126,22 @@ export function ReceiveMpesaSetupCard({
           </span>
 
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-primary,#0f766e)]">
-              Where M-Pesa lands
-            </p>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-primary,#0f766e)]">
+                Payment method
+              </p>
+              {needsSetup ? (
+                <span className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--pos-primary,#0f766e)]">
+                  Required
+                </span>
+              ) : null}
+              {!loading && configured ? (
+                <span className="inline-flex items-center border border-[color-mix(in_srgb,#141414_10%,transparent)] bg-[#F7F7F5] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-[color-mix(in_srgb,#141414_62%,transparent)]">
+                  Active
+                </span>
+              ) : null}
+            </div>
+
             {loading ? (
               <p className={cn("mt-1 flex items-center gap-2 text-[13px]", HUB_MUTED)}>
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -125,6 +149,9 @@ export function ReceiveMpesaSetupCard({
               </p>
             ) : configured ? (
               <>
+                <p className="mt-1 text-[12px] font-medium text-[color-mix(in_srgb,#141414_55%,transparent)]">
+                  Customers pay to
+                </p>
                 <p className="mt-0.5 truncate text-[15px] font-semibold tracking-[-0.02em] text-[#141414]">
                   {summary.title}
                 </p>
@@ -136,14 +163,26 @@ export function ReceiveMpesaSetupCard({
               </>
             ) : (
               <>
-                <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.02em] text-[#141414]">
-                  Not set yet
+                <p className="mt-1 text-[15px] font-semibold tracking-[-0.02em] text-[#141414]">
+                  Set where customers pay
                 </p>
-                <p className={cn("mt-0.5 text-[12px] leading-snug", HUB_MUTED)}>
+                <p className={cn("mt-1 text-[12px] leading-snug", HUB_MUTED)}>
                   {available
-                    ? "Add a till, paybill, or bank so STK money lands with you."
-                    : "Kiosk receive isn’t on yet — you can still prepare your destination."}
+                    ? "Add your till, paybill, or bank. Checkout sends M-Pesa here."
+                    : "Kiosk receive isn’t on yet — you can still prepare where money should land."}
                 </p>
+                {!compact ? (
+                  <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Payment options">
+                    {METHOD_CHIPS.map((chip) => (
+                      <li
+                        key={chip}
+                        className="inline-flex items-center border border-[color-mix(in_srgb,#141414_10%,transparent)] bg-[#FAFAF8] px-2 py-1 text-[11px] font-semibold tracking-[-0.01em] text-[#141414]"
+                      >
+                        {chip}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </>
             )}
           </div>
@@ -157,42 +196,49 @@ export function ReceiveMpesaSetupCard({
                 compact && "px-2.5 py-1.5 text-[12px]",
               )}
             >
-              {configured ? "Update" : "Set up"}
+              {configured ? "Change" : "Add method"}
               <ArrowRight className="size-3.5" aria-hidden />
             </button>
           ) : null}
         </div>
 
         {!compact && configured ? (
-          <div className="border-t border-[color-mix(in_srgb,#141414_6%,transparent)] bg-[#FAF9F6] px-4 py-2.5 sm:px-5">
-            <p className={cn("text-[12px]", HUB_MUTED)}>
+          <div className="border-t border-[color-mix(in_srgb,#141414_6%,transparent)] bg-[#FAFAF8] px-4 py-2.5 sm:px-5">
+            <p className={cn("text-[12px] leading-snug", HUB_MUTED)}>
               Cashiers and your shop send Lipa Na M-Pesa here — no API keys.
-              {canWrite ? " Tap Update to change destination or re-test with KES 1." : null}
+              {canWrite
+                ? " Change anytime, or re-test with a KES 1 prompt."
+                : null}
             </p>
           </div>
         ) : null}
 
         {!compact && !configured && canWrite ? (
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="flex w-full items-center justify-center gap-1.5 border-t border-[color-mix(in_srgb,#141414_6%,transparent)] bg-[#FAF9F6] px-4 py-3 text-[14px] font-medium text-[#141414] transition-colors hover:bg-[#F5F2EB]"
-          >
-            <span
-              className="size-1.5 shrink-0"
-              style={{ backgroundColor: HUB_ACCENT }}
-              aria-hidden
-            />
-            Prove it with a KES 1 prompt
-          </button>
+          <div className="flex flex-col gap-2 border-t border-[color-mix(in_srgb,#141414_6%,transparent)] bg-[#FAFAF8] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <p className={cn("text-[12px] leading-snug", HUB_MUTED)}>
+              After you add it, prove the number with a KES 1 prompt.
+            </p>
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] transition-opacity hover:opacity-80"
+            >
+              <span
+                className="size-1.5 shrink-0"
+                style={{ backgroundColor: HUB_ACCENT }}
+                aria-hidden
+              />
+              Start setup
+            </button>
+          </div>
         ) : null}
       </section>
 
       <FormDrawer
         open={open}
         onOpenChange={setOpen}
-        title={configured ? "Update M-Pesa destination" : "Set up M-Pesa receive"}
-        description="Pick till, paybill, or bank — then prove with KES 1."
+        title={configured ? "Change payment method" : "Add payment method"}
+        description="Customers pay to your till, paybill, or bank — then prove with KES 1."
         contextLabel="Business"
         appearance="sharp"
         width="wide"
