@@ -35,6 +35,7 @@ import {
   deleteSaBusiness,
   fetchAllSaBusinesses,
   fetchSaEmailRecipients,
+  fetchSaSupportPresence,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
@@ -109,10 +110,22 @@ export default function SuperAdminBusinessesPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [stuckIds, setStuckIds] = useState<Set<string>>(() => new Set());
   const [selected, setSelected] = useState<BusinessesPanel | null>(null);
+  const [tenantsOnline, setTenantsOnline] = useState<number | null>(null);
+  const [tenantsOnSupport, setTenantsOnSupport] = useState(0);
 
   const slugTouched = useRef(false);
   const copyTimer = useRef<number | null>(null);
   const loadedOnce = useRef(false);
+
+  const reloadPresence = useCallback(async () => {
+    try {
+      const presence = await fetchSaSupportPresence();
+      setTenantsOnline(presence.tenantsOnline);
+      setTenantsOnSupport(presence.tenantsOnSupport);
+    } catch {
+      /* keep last good count */
+    }
+  }, []);
 
   const reload = useCallback(async () => {
     setLoadError("");
@@ -130,6 +143,7 @@ export default function SuperAdminBusinessesPage() {
       ]);
       setRows(tenants);
       setStuckIds(new Set(stuck.rows.map((row) => row.businessId)));
+      void reloadPresence();
     } catch (e) {
       setLoadError(
         e instanceof Error ? e.message : "Could not load businesses.",
@@ -139,11 +153,27 @@ export default function SuperAdminBusinessesPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [reloadPresence]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  // Live “logged in” count from open realtime sockets (same source as Support).
+  useEffect(() => {
+    void reloadPresence();
+    const timer = window.setInterval(() => {
+      void reloadPresence();
+    }, 10_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void reloadPresence();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [reloadPresence]);
 
   // Browser back often restores this page from bfcache with stale rows.
   useEffect(() => {
@@ -678,6 +708,8 @@ export default function SuperAdminBusinessesPage() {
         rows={rows}
         stuckIds={stuckIds}
         counts={counts}
+        tenantsOnline={tenantsOnline}
+        tenantsOnSupport={tenantsOnSupport}
         tiers={tiers}
         loading={loading}
         statusFilter={filterActive}
