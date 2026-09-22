@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="260" viewBox="0 0 560 260" role="img" aria-label="Sale goes on the customer tab">
+  <rect width="560" height="260" fill="#F4F5F4"/>
+  <rect x="40" y="32" width="300" height="196" fill="#FFFFFF" stroke="#E8EAE8"/>
+  <text x="60" y="60" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#0f766e">TILL · SALE</text>
+  <text x="60" y="90" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#141414">2× Cooking oil 5L</text>
+  <text x="60" y="114" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#141414">1× Sugar 2kg</text>
+  <line x1="60" y1="132" x2="300" y2="132" stroke="#EEF0EE"/>
+  <text x="60" y="158" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#6B7280">Total</text>
+  <text x="240" y="158" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#141414">KES 1,850</text>
+  <rect x="60" y="176" width="160" height="32" fill="#0f766e"/>
+  <text x="84" y="197" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">Put on tab</text>
+
+  <rect x="370" y="56" width="150" height="150" fill="#ECFDF5" stroke="#99F6E4"/>
+  <text x="390" y="90" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#134E4A">Wanjirus tab</text>
+  <text x="390" y="120" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" fill="#0F766E">Balance owed</text>
+  <text x="390" y="150" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="#0f766e">1,850</text>
+  <text x="390" y="178" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" fill="#6B7280">Just updated</text>
+</svg>

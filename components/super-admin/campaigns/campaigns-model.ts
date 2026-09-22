@@ -5,6 +5,27 @@ import {
   PRINTER_INSTALL_EMAIL_PREVIEW,
   PRINTER_INSTALL_EMAIL_SUBJECT,
 } from "@/lib/outreach-printer-install";
+import {
+  MPESA_PAYMENT_METHOD_CTA,
+  MPESA_PAYMENT_METHOD_EMAIL_BODY,
+  MPESA_PAYMENT_METHOD_EMAIL_PREVIEW,
+  MPESA_PAYMENT_METHOD_EMAIL_SUBJECT,
+  MPESA_PAYMENT_METHOD_SMS_BODY,
+} from "@/lib/outreach-mpesa-payment-method";
+import {
+  CREDITS_PAY_LINK_CTA,
+  CREDITS_PAY_LINK_EMAIL_BODY,
+  CREDITS_PAY_LINK_EMAIL_PREVIEW,
+  CREDITS_PAY_LINK_EMAIL_SUBJECT,
+  CREDITS_PAY_LINK_SMS_BODY,
+} from "@/lib/outreach-credits-pay-link";
+import {
+  WEIGHTED_SELL_CTA,
+  WEIGHTED_SELL_EMAIL_BODY,
+  WEIGHTED_SELL_EMAIL_PREVIEW,
+  WEIGHTED_SELL_EMAIL_SUBJECT,
+  WEIGHTED_SELL_SMS_BODY,
+} from "@/lib/outreach-weighted-sell";
 
 export type WorkspaceMode =
   | "overview"
@@ -57,6 +78,9 @@ export type IntentId =
   | "storefront"
   | "catalog"
   | "feature"
+  | "mpesa-payment"
+  | "credits-pay-link"
+  | "weighted-sell"
   | "reengage"
   | "custom";
 
@@ -88,7 +112,29 @@ export type CampaignTemplate = {
   body: string;
   cta: string;
   openRate: number;
+  /** Optional SMS / WhatsApp companion when scheduling outreach. */
+  smsBody?: string;
+  /** Prefills the audience chip when “Use template” is clicked. */
+  defaultFilters?: string[];
+  /**
+   * Feature-drip day offset (multiples of 2). Day 0 / 2 / 4 so no two
+   * feature emails land on the same calendar day.
+   */
+  dripDayOffset?: number;
 };
+
+/** Shared cadence for feature-guide emails — one email every 2 days, never two at once. */
+export const FEATURE_DRIP_INTERVAL_DAYS = 2;
+export const FEATURE_DRIP_MAX_EMAIL_ATTEMPTS = 3;
+export const ABANDONED_CART_MAX_ATTEMPTS = 3;
+
+/** Local datetime-local value for `now + dayOffset` days. */
+export function scheduleLocalAtDayOffset(dayOffset: number, from = new Date()): string {
+  const d = new Date(from);
+  d.setDate(d.getDate() + Math.max(0, dayOffset));
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
 
 export const VARIABLES = [
   "name",
@@ -145,6 +191,27 @@ export const FILTERS: AudienceFilter[] = [
     label: "Email unverified",
     hint: "Owner has not confirmed inbox",
     segment: "unverified_owners",
+  },
+  {
+    id: "no-payment",
+    group: "merchant",
+    label: "No payment method",
+    hint: "Shop has not set a till, paybill, or bank yet",
+    segment: "no_payment_method",
+  },
+  {
+    id: "open-tabs",
+    group: "merchant",
+    label: "Has open tabs",
+    hint: "Shop has customers currently owing on credit",
+    segment: "has_open_tabs",
+  },
+  {
+    id: "weighted",
+    group: "merchant",
+    label: "All merchants (cashier guide)",
+    hint: "Every shop — opens the till for amount → auto litres/kg",
+    segment: "weighted_guide",
   },
 ];
 
@@ -205,6 +272,27 @@ export const INTENTS: {
     defaultFilters: ["verified"],
   },
   {
+    id: "mpesa-payment",
+    title: "Activate M-Pesa receive",
+    body: "Get shops without a till/paybill/bank to set one up.",
+    type: "feature",
+    defaultFilters: ["no-payment"],
+  },
+  {
+    id: "credits-pay-link",
+    title: "Automate credit collections",
+    body: "Show shops how pay links clear tabs and text them when customers pay.",
+    type: "feature",
+    defaultFilters: ["open-tabs"],
+  },
+  {
+    id: "weighted-sell",
+    title: "Sell oil & cereals by weight",
+    body: "Teach the scale icon — enter the KES amount, quantity auto-fills.",
+    type: "feature",
+    defaultFilters: ["weighted"],
+  },
+  {
     id: "reengage",
     title: "Re-engage inactive merchants",
     body: "Bring idle shops back to the till.",
@@ -225,6 +313,48 @@ export const TEMPLATES: CampaignTemplate[] = [
   { id: "finish-setup", family: "Onboarding", name: "Finish your setup", type: "onboarding", subject: "Your Kiosk store is almost ready", previewText: "Products, M-Pesa, and your online shop are waiting.", body: "Hi {{name}},\n\nYou're only a few steps away from having {{businessName}} live on Kiosk.\n\nFinish setting up and you can start selling with your own online storefront, connect M-Pesa, add your products, customize the shop, and even use your own domain.\n", cta: "Continue setup", openRate: 0.52 },
   { id: "first-products", family: "Onboarding", name: "Add your first products", type: "educational", subject: "Stock {{businessName}} so the till can sell", previewText: "A catalog is the difference between a demo and a shop.", body: "Hi {{name}},\n\n{{businessName}} has a till. It still needs a catalog.\n\nAdd products (or import a starter pack) so cashiers can scan, M-Pesa can fire, and your storefront has something to show.\n", cta: "Add products", openRate: 0.47 },
   { id: "connect-mpesa", family: "Onboarding", name: "Connect M-Pesa", type: "feature", subject: "Take M-Pesa at {{businessName}}", previewText: "STK at the counter and on the storefront.", body: "Hi {{name}},\n\nKenyan customers expect to pay on their phone. Connect M-Pesa once and Kiosk can STK from the till and the online shop — same ledger.\n", cta: "Connect M-Pesa", openRate: 0.44 },
+  {
+    id: "mpesa-payment-method",
+    family: "Feature guides",
+    name: "Add till / paybill / bank (new)",
+    type: "feature",
+    subject: MPESA_PAYMENT_METHOD_EMAIL_SUBJECT,
+    previewText: MPESA_PAYMENT_METHOD_EMAIL_PREVIEW,
+    body: MPESA_PAYMENT_METHOD_EMAIL_BODY,
+    cta: MPESA_PAYMENT_METHOD_CTA,
+    openRate: 0.56,
+    smsBody: MPESA_PAYMENT_METHOD_SMS_BODY,
+    defaultFilters: ["no-payment"],
+    dripDayOffset: 0,
+  },
+  {
+    id: "credits-pay-link",
+    family: "Feature guides",
+    name: "Credits: pay link + SMS when they pay",
+    type: "feature",
+    subject: CREDITS_PAY_LINK_EMAIL_SUBJECT,
+    previewText: CREDITS_PAY_LINK_EMAIL_PREVIEW,
+    body: CREDITS_PAY_LINK_EMAIL_BODY,
+    cta: CREDITS_PAY_LINK_CTA,
+    openRate: 0.53,
+    smsBody: CREDITS_PAY_LINK_SMS_BODY,
+    defaultFilters: ["open-tabs"],
+    dripDayOffset: 2,
+  },
+  {
+    id: "weighted-sell",
+    family: "Feature guides",
+    name: "Sell by litre / kg (enter amount)",
+    type: "feature",
+    subject: WEIGHTED_SELL_EMAIL_SUBJECT,
+    previewText: WEIGHTED_SELL_EMAIL_PREVIEW,
+    body: WEIGHTED_SELL_EMAIL_BODY,
+    cta: WEIGHTED_SELL_CTA,
+    openRate: 0.54,
+    smsBody: WEIGHTED_SELL_SMS_BODY,
+    defaultFilters: ["weighted"],
+    dripDayOffset: 4,
+  },
   { id: "publish-store", family: "Activation", name: "Publish your storefront", type: "announcement", subject: "Your products are ready. Put them online.", previewText: "{{productCount}} items waiting on a live shop.", body: "Hi {{name}},\n\n{{businessName}} already has products in the catalog. Publishing the storefront puts that same stock in front of customers — prices, M-Pesa, one count.\n", cta: "Publish storefront", openRate: 0.49 },
   { id: "custom-domain", family: "Growth", name: "Add your custom domain", type: "promotional", subject: "Put {{businessName}} on your own domain", previewText: "Keep the shop. Change the address.", body: "Hi {{name}},\n\nYour storefront is live. Point your own domain at it so customers don't have to remember a kiosk.ke subdomain.\n", cta: "Add domain", openRate: 0.38 },
   { id: "almost-ready", family: "Activation", name: "Your store is almost ready", type: "onboarding", subject: "You're only minutes from selling online", previewText: "Setup is the last gap.", body: "Hi {{name}},\n\nMost of {{businessName}} is already in Kiosk. Finish the remaining setup steps and you can sell at the till and online from the same catalog.\n", cta: "Finish setup", openRate: 0.55 },
@@ -344,6 +474,24 @@ export const AI_SUGGESTIONS = [
     filters: ["verified"],
   },
   {
+    id: "no-payment",
+    title: "Shops without a payment method",
+    why: "Live no_payment_method segment — till / paybill / bank not set",
+    filters: ["no-payment"],
+  },
+  {
+    id: "open-tabs",
+    title: "Shops with open credit tabs",
+    why: "Live has_open_tabs segment — customers currently owing",
+    filters: ["open-tabs"],
+  },
+  {
+    id: "weighted",
+    title: "Weighted / litre selling guide",
+    why: "All merchants — CTA opens cashier (enter amount → auto qty)",
+    filters: ["weighted"],
+  },
+  {
     id: "individual",
     title: "A specific merchant or owner",
     why: "Pick people with selected_users",
@@ -363,14 +511,27 @@ export function estimateAudience(liveCount: number | null): {
 
 export const AUTOMATIONS = [
   {
+    id: "feature-drip",
+    name: "Feature guides drip (2-day spacing)",
+    trigger: "Manual schedule from Templates — one email every 2 days",
+    steps: [
+      "Rule: never send two emails the same day — emails only on Day 0 / 2 / 4",
+      "Day 0 → email: Add till / paybill / bank (M-Pesa)",
+      "Day 2 → email: Credits pay link + SMS when they pay",
+      "Day 4 → email: Sell by litre / kg (enter amount)",
+      "SMS companions sit on the same day as their email (text, not a second email)",
+      "Reminders: at most 3 emails per shop per topic, still 2 days apart",
+    ],
+  },
+  {
     id: "onboarding",
     name: "New merchant onboarding",
     trigger: "Merchant signs up",
     steps: [
-      "Wait 1 day → welcome email",
-      "Wait 2 days → if setup incomplete, reminder",
-      "Wait 3 days → if products added, storefront email",
-      "If still incomplete → final reminder",
+      "Day 0 → welcome email",
+      "Day 2 → if setup incomplete, reminder email",
+      "Day 4 → if products added, storefront email",
+      "Stop after 3 emails if still incomplete",
     ],
   },
   {
@@ -378,16 +539,66 @@ export const AUTOMATIONS = [
     name: "Inactive merchant",
     trigger: "No login for 30 days",
     steps: [
-      "Generate re-engagement email",
-      "If opened → follow-up",
-      "If clicked → mark engaged",
+      "Day 0 → re-engagement email",
+      "Day 2 → follow-up email if unopened",
+      "Day 4 → final email (cap 3) — then stop",
     ],
   },
   {
     id: "storefront",
     name: "Storefront activation",
     trigger: "Products > 10 and storefront unpublished",
-    steps: ["Send “Your store is ready”", "If unpublished after 5 days → reminder"],
+    steps: [
+      "Day 0 → “Your store is ready” email",
+      "Day 2 → reminder email if still unpublished",
+      "Day 4 → final nudge (cap 3) — then stop",
+    ],
+  },
+  {
+    id: "mpesa-receive",
+    name: "M-Pesa payment method",
+    trigger: "Shop has no till / paybill / bank (CUSTODY_MPESA)",
+    steps: [
+      "Day 0 → feature email (+ optional same-day SMS companion)",
+      "Day 2 → reminder email only if still unset (not a second email on Day 0)",
+      "Day 4 → final reminder email (cap 3) — then stop",
+      "Opened / set payment method → stop sequence",
+    ],
+  },
+  {
+    id: "credits-collect",
+    name: "Credits pay-link automation",
+    trigger: "Shop has open tabs (customers owing)",
+    steps: [
+      "Schedule on Day 2 of the feature drip (so it never clashes with M-Pesa email)",
+      "Day 0 of this topic → feature email (+ optional same-day SMS)",
+      "Day 2 → reminder email while tabs stay open",
+      "Day 4 → final reminder (cap 3) — then stop",
+      "Clicked / opened On tab → stop sequence",
+    ],
+  },
+  {
+    id: "weighted-sell",
+    name: "Sell by litre / kg",
+    trigger: "All merchants (or groceries / hardware with loose stock)",
+    steps: [
+      "Schedule on Day 4 of the feature drip (after M-Pesa + credits emails)",
+      "Day 0 of this topic → feature email (+ optional same-day SMS)",
+      "Day 2 → reminder email if cashier not opened",
+      "Day 4 → final reminder (cap 3) — then stop",
+      "Opened cashier → stop sequence",
+    ],
+  },
+  {
+    id: "abandoned-carts",
+    name: "Abandoned cart digests",
+    trigger: "Storefront carts stay stale (≥24h with items)",
+    steps: [
+      "Email #1 when stale carts detected",
+      "Wait 2 days → email #2 if carts still abandoned",
+      "Wait 2 days → email #3 (final) — then stop",
+      "Never more than 3 emails for the same abandoned-cart streak",
+    ],
   },
 ];
 
@@ -433,6 +644,16 @@ export function generateCampaign(prompt: string, intent: IntentId): GeneratedCam
   const idle = /inactive|login|haven't seen|re-engage/.test(p) || intent === "reengage";
   const upgrade = /upgrade|paid|plan/.test(p) || intent === "upgrade";
   const printer = /printer|receipt printer|thermal|print bridge/.test(p);
+  const mpesaReceive =
+    /mpesa|m-pesa|till|paybill|payment method|custody/.test(p) ||
+    intent === "mpesa-payment";
+  const creditsPay =
+    /credit|on tab|pay link|outstanding tab|collections/.test(p) ||
+    intent === "credits-pay-link";
+  const weightedSell =
+    /weight|weighed|litre|liter|kg|cooking oil|cereal|scale icon|fraction|enter amount|auto.?calc/.test(
+      p,
+    ) || intent === "weighted-sell";
 
   if (printer) {
     return {
@@ -440,6 +661,33 @@ export function generateCampaign(prompt: string, intent: IntentId): GeneratedCam
       previewText: PRINTER_INSTALL_EMAIL_PREVIEW,
       body: PRINTER_INSTALL_EMAIL_BODY,
       cta: PRINTER_INSTALL_CTA,
+    };
+  }
+
+  if (mpesaReceive) {
+    return {
+      subject: MPESA_PAYMENT_METHOD_EMAIL_SUBJECT,
+      previewText: MPESA_PAYMENT_METHOD_EMAIL_PREVIEW,
+      body: MPESA_PAYMENT_METHOD_EMAIL_BODY,
+      cta: MPESA_PAYMENT_METHOD_CTA,
+    };
+  }
+
+  if (creditsPay) {
+    return {
+      subject: CREDITS_PAY_LINK_EMAIL_SUBJECT,
+      previewText: CREDITS_PAY_LINK_EMAIL_PREVIEW,
+      body: CREDITS_PAY_LINK_EMAIL_BODY,
+      cta: CREDITS_PAY_LINK_CTA,
+    };
+  }
+
+  if (weightedSell) {
+    return {
+      subject: WEIGHTED_SELL_EMAIL_SUBJECT,
+      previewText: WEIGHTED_SELL_EMAIL_PREVIEW,
+      body: WEIGHTED_SELL_EMAIL_BODY,
+      cta: WEIGHTED_SELL_CTA,
     };
   }
 

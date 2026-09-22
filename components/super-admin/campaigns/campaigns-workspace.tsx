@@ -43,15 +43,14 @@ import {
   mapApiStatus,
   resolveAudienceSegment,
   rewriteBody,
+  scheduleLocalAtDayOffset,
 } from "./campaigns-model";
 import { CampaignsOverview } from "./campaigns-overview";
 import { CampaignsPeople } from "./campaigns-people";
 import { CampaignsTemplates } from "./campaigns-templates";
 
 function defaultScheduleLocal(): string {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 16);
+  return scheduleLocalAtDayOffset(0);
 }
 
 export function CampaignsCommandCentre({
@@ -328,6 +327,13 @@ export function CampaignsCommandCentre({
     setPreviewText(tpl.previewText);
     setBody(tpl.body);
     setCta(tpl.cta);
+    if (tpl.defaultFilters?.length) {
+      setActiveFilters(tpl.defaultFilters);
+    }
+    if (typeof tpl.dripDayOffset === "number") {
+      setSendMode("schedule");
+      setScheduleAt(scheduleLocalAtDayOffset(tpl.dripDayOffset));
+    }
     setCopiedFrom(asCopy ? tpl.name : null);
     setPickingIntent(false);
     setMode("compose");

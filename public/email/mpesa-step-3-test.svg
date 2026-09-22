@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="300" viewBox="0 0 560 300" role="img" aria-label="Enter details and test with KES 1">
+  <rect width="560" height="300" fill="#F4F5F4"/>
+  <rect x="40" y="28" width="300" height="244" fill="#FFFFFF" stroke="#E8EAE8"/>
+  <text x="60" y="58" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="600" fill="#6B7280">Till number</text>
+  <rect x="60" y="68" width="260" height="40" fill="#FFFFFF" stroke="#0f766e" stroke-width="2"/>
+  <text x="74" y="94" font-family="SF Mono, Menlo, Consolas, monospace" font-size="16" font-weight="600" fill="#141414">556677</text>
+  <text x="60" y="134" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="600" fill="#6B7280">Your phone (for a KES 1 test)</text>
+  <rect x="60" y="144" width="260" height="40" fill="#FFFFFF" stroke="#E5E7EB"/>
+  <text x="74" y="170" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#9CA3AF">07XX XXX XXX</text>
+  <rect x="60" y="200" width="200" height="22" fill="#ECFDF5" stroke="#99F6E4"/>
+  <text x="70" y="215" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="600" fill="#134E4A">Customers will pay to: Till 556677</text>
+  <rect x="60" y="236" width="220" height="24" fill="#0f766e"/>
+  <text x="88" y="253" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">Save and test with KES 1</text>
+
+  <rect x="370" y="48" width="140" height="220" rx="16" fill="#14201A"/>
+  <rect x="384" y="68" width="112" height="160" rx="4" fill="#ECFDF5"/>
+  <text x="400" y="100" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" fill="#0f766e">M-PESA</text>
+  <text x="400" y="128" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#141414">KES 1.00</text>
+  <text x="400" y="148" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" fill="#6B7280">Enter M-Pesa PIN</text>
+  <rect x="400" y="168" width="80" height="24" fill="#0f766e"/>
+  <text x="418" y="184" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" font-weight="700" fill="#FFFFFF">OK</text>
+  <text x="390" y="250" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" fill="#9AA39D">Your phone</text>
+</svg>

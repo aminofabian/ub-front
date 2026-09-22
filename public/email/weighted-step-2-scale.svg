@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="300" viewBox="0 0 560 300" role="img" aria-label="Tap the scale icon on the cart line">
+  <rect width="560" height="300" fill="#F4F5F4"/>
+  <text x="40" y="36" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#141414">Cashier · Current cart</text>
+  <text x="40" y="58" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" fill="#6B7280">Tap the scale icon next to the item name</text>
+
+  <rect x="40" y="78" width="480" height="72" fill="#FFFFFF" stroke="#0f766e" stroke-width="2"/>
+  <text x="60" y="108" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#141414">Cooking oil</text>
+  <text x="60" y="130" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6B7280">KES 280 / litre</text>
+
+  <!-- Scale button highlighted -->
+  <rect x="430" y="96" width="64" height="36" fill="#ECFDF5" stroke="#0f766e" stroke-width="2"/>
+  <line x1="462" y1="108" x2="462" y2="118" stroke="#0f766e" stroke-width="2"/>
+  <line x1="448" y1="118" x2="476" y2="118" stroke="#0f766e" stroke-width="2"/>
+  <circle cx="450" cy="126" r="4" fill="none" stroke="#0f766e" stroke-width="1.5"/>
+  <circle cx="474" cy="126" r="4" fill="none" stroke="#0f766e" stroke-width="1.5"/>
+  <text x="438" y="148" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" font-weight="700" fill="#0f766e">SCALE</text>
+
+  <path d="M420 114 L428 114" stroke="#F59E0B" stroke-width="2" marker-end="url(#arr)"/>
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#F59E0B"/>
+    </marker>
+  </defs>
+
+  <rect x="40" y="170" width="480" height="100" fill="#FFFBEB" stroke="#FDE68A"/>
+  <text x="60" y="200" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#92400E">What the scale does</text>
+  <text x="60" y="224" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" fill="#78350F">Off = sell whole packs (qty 1, 2, 3…)</text>
+  <text x="60" y="246" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" fill="#78350F">On  = type KES amount ? litres / kg auto-fill</text>
+</svg>

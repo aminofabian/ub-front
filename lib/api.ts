@@ -10634,6 +10634,8 @@ export type PostSupplierPaymentPayload = {
   allocations: PostSupplierPaymentAllocationLine[];
   /** When false, records payment without SMS / portal payment notification. Default true. */
   notifySupplier?: boolean;
+  /** Optional override for the confirmation SMS destination. */
+  notifyPhone?: string;
 };
 
 export type PostSupplierPaymentResult = {

@@ -20,6 +20,7 @@ import { APP_ROUTES } from "@/lib/config";
 import {
   fetchOpenSupplierInvoices,
   fetchSupplierById,
+  fetchSupplierContacts,
   fetchSupplyDisbursementStatus,
   fetchSupplyPayOptions,
   fetchSupplyPaymentHistory,
@@ -36,6 +37,7 @@ import {
 } from "@/lib/api";
 import {
   extractFirstKenyanMobile,
+  kenyanAirtimePhoneMessage,
   toKenyanLocal07,
   toKenyanMsisdn254,
 } from "@/lib/kenyan-phone";
@@ -157,6 +159,8 @@ export function PaySupplyDrawer({
   const [error, setError] = useState<string | null>(null);
   /** Advanced / manual record: notify supplier by SMS (default on). */
   const [notifySupplier, setNotifySupplier] = useState(true);
+  /** Destination for Confirm payment / notify-on SMS (editable per payment). */
+  const [notifySmsPhone, setNotifySmsPhone] = useState("");
   const [payOptions, setPayOptions] = useState<SupplyPayOptionsRecord | null>(
     null,
   );
@@ -314,19 +318,43 @@ export function PaySupplyDrawer({
     if (!open || !row || !canReadSupplier) {
       setSupplier(null);
       setSupplierError(null);
+      setNotifySmsPhone("");
       return;
     }
     setSupplierLoading(true);
     setSupplierError(null);
-    void fetchSupplierById(row.supplierId, { includeDeleted: true })
-      .then((s) => {
+    void Promise.all([
+      fetchSupplierById(row.supplierId, { includeDeleted: true }),
+      fetchSupplierContacts(row.supplierId).catch(() => []),
+    ])
+      .then(([s, contacts]) => {
         setSupplier(s);
         setPaymentMethod(resolvePaymentMethod(s.paymentMethodPreferred));
-        const guessed =
+        const contactPhone =
+          contacts
+            .slice()
+            .sort(
+              (a, b) =>
+                Number(b.primaryContact) - Number(a.primaryContact) ||
+                (a.name ?? "").localeCompare(b.name ?? ""),
+            )
+            .map((c) => toKenyanLocal07(c.phone ?? ""))
+            .find(Boolean) ?? null;
+        const fromDetails = toKenyanLocal07(
+          extractFirstKenyanMobile(s.paymentDetails) ?? "",
+        );
+        const smsPhone =
           toKenyanLocal07(s.payoutPhone ?? "") ??
-          toKenyanLocal07(extractFirstKenyanMobile(s.paymentDetails) ?? "") ??
+          contactPhone ??
+          fromDetails ??
           "";
-        setKopokopoSetupPhone(guessed);
+        setNotifySmsPhone(smsPhone);
+        setKopokopoSetupPhone(
+          toKenyanLocal07(s.payoutPhone ?? "") ??
+            fromDetails ??
+            contactPhone ??
+            "",
+        );
         setKopokopoSetupType("mobile_wallet");
         setKopokopoSetupTill("");
         setKopokopoSetupPaybill("");
@@ -334,6 +362,7 @@ export function PaySupplyDrawer({
       })
       .catch((e) => {
         setSupplier(null);
+        setNotifySmsPhone("");
         setSupplierError(
           e instanceof Error
             ? e.message
@@ -585,6 +614,19 @@ export function PaySupplyDrawer({
       (sum, line) => sum + line.amount,
       0,
     );
+    let notifyPhone: string | undefined;
+    if (opts.notify) {
+      const local = toKenyanLocal07(notifySmsPhone);
+      const phoneErr = kenyanAirtimePhoneMessage(notifySmsPhone.trim());
+      if (!local || phoneErr) {
+        setError(
+          phoneErr ??
+            "Enter a valid Kenyan mobile for the confirmation SMS, or use Mark paid · no SMS.",
+        );
+        return;
+      }
+      notifyPhone = local;
+    }
     setBusy(true);
     try {
       await postSupplierPayment({
@@ -597,6 +639,7 @@ export function PaySupplyDrawer({
         notes: notes.trim() || undefined,
         allocations: opts.allocations,
         notifySupplier: opts.notify,
+        notifyPhone,
       });
       toast.success(
         opts.allocations.length > 1
@@ -606,7 +649,7 @@ export function PaySupplyDrawer({
             : "Marked as paid",
         {
           description: opts.notify
-            ? `${formatSupplyMoney(totalAlloc)} recorded for ${displaySupplierName({ name: row.supplierName, fallback: "supplier" })}.`
+            ? `${formatSupplyMoney(totalAlloc)} recorded for ${displaySupplierName({ name: row.supplierName, fallback: "supplier" })} · SMS to ${notifyPhone}.`
             : `${formatSupplyMoney(totalAlloc)} recorded for ${displaySupplierName({ name: row.supplierName, fallback: "supplier" })} — no SMS sent.`,
           duration: 8000,
         },
@@ -1572,57 +1615,97 @@ export function PaySupplyDrawer({
                   {kopokopoMessage ?? "Payment confirmed."}
                 </p>
               ) : (
-                <p className="text-center text-xs leading-relaxed text-muted-foreground">
-                  {primaryIsKopokopoSend ? (
-                    <>
-                      Tap{" "}
-                      <span className="font-semibold text-foreground">
-                        Send via KopoKopo
-                      </span>{" "}
-                      to pay{" "}
-                      <span className="font-semibold text-foreground">
-                        {formatSupplyMoney(rowBalanceOpen)}
-                      </span>{" "}
-                      via KopoKopo. Money leaves your till when KopoKopo accepts
-                      the transfer; the ledger updates after confirmation. Use{" "}
-                      <span className="font-semibold text-foreground">
-                        Mark paid · no SMS
-                      </span>{" "}
-                      only if you already paid outside PalMart.
-                    </>
-                  ) : needsKopokopoSupplierSetup ? (
-                    <>
-                      Supplier payouts are on. Use{" "}
-                      <span className="font-semibold text-foreground">
-                        Enable &amp; send
-                      </span>{" "}
-                      above to pay this supplier for real — the confirm button
-                      below will not record a fake payment. Or use{" "}
-                      <span className="font-semibold text-foreground">
-                        Mark paid · no SMS
-                      </span>{" "}
-                      if you already transferred funds yourself.
-                    </>
-                  ) : (
-                    <>
-                      Send{" "}
-                      <span className="font-semibold text-foreground">
-                        {formatSupplyMoney(
-                          payTotal > 0.009 ? payTotal : rowBalanceOpen,
+                <>
+                  {!primaryIsKopokopoSend ? (
+                    <label className="flex flex-col gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3.5 py-3">
+                      <span className={supFieldLabel}>
+                        Confirmation SMS number
+                      </span>
+                      <input
+                        className={cn(supInput, "font-mono")}
+                        value={notifySmsPhone}
+                        onChange={(e) => setNotifySmsPhone(e.target.value)}
+                        placeholder="07XX XXX XXX"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        disabled={busy}
+                        aria-describedby="pay-supply-sms-hint"
+                      />
+                      <span
+                        id="pay-supply-sms-hint"
+                        className="text-[11px] leading-snug text-muted-foreground"
+                      >
+                        {notifySmsPhone.trim()
+                          ? "Confirm payment texts this number. Edit if someone else should get the receipt."
+                          : "Add a Kenyan mobile so Confirm payment can text the supplier — or use Mark paid · no SMS."}
+                      </span>
+                    </label>
+                  ) : null}
+                  <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                    {primaryIsKopokopoSend ? (
+                      <>
+                        Tap{" "}
+                        <span className="font-semibold text-foreground">
+                          Send via KopoKopo
+                        </span>{" "}
+                        to pay{" "}
+                        <span className="font-semibold text-foreground">
+                          {formatSupplyMoney(rowBalanceOpen)}
+                        </span>{" "}
+                        via KopoKopo. Money leaves your till when KopoKopo accepts
+                        the transfer; the ledger updates after confirmation. Use{" "}
+                        <span className="font-semibold text-foreground">
+                          Mark paid · no SMS
+                        </span>{" "}
+                        only if you already paid outside PalMart.
+                      </>
+                    ) : needsKopokopoSupplierSetup ? (
+                      <>
+                        Supplier payouts are on. Use{" "}
+                        <span className="font-semibold text-foreground">
+                          Enable &amp; send
+                        </span>{" "}
+                        above to pay this supplier for real — the confirm button
+                        below will not record a fake payment. Or use{" "}
+                        <span className="font-semibold text-foreground">
+                          Mark paid · no SMS
+                        </span>{" "}
+                        if you already transferred funds yourself.
+                      </>
+                    ) : (
+                      <>
+                        Send{" "}
+                        <span className="font-semibold text-foreground">
+                          {formatSupplyMoney(
+                            payTotal > 0.009 ? payTotal : rowBalanceOpen,
+                          )}
+                        </span>{" "}
+                        using the details above, then tap{" "}
+                        <span className="font-semibold text-foreground">
+                          {multiSelect ? "Clear unpaid" : "Confirm payment"}
+                        </span>{" "}
+                        to record it
+                        {toKenyanLocal07(notifySmsPhone) ? (
+                          <>
+                            {" "}
+                            (SMS to{" "}
+                            <span className="font-mono font-semibold text-foreground">
+                              {toKenyanLocal07(notifySmsPhone)}
+                            </span>
+                            )
+                          </>
+                        ) : (
+                          " (notifies the supplier)"
                         )}
-                      </span>{" "}
-                      using the details above, then tap{" "}
-                      <span className="font-semibold text-foreground">
-                        {multiSelect ? "Clear unpaid" : "Confirm payment"}
-                      </span>{" "}
-                      to record it (notifies the supplier), or{" "}
-                      <span className="font-semibold text-foreground">
-                        Mark paid · no SMS
-                      </span>{" "}
-                      to update the ledger silently.
-                    </>
-                  )}
-                </p>
+                        , or{" "}
+                        <span className="font-semibold text-foreground">
+                          Mark paid · no SMS
+                        </span>{" "}
+                        to update the ledger silently.
+                      </>
+                    )}
+                  </p>
+                </>
               )}
 
               <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
@@ -1743,7 +1826,8 @@ export function PaySupplyDrawer({
                         Notify supplier by SMS
                         <span className="mt-0.5 block text-xs text-muted-foreground">
                           Uncheck to record the payment silently (no SMS or
-                          portal alert).
+                          portal alert). Number is set above under Confirmation
+                          SMS.
                         </span>
                       </span>
                     </label>

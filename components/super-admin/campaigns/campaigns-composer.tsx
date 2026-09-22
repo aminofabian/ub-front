@@ -9,6 +9,9 @@ import { cn } from "@/lib/utils";
 
 import { CampaignChip } from "./campaigns-overview";
 import {
+  ABANDONED_CART_MAX_ATTEMPTS,
+  FEATURE_DRIP_INTERVAL_DAYS,
+  FEATURE_DRIP_MAX_EMAIL_ATTEMPTS,
   FILTERS,
   INTENTS,
   VARIABLES,
@@ -16,6 +19,9 @@ import {
   estimateAudience,
   personalize,
 } from "./campaigns-model";
+import { MPESA_PAYMENT_METHOD_SMS_BODY } from "@/lib/outreach-mpesa-payment-method";
+import { CREDITS_PAY_LINK_SMS_BODY } from "@/lib/outreach-credits-pay-link";
+import { WEIGHTED_SELL_SMS_BODY } from "@/lib/outreach-weighted-sell";
 
 const fieldClass =
   "w-full rounded-lg border border-border/80 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-600/40 focus:ring-2 focus:ring-emerald-600/15";
@@ -191,6 +197,69 @@ export function CampaignsComposer({
             <p className="mt-2 text-xs text-muted-foreground">{activeFilter.hint}</p>
           ) : null}
         </div>
+
+        {filters.includes("no-payment") ||
+        filters.includes("open-tabs") ||
+        filters.includes("weighted") ? (
+          <div className="mt-3 rounded-xl border border-amber-700/20 bg-amber-50/70 p-3">
+            <p className="text-xs font-semibold text-amber-950">
+              2-day drip · one email at a time
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-amber-950/80">
+              Feature emails go out every {FEATURE_DRIP_INTERVAL_DAYS} days (Day 0
+              M-Pesa → Day 2 Credits → Day 4 Weighted). Never schedule two emails
+              for the same day. Cap {FEATURE_DRIP_MAX_EMAIL_ATTEMPTS} emails per
+              topic. Abandoned-cart owner digests stop after{" "}
+              {ABANDONED_CART_MAX_ATTEMPTS} attempts.
+            </p>
+          </div>
+        ) : null}
+
+        {filters.includes("no-payment") ? (
+          <div className="mt-3 rounded-xl border border-emerald-700/20 bg-emerald-50/60 p-3">
+            <p className="text-xs font-semibold text-emerald-900">
+              Companion SMS / WhatsApp · same day as email (Day 0)
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-emerald-900/80">
+              Paste after the email — this is a text, not a second email. Next
+              email in this topic waits {FEATURE_DRIP_INTERVAL_DAYS} days.
+            </p>
+            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-emerald-700/15 bg-white px-3 py-2 text-[11px] leading-relaxed text-foreground">
+              {MPESA_PAYMENT_METHOD_SMS_BODY}
+            </pre>
+          </div>
+        ) : null}
+
+        {filters.includes("open-tabs") ? (
+          <div className="mt-3 rounded-xl border border-emerald-700/20 bg-emerald-50/60 p-3">
+            <p className="text-xs font-semibold text-emerald-900">
+              Companion SMS / WhatsApp · same day as email (Day 2 of drip)
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-emerald-900/80">
+              Schedule this email on Day 2 so it never lands with the M-Pesa
+              email. Reminders every {FEATURE_DRIP_INTERVAL_DAYS} days, max{" "}
+              {FEATURE_DRIP_MAX_EMAIL_ATTEMPTS} emails — then stop.
+            </p>
+            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-emerald-700/15 bg-white px-3 py-2 text-[11px] leading-relaxed text-foreground">
+              {CREDITS_PAY_LINK_SMS_BODY}
+            </pre>
+          </div>
+        ) : null}
+
+        {filters.includes("weighted") ? (
+          <div className="mt-3 rounded-xl border border-emerald-700/20 bg-emerald-50/60 p-3">
+            <p className="text-xs font-semibold text-emerald-900">
+              Companion SMS / WhatsApp · same day as email (Day 4 of drip)
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-emerald-900/80">
+              Schedule on Day 4 of the drip. Enter-amount tip by SMS — not a
+              second email the same day.
+            </p>
+            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-emerald-700/15 bg-white px-3 py-2 text-[11px] leading-relaxed text-foreground">
+              {WEIGHTED_SELL_SMS_BODY}
+            </pre>
+          </div>
+        ) : null}
 
         {isIndividual ? (
           <div className="mt-3 space-y-2 rounded-xl border border-border/70 bg-[#F7F7F5] p-3">
