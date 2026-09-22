@@ -82,20 +82,20 @@ const DEST_OPTIONS: {
 }[] = [
   {
     kind: "till",
-    title: "Buy Goods till",
-    blurb: "Lands as soon as they enter PIN",
+    title: "Till number",
+    blurb: "Lipa Na M-Pesa Buy Goods — money arrives when they enter PIN",
     icon: Store,
   },
   {
     kind: "paybill",
     title: "Paybill",
-    blurb: "Business number + account",
+    blurb: "Business number + account number",
     icon: Building2,
   },
   {
     kind: "bank",
     title: "Bank account",
-    blurb: "Equity, KCB, NCBA, and more",
+    blurb: "Equity, KCB, NCBA, and other banks",
     icon: Landmark,
   },
 ];
@@ -112,7 +112,7 @@ export function ReceiveMpesaFlow({
   embedded = false,
   initial,
   showSkip = true,
-  skipLabel = "Skip for now",
+  skipLabel = "I’ll do this later",
   doneLabel,
   onSkip,
   onDone,
@@ -310,7 +310,7 @@ export function ReceiveMpesaFlow({
           if (Date.now() - started > 120_000) {
             stopPolling();
             setError(
-              "Still waiting on M-Pesa. Check your phone, or finish later from Business → Where M-Pesa lands.",
+              "Still waiting on M-Pesa. Check your phone, or finish this later from Business → Payment method.",
             );
             setPhase("failed");
           }
@@ -416,10 +416,10 @@ export function ReceiveMpesaFlow({
     return (
       <div className="flex flex-col gap-5">
         <header className="space-y-2">
-          <h2 className={titleClass}>Where should M-Pesa land?</h2>
+          <h2 className={titleClass}>Receive M-Pesa later</h2>
           <p className={descClass}>
-            We’ll turn this on for you shortly. You can add a till later from
-            Business or Payments.
+            This isn’t ready for your shop yet. You can set a till, paybill, or
+            bank anytime from Business once we switch it on.
           </p>
         </header>
         <p
@@ -432,7 +432,7 @@ export function ReceiveMpesaFlow({
           )}
         >
           {availability.message ||
-            "Kiosk-powered till/paybill is not available yet."}
+            "M-Pesa receive isn’t available for this shop yet."}
         </p>
         {(onSkip || onCancel) && (
           <button
@@ -452,33 +452,35 @@ export function ReceiveMpesaFlow({
       ? {
           title: "Check your phone",
           description:
-            "Unlock the Safaricom prompt and enter your M-Pesa PIN.",
+            "Open the Safaricom prompt and enter your M-Pesa PIN.",
         }
       : phase === "confirm"
         ? {
-            title: "Did the shilling land?",
-            description: `Confirm KES 1 on ${testResult?.destinationSummary ?? "your destination"}.`,
+            title: "Did you get the KES 1?",
+            description: `Look for KES 1 on ${testResult?.destinationSummary ?? "the till or account you just set"}.`,
           }
         : phase === "done"
           ? {
-              title: "You’re set to receive M-Pesa",
+              title: "You’re ready for M-Pesa",
               description:
-                "Cashiers and your online shop will send payments here.",
+                "When customers pay at the till or online, the money goes here.",
             }
           : mode === "update"
             ? {
-                title: "Change where money lands",
-                description: "Pick a type, enter details, then prove with KES 1.",
+                title: "Change where customers pay",
+                description:
+                  "Pick a till, paybill, or bank — then we’ll send KES 1 to check it.",
               }
             : mode === "setup"
               ? {
-                  title: "Where should customer M-Pesa land?",
-                  description: "Pick a type, enter details, then prove with KES 1.",
+                  title: "Where should customers pay you?",
+                  description:
+                    "Choose a till, paybill, or bank. We’ll send KES 1 so you know it works.",
                 }
               : {
-                  title: "Where should customer M-Pesa land?",
+                  title: "Where should customers pay you?",
                   description:
-                    "Optional. Set a till, paybill, or bank — or skip for now.",
+                    "Add a till, paybill, or bank so M-Pesa goes to you. You can skip and do this later.",
                 };
 
   const showFlowHeader =
@@ -499,14 +501,14 @@ export function ReceiveMpesaFlow({
 
       {phase === "pick" || phase === "details" || phase === "failed" ? (
         <>
-          {isUpdate && savedLine ? (
+              {isUpdate && savedLine ? (
             <p
               className={cn(
                 "text-[13px]",
                 soft ? "text-[#6B7280]" : "text-muted-foreground",
               )}
             >
-              Now:{" "}
+              Customers currently pay to{" "}
               <span
                 className={cn(
                   "font-semibold tabular-nums",
@@ -521,7 +523,7 @@ export function ReceiveMpesaFlow({
           <div
             className="grid gap-2"
             role="radiogroup"
-            aria-label="How you receive M-Pesa"
+            aria-label="How customers pay you with M-Pesa"
           >
             {DEST_OPTIONS.map((opt) => {
               const Icon = opt.icon;
@@ -614,7 +616,7 @@ export function ReceiveMpesaFlow({
           {kind && (phase === "details" || phase === "failed") ? (
             <div className="space-y-3">
               {kind === "till" ? (
-                <Field
+                  <Field
                   label="Till number"
                   value={tillNumber}
                   onChange={(v) => setTillNumber(v.replace(/[^\d]/g, ""))}
@@ -622,6 +624,7 @@ export function ReceiveMpesaFlow({
                   inputMode="numeric"
                   inputClass={inputClass}
                   labelClass={labelClass}
+                  hint="The Buy Goods number on your Lipa Na M-Pesa till"
                 />
               ) : null}
 
@@ -635,6 +638,7 @@ export function ReceiveMpesaFlow({
                     inputMode="numeric"
                     inputClass={inputClass}
                     labelClass={labelClass}
+                    hint="The business number customers dial in M-Pesa"
                   />
                   <Field
                     label="Account number"
@@ -643,6 +647,7 @@ export function ReceiveMpesaFlow({
                     placeholder="What customers type as Account"
                     inputClass={inputClass}
                     labelClass={labelClass}
+                    hint="Often your shop name or a short code you choose"
                   />
                 </>
               ) : null}
@@ -681,14 +686,14 @@ export function ReceiveMpesaFlow({
               ) : null}
 
               <Field
-                label="Phone for KES 1 proof"
+                label="Your phone (for a KES 1 test)"
                 value={phone}
                 onChange={setPhone}
                 placeholder="07XX XXX XXX"
                 inputMode="tel"
                 inputClass={inputClass}
                 labelClass={labelClass}
-                hint="Safaricom line — we’ll ping it after you save."
+                hint="We’ll send a Safaricom prompt here so you can check it works."
               />
 
               {previewLine ? (
@@ -700,7 +705,7 @@ export function ReceiveMpesaFlow({
                     soft ? "text-[#134E4A]" : "text-foreground",
                   )}
                 >
-                  Customers will see: {previewLine}
+                  Customers will pay to: {previewLine}
                 </p>
               ) : null}
             </div>
@@ -745,7 +750,7 @@ export function ReceiveMpesaFlow({
               )}
             >
               {phase === "sending"
-                ? "Sending the prompt…"
+                ? "Sending the M-Pesa prompt…"
                 : "Waiting for your PIN…"}
             </p>
             <p
@@ -755,8 +760,8 @@ export function ReceiveMpesaFlow({
               )}
             >
               {testResult?.destinationSummary
-                ? testResult.destinationSummary
-                : "KES 1 · M-Pesa Express"}
+                ? `KES 1 → ${testResult.destinationSummary}`
+                : "KES 1 test payment"}
             </p>
           </div>
         </div>
@@ -773,13 +778,13 @@ export function ReceiveMpesaFlow({
             className={cn(ctaPrimary, "flex items-center justify-center gap-2")}
           >
             <Check className="size-4" aria-hidden />
-            Yes — money arrived
+            Yes — I got it
           </button>
           <button
             type="button"
             onClick={() => {
               setError(
-                "Details are saved, but the credit didn’t show. Try a Buy Goods till, or edit again from Business.",
+                "We saved your details, but the KES 1 didn’t show up. Try a till number, or change this later from Business.",
               );
               setPhase("failed");
             }}
@@ -820,7 +825,7 @@ export function ReceiveMpesaFlow({
               soft ? "text-[#134E4A]" : "text-foreground",
             )}
           >
-            {testResult?.destinationSummary ?? "M-Pesa destination"} is ready
+            {testResult?.destinationSummary ?? "Your payment method"} is ready
           </p>
           {doneLabel ? (
             <button type="button" onClick={onDone} className={ctaPrimary}>
@@ -850,7 +855,7 @@ export function ReceiveMpesaFlow({
               onClick={() => void sendTest()}
               className={ctaPrimary}
             >
-              Save & send KES 1
+              Save and test with KES 1
             </button>
           ) : kind ? (
             <p
@@ -859,9 +864,18 @@ export function ReceiveMpesaFlow({
                 soft ? "text-[#9CA3AF]" : "text-muted-foreground",
               )}
             >
-              Fill in the fields above to continue
+              Fill in the details above to continue
             </p>
-          ) : null}
+          ) : (
+            <p
+              className={cn(
+                "text-center text-xs",
+                soft ? "text-[#9CA3AF]" : "text-muted-foreground",
+              )}
+            >
+              Tap one option to continue
+            </p>
+          )}
           {showSkip && onSkip ? (
             <button type="button" onClick={onSkip} className={ctaGhost}>
               {skipLabel}

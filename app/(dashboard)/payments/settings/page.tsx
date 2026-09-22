@@ -1170,7 +1170,7 @@ export default function PaymentGatewaySettingsPage() {
           if (!open) closeDrawer();
         }}
         title="Where should M-Pesa land?"
-        description="Pick till, paybill, or bank — then prove with KES 1."
+        description="Choose a till, paybill, or bank — then we’ll send KES 1 to check it."
         contextLabel="Payments"
         appearance="sharp"
         width="wide"
@@ -1200,7 +1200,7 @@ export default function PaymentGatewaySettingsPage() {
           }
         }}
         title="Update M-Pesa destination"
-        description="Pick till, paybill, or bank — then prove with KES 1."
+        description="Choose a till, paybill, or bank — then we’ll send KES 1 to check it."
         contextLabel="Payments"
         appearance="sharp"
         width="wide"

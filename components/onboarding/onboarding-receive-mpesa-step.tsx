@@ -30,7 +30,7 @@ export function OnboardingReceiveMpesaStep({
       ownerPhone={ownerPhone}
       countryCode={countryCode}
       showSkip
-      skipLabel="Skip for now"
+      skipLabel="I’ll do this later"
       onSkip={onSkip}
       onDone={onDone}
     />

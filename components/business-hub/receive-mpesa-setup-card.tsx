@@ -238,7 +238,7 @@ export function ReceiveMpesaSetupCard({
         open={open}
         onOpenChange={setOpen}
         title={configured ? "Change payment method" : "Add payment method"}
-        description="Customers pay to your till, paybill, or bank — then prove with KES 1."
+        description="Choose a till, paybill, or bank — then we’ll send KES 1 to check it."
         contextLabel="Business"
         appearance="sharp"
         width="wide"
