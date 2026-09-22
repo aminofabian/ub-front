@@ -100,7 +100,14 @@ export function ProfitPocketDrawer({
     if (Number.isFinite(amountN) && amountN > suggested + 0.009) {
       list.push({
         id: "above_surplus",
-        text: `Amount is above suggested cash surplus (${fmtMoney(suggested)}).`,
+        text: `Amount is above suggested profit pocket (${fmtMoney(suggested)}).`,
+      });
+    }
+    const liquid = toNum(surplus?.rawSurplus);
+    if (Number.isFinite(amountN) && liquid > 0 && amountN > liquid + 0.009) {
+      list.push({
+        id: "above_liquid",
+        text: `Amount is above available cash surplus (${fmtMoney(liquid)}).`,
       });
     }
     if ((surplus?.openShifts ?? 0) > 0) {
@@ -110,7 +117,7 @@ export function ProfitPocketDrawer({
       });
     }
     return list;
-  }, [gp, amountN, suggested, surplus?.openShifts]);
+  }, [gp, amountN, suggested, surplus?.openShifts, surplus?.rawSurplus]);
 
   const needsHardConfirm =
     Number.isFinite(amountN) && suggested > 0 && amountN > suggested * 1.5;
@@ -175,8 +182,8 @@ export function ProfitPocketDrawer({
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Pocket cash surplus"
-      description={`${periodLabel} · We suggest cash + M-Pesa takings minus leave float — not the gross profit number.`}
+      title="Pocket profit"
+      description={`${periodLabel} · We suggest min(gross profit, cash surplus) × jar % — editable before you confirm.`}
       width="default"
       appearance="sharp"
       headerDensity="compact"
@@ -220,9 +227,8 @@ export function ProfitPocketDrawer({
             <div className="grid grid-cols-2 gap-px overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-xs sm:grid-cols-4">
               {(
                 [
-                  ["Cash", surplus.cashTakings],
-                  ["M-Pesa", surplus.mpesaTakings],
-                  ["Raw surplus", surplus.rawSurplus ?? surplus.suggestedPocket],
+                  ["Gross profit", surplus.grossProfit],
+                  ["Cash surplus", surplus.rawSurplus ?? surplus.suggestedPocket],
                   [
                     Number(surplus.profitJarPct) > 0 &&
                     Number(surplus.profitJarPct) < 100
@@ -230,6 +236,7 @@ export function ProfitPocketDrawer({
                       : "Suggested",
                     surplus.suggestedPocket,
                   ],
+                  ["Leave float", surplus.defaultFloat],
                 ] as const
               ).map(([label, value]) => (
                 <div key={label} className="bg-white px-2.5 py-2">
@@ -354,8 +361,8 @@ export function ProfitPocketDrawer({
 
             <p className="text-[11px] text-muted-foreground">
               Confirm posts an owner-drawings journal. M-Pesa / till / paybill
-              destinations also attempt KopoKopo Send Money when supplier payouts
-              are enabled. Bank destinations stay books-only.
+              destinations also attempt Send Money / Daraja B2B when a send rail
+              is ready in Profit Pocket settings. Bank destinations stay books-only.
             </p>
           </>
         ) : null}

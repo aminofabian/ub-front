@@ -11322,6 +11322,13 @@ export async function updateSupplierPayoutSettings(
   );
 }
 
+export type ProfitPocketSendRailOptionRecord = {
+  id: string;
+  label: string;
+  ready: boolean;
+  detail: string | null;
+};
+
 export type ProfitPocketSettingsRecord = {
   enabled: boolean;
   configured: boolean;
@@ -11339,6 +11346,8 @@ export type ProfitPocketSettingsRecord = {
   customerPayCollisionMessage: string | null;
   profitJarPct: number | string | null;
   marginBudgetDaily: number | string | null;
+  sendRail: string | null;
+  availableSendRails: ProfitPocketSendRailOptionRecord[];
 };
 
 export type UpdateProfitPocketSettingsPayload = {
@@ -11354,6 +11363,7 @@ export type UpdateProfitPocketSettingsPayload = {
   fridayReminderEnabled?: boolean;
   profitJarPct?: number | null;
   marginBudgetDaily?: number | null;
+  sendRail?: string | null;
 };
 
 export async function fetchProfitPocketSettings(): Promise<ProfitPocketSettingsRecord> {
@@ -11366,6 +11376,20 @@ export async function updateProfitPocketSettings(
   return request<ProfitPocketSettingsRecord>("/api/v1/payments/profit-pocket", {
     method: "PUT",
     body,
+  });
+}
+
+export type ProfitPocketTestRecord = {
+  status: string;
+  sendMoneyId: string | null;
+  message: string | null;
+};
+
+/** Send KES 1 to the saved Profit Pocket destination (Daraja B2B or KopoKopo). */
+export async function testProfitPocketDestination(): Promise<ProfitPocketTestRecord> {
+  return request<ProfitPocketTestRecord>("/api/v1/payments/profit-pocket/test", {
+    method: "POST",
+    body: {},
   });
 }
 

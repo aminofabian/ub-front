@@ -9,8 +9,10 @@ import { Switch } from "@/components/ui/switch";
 import {
   fetchProfitPocketSettings,
   fetchProfitPockets,
+  testProfitPocketDestination,
   updateProfitPocketSettings,
   type ProfitPocketRecord,
+  type ProfitPocketSendRailOptionRecord,
   type ProfitPocketSettingsRecord,
 } from "@/lib/api";
 import { fmtMoney } from "@/lib/business-hub/formatters";
@@ -29,7 +31,6 @@ type ProfitPocketSettingsSectionProps = {
 
 const DEST_TYPES = [
   { id: "bank", label: "Bank account" },
-  { id: "mpesa_phone", label: "M-Pesa phone" },
   { id: "till", label: "Till (expense)" },
   { id: "paybill", label: "Paybill (expense)" },
 ] as const;
@@ -206,6 +207,9 @@ function ProfitPocketConfigureForm({
   setProfitJarPct,
   marginBudgetDaily,
   setMarginBudgetDaily,
+  sendRail,
+  setSendRail,
+  availableSendRails,
 }: {
   canWrite: boolean;
   saving: boolean;
@@ -233,6 +237,9 @@ function ProfitPocketConfigureForm({
   setProfitJarPct: (v: string) => void;
   marginBudgetDaily: string;
   setMarginBudgetDaily: (v: string) => void;
+  sendRail: string;
+  setSendRail: (v: string) => void;
+  availableSendRails: ProfitPocketSendRailOptionRecord[];
 }) {
   return (
     <div className="space-y-6">
@@ -306,22 +313,6 @@ function ProfitPocketConfigureForm({
             />
           ) : null}
 
-          {destinationType === "mpesa_phone" ? (
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
-                M-Pesa phone
-              </span>
-              <input
-                className="h-10 border border-input bg-background px-3 font-mono text-sm"
-                value={destinationAccount}
-                disabled={!canWrite || saving}
-                onChange={(e) => setDestinationAccount(e.target.value)}
-                placeholder="07XX XXX XXX"
-                inputMode="tel"
-              />
-            </label>
-          ) : null}
-
           {destinationType === "till" ? (
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
@@ -364,6 +355,49 @@ function ProfitPocketConfigureForm({
               </label>
             </>
           ) : null}
+
+          {availableSendRails.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
+                Send via
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {availableSendRails.map((rail) => {
+                  const active = sendRail === rail.id;
+                  return (
+                    <button
+                      key={rail.id}
+                      type="button"
+                      disabled={!canWrite || saving || !rail.ready}
+                      onClick={() => setSendRail(rail.id)}
+                      className={cn(
+                        "border px-3 py-2.5 text-left transition-colors",
+                        active
+                          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)]"
+                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/10 hover:bg-muted/20",
+                        !rail.ready && "opacity-60",
+                      )}
+                    >
+                      <p className="text-sm font-semibold text-foreground">
+                        {rail.label}
+                        {!rail.ready ? " · not ready" : null}
+                      </p>
+                      {rail.detail ? (
+                        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                          {rail.detail}
+                        </p>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              No send rails yet. Ask your platform admin to enable Daraja B2B,
+              or connect KopoKopo under Accept payments.
+            </p>
+          )}
 
           <label className="flex flex-col gap-1.5">
             <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
@@ -411,8 +445,8 @@ function ProfitPocketConfigureForm({
               placeholder="100"
             />
             <span className="text-[11px] text-muted-foreground">
-              Suggested pocket = (cash + M-Pesa − float) × this %. Use 100 for
-              the full surplus.
+              Suggested pocket = min(gross profit, cash + M-Pesa − float) × this
+              %. Use 100 for the full profit (still capped by surplus).
             </span>
           </label>
         </>
@@ -476,6 +510,7 @@ export function ProfitPocketSettingsSection({
 }: ProfitPocketSettingsSectionProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [settings, setSettings] = useState<ProfitPocketSettingsRecord | null>(
     null,
   );
@@ -494,11 +529,17 @@ export function ProfitPocketSettingsSection({
   const [fridayReminderEnabled, setFridayReminderEnabled] = useState(true);
   const [profitJarPct, setProfitJarPct] = useState("100");
   const [marginBudgetDaily, setMarginBudgetDaily] = useState("");
+  const [sendRail, setSendRail] = useState("");
+  const [availableSendRails, setAvailableSendRails] = useState<
+    ProfitPocketSendRailOptionRecord[]
+  >([]);
 
   const apply = useCallback((s: ProfitPocketSettingsRecord) => {
     setSettings(s);
     setEnabled(s.enabled);
-    setDestinationType(s.destinationType ?? "");
+    setDestinationType(
+      s.destinationType === "mpesa_phone" ? "" : (s.destinationType ?? ""),
+    );
     setDestinationLabel(s.destinationLabel ?? "");
     setDestinationAccount(s.destinationAccount ?? "");
     setDestinationBankName(s.destinationBankName ?? "");
@@ -517,6 +558,8 @@ export function ProfitPocketSettingsSection({
         ? ""
         : String(Number(s.marginBudgetDaily) || ""),
     );
+    setSendRail(s.sendRail ?? "");
+    setAvailableSendRails(s.availableSendRails ?? []);
   }, []);
 
   const reload = useCallback(async () => {
@@ -548,43 +591,48 @@ export function ProfitPocketSettingsSection({
     void reloadHistory();
   }, [reload, reloadHistory]);
 
-  const onSave = async () => {
-    if (!canWrite) return;
+  const buildPayload = () => {
     const floatN = Number(defaultFloat);
     if (!Number.isFinite(floatN) || floatN < 0) {
-      toast.error("Default leave float must be a non-negative number.");
-      return;
+      throw new Error("Default leave float must be a non-negative number.");
     }
     const jarN = Number(profitJarPct);
     if (!Number.isFinite(jarN) || jarN < 1 || jarN > 100) {
-      toast.error("Profit jar % must be between 1 and 100.");
-      return;
+      throw new Error("Profit jar % must be between 1 and 100.");
     }
     const budgetRaw = marginBudgetDaily.trim();
     const budgetN = budgetRaw === "" ? 0 : Number(budgetRaw);
     if (!Number.isFinite(budgetN) || budgetN < 0) {
-      toast.error("Margin budget must be a non-negative number.");
-      return;
+      throw new Error("Margin budget must be a non-negative number.");
     }
+    if (destinationType === "mpesa_phone") {
+      throw new Error("M-Pesa phone destinations are no longer supported. Choose bank, till, or paybill.");
+    }
+    return {
+      enabled,
+      destinationType: destinationType || null,
+      destinationLabel: destinationLabel.trim() || null,
+      destinationAccount: destinationAccount.trim() || null,
+      destinationBankName: destinationBankName.trim() || null,
+      destinationPaybill: destinationPaybill.trim() || null,
+      destinationPaybillAccount: destinationPaybillAccount.trim() || null,
+      defaultFloat: floatN,
+      marginGuardMode:
+        marginGuardMode === "approve" || marginGuardMode === "hard"
+          ? marginGuardMode
+          : "warn",
+      fridayReminderEnabled,
+      profitJarPct: jarN,
+      marginBudgetDaily: budgetN,
+      sendRail: sendRail || null,
+    } as const;
+  };
+
+  const onSave = async () => {
+    if (!canWrite) return;
     setSaving(true);
     try {
-      const next = await updateProfitPocketSettings({
-        enabled,
-        destinationType: destinationType || null,
-        destinationLabel: destinationLabel.trim() || null,
-        destinationAccount: destinationAccount.trim() || null,
-        destinationBankName: destinationBankName.trim() || null,
-        destinationPaybill: destinationPaybill.trim() || null,
-        destinationPaybillAccount: destinationPaybillAccount.trim() || null,
-        defaultFloat: floatN,
-        marginGuardMode:
-          marginGuardMode === "approve" || marginGuardMode === "hard"
-            ? marginGuardMode
-            : "warn",
-        fridayReminderEnabled,
-        profitJarPct: jarN,
-        marginBudgetDaily: budgetN,
-      });
+      const next = await updateProfitPocketSettings(buildPayload());
       apply(next);
       toast.success("Profit Pocket settings saved");
       void reloadHistory();
@@ -592,6 +640,36 @@ export function ProfitPocketSettingsSection({
       toast.error(e instanceof Error ? e.message : "Could not save.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const onTest = async () => {
+    if (!canWrite) return;
+    setTesting(true);
+    try {
+      const next = await updateProfitPocketSettings(buildPayload());
+      apply(next);
+      if (!next.enabled || !next.configured) {
+        toast.error("Save a complete destination before testing.");
+        return;
+      }
+      const result = await testProfitPocketDestination();
+      if (result.status === "pending") {
+        toast.success("Test sent (KES 1)", {
+          description: result.message ?? "Check the destination for KES 1.",
+        });
+      } else if (result.status === "skipped") {
+        toast.message("Test skipped", {
+          description: result.message ?? "Enable Pay suppliers (KopoKopo) first.",
+        });
+      } else {
+        toast.error(result.message ?? "Test send failed.");
+      }
+      void reloadHistory();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not test destination.");
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -665,6 +743,9 @@ export function ProfitPocketSettingsSection({
       setProfitJarPct={setProfitJarPct}
       marginBudgetDaily={marginBudgetDaily}
       setMarginBudgetDaily={setMarginBudgetDaily}
+      sendRail={sendRail}
+      setSendRail={setSendRail}
+      availableSendRails={availableSendRails}
     />
   );
 
@@ -686,11 +767,23 @@ export function ProfitPocketSettingsSection({
           )}
         </div>
         {canWrite && !loading ? (
-          <div className="shrink-0 border-t border-border/60 px-1 pt-3">
+          <div className="flex shrink-0 flex-wrap gap-2 border-t border-border/60 px-1 pt-3">
             <Button
               type="button"
-              className="w-full rounded-none bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63] sm:w-auto"
-              disabled={saving}
+              variant="outline"
+              className="rounded-none"
+              disabled={saving || testing || !enabled}
+              onClick={() => void onTest()}
+            >
+              {testing ? (
+                <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+              ) : null}
+              Test destination (KES 1)
+            </Button>
+            <Button
+              type="button"
+              className="rounded-none bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63] sm:w-auto"
+              disabled={saving || testing}
               onClick={() => void onSave()}
             >
               {saving ? (
@@ -736,17 +829,31 @@ export function ProfitPocketSettingsSection({
           {form}
           {historyBlock}
           {canWrite ? (
-            <Button
-              type="button"
-              className="mt-4 rounded-none bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]"
-              disabled={saving}
-              onClick={() => void onSave()}
-            >
-              {saving ? (
-                <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-              ) : null}
-              Save
-            </Button>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-none"
+                disabled={saving || testing || !enabled}
+                onClick={() => void onTest()}
+              >
+                {testing ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                ) : null}
+                Test destination (KES 1)
+              </Button>
+              <Button
+                type="button"
+                className="rounded-none bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]"
+                disabled={saving || testing}
+                onClick={() => void onSave()}
+              >
+                {saving ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                ) : null}
+                Save
+              </Button>
+            </div>
           ) : null}
         </>
       )}
