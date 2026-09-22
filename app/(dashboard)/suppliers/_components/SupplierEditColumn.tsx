@@ -999,7 +999,7 @@ function SupplierSidebarPaymentSection({
             </p>
           ) : (
             <p className="mt-1 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-              Terms, remittance, and KopoKopo destination
+              Terms, remittance, and Send Money destination
             </p>
           )}
         </div>
@@ -1016,7 +1016,7 @@ function SupplierSidebarPaymentSection({
         <div className="space-y-2.5 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-2.5">
           <label className="flex flex-col gap-1">
             <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-              KopoKopo Send Money
+              Send Money destination
             </span>
             <select
               className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs"
@@ -1182,7 +1182,7 @@ function SupplierSidebarPaymentSection({
             </Button>
           ) : savedType === "manual" ? (
             <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-              Open Edit profile to enable KopoKopo payout if you have write
+              Open Edit profile to enable Send Money destination if you have write
               access.
             </p>
           ) : (

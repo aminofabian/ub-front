@@ -326,8 +326,8 @@ export function SupplierProfileFields({
             />
           </SupFormRow>
           <SupFormRow
-            label="KopoKopo payout"
-            hint="Send Money destination when paying supplies (M-Pesa, till, or paybill)."
+            label="Send Money destination"
+            hint="Automated payout when paying supplies (M-Pesa, till, or paybill)."
           >
             <select
               className={supFormCellSelect}
@@ -371,7 +371,7 @@ export function SupplierProfileFields({
           {draft.payoutType === "mobile_wallet" ? (
             <SupFormRow
               label="M-Pesa payout phone"
-              hint="Save an M-Pesa number to enable KopoKopo Send Money. SMS verification is optional."
+              hint="Save an M-Pesa number to enable automated Send Money. SMS verification is optional."
             >
               <input
                 className={cn(supFormCellInput, "font-mono")}

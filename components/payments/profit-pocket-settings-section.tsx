@@ -418,7 +418,7 @@ function ProfitPocketConfigureForm({
           ) : (
             <p className="text-xs text-muted-foreground">
               No send rails yet. Ask your platform admin to enable Daraja
-              Express, or connect KopoKopo under Accept payments.
+              Express, or connect a payout gateway under Accept payments.
             </p>
           )}
 
@@ -693,7 +693,7 @@ export function ProfitPocketSettingsSection({
         );
       } else if (result.status === "skipped") {
         toast.message("Test skipped", {
-          description: result.message ?? "Enable Pay suppliers (KopoKopo) first.",
+          description: result.message ?? "Enable Pay suppliers first.",
         });
       } else {
         toast.error(result.message ?? "Test send failed.");

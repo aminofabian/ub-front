@@ -121,8 +121,9 @@ function SupplierPayoutConfigureForm({
             </select>
             {activeSelectable.length === 0 ? (
               <p className="text-xs text-[#9a2e16]">
-                No eligible gateway is active. Activate KopoKopo under Accept
-                payments first.
+                {settings?.platformPayoutGatewayEnabled === false
+                  ? "Send Money is not available on this platform (disabled by the administrator)."
+                  : "No eligible gateway is active. Activate a payout gateway under Accept payments first."}
               </p>
             ) : settings?.gatewayReady && configId ? (
               <p className="text-xs text-[var(--pos-primary,#0f766e)]">
@@ -260,6 +261,7 @@ export function SupplierPayoutSettingsSection({
         autoPayEnabled: false,
         autoPayTimes: [...DEFAULT_AUTO_PAY_TIMES],
         selectableGateways: [],
+        platformPayoutGatewayEnabled: false,
       });
       toast.error(msg, {
         description:
@@ -408,8 +410,9 @@ export function SupplierPayoutSettingsSection({
             Pay suppliers
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-[#666666]">
-            Send Money to vendor M-Pesa from Supplies. Turn this on after an active
-            KopoKopo gateway is ready, then set phones on each supplier.
+            {settings?.platformPayoutGatewayEnabled === false
+              ? "Automated Send Money is not available while the payout gateway is disabled for the platform."
+              : "Send Money to vendor M-Pesa from Supplies. Turn this on after an active payout gateway is ready, then set phones on each supplier."}
           </p>
         </div>
         {canWrite && !loading ? (
@@ -468,11 +471,13 @@ export function SupplierPayoutSettingsSection({
                     : "Supplier payouts off"}
                 </p>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  {settings?.enabled
-                    ? settings.gatewayReady
-                      ? `${settings.gatewayLabel ?? "Gateway"} · ${settings.gatewayType ?? "—"}`
-                      : "Pick an active KopoKopo gateway in Configure."
-                    : "Disabled by default. Enable when you are ready to Send Money."}
+                  {settings?.platformPayoutGatewayEnabled === false
+                    ? "Send Money is disabled for this platform."
+                    : settings?.enabled
+                      ? settings.gatewayReady
+                        ? `${settings.gatewayLabel ?? "Gateway"} · ${settings.gatewayType ?? "—"}`
+                        : "Pick an active payout gateway in Configure."
+                      : "Disabled by default. Enable when you are ready to Send Money."}
                 </p>
               </div>
             </div>

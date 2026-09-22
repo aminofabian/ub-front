@@ -429,13 +429,16 @@ export function ExpensesHubWorkspace() {
         return;
       }
       if (!options.kopokopoPayEligible) {
-        const reason = !options.payoutEnabled
-          ? "Enable payouts under Payments → Supplier payouts"
-          : !options.payoutGatewayReady
-            ? "No active payout gateway"
-            : !options.destinationConfigured
-              ? "Add a vendor M-Pesa number on the expense or schedule"
-              : "Not eligible for Send Money";
+        const reason =
+          options.platformPayoutGatewayEnabled === false
+            ? "Send Money is disabled for this platform"
+            : !options.payoutEnabled
+              ? "Enable payouts under Payments → Supplier payouts"
+              : !options.payoutGatewayReady
+                ? "No active payout gateway"
+                : !options.destinationConfigured
+                  ? "Add a vendor M-Pesa number on the expense or schedule"
+                  : "Not eligible for Send Money";
         setFeedback({ kind: "error", text: reason });
         return;
       }

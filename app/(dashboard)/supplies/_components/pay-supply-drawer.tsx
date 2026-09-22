@@ -245,12 +245,16 @@ export function PaySupplyDrawer({
     payOptions?.supplierMobilePayoutConfigured || payoutDestinationLabel,
   );
   const paidFull = row ? row.paymentStatus === "PAID" : false;
+  /** Super-admin has enabled a Send Money gateway (KopoKopo). */
+  const platformPayoutOn = Boolean(payOptions?.platformPayoutGatewayEnabled);
   /** Tenant has supplier Send Money turned on with an active gateway. */
   const kopokopoPayoutsReady =
+    platformPayoutOn &&
     Boolean(payOptions?.supplierPayoutEnabled) &&
     Boolean(payOptions?.supplierPayoutGatewayReady);
   const needsKopokopoSupplierSetup =
     Boolean(payOptions) &&
+    platformPayoutOn &&
     !paidFull &&
     canPay &&
     !multiSelect &&
@@ -261,7 +265,7 @@ export function PaySupplyDrawer({
    * When KopoKopo payouts are ready for this invoice, never let the primary CTA
    * silently fall back to a ledger-only "record payment".
    */
-  const primaryIsKopokopoSend = kopokopoEligible;
+  const primaryIsKopokopoSend = platformPayoutOn && kopokopoEligible;
   const blockPrimaryUntilKopokopoReady =
     kopokopoPayoutsReady && !multiSelect && !kopokopoEligible;
   const paymentDetails = supplier?.paymentDetails?.trim() ?? "";
@@ -472,6 +476,11 @@ export function PaySupplyDrawer({
     void fetchSupplyPayOptions(row.supplierInvoiceId)
       .then((o) => {
         setPayOptions(o);
+        if (!o.platformPayoutGatewayEnabled) {
+          setKopokopoPhase("idle");
+          setKopokopoMessage(null);
+          return;
+        }
         if (
           (o.latestDisbursementStatus ?? "").toLowerCase() === "pending" ||
           o.pendingDisbursement
@@ -1052,7 +1061,8 @@ export function PaySupplyDrawer({
               Delete supply
             </Button>
           ) : null}
-          {kopokopoPhase === "pending" || kopokopoPhase === "failed" ? (
+          {platformPayoutOn &&
+          (kopokopoPhase === "pending" || kopokopoPhase === "failed") ? (
             <Button
               type="button"
               variant="secondary"
@@ -1369,24 +1379,45 @@ export function PaySupplyDrawer({
               needsKopokopoSupplierSetup ? (
               <div className="mt-3 space-y-3">
                 {hasPayoutDestination ? (
-                  <div className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-3.5 py-3">
-                    <p className="text-[11px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
-                      {payoutType === "till"
-                        ? "KopoKopo till payout"
-                        : payoutType === "paybill"
-                          ? "KopoKopo paybill payout"
-                          : "KopoKopo M-Pesa payout"}
+                  <div
+                    className={cn(
+                      "rounded-none border bg-white px-3.5 py-3",
+                      platformPayoutOn && kopokopoPayoutsReady
+                        ? "border-[var(--pos-primary,#0f766e)]"
+                        : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+                    )}
+                  >
+                    <p
+                      className={cn(
+                        "text-[11px] font-semibold tracking-[-0.02em]",
+                        platformPayoutOn && kopokopoPayoutsReady
+                          ? "text-[var(--pos-primary,#0f766e)]"
+                          : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+                      )}
+                    >
+                      {platformPayoutOn && kopokopoPayoutsReady
+                        ? payoutType === "till"
+                          ? "KopoKopo till payout"
+                          : payoutType === "paybill"
+                            ? "KopoKopo paybill payout"
+                            : "KopoKopo M-Pesa payout"
+                        : payoutType === "till"
+                          ? "Till destination"
+                          : payoutType === "paybill"
+                            ? "Paybill destination"
+                            : "M-Pesa destination"}
                     </p>
                     <p className="mt-1 font-mono text-sm font-semibold text-foreground">
                       {payoutDestinationLabel || "—"}
                     </p>
-                    {!paidFull && kopokopoEligible ? (
+                    {!paidFull && platformPayoutOn && kopokopoEligible ? (
                       <p className="mt-1 text-xs text-muted-foreground">
                         Confirm below to send{" "}
                         {formatSupplyMoney(rowBalanceOpen)} via KopoKopo Send
                         Money.
                       </p>
                     ) : !paidFull &&
+                      platformPayoutOn &&
                       payOptions &&
                       !payOptions.supplierPayoutEnabled ? (
                       <p className="mt-1 text-xs text-[#9a2e16]">
@@ -1400,6 +1431,7 @@ export function PaySupplyDrawer({
                         .
                       </p>
                     ) : !paidFull &&
+                      platformPayoutOn &&
                       payOptions &&
                       !payOptions.supplierPayoutGatewayReady ? (
                       <p className="mt-1 text-xs text-[#9a2e16]">
@@ -1531,7 +1563,9 @@ export function PaySupplyDrawer({
                     ) : (
                       <p className="mt-2 text-xs text-[#9a2e16]">
                         Ask someone with supplier edit access to set{" "}
-                        <span className="font-semibold">KopoKopo payout</span>{" "}
+                        <span className="font-semibold">
+                          Send Money destination
+                        </span>{" "}
                         (phone, till, or paybill) on this supplier, or open{" "}
                         <Link
                           href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(row.supplierId)}`}
@@ -1543,7 +1577,9 @@ export function PaySupplyDrawer({
                       </p>
                     )}
                   </div>
-                ) : payOptions && !payOptions.supplierPayoutEnabled ? (
+                ) : platformPayoutOn &&
+                  payOptions &&
+                  !payOptions.supplierPayoutEnabled ? (
                   <div className="rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3.5 py-3 text-xs text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                     To pay suppliers via KopoKopo, enable{" "}
                     <Link
@@ -1584,7 +1620,7 @@ export function PaySupplyDrawer({
 
           {!paidFull && canPay ? (
             <>
-              {kopokopoPhase === "pending" ? (
+              {platformPayoutOn && kopokopoPhase === "pending" ? (
                 <p className="rounded-none border border-[#9a2e16]/40 bg-white px-3 py-2.5 text-center text-sm text-[var(--order-ink,#15231f)]">
                   <span className="inline-flex items-center gap-1.5 font-semibold tracking-[-0.02em] text-[#9a2e16]">
                     <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -1599,7 +1635,9 @@ export function PaySupplyDrawer({
                     cancel this payment.
                   </span>
                 </p>
-              ) : kopokopoPhase === "failed" && kopokopoMessage ? (
+              ) : platformPayoutOn &&
+                kopokopoPhase === "failed" &&
+                kopokopoMessage ? (
                 <p className="rounded-none border border-[#9a2e16]/40 bg-white px-3 py-2.5 text-center text-sm text-[#9a2e16]">
                   <span className="block text-[11px] font-semibold tracking-[-0.02em]">
                     Failed
@@ -1610,7 +1648,7 @@ export function PaySupplyDrawer({
                     manually.
                   </span>
                 </p>
-              ) : kopokopoPhase === "success" ? (
+              ) : platformPayoutOn && kopokopoPhase === "success" ? (
                 <p className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-3 py-2 text-center text-sm text-[var(--pos-primary,#0f766e)]">
                   {kopokopoMessage ?? "Payment confirmed."}
                 </p>

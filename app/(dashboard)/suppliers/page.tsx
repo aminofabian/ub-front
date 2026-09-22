@@ -726,12 +726,12 @@ export default function SuppliersPage() {
         await refreshList();
         const label =
           input.payoutType === "mobile_wallet"
-            ? "KopoKopo M-Pesa payout enabled for this supplier."
+            ? "M-Pesa Send Money destination enabled for this supplier."
             : input.payoutType === "till"
-              ? "KopoKopo till payout enabled for this supplier."
+              ? "Till Send Money destination enabled for this supplier."
               : input.payoutType === "paybill"
-                ? "KopoKopo paybill payout enabled for this supplier."
-                : "KopoKopo automated payout turned off for this supplier.";
+                ? "Paybill Send Money destination enabled for this supplier."
+                : "Automated Send Money turned off for this supplier.";
         toast.success(label);
       } catch (e) {
         toast.error(

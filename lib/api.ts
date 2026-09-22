@@ -7644,6 +7644,7 @@ export type ExpensePayOptionsRecord = {
   payoutEnabled: boolean;
   payoutGatewayReady: boolean;
   payoutGatewayLabel: string | null;
+  platformPayoutGatewayEnabled: boolean;
   destinationConfigured: boolean;
   destinationPhone: string | null;
   kopokopoPayEligible: boolean;
@@ -11264,6 +11265,8 @@ export type SupplyPayOptionsRecord = {
   supplierPayoutEnabled: boolean;
   supplierPayoutGatewayReady: boolean;
   supplierPayoutGatewayLabel: string | null;
+  /** Super-admin has enabled a Send Money gateway (KopoKopo). When false, hide all KopoKopo UI. */
+  platformPayoutGatewayEnabled: boolean;
   /** True when supplier has any automated KopoKopo destination (phone, till, or paybill). */
   supplierMobilePayoutConfigured: boolean;
   payoutType: string | null;
@@ -11295,6 +11298,8 @@ export type SupplierPayoutSettingsRecord = {
   /** Local HH:mm times in Africa/Nairobi (e.g. ["00:00","18:00"]). */
   autoPayTimes: string[];
   selectableGateways: SupplierPayoutGatewayOptionRecord[];
+  /** Super-admin has enabled a Send Money gateway (KopoKopo). */
+  platformPayoutGatewayEnabled: boolean;
 };
 
 export type UpdateSupplierPayoutSettingsPayload = {
