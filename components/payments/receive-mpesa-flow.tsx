@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowRight,
   Building2,
   Check,
   Landmark,
@@ -58,6 +57,11 @@ type Props = {
    * update = change an existing destination.
    */
   mode?: "onboarding" | "setup" | "update";
+  /**
+   * Parent already shows title (e.g. FormDrawer). Skip the flow’s own heading
+   * so the modal doesn’t repeat itself.
+   */
+  embedded?: boolean;
   /** Prefill when updating an existing destination */
   initial?: ReceiveMpesaInitial | null;
   showSkip?: boolean;
@@ -74,30 +78,24 @@ const DEST_OPTIONS: {
   kind: ReceiveDestinationKind;
   title: string;
   blurb: string;
-  example: string;
   icon: typeof Store;
-  tip?: string;
 }[] = [
   {
     kind: "till",
     title: "Buy Goods till",
-    blurb: "Money lands the moment the customer enters PIN",
-    example: "e.g. 556677",
+    blurb: "Lands as soon as they enter PIN",
     icon: Store,
-    tip: "Best for dukas & till sales",
   },
   {
     kind: "paybill",
-    title: "Business paybill",
-    blurb: "Your paybill + the account customers type",
-    example: "Business no. + account",
+    title: "Paybill",
+    blurb: "Business number + account",
     icon: Building2,
   },
   {
     kind: "bank",
     title: "Bank account",
-    blurb: "Pick your bank — we fill the Lipa Na M-Pesa paybill",
-    example: "Equity · KCB · NCBA…",
+    blurb: "Equity, KCB, NCBA, and more",
     icon: Landmark,
   },
 ];
@@ -111,6 +109,7 @@ export function ReceiveMpesaFlow({
   countryCode,
   appearance = "soft",
   mode: modeProp,
+  embedded = false,
   initial,
   showSkip = true,
   skipLabel = "Skip for now",
@@ -452,258 +451,168 @@ export function ReceiveMpesaFlow({
     phase === "waiting" || phase === "sending"
       ? {
           title: "Check your phone",
-          description: isUpdate
-            ? "Your new destination is already saved. Unlock the Safaricom prompt and enter your M-Pesa PIN."
-            : "Your destination is already saved. Unlock the Safaricom prompt and enter your M-Pesa PIN.",
+          description:
+            "Unlock the Safaricom prompt and enter your M-Pesa PIN.",
         }
       : phase === "confirm"
         ? {
             title: "Did the shilling land?",
-            description: `We saw a successful PIN for ${testResult?.destinationSummary ?? "your destination"}. Confirm it shows on your till, paybill statement, or bank SMS.`,
+            description: `Confirm KES 1 on ${testResult?.destinationSummary ?? "your destination"}.`,
           }
         : phase === "done"
           ? {
-              title: "Saved — you’re set to receive M-Pesa",
+              title: "You’re set to receive M-Pesa",
               description:
-                "Cashiers and your online shop will send Lipa Na M-Pesa here. No API keys needed.",
+                "Cashiers and your online shop will send payments here.",
             }
           : mode === "update"
             ? {
                 title: "Change where money lands",
-                description:
-                  "Tap a type below, edit the numbers, then save with a KES 1 proof. Nothing changes until you save.",
+                description: "Pick a type, enter details, then prove with KES 1.",
               }
             : mode === "setup"
               ? {
                   title: "Where should customer M-Pesa land?",
-                  description:
-                    "Tap till, paybill, or bank → fill the numbers → save with a KES 1 proof on your phone.",
+                  description: "Pick a type, enter details, then prove with KES 1.",
                 }
               : {
                   title: "Where should customer M-Pesa land?",
                   description:
-                    "Optional. Tap a destination, fill it in, then prove it with KES 1. You can skip and finish later.",
+                    "Optional. Set a till, paybill, or bank — or skip for now.",
                 };
 
-  const stepIndex =
-    phase === "pick" ? 1 : phase === "details" || phase === "failed" ? 2 : 3;
+  const showFlowHeader =
+    !embedded ||
+    phase === "waiting" ||
+    phase === "sending" ||
+    phase === "confirm" ||
+    phase === "done";
 
   return (
-    <div className="flex flex-col gap-5">
-      <header className="space-y-2">
-        <h2 className={titleClass}>{intro.title}</h2>
-        <p className={descClass}>{intro.description}</p>
-      </header>
+    <div className="flex flex-col gap-4">
+      {showFlowHeader ? (
+        <header className="space-y-1.5">
+          <h2 className={titleClass}>{intro.title}</h2>
+          <p className={descClass}>{intro.description}</p>
+        </header>
+      ) : null}
 
       {phase === "pick" || phase === "details" || phase === "failed" ? (
         <>
-          <ol
-            className={cn(
-              "grid grid-cols-3 gap-1 border px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide",
-              shell,
-              soft
-                ? "border-[#E5E7EB] bg-[#FAFAF9] text-[#9CA3AF]"
-                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,#f3eee6)] text-muted-foreground",
-            )}
-          >
-            {[
-              { n: 1, label: "Choose type" },
-              { n: 2, label: "Enter details" },
-              { n: 3, label: "Save & prove" },
-            ].map((s) => (
-              <li
-                key={s.n}
-                className={cn(
-                  "px-1 py-1",
-                  stepIndex >= s.n
-                    ? soft
-                      ? "text-[#0D9488]"
-                      : "text-[var(--pos-primary,#0f766e)]"
-                    : null,
-                )}
-              >
-                <span className="tabular-nums">{s.n}</span>
-                <span className="mt-0.5 block normal-case tracking-normal">
-                  {s.label}
-                </span>
-              </li>
-            ))}
-          </ol>
-
           {isUpdate && savedLine ? (
             <p
               className={cn(
-                "border px-3 py-2 text-[12px]",
-                shell,
-                soft
-                  ? "border-[#99F6E4] bg-[#F0FDFA] text-[#134E4A]"
-                  : "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,#f3eee6)] text-foreground",
+                "text-[13px]",
+                soft ? "text-[#6B7280]" : "text-muted-foreground",
               )}
             >
-              <span className="font-semibold">Currently saved: </span>
-              {savedLine}
-              <span className="text-muted-foreground">
-                {" "}
-                — edit below, then save to replace it.
+              Now:{" "}
+              <span
+                className={cn(
+                  "font-semibold tabular-nums",
+                  soft ? "text-[#134E4A]" : "text-foreground",
+                )}
+              >
+                {savedLine}
               </span>
             </p>
           ) : null}
 
-          <MoneyPath preview={previewLine} soft={soft} shell={shell} />
-
-          <div className="space-y-2">
-            <p
-              className={cn(
-                "text-[11px] font-semibold uppercase tracking-[0.08em]",
-                soft ? "text-[#0D9488]" : "text-[var(--pos-primary,#0f766e)]",
-              )}
-            >
-              Step 1 · Tap how you receive M-Pesa
-            </p>
-            <div
-              className="grid gap-2"
-              role="radiogroup"
-              aria-label="How you receive M-Pesa"
-            >
-              {DEST_OPTIONS.map((opt) => {
-                const Icon = opt.icon;
-                const selected = kind === opt.kind;
-                return (
-                  <button
-                    key={opt.kind}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    onClick={() => selectKind(opt.kind)}
+          <div
+            className="grid gap-2"
+            role="radiogroup"
+            aria-label="How you receive M-Pesa"
+          >
+            {DEST_OPTIONS.map((opt) => {
+              const Icon = opt.icon;
+              const selected = kind === opt.kind;
+              return (
+                <button
+                  key={opt.kind}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => selectKind(opt.kind)}
+                  className={cn(
+                    "flex items-center gap-3 border px-3.5 py-3 text-left transition-[border-color,background-color,transform] duration-150 active:scale-[0.99]",
+                    shell,
+                    selected ? cardSelected : cardIdle,
+                  )}
+                >
+                  <span
                     className={cn(
-                      "flex items-start gap-3 border px-4 py-3 text-left transition-[border-color,background-color,transform] duration-150 active:scale-[0.99]",
-                      shell,
-                      selected ? cardSelected : cardIdle,
+                      "flex size-4 shrink-0 items-center justify-center border-2",
+                      soft ? "rounded-full" : "rounded-none",
+                      selected
+                        ? soft
+                          ? "border-[#0D9488] bg-[#0D9488]"
+                          : "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)]"
+                        : soft
+                          ? "border-[#D1D5DB] bg-white"
+                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] bg-white",
+                    )}
+                    aria-hidden
+                  >
+                    {selected ? (
+                      <span
+                        className={cn(
+                          "size-1.5 bg-white",
+                          soft ? "rounded-full" : "rounded-none",
+                        )}
+                      />
+                    ) : null}
+                  </span>
+                  <span
+                    className={cn(
+                      "flex size-9 shrink-0 items-center justify-center",
+                      soft ? "rounded-xl" : "rounded-none",
+                      selected
+                        ? soft
+                          ? "bg-[#0D9488] text-white"
+                          : "bg-[var(--pos-primary,#0f766e)] text-white"
+                        : soft
+                          ? "bg-[#F3F4F6] text-[#6B7280]"
+                          : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#f3eee6)] text-muted-foreground",
                     )}
                   >
+                    <Icon className="size-4" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1">
                     <span
                       className={cn(
-                        "mt-1.5 flex size-4 shrink-0 items-center justify-center border-2",
-                        soft ? "rounded-full" : "rounded-none",
-                        selected
-                          ? soft
-                            ? "border-[#0D9488] bg-[#0D9488]"
-                            : "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)]"
-                          : soft
-                            ? "border-[#D1D5DB] bg-white"
-                            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] bg-white",
+                        "block text-sm font-semibold",
+                        soft ? "text-[#1F2937]" : "text-foreground",
+                      )}
+                    >
+                      {opt.title}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-0.5 block text-xs",
+                        soft ? "text-[#6B7280]" : "text-muted-foreground",
+                      )}
+                    >
+                      {opt.blurb}
+                    </span>
+                  </span>
+                  {selected ? (
+                    <Check
+                      className={cn(
+                        "size-4 shrink-0",
+                        soft
+                          ? "text-[#0D9488]"
+                          : "text-[var(--pos-primary,#0f766e)]",
                       )}
                       aria-hidden
-                    >
-                      {selected ? (
-                        <span
-                          className={cn(
-                            "size-1.5 bg-white",
-                            soft ? "rounded-full" : "rounded-none",
-                          )}
-                        />
-                      ) : null}
-                    </span>
-                    <span
-                      className={cn(
-                        "mt-0.5 flex size-10 shrink-0 items-center justify-center",
-                        soft ? "rounded-xl" : "rounded-none",
-                        selected
-                          ? soft
-                            ? "bg-[#0D9488] text-white"
-                            : "bg-[var(--pos-primary,#0f766e)] text-white"
-                          : soft
-                            ? "bg-[#F3F4F6] text-[#6B7280]"
-                            : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#f3eee6)] text-muted-foreground",
-                      )}
-                    >
-                      <Icon className="size-4" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={cn(
-                            "block text-sm font-semibold",
-                            soft ? "text-[#1F2937]" : "text-foreground",
-                          )}
-                        >
-                          {opt.title}
-                        </span>
-                        {selected ? (
-                          <span
-                            className={cn(
-                              "text-[10px] font-semibold uppercase tracking-wide",
-                              soft
-                                ? "text-[#0D9488]"
-                                : "text-[var(--pos-primary,#0f766e)]",
-                            )}
-                          >
-                            Selected
-                          </span>
-                        ) : opt.tip ? (
-                          <span
-                            className={cn(
-                              "text-[10px] font-semibold uppercase tracking-wide",
-                              soft
-                                ? "text-[#0D9488]"
-                                : "text-[var(--pos-primary,#0f766e)]",
-                            )}
-                          >
-                            {opt.tip}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-medium text-muted-foreground">
-                            Tap to choose
-                          </span>
-                        )}
-                      </span>
-                      <span
-                        className={cn(
-                          "mt-0.5 block text-xs",
-                          soft ? "text-[#6B7280]" : "text-muted-foreground",
-                        )}
-                      >
-                        {opt.blurb}
-                      </span>
-                      <span
-                        className={cn(
-                          "mt-1 block font-mono text-[11px]",
-                          soft ? "text-[#9CA3AF]" : "text-muted-foreground/80",
-                        )}
-                      >
-                        {opt.example}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    />
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
 
           {kind && (phase === "details" || phase === "failed") ? (
-            <div
-              className={cn(
-                "space-y-3 border p-4",
-                shell,
-                soft
-                  ? "border-[#E5E7EB] bg-white"
-                  : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
-              )}
-            >
-              <p
-                className={cn(
-                  "text-[11px] font-semibold uppercase tracking-[0.08em]",
-                  soft ? "text-[#0D9488]" : "text-[var(--pos-primary,#0f766e)]",
-                )}
-              >
-                Step 2 · Enter your{" "}
-                {kind === "till"
-                  ? "till number"
-                  : kind === "paybill"
-                    ? "paybill details"
-                    : "bank details"}
-              </p>
-
+            <div className="space-y-3">
               {kind === "till" ? (
                 <Field
                   label="Till number"
@@ -713,14 +622,13 @@ export function ReceiveMpesaFlow({
                   inputMode="numeric"
                   inputClass={inputClass}
                   labelClass={labelClass}
-                  hint="The Buy Goods till on your Lipa Na M-Pesa sticker."
                 />
               ) : null}
 
               {kind === "paybill" ? (
                 <>
                   <Field
-                    label="Paybill business number"
+                    label="Paybill number"
                     value={businessNumber}
                     onChange={(v) => setBusinessNumber(v.replace(/[^\d]/g, ""))}
                     placeholder="e.g. 123456"
@@ -773,54 +681,27 @@ export function ReceiveMpesaFlow({
               ) : null}
 
               <Field
-                label="Phone for the KES 1 proof"
+                label="Phone for KES 1 proof"
                 value={phone}
                 onChange={setPhone}
                 placeholder="07XX XXX XXX"
                 inputMode="tel"
                 inputClass={inputClass}
                 labelClass={labelClass}
-                hint="We save your destination and send KES 1 here so you can confirm it works. Safaricom line, unlocked."
+                hint="Safaricom line — we’ll ping it after you save."
               />
 
               {previewLine ? (
-                <div
+                <p
                   className={cn(
-                    "flex items-center gap-3 border px-3 py-2.5",
+                    "border px-3 py-2 text-[13px] font-semibold tabular-nums",
                     shell,
                     wash,
+                    soft ? "text-[#134E4A]" : "text-foreground",
                   )}
                 >
-                  <Smartphone
-                    className={cn(
-                      "size-4 shrink-0",
-                      soft
-                        ? "text-[#0D9488]"
-                        : "text-[var(--pos-primary,#0f766e)]",
-                    )}
-                    aria-hidden
-                  />
-                  <div className="min-w-0">
-                    <p
-                      className={cn(
-                        "text-[10px] font-semibold uppercase tracking-wide",
-                        soft
-                          ? "text-[#0F766E]"
-                          : "text-[var(--pos-primary,#0f766e)]",
-                      )}
-                    >
-                      Customer phone will show
-                    </p>
-                    <p
-                      className={cn(
-                        "truncate text-sm font-semibold tabular-nums",
-                        soft ? "text-[#134E4A]" : "text-foreground",
-                      )}
-                    >
-                      {previewLine}
-                    </p>
-                  </div>
-                </div>
+                  Customers will see: {previewLine}
+                </p>
               ) : null}
             </div>
           ) : null}
@@ -874,16 +755,10 @@ export function ReceiveMpesaFlow({
               )}
             >
               {testResult?.destinationSummary
-                ? `Destination: ${testResult.destinationSummary}`
+                ? testResult.destinationSummary
                 : "KES 1 · M-Pesa Express"}
             </p>
           </div>
-          <ol className="w-full max-w-xs space-y-1.5 text-left text-xs text-muted-foreground">
-            <li>✓ Destination saved</li>
-            <li>1. Open the Safaricom prompt on your phone</li>
-            <li>2. Enter your M-Pesa PIN</li>
-            <li>3. We’ll ask if the money arrived</li>
-          </ol>
         </div>
       ) : null}
 
@@ -969,45 +844,14 @@ export function ReceiveMpesaFlow({
 
       {phase === "pick" || phase === "details" || phase === "failed" ? (
         <div className="flex flex-col gap-2">
-          {!kind ? (
-            <p
-              className={cn(
-                "text-center text-xs",
-                soft ? "text-[#9CA3AF]" : "text-muted-foreground",
-              )}
-            >
-              Tap till, paybill, or bank above to continue
-            </p>
-          ) : null}
           {kind && destinationReady() ? (
-            <>
-              <p
-                className={cn(
-                  "text-[11px] font-semibold uppercase tracking-[0.08em]",
-                  soft ? "text-[#0D9488]" : "text-[var(--pos-primary,#0f766e)]",
-                )}
-              >
-                Step 3 · Save & prove with KES 1
-              </p>
-              <button
-                type="button"
-                onClick={() => void sendTest()}
-                className={ctaPrimary}
-              >
-                {isUpdate
-                  ? "Save new destination & send KES 1"
-                  : "Save destination & send KES 1"}
-              </button>
-              <p
-                className={cn(
-                  "text-center text-[11px] leading-snug",
-                  soft ? "text-[#6B7280]" : "text-muted-foreground",
-                )}
-              >
-                Saves where customer M-Pesa lands, then pings your phone so you
-                can confirm the shilling arrived.
-              </p>
-            </>
+            <button
+              type="button"
+              onClick={() => void sendTest()}
+              className={ctaPrimary}
+            >
+              Save & send KES 1
+            </button>
           ) : kind ? (
             <p
               className={cn(
@@ -1015,7 +859,7 @@ export function ReceiveMpesaFlow({
                 soft ? "text-[#9CA3AF]" : "text-muted-foreground",
               )}
             >
-              Finish the fields above — then you can save & prove with KES 1
+              Fill in the fields above to continue
             </p>
           ) : null}
           {showSkip && onSkip ? (
@@ -1025,7 +869,7 @@ export function ReceiveMpesaFlow({
           ) : null}
           {onCancel && !onSkip ? (
             <button type="button" onClick={onCancel} className={ctaGhost}>
-              Cancel without saving
+              Cancel
             </button>
           ) : null}
         </div>
@@ -1056,79 +900,6 @@ export function ReceiveMpesaFlow({
           </button>
         ) : null
       ) : null}
-    </div>
-  );
-}
-
-function MoneyPath({
-  preview,
-  soft,
-  shell,
-}: {
-  preview: string | null;
-  soft: boolean;
-  shell: string;
-}) {
-  const node = soft
-    ? "flex size-9 items-center justify-center rounded-full bg-white text-[#0D9488] shadow-sm"
-    : "flex size-8 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_30%,transparent)] bg-white text-[var(--pos-primary,#0f766e)]";
-  return (
-    <div className={cn("border px-3 py-3", shell, soft ? "border-[#E5E7EB] bg-[#FAFAF9]" : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,#f3eee6)]")}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex flex-col items-center gap-1">
-          <span className={node}>
-            <Smartphone className="size-3.5" aria-hidden />
-          </span>
-          <span className="text-[10px] font-medium text-muted-foreground">
-            Customer
-          </span>
-        </div>
-        <ArrowRight
-          className="size-3.5 shrink-0 text-muted-foreground/60"
-          aria-hidden
-        />
-        <div className="flex flex-col items-center gap-1">
-          <span
-            className={cn(
-              node,
-              soft
-                ? "bg-[#0D9488] text-white"
-                : "bg-[var(--pos-primary,#0f766e)] text-white",
-            )}
-          >
-            <span className="text-[9px] font-bold tracking-tight">M</span>
-          </span>
-          <span className="text-[10px] font-medium text-muted-foreground">
-            M-Pesa
-          </span>
-        </div>
-        <ArrowRight
-          className="size-3.5 shrink-0 text-muted-foreground/60"
-          aria-hidden
-        />
-        <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-          <span className={node}>
-            <Store className="size-3.5" aria-hidden />
-          </span>
-          <span className="max-w-full truncate text-center text-[10px] font-medium text-muted-foreground">
-            {preview ? "You" : "Your till / bank"}
-          </span>
-        </div>
-      </div>
-      {preview ? (
-        <p
-          className={cn(
-            "mt-2 truncate text-center text-[11px] font-semibold tabular-nums",
-            soft ? "text-[#134E4A]" : "text-foreground",
-          )}
-        >
-          → {preview}
-        </p>
-      ) : (
-        <p className="mt-2 text-center text-[11px] text-muted-foreground">
-          Money follows this path when a customer pays
-        </p>
-      )}
     </div>
   );
 }
@@ -1268,8 +1039,8 @@ function BankPicker({
 
       {bankId && bankId !== CUSTOM_BANK_ID ? (
         <p className="text-[11px] text-muted-foreground">
-          Paybill {kenyaBankById(bankId)?.businessNumber} — enter the account
-          number your bank gave you for M-Pesa deposits.
+          Paybill {kenyaBankById(bankId)?.businessNumber} — enter your bank
+          account number.
         </p>
       ) : null}
 

@@ -4633,8 +4633,33 @@ export type FetchItemsOpts = {
   noPrice?: boolean;
   /** Stocked sellable SKUs with zero on-hand at branchId (requires branchId). */
   zeroStock?: boolean;
-  /** Stocked sellable SKUs with fewer than 10 on-hand at branchId (requires branchId). */
+  /** Stocked sellable SKUs at/below reorder (or default) at branchId (requires branchId). */
   lowStock?: boolean;
+  /** Stocked sellable SKUs with healthy on-hand at branchId (requires branchId). */
+  inStock?: boolean;
+  /** Buy / cost price missing or ≤ 0. */
+  noBuyingPrice?: boolean;
+  /** Both prices set and sell &lt; buy. */
+  priceLoss?: boolean;
+  /** Both prices set, sell ≥ buy, but margin % below poorMarginMaxPct (default 15). */
+  poorMargin?: boolean;
+  /** Max margin percent for poorMargin (0–100). Defaults to 15 on the server. */
+  poorMarginMaxPct?: number;
+  /**
+   * Server catalog list sort (preferred over raw Spring `sort` for profit/margin).
+   * See backend `CatalogListSort`.
+   */
+  listSort?:
+    | "NAME_ASC"
+    | "NAME_DESC"
+    | "SELL_ASC"
+    | "SELL_DESC"
+    | "BUY_ASC"
+    | "BUY_DESC"
+    | "PROFIT_DESC"
+    | "PROFIT_ASC"
+    | "MARGIN_DESC"
+    | "MARGIN_ASC";
   page?: number;
   size?: number;
   /** When set, `stockQty` on each row is in-store on-hand at this branch (active batch sum). */
@@ -4710,6 +4735,27 @@ export async function fetchItemsPage(
   }
   if (opts?.lowStock) {
     params.set("lowStock", "true");
+  }
+  if (opts?.inStock) {
+    params.set("inStock", "true");
+  }
+  if (opts?.noBuyingPrice) {
+    params.set("noBuyingPrice", "true");
+  }
+  if (opts?.priceLoss) {
+    params.set("priceLoss", "true");
+  }
+  if (opts?.poorMargin) {
+    params.set("poorMargin", "true");
+  }
+  if (
+    opts?.poorMarginMaxPct != null &&
+    Number.isFinite(opts.poorMarginMaxPct)
+  ) {
+    params.set("poorMarginMaxPct", String(opts.poorMarginMaxPct));
+  }
+  if (opts?.listSort) {
+    params.set("listSort", opts.listSort);
   }
   if (opts?.itemTypeId?.trim()) {
     params.set("itemTypeId", opts.itemTypeId.trim());

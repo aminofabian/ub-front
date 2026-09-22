@@ -1,10 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
+  ArrowUpDown,
   Check,
   ClipboardList,
   Lock,
@@ -47,6 +57,7 @@ import {
   type AisleRecord,
   type BranchRecord,
   type CategoryRecord,
+  type FetchItemsOpts,
   type ItemSummaryRecord,
   type ItemTypeRecord,
   type SupplierRecord,
@@ -62,7 +73,6 @@ import {
 } from "@/lib/inventory-access";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
-import { textMatchesQuery } from "@/lib/text-search";
 import { ColumnResizeHandle } from "@/lib/column-resize-handle";
 import {
   StockActionHub,
@@ -81,14 +91,100 @@ import { useStockColumnWidths } from "./use-stock-column-widths";
 
 const PAGE_SIZE = 50;
 
-type StockStatusFilter = "all" | "in_stock" | "low" | "out" | "loss";
+type StockStatusFilter =
+  | "all"
+  | "in_stock"
+  | "low"
+  | "out"
+  | "loss"
+  | "poor_margin"
+  | "no_buy"
+  | "no_sell";
 
-/** How the stock table is ordered after status/search filters. */
-type StockSort =
+/** Sort keys shown in the stock toolbar / column headers. */
+type StockSortKey =
   | "attention"
-  | "sell_desc"
-  | "buy_desc"
-  | "value_desc";
+  | "name"
+  | "sell"
+  | "buy"
+  | "profit"
+  | "margin";
+
+type StockSortDir = "asc" | "desc";
+
+type CatalogListSort = NonNullable<FetchItemsOpts["listSort"]>;
+
+const STOCK_SORT_LABELS: Record<StockSortKey, string> = {
+  attention: "Attention",
+  name: "Name A–Z",
+  sell: "Sell price",
+  buy: "Buy price",
+  profit: "Most profitable",
+  margin: "Best margin",
+};
+
+const STOCK_SORT_MENU_KEYS = [
+  "attention",
+  "name",
+  "sell",
+  "buy",
+  "profit",
+  "margin",
+] as const satisfies readonly StockSortKey[];
+
+/** Columns that map to a server `listSort` (click toggles asc/desc). */
+type StockSortableCol = "name" | "buy" | "sell";
+
+function toCatalogListSort(
+  key: StockSortKey,
+  dir: StockSortDir,
+): CatalogListSort | undefined {
+  switch (key) {
+    case "name":
+      return dir === "desc" ? "NAME_DESC" : "NAME_ASC";
+    case "sell":
+      return dir === "desc" ? "SELL_DESC" : "SELL_ASC";
+    case "buy":
+      return dir === "desc" ? "BUY_DESC" : "BUY_ASC";
+    case "profit":
+      return dir === "asc" ? "PROFIT_ASC" : "PROFIT_DESC";
+    case "margin":
+      return dir === "asc" ? "MARGIN_ASC" : "MARGIN_DESC";
+    case "attention":
+    default:
+      // Attention is applied client-side on the loaded page; fetch A→Z.
+      return "NAME_ASC";
+  }
+}
+
+function defaultDirForSortKey(key: StockSortKey): StockSortDir {
+  switch (key) {
+    case "sell":
+    case "buy":
+    case "profit":
+    case "margin":
+      return "desc";
+    default:
+      return "asc";
+  }
+}
+
+function sortMenuLabel(key: StockSortKey, dir: StockSortDir): string {
+  switch (key) {
+    case "sell":
+      return dir === "asc" ? "Cheapest sell" : "Highest sell";
+    case "buy":
+      return dir === "asc" ? "Cheapest buy" : "Highest buy";
+    case "profit":
+      return dir === "asc" ? "Least profitable" : "Most profitable";
+    case "margin":
+      return dir === "asc" ? "Thinnest margin" : "Best margin";
+    case "name":
+      return dir === "desc" ? "Name Z–A" : "Name A–Z";
+    default:
+      return STOCK_SORT_LABELS[key];
+  }
+}
 
 type StockRow = {
   id: string;
@@ -140,47 +236,32 @@ function fmtMoney(n: number | null, currency: string): string {
   }
 }
 
-function compareNullableDesc(
-  a: number | null,
-  b: number | null,
+function compareText(
+  a: string | null | undefined,
+  b: string | null | undefined,
 ): number {
-  if (a == null && b == null) return 0;
-  if (a == null) return 1;
-  if (b == null) return -1;
-  return b - a;
+  const left = (a ?? "").trim();
+  const right = (b ?? "").trim();
+  if (!left && !right) return 0;
+  if (!left) return 1;
+  if (!right) return -1;
+  return left.localeCompare(right, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
 }
 
-function sortStockRows(list: StockRow[], sort: StockSort): StockRow[] {
+/** Page-local attention order when the server returned NAME_ASC. */
+function sortAttentionRows(list: StockRow[]): StockRow[] {
   const next = [...list];
   next.sort((a, b) => {
-    switch (sort) {
-      case "sell_desc": {
-        const bySell = compareNullableDesc(a.sellPrice, b.sellPrice);
-        return bySell !== 0 ? bySell : a.name.localeCompare(b.name);
-      }
-      case "buy_desc": {
-        const byBuy = compareNullableDesc(a.buyPrice, b.buyPrice);
-        return byBuy !== 0 ? byBuy : a.name.localeCompare(b.name);
-      }
-      case "value_desc": {
-        const aVal =
-          a.buyPrice != null && a.stock > 0 ? a.buyPrice * a.stock : null;
-        const bVal =
-          b.buyPrice != null && b.stock > 0 ? b.buyPrice * b.stock : null;
-        const byVal = compareNullableDesc(aVal, bVal);
-        return byVal !== 0 ? byVal : a.name.localeCompare(b.name);
-      }
-      case "attention":
-      default: {
-        const aOut = isOutOfStock(a.stock);
-        const bOut = isOutOfStock(b.stock);
-        if (aOut !== bOut) return aOut ? -1 : 1;
-        const aLow = isLowStock(a.stock, a.reorderLevel);
-        const bLow = isLowStock(b.stock, b.reorderLevel);
-        if (aLow !== bLow) return aLow ? -1 : 1;
-        return a.stock - b.stock;
-      }
-    }
+    const aOut = isOutOfStock(a.stock);
+    const bOut = isOutOfStock(b.stock);
+    if (aOut !== bOut) return aOut ? -1 : 1;
+    const aLow = isLowStock(a.stock, a.reorderLevel);
+    const bLow = isLowStock(b.stock, b.reorderLevel);
+    if (aLow !== bLow) return aLow ? -1 : 1;
+    return a.stock - b.stock || compareText(a.name, b.name);
   });
   return next;
 }
@@ -311,6 +392,63 @@ const stockHeadCell = cn(
   "shadow-[inset_0_-1px_0_0_color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
 );
 
+function StockSortHeader({
+  col,
+  label,
+  sortKey,
+  sortDir,
+  onSort,
+  align = "left",
+  resizeHandle,
+}: {
+  col: StockSortableCol;
+  label: string;
+  sortKey: StockSortKey;
+  sortDir: StockSortDir;
+  onSort: (col: StockSortableCol) => void;
+  align?: "left" | "right";
+  resizeHandle: ReactNode;
+}) {
+  const active = sortKey === col;
+  return (
+    <th
+      className={cn(
+        stockHeadCell,
+        "group/stock-col",
+        align === "right" && "text-right",
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(col)}
+        className={cn(
+          "inline-flex max-w-full items-center gap-0.5 rounded-none",
+          align === "right" && "flex-row-reverse",
+          "transition-colors hover:text-[var(--order-ink,#15231f)]",
+          "focus-visible:outline-none focus-visible:text-[var(--pos-primary,#0f766e)]",
+          active && "text-[var(--order-ink,#15231f)]",
+        )}
+        aria-label={`Sort by ${label}`}
+      >
+        <span className="truncate">{label}</span>
+        {active ? (
+          sortDir === "asc" ? (
+            <ArrowUp className="size-2.5 shrink-0 opacity-70" aria-hidden />
+          ) : (
+            <ArrowDown className="size-2.5 shrink-0 opacity-70" aria-hidden />
+          )
+        ) : (
+          <ArrowUpDown
+            className="size-2.5 shrink-0 opacity-0 transition-opacity group-hover/stock-col:opacity-40"
+            aria-hidden
+          />
+        )}
+      </button>
+      {resizeHandle}
+    </th>
+  );
+}
+
 /** Drag handle on the right edge of a stock table header cell. */
 const stockColResizeHandleClass = cn(
   "absolute inset-y-0 -right-1.5 z-20 w-3 cursor-col-resize touch-none",
@@ -359,8 +497,52 @@ function matchesStockStatus(
       return isOutOfStock(row.stock);
     case "loss":
       return isPriceLoss(row.buyPrice, row.sellPrice);
+    case "poor_margin": {
+      if (row.buyPrice == null || row.buyPrice <= 0) return false;
+      if (row.sellPrice == null || row.sellPrice <= 0) return false;
+      if (row.sellPrice < row.buyPrice) return false;
+      const pct = ((row.sellPrice - row.buyPrice) / row.buyPrice) * 100;
+      return pct < 15;
+    }
+    case "no_buy":
+      return row.buyPrice == null || row.buyPrice <= 0;
+    case "no_sell":
+      return row.sellPrice == null || row.sellPrice <= 0;
     default:
       return true;
+  }
+}
+
+function stockStatusFetchOpts(
+  status: StockStatusFilter,
+): Pick<
+  FetchItemsOpts,
+  | "zeroStock"
+  | "lowStock"
+  | "inStock"
+  | "priceLoss"
+  | "poorMargin"
+  | "poorMarginMaxPct"
+  | "noBuyingPrice"
+  | "noPrice"
+> {
+  switch (status) {
+    case "out":
+      return { zeroStock: true };
+    case "low":
+      return { lowStock: true };
+    case "in_stock":
+      return { inStock: true };
+    case "loss":
+      return { priceLoss: true };
+    case "poor_margin":
+      return { poorMargin: true, poorMarginMaxPct: 15 };
+    case "no_buy":
+      return { noBuyingPrice: true };
+    case "no_sell":
+      return { noPrice: true };
+    default:
+      return {};
   }
 }
 
@@ -1294,7 +1476,8 @@ export function StockLevelsPage() {
   );
   const [categoryId, setCategoryId] = useState("");
   const [statusFilter, setStatusFilter] = useState<StockStatusFilter>("all");
-  const [sortBy, setSortBy] = useState<StockSort>("attention");
+  const [sortKey, setSortKey] = useState<StockSortKey>("name");
+  const [sortDir, setSortDir] = useState<StockSortDir>("asc");
   const [supplierId, setSupplierId] = useState("");
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
   const [supplierItemIds, setSupplierItemIds] = useState<Set<string> | null>(
@@ -1312,7 +1495,10 @@ export function StockLevelsPage() {
       raw === "in_stock" ||
       raw === "low" ||
       raw === "out" ||
-      raw === "loss"
+      raw === "loss" ||
+      raw === "poor_margin" ||
+      raw === "no_buy" ||
+      raw === "no_sell"
     ) {
       setStatusFilter(raw);
     }
@@ -1320,6 +1506,11 @@ export function StockLevelsPage() {
 
   const [rows, setRows] = useState<StockRow[]>([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedSearch(search.trim()), 280);
+    return () => window.clearTimeout(t);
+  }, [search]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -1912,7 +2103,8 @@ export function StockLevelsPage() {
 
         const page = opts.reset ? 0 : pageRef.current + 1;
         const selectedCategory = categoryId.trim();
-        const result = await fetchItemsPage(undefined, {
+        const listSort = toCatalogListSort(sortKey, sortDir);
+        const result = await fetchItemsPage(debouncedSearch || undefined, {
           branchId: branch,
           itemTypeId: headerItemTypeId?.trim() || undefined,
           catalogScope: "SKUS_ONLY",
@@ -1920,7 +2112,8 @@ export function StockLevelsPage() {
           includeCategoryDescendants: Boolean(selectedCategory),
           page,
           size: PAGE_SIZE,
-          sort: [{ property: "name", direction: "asc" }],
+          listSort,
+          ...stockStatusFetchOpts(statusFilter),
         });
 
         const mapped = result.content
@@ -1971,7 +2164,7 @@ export function StockLevelsPage() {
         setLoadingMore(false);
       }
     },
-    [branchId, categoryId, headerItemTypeId],
+    [branchId, categoryId, headerItemTypeId, debouncedSearch, statusFilter, sortKey, sortDir],
   );
 
   const load = useCallback(() => {
@@ -2025,41 +2218,38 @@ export function StockLevelsPage() {
   }, [loadPage, allowed]);
 
   const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
     const filtered = rows.filter((r) => {
       if (supplierItemIds && !supplierItemIds.has(r.id)) return false;
-      if (!matchesStockStatus(r, statusFilter)) return false;
-      if (
-        q &&
-        !textMatchesQuery(
-          q,
-          r.name,
-          r.familyName,
-          r.variantName,
-          r.sku,
-          r.barcode,
-          r.brand,
-          r.categoryName,
-          r.departmentName,
-          r.shelfName,
-        )
-      ) {
-        return false;
-      }
       return true;
     });
-    return sortStockRows(filtered, sortBy);
-  }, [rows, search, statusFilter, sortBy, supplierItemIds]);
+    // Attention is the only page-local reorder; pricing sorts come from the API.
+    if (sortKey === "attention") {
+      return sortAttentionRows(filtered);
+    }
+    return filtered;
+  }, [rows, sortKey, supplierItemIds]);
 
-  // When filters hide the loaded page, keep fetching until matches appear or list ends.
+  const applySortPreset = useCallback((key: StockSortKey) => {
+    setSortKey(key);
+    setSortDir(defaultDirForSortKey(key));
+  }, []);
+
+  const toggleColumnSort = useCallback((col: StockSortableCol) => {
+    setSortKey((prev) => {
+      if (prev === col) {
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        return prev;
+      }
+      setSortDir(defaultDirForSortKey(col));
+      return col;
+    });
+  }, []);
+
+  // Supplier filter is still client-side; keep paging until a match appears.
   useEffect(() => {
     if (loading || loadingMore || !hasMore || supplierFilterLoading) return;
     if (rows.length === 0) return;
-    const filtering =
-      Boolean(search.trim()) ||
-      statusFilter !== "all" ||
-      Boolean(supplierId.trim());
-    if (!filtering) return;
+    if (!supplierId.trim()) return;
     if (filteredRows.length > 0) return;
     loadMore();
   }, [
@@ -2069,8 +2259,6 @@ export function StockLevelsPage() {
     supplierFilterLoading,
     rows.length,
     filteredRows.length,
-    search,
-    statusFilter,
     supplierId,
     loadMore,
   ]);
@@ -2104,6 +2292,10 @@ export function StockLevelsPage() {
       low: rows.filter((r) => isLowStock(r.stock, r.reorderLevel)).length,
       out: rows.filter((r) => isOutOfStock(r.stock)).length,
       loss: rows.filter((r) => isPriceLoss(r.buyPrice, r.sellPrice)).length,
+      poorMargin: rows.filter((r) => matchesStockStatus(r, "poor_margin"))
+        .length,
+      noBuy: rows.filter((r) => matchesStockStatus(r, "no_buy")).length,
+      noSell: rows.filter((r) => matchesStockStatus(r, "no_sell")).length,
     }),
     [rows],
   );
@@ -2121,6 +2313,10 @@ export function StockLevelsPage() {
     if (statusFilter === "out") return "No out-of-stock products for this branch.";
     if (statusFilter === "in_stock") return "No in-stock products for this branch.";
     if (statusFilter === "loss") return "No products selling below buy price.";
+    if (statusFilter === "poor_margin")
+      return "No products with thin margin (under 15%).";
+    if (statusFilter === "no_buy") return "No products missing a buy price.";
+    if (statusFilter === "no_sell") return "No products missing a sell price.";
     if (categoryId) return "No products in this category.";
     return "No stocked products found for this branch.";
   }, [
@@ -2134,13 +2330,11 @@ export function StockLevelsPage() {
 
   const sortFilterOptions = useMemo(
     () =>
-      [
-        { value: "attention" as const, label: "Attention" },
-        { value: "sell_desc" as const, label: "Highest sell" },
-        { value: "buy_desc" as const, label: "Highest buy" },
-        { value: "value_desc" as const, label: "Costliest" },
-      ] as const,
-    [],
+      STOCK_SORT_MENU_KEYS.map((key) => ({
+        value: key,
+        label: sortMenuLabel(key, key === sortKey ? sortDir : defaultDirForSortKey(key)),
+      })),
+    [sortKey, sortDir],
   );
 
   const supplierFilterOptions = useMemo(
@@ -2448,7 +2642,7 @@ export function StockLevelsPage() {
               >
                 <SlidersHorizontal className="size-4" aria-hidden />
                 Filters
-                {supplierId || categoryId || sortBy !== "attention" ? (
+                {supplierId || categoryId || sortKey !== "name" || sortDir !== "asc" ? (
                   <span className="absolute -right-1 -top-1 size-2 rounded-full bg-[var(--pos-primary,#0f766e)]" />
                 ) : null}
               </button>
@@ -2513,6 +2707,25 @@ export function StockLevelsPage() {
                   active={statusFilter === "loss"}
                   tone="loss"
                   onClick={() => setStatusFilter("loss")}
+                />
+                <MobileStatusChip
+                  label="Margin"
+                  value={stockCounts.poorMargin}
+                  active={statusFilter === "poor_margin"}
+                  tone="warning"
+                  onClick={() => setStatusFilter("poor_margin")}
+                />
+                <MobileStatusChip
+                  label="No buy"
+                  value={stockCounts.noBuy}
+                  active={statusFilter === "no_buy"}
+                  onClick={() => setStatusFilter("no_buy")}
+                />
+                <MobileStatusChip
+                  label="No sell"
+                  value={stockCounts.noSell}
+                  active={statusFilter === "no_sell"}
+                  onClick={() => setStatusFilter("no_sell")}
                 />
               </div>
             )}
@@ -2606,9 +2819,9 @@ export function StockLevelsPage() {
                   <StockFilterMenu
                     className="w-full [&_button]:h-11 [&_button]:text-[13px]"
                     label="Sort"
-                    value={sortBy}
+                    value={sortKey}
                     options={sortFilterOptions}
-                    onChange={setSortBy}
+                    onChange={applySortPreset}
                     disabled={!branchId}
                   />
                 </div>
@@ -2664,6 +2877,25 @@ export function StockLevelsPage() {
                       active={statusFilter === "loss"}
                       tone="loss"
                       onClick={() => setStatusFilter("loss")}
+                    />
+                    <StockStatCard
+                      label="Margin"
+                      value={stockCounts.poorMargin}
+                      active={statusFilter === "poor_margin"}
+                      tone="warning"
+                      onClick={() => setStatusFilter("poor_margin")}
+                    />
+                    <StockStatCard
+                      label="No buy"
+                      value={stockCounts.noBuy}
+                      active={statusFilter === "no_buy"}
+                      onClick={() => setStatusFilter("no_buy")}
+                    />
+                    <StockStatCard
+                      label="No sell"
+                      value={stockCounts.noSell}
+                      active={statusFilter === "no_sell"}
+                      onClick={() => setStatusFilter("no_sell")}
                     />
                   </div>
                 </div>
@@ -2728,9 +2960,9 @@ export function StockLevelsPage() {
               <StockFilterMenu
                 className="w-[9.25rem]"
                 label="Sort"
-                value={sortBy}
+                value={sortKey}
                 options={sortFilterOptions}
-                onChange={setSortBy}
+                onChange={applySortPreset}
                 disabled={!branchId}
                 align="end"
               />
@@ -2874,10 +3106,14 @@ export function StockLevelsPage() {
                   </colgroup>
                   <thead>
                     <tr>
-                      <th className={cn(stockHeadCell, "group/stock-col")}>
-                        Product
-                        {renderColHandle("product")}
-                      </th>
+                      <StockSortHeader
+                        col="name"
+                        label="Product"
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleColumnSort}
+                        resizeHandle={renderColHandle("product")}
+                      />
                       <th className={cn(stockHeadCell, "group/stock-col")}>
                         Family
                         {renderColHandle("family")}
@@ -2899,31 +3135,46 @@ export function StockLevelsPage() {
                         {renderColHandle("shelf")}
                       </th>
                       <th
-                        className={cn(stockHeadCell, "group/stock-col text-right")}
+                        className={cn(
+                          stockHeadCell,
+                          "group/stock-col text-right",
+                        )}
                       >
                         In store
                         {renderColHandle("inStore")}
                       </th>
                       <th
-                        className={cn(stockHeadCell, "group/stock-col text-right")}
+                        className={cn(
+                          stockHeadCell,
+                          "group/stock-col text-right",
+                        )}
                       >
                         Reorder
                         {renderColHandle("reorder")}
                       </th>
+                      <StockSortHeader
+                        col="buy"
+                        label="Buy"
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleColumnSort}
+                        align="right"
+                        resizeHandle={renderColHandle("buy")}
+                      />
+                      <StockSortHeader
+                        col="sell"
+                        label="Sell"
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleColumnSort}
+                        align="right"
+                        resizeHandle={renderColHandle("sell")}
+                      />
                       <th
-                        className={cn(stockHeadCell, "group/stock-col text-right")}
-                      >
-                        Buy
-                        {renderColHandle("buy")}
-                      </th>
-                      <th
-                        className={cn(stockHeadCell, "group/stock-col text-right")}
-                      >
-                        Sell
-                        {renderColHandle("sell")}
-                      </th>
-                      <th
-                        className={cn(stockHeadCell, "group/stock-col text-right")}
+                        className={cn(
+                          stockHeadCell,
+                          "group/stock-col text-right",
+                        )}
                       >
                         Unit cost
                         {renderColHandle("unitCost")}
@@ -2933,7 +3184,10 @@ export function StockLevelsPage() {
                         {renderColHandle("status")}
                       </th>
                       <th
-                        className={cn(stockHeadCell, "group/stock-col text-right")}
+                        className={cn(
+                          stockHeadCell,
+                          "group/stock-col text-right",
+                        )}
                       >
                         Edit
                         {renderColHandle("edit")}
