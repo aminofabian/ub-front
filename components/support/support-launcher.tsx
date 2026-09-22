@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Headset } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useOptionalRealtime } from "@/components/realtime-provider";
 import { SupportChat } from "@/components/support/support-chat";
@@ -16,7 +16,11 @@ import { useChromeFabSuppressed } from "@/hooks/use-chrome-fab-suppressed";
 import { useSupportUnread } from "@/hooks/use-support-unread";
 import { SUPPORT_FAB_POSITION } from "@/lib/chrome-fabs";
 import { APP_ROUTES } from "@/lib/config";
-import { OPEN_SUPPORT_CHAT_EVENT } from "@/lib/support-open";
+import {
+  OPEN_SUPPORT_CHAT_EVENT,
+  type OpenSupportChatDetail,
+  supportPageHref,
+} from "@/lib/support-open";
 import { cn } from "@/lib/utils";
 
 /** Floating chat stays off tills and the stock take desk. */
@@ -37,25 +41,39 @@ function isSupportLauncherHiddenRoute(pathname: string): boolean {
  */
 export function SupportLauncher() {
   const pathname = usePathname();
+  const router = useRouter();
   const unread = useSupportUnread();
   const realtime = useOptionalRealtime();
   const [open, setOpen] = React.useState(false);
   const fabSuppressed = useChromeFabSuppressed();
+  const hidden = isSupportLauncherHiddenRoute(pathname);
 
   // Close the drawer when navigating away (the page-level chat takes over).
   React.useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  // Notification bell / deep links open the drawer in place.
+  // Notification bell / deep links open the drawer in place — or route to
+  // /support when the FAB is intentionally hidden (cashier, stock, support page).
   React.useEffect(() => {
-    const onOpen = () => setOpen(true);
+    const onOpen = (event: Event) => {
+      const detail = (event as CustomEvent<OpenSupportChatDetail>).detail ?? {};
+      const wantsStorefront =
+        detail.tab === "storefront" || Boolean(detail.conversationId?.trim());
+      const wantsTickets = detail.tab === "tickets";
+
+      if (wantsStorefront || wantsTickets || hidden) {
+        router.push(supportPageHref(detail));
+        return;
+      }
+      setOpen(true);
+    };
     window.addEventListener(OPEN_SUPPORT_CHAT_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_SUPPORT_CHAT_EVENT, onOpen);
-  }, []);
+  }, [hidden, router]);
 
   // Full chat page, tills, and stock desk — launcher would fight the task.
-  if (isSupportLauncherHiddenRoute(pathname)) {
+  if (hidden) {
     return null;
   }
 

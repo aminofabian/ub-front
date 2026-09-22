@@ -31,11 +31,11 @@ import {
 type RealtimeContextValue = {
   /** Latest unread notification count. */
   unreadCount: number;
-  /** Latest received notification frames. Max 50 stored. */
+  /** Latest received notification frames (read + unread). Max 50 stored. */
   notifications: RealtimeFrame[];
-  /** Mark all as read (clears local state + calls REST). */
+  /** Mark all as read (keeps rows, clears unread badges + calls REST). */
   markAllRead: () => void;
-  /** Mark a single notification as read. */
+  /** Mark a single notification as read (keeps the row). */
   markRead: (notificationId: string) => void;
   /** Connection state for status indicator. */
   connectionState: RealtimeConnectionState;
@@ -119,6 +119,26 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       ...(canReadNotifications
         ? {
             onNotification: (frame) => {
+              if (frame.type === "notification.read") {
+                const data = frame.data as {
+                  id?: string;
+                  notificationId?: string;
+                };
+                const id = String(
+                  data.id ?? data.notificationId ?? frame.eventId ?? "",
+                );
+                if (!id) return;
+                const now = new Date().toISOString();
+                setNotifications((prev) =>
+                  prev.map((n) => {
+                    const row = n.data as Record<string, unknown>;
+                    if (String(row.id ?? n.eventId) !== id) return n;
+                    if (row.readAt) return n;
+                    return { ...n, data: { ...row, readAt: now } };
+                  }),
+                );
+                return;
+              }
               setNotifications((prev) => {
                 if (prev.some((n) => n.eventId === frame.eventId)) return prev;
                 return [frame, ...prev].slice(0, 50);
@@ -149,6 +169,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
   // Hydrate tenant staff inbox from REST — welcome (and other offline inserts)
   // are created before any WS session exists, and poll baselines without emitting history.
+  // Keep read + unread so the drawer stays populated after mark-read.
   useEffect(() => {
     if (!hasAccessTokens || !canReadNotifications) return;
     if (pathname.startsWith(APP_ROUTES.login)) return;
@@ -158,13 +179,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       try {
         const rows = await fetchStaffNotifications();
         if (cancelled || !Array.isArray(rows)) return;
-        const unread = rows
-          .filter((row) => !row.readAt)
-          .slice(0, 50)
-          .map(staffRowToFrame);
+        const hydrated = rows.slice(0, 50).map(staffRowToFrame);
         setNotifications((prev) => {
           const byId = new Map<string, RealtimeFrame>();
-          for (const frame of unread) {
+          for (const frame of hydrated) {
             byId.set(frame.eventId, frame);
           }
           for (const frame of prev) {
@@ -187,29 +205,45 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   }, [canReadNotifications, hasAccessTokens, pathname]);
 
   const markAllRead = useCallback(() => {
+    const now = new Date().toISOString();
     setNotifications((prev) => {
       for (const frame of prev) {
-        const id = String(
-          (frame.data as { id?: string }).id ?? frame.eventId ?? "",
-        );
+        const data = frame.data as { id?: string; readAt?: string | null };
+        if (data.readAt) continue;
+        const id = String(data.id ?? frame.eventId ?? "");
         if (id) {
           void markStaffNotificationRead(id).catch(() => {});
         }
       }
-      return [];
+      return prev.map((frame) => {
+        const data = frame.data as Record<string, unknown>;
+        if (data.readAt) return frame;
+        return {
+          ...frame,
+          data: { ...data, readAt: now },
+        };
+      });
     });
   }, []);
 
   const markRead = useCallback((notificationId: string) => {
     void markStaffNotificationRead(notificationId).catch(() => {});
+    const now = new Date().toISOString();
     setNotifications((prev) =>
-      prev.filter((n) => (n.data as { id?: string }).id !== notificationId),
+      prev.map((n) => {
+        const data = n.data as Record<string, unknown>;
+        if (String(data.id ?? "") !== notificationId) return n;
+        if (data.readAt) return n;
+        return { ...n, data: { ...data, readAt: now } };
+      }),
     );
   }, []);
 
-  const unreadCount = notifications.filter(
-    (n) => n.type === "notification.created",
-  ).length;
+  const unreadCount = notifications.filter((n) => {
+    if (n.type !== "notification.created") return false;
+    const readAt = (n.data as { readAt?: string | null }).readAt;
+    return readAt == null || readAt === "";
+  }).length;
 
   const value = useMemo<RealtimeContextValue>(
     () => ({

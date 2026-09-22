@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-import { APP_ROUTES } from "@/lib/config";
 import { getRealtimeClient } from "@/lib/realtime";
 import { isSupportConversationFocused } from "@/lib/support-focus";
 import {
@@ -13,22 +12,32 @@ import {
 
 let supportListenerSeq = 0;
 
+export type SupportUnreadBreakdown = {
+  platform: number;
+  storefront: number;
+  total: number;
+};
+
 /**
- * Live unread count for the tenant's support threads (platform + storefront).
+ * Live unread counts for the tenant's support threads (platform + storefront).
  *
- * Baseline is fetched once; the count increments on realtime replies while the
- * matching conversation is not open, and reconciles when a read receipt lands
+ * Baseline is fetched once; counts increment on realtime replies while the
+ * matching conversation is not open, and reconcile when a read receipt lands
  * or the user opens/leaves `/support`.
  */
-export function useSupportUnread(): number {
+export function useSupportUnreadBreakdown(): SupportUnreadBreakdown {
   const pathname = usePathname();
-  const [unread, setUnread] = useState(0);
+  const [platform, setPlatform] = useState(0);
+  const [storefront, setStorefront] = useState(0);
   const baselinedRef = useRef(false);
   const listenerIdRef = useRef(`support-unread-${supportListenerSeq++}`);
 
   const syncFromServer = useCallback(() => {
     Promise.all([fetchSupportUnreadCount(), fetchStorefrontBuyerUnreadCount()])
-      .then(([platform, storefront]) => setUnread(platform + storefront))
+      .then(([nextPlatform, nextStorefront]) => {
+        setPlatform(nextPlatform);
+        setStorefront(nextStorefront);
+      })
       .catch(() => {
         // Offline — keep the current count; the realtime stream still updates it.
       });
@@ -67,7 +76,11 @@ export function useSupportUnread(): number {
           (senderType === "GUEST" && conversationType === "STOREFRONT");
         if (!countsAsUnread) return;
         if (conversationId && isSupportConversationFocused(conversationId)) return;
-        setUnread((n) => n + 1);
+        if (conversationType === "STOREFRONT") {
+          setStorefront((n) => n + 1);
+          return;
+        }
+        setPlatform((n) => n + 1);
       },
       onSupportRead: (frame) => {
         const data = frame.data as Record<string, unknown>;
@@ -80,7 +93,16 @@ export function useSupportUnread(): number {
     return unregister;
   }, [syncFromServer]);
 
-  return unread;
+  return {
+    platform,
+    storefront,
+    total: platform + storefront,
+  };
+}
+
+/** Aggregate unread count for badges that do not need the breakdown. */
+export function useSupportUnread(): number {
+  return useSupportUnreadBreakdown().total;
 }
 
 /** Compact pill used inside nav rows. */

@@ -13,6 +13,7 @@ import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { NewMerchantGuideDrawer } from "@/components/onboarding/new-merchant-guide-drawer";
 import { RealtimeProvider } from "@/components/realtime-provider";
+import { NotificationsDrawer } from "@/components/notifications-drawer";
 import { SupportLauncher } from "@/components/support/support-launcher";
 import { SupportUnreadWatcher } from "@/components/support/support-unread-watcher";
 
@@ -34,6 +35,7 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
           </Suspense>
           <SupportUnreadWatcher />
           <SupportLauncher />
+          <NotificationsDrawer />
           <NewMerchantGuideDrawer />
           <DashboardToaster />
         </RealtimeProvider>

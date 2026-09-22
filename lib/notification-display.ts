@@ -113,6 +113,7 @@ function defaultActionUrl(notificationType: string): string {
       return "/shifts";
     case "drawout.approval_requested":
     case "drawout.recorded":
+      // Prefer id-bearing URL from payload when present (see resolveActionUrl).
       return "/shifts";
     case "till.access_requested":
       return "/tills/review";
@@ -128,12 +129,30 @@ function resolveActionUrl(
   data: NotificationPayload,
   payload: NotificationPayload | null,
 ): string {
-  const raw =
+  let raw =
     readString(data.actionUrl) ||
     readString(payload?.actionUrl) ||
     readString(data.action_url) ||
     readString(payload?.action_url) ||
     defaultActionUrl(notificationType);
+
+  // Ensure drawout alerts deep-link to the matching entry on the shifts board.
+  if (
+    (notificationType === "drawout.approval_requested" ||
+      notificationType === "drawout.recorded") &&
+    !/[?&]drawout=/.test(raw)
+  ) {
+    const drawoutId =
+      readString(payload?.drawoutId) ||
+      readString(data.drawoutId) ||
+      readString(payload?.id);
+    if (drawoutId) {
+      raw = `/shifts?drawout=${encodeURIComponent(drawoutId)}`;
+    } else if (!raw) {
+      raw = "/shifts";
+    }
+  }
+
   // Legacy welcome payloads used /business or /support — open the chat drawer instead.
   if (
     notificationType === "account.welcome" &&
@@ -289,6 +308,24 @@ function formatPayloadBody(
       const cashierName = readString(payload.cashierName);
       const branchName = readString(payload.branchName);
       return [cashierName, branchName].filter(Boolean).join(" · ");
+    }
+    case "drawout.approval_requested":
+    case "drawout.recorded": {
+      const initiatedByName = readString(payload.initiatedByName);
+      const amount = readString(payload.amount);
+      const currency = readString(payload.currency) || "KES";
+      const category = readString(payload.category);
+      const recipientName = readString(payload.recipientName);
+      const money = amount ? formatMoney(amount, currency) : "";
+      const cat = category ? ` (${category})` : "";
+      const forWhom =
+        recipientName && recipientName !== "—" ? ` for ${recipientName}` : "";
+      if (initiatedByName && money) {
+        return `${initiatedByName} took ${money}${cat}${forWhom}`;
+      }
+      return [initiatedByName, money ? `${money}${cat}` : "", forWhom.trim()]
+        .filter(Boolean)
+        .join(" · ");
     }
     default: {
       const ignored = new Set([

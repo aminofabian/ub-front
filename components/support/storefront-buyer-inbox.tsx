@@ -129,7 +129,11 @@ const TYPING_STOP_MS = 4000;
  * Storefront buyer chats for one tenant — anonymous shoppers who started a
  * conversation on the public storefront get answered here, live.
  */
-export function StorefrontBuyerInbox() {
+export function StorefrontBuyerInbox({
+  initialConversationId = null,
+}: {
+  initialConversationId?: string | null;
+}) {
   const [filter, setFilter] = React.useState<Filter>("OPEN");
   const [search, setSearch] = React.useState("");
   const [conversations, setConversations] = React.useState<StorefrontBuyerConversation[]>([]);
@@ -209,6 +213,15 @@ export function StorefrontBuyerInbox() {
       setDetailLoading(false);
     }
   }, []);
+
+  // Deep-link from notifications: /support?tab=storefront&c=<conversationId>
+  const deepLinkedRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const id = initialConversationId?.trim() || "";
+    if (!id || deepLinkedRef.current === id) return;
+    deepLinkedRef.current = id;
+    void openConversation(id);
+  }, [initialConversationId, openConversation]);
 
   // ── Realtime (tenant client, channel "support") ─────────────────────────
   React.useEffect(() => {

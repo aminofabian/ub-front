@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Headset, ShoppingBag, Ticket } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   DASHBOARD_MAX,
@@ -14,8 +15,25 @@ import { cn } from "@/lib/utils";
 
 type Tab = "platform" | "storefront" | "tickets";
 
+function parseTab(raw: string | null): Tab {
+  if (raw === "storefront" || raw === "tickets" || raw === "platform") return raw;
+  return "platform";
+}
+
 export default function SupportPage() {
-  const [tab, setTab] = React.useState<Tab>("platform");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = parseTab(searchParams.get("tab"));
+  const conversationId = searchParams.get("c")?.trim() || null;
+
+  function setTab(next: Tab) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "platform") params.delete("tab");
+    else params.set("tab", next);
+    if (next !== "storefront") params.delete("c");
+    const qs = params.toString();
+    router.replace(qs ? `/support?${qs}` : "/support", { scroll: false });
+  }
 
   return (
     <div className={DASHBOARD_MAX}>
@@ -83,7 +101,7 @@ export default function SupportPage() {
         ) : tab === "tickets" ? (
           <TenantServingTickets />
         ) : (
-          <StorefrontBuyerInbox />
+          <StorefrontBuyerInbox initialConversationId={conversationId} />
         )}
       </div>
     </div>
