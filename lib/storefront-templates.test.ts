@@ -70,6 +70,15 @@ describe("theme recommendation", () => {
     );
   });
 
+  test("water and bottled spring names pick mizu springs", () => {
+    expect(recommendStoreThemeId({ name: "Mizu Springs Water" })).toBe(
+      "mizu-springs",
+    );
+    expect(recommendStoreThemeId({ name: "Nairobi Purified Water" })).toBe(
+      "mizu-springs",
+    );
+  });
+
   test("landing scorer picks a butcher closed-sign", () => {
     expect(
       recommendLandingTemplateId({ name: "Kamau Butchery" }),

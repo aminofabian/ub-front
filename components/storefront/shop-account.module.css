@@ -53,6 +53,37 @@
   --sa-sans: var(--font-dg-sans), system-ui, sans-serif;
 }
 
+:global(html:has([data-store-theme-id="mizu-springs"])) .page {
+  --sa-green: #172554;
+  --sa-green-dark: #082f49;
+  --sa-cream: #f4f9ff;
+  --sa-ink: #172554;
+  --sa-muted: #475569;
+  --sa-line: color-mix(in srgb, #172554 12%, transparent);
+  --sa-accent: #06b6d4;
+  --sa-paper: #f4f9ff;
+  --sa-mint: #172554;
+  --sa-cta: #06b6d4;
+  --sa-cta-ink: #ffffff;
+  --sa-display: var(--font-inter), system-ui, sans-serif;
+  --sa-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+:global(html:has([data-store-theme-id="mizu-springs"])) .passbook {
+  border-radius: 1.75rem;
+  overflow: hidden;
+  box-shadow: 0 20px 40px -16px rgb(23 37 84 / 0.18);
+}
+
+:global(html:has([data-store-theme-id="mizu-springs"])) .passHead {
+  background: #172554;
+}
+
+:global(html:has([data-store-theme-id="mizu-springs"])) .passHead .lead,
+:global(html:has([data-store-theme-id="mizu-springs"])) .passHead .email {
+  color: rgb(191 219 254 / 0.85);
+}
+
 .page :focus-visible {
   outline: 3px solid var(--sa-accent);
   outline-offset: 2px;

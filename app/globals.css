@@ -2832,6 +2832,64 @@ html:has([data-store-theme-id="daily-gazette"]) ::selection {
     color: #fff8ee;
 }
 
+/* Mizu Springs — ice page, navy rail, cyan CTAs on portaled drawers. */
+html:has([data-store-theme-id="mizu-springs"]) {
+    background-color: #f4f9ff;
+    color-scheme: light;
+    --primary: #172554;
+    --primary-hover: #1e3a8a;
+    --primary-foreground: #ffffff;
+    --ring: #06b6d4;
+    --background: #f4f9ff;
+    --foreground: #172554;
+    --muted: #dbeafe;
+    --muted-foreground: #475569;
+    --border: color-mix(in srgb, #172554 12%, transparent);
+    --input: color-mix(in srgb, #172554 14%, transparent);
+    --card: #ffffff;
+    --card-foreground: #172554;
+}
+
+html:has([data-store-theme-id="mizu-springs"]) .ms-slide-over > aside[role="dialog"] {
+    border-radius: 1.75rem 0 0 1.75rem;
+    border-color: color-mix(in srgb, #172554 10%, transparent);
+    background: #ffffff;
+    box-shadow:
+        0 10px 15px -3px rgb(23 37 84 / 0.1),
+        -28px 0 80px -20px rgb(23 37 84 / 0.28);
+}
+
+html:has([data-store-theme-id="mizu-springs"]) [data-slot="dialog-content"],
+html:has([data-store-theme-id="mizu-springs"]) [role="dialog"].max-w-md {
+    border-color: color-mix(in srgb, #172554 12%, transparent);
+    border-radius: 1.5rem;
+}
+
+html:has([data-store-theme-id="mizu-springs"]) [data-slot="dialog-content"] button[type="submit"],
+html:has([data-store-theme-id="mizu-springs"]) .storefront-browse button.bg-primary {
+    background-image: linear-gradient(to right, #06b6d4, #3b82f6);
+    background-color: #06b6d4;
+    color: #ffffff;
+    border-radius: 9999px;
+}
+
+html:has([data-store-theme-id="mizu-springs"]) ::selection {
+    background: #a5f3fc;
+    color: #172554;
+}
+
+html:has([data-store-theme-id="mizu-springs"]) [data-sonner-toast][data-type="success"] {
+    background: #172554 !important;
+    color: #fff !important;
+    border: 0 !important;
+    border-radius: 9999px !important;
+}
+
+html:has([data-store-theme-id="mizu-springs"]) [data-sonner-toast][data-type="success"] [data-title],
+html:has([data-store-theme-id="mizu-springs"]) [data-sonner-toast][data-type="success"] [data-description] {
+    color: #fff !important;
+}
+
 .landing-page {
     overflow: clip;
 }

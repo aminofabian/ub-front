@@ -23,7 +23,8 @@ export type StoreThemeId =
   | "pastry-case"
   | "comilmart"
   | "climax-floor"
-  | "daily-gazette";
+  | "daily-gazette"
+  | "mizu-springs";
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
@@ -71,7 +72,8 @@ export type ThemePhoneLayout =
   | "locked-shelf"
   | "marketplace"
   | "showroom"
-  | "gazette";
+  | "gazette"
+  | "spring-well";
 
 /**
  * Per-theme "try it on" skin: what a miniature of the theme looks like when
@@ -187,6 +189,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "comilmart",
   "climax-floor",
   "daily-gazette",
+  "mizu-springs",
 ] as const;
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
@@ -212,6 +215,7 @@ export const STORE_THEME_VIBES = [
   "Bakery",
   "Minimal",
   "Vintage",
+  "Beverages",
 ] as const;
 
 export type StoreThemeVibe = (typeof STORE_THEME_VIBES)[number];
@@ -897,6 +901,48 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
       radius: "sharp",
       font: "serif",
       border: true,
+    },
+  },
+  {
+    id: "mizu-springs",
+    kind: "store",
+    name: "Mizu Springs",
+    blurb:
+      "Premium water brand site — navy ice chrome, cyan Order Now, collection cards with soft glass.",
+    previewFrom: "#F4F9FF",
+    previewTo: "#172554",
+    accent: "#06B6D4",
+    vibes: ["Beverages", "Minimal"],
+    matches: [
+      "water",
+      "mizu",
+      "spring",
+      "springs",
+      "bottled",
+      "bottle",
+      "hydration",
+      "purified",
+      "mineral",
+      "beverage",
+      "drink",
+      "refill",
+      "dispenser",
+    ],
+    points: [
+      "A premium water brand homepage: navy bar, ice page, cyan Order Now.",
+      "Collection cards with soft glass and pill CTAs — not a blue supermarket.",
+      "Built for bottled water, refills, and custom-event branding shops.",
+    ],
+    phone: {
+      layout: "spring-well",
+      surface: "#F4F9FF",
+      ink: "#172554",
+      muted: "#475569",
+      card: "#FFFFFF",
+      accent: "#06B6D4",
+      onAccent: "#FFFFFF",
+      radius: "round",
+      font: "sans",
     },
   },
 ];

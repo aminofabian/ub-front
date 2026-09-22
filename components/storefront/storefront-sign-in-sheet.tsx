@@ -19,6 +19,8 @@ import { comilmartPaletteVars } from "@/components/storefront/templates/store/co
 import cmStyles from "@/components/storefront/templates/store/comilmart.module.css";
 import { dailyGazetteFontVariables } from "@/components/storefront/templates/store/daily-gazette-fonts";
 import dgStyles from "@/components/storefront/templates/store/daily-gazette.module.css";
+import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
+import msStyles from "@/components/storefront/templates/store/mizu-springs.module.css";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +29,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useShopCartOptional } from "@/hooks/use-shop-cart";
-import { isComilmartStoreTheme, isDailyGazetteStoreTheme } from "@/lib/storefront-theme-detect";
+import {
+  isComilmartStoreTheme,
+  isDailyGazetteStoreTheme,
+  isMizuSpringsStoreTheme,
+} from "@/lib/storefront-theme-detect";
 import {
   completeShopperPhoneSession,
   fetchBusiness,
@@ -270,6 +276,7 @@ function StorefrontSignInSheet({
   const tenant = useOptionalTenant();
   const comilmart = isComilmartStoreTheme();
   const gazette = isDailyGazetteStoreTheme();
+  const mizu = isMizuSpringsStoreTheme();
 
   const displayName =
     storeName?.trim() ||
@@ -292,7 +299,13 @@ function StorefrontSignInSheet({
    */
   const finishSignedIn = useCallback(async () => {
     onOpenChange(false);
-    toast.success("You're in");
+    toast.success(
+      mizu
+        ? "You're in — welcome to the spring"
+        : gazette
+          ? "Press pass stamped"
+          : "You're in",
+    );
     try {
       await cart?.refresh();
     } catch {
@@ -378,10 +391,12 @@ function StorefrontSignInSheet({
     router,
     onOpenChange,
     entry?.reason,
+    mizu,
+    gazette,
   ]);
 
   const shopLabel = displayName.split("|")[0]?.trim() || displayName;
-  const themed = comilmart || gazette;
+  const themed = comilmart || gazette || mizu;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -394,18 +409,24 @@ function StorefrontSignInSheet({
                 dailyGazetteFontVariables,
                 "z-[90] max-h-[min(88dvh,36rem)] gap-0 overflow-hidden p-0 sm:max-w-[400px]",
               )
-            : comilmart
+            : mizu
               ? cn(
-                  cmStyles.signInSheet,
-                  comilmartFontVariables,
+                  msStyles.signInSheet,
+                  mizuSpringsFontVariables,
                   "z-[90] max-h-[min(88dvh,36rem)] gap-0 overflow-hidden p-0 sm:max-w-[400px]",
                 )
-              : cn(
-                  "z-[90] gap-0 overflow-hidden !rounded-none p-0",
-                  "sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:max-h-none",
-                  "sm:w-full sm:max-w-[420px] sm:-translate-x-1/2 sm:-translate-y-1/2",
-                  "sm:rounded-none sm:border-b sm:pb-0",
-                )
+              : comilmart
+                ? cn(
+                    cmStyles.signInSheet,
+                    comilmartFontVariables,
+                    "z-[90] max-h-[min(88dvh,36rem)] gap-0 overflow-hidden p-0 sm:max-w-[400px]",
+                  )
+                : cn(
+                    "z-[90] gap-0 overflow-hidden !rounded-none p-0",
+                    "sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:max-h-none",
+                    "sm:w-full sm:max-w-[420px] sm:-translate-x-1/2 sm:-translate-y-1/2",
+                    "sm:rounded-none sm:border-b sm:pb-0",
+                  )
         }
         style={comilmart ? comilmartPaletteVars() : undefined}
         overlayClassName="z-[89]"
@@ -414,12 +435,20 @@ function StorefrontSignInSheet({
           className={
             gazette
               ? dgStyles.signInHead
-              : comilmart
-                ? cmStyles.signInHead
-                : "border-b border-border/60 px-5 pb-4 pt-5 sm:px-6"
+              : mizu
+                ? msStyles.signInHead
+                : comilmart
+                  ? cmStyles.signInHead
+                  : "border-b border-border/60 px-5 pb-4 pt-5 sm:px-6"
           }
         >
           <DialogHeader className="space-y-1.5 text-left">
+            {mizu ? (
+              <p className={msStyles.signInKicker}>
+                <span className={msStyles.signInKickerDot} aria-hidden />
+                Spring pass
+              </p>
+            ) : null}
             {displayName && !themed ? (
               <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                 {shopLabel}
@@ -429,31 +458,45 @@ function StorefrontSignInSheet({
               className={
                 gazette
                   ? dgStyles.signInTitle
-                  : comilmart
-                    ? cmStyles.signInTitle
-                    : "font-heading text-xl tracking-tight"
+                  : mizu
+                    ? msStyles.signInTitle
+                    : comilmart
+                      ? cmStyles.signInTitle
+                      : "font-heading text-xl tracking-tight"
               }
             >
-              {gazette ? "Press pass" : comilmart ? "Welcome back" : "Sign in"}
+              {gazette
+                ? "Press pass"
+                : mizu
+                  ? "Sip in"
+                  : comilmart
+                    ? "Welcome back"
+                    : "Sign in"}
             </DialogTitle>
             <DialogDescription
               className={
                 gazette
                   ? dgStyles.signInLead
-                  : comilmart
-                    ? cmStyles.signInLead
-                    : "text-[14px] leading-relaxed"
+                  : mizu
+                    ? msStyles.signInLead
+                    : comilmart
+                      ? cmStyles.signInLead
+                      : "text-[14px] leading-relaxed"
               }
             >
               {gazette
                 ? shopLabel
                   ? `Sign the register at ${shopLabel} to hold orders.`
                   : "Sign the register to hold orders and track them."
-                : comilmart
+                : mizu
                   ? shopLabel
-                    ? `Log in to your ${shopLabel} account.`
-                    : "Log in to your account."
-                  : "Email or phone, then your PIN or password. That's it."}
+                    ? `Phone or email to track orders and refill with ${shopLabel}.`
+                    : "Phone or email to track orders, refills, and custom bottles."
+                  : comilmart
+                    ? shopLabel
+                      ? `Log in to your ${shopLabel} account.`
+                      : "Log in to your account."
+                    : "Email or phone, then your PIN or password. That's it."}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -462,9 +505,11 @@ function StorefrontSignInSheet({
           className={
             gazette
               ? dgStyles.signInBody
-              : comilmart
-                ? cmStyles.signInBody
-                : "overflow-y-auto px-5 py-5 sm:px-6"
+              : mizu
+                ? msStyles.signInBody
+                : comilmart
+                  ? cmStyles.signInBody
+                  : "overflow-y-auto px-5 py-5 sm:px-6"
           }
         >
           {open ? (

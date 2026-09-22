@@ -13,6 +13,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { formatDisplayPrice } from "@/lib/public-storefront";
+import { isMizuSpringsStoreTheme } from "@/lib/storefront-theme-detect";
+import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
+import msStyles from "@/components/storefront/templates/store/mizu-springs.module.css";
 import {
   buildCartWhatsAppText,
   buildCartWhatsAppUrl,
@@ -245,6 +248,8 @@ export function WhatsAppCheckoutSheet() {
     return null;
   }
 
+  const mizu = isMizuSpringsStoreTheme();
+
   return (
     <div
       className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50 backdrop-blur-[2px] sm:items-center sm:p-4"
@@ -254,21 +259,45 @@ export function WhatsAppCheckoutSheet() {
       }}
     >
       <div
-        className="flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-background shadow-2xl ring-1 ring-black/10 sm:rounded-2xl"
+        className={cn(
+          "flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-background shadow-2xl ring-1 ring-black/10 sm:rounded-2xl",
+          mizu && cn(msStyles.waSheet, mizuSpringsFontVariables),
+        )}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 px-5 py-4">
+        <div
+          className={
+            mizu
+              ? msStyles.waHead
+              : "flex shrink-0 items-center justify-between gap-2 border-b border-border/60 px-5 py-4"
+          }
+        >
           <div className="flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-full bg-[#25D366]/15 text-[#128C4A]">
+            <span
+              className={
+                mizu
+                  ? msStyles.waHeadIcon
+                  : "flex size-9 items-center justify-center rounded-full bg-[#25D366]/15 text-[#128C4A]"
+              }
+            >
               <MessageCircle className="size-5" aria-hidden />
             </span>
             <div>
-              <h2 id={titleId} className="text-base font-semibold tracking-tight">
-                Send your order to {whatsappCheckout.storeName}
+              <h2
+                id={titleId}
+                className={
+                  mizu
+                    ? msStyles.waTitle
+                    : "text-base font-semibold tracking-tight"
+                }
+              >
+                {mizu
+                  ? `WhatsApp ${whatsappCheckout.storeName}`
+                  : `Send your order to ${whatsappCheckout.storeName}`}
               </h2>
-              <p className="text-xs text-muted-foreground">
+              <p className={mizu ? msStyles.waMeta : "text-xs text-muted-foreground"}>
                 {itemLabel}
                 {subtotal ? ` · ${subtotal}` : ""}
               </p>
@@ -279,7 +308,11 @@ export function WhatsAppCheckoutSheet() {
             type="button"
             onClick={closeWhatsAppCheckout}
             disabled={submitting}
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className={
+              mizu
+                ? msStyles.waClose
+                : "inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            }
             aria-label="Close"
           >
             <X className="size-4" aria-hidden />
@@ -287,7 +320,12 @@ export function WhatsAppCheckoutSheet() {
         </div>
 
         {done ? (
-          <div className="flex flex-col gap-4 overflow-y-auto px-5 py-6">
+          <div
+            className={cn(
+              "flex flex-col gap-4 overflow-y-auto px-5 py-6",
+              mizu && msStyles.waBody,
+            )}
+          >
             <div className="flex flex-col items-center text-center">
               <span className="flex size-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
                 <Check className="size-6" aria-hidden />
@@ -340,7 +378,13 @@ export function WhatsAppCheckoutSheet() {
             </pre>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5">
+          <form
+            onSubmit={handleSubmit}
+            className={cn(
+              "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5",
+              mizu && msStyles.waBody,
+            )}
+          >
             {!cart || cart.lines.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 Your cart is empty. Add items first, then order on WhatsApp.

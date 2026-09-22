@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import {
   fetchBusiness,
   fetchShopperAccountOverview,
@@ -38,6 +39,7 @@ import {
 import { isBuyerAccount, isShopperPhoneEmail } from "@/lib/buyer-role";
 import { APP_ROUTES } from "@/lib/config";
 import { formatLoyaltyMemberId, loyaltyCardTierLabel } from "@/lib/loyalty-card";
+import { isMizuSpringsStoreTheme } from "@/lib/storefront-theme-detect";
 import { cn } from "@/lib/utils";
 
 /** Tenant storefront catalog lives at `/` on mapped hosts such as palmart.co.ke. */
@@ -308,7 +310,16 @@ export function ShopAccountHub({ me }: HubProps) {
           <button
             type="button"
             className={styles.quiet}
-            onClick={() => void logoutRemote().then(() => window.location.reload())}
+            onClick={() =>
+              void logoutRemote().then(() => {
+                toast.success(
+                  isMizuSpringsStoreTheme()
+                    ? "Signed out — until the next sip"
+                    : "Signed out",
+                );
+                window.location.reload();
+              })
+            }
           >
             <LogOut className="size-4" aria-hidden />
             Sign out
@@ -647,6 +658,11 @@ function humanizeLedger(kind?: string, memo?: string): string {
 
 function greeting(): string {
   const hour = new Date().getHours();
+  if (isMizuSpringsStoreTheme()) {
+    if (hour < 12) return "Fresh morning";
+    if (hour < 17) return "Stay hydrated";
+    return "Evening refill";
+  }
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";

@@ -17,3 +17,7 @@ export function isBlankDropStoreTheme(): boolean {
 export function isDailyGazetteStoreTheme(): boolean {
   return isActiveStoreTheme("daily-gazette");
 }
+
+export function isMizuSpringsStoreTheme(): boolean {
+  return isActiveStoreTheme("mizu-springs");
+}

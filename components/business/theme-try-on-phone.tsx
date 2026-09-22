@@ -468,6 +468,72 @@ function StoreBody({
     );
   }
 
+  if (layout === "spring-well") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div
+          className="flex items-center gap-[0.45em] px-[0.7em] py-[0.55em]"
+          style={{ backgroundColor: skin.ink, color: "#fff" }}
+        >
+          <span className="truncate text-[0.55em] font-black uppercase tracking-[0.18em]">
+            {storeName || "Springs"}
+          </span>
+          <span
+            className={cn(
+              "ml-auto inline-flex h-[1.2em] items-center px-[0.55em] text-[0.42em] font-black uppercase tracking-wide",
+              RADIUS_PILL[skin.radius],
+            )}
+            style={{
+              background: `linear-gradient(90deg, ${skin.accent}, ${brand})`,
+              color: skin.onAccent,
+            }}
+          >
+            Order
+          </span>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col px-[0.65em] pb-[0.55em] pt-[0.7em]">
+          <p
+            className="text-center text-[0.38em] font-black uppercase tracking-[0.28em]"
+            style={{ color: skin.ink }}
+          >
+            Collection
+          </p>
+          <p
+            className="mt-[0.25em] text-center text-[0.85em] font-black leading-[0.95] tracking-tight"
+            style={{ color: skin.ink }}
+          >
+            Every sip
+          </p>
+          <div className="mt-[0.55em] grid min-h-0 flex-1 grid-cols-2 gap-[0.4em]">
+            {[p0, p1].map((product, i) => (
+              <div
+                key={i}
+                className={cn("relative min-h-0 overflow-hidden", card)}
+                style={{ backgroundColor: skin.card }}
+              >
+                <Face
+                  product={product}
+                  skin={skin}
+                  index={i}
+                  className="h-full w-full"
+                />
+                <span
+                  className={cn(
+                    "absolute right-[0.25em] top-[0.25em] px-[0.35em] py-[0.08em] text-[0.32em] font-bold uppercase",
+                    RADIUS_PILL[skin.radius],
+                  )}
+                  style={{ backgroundColor: "#fff", color: skin.ink }}
+                >
+                  {i === 0 ? "Go" : "Home"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (layout === "gazette") {
     const ads = [p0, p1, p2, productAt(products, 3), productAt(products, 4), productAt(products, 5)];
     return (
@@ -1269,6 +1335,7 @@ function productCta(layout: ThemePhoneLayout): string {
   if (layout === "console") return "Dispense";
   if (layout === "poster") return "Enquire";
   if (layout === "pastry") return "Add to bag";
+  if (layout === "spring-well") return "Add to bag";
   if (layout === "gazette") return "Add";
   if (layout === "marketplace") return "Add to cart";
   if (layout === "showroom") return "Add to cart";
@@ -1284,6 +1351,7 @@ function cartCta(layout: ThemePhoneLayout): string {
   if (layout === "editorial" || layout === "scent") return "Request";
   if (layout === "poster") return "Enquire";
   if (layout === "pastry") return "Order";
+  if (layout === "spring-well") return "Order now";
   if (layout === "gazette") return "Pay";
   if (layout === "marketplace") return "Checkout";
   if (layout === "showroom") return "Checkout";
@@ -1417,6 +1485,46 @@ function ProductBody({
         >
           {cta}
         </span>
+      </div>
+    );
+  }
+
+  if (layout === "spring-well") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div
+          className="px-[0.7em] py-[0.45em] text-[0.42em] font-black uppercase tracking-[0.2em] text-white"
+          style={{ backgroundColor: skin.ink }}
+        >
+          {storeName || "Springs"}
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col px-[0.7em] pb-[0.65em] pt-[0.45em]">
+          <Face
+            product={product}
+            skin={skin}
+            index={0}
+            className={cn("min-h-0 flex-1", card)}
+          />
+          <p
+            className="mt-[0.45em] truncate text-center text-[0.72em] font-bold"
+            style={{ color: skin.ink }}
+          >
+            {name}
+          </p>
+          <div className="mt-[0.2em] flex justify-center">{price}</div>
+          <span
+            className={cn(
+              "mt-[0.45em] flex h-[1.55em] items-center justify-center text-[0.52em] font-black uppercase tracking-wide",
+              RADIUS_PILL[skin.radius],
+            )}
+            style={{
+              background: `linear-gradient(90deg, ${skin.accent}, #3b82f6)`,
+              color: skin.onAccent,
+            }}
+          >
+            {cta}
+          </span>
+        </div>
       </div>
     );
   }

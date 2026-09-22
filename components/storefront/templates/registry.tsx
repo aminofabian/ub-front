@@ -19,6 +19,7 @@ import { ComilmartStoreHome } from "@/components/storefront/templates/store/comi
 import { DailyGazetteStoreHome } from "@/components/storefront/templates/store/daily-gazette-home";
 import { MartStoreHome } from "@/components/storefront/templates/store/mart-home";
 import { MilkRunStoreHome } from "@/components/storefront/templates/store/milk-run-home";
+import { MizuSpringsStoreHome } from "@/components/storefront/templates/store/mizu-springs-home";
 import { OxideStoreHome } from "@/components/storefront/templates/store/oxide-home";
 import { PrintAtelierStoreHome } from "@/components/storefront/templates/store/print-atelier-home";
 import { PastryCaseStoreHome } from "@/components/storefront/templates/store/pastry-case-home";
@@ -57,6 +58,7 @@ const STORE_HOMES: Record<
   comilmart: ComilmartStoreHome,
   "climax-floor": ClimaxFloorStoreHome,
   "daily-gazette": DailyGazetteStoreHome,
+  "mizu-springs": MizuSpringsStoreHome,
 };
 
 const LANDING_PAGES: Record<
@@ -92,7 +94,8 @@ export type StoreChromeVariant =
   | "pastry-case"
   | "comilmart"
   | "climax-floor"
-  | "daily-gazette";
+  | "daily-gazette"
+  | "mizu-springs";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -142,6 +145,8 @@ export function resolveStoreChromeVariant(
       return "climax-floor";
     case "daily-gazette":
       return "daily-gazette";
+    case "mizu-springs":
+      return "mizu-springs";
     default:
       return "default";
   }

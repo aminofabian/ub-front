@@ -69,6 +69,9 @@ import climaxFloorStyles from "@/components/storefront/templates/store/climax-fl
 import { DailyGazetteHeader } from "@/components/storefront/templates/store/daily-gazette-header";
 import { dailyGazetteFontVariables } from "@/components/storefront/templates/store/daily-gazette-fonts";
 import dailyGazetteStyles from "@/components/storefront/templates/store/daily-gazette.module.css";
+import { MizuSpringsHeader } from "@/components/storefront/templates/store/mizu-springs-header";
+import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
+import mizuSpringsStyles from "@/components/storefront/templates/store/mizu-springs.module.css";
 import { SpiritsCellarHeader } from "@/components/storefront/templates/store/spirits-cellar-header";
 import { spiritsCellarFontVariables } from "@/components/storefront/templates/store/spirits-cellar-fonts";
 import spiritsCellarStyles from "@/components/storefront/templates/store/spirits-cellar.module.css";
@@ -199,7 +202,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop" | "pastry-case" | "comilmart" | "climax-floor" | "daily-gazette";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop" | "pastry-case" | "comilmart" | "climax-floor" | "daily-gazette" | "mizu-springs";
   storeThemeId?: string | null;
   /** D8: `ub.session` presence hint from `StorefrontShell` (label-only). */
   hasPresence: boolean;
@@ -245,7 +248,8 @@ export function ShopStorefrontChrome({
   const isComilmart = chromeVariant === "comilmart";
   const isClimaxFloor = chromeVariant === "climax-floor";
   const isDailyGazette = chromeVariant === "daily-gazette";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase || isComilmart || isClimaxFloor || isDailyGazette;
+  const isMizuSprings = chromeVariant === "mizu-springs";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase || isComilmart || isClimaxFloor || isDailyGazette || isMizuSprings;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const restoreAttemptedRef = useRef(false);
@@ -365,6 +369,10 @@ export function ShopStorefrontChrome({
                             ? ({
                                 ["--dg-orange" as string]: primaryHex || "#E24E04",
                               } as CSSProperties)
+                            : isMizuSprings
+                              ? ({
+                                  ["--ms-navy" as string]: primaryHex || "#172554",
+                                } as CSSProperties)
         : undefined;
 
   const shell = (
@@ -478,6 +486,13 @@ export function ShopStorefrontChrome({
               dailyGazetteStyles.body,
               dailyGazetteFontVariables,
               "[--storefront-paper:#D2C19A]",
+            ),
+          isMizuSprings &&
+            cn(
+              mizuSpringsStyles.root,
+              mizuSpringsStyles.body,
+              mizuSpringsFontVariables,
+              "[--storefront-paper:#F4F9FF]",
             ),
           isChemLab &&
             cn(
@@ -600,6 +615,16 @@ export function ShopStorefrontChrome({
             logoUrl={themedLogoUrl}
             announcement={announcement}
             design={initialDesign}
+          />
+        </Suspense>
+      ) : null}
+      {isMizuSprings && !compactChrome ? (
+        <Suspense fallback={null}>
+          <MizuSpringsHeader
+            slug={slug}
+            storeName={headerTitle}
+            logoUrl={themedLogoUrl}
+            whatsapp={whatsappNumber}
           />
         </Suspense>
       ) : null}

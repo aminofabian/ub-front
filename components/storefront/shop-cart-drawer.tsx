@@ -3,6 +3,7 @@
 import { BlankDropCartPanel } from "@/components/storefront/templates/store/blank-drop-cart";
 import { ComilmartCartPanel } from "@/components/storefront/templates/store/comilmart-cart-panel";
 import { DailyGazetteCartPanel } from "@/components/storefront/templates/store/daily-gazette-cart-panel";
+import { MizuSpringsCartPanel } from "@/components/storefront/templates/store/mizu-springs-cart-panel";
 import { ShopCartMobileFloat } from "@/components/storefront/shop-cart-mobile-float";
 import { ShopCartPanelBody } from "@/components/storefront/shop-cart-panel-body";
 import { ShopSlideOver } from "@/components/storefront/shop-slide-over";
@@ -12,12 +13,13 @@ import {
   isBlankDropStoreTheme,
   isComilmartStoreTheme,
   isDailyGazetteStoreTheme,
+  isMizuSpringsStoreTheme,
 } from "@/lib/storefront-theme-detect";
 
 /**
  * After add-to-cart on desktop: compact floating card, then full drawer.
  * Mobile web skips the overlay and uses the cart dock instead.
- * Blank-drop, Comilmart, and Daily gazette use theme-specific bag panels.
+ * Blank-drop, Comilmart, Daily gazette, and Mizu Springs use theme-specific bag panels.
  */
 export function ShopCartDrawer() {
   const isMd = useMediaMd();
@@ -25,6 +27,7 @@ export function ShopCartDrawer() {
   const blankDrop = isBlankDropStoreTheme();
   const comilmart = isComilmartStoreTheme();
   const gazette = isDailyGazetteStoreTheme();
+  const mizu = isMizuSpringsStoreTheme();
 
   if (!drawerOpen) {
     return null;
@@ -73,6 +76,23 @@ export function ShopCartDrawer() {
         className="dg-slide-over"
       >
         <DailyGazetteCartPanel onClose={closeDrawer} />
+      </ShopSlideOver>
+    );
+  }
+
+  if (mizu) {
+    if (!isMd || cartViewMode === "focus") {
+      return <ShopCartMobileFloat themed="mizu-springs" />;
+    }
+    return (
+      <ShopSlideOver
+        variant="floating"
+        open={drawerOpen}
+        onClose={closeDrawer}
+        ariaLabel="Your bag"
+        className="ms-slide-over"
+      >
+        <MizuSpringsCartPanel onClose={closeDrawer} />
       </ShopSlideOver>
     );
   }

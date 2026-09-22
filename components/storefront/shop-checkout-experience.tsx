@@ -9,6 +9,7 @@ import { ShopSlideOver } from "@/components/storefront/shop-slide-over";
 import { BlankDropCheckout } from "@/components/storefront/templates/store/blank-drop-checkout";
 import { ComilmartCheckoutChrome } from "@/components/storefront/templates/store/comilmart-checkout-chrome";
 import { DailyGazetteCheckoutChrome } from "@/components/storefront/templates/store/daily-gazette-checkout-chrome";
+import { MizuSpringsCheckoutChrome } from "@/components/storefront/templates/store/mizu-springs-checkout-chrome";
 import { useShopCartOptional } from "@/hooks/use-shop-cart";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { APP_ROUTES } from "@/lib/config";
@@ -16,6 +17,7 @@ import {
   isBlankDropStoreTheme,
   isComilmartStoreTheme,
   isDailyGazetteStoreTheme,
+  isMizuSpringsStoreTheme,
 } from "@/lib/storefront-theme-detect";
 
 type Props = {
@@ -33,6 +35,7 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
   const blankDrop = isBlankDropStoreTheme();
   const comilmart = isComilmartStoreTheme();
   const gazette = isDailyGazetteStoreTheme();
+  const mizu = isMizuSpringsStoreTheme();
 
   const onClose = () => {
     if (mode === "drawer") {
@@ -87,6 +90,17 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
         </DailyGazetteCheckoutChrome>
       );
     }
+    if (mizu) {
+      return (
+        <MizuSpringsCheckoutChrome
+          onClose={onClose}
+          orderPlaced={orderPlaced}
+          thankYou={thankYou}
+        >
+          {form}
+        </MizuSpringsCheckoutChrome>
+      );
+    }
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{form}</div>
     );
@@ -100,19 +114,33 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
 
   const CheckoutChrome = gazette
     ? DailyGazetteCheckoutChrome
-    : comilmart
-      ? ComilmartCheckoutChrome
-      : ShopCheckoutDrawerChrome;
+    : mizu
+      ? MizuSpringsCheckoutChrome
+      : comilmart
+        ? ComilmartCheckoutChrome
+        : ShopCheckoutDrawerChrome;
 
   return (
     <ShopSlideOver
       variant="panel"
       open={open}
       onClose={onClose}
-      ariaLabel={gazette ? "File this order" : "Checkout"}
+      ariaLabel={
+        gazette
+          ? "File this order"
+          : mizu
+            ? "Complete your order"
+            : "Checkout"
+      }
       zIndex={74}
       className={
-        gazette ? "dg-slide-over" : comilmart ? "cm-slide-over" : undefined
+        gazette
+          ? "dg-slide-over"
+          : mizu
+            ? "ms-slide-over"
+            : comilmart
+              ? "cm-slide-over"
+              : undefined
       }
     >
       <CheckoutChrome

@@ -14,6 +14,7 @@ import { DailyGazetteProduct } from "@/components/storefront/templates/store/dai
 import { PrintAtelierProduct } from "@/components/storefront/templates/store/print-atelier-product";
 import { BlankDropProduct } from "@/components/storefront/templates/store/blank-drop-product";
 import { PastryCaseProduct } from "@/components/storefront/templates/store/pastry-case-product";
+import { MizuSpringsProduct } from "@/components/storefront/templates/store/mizu-springs-product";
 import { APP_ROUTES } from "@/lib/config";
 import {
   formatStoreQty,
@@ -47,6 +48,9 @@ export function ShopProductDetailView({
   }
   if (theme === "daily-gazette") {
     return <DailyGazetteProduct slug={slug} item={item} />;
+  }
+  if (theme === "mizu-springs") {
+    return <MizuSpringsProduct slug={slug} item={item} />;
   }
 
   const variantOptions = mergeVariantOptions(item);

@@ -412,6 +412,26 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
       placeholder: "The Daily",
     },
   ],
+  "mizu-springs": [
+    {
+      key: "navy",
+      label: "Navy tone",
+      hint: "Header and headline colour when no brand colour is set",
+      type: "select",
+      var: "--ms-navy",
+      default: "deep",
+      values: {
+        deep: "#172554",
+        ocean: "#0c4a6e",
+        ink: "#1e3a8a",
+      },
+      options: [
+        { value: "deep", label: "Deep", swatch: "#172554" },
+        { value: "ocean", label: "Ocean", swatch: "#0c4a6e" },
+        { value: "ink", label: "Ink", swatch: "#1e3a8a" },
+      ],
+    },
+  ],
 };
 
 /** Every option key across all themes — the blob-level whitelist. */
