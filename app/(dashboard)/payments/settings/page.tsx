@@ -34,6 +34,7 @@ import {
   receiveInitialFromCustodyJson,
 } from "@/components/payments/receive-mpesa-flow";
 import { SupplierPayoutSettingsSection } from "@/components/payments/supplier-payout-settings-section";
+import { ProfitPocketSettingsSection } from "@/components/payments/profit-pocket-settings-section";
 import { KioskPaySettingsSection } from "@/components/payments/kiosk-pay-settings-section";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
@@ -273,6 +274,7 @@ export default function PaymentGatewaySettingsPage() {
       "accept-payments",
       "kiosk-pay",
       "supplier-payouts",
+      "profit-pocket",
     ];
     if (canReadAirtime) ids.push("airtime");
     return ids;
@@ -568,6 +570,10 @@ export default function PaymentGatewaySettingsPage() {
           return <>Wallet, storefront toggle, and M-Pesa withdraw in the panel.</>;
         case "supplier-payouts":
           return <>Send Money gateway, auto-pay schedule, and enable switch.</>;
+        case "profit-pocket":
+          return (
+            <>Owner / expense destination for pocketing Hub cash surplus.</>
+          );
         case "airtime":
           return <>POS and storefront airtime switches funded from Kiosk Pay.</>;
         default:
@@ -598,6 +604,10 @@ export default function PaymentGatewaySettingsPage() {
       case "supplier-payouts":
         return (
           <SupplierPayoutSettingsSection canWrite={canWrite} theatreMode />
+        );
+      case "profit-pocket":
+        return (
+          <ProfitPocketSettingsSection canWrite={canWrite} theatreMode />
         );
       case "kiosk-pay":
         return <KioskPaySettingsSection canWrite={canWrite} theatreMode />;

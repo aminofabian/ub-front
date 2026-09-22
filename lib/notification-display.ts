@@ -42,6 +42,7 @@ const TYPE_LABELS: Record<string, string> = {
   "drawout.approval_requested": "Cash drawout needs approval",
   "drawout.recorded": "Cash drawout recorded",
   "till.access_requested": "Till waiting to be trusted",
+  "profit_pocket.friday_reminder": "Friday Pocket",
 };
 
 function readString(value: unknown): string {
@@ -117,6 +118,8 @@ function defaultActionUrl(notificationType: string): string {
       return "/shifts";
     case "till.access_requested":
       return "/tills/review";
+    case "profit_pocket.friday_reminder":
+      return "/business?pocket=1";
     case "onboarding.web_order":
       return "/storefront/web-orders";
     default:
@@ -308,6 +311,18 @@ function formatPayloadBody(
       const cashierName = readString(payload.cashierName);
       const branchName = readString(payload.branchName);
       return [cashierName, branchName].filter(Boolean).join(" · ");
+    }
+    case "profit_pocket.friday_reminder": {
+      const body = readString(payload.body);
+      if (body) return body;
+      const suggested = readString(payload.suggestedPocket);
+      const dest = readString(payload.destinationSummary);
+      if (suggested) {
+        return dest
+          ? `Pocket KES ${suggested} → ${dest}`
+          : `Pocket KES ${suggested} before the weekend`;
+      }
+      return "";
     }
     case "drawout.approval_requested":
     case "drawout.recorded": {

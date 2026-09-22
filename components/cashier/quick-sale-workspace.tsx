@@ -26,6 +26,7 @@ import {
   fetchItems,
   fetchPosStkPushStatus,
   fetchPosTopProducts,
+  fetchProfitPocketSettings,
   fetchSaleReceiptPdf,
   postVoidSale,
   refreshAccessToken,
@@ -41,6 +42,11 @@ import {
   type SaleRecord,
   type ShiftRecord,
 } from "@/lib/api";
+import {
+  isSellBelowCost,
+  normalizeMarginGuardMode,
+  type MarginGuardMode,
+} from "@/lib/margin-guard";
 import { isAuthRecoveryUserMessage } from "@/lib/problem";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import {
@@ -402,6 +408,10 @@ export function QuickSaleWorkspace({
     me?.permissions,
     Permission.PricingSellPriceSet,
   );
+  const canApproveBelowCost = hasPermission(
+    me?.permissions,
+    Permission.PricingSellPriceSet,
+  );
   const allowCreateProduct =
     hasPermission(me?.permissions, Permission.CatalogItemsWrite) ||
     createProductFlagEnabled;
@@ -484,6 +494,8 @@ export function QuickSaleWorkspace({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [marginGuardMode, setMarginGuardMode] =
+    useState<MarginGuardMode>("warn");
   const [voidLoading, setVoidLoading] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [kioskPayAvailable, setKioskPayAvailable] = useState(false);
@@ -720,6 +732,22 @@ export function QuickSaleWorkspace({
     posDraftHydratedRef.current = false;
     mirrorUserIdRef.current = null;
   }, [branchId, business?.id, me?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchProfitPocketSettings()
+      .then((s) => {
+        if (!cancelled) {
+          setMarginGuardMode(normalizeMarginGuardMode(s.marginGuardMode));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setMarginGuardMode("warn");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [business?.id]);
 
   /**
    * Phase 2 park policy: when the signed-in cashier changes (switch unlock),
@@ -3287,7 +3315,10 @@ export function QuickSaleWorkspace({
     }
   }, [online, refreshOutbox]);
 
-  const onComplete = useCallback(async (opts?: { skipBranchConfirm?: boolean }) => {
+  const onComplete = useCallback(async (opts?: {
+    skipBranchConfirm?: boolean;
+    skipBelowCostConfirm?: boolean;
+  }) => {
     const bid = branchId.trim();
     if (!bid) {
       setError("Choose a branch.");
@@ -3316,6 +3347,49 @@ export function QuickSaleWorkspace({
       setError("Add at least one line.");
       setNotice("");
       return;
+    }
+    const belowCostLines = lines.filter(
+      (line) =>
+        !isAirtimeCartLine(line) &&
+        isSellBelowCost(line.unitPrice, line.item.buyingPrice),
+    );
+    if (belowCostLines.length > 0 && marginGuardMode !== "warn") {
+      if (marginGuardMode === "hard") {
+        setError(
+          belowCostLines.length === 1
+            ? "Selling below cost is blocked for this item. Raise the price or remove it."
+            : `${belowCostLines.length} lines are below cost — selling below cost is blocked.`,
+        );
+        setNotice("");
+        return;
+      }
+      // approve mode
+      if (!canApproveBelowCost) {
+        setError(
+          "Below-cost sale needs manager approval (sell-price permission).",
+        );
+        setNotice("");
+        return;
+      }
+      if (!opts?.skipBelowCostConfirm) {
+        showThemedConfirmToast({
+          id: "cashier-complete-below-cost",
+          title: "Sell below cost?",
+          description:
+            belowCostLines.length === 1
+              ? "1 line is priced below catalog cost. Confirm to complete this sale."
+              : `${belowCostLines.length} lines are priced below catalog cost. Confirm to complete this sale.`,
+          confirmLabel: "Approve & complete",
+          confirmVariant: "default",
+          onConfirm: () => {
+            void onComplete({
+              skipBranchConfirm: true,
+              skipBelowCostConfirm: true,
+            });
+          },
+        });
+        return;
+      }
     }
     const payloadLines: PostSalePayload["lines"] = [];
     for (let i = 0; i < lines.length; i++) {
@@ -4308,6 +4382,8 @@ export function QuickSaleWorkspace({
     ensureCustomerForStkPhone,
     updateActiveCart,
     dismissCompletedSaleUi,
+    marginGuardMode,
+    canApproveBelowCost,
   ]);
 
   // Auto-complete the sale once M-Pesa is gateway-verified (STK or till webhook).

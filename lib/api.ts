@@ -7112,6 +7112,38 @@ export async function fetchItemsByProfit(
   );
 }
 
+export type MarginLeakRow = {
+  itemId: string;
+  itemName: string;
+  sku: string | null;
+  quantitySold: number | string;
+  netRevenue: number | string;
+  netProfit: number | string;
+  shareOfLossPct: number | string;
+  reasons: string[];
+};
+
+export async function fetchMarginLeaks(
+  from?: string,
+  to?: string,
+  opts?: {
+    branchId?: string;
+    itemTypeId?: string;
+    limit?: number;
+  },
+): Promise<MarginLeakRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (opts?.branchId?.trim()) params.set("branchId", opts.branchId.trim());
+  if (opts?.itemTypeId?.trim()) params.set("itemTypeId", opts.itemTypeId.trim());
+  if (opts?.limit != null) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  return request<MarginLeakRow[]>(
+    `/api/v1/sales/intelligence/margin-leaks${qs ? `?${qs}` : ""}`,
+  );
+}
+
 export type MonthlyCustomerRow = {
   year: number;
   month: number;
@@ -11283,6 +11315,138 @@ export async function updateSupplierPayoutSettings(
       method: "PUT",
       body,
     },
+  );
+}
+
+export type ProfitPocketSettingsRecord = {
+  enabled: boolean;
+  configured: boolean;
+  destinationType: string | null;
+  destinationLabel: string | null;
+  destinationAccount: string | null;
+  destinationBankName: string | null;
+  destinationPaybill: string | null;
+  destinationPaybillAccount: string | null;
+  defaultFloat: number | string;
+  destinationSummary: string | null;
+  marginGuardMode: "warn" | "approve" | "hard" | string;
+  fridayReminderEnabled: boolean;
+  collidesWithCustomerPay: boolean;
+  customerPayCollisionMessage: string | null;
+  profitJarPct: number | string | null;
+  marginBudgetDaily: number | string | null;
+};
+
+export type UpdateProfitPocketSettingsPayload = {
+  enabled?: boolean;
+  destinationType?: string | null;
+  destinationLabel?: string | null;
+  destinationAccount?: string | null;
+  destinationBankName?: string | null;
+  destinationPaybill?: string | null;
+  destinationPaybillAccount?: string | null;
+  defaultFloat?: number;
+  marginGuardMode?: "warn" | "approve" | "hard";
+  fridayReminderEnabled?: boolean;
+  profitJarPct?: number | null;
+  marginBudgetDaily?: number | null;
+};
+
+export async function fetchProfitPocketSettings(): Promise<ProfitPocketSettingsRecord> {
+  return request<ProfitPocketSettingsRecord>("/api/v1/payments/profit-pocket");
+}
+
+export async function updateProfitPocketSettings(
+  body: UpdateProfitPocketSettingsPayload,
+): Promise<ProfitPocketSettingsRecord> {
+  return request<ProfitPocketSettingsRecord>("/api/v1/payments/profit-pocket", {
+    method: "PUT",
+    body,
+  });
+}
+
+export type CashSurplusRecord = {
+  from: string;
+  to: string;
+  branchId: string | null;
+  cashTakings: number | string;
+  mpesaTakings: number | string;
+  creditTakings: number | string;
+  defaultFloat: number | string;
+  suggestedPocket: number | string;
+  grossProfit: number | string;
+  openShifts: number;
+  destinationConfigured: boolean;
+  destinationSummary: string | null;
+  collidesWithCustomerPay: boolean;
+  customerPayCollisionMessage: string | null;
+  profitJarPct: number | string;
+  rawSurplus: number | string;
+};
+
+export async function fetchCashSurplus(opts: {
+  from: string;
+  to: string;
+  branchId?: string;
+}): Promise<CashSurplusRecord> {
+  const params = new URLSearchParams({
+    from: opts.from.trim(),
+    to: opts.to.trim(),
+  });
+  if (opts.branchId?.trim()) params.set("branchId", opts.branchId.trim());
+  return request<CashSurplusRecord>(
+    `/api/v1/finance/cash-surplus?${params.toString()}`,
+  );
+}
+
+export type PostProfitPocketPayload = {
+  periodFrom: string;
+  periodTo: string;
+  branchId?: string;
+  amount: number;
+  leaveFloat?: number;
+  fundingMethod?: "cash" | "mpesa_manual" | "bank";
+  acknowledgedWarnings?: string[];
+};
+
+export type ProfitPocketRecord = {
+  profitPocketId: string;
+  journalEntryId: string;
+  amount: number | string;
+  periodFrom: string;
+  periodTo: string;
+  destinationSummary: string | null;
+  createdAt: string;
+  sendMoneyStatus?: string | null;
+  kopokopoSendMoneyId?: string | null;
+  sendMoneyMessage?: string | null;
+};
+
+export async function postProfitPocket(
+  body: PostProfitPocketPayload,
+): Promise<ProfitPocketRecord> {
+  return request<ProfitPocketRecord>("/api/v1/finance/profit-pockets", {
+    method: "POST",
+    body,
+  });
+}
+
+export async function fetchProfitPocket(
+  id: string,
+): Promise<ProfitPocketRecord> {
+  return request<ProfitPocketRecord>(
+    `/api/v1/finance/profit-pockets/${encodeURIComponent(id.trim())}`,
+  );
+}
+
+export async function fetchProfitPockets(opts?: {
+  limit?: number;
+}): Promise<ProfitPocketRecord[]> {
+  const params = new URLSearchParams();
+  if (opts?.limit != null) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  return request<ProfitPocketRecord[]>(
+    `/api/v1/finance/profit-pockets${qs ? `?${qs}` : ""}`,
   );
 }
 

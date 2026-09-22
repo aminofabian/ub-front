@@ -15,6 +15,7 @@ import {
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
+import { ProfitPocketDrawer } from "@/components/business-hub/profit-pocket-drawer";
 import { OneOffExpenseDrawer } from "@/components/payments/one-off-expense-drawer";
 import { Button } from "@/components/ui/button";
 import { ScheduleFormDrawer } from "@/app/(dashboard)/fixed-costs/_components/schedule-form-drawer";
@@ -144,10 +145,21 @@ export function ExpensesHubWorkspace() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [addOpen, setAddOpen] = useState(false);
+  const [profitPocketOpen, setProfitPocketOpen] = useState(false);
   const [recurringOpen, setRecurringOpen] = useState(false);
   const [recurringSaving, setRecurringSaving] = useState(false);
 
   const pageSize = 50;
+
+  const periodLabel = useMemo(() => {
+    if (preset === "week") return "This week";
+    if (preset === "month") return "This month";
+    if (preset === "today") return "Today";
+    return `${from} → ${to}`;
+  }, [preset, from, to]);
+
+  const canPocket =
+    canReadFinanceReports || canWriteFinanceExpenses;
 
   const applyPreset = (next: ExpensesHubPreset) => {
     setPreset(next);
@@ -601,10 +613,24 @@ export function ExpensesHubWorkspace() {
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
-            {canWriteFinanceExpenses ? (
+            {canPocket ? (
               <Button
                 type="button"
                 className="h-9 rounded-none border-0 bg-[#d8f3ee] px-3 text-[13px] font-semibold text-[#0a4f48] shadow-none hover:bg-white"
+                onClick={() => setProfitPocketOpen(true)}
+              >
+                Pocket cash…
+              </Button>
+            ) : null}
+            {canWriteFinanceExpenses ? (
+              <Button
+                type="button"
+                className={cn(
+                  "h-9 rounded-none border-0 px-3 text-[13px] font-semibold shadow-none",
+                  canPocket
+                    ? "border border-white/50 bg-transparent text-white hover:bg-white/10"
+                    : "bg-[#d8f3ee] text-[#0a4f48] hover:bg-white",
+                )}
                 onClick={() => setAddOpen(true)}
               >
                 <Plus className="size-4" />
@@ -803,7 +829,18 @@ export function ExpensesHubWorkspace() {
             >
               <MetricCard label="Sales" value={pl.revenue} />
               <MetricCard label="COGS" value={pl.cogs} />
-              <MetricCard label="Gross profit" value={pl.grossProfit} />
+              <MetricCard
+                label="Gross profit"
+                value={pl.grossProfit}
+                action={
+                  canPocket
+                    ? {
+                        label: "Pocket cash…",
+                        onClick: () => setProfitPocketOpen(true),
+                      }
+                    : undefined
+                }
+              />
               <MetricCard label="Operating expenses" value={pl.operatingExpenses} />
               <MetricCard
                 label="Net operating profit"
@@ -1356,6 +1393,24 @@ export function ExpensesHubWorkspace() {
         onError={(message) => setFeedback({ kind: "error", text: message })}
       />
 
+      {canPocket ? (
+        <ProfitPocketDrawer
+          open={profitPocketOpen}
+          onOpenChange={setProfitPocketOpen}
+          from={from}
+          to={to}
+          branchId={branchFilter || null}
+          periodLabel={periodLabel}
+          onPocketed={() => {
+            setFeedback({
+              kind: "success",
+              text: "Cash surplus pocketed (owner drawings — does not change GP)",
+            });
+            bump();
+          }}
+        />
+      ) : null}
+
       <ScheduleFormDrawer
         open={recurringOpen}
         onOpenChange={setRecurringOpen}
@@ -1395,10 +1450,12 @@ function MetricCard({
   label,
   value,
   emphasize,
+  action,
 }: {
   label: string;
   value: number | string;
   emphasize?: boolean;
+  action?: { label: string; onClick: () => void };
 }) {
   const n = moneyNumber(value);
   return (
@@ -1422,6 +1479,15 @@ function MetricCard({
       >
         {formatFixedCostMoney(n)}
       </p>
+      {action ? (
+        <button
+          type="button"
+          className="mt-2 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+          onClick={action.onClick}
+        >
+          {action.label}
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { postSellingPrice } from "@/lib/api";
+import { isSellBelowCost } from "@/lib/margin-guard";
 import { cn } from "@/lib/utils";
 import { usePhoneLayout } from "@/lib/use-phone-layout";
 
@@ -32,6 +33,8 @@ type CashierEditPriceModalProps = {
   currency: string;
   label: string;
   currentPrice: string;
+  /** Catalog buying price — warns when the cart sell is below cost. */
+  costPrice?: number | string | null;
   itemId?: string | null;
   branchId?: string | null;
   online?: boolean;
@@ -49,6 +52,7 @@ export function CashierEditPriceModal({
   currency,
   label,
   currentPrice,
+  costPrice = null,
   itemId,
   branchId,
   online = true,
@@ -76,6 +80,7 @@ export function CashierEditPriceModal({
 
   const priceNum = Number(unitPrice);
   const canSave = Number.isFinite(priceNum) && priceNum > 0 && !busy;
+  const belowCost = isSellBelowCost(unitPrice, costPrice);
 
   const fieldClass = cn(
     "h-12 w-full rounded-none border border-border/55 bg-background px-3 text-right text-lg font-semibold tabular-nums shadow-sm sm:h-11 sm:rounded-none",
@@ -147,7 +152,11 @@ export function CashierEditPriceModal({
               Unit price{currency ? ` (${currency})` : ""}
             </span>
             <input
-              className={fieldClass}
+              className={cn(
+                fieldClass,
+                belowCost &&
+                  "border-rose-500/50 focus-visible:border-rose-500/60 focus-visible:ring-rose-500/20",
+              )}
               inputMode="decimal"
               value={unitPrice}
               onChange={(e) => setUnitPrice(e.target.value)}
@@ -160,6 +169,15 @@ export function CashierEditPriceModal({
                 }
               }}
             />
+            {belowCost ? (
+              <p className="text-[11px] font-medium text-rose-700">
+                Below cost
+                {costPrice != null && costPrice !== ""
+                  ? ` (buy ${Number(costPrice).toFixed(2)})`
+                  : ""}
+                — sale still allowed
+              </p>
+            ) : null}
           </label>
 
           {canUpdateCatalog ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -45,6 +46,7 @@ function toNum(n: number | string | null | undefined): number | null {
 
 export default function InventoryCostIssuesPage() {
   const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
+  const searchParams = useSearchParams();
   const allowed = hasPermission(me?.permissions, Permission.PricingRead);
   const canAdjust = hasPermission(
     me?.permissions,
@@ -65,11 +67,27 @@ export default function InventoryCostIssuesPage() {
   const [data, setData] = useState<CostIssuesResponseRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [issueFilter, setIssueFilter] = useState<IssueFilter>("all");
+  const initialFilter = useMemo((): IssueFilter => {
+    const raw = (searchParams.get("filter") ?? "").trim().toLowerCase();
+    if (
+      raw === "sells_at_loss" ||
+      raw === "zero_cost" ||
+      raw === "thin_margin" ||
+      raw === "high_margin"
+    ) {
+      return raw;
+    }
+    return "all";
+  }, [searchParams]);
+  const [issueFilter, setIssueFilter] = useState<IssueFilter>(initialFilter);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
+
+  useEffect(() => {
+    setIssueFilter(initialFilter);
+  }, [initialFilter]);
 
   const onChangeBranch = useCallback(
     (id: string) => {

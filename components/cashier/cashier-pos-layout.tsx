@@ -3121,6 +3121,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         currentPrice={
           cart.lines.find((l) => l.key === editPriceKey)?.unitPrice ?? ""
         }
+        costPrice={
+          cart.lines.find((l) => l.key === editPriceKey)?.item.buyingPrice ??
+          null
+        }
         itemId={cart.lines.find((l) => l.key === editPriceKey)?.itemId ?? null}
         branchId={branchId}
         online={online}

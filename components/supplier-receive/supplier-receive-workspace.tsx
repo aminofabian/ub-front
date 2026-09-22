@@ -61,6 +61,7 @@ import { resolveReceiptWebsite } from "@/lib/branch-receipt";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { kioskPlaceholderWashClass } from "@/components/cashier/kiosk-listing-styles";
 import { APP_ROUTES } from "@/lib/config";
+import { costIssuesSellsAtLossHref, isSellBelowCost } from "@/lib/margin-guard";
 import { getSessionTenantId } from "@/lib/auth";
 import { printSupplyInvoiceReceipt } from "@/lib/desktop-print";
 import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
@@ -2617,6 +2618,29 @@ export function SupplierReceiveWorkspace({
             ? `Stock updated · ${payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${currency}`
             : `${readyLines.length} products updated · ${payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${currency}`,
       );
+
+      const catchUp = readyLines.filter((line) => {
+        const cost = supplyUnitCost(line.costStr, line.packMode);
+        const sell = parseNonNeg(line.sellStr);
+        return isSellBelowCost(sell, cost);
+      });
+      if (catchUp.length > 0) {
+        const href = costIssuesSellsAtLossHref(APP_ROUTES.inventoryCostIssues);
+        toast.warning(
+          catchUp.length === 1
+            ? `1 item needs a higher shelf price (cost rose above sell)`
+            : `${catchUp.length} items need a higher shelf price (cost rose above sell)`,
+          {
+            action: {
+              label: "Fix prices",
+              onClick: () => {
+                router.push(href);
+              },
+            },
+            duration: 12_000,
+          },
+        );
+      }
 
       void fetchSupplierItemLinks(supplier.id, { branchId: bid }).then((list) =>
         setLinks(list.filter((l) => l.active)),

@@ -30,6 +30,8 @@ import {
   type SupplierRecord,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { costIssuesSellsAtLossHref, isSellBelowCost } from "@/lib/margin-guard";
+import { toast } from "sonner";
 import { helpHostUrl } from "@/lib/help/help-url";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
@@ -1809,6 +1811,38 @@ export function NewSupplyDrawer({
           `Supply posted, but shelf price could not be updated for: ${priceErrors.join("; ")}`,
         );
         return;
+      }
+      const catchUpLabels: string[] = [];
+      for (const row of activeRows) {
+        const iid = rowItemId(row) as string | null;
+        if (!iid) continue;
+        const pack = rowPack(row);
+        const unitCost = supplyUnitCost(row.unitStr, pack);
+        if (unitCost == null || unitCost <= 0) continue;
+        const sell =
+          parseRetailPrice(row.sellPriceStr) ??
+          rowPricing[iid]?.currentSellPrice ??
+          null;
+        if (isSellBelowCost(sell, unitCost)) {
+          catchUpLabels.push(rowLabel(row));
+        }
+      }
+      if (catchUpLabels.length > 0) {
+        const href = costIssuesSellsAtLossHref(APP_ROUTES.inventoryCostIssues);
+        toast.warning(
+          catchUpLabels.length === 1
+            ? `1 item needs a higher shelf price (cost rose above sell)`
+            : `${catchUpLabels.length} items need a higher shelf price (cost rose above sell)`,
+          {
+            action: {
+              label: "Fix prices",
+              onClick: () => {
+                window.location.assign(href);
+              },
+            },
+            duration: 12_000,
+          },
+        );
       }
       onOpenChange(false);
     } catch (e) {

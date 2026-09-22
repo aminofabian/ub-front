@@ -9,6 +9,7 @@ import {
   cashierItemPrimaryLabel,
   cashierItemTitleParts,
 } from "@/lib/cashier-item-display";
+import { isSellBelowCost } from "@/lib/margin-guard";
 import { cn } from "@/lib/utils";
 
 import {
@@ -94,6 +95,11 @@ export function CashierCartSidePanel({
     const q = Number(line.quantity);
     return sum + (Number.isFinite(q) && q > 0 ? q : 0);
   }, 0);
+  const belowCostCount = lines.filter(
+    (line) =>
+      !isAirtimeCartLine(line) &&
+      isSellBelowCost(line.unitPrice, line.item.buyingPrice),
+  ).length;
 
   return (
     <aside
@@ -145,6 +151,9 @@ export function CashierCartSidePanel({
                 const { primary, option } = cashierItemTitleParts(line.item);
                 const sub = lineSubtotal(line);
                 const airtime = isAirtimeCartLine(line);
+                const belowCost =
+                  !airtime &&
+                  isSellBelowCost(line.unitPrice, line.item.buyingPrice);
                 return (
                   <li
                     key={line.key}
@@ -161,6 +170,11 @@ export function CashierCartSidePanel({
                               {option}
                             </p>
                           ) : null}
+                          {belowCost ? (
+                            <p className="mt-0.5 text-[10px] font-semibold text-rose-700">
+                              Below cost
+                            </p>
+                          ) : null}
                         </div>
                         {!airtime && allowWeighedToggle && onToggleWeighed ? (
                           <CashierWeighedToggle
@@ -175,14 +189,27 @@ export function CashierCartSidePanel({
                         {!airtime && allowPriceEdit && onEditPrice ? (
                           <button
                             type="button"
-                            className="shrink-0 font-medium text-foreground underline-offset-2 hover:underline"
+                            className={cn(
+                              "shrink-0 font-medium underline-offset-2 hover:underline",
+                              belowCost
+                                ? "text-rose-700"
+                                : "text-foreground",
+                            )}
                             onClick={() => onEditPrice(line.key)}
-                            title="Edit unit price"
+                            title={
+                              belowCost
+                                ? "Edit unit price — currently below cost"
+                                : "Edit unit price"
+                            }
                           >
                             {Number(line.unitPrice).toFixed(2)}
                           </button>
                         ) : (
-                          <span>{Number(line.unitPrice).toFixed(2)}</span>
+                          <span
+                            className={cn(belowCost && "font-semibold text-rose-700")}
+                          >
+                            {Number(line.unitPrice).toFixed(2)}
+                          </span>
                         )}
                         <span>
                           ×{" "}
@@ -236,6 +263,14 @@ export function CashierCartSidePanel({
           {tillListening ? (
             <p className="mb-2 rounded-none border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
               Listening for M-Pesa till payment…
+            </p>
+          ) : null}
+          {belowCostCount > 0 ? (
+            <p className="mb-2 rounded-none border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-100">
+              {belowCostCount === 1
+                ? "1 line is below cost"
+                : `${belowCostCount} lines are below cost`}{" "}
+              — sale still allowed
             </p>
           ) : null}
           <div className="mb-2 flex items-end gap-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart3,
   Boxes,
@@ -39,6 +39,8 @@ import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { OpenWorkBoard } from "@/components/business-hub/open-work-board";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
+import { MarginLeaksDrawer } from "@/components/business-hub/margin-leaks-drawer";
+import { ProfitPocketDrawer } from "@/components/business-hub/profit-pocket-drawer";
 import { ReceiveMpesaSetupCard } from "@/components/business-hub/receive-mpesa-setup-card";
 import { ManageTillsHubCard } from "@/components/business-hub/manage-tills-hub-card";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
@@ -172,10 +174,14 @@ function isOpenWebOrder(order: WebOrderSummary): boolean {
 }
 
 export function BusinessHubWorkspace() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const manageTillsInitiallyOpen =
     searchParams.get("manageTills") === "1" ||
     searchParams.get("manageTills") === "true";
+  const openPocketFromQuery =
+    searchParams.get("pocket") === "1" ||
+    searchParams.get("pocket") === "true";
   const {
     me,
     business,
@@ -198,6 +204,8 @@ export function BusinessHubWorkspace() {
     canRecordSupplierPayment,
     canReviewPaymentClaims,
     canReadFinanceExpenses,
+    canWriteFinanceExpenses,
+    canReadFinanceReports,
   } = useDashboard();
   const featureFlags = useFeatureFlags();
   const hubAlerts = useMemo(
@@ -281,6 +289,24 @@ export function BusinessHubWorkspace() {
   const [historyTarget, setHistoryTarget] = useState<HubHistoryTarget | null>(
     null,
   );
+  const [marginLeaksOpen, setMarginLeaksOpen] = useState(false);
+  const [profitPocketOpen, setProfitPocketOpen] = useState(false);
+
+  useEffect(() => {
+    if (!openPocketFromQuery) return;
+    if (!(canReadFinanceReports || canWriteFinanceExpenses)) return;
+    setProfitPocketOpen(true);
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("pocket");
+    const qs = next.toString();
+    router.replace(qs ? `?${qs}` : "/business", { scroll: false });
+  }, [
+    openPocketFromQuery,
+    canReadFinanceReports,
+    canWriteFinanceExpenses,
+    router,
+    searchParams,
+  ]);
   const [openWebOrders, setOpenWebOrders] = useState<WebOrderSummary[]>([]);
   const [recentDrawouts, setRecentDrawouts] = useState<HubDrawout[]>([]);
   const [selectedCashiers, setSelectedCashiers] = useState<string[]>([]);
@@ -689,6 +715,12 @@ export function BusinessHubWorkspace() {
   });
 
   const isToday = period === "today";
+  const hubPeriodRange = useMemo(() => {
+    const todayRange = presetRange("today")!;
+    const weekRange = presetRange("last7")!;
+    return period === "today" ? todayRange : weekRange;
+  }, [period]);
+  const hubPeriodLabel = isToday ? "Today" : "This week";
 
   const revenue = isToday ? toNum(pulse?.revenue) : toNum(weekPl?.revenue);
   const prevRevenue = isToday
@@ -840,7 +872,43 @@ export function BusinessHubWorkspace() {
           | "muted"
           | "positive"
           | "negative",
-        href: canViewAnalytics ? APP_ROUTES.analytics : APP_ROUTES.sales,
+        href:
+          canViewAnalytics && !canViewSalesIntelligence && !canReadFinanceReports
+            ? APP_ROUTES.analytics
+            : undefined,
+        actions:
+          canViewAnalytics &&
+          (canViewSalesIntelligence ||
+            canReadFinanceReports ||
+            canWriteFinanceExpenses)
+            ? [
+                ...(canViewSalesIntelligence &&
+                (grossProfit < 0 || (margin != null && margin < 0))
+                  ? [
+                      {
+                        label: "Why negative?",
+                        onClick: () => setMarginLeaksOpen(true),
+                        emphasize: true,
+                      },
+                    ]
+                  : canViewSalesIntelligence && Math.abs(grossProfit) > 0.009
+                    ? [
+                        {
+                          label: "See items",
+                          onClick: () => setMarginLeaksOpen(true),
+                        },
+                      ]
+                    : []),
+                ...(canReadFinanceReports || canWriteFinanceExpenses
+                  ? [
+                      {
+                        label: "Pocket cash…",
+                        onClick: () => setProfitPocketOpen(true),
+                      },
+                    ]
+                  : []),
+              ]
+            : undefined,
       },
       {
         label: isToday ? "Avg ticket" : "Avg / day",
@@ -882,6 +950,9 @@ export function BusinessHubWorkspace() {
     return metrics;
   }, [
     canViewAnalytics,
+    canViewSalesIntelligence,
+    canReadFinanceReports,
+    canWriteFinanceExpenses,
     chartPoints.length,
     grossProfit,
     isToday,
@@ -1644,6 +1715,33 @@ export function BusinessHubWorkspace() {
           if (!next) setHistoryTarget(null);
         }}
       />
+
+      {canViewSalesIntelligence ? (
+        <MarginLeaksDrawer
+          open={marginLeaksOpen}
+          onOpenChange={setMarginLeaksOpen}
+          from={hubPeriodRange.from}
+          to={hubPeriodRange.to}
+          branchId={branchId || null}
+          itemTypeId={itemTypeId || null}
+          grossProfit={grossProfit}
+          periodLabel={hubPeriodLabel}
+        />
+      ) : null}
+
+      {canReadFinanceReports || canWriteFinanceExpenses ? (
+        <ProfitPocketDrawer
+          open={profitPocketOpen}
+          onOpenChange={setProfitPocketOpen}
+          from={hubPeriodRange.from}
+          to={hubPeriodRange.to}
+          branchId={branchId || null}
+          periodLabel={hubPeriodLabel}
+          onPocketed={() => {
+            void load();
+          }}
+        />
+      ) : null}
     </BusinessPageLayout>
   );
 }

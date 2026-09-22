@@ -13,6 +13,11 @@ export type PulseMetric = {
   hint?: string;
   tone?: "muted" | "positive" | "warning" | "negative";
   href?: string;
+  actions?: {
+    label: string;
+    onClick: () => void;
+    emphasize?: boolean;
+  }[];
 };
 
 const CELL_DIVIDE = "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]";
@@ -220,9 +225,32 @@ export function PulseHero({
                       {metric.hint}
                     </p>
                   ) : null}
+                  {metric.actions && metric.actions.length > 0 ? (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {metric.actions.map((action) => (
+                        <button
+                          key={action.label}
+                          type="button"
+                          className={cn(
+                            "text-[9px] font-semibold underline-offset-2 hover:underline sm:text-[10px]",
+                            action.emphasize
+                              ? "text-rose-700"
+                              : "text-[var(--pos-primary,#0f766e)]",
+                          )}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            action.onClick();
+                          }}
+                        >
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               );
-              return metric.href ? (
+              return metric.href && !metric.actions?.length ? (
                 <Link
                   key={metric.label}
                   href={metric.href}

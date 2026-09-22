@@ -38,6 +38,7 @@ import {
   cashierItemPrimaryLabel,
   cashierItemTitleParts,
 } from "@/lib/cashier-item-display";
+import { isSellBelowCost } from "@/lib/margin-guard";
 import { CashierCurrencySuffix } from "./cashier-currency-inline";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
 import { TillLastBasketHint } from "@/components/cashier/till-last-basket-hint";
@@ -754,6 +755,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                     const subtotal = lineSubtotal(line);
                     const full = cashierItemPrimaryLabel(line.item);
                     const { primary, option } = cashierItemTitleParts(line.item);
+                    const belowCost = isSellBelowCost(
+                      line.unitPrice,
+                      line.item.buyingPrice,
+                    );
                     return (
                       <li
                         key={line.key}
@@ -764,8 +769,20 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           {option ? (
                             <span className="text-muted-foreground"> · {option}</span>
                           ) : null}
+                          {belowCost ? (
+                            <span className="ml-1 font-semibold text-rose-700">
+                              · Below cost
+                            </span>
+                          ) : null}
                         </span>
-                        <span className="shrink-0 tabular-nums text-muted-foreground">
+                        <span
+                          className={cn(
+                            "shrink-0 tabular-nums",
+                            belowCost
+                              ? "font-semibold text-rose-700"
+                              : "text-muted-foreground",
+                          )}
+                        >
                           {subtotal.toFixed(2)}
                         </span>
                         <button

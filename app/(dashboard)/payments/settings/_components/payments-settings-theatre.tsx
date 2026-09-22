@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ChevronRight,
   CreditCard,
+  PiggyBank,
   Search,
   Signal,
   Truck,
@@ -19,6 +20,7 @@ export type PaymentsSettingsSectionId =
   | "accept-payments"
   | "kiosk-pay"
   | "supplier-payouts"
+  | "profit-pocket"
   | "airtime";
 
 export type PaymentsSettingsNavItem = {
@@ -46,6 +48,12 @@ export const PAYMENTS_SETTINGS_NAV: PaymentsSettingsNavItem[] = [
     label: "Pay suppliers",
     hint: "Send Money from Supplies with optional auto-pay.",
     icon: Truck,
+  },
+  {
+    id: "profit-pocket",
+    label: "Profit Pocket",
+    hint: "Owner / expense destination for pocketing cash surplus.",
+    icon: PiggyBank,
   },
   {
     id: "airtime",
