@@ -300,6 +300,11 @@
 .home {
   display: flex;
   flex-direction: column;
+  /* Natural document height inside the storefront scrollport —
+     do not shrink below content (that clips the footer). */
+  flex: 1 0 auto;
+  min-height: min-content;
+  width: 100%;
 }
 
 .hero {
@@ -308,7 +313,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 3.25rem 1.15rem 4.75rem;
+  padding: 3.25rem 1.15rem 0;
   overflow: hidden;
   background: linear-gradient(
     165deg,
@@ -324,6 +329,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
+  z-index: 0;
 }
 
 .blob {
@@ -352,20 +358,31 @@
   display: none;
   position: absolute;
   color: var(--ms-sky);
-  opacity: 0.32;
+  opacity: 0.28;
   filter: none;
   animation: msFloat 9s ease-in-out infinite;
 }
 
 .floatA {
-  top: 22%;
-  left: 12%;
+  top: 18%;
+  left: 8%;
 }
 
 .floatB {
-  top: 30%;
-  right: 14%;
+  top: 24%;
+  right: 8%;
   animation-delay: -4s;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: var(--ms-max);
+  padding: 0 0 1.75rem;
 }
 
 .badge {
@@ -483,18 +500,19 @@
 }
 
 .wave {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  width: 100%;
-  height: 72px;
+  position: relative;
+  z-index: 1;
   display: block;
+  width: 100%;
+  height: 4.5rem;
+  flex-shrink: 0;
+  margin: 0;
+  line-height: 0;
 }
 
 @container mizu (min-width: 720px) {
   .hero {
-    padding: 5.5rem 1.5rem 7.5rem;
+    padding: 5.5rem 1.5rem 0;
   }
 
   .blob {
@@ -504,6 +522,10 @@
 
   .floatIcon {
     display: block;
+  }
+
+  .heroContent {
+    padding-bottom: 2.25rem;
   }
 
   .badge {
@@ -538,13 +560,13 @@
   }
 
   .wave {
-    height: 120px;
+    height: 6.5rem;
   }
 }
 
 @container mizu (min-width: 1024px) {
   .hero {
-    padding: 6.5rem 1.5rem 8.5rem;
+    padding: 6.5rem 1.5rem 0;
   }
 
   .heroTitle {
@@ -558,7 +580,7 @@
   }
 
   .wave {
-    height: 160px;
+    height: 8rem;
   }
 }
 
@@ -1143,11 +1165,13 @@
 
 .footer {
   position: relative;
-  overflow: hidden;
-  padding: var(--ms-space-8) 1.25rem var(--ms-space-6);
+  overflow: visible;
+  padding: var(--ms-space-8) 1.25rem
+    calc(var(--ms-space-6) + env(safe-area-inset-bottom, 0px));
   background: color-mix(in srgb, var(--ms-navy) 97%, #000);
   color: #fff;
   border-top: 4px solid var(--ms-cyan);
+  flex-shrink: 0;
 }
 
 .footerOrb {

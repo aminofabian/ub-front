@@ -226,7 +226,7 @@ export function MizuSpringsStoreHome(props: StoreHomeTemplateProps) {
 
   return (
     <div
-      className={cn(styles.root, styles.body, mizuSpringsFontVariables)}
+      className={cn(styles.root, styles.home, mizuSpringsFontVariables)}
       data-store-theme-id="mizu-springs"
       style={
         {
@@ -284,38 +284,40 @@ export function MizuSpringsStoreHome(props: StoreHomeTemplateProps) {
               <Waves className={cn(styles.floatIcon, styles.floatB)} size={28} />
             </div>
 
-            <span className={styles.badge}>
-              <span className={styles.badgeDot} aria-hidden />
-              {badgeLabel}
-            </span>
+            <div className={styles.heroContent}>
+              <span className={styles.badge}>
+                <span className={styles.badgeDot} aria-hidden />
+                {badgeLabel}
+              </span>
 
-            {heroSettings?.headline.trim() ? (
-              <StorefrontNativeHeroHeadline
-                as="h1"
-                value={headline}
-                className={styles.heroTitle}
-              />
-            ) : (
-              <h1 className={styles.heroTitle}>
-                {shimmerSplit.before}
-                {shimmerSplit.word ? (
-                  <span className={styles.shimmer}>{shimmerSplit.word}</span>
-                ) : (
-                  headline
-                )}
-                {shimmerSplit.after}
-              </h1>
-            )}
+              {heroSettings?.headline.trim() ? (
+                <StorefrontNativeHeroHeadline
+                  as="h1"
+                  value={headline}
+                  className={styles.heroTitle}
+                />
+              ) : (
+                <h1 className={styles.heroTitle}>
+                  {shimmerSplit.before}
+                  {shimmerSplit.word ? (
+                    <span className={styles.shimmer}>{shimmerSplit.word}</span>
+                  ) : (
+                    headline
+                  )}
+                  {shimmerSplit.after}
+                </h1>
+              )}
 
-            <p className={styles.heroSub}>{subcopy}</p>
+              <p className={styles.heroSub}>{subcopy}</p>
 
-            <div className={styles.heroCtas}>
-              <a href="#collection" className={styles.ctaPrimary}>
-                Order Delivery
-              </a>
-              <a href="#custom" className={styles.ctaSecondary}>
-                Custom Branding
-              </a>
+              <div className={styles.heroCtas}>
+                <a href="#collection" className={styles.ctaPrimary}>
+                  Order Delivery
+                </a>
+                <a href="#custom" className={styles.ctaSecondary}>
+                  Custom Branding
+                </a>
+              </div>
             </div>
 
             <svg
@@ -329,9 +331,8 @@ export function MizuSpringsStoreHome(props: StoreHomeTemplateProps) {
                 d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,218.7C672,235,768,245,864,229.3C960,213,1056,171,1152,165.3C1248,160,1344,192,1392,208L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
               />
               <path
-                fill="#082F49"
+                fill="#ffffff"
                 d="M0,256L48,245.3C96,235,192,213,288,202.7C384,192,480,192,576,208C672,224,768,256,864,266.7C960,277,1056,267,1152,240C1248,213,1344,171,1392,149.3L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
-                opacity="0.95"
               />
             </svg>
           </section>
