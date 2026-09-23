@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 
 import {
@@ -84,6 +84,7 @@ export function BulkPriceEditor({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<"preview" | "apply" | null>(null);
   const [applied, setApplied] = useState<number | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -164,6 +165,12 @@ export function BulkPriceEditor({
   }
 
   const lossBlocked = !!preview?.requiresLossAcknowledgement && !acknowledge;
+  const canPreview = buying.mode !== "UNCHANGED" || selling.mode !== "UNCHANGED";
+
+  useEffect(() => {
+    if (!preview) return;
+    previewRef.current?.scrollIntoView({ block: "nearest" });
+  }, [preview]);
 
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
@@ -237,15 +244,17 @@ export function BulkPriceEditor({
                 </fieldset>
 
                 {preview ? (
-                  <PreviewTable
-                    preview={preview}
-                    currencyCode={currencyCode}
-                    acknowledge={acknowledge}
-                    onAcknowledge={(checked) => {
-                      setAcknowledge(checked);
-                      setError("");
-                    }}
-                  />
+                  <div ref={previewRef}>
+                    <PreviewTable
+                      preview={preview}
+                      currencyCode={currencyCode}
+                      acknowledge={acknowledge}
+                      onAcknowledge={(checked) => {
+                        setAcknowledge(checked);
+                        setError("");
+                      }}
+                    />
+                  </div>
                 ) : null}
 
                 {error ? (
@@ -268,34 +277,35 @@ export function BulkPriceEditor({
             </button>
             {applied == null ? (
               <div className={styles.actions}>
-                <button
-                  type="button"
-                  className={styles.ghost}
-                  disabled={!!busy || (buying.mode === "UNCHANGED" && selling.mode === "UNCHANGED")}
-                  onClick={() => void onPreview()}
-                >
-                  {busy === "preview" ? (
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                  ) : null}
-                  Preview
-                </button>
+                {preview ? (
+                  <button
+                    type="button"
+                    className={styles.ghost}
+                    disabled={!!busy || !canPreview}
+                    onClick={() => void onPreview()}
+                  >
+                    {busy === "preview" ? (
+                      <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    ) : null}
+                    Preview again
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className={styles.primary}
                   disabled={
-                    !!busy ||
-                    !preview ||
-                    preview.affected === 0 ||
-                    lossBlocked
+                    preview
+                      ? !!busy || preview.affected === 0 || lossBlocked
+                      : !!busy || !canPreview
                   }
-                  onClick={() => void onApply()}
+                  onClick={() => void (preview ? onApply() : onPreview())}
                 >
-                  {busy === "apply" ? (
+                  {busy ? (
                     <Loader2 className="size-3.5 animate-spin" aria-hidden />
                   ) : null}
                   {preview
                     ? `Update ${preview.affected.toLocaleString()} ${preview.affected === 1 ? "item" : "items"}`
-                    : "Update prices"}
+                    : "Preview"}
                 </button>
               </div>
             ) : null}
