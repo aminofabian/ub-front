@@ -16,9 +16,27 @@ import { fetchBusiness, fetchMe, logoutRemote, type MeResponse } from "@/lib/api
 import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import { isBuyerAccount } from "@/lib/buyer-role";
 import { APP_ROUTES } from "@/lib/config";
-import { destinationForShopAccountSignIn } from "@/lib/post-auth-destination";
+import {
+  destinationForShopAccountSignIn,
+  isOwnerOrAdminRole,
+} from "@/lib/post-auth-destination";
 
 type LoadState = "loading" | "guest" | "ready" | "error" | "routing";
+
+async function fetchBusinessQuick(): Promise<Awaited<
+  ReturnType<typeof fetchBusiness>
+> | null> {
+  try {
+    return await Promise.race([
+      fetchBusiness().catch(() => null),
+      new Promise<null>((resolve) => {
+        window.setTimeout(() => resolve(null), 2000);
+      }),
+    ]);
+  } catch {
+    return null;
+  }
+}
 
 export default function ShopAccountPage() {
   const router = useRouter();
@@ -27,22 +45,46 @@ export default function ShopAccountPage() {
   });
   const [me, setMe] = useState<MeResponse | null>(null);
   const [state, setState] = useState<LoadState>("loading");
+  const [staffDest, setStaffDest] = useState<string | null>(null);
   const routingRef = useRef(false);
+  const hardNavTimerRef = useRef<number | null>(null);
 
   const sessionHint = hasSession;
 
+  const goStaffHome = useCallback(
+    (dest: string) => {
+      routingRef.current = true;
+      setStaffDest(dest);
+      setState("routing");
+      router.replace(dest);
+      if (hardNavTimerRef.current != null) {
+        window.clearTimeout(hardNavTimerRef.current);
+      }
+      // Soft nav can stall under storefront chrome — hard-assign if we are
+      // still on the account door after a beat.
+      hardNavTimerRef.current = window.setTimeout(() => {
+        if (window.location.pathname.startsWith(APP_ROUTES.shopAccount)) {
+          window.location.assign(dest);
+        }
+      }, 1800);
+    },
+    [router],
+  );
+
   const leaveForRole = useCallback(
     async (profile: MeResponse) => {
-      const business = await fetchBusiness().catch(() => null);
+      // Owners/admins have a fixed hub — do not wait on a hung business fetch.
+      const business = isOwnerOrAdminRole(profile)
+        ? null
+        : await fetchBusinessQuick();
       const dest = destinationForShopAccountSignIn(profile, business);
       if (dest && dest !== APP_ROUTES.shopAccount) {
-        routingRef.current = true;
-        router.replace(dest);
+        goStaffHome(dest);
         return true;
       }
       return false;
     },
-    [router],
+    [goStaffHome],
   );
 
   const loadMe = useCallback(async () => {
@@ -57,7 +99,10 @@ export default function ShopAccountPage() {
       const profile = await fetchMe();
       if (!isBuyerAccount(profile)) {
         const left = await leaveForRole(profile);
-        if (left) return;
+        if (left) {
+          setMe(profile);
+          return;
+        }
       }
       setMe(profile);
       setState("ready");
@@ -92,6 +137,14 @@ export default function ShopAccountPage() {
     return () => window.clearTimeout(id);
   }, [ready, sessionHint]);
 
+  useEffect(() => {
+    return () => {
+      if (hardNavTimerRef.current != null) {
+        window.clearTimeout(hardNavTimerRef.current);
+      }
+    };
+  }, []);
+
   const onLogout = async () => {
     await logoutRemote();
     setMe(null);
@@ -105,15 +158,29 @@ export default function ShopAccountPage() {
     (sessionHint && (state === "loading" || (!ready && state !== "guest")));
 
   if (waitingOnProfile) {
+    const staffLeaving =
+      state === "routing" || (me != null && !isBuyerAccount(me));
+    const continueHref =
+      staffDest ||
+      (me && !isBuyerAccount(me)
+        ? destinationForShopAccountSignIn(me, null)
+        : null);
     return (
       <div className={styles.page}>
         <div className={styles.passbook} aria-busy="true">
           <div className={styles.passHead}>
             <h1 className={styles.hello}>
-              {state === "routing" || (me && !isBuyerAccount(me))
-                ? "Taking you to the right place"
+              {staffLeaving
+                ? "Taking you to the workspace"
                 : "Loading your orders"}
             </h1>
+            {staffLeaving && continueHref ? (
+              <p className={styles.lead}>
+                <Link href={continueHref} className={styles.ghost}>
+                  Continue
+                </Link>
+              </p>
+            ) : null}
           </div>
           <div className={styles.skel} />
         </div>
@@ -145,7 +212,10 @@ export default function ShopAccountPage() {
                     // forwarded on (same guard as loadMe).
                     if (!isBuyerAccount(profile)) {
                       const left = await leaveForRole(profile);
-                      if (left) return;
+                      if (left) {
+                        setMe(profile);
+                        return;
+                      }
                     }
                     routingRef.current = false;
                     setMe(profile);
@@ -202,15 +272,19 @@ export default function ShopAccountPage() {
   }
 
   if (!me || !isBuyerAccount(me)) {
+    const continueHref =
+      staffDest ||
+      (me ? destinationForShopAccountSignIn(me, null) : APP_ROUTES.business);
     return (
       <div className={styles.page}>
         <div className={styles.passbook} aria-busy="true">
           <div className={styles.passHead}>
-            <h1 className={styles.hello}>
-              {me && !isBuyerAccount(me)
-                ? "Taking you to the right place"
-                : "Loading your orders"}
-            </h1>
+            <h1 className={styles.hello}>Taking you to the workspace</h1>
+            <p className={styles.lead}>
+              <Link href={continueHref} className={styles.ghost}>
+                Continue to workspace
+              </Link>
+            </p>
           </div>
           <div className={styles.skel} />
         </div>
