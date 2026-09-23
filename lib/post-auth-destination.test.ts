@@ -75,9 +75,9 @@ describe("resolvePostAuthDestination", () => {
     ).toBe(APP_ROUTES.butcher);
   });
 
-  it("sends cashiers to cashier", () => {
+  it("sends cashiers to shifts so they clock in before selling", () => {
     expect(resolvePostAuthDestination({ role: { key: "cashier" } })).toBe(
-      APP_ROUTES.cashier,
+      APP_ROUTES.shifts,
     );
   });
 
@@ -176,7 +176,7 @@ describe("resolvePostAuthDestination", () => {
         { role: { key: "cashier" } },
         APP_ROUTES.shopAccount,
       ),
-    ).toBe(APP_ROUTES.cashier);
+    ).toBe(APP_ROUTES.shifts);
   });
 
   it("sends shoppers from /shop/account to the shop floor", () => {
@@ -275,7 +275,7 @@ describe("resolvePostAuthDestination", () => {
         null,
         pendingOnboarding,
       ),
-    ).toBe(APP_ROUTES.cashier);
+    ).toBe(APP_ROUTES.shifts);
     expect(
       resolvePostAuthDestination(
         { role: { key: "stock_manager" } },
@@ -391,7 +391,7 @@ describe("resolvePostAuthDestination", () => {
     ).toBe(APP_ROUTES.business);
   });
 
-  it("sends cashiers to the till even from office login", () => {
+  it("sends cashiers to shifts even from office login", () => {
     expect(
       resolvePostAuthDestination(
         { role: { key: "cashier" } },
@@ -399,7 +399,7 @@ describe("resolvePostAuthDestination", () => {
         completedOnboarding,
         { office: true },
       ),
-    ).toBe(APP_ROUTES.cashier);
+    ).toBe(APP_ROUTES.shifts);
     expect(
       resolvePostAuthDestination(
         { role: { key: "cashier" } },
@@ -407,7 +407,7 @@ describe("resolvePostAuthDestination", () => {
         completedOnboarding,
         { office: true },
       ),
-    ).toBe(APP_ROUTES.cashier);
+    ).toBe(APP_ROUTES.shifts);
   });
 });
 
@@ -418,10 +418,10 @@ describe("destinationForShopAccountSignIn", () => {
     ).toBe("/");
   });
 
-  it("sends cashiers to the till", () => {
+  it("sends cashiers to shifts, butcher cashiers to the counter", () => {
     expect(
       destinationForShopAccountSignIn({ role: { key: "cashier" } }),
-    ).toBe(APP_ROUTES.cashier);
+    ).toBe(APP_ROUTES.shifts);
     expect(
       destinationForShopAccountSignIn({ role: { key: "butcher_cashier" } }),
     ).toBe(APP_ROUTES.butcher);
@@ -524,10 +524,10 @@ describe("roleLandingRedirect", () => {
     ).toBeNull();
   });
 
-  it("redirects cashier off /business", () => {
+  it("redirects cashier off /business onto shifts", () => {
     expect(
       roleLandingRedirect({ role: { key: "cashier" } }, APP_ROUTES.business),
-    ).toBe(APP_ROUTES.cashier);
+    ).toBe(APP_ROUTES.shifts);
   });
 
   it("redirects stock manager off /business", () => {

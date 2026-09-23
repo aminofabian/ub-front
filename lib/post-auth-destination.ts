@@ -168,7 +168,8 @@ function dedicatedRoleHome(
     return APP_ROUTES.butcher;
   }
   if (roleKey === "cashier") {
-    return APP_ROUTES.cashier;
+    // Clock the shift first; Sell is one tap from the header.
+    return APP_ROUTES.shifts;
   }
   if (roleKey === "stock_manager") {
     return `${APP_ROUTES.inventoryStock}?view=levels`;
@@ -211,7 +212,7 @@ export function isOnboardingIncomplete(
  * business hub — `?next=` and role homes cannot pull a brand-new owner onto the
  * admin dashboard before their shop is configured, and a failed business fetch
  * must not fall through to generic defaults. Staff/POS roles keep their
- * dedicated homes (cashiers on /cashier, grocery clerks on /grocery…). Configured
+ * dedicated homes (cashiers on /shifts, grocery clerks on /grocery…). Configured
  * owners/admins land on the admin dashboard (/overview). Office login
  * (`options.office`) ignores leftover storefront `?next=` so owners stay in the
  * console. The onboarding gate is cloud-only (`!IS_DESKTOP`): the desktop SKU

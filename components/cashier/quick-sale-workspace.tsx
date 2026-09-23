@@ -4682,7 +4682,7 @@ export function QuickSaleWorkspace({
   }, [lastSale]);
 
   const isCashier = variant === "cashier";
-  const heading = isCashier ? "Cashier" : "Quick sale";
+  const heading = isCashier ? "Sell" : "Quick sale";
   const activeBranchName = useMemo(
     () => branches.find((b) => b.id === branchId)?.name ?? "",
     [branches, branchId],

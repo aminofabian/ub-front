@@ -73,7 +73,7 @@ export const MOBILE_APP_ROLE_LABELS: Record<
   { label: string; blurb: string }
 > = {
   shopper: { label: "Shopper", blurb: "Browse catalog and place orders" },
-  cashier: { label: "Cashier", blurb: "Point of sale on the floor" },
+  cashier: { label: "Sell", blurb: "Ring sales on the floor" },
   grocery: { label: "Grocery", blurb: "Invoices and grocery desk" },
   admin: { label: "Admin", blurb: "Owner and manager tools" },
   stock: { label: "Stock", blurb: "Inventory counts and receiving" },

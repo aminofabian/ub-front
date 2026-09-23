@@ -55,8 +55,8 @@ const META: Record<
     icon: SlidersHorizontal,
   },
   cashier: {
-    title: "Cashier",
-    description: "Ring up a sale without leaving the dashboard.",
+    title: "Sell",
+    description: "Ring up a sale without leaving the board.",
     icon: ScanLine,
   },
 };

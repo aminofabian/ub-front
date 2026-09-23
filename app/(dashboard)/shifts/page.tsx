@@ -1978,7 +1978,7 @@ export default function ShiftsPage() {
       ? []
       : [{ href: APP_ROUTES.branches, label: "Branches", icon: MapPin }]),
     roleKey === "cashier"
-      ? { href: APP_ROUTES.cashier, label: "Cashier", icon: Receipt }
+      ? { href: APP_ROUTES.cashier, label: "Sell", icon: Receipt }
       : { href: APP_ROUTES.salesQuick, label: "Quick sale", icon: Receipt },
     ...(roleKey === "cashier"
       ? []

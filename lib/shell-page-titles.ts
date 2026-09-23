@@ -45,7 +45,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.salesTransactions]: "Receipts",
     [APP_ROUTES.salesReports]: "Sales reports",
     [APP_ROUTES.salesQuick]: "Quick sale",
-    [APP_ROUTES.cashier]: "Cashier",
+    [APP_ROUTES.cashier]: "Sell",
     [APP_ROUTES.butcher]: "Butcher",
     [APP_ROUTES.butcherProducts]: "Products",
     [APP_ROUTES.butcherAnalytics]: "Analytics",

@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Building2,
   ClipboardList,
+  Clock,
   CreditCard,
   LayoutDashboard,
   LifeBuoy,
@@ -383,15 +384,15 @@ const NAV_SECTIONS: readonly NavSection[] = [
   },
   {
     id: "ops",
-    title: "Prices & shifts",
-    shortLabel: "Prices",
-    blurb: "Shelf prices, discounts, and who is on till",
-    icon: SlidersHorizontal,
-    entryHref: APP_ROUTES.pricing,
+    title: "Shifts",
+    shortLabel: "Shifts",
+    blurb: "Who is on the till, then shelf prices and discounts",
+    icon: Clock,
+    entryHref: APP_ROUTES.shifts,
     items: [
-      { href: APP_ROUTES.pricing, label: "Pricing" },
-      { href: APP_ROUTES.discounts, label: "Discounts" },
-      { href: APP_ROUTES.shifts, label: "Shifts" },
+      { href: APP_ROUTES.shifts, label: "Open & close", group: "Floor" },
+      { href: APP_ROUTES.pricing, label: "Shelf prices", group: "Floor" },
+      { href: APP_ROUTES.discounts, label: "Discounts", group: "Floor" },
     ],
   },
   {
@@ -485,7 +486,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Reports",
       },
       { href: APP_ROUTES.salesQuick, label: "Quick sale", group: "Tills" },
-      { href: APP_ROUTES.cashier, label: "Cashier till", group: "Tills" },
+      { href: APP_ROUTES.cashier, label: "Sell", group: "Tills" },
       {
         href: APP_ROUTES.butcher,
         label: "Butcher counter",
@@ -921,7 +922,7 @@ const BOTTOM_TABS: readonly BottomTab[] = [
   },
   {
     id: "ops",
-    label: "Cashier",
+    label: "Sell",
     icon: ScanLine,
     href: APP_ROUTES.cashier,
     workspace: "cashier",
@@ -1215,8 +1216,8 @@ export function AppShell({ children }: AppShellProps) {
   const moreQuickLinks = useMemo(() => {
     const candidates: MoreQuickLink[] = [
       {
-        id: "cashier",
-        label: "Cashier",
+        id: "sell",
+        label: "Sell",
         hint: "Ring a sale",
         icon: ScanLine,
         workspace: "cashier",
@@ -1317,7 +1318,7 @@ export function AppShell({ children }: AppShellProps) {
     if (canQuickSale) {
       links.push({
         href: APP_ROUTES.cashier,
-        label: "Cashier",
+        label: "Sell",
         icon: ScanLine,
       });
     }
@@ -1375,6 +1376,8 @@ export function AppShell({ children }: AppShellProps) {
         if (tab.id === "sales") {
           return {
             ...tab,
+            label: "Sell",
+            icon: ScanLine,
             href: APP_ROUTES.cashier,
             workspace: undefined,
           };
@@ -1383,7 +1386,7 @@ export function AppShell({ children }: AppShellProps) {
           return {
             ...tab,
             label: "Shifts",
-            icon: SlidersHorizontal,
+            icon: Clock,
             href: APP_ROUTES.shifts,
             workspace: undefined,
             matchSectionIds: ["ops"],
@@ -1422,7 +1425,7 @@ export function AppShell({ children }: AppShellProps) {
         {
           id: "ops",
           label: "Shifts",
-          icon: SlidersHorizontal,
+          icon: Clock,
           href: APP_ROUTES.shifts,
           matchSectionIds: ["ops"],
         },
@@ -1472,18 +1475,28 @@ export function AppShell({ children }: AppShellProps) {
       return groceryClerkTabs;
     }
 
-    // Owners / admins / managers: Cashier drawer when they can sell;
-    // otherwise fall back to Pricing when they can view prices.
+    // Owners / admins / managers: Sell drawer when they can sell;
+    // otherwise land on Shifts (clock the floor) before prices.
     return BOTTOM_TABS.map((tab) => {
       if (tab.id !== "ops") return tab;
       if (canQuickSale) {
         return {
           ...tab,
-          label: "Cashier",
+          label: "Sell",
           icon: ScanLine,
           href: APP_ROUTES.cashier,
           workspace: "cashier" as const,
           matchSectionIds: ["ops", "sales"],
+        };
+      }
+      if (canViewShifts) {
+        return {
+          ...tab,
+          label: "Shifts",
+          icon: Clock,
+          href: APP_ROUTES.shifts,
+          workspace: undefined,
+          matchSectionIds: ["ops"],
         };
       }
       if (canViewPricing) {
@@ -1499,7 +1512,7 @@ export function AppShell({ children }: AppShellProps) {
       return tab;
     }).filter((tab) => {
       if (tab.id !== "ops") return true;
-      return canQuickSale || canViewPricing;
+      return canQuickSale || canViewShifts || canViewPricing;
     });
   }, [
     me,
@@ -1512,6 +1525,7 @@ export function AppShell({ children }: AppShellProps) {
     stockManagerActivity,
     canViewOrderPad,
     canQuickSale,
+    canViewShifts,
     canViewPricing,
   ]);
 
@@ -1612,8 +1626,8 @@ export function AppShell({ children }: AppShellProps) {
 
     if (roleKey === "cashier") {
       const allowed: string[] = [
-        APP_ROUTES.cashier,
         APP_ROUTES.shifts,
+        APP_ROUTES.cashier,
         ...(canAddSupplies
           ? [APP_ROUTES.purchasingAddSupplies, APP_ROUTES.supplierDirectory]
           : []),
@@ -1623,7 +1637,7 @@ export function AppShell({ children }: AppShellProps) {
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
       );
       if (!isAllowed) {
-        router.replace(APP_ROUTES.cashier);
+        router.replace(APP_ROUTES.shifts);
       }
       return;
     }
