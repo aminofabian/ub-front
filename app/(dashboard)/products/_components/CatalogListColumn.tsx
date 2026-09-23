@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   GitBranchPlus,
   Layers,
@@ -88,6 +89,9 @@ export function CatalogListColumn({
   onCreateNew,
   canCreateNew = false,
 }: Props) {
+  const searchParams = useSearchParams();
+  const deepLinkedProductId = searchParams.get("product")?.trim() || null;
+  const scrolledDeepLinkRef = useRef<string | null>(null);
   const selectionCount = catalog.rowSelection.size;
   const hasSelection = selectionCount > 0;
   const selectionBusy =
@@ -139,6 +143,24 @@ export function CatalogListColumn({
   useEffect(() => {
     scrollToPending();
   }, [scrollToPending, catalog.displayRows.length]);
+
+  // From hub “Open product”: scroll the deep-linked row into view once listed.
+  useEffect(() => {
+    if (!deepLinkedProductId || selectedId !== deepLinkedProductId) return;
+    if (scrolledDeepLinkRef.current === deepLinkedProductId) return;
+    const index = catalog.displayRows.findIndex(
+      (row) => row.id === deepLinkedProductId,
+    );
+    if (index < 0) return;
+    scrolledDeepLinkRef.current = deepLinkedProductId;
+    pendingScrollIndexRef.current = index;
+    scrollToPending();
+  }, [
+    deepLinkedProductId,
+    selectedId,
+    catalog.displayRows,
+    scrollToPending,
+  ]);
 
   const jumpToLetter = catalog.jumpToLetter;
 

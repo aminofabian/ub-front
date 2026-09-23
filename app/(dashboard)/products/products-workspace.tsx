@@ -177,12 +177,24 @@ export function ProductsWorkspace() {
     } else if (aisleId) {
       setAisleId(aisleId);
     }
+    const search =
+      searchParams.get("search")?.trim() || searchParams.get("q")?.trim();
+    if (search) {
+      catalog.setSearch(search);
+      catalog.setDebouncedSearch(search);
+    }
     const productId = searchParams.get("product")?.trim();
     if (productId) {
       detail.selectProduct(productId);
       setMobileDetailOpen(true);
     }
-  }, [searchParams, setAisleId, detail.selectProduct]);
+  }, [
+    searchParams,
+    setAisleId,
+    detail.selectProduct,
+    catalog.setSearch,
+    catalog.setDebouncedSearch,
+  ]);
 
   useEffect(() => {
     if (searchParams.get("action") === "global-catalog" && canGlobalCatalog) {

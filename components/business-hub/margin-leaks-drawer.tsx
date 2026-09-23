@@ -153,7 +153,10 @@ export function MarginLeaksDrawer({
                     {fmtMoney(toNum(row.netProfit))}
                   </p>
                   <Link
-                    href={`${APP_ROUTES.products}?q=${encodeURIComponent(row.itemName)}`}
+                    href={`${APP_ROUTES.products}?product=${encodeURIComponent(row.itemId)}&search=${encodeURIComponent(
+                      row.sku?.trim() || row.itemName,
+                    )}`}
+                    onClick={() => onOpenChange(false)}
                     className="text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] underline"
                   >
                     Open product
