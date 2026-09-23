@@ -4692,6 +4692,8 @@ export type FetchItemsOpts = {
   aisleUnset?: boolean;
   /** When set, omits items that already have a non-deleted supplier link to this supplier (e.g. supplier catalog picker). */
   excludeLinkedSupplierId?: string;
+  /** Only products linked to this supplier (the item or its parent). */
+  linkedSupplierId?: string;
   /** Spring Data sort tuples, e.g. `[{ property: 'name', direction: 'asc' }]`. */
   sort?: Array<{ property: string; direction: "asc" | "desc" }>;
   /**
@@ -4792,6 +4794,10 @@ export async function fetchItemsPage(
   if (exSup) {
     params.set("excludeLinkedSupplierId", exSup);
   }
+  const linkedSup = opts?.linkedSupplierId?.trim();
+  if (linkedSup) {
+    params.set("linkedSupplierId", linkedSup);
+  }
   const stockBr = opts?.branchId?.trim();
   if (stockBr) {
     params.set("branchId", stockBr);
@@ -4851,7 +4857,18 @@ export async function fetchPriceStatusCounts(
   if (opts?.noPrice) params.set("noPrice", "true");
   if (opts?.zeroStock) params.set("zeroStock", "true");
   if (opts?.lowStock) params.set("lowStock", "true");
+  if (opts?.inStock) params.set("inStock", "true");
+  if (opts?.noBuyingPrice) params.set("noBuyingPrice", "true");
+  if (opts?.priceLoss) params.set("priceLoss", "true");
+  if (opts?.poorMargin) {
+    params.set("poorMargin", "true");
+    if (opts.poorMarginMaxPct != null) {
+      params.set("poorMarginMaxPct", String(opts.poorMarginMaxPct));
+    }
+  }
   if (opts?.itemTypeId?.trim()) params.set("itemTypeId", opts.itemTypeId.trim());
+  const linkedSup = opts?.linkedSupplierId?.trim();
+  if (linkedSup) params.set("linkedSupplierId", linkedSup);
   if (opts?.aisleUnset) {
     params.set("aisleUnset", "true");
   } else if (opts?.aisleId?.trim()) {
@@ -4898,10 +4915,16 @@ export type BulkPriceRequest = {
   noPrice?: boolean;
   zeroStock?: boolean;
   lowStock?: boolean;
+  inStock?: boolean;
+  noBuyingPrice?: boolean;
+  priceLoss?: boolean;
+  poorMargin?: boolean;
+  poorMarginMaxPct?: number;
   catalogScope?: CatalogListScope;
   catalogRowTypes?: CatalogRowType[];
   branchId?: string;
   itemTypeId?: string;
+  linkedSupplierId?: string;
   aisleId?: string;
   aisleUnset?: boolean;
   priceStatus?: PriceStatusFilter;
@@ -4962,6 +4985,10 @@ function bulkPriceBody(body: BulkPriceRequest): BulkPriceRequest {
     noPrice: flag(body.noPrice),
     zeroStock: flag(body.zeroStock),
     lowStock: flag(body.lowStock),
+    inStock: flag(body.inStock),
+    noBuyingPrice: flag(body.noBuyingPrice),
+    priceLoss: flag(body.priceLoss),
+    poorMargin: flag(body.poorMargin),
     aisleUnset: flag(body.aisleUnset),
     acknowledgeLosses: flag(body.acknowledgeLosses),
     buying: side(body.buying),
@@ -5030,6 +5057,10 @@ export async function fetchCatalogListStats(
   const exSup = opts?.excludeLinkedSupplierId?.trim();
   if (exSup) {
     params.set("excludeLinkedSupplierId", exSup);
+  }
+  const linkedSup = opts?.linkedSupplierId?.trim();
+  if (linkedSup) {
+    params.set("linkedSupplierId", linkedSup);
   }
   const stockBr = opts?.branchId?.trim();
   if (stockBr) {

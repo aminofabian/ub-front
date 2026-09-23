@@ -49,7 +49,7 @@ import {
   fetchAisles,
   fetchItemTypes,
   fetchItemsPage,
-  fetchSupplierItemLinks,
+  fetchPriceStatusCounts,
   fetchSuppliers,
   patchItem,
   postBatchDecrease,
@@ -57,8 +57,11 @@ import {
   type AisleRecord,
   type BranchRecord,
   type CategoryRecord,
+  type BulkPriceRequest,
   type FetchItemsOpts,
   type ItemSummaryRecord,
+  type PriceStatusCounts,
+  type PriceStatusFilter,
   type ItemTypeRecord,
   type SupplierRecord,
 } from "@/lib/api";
@@ -74,6 +77,8 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { ColumnResizeHandle } from "@/lib/column-resize-handle";
+import { BulkPriceEditor } from "@/app/(dashboard)/products/_components/BulkPriceEditor";
+import { PriceCleanupBar } from "@/app/(dashboard)/products/_components/PriceCleanupBar";
 import {
   StockActionHub,
   type FullCountProgress,
@@ -1476,14 +1481,26 @@ export function StockLevelsPage() {
   );
   const [categoryId, setCategoryId] = useState("");
   const [statusFilter, setStatusFilter] = useState<StockStatusFilter>("all");
+  const [priceStatus, setPriceStatus] = useState<PriceStatusFilter>("ALL");
+  const [priceCounts, setPriceCounts] = useState<PriceStatusCounts>({
+    missingBuying: 0,
+    missingSelling: 0,
+    bothMissing: 0,
+    bothSet: 0,
+  });
+  const [priceMatchAll, setPriceMatchAll] = useState(false);
+  const [priceSelectedIds, setPriceSelectedIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [priceEditorOpen, setPriceEditorOpen] = useState(false);
+  const [priceEditorTarget, setPriceEditorTarget] = useState<Omit<
+    BulkPriceRequest,
+    "buying" | "selling" | "rounding" | "acknowledgeLosses"
+  > | null>(null);
   const [sortKey, setSortKey] = useState<StockSortKey>("name");
   const [sortDir, setSortDir] = useState<StockSortDir>("asc");
   const [supplierId, setSupplierId] = useState("");
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
-  const [supplierItemIds, setSupplierItemIds] = useState<Set<string> | null>(
-    null,
-  );
-  const [supplierFilterLoading, setSupplierFilterLoading] = useState(false);
   const [fullCountProgress, setFullCountProgress] =
     useState<FullCountProgress | null>(null);
 
@@ -1976,42 +1993,6 @@ export function StockLevelsPage() {
     if (fallback) setBranchId(fallback);
   }, [isBranchLockedRole, branchId, branches]);
 
-  // Supplier → catalog item ids for Take stock filter.
-  useEffect(() => {
-    const sid = supplierId.trim();
-    if (!sid) {
-      setSupplierItemIds(null);
-      setSupplierFilterLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setSupplierFilterLoading(true);
-    void fetchSupplierItemLinks(sid, {
-      branchId: branchId.trim() || null,
-    })
-      .then((links) => {
-        if (cancelled) return;
-        const ids = new Set(
-          links
-            .filter((l) => l.active !== false)
-            .map((l) => l.itemId.trim())
-            .filter(Boolean),
-        );
-        setSupplierItemIds(ids);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setSupplierItemIds(new Set());
-        toast.error("Could not load products for that supplier.");
-      })
-      .finally(() => {
-        if (!cancelled) setSupplierFilterLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [supplierId, branchId]);
-
   // Resume Full count across days — progress for hub + levels banner.
   useEffect(() => {
     const branch = branchId.trim();
@@ -2055,6 +2036,20 @@ export function StockLevelsPage() {
     };
   }, [branchId, allowed]);
 
+  const priceListOpts = useMemo(
+    () => ({
+      branchId: branchId.trim() || undefined,
+      itemTypeId: headerItemTypeId?.trim() || undefined,
+      catalogScope: "SKUS_ONLY" as const,
+      categoryId: categoryId.trim() || undefined,
+      includeCategoryDescendants: Boolean(categoryId.trim()),
+      ...stockStatusFetchOpts(statusFilter),
+      priceStatus: priceStatus === "ALL" ? undefined : priceStatus,
+      linkedSupplierId: supplierId.trim() || undefined,
+    }),
+    [branchId, headerItemTypeId, categoryId, statusFilter, priceStatus, supplierId],
+  );
+
   const loadPage = useCallback(
     async (opts: { reset: boolean }) => {
       const branch = branchId.trim();
@@ -2074,6 +2069,8 @@ export function StockLevelsPage() {
         setEditId(null);
         setLoadingMore(false);
         loadingMoreRef.current = false;
+        setPriceMatchAll(false);
+        setPriceSelectedIds(new Set());
         pageRef.current = 0;
         hasMoreRef.current = true;
         setHasMore(true);
@@ -2102,18 +2099,13 @@ export function StockLevelsPage() {
         }
 
         const page = opts.reset ? 0 : pageRef.current + 1;
-        const selectedCategory = categoryId.trim();
         const listSort = toCatalogListSort(sortKey, sortDir);
         const result = await fetchItemsPage(debouncedSearch || undefined, {
+          ...priceListOpts,
           branchId: branch,
-          itemTypeId: headerItemTypeId?.trim() || undefined,
-          catalogScope: "SKUS_ONLY",
-          categoryId: selectedCategory || undefined,
-          includeCategoryDescendants: Boolean(selectedCategory),
           page,
           size: PAGE_SIZE,
           listSort,
-          ...stockStatusFetchOpts(statusFilter),
         });
 
         const mapped = result.content
@@ -2164,7 +2156,7 @@ export function StockLevelsPage() {
         setLoadingMore(false);
       }
     },
-    [branchId, categoryId, headerItemTypeId, debouncedSearch, statusFilter, sortKey, sortDir],
+    [branchId, debouncedSearch, priceListOpts, sortKey, sortDir],
   );
 
   const load = useCallback(() => {
@@ -2217,17 +2209,30 @@ export function StockLevelsPage() {
     void loadPage({ reset: true });
   }, [loadPage, allowed]);
 
+  useEffect(() => {
+    if (!allowed || !branchId.trim()) return;
+    let cancelled = false;
+    const countOpts = { ...priceListOpts, priceStatus: undefined };
+    void fetchPriceStatusCounts(debouncedSearch || undefined, countOpts)
+      .then((counts) => {
+        if (!cancelled) setPriceCounts(counts);
+      })
+      .catch(() => {
+        // The list still loads. Counts refresh with the next filter change.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowed, branchId, debouncedSearch, priceListOpts]);
+
   const filteredRows = useMemo(() => {
-    const filtered = rows.filter((r) => {
-      if (supplierItemIds && !supplierItemIds.has(r.id)) return false;
-      return true;
-    });
+    const filtered = rows;
     // Attention is the only page-local reorder; pricing sorts come from the API.
     if (sortKey === "attention") {
       return sortAttentionRows(filtered);
     }
     return filtered;
-  }, [rows, sortKey, supplierItemIds]);
+  }, [rows, sortKey]);
 
   const applySortPreset = useCallback((key: StockSortKey) => {
     setSortKey(key);
@@ -2244,24 +2249,6 @@ export function StockLevelsPage() {
       return col;
     });
   }, []);
-
-  // Supplier filter is still client-side; keep paging until a match appears.
-  useEffect(() => {
-    if (loading || loadingMore || !hasMore || supplierFilterLoading) return;
-    if (rows.length === 0) return;
-    if (!supplierId.trim()) return;
-    if (filteredRows.length > 0) return;
-    loadMore();
-  }, [
-    loading,
-    loadingMore,
-    hasMore,
-    supplierFilterLoading,
-    rows.length,
-    filteredRows.length,
-    supplierId,
-    loadMore,
-  ]);
 
   useEffect(() => {
     if (loading || !hasMore) return;
@@ -2301,12 +2288,6 @@ export function StockLevelsPage() {
   );
 
   const emptyMessage = useMemo(() => {
-    if (supplierId.trim() && supplierFilterLoading) {
-      return "Loading supplier products…";
-    }
-    if (supplierId.trim() && supplierItemIds?.size === 0) {
-      return "No catalog products linked to this supplier.";
-    }
     if (supplierId.trim()) return "No stocked products for this supplier.";
     if (search.trim()) return "No products match your search.";
     if (statusFilter === "low") return "No low-stock products for this branch.";
@@ -2317,6 +2298,10 @@ export function StockLevelsPage() {
       return "No products with thin margin (under 15%).";
     if (statusFilter === "no_buy") return "No products missing a buy price.";
     if (statusFilter === "no_sell") return "No products missing a sell price.";
+    if (priceStatus === "MISSING_BUYING") return "No products missing a buying price.";
+    if (priceStatus === "MISSING_SELLING") return "No products missing a selling price.";
+    if (priceStatus === "BOTH_MISSING") return "No products missing both prices.";
+    if (priceStatus === "BOTH_SET") return "No products with both prices set.";
     if (categoryId) return "No products in this category.";
     return "No stocked products found for this branch.";
   }, [
@@ -2324,8 +2309,7 @@ export function StockLevelsPage() {
     statusFilter,
     categoryId,
     supplierId,
-    supplierItemIds,
-    supplierFilterLoading,
+    priceStatus,
   ]);
 
   const sortFilterOptions = useMemo(
@@ -2371,6 +2355,32 @@ export function StockLevelsPage() {
           ),
         )
       : 0;
+
+  const priceSelectionCount = priceMatchAll
+    ? totalElements
+    : priceSelectedIds.size;
+
+  const onPriceStatus = (next: PriceStatusFilter) => {
+    setPriceStatus(next);
+    setPriceMatchAll(false);
+    setPriceSelectedIds(new Set());
+  };
+
+  const onSelectAllPrices = () => {
+    setPriceSelectedIds(new Set());
+    setPriceMatchAll(true);
+  };
+
+  const openPriceEditor = () => {
+    setPriceEditorTarget({
+      selectAllMatching: priceMatchAll,
+      itemIds: priceMatchAll ? [] : [...priceSelectedIds],
+      excludedItemIds: [],
+      search: debouncedSearch || undefined,
+      ...priceListOpts,
+    });
+    setPriceEditorOpen(true);
+  };
 
   if (!allowed) {
     return (
@@ -2987,6 +2997,54 @@ export function StockLevelsPage() {
             </div>
           </div>
 
+          {branchId ? (
+            <PriceCleanupBar
+              status={priceStatus}
+              counts={priceCounts}
+              listTotal={totalElements}
+              listLoading={loading}
+              matchAll={priceMatchAll}
+              onStatus={onPriceStatus}
+              onSelectAll={onSelectAllPrices}
+            />
+          ) : null}
+
+          {priceSelectionCount > 0 ? (
+            <div
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-2 border-b px-3 py-1.5",
+                stockHair,
+                "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
+              )}
+            >
+              <span className={cn("text-[12px] font-semibold tabular-nums", stockInk)}>
+                {priceSelectionCount.toLocaleString("en-KE")}{" "}
+                {priceSelectionCount === 1 ? "item" : "items"} selected
+              </span>
+              <div className="flex items-center gap-1">
+                {canCatalogWrite ? (
+                  <button
+                    type="button"
+                    className="h-7 bg-[var(--pos-primary,#0f766e)] px-2 text-[12px] font-semibold text-white"
+                    onClick={openPriceEditor}
+                  >
+                    Edit prices
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className={cn("h-7 px-2 text-[12px] font-medium", stockMute)}
+                  onClick={() => {
+                    setPriceMatchAll(false);
+                    setPriceSelectedIds(new Set());
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           {error ? (
             <p className="border-b border-rose-600/20 bg-rose-500/5 px-3 py-1.5 text-xs text-rose-800 dark:text-rose-300">
               {error}
@@ -3259,6 +3317,23 @@ export function StockLevelsPage() {
           )}
         </div>
       </div>
+      <BulkPriceEditor
+        open={priceEditorOpen}
+        onOpenChange={setPriceEditorOpen}
+        currencyCode={currency}
+        selectionCount={priceSelectionCount}
+        target={priceEditorTarget}
+        onApplied={(updated) => {
+          setPriceMatchAll(false);
+          setPriceSelectedIds(new Set());
+          void load();
+          toast.success(
+            updated === 0
+              ? "No prices changed."
+              : `Updated prices on ${updated.toLocaleString("en-KE")} ${updated === 1 ? "item" : "items"}.`,
+          );
+        }}
+      />
     </div>
   );
 }

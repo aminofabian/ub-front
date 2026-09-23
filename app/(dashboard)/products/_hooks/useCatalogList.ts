@@ -68,6 +68,7 @@ export function useCatalogList(
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
+  const [filterSupplierId, setFilterSupplierId] = useState("");
   const [includeCategoryDescendants, setIncludeCategoryDescendants] =
     useState(true);
   const [catalogScope, setCatalogScope] = useState<CatalogListScope>("ALL");
@@ -154,6 +155,7 @@ export function useCatalogList(
   const listStatsOpts = useMemo(
     () => ({
       categoryId: filterCategoryId.trim() || undefined,
+      linkedSupplierId: filterSupplierId.trim() || undefined,
       includeCategoryDescendants,
       catalogScope,
       barcode: barcodeExact.trim() || undefined,
@@ -174,6 +176,7 @@ export function useCatalogList(
     }),
     [
       filterCategoryId,
+      filterSupplierId,
       includeCategoryDescendants,
       catalogScope,
       barcodeExact,
@@ -552,6 +555,7 @@ export function useCatalogList(
     setDebouncedSearch("");
     setBarcodeExact("");
     setFilterCategoryId("");
+    setFilterSupplierId("");
     setCatalogScope("ALL");
     setIncludeCategoryDescendants(true);
     setFilterNoBarcode(false);
@@ -693,6 +697,8 @@ export function useCatalogList(
     setDebouncedSearch,
     filterCategoryId,
     setFilterCategoryId,
+    filterSupplierId,
+    setFilterSupplierId,
     includeCategoryDescendants,
     setIncludeCategoryDescendants,
     catalogScope,

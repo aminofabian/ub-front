@@ -23,6 +23,8 @@ type Props = {
   listTotal: number;
   listLoading: boolean;
   matchAll: boolean;
+  /** When set, Select all uses this count instead of the full list total. */
+  selectAllCount?: number;
   onStatus: (status: PriceStatusFilter) => void;
   onSelectAll: () => void;
 };
@@ -33,12 +35,14 @@ export function PriceCleanupBar({
   listTotal,
   listLoading,
   matchAll,
+  selectAllCount,
   onStatus,
   onSelectAll,
 }: Props) {
   const activeCount =
     status === "ALL" ? listTotal : listLoading ? bucketCount(status, counts) : listTotal;
-  const showSelectAll = status !== "ALL" && !listLoading && activeCount > 0 && !matchAll;
+  const selectCount = selectAllCount ?? activeCount;
+  const showSelectAll = status !== "ALL" && !listLoading && selectCount > 0 && !matchAll;
 
   return (
     <div className={styles.bar}>
@@ -80,7 +84,7 @@ export function PriceCleanupBar({
       </div>
       {showSelectAll ? (
         <button type="button" className={styles.selectAll} onClick={onSelectAll}>
-          Select all {activeCount.toLocaleString()}
+          Select all {selectCount.toLocaleString()}
         </button>
       ) : null}
     </div>
