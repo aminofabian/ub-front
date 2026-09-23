@@ -4946,12 +4946,35 @@ export type BulkPriceApplyResult = {
   lowMargin: number;
 };
 
+function bulkPriceBody(body: BulkPriceRequest): BulkPriceRequest {
+  const flag = (value: boolean | null | undefined) => value === true;
+  const side = (value: BulkPriceSide | null | undefined) =>
+    value
+      ? { ...value, overwriteExisting: flag(value.overwriteExisting) }
+      : null;
+  return {
+    ...body,
+    selectAllMatching: flag(body.selectAllMatching),
+    includeCategoryDescendants: flag(body.includeCategoryDescendants),
+    noBarcode: flag(body.noBarcode),
+    includeInactive: flag(body.includeInactive),
+    inactiveOnly: flag(body.inactiveOnly),
+    noPrice: flag(body.noPrice),
+    zeroStock: flag(body.zeroStock),
+    lowStock: flag(body.lowStock),
+    aisleUnset: flag(body.aisleUnset),
+    acknowledgeLosses: flag(body.acknowledgeLosses),
+    buying: side(body.buying),
+    selling: side(body.selling),
+  };
+}
+
 export async function previewBulkPrices(
   body: BulkPriceRequest,
 ): Promise<BulkPricePreview> {
   return request<BulkPricePreview>(`${API_ROUTES.items}/bulk-prices/preview`, {
     method: "POST",
-    body,
+    body: bulkPriceBody(body),
   });
 }
 
@@ -4960,7 +4983,7 @@ export async function applyBulkPrices(
 ): Promise<BulkPriceApplyResult> {
   return request<BulkPriceApplyResult>(`${API_ROUTES.items}/bulk-prices`, {
     method: "POST",
-    body,
+    body: bulkPriceBody(body),
   });
 }
 
