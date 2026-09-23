@@ -405,6 +405,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: APP_ROUTES.paymentsDayLedger, label: "Today's takings" },
       { href: APP_ROUTES.expenses, label: "Expenses & profit" },
+      { href: APP_ROUTES.profitPocketing, label: "Pocketing calendar" },
       { href: APP_ROUTES.fixedCosts, label: "Fixed costs" },
       { href: APP_ROUTES.paymentsKioskPay, label: "Kiosk Pay" },
       { href: APP_ROUTES.airtime, label: "Airtime" },
@@ -518,6 +519,7 @@ type NavGate = {
   canListUsers: boolean;
   canViewPayroll: boolean;
   canReadFinanceExpenses: boolean;
+  canWriteFinanceExpenses: boolean;
   canReadFinanceReports: boolean;
   canManageBusinessSettings: boolean;
   canViewAuditLog: boolean;
@@ -696,6 +698,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.fixedCosts) return gate.canReadFinanceExpenses;
   if (item.href === APP_ROUTES.expenses)
     return gate.canReadFinanceExpenses || gate.canReadFinanceReports;
+  if (item.href === APP_ROUTES.profitPocketing)
+    return gate.canReadFinanceReports || gate.canWriteFinanceExpenses;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
   if (item.href === APP_ROUTES.inventoryStockTakeDailyAuditReview)
     return gate.canApproveStockTake;
@@ -979,6 +983,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewPayroll,
     canViewPayrollSelf,
     canReadFinanceExpenses,
+    canWriteFinanceExpenses,
     canReadFinanceReports,
     canManageBusinessSettings,
     canViewAuditLog,
@@ -1100,6 +1105,7 @@ export function AppShell({ children }: AppShellProps) {
       canListUsers,
       canViewPayroll,
       canReadFinanceExpenses,
+      canWriteFinanceExpenses,
       canReadFinanceReports,
       canManageBusinessSettings,
       canViewAuditLog,
@@ -1160,6 +1166,7 @@ export function AppShell({ children }: AppShellProps) {
     canListUsers,
     canViewPayroll,
     canReadFinanceExpenses,
+    canWriteFinanceExpenses,
     canReadFinanceReports,
     canManageBusinessSettings,
     canViewAuditLog,

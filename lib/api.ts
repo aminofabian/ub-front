@@ -11655,6 +11655,7 @@ export type PostProfitPocketPayload = {
   leaveFloat?: number;
   fundingMethod?: "cash" | "mpesa_manual" | "bank";
   acknowledgedWarnings?: string[];
+  note?: string;
 };
 
 export type ProfitPocketRecord = {
@@ -11668,6 +11669,7 @@ export type ProfitPocketRecord = {
   sendMoneyStatus?: string | null;
   kopokopoSendMoneyId?: string | null;
   sendMoneyMessage?: string | null;
+  note?: string | null;
 };
 
 export async function postProfitPocket(
@@ -11695,6 +11697,124 @@ export async function fetchProfitPockets(opts?: {
   const qs = params.toString();
   return request<ProfitPocketRecord[]>(
     `/api/v1/finance/profit-pockets${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type ProfitPocketCalendarDay = {
+  date: string;
+  saleCount: number;
+  liveProfit: number | string;
+  profitAmount: number | string;
+  pocketedAmount: number | string;
+  remainingProfit: number | string;
+  pocketingPercentage: number | string | null;
+  status: string;
+  note: string | null;
+  skipReason: string | null;
+  source: string | null;
+  aboveProfit: boolean;
+  profitMoved: boolean;
+  entries: {
+    id: string;
+    amount: number | string;
+    attributedAmount: number | string;
+    periodFrom: string;
+    periodTo: string;
+    destinationSummary: string | null;
+    createdAt: string;
+    note: string | null;
+  }[];
+  revisions: {
+    at: string;
+    pocketedAmount: number | string;
+    note: string | null;
+  }[];
+};
+
+export type ProfitPocketMonthSummary = {
+  month: string;
+  label: string;
+  totalProfit: number | string;
+  totalPocketed: number | string;
+  totalRetained: number | string;
+  averageDailyPercentage: number | string | null;
+  overallPercentage: number | string | null;
+  pocketingDays: number;
+  partialDays: number;
+  fullDays: number;
+  missedDays: number;
+  unreviewedDays: number;
+  skippedDays: number;
+  noProfitDays: number;
+  longestStreak: number;
+  highestPocketDate: string | null;
+  highestPocketAmount: number | string;
+  averagePocketedPerDay: number | string;
+  profitNotPocketed: number | string;
+};
+
+export type ProfitPocketingInsight = {
+  code: string;
+  current: number | string | null;
+  previous: number | string | null;
+  delta: number | string | null;
+};
+
+export type ProfitPocketCalendar = {
+  month: string;
+  branchId: string | null;
+  today: string;
+  currentStreak: number;
+  longestStreak: number;
+  days: ProfitPocketCalendarDay[];
+  summary: ProfitPocketMonthSummary;
+  insights: ProfitPocketingInsight[];
+  months: ProfitPocketMonthSummary[];
+};
+
+export async function fetchProfitPocketCalendar(opts: {
+  month: string;
+  branchId?: string;
+}): Promise<ProfitPocketCalendar> {
+  const params = new URLSearchParams({ month: opts.month });
+  if (opts.branchId?.trim()) params.set("branchId", opts.branchId.trim());
+  return request<ProfitPocketCalendar>(
+    `/api/v1/finance/profit-pocket-calendar?${params.toString()}`,
+  );
+}
+
+export async function recordProfitPocketDay(body: {
+  date: string;
+  branchId?: string;
+  pocketedAmount: number;
+  note?: string;
+  allowAboveProfit?: boolean;
+  refreshProfit?: boolean;
+}): Promise<ProfitPocketCalendar> {
+  return request<ProfitPocketCalendar>("/api/v1/finance/profit-pocket-days", {
+    method: "PUT",
+    body,
+  });
+}
+
+export async function skipProfitPocketDay(body: {
+  date: string;
+  branchId?: string;
+  reason?: string;
+}): Promise<ProfitPocketCalendar> {
+  return request<ProfitPocketCalendar>("/api/v1/finance/profit-pocket-days/skip", {
+    method: "POST",
+    body,
+  });
+}
+
+export async function unskipProfitPocketDay(body: {
+  date: string;
+  branchId?: string;
+}): Promise<ProfitPocketCalendar> {
+  return request<ProfitPocketCalendar>(
+    "/api/v1/finance/profit-pocket-days/unskip",
+    { method: "POST", body },
   );
 }
 

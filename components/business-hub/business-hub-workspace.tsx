@@ -905,6 +905,10 @@ export function BusinessHubWorkspace() {
                         label: "Pocket cash…",
                         onClick: () => setProfitPocketOpen(true),
                       },
+                      {
+                        label: "Calendar",
+                        onClick: () => router.push(APP_ROUTES.profitPocketing),
+                      },
                     ]
                   : []),
               ]
@@ -966,6 +970,7 @@ export function BusinessHubWorkspace() {
     canReadFinanceExpenses,
     fixedCostCommitment,
     money,
+    router,
   ]);
 
   const stockItems = useMemo(() => {

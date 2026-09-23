@@ -71,6 +71,8 @@ export const APP_ROUTES = {
   fixedCosts: "/fixed-costs",
   /** Expenses & net operating profit hub. */
   expenses: "/expenses",
+  /** Daily profit pocketing calendar and month-to-month rate. */
+  profitPocketing: "/business/pocketing",
   /** Staff self-service payslip portal (login required). */
   myPay: "/my-pay",
   /** Staff self-service profile — pay, advances, workplace concern. */
