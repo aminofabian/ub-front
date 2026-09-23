@@ -8,12 +8,16 @@ import {
   fetchCategories,
   fetchItemsPage,
   fetchItemTypes,
+  fetchPriceStatusCounts,
   type AisleRecord,
+  type BulkPriceRequest,
   type CatalogListScope,
   type CatalogRowType,
   type CategoryRecord,
   type ItemSummaryRecord,
   type ItemTypeRecord,
+  type PriceStatusCounts,
+  type PriceStatusFilter,
 } from "@/lib/api";
 import {
   buildVariantIdsByParentId,
@@ -73,11 +77,24 @@ export function useCatalogList(
   const [filterNoPrice, setFilterNoPrice] = useState(false);
   const [filterZeroStock, setFilterZeroStock] = useState(false);
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [priceStatus, setPriceStatus] = useState<PriceStatusFilter>("ALL");
+  const [priceCounts, setPriceCounts] = useState<PriceStatusCounts>({
+    missingBuying: 0,
+    missingSelling: 0,
+    bothMissing: 0,
+    bothSet: 0,
+  });
   const [aisles, setAisles] = useState<AisleRecord[]>([]);
 
   const [rowSelection, setRowSelection] = useState<Set<string>>(
     () => new Set(),
   );
+  const [matchAll, setMatchAll] = useState(false);
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(() => new Set());
+  const matchAllRef = useRef(false);
+  const excludedRef = useRef(excludedIds);
+  matchAllRef.current = matchAll;
+  excludedRef.current = excludedIds;
   const [variantIdsByParentId, setVariantIdsByParentId] = useState<
     Record<string, string[]>
   >({});
@@ -128,7 +145,8 @@ export function useCatalogList(
     filterInactiveOnly ||
     filterNoPrice ||
     filterZeroStock ||
-    filterLowStock;
+    filterLowStock ||
+    priceStatus !== "ALL";
 
   const stockFiltersNeedBranch =
     (filterZeroStock || filterLowStock) && !branchIdForStock;
@@ -174,6 +192,7 @@ export function useCatalogList(
       noPrice: filterNoPrice,
       zeroStock: filterZeroStock && !!branchIdForStock,
       lowStock: filterLowStock && !!branchIdForStock,
+      priceStatus: priceStatus === "ALL" ? undefined : priceStatus,
     }),
     [
       listStatsOpts,
@@ -183,6 +202,7 @@ export function useCatalogList(
       filterZeroStock,
       filterLowStock,
       branchIdForStock,
+      priceStatus,
     ],
   );
 
@@ -261,6 +281,8 @@ export function useCatalogList(
         setListTotalElements(0);
         setListLast(true);
         setRowSelection(new Set());
+        setMatchAll(false);
+        setExcludedIds(new Set());
       } else {
         const page = await fetchItemsPage(debouncedSearch || undefined, {
           ...listFetchOpts,
@@ -273,12 +295,36 @@ export function useCatalogList(
         setListLast(page.last);
         nextPageRef.current = page.last ? 0 : 1;
         setRowSelection(new Set());
+        setMatchAll(false);
+        setExcludedIds(new Set());
       }
       const stats = await fetchCatalogListStats(
         debouncedSearch || undefined,
         listStatsOpts,
       );
       setCatalogStats(stats);
+      if (rowTypes !== null) {
+        try {
+          const counts = await fetchPriceStatusCounts(
+            debouncedSearch || undefined,
+            {
+              ...listFetchOpts,
+              priceStatus: undefined,
+              catalogRowTypes: rowTypes,
+            },
+          );
+          setPriceCounts(counts);
+        } catch {
+          // The list is already loaded. Counts refresh on the next filter change.
+        }
+      } else {
+        setPriceCounts({
+          missingBuying: 0,
+          missingSelling: 0,
+          bothMissing: 0,
+          bothSet: 0,
+        });
+      }
     } catch (error) {
       if (!(error instanceof ApiRequestError)) {
         setMessage(
@@ -348,6 +394,15 @@ export function useCatalogList(
         size: 80,
       });
       setListRows((prev) => [...prev, ...page.content]);
+      if (matchAllRef.current) {
+        setRowSelection((prev) => {
+          const next = new Set(prev);
+          for (const row of page.content) {
+            if (!excludedRef.current.has(row.id)) next.add(row.id);
+          }
+          return next;
+        });
+      }
       setListLast(page.last);
       nextPageRef.current = page.last ? 0 : pagen + 1;
     } catch (error) {
@@ -458,21 +513,33 @@ export function useCatalogList(
       }
 
       setRowSelection((prev) => {
+        const turningOff = (ids: string[]) =>
+          ids.length > 0 && ids.every((tid) => prev.has(tid));
+        let nextIds: string[];
+        let remove: boolean;
         if (!isParentSelector) {
-          const next = new Set(prev);
-          if (next.has(id)) next.delete(id);
-          else next.add(id);
-          return next;
-        }
-
-        const targetIds = isGroupLabel ? variantIds : [id, ...variantIds];
-        const allOn =
-          targetIds.length > 0 && targetIds.every((tid) => prev.has(tid));
-        const next = new Set(prev);
-        if (allOn) {
-          for (const tid of targetIds) next.delete(tid);
+          nextIds = [id];
+          remove = prev.has(id);
         } else {
-          for (const tid of targetIds) next.add(tid);
+          nextIds = isGroupLabel ? variantIds : [id, ...variantIds];
+          remove = turningOff(nextIds);
+        }
+        const next = new Set(prev);
+        if (remove) {
+          for (const tid of nextIds) next.delete(tid);
+        } else {
+          for (const tid of nextIds) next.add(tid);
+        }
+        if (matchAllRef.current) {
+          setExcludedIds((excluded) => {
+            const nextExcluded = new Set(excluded);
+            if (remove) {
+              for (const tid of nextIds) nextExcluded.add(tid);
+            } else {
+              for (const tid of nextIds) nextExcluded.delete(tid);
+            }
+            return nextExcluded;
+          });
         }
         return next;
       });
@@ -492,6 +559,7 @@ export function useCatalogList(
     setFilterNoPrice(false);
     setFilterZeroStock(false);
     setFilterLowStock(false);
+    setPriceStatus("ALL");
     setRowTypeFilter(new Set(CATALOG_LIST_DISPLAY_TYPES));
     setMessage("");
   }, []);
@@ -553,6 +621,50 @@ export function useCatalogList(
     [catalogStats],
   );
 
+  const clearRowSelection = useCallback(() => {
+    setMatchAll(false);
+    setExcludedIds(new Set());
+    setRowSelection(new Set());
+  }, []);
+
+  const selectLoadedPage = useCallback(() => {
+    setMatchAll(false);
+    setExcludedIds(new Set());
+    setRowSelection(new Set(catalogRowsRef.current.map((row) => row.id)));
+  }, []);
+
+  const selectAllMatching = useCallback(() => {
+    setMatchAll(true);
+    setExcludedIds(new Set());
+    setRowSelection(new Set(catalogRowsRef.current.map((row) => row.id)));
+  }, []);
+
+  const selectedCount = matchAll
+    ? Math.max(0, listTotalElements - excludedIds.size)
+    : rowSelection.size;
+
+  const bulkPriceTarget = useCallback((): Omit<
+    BulkPriceRequest,
+    "buying" | "selling" | "rounding" | "acknowledgeLosses"
+  > => {
+    const rowTypes = catalogRowTypesForApi(rowTypeFilter);
+    return {
+      selectAllMatching: matchAll,
+      itemIds: matchAll ? [] : [...rowSelection],
+      excludedItemIds: matchAll ? [...excludedIds] : [],
+      search: debouncedSearch.trim() || undefined,
+      ...listFetchOpts,
+      catalogRowTypes: rowTypes ?? undefined,
+    };
+  }, [
+    matchAll,
+    rowSelection,
+    excludedIds,
+    debouncedSearch,
+    listFetchOpts,
+    rowTypeFilter,
+  ]);
+
   return {
     itemTypes,
     categories,
@@ -597,6 +709,15 @@ export function useCatalogList(
     setFilterZeroStock,
     filterLowStock,
     setFilterLowStock,
+    priceStatus,
+    setPriceStatus,
+    priceCounts,
+    matchAll,
+    selectedCount,
+    selectLoadedPage,
+    selectAllMatching,
+    clearRowSelection,
+    bulkPriceTarget,
     rowSelection,
     setRowSelection,
     onToggleRowSelect,

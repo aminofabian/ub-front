@@ -4606,6 +4606,20 @@ export async function setUserItemTypes(
 export type CatalogListScope =
   "ALL" | "PARENTS_ONLY" | "VARIANTS_ONLY" | "SKUS_ONLY";
 
+export type PriceStatusFilter =
+  | "ALL"
+  | "MISSING_BUYING"
+  | "MISSING_SELLING"
+  | "BOTH_MISSING"
+  | "BOTH_SET";
+
+export type PriceStatusCounts = {
+  missingBuying: number;
+  missingSelling: number;
+  bothMissing: number;
+  bothSet: number;
+};
+
 export type CatalogRowType = "PARENT" | "VARIANT" | "STANDALONE";
 
 export type CatalogListStats = {
@@ -4643,6 +4657,8 @@ export type FetchItemsOpts = {
   inStock?: boolean;
   /** Buy / cost price missing or ≤ 0. */
   noBuyingPrice?: boolean;
+  /** Server-side buying/selling completeness. Pagination stays on the server. */
+  priceStatus?: PriceStatusFilter;
   /** Both prices set and sell &lt; buy. */
   priceLoss?: boolean;
   /** Both prices set, sell ≥ buy, but margin % below poorMarginMaxPct (default 15). */
@@ -4746,6 +4762,9 @@ export async function fetchItemsPage(
   if (opts?.noBuyingPrice) {
     params.set("noBuyingPrice", "true");
   }
+  if (opts?.priceStatus && opts.priceStatus !== "ALL") {
+    params.set("priceStatus", opts.priceStatus);
+  }
   if (opts?.priceLoss) {
     params.set("priceLoss", "true");
   }
@@ -4805,6 +4824,144 @@ export async function fetchItemsPage(
     };
   }
   return { content, ...meta };
+}
+
+export async function fetchPriceStatusCounts(
+  search: string | undefined,
+  opts?: FetchItemsOpts,
+): Promise<PriceStatusCounts> {
+  const params = new URLSearchParams();
+  if (search?.trim()) params.set("search", search.trim());
+  if (opts?.catalogScope && opts.catalogScope !== "ALL") {
+    params.set("catalogScope", opts.catalogScope);
+  }
+  for (const rowType of opts?.catalogRowTypes ?? []) {
+    params.append("catalogRowTypes", rowType);
+  }
+  if (opts?.categoryId?.trim()) {
+    params.set("categoryId", opts.categoryId.trim());
+    if (opts.includeCategoryDescendants) {
+      params.set("includeCategoryDescendants", "true");
+    }
+  }
+  if (opts?.barcode?.trim()) params.set("barcode", opts.barcode.trim());
+  if (opts?.noBarcode) params.set("noBarcode", "true");
+  if (opts?.includeInactive) params.set("includeInactive", "true");
+  if (opts?.inactiveOnly) params.set("inactiveOnly", "true");
+  if (opts?.noPrice) params.set("noPrice", "true");
+  if (opts?.zeroStock) params.set("zeroStock", "true");
+  if (opts?.lowStock) params.set("lowStock", "true");
+  if (opts?.itemTypeId?.trim()) params.set("itemTypeId", opts.itemTypeId.trim());
+  if (opts?.aisleUnset) {
+    params.set("aisleUnset", "true");
+  } else if (opts?.aisleId?.trim()) {
+    params.set("aisleId", opts.aisleId.trim());
+  }
+  const stockBr = opts?.branchId?.trim();
+  if (stockBr) params.set("branchId", stockBr);
+  const raw = await request<Record<string, unknown>>(
+    `${API_ROUTES.items}/price-status-counts?${params.toString()}`,
+  );
+  return {
+    missingBuying: Number(raw?.missingBuying ?? 0),
+    missingSelling: Number(raw?.missingSelling ?? 0),
+    bothMissing: Number(raw?.bothMissing ?? 0),
+    bothSet: Number(raw?.bothSet ?? 0),
+  };
+}
+
+export type BulkPriceMode =
+  | "SET_AMOUNT"
+  | "INCREASE_PERCENT"
+  | "DECREASE_PERCENT"
+  | "PERCENT_OF_COUNTERPART";
+
+export type PriceRounding = "NONE" | "NEAREST_1" | "NEAREST_5" | "NEAREST_10";
+
+export type BulkPriceSide = {
+  mode: BulkPriceMode;
+  value: number;
+  overwriteExisting: boolean;
+};
+
+export type BulkPriceRequest = {
+  itemIds?: string[];
+  selectAllMatching: boolean;
+  excludedItemIds?: string[];
+  search?: string;
+  barcode?: string;
+  categoryId?: string;
+  includeCategoryDescendants?: boolean;
+  noBarcode?: boolean;
+  includeInactive?: boolean;
+  inactiveOnly?: boolean;
+  noPrice?: boolean;
+  zeroStock?: boolean;
+  lowStock?: boolean;
+  catalogScope?: CatalogListScope;
+  catalogRowTypes?: CatalogRowType[];
+  branchId?: string;
+  itemTypeId?: string;
+  aisleId?: string;
+  aisleUnset?: boolean;
+  priceStatus?: PriceStatusFilter;
+  buying?: BulkPriceSide | null;
+  selling?: BulkPriceSide | null;
+  rounding: PriceRounding;
+  acknowledgeLosses?: boolean;
+};
+
+export type BulkPricePreviewRow = {
+  id: string;
+  name: string;
+  currentBuying: number | string | null;
+  newBuying: number | string | null;
+  currentSelling: number | string | null;
+  newSelling: number | string | null;
+  buyingChanged: boolean;
+  sellingChanged: boolean;
+  skippedExisting: boolean;
+  loss: boolean;
+  lowMargin: boolean;
+};
+
+export type BulkPricePreview = {
+  matched: number;
+  affected: number;
+  skippedExisting: number;
+  unchanged: number;
+  losses: number;
+  lowMargin: number;
+  lowMarginPct: number | string;
+  truncated: boolean;
+  requiresLossAcknowledgement: boolean;
+  rows: BulkPricePreviewRow[];
+};
+
+export type BulkPriceApplyResult = {
+  updated: number;
+  skippedExisting: number;
+  unchanged: number;
+  losses: number;
+  lowMargin: number;
+};
+
+export async function previewBulkPrices(
+  body: BulkPriceRequest,
+): Promise<BulkPricePreview> {
+  return request<BulkPricePreview>(`${API_ROUTES.items}/bulk-prices/preview`, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function applyBulkPrices(
+  body: BulkPriceRequest,
+): Promise<BulkPriceApplyResult> {
+  return request<BulkPriceApplyResult>(`${API_ROUTES.items}/bulk-prices`, {
+    method: "POST",
+    body,
+  });
 }
 
 export async function fetchCatalogListStats(

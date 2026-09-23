@@ -71,6 +71,8 @@ export type VirtualizedCatalogBodyProps = {
   onRowClick: (id: string) => void;
   onToggleRowSelect: (id: string) => void | Promise<void>;
   onToggleSelectAllLoaded?: () => void;
+  /** Header checkbox label. Defaults to selecting the loaded page. */
+  selectLoadedLabel?: string;
   isRowActive: (row: ItemSummaryRecord) => boolean;
   loadingMore: boolean;
   hasMore: boolean;
@@ -174,6 +176,7 @@ export const VirtualizedCatalogBody = forwardRef<
     onRowClick,
     onToggleRowSelect,
     onToggleSelectAllLoaded,
+    selectLoadedLabel = "Select this page",
     isRowActive,
     loadingMore,
     hasMore,
@@ -298,10 +301,10 @@ export const VirtualizedCatalogBody = forwardRef<
                 )}
                 aria-label={
                   allLoadedSelected
-                    ? "Clear selection of loaded products"
-                    : "Select all loaded products"
+                    ? "Clear selection"
+                    : selectLoadedLabel
                 }
-                title={allLoadedSelected ? "Clear selection" : "Select all"}
+                title={allLoadedSelected ? "Clear selection" : selectLoadedLabel}
               >
                 {allLoadedSelected ? "✓" : someLoadedSelected ? "−" : "#"}
               </button>

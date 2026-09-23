@@ -24,6 +24,7 @@ import {
   type CatalogListDisplayType,
 } from "./catalog-list-styles";
 import { CatalogLetterJumpRail } from "./CatalogLetterJumpRail";
+import { PriceCleanupBar } from "./PriceCleanupBar";
 import type { CatalogLetterKey } from "./catalog-letter-index";
 import {
   VirtualizedCatalogBody,
@@ -48,6 +49,7 @@ type Props = {
   onBulkActivate?: () => void;
   onBulkAdjustStock?: () => void;
   onBulkRegroup?: () => void;
+  onBulkEditPrices?: () => void;
   /** Label for the regroup bulk action (e.g. "Change family" when variants are selected). */
   bulkRegroupLabel?: string;
   onAddFromCatalog?: () => void;
@@ -83,6 +85,7 @@ export function CatalogListColumn({
   onBulkActivate,
   onBulkAdjustStock,
   onBulkRegroup,
+  onBulkEditPrices,
   bulkRegroupLabel = "Group as family",
   onAddFromCatalog,
   canAddFromCatalog = false,
@@ -92,8 +95,15 @@ export function CatalogListColumn({
   const searchParams = useSearchParams();
   const deepLinkedProductId = searchParams.get("product")?.trim() || null;
   const scrolledDeepLinkRef = useRef<string | null>(null);
-  const selectionCount = catalog.rowSelection.size;
+  const selectionCount = catalog.selectedCount;
   const hasSelection = selectionCount > 0;
+  const loadedCount = catalog.displayRows.length;
+  const pageFullySelected =
+    loadedCount > 0 &&
+    catalog.displayRows.every((row) => catalog.rowSelection.has(row.id));
+  const pageVsAll =
+    catalog.listTotalElements > loadedCount &&
+    (catalog.matchAll || pageFullySelected);
   const selectionBusy =
     bulkDeleteBusy ||
     bulkChangeDepartmentBusy ||
@@ -181,28 +191,68 @@ export function CatalogListColumn({
   const onToggleSelectAllLoaded = useCallback(() => {
     const loadedIds = catalog.displayRows.map((row) => row.id);
     if (loadedIds.length === 0) return;
-    const allSelected = loadedIds.every((id) => catalog.rowSelection.has(id));
+    const allSelected =
+      catalog.matchAll ||
+      loadedIds.every((id) => catalog.rowSelection.has(id));
     if (allSelected) {
-      catalog.setRowSelection(new Set());
+      catalog.clearRowSelection();
       return;
     }
-    catalog.setRowSelection(new Set(loadedIds));
+    catalog.selectLoadedPage();
   }, [catalog]);
 
   return (
     <div className="flex min-h-[12rem] min-w-0 max-w-full flex-1 flex-col gap-0 overflow-x-hidden lg:min-h-0 lg:overflow-hidden">
+      <PriceCleanupBar
+        status={catalog.priceStatus}
+        counts={catalog.priceCounts}
+        listTotal={catalog.listTotalElements}
+        listLoading={catalog.listLoadingInitial}
+        matchAll={catalog.matchAll}
+        onStatus={catalog.setPriceStatus}
+        onSelectAll={catalog.selectAllMatching}
+      />
       {hasSelection ? (
         <div
           className={cn(
             catalogListToolbarClass,
-            "border-primary/25 bg-primary/[0.07]",
+            "border-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_8%,white)]",
           )}
         >
-          <span className="text-xs font-semibold tabular-nums text-foreground">
-            {selectionCount} selected
+          <span className="text-xs font-semibold tabular-nums text-[var(--catalog-ink,#15231f)]">
+            {selectionCount.toLocaleString()}{" "}
+            {selectionCount === 1 ? "item" : "items"} selected
           </span>
           <div className="flex items-center gap-1">
-            {canCatalogWrite && onBulkRegroup ? (
+            {pageVsAll ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={
+                  catalog.matchAll
+                    ? catalog.selectLoadedPage
+                    : catalog.selectAllMatching
+                }
+              >
+                {catalog.matchAll
+                  ? "This page only"
+                  : `Select all ${catalog.listTotalElements.toLocaleString()}`}
+              </Button>
+            ) : null}
+            {canCatalogWrite && onBulkEditPrices ? (
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 rounded-none bg-[var(--catalog-primary,#0f766e)] px-2 text-xs text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_86%,black)]"
+                disabled={selectionBusy}
+                onClick={onBulkEditPrices}
+              >
+                Edit prices
+              </Button>
+            ) : null}
+            {!catalog.matchAll && canCatalogWrite && onBulkRegroup ? (
               <Button
                 type="button"
                 size="sm"
@@ -220,7 +270,7 @@ export function CatalogListColumn({
                 <span className="hidden sm:inline">{bulkRegroupLabel}</span>
               </Button>
             ) : null}
-            {canCatalogWrite && onBulkActivate ? (
+            {!catalog.matchAll && canCatalogWrite && onBulkActivate ? (
               <Button
                 type="button"
                 size="sm"
@@ -238,7 +288,7 @@ export function CatalogListColumn({
                 <span className="hidden sm:inline">Mark active</span>
               </Button>
             ) : null}
-            {canInventoryWrite && onBulkAdjustStock ? (
+            {!catalog.matchAll && canInventoryWrite && onBulkAdjustStock ? (
               <Button
                 type="button"
                 size="sm"
@@ -252,7 +302,7 @@ export function CatalogListColumn({
                 <span className="hidden sm:inline">Adjust stock</span>
               </Button>
             ) : null}
-            {canCatalogWrite && onBulkChangeDepartment ? (
+            {!catalog.matchAll && canCatalogWrite && onBulkChangeDepartment ? (
               <Button
                 type="button"
                 size="sm"
@@ -270,7 +320,7 @@ export function CatalogListColumn({
                 <span className="hidden sm:inline">Change department</span>
               </Button>
             ) : null}
-            {canCatalogWrite && onBulkChangeAisle ? (
+            {!catalog.matchAll && canCatalogWrite && onBulkChangeAisle ? (
               <Button
                 type="button"
                 size="sm"
@@ -288,7 +338,7 @@ export function CatalogListColumn({
                 <span className="hidden sm:inline">Shelf zone</span>
               </Button>
             ) : null}
-            {canCatalogWrite ? (
+            {!catalog.matchAll && canCatalogWrite ? (
               <Button
                 type="button"
                 size="sm"
@@ -311,7 +361,7 @@ export function CatalogListColumn({
               variant="ghost"
               className="h-7 gap-1 rounded-none px-2 text-xs"
               disabled={selectionBusy}
-              onClick={() => catalog.setRowSelection(new Set())}
+              onClick={() => catalog.clearRowSelection()}
             >
               <X className="size-3.5" aria-hidden />
               Clear
@@ -370,6 +420,13 @@ export function CatalogListColumn({
           onRowClick={onRowClick}
           onToggleRowSelect={catalog.onToggleRowSelect}
           onToggleSelectAllLoaded={onToggleSelectAllLoaded}
+          selectLoadedLabel={
+            catalog.matchAll
+              ? "Clear selection"
+              : catalog.listTotalElements > catalog.displayRows.length
+                ? "Select this page"
+                : "Select all loaded products"
+          }
           isRowActive={isRowActive}
           loadingMore={catalog.listLoadingMore || catalog.letterJumpBusy}
           hasMore={!catalog.listLast}

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canLinkSupplierProducts } from "@/lib/supplier-access";
-import { itemListThumbnailUrl } from "@/lib/api";
+import { itemListThumbnailUrl, type BulkPriceRequest } from "@/lib/api";
 import { type ProductDrawerId, emptyVariantDraft } from "./_types";
 import { useCatalogList } from "./_hooks/useCatalogList";
 import { useProductDetail } from "./_hooks/useProductDetail";
@@ -34,6 +34,7 @@ import { AddPackageModal } from "./_components/AddPackageModal";
 import { ChangeItemTypeModal } from "./_components/ChangeItemTypeModal";
 import { ChangeAisleModal } from "./_components/ChangeAisleModal";
 import { BulkStockAdjustModal } from "./_components/BulkStockAdjustModal";
+import { BulkPriceEditor } from "./_components/BulkPriceEditor";
 import { RegroupProductsModal } from "./_components/RegroupProductsModal";
 import {
   buildVariantIdsByParentId,
@@ -132,6 +133,11 @@ export function ProductsWorkspace() {
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [variantParentPickBusy, setVariantParentPickBusy] = useState(false);
   const [bulkStockOpen, setBulkStockOpen] = useState(false);
+  const [priceEditorOpen, setPriceEditorOpen] = useState(false);
+  const [priceEditorTarget, setPriceEditorTarget] = useState<Omit<
+    BulkPriceRequest,
+    "buying" | "selling" | "rounding" | "acknowledgeLosses"
+  > | null>(null);
   const [regroupOpen, setRegroupOpen] = useState(false);
   const [regroupLockedParent, setRegroupLockedParent] = useState<{
     id: string;
@@ -748,6 +754,14 @@ export function ProductsWorkspace() {
                           }
                         : undefined
                     }
+                    onBulkEditPrices={
+                      canCatalogWrite
+                        ? () => {
+                            setPriceEditorTarget(catalog.bulkPriceTarget());
+                            setPriceEditorOpen(true);
+                          }
+                        : undefined
+                    }
                     onAddFromCatalog={
                       canGlobalCatalog
                         ? () => router.push(APP_ROUTES.productsCatalog)
@@ -981,6 +995,24 @@ export function ProductsWorkspace() {
         branches={m.branches}
         currencyCode={business?.currency?.trim() || ""}
         apply={m.onBulkAdjustStock}
+      />
+
+      <BulkPriceEditor
+        open={priceEditorOpen}
+        onOpenChange={setPriceEditorOpen}
+        currencyCode={business?.currency?.trim() || ""}
+        selectionCount={catalog.selectedCount}
+        target={priceEditorTarget}
+        onApplied={(updated) => {
+          catalog.clearRowSelection();
+          void catalog.refreshFullCatalog().then(() => {
+            catalog.setMessage(
+              updated === 0
+                ? "No prices changed."
+                : `Updated prices on ${updated.toLocaleString()} ${updated === 1 ? "item" : "items"}.`,
+            );
+          });
+        }}
       />
 
       <RegroupProductsModal
