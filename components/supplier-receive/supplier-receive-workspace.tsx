@@ -2539,7 +2539,7 @@ export function SupplierReceiveWorkspace({
       }
 
       if (canSetSellPrice) {
-        const now = new Date().toISOString();
+        const effectiveFrom = new Date().toISOString().slice(0, 10);
         for (const line of readyLines) {
           const sell = parseNonNeg(line.sellStr);
           if (sell == null) continue;
@@ -2550,7 +2550,7 @@ export function SupplierReceiveWorkspace({
               itemId: line.itemId,
               branchId: bid,
               price: sell,
-              effectiveFrom: now,
+              effectiveFrom,
               notes: `Set from supplier receive · ${supplier.name}`,
             });
           } catch {

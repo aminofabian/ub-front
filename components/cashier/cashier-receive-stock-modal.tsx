@@ -483,7 +483,7 @@ export function CashierReceiveStockModal({
       });
 
       if (canSetSellPrice) {
-        const now = new Date().toISOString();
+        const effectiveFrom = new Date().toISOString().slice(0, 10);
         for (const line of readyLines) {
           const sell = parseNonNeg(line.sellStr);
           if (sell == null) continue;
@@ -494,7 +494,7 @@ export function CashierReceiveStockModal({
               itemId: line.itemId,
               branchId: bid,
               price: sell,
-              effectiveFrom: now,
+              effectiveFrom,
               notes: "Set from cashier receive",
             });
           } catch {

@@ -22,8 +22,10 @@ import {
   fetchItemPackOptions,
   fetchItemsPage,
   fetchSuppliers,
+  patchItem,
   patchItemPackOption,
   patchItemSupplierLink,
+  postSellingPrice,
   type CategoryRecord,
   type CatalogListScope,
 } from "@/lib/api";
@@ -32,7 +34,7 @@ import type {
   SupplierItemLinkRecord,
   SupplierRecord,
 } from "@/lib/api";
-import { Permission } from "@/lib/permissions";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
@@ -248,6 +250,9 @@ export function SupplierCatalogColumn({
   const scopedBranchId = headerBranchId?.trim() || undefined;
   const scopedItemTypeId = headerItemTypeId?.trim() || undefined;
   const canEditLinkStock = canAdminEditSupplierLinkStock(me);
+  const canEditSellPrice =
+    hasPermission(me?.permissions, Permission.PricingSellPriceSet) ||
+    hasPermission(me?.permissions, Permission.CatalogItemsWrite);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [catalogSearch, setCatalogSearch] = useState("");
   const [debouncedCatalogSearch, setDebouncedCatalogSearch] = useState("");
@@ -285,6 +290,7 @@ export function SupplierCatalogColumn({
     useState<SupplierItemLinkRecord | null>(null);
   const [editLinkDrawerSku, setEditLinkDrawerSku] = useState("");
   const [editLinkDrawerCost, setEditLinkDrawerCost] = useState("");
+  const [editLinkDrawerSell, setEditLinkDrawerSell] = useState("");
   const [editLinkDrawerBusy, setEditLinkDrawerBusy] = useState(false);
   const [editLinkDrawerError, setEditLinkDrawerError] = useState<string | null>(
     null,
@@ -714,6 +720,8 @@ export function SupplierCatalogColumn({
     setEditLinkDrawerSku(row.supplierSku ?? "");
     const cost = resolveLinkDisplayCost(row);
     setEditLinkDrawerCost(cost != null ? String(cost.value) : "");
+    const sell = resolveLinkShelfPrice(row);
+    setEditLinkDrawerSell(sell != null ? String(sell) : "");
     setEditLinkDrawerError(null);
     setEditLinkPacks([]);
     setEditLinkPacksOriginals({});
@@ -795,6 +803,18 @@ export function SupplierCatalogColumn({
         }
         defaultCostPrice = n;
       }
+      const sellRaw = editLinkDrawerSell.trim();
+      let sellPrice: number | undefined;
+      if (sellRaw.length > 0) {
+        const n = Number(sellRaw);
+        if (!Number.isFinite(n) || n < 0) {
+          setEditLinkDrawerError(
+            "Sell price must be a valid non-negative number.",
+          );
+          return;
+        }
+        sellPrice = n;
+      }
       for (const d of editLinkPacks) {
         const size = Number(d.unitsPerPack);
         if (
@@ -869,10 +889,27 @@ export function SupplierCatalogColumn({
         packUnit: smallest ? smallest.packUnit.trim() || undefined : undefined,
         packSize: smallest ? Number(smallest.unitsPerPack) : undefined,
       });
+      if (sellPrice != null && canEditSellPrice) {
+        const prior = resolveLinkShelfPrice(editLinkDrawerRow);
+        if (prior == null || Math.abs(prior - sellPrice) >= 0.005) {
+          try {
+            await patchItem(itemId, { bundlePrice: sellPrice });
+          } catch {
+            await postSellingPrice({
+              itemId,
+              branchId: scopedBranchId ?? null,
+              price: sellPrice,
+              effectiveFrom: new Date().toISOString().slice(0, 10),
+              notes: "Updated from supplier link",
+            });
+          }
+        }
+      }
       setEditLinkDrawerOpen(false);
       setEditLinkDrawerRow(null);
       setEditLinkDrawerSku("");
       setEditLinkDrawerCost("");
+      setEditLinkDrawerSell("");
       setEditLinkPacks([]);
       setEditLinkPacksOriginals({});
       onRefreshLinks?.();
@@ -1571,7 +1608,41 @@ export function SupplierCatalogColumn({
                             })()}
                           </td>
                           <td className="border border-border/70 px-1.5 py-0.5 text-right align-middle">
-                            {sell != null ? (
+                            {canEditSellPrice && canLinkProducts ? (
+                              <button
+                                type="button"
+                                className="group/sell ml-auto flex max-w-full flex-col items-end leading-tight rounded-sm outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+                                title={
+                                  sell != null
+                                    ? "Edit shelf / sell price"
+                                    : "Set shelf / sell price"
+                                }
+                                onClick={() => void openEditLinkDrawer(row)}
+                              >
+                                {sell != null ? (
+                                  <>
+                                    <span className="inline-flex items-center gap-1 font-mono text-xs tabular-nums text-foreground">
+                                      {formatLinkCost(sell)}
+                                      <Pencil
+                                        className="size-2.5 opacity-0 transition-opacity group-hover/sell:opacity-70 group-focus-visible/sell:opacity-70"
+                                        aria-hidden
+                                      />
+                                    </span>
+                                    <span className="text-[9px] font-medium tracking-[-0.02em] text-muted-foreground">
+                                      Shelf
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 font-mono text-xs tabular-nums text-muted-foreground/60 group-hover/sell:text-foreground">
+                                    —
+                                    <Pencil
+                                      className="size-2.5 opacity-40 transition-opacity group-hover/sell:opacity-70"
+                                      aria-hidden
+                                    />
+                                  </span>
+                                )}
+                              </button>
+                            ) : sell != null ? (
                               <div
                                 className="flex flex-col items-end leading-tight"
                                 title="Catalog shelf / sell price"
@@ -1704,13 +1775,14 @@ export function SupplierCatalogColumn({
               setEditLinkDrawerRow(null);
               setEditLinkDrawerSku("");
               setEditLinkDrawerCost("");
+              setEditLinkDrawerSell("");
               setEditLinkPacks([]);
               setEditLinkPacksOriginals({});
               setEditLinkDrawerError(null);
             }
           }}
           title="Edit supplier link"
-          description={`Update supplier SKU, cost, and pack sizes for ${editLinkDrawerRow?.itemName || "this product"}.`}
+          description={`Update supplier SKU, cost, sell price, and pack sizes for ${editLinkDrawerRow?.itemName || "this product"}.`}
           contextLabel="Link details"
           icon={<Pencil className="size-5 text-primary" aria-hidden />}
           banner={
@@ -1759,6 +1831,23 @@ export function SupplierCatalogColumn({
                 aria-label="Default cost"
               />
             </label>
+            {canEditSellPrice ? (
+              <label className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
+                <span className={supFieldLabel}>Sell price (shelf)</span>
+                <input
+                  className={cn(supInput, "tabular-nums")}
+                  inputMode="decimal"
+                  value={editLinkDrawerSell}
+                  onChange={(e) => setEditLinkDrawerSell(e.target.value)}
+                  placeholder="0.00"
+                  aria-label="Sell price"
+                />
+                <span className="text-[11px] text-muted-foreground">
+                  Becomes the default shelf price for this product at the till
+                  and in the catalog.
+                </span>
+              </label>
+            ) : null}
           </div>
           <div className="flex min-w-0 flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
