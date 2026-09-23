@@ -367,6 +367,9 @@ export function MarketplaceOrderWorkspace({
   layout = "default",
   embedded = false,
   ownerMode = false,
+  tenantMode = false,
+  canInherit = false,
+  onInherit,
 }: {
   detail: MarketplaceSupplierDetail;
   selectedProductSlug?: string | null;
@@ -379,6 +382,10 @@ export function MarketplaceOrderWorkspace({
   embedded?: boolean;
   /** Supplier portal preview — hide public “claim this stall” CTAs. */
   ownerMode?: boolean;
+  /** Tenant shell browse — prefer inherit + shop Order over passport CTAs. */
+  tenantMode?: boolean;
+  canInherit?: boolean;
+  onInherit?: () => void;
 }) {
   const isShelf = layout === "shelf";
   const { effective: catalogTemplate, isLedger, setTemplate } =
@@ -1284,25 +1291,37 @@ export function MarketplaceOrderWorkspace({
                       {detail.products.length}
                     </span>
                   </p>
-                  {shelfPhone ? (
-                    <div className="flex shrink-0 items-center gap-2">
-                      <TelLink
-                        phone={shelfPhone}
-                        className="font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
-                      />
-                      {shelfWa ? (
-                        <a
-                          href={`https://wa.me/${shelfWa}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                        >
-                          <MessageCircle className="size-3" />
-                          WhatsApp
-                        </a>
-                      ) : null}
-                    </div>
-                  ) : null}
+                  <div className="flex shrink-0 items-center gap-2">
+                    {tenantMode && canInherit && onInherit ? (
+                      <button
+                        type="button"
+                        onClick={onInherit}
+                        className="inline-flex h-7 items-center gap-1 bg-[var(--pos-primary,#0f766e)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white hover:bg-[color-mix(in_srgb,#0f766e_88%,#000)]"
+                      >
+                        <Store className="size-3" aria-hidden />
+                        Inherit
+                      </button>
+                    ) : null}
+                    {shelfPhone ? (
+                      <>
+                        <TelLink
+                          phone={shelfPhone}
+                          className="font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                        />
+                        {shelfWa ? (
+                          <a
+                            href={`https://wa.me/${shelfWa}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                          >
+                            <MessageCircle className="size-3" />
+                            WhatsApp
+                          </a>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
                 </div>
               )}
             </section>
@@ -1471,6 +1490,8 @@ export function MarketplaceOrderWorkspace({
               shopOrderHref={tenantOrderBridgePath}
               sending={sendingOrder}
               catalogueBusy={catalogueBusy}
+              canInherit={tenantMode && canInherit}
+              onInherit={onInherit}
               onSetQty={(productId, qty) => setQty(productId, qty)}
               onRemove={(productId) => setQty(productId, 0)}
               onToggleLineRounding={toggleLineRounding}
@@ -1584,6 +1605,8 @@ export function MarketplaceOrderWorkspace({
                 shopOrderHref={tenantOrderBridgePath}
                 sending={sendingOrder}
                 catalogueBusy={catalogueBusy}
+                canInherit={tenantMode && canInherit}
+                onInherit={onInherit}
                 onSetQty={(productId, qty) => setQty(productId, qty)}
                 onRemove={(productId) => setQty(productId, 0)}
                 onToggleLineRounding={toggleLineRounding}
@@ -2263,6 +2286,8 @@ function OrderManifestPanel({
   shopOrderHref,
   sending,
   catalogueBusy,
+  canInherit = false,
+  onInherit,
   onSetQty,
   onRemove,
   onTogglePack,
@@ -2295,6 +2320,8 @@ function OrderManifestPanel({
   shopOrderHref?: string | null;
   sending: boolean;
   catalogueBusy: boolean;
+  canInherit?: boolean;
+  onInherit?: () => void;
   onSetQty: (productId: string, qty: number) => void;
   onRemove: (productId: string) => void;
   onTogglePack: (productId: string) => void;
@@ -2644,6 +2671,16 @@ function OrderManifestPanel({
                   Copy link
                 </button>
               </div>
+              {canInherit && onInherit ? (
+                <button
+                  type="button"
+                  onClick={onInherit}
+                  className="inline-flex h-9 w-full items-center justify-center gap-1.5 bg-[var(--pos-primary,#0f766e)] text-[10px] font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-[color-mix(in_srgb,#0f766e_88%,#000)]"
+                >
+                  <Store className="size-3.5" />
+                  Inherit supplier &amp; products
+                </button>
+              ) : null}
               {shopOrderHref ? (
                 <Link
                   href={shopOrderHref}
@@ -2655,9 +2692,20 @@ function OrderManifestPanel({
               ) : null}
             </div>
           ) : null}
+          {canInherit && onInherit && lines.length === 0 ? (
+            <button
+              type="button"
+              onClick={onInherit}
+              className="inline-flex h-10 w-full items-center justify-center gap-2 bg-[var(--pos-primary,#0f766e)] px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-[color-mix(in_srgb,#0f766e_88%,#000)]"
+            >
+              <Store className="size-3.5" />
+              Inherit this shelf
+            </button>
+          ) : null}
           <p className="text-center text-[10px] leading-snug text-muted-foreground">
-            WhatsApp opens with your list. Catalogue PDF lets you pick pictured
-            sheet, forest price list, or chalkboard stall cards.
+            {canInherit
+              ? "Inherit copies the vendor and every active product onto your books. Then order from your shop."
+              : "WhatsApp opens with your list. Catalogue PDF lets you pick pictured sheet, forest price list, or chalkboard stall cards."}
             {claimPhone ? (
               <>
                 {" "}

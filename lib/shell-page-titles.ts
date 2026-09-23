@@ -13,6 +13,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.itemTypes]: "Departments",
     [APP_ROUTES.categories]: "Categories",
     [APP_ROUTES.suppliers]: "Suppliers",
+    [APP_ROUTES.findSuppliers]: "Find suppliers",
     [APP_ROUTES.marketplace]: "Find suppliers",
     [APP_ROUTES.creditsOnTab]: "On tab",
     [APP_ROUTES.customers]: "All customers",

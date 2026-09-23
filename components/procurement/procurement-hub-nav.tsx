@@ -69,9 +69,11 @@ const HUB_STEPS: HubStep[] = [
     href: APP_ROUTES.suppliers,
     label: "Suppliers",
     beat: "People",
-    hint: "Vendor directory & wallets",
+    hint: "Directory, inherit from marketplace & wallets",
     icon: Truck,
-    match: (p) => p.startsWith(APP_ROUTES.suppliers),
+    match: (p) =>
+      p.startsWith(APP_ROUTES.suppliers) ||
+      p.startsWith(APP_ROUTES.findSuppliers),
   },
 ];
 

@@ -100,6 +100,7 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.itemTypes]: Tags,
   [APP_ROUTES.categories]: FolderTree,
   [APP_ROUTES.suppliers]: Truck,
+  [APP_ROUTES.findSuppliers]: Store,
   [APP_ROUTES.marketplace]: Store,
   [APP_ROUTES.order]: FilePlus,
   [APP_ROUTES.orderReceive]: ClipboardCheck,

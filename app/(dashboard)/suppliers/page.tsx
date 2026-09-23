@@ -1701,7 +1701,7 @@ export default function SuppliersPage() {
                 onIdentityConflictChange={setCreateIdentityConflict}
                 onBrowseMarketplace={() => {
                   setCreateDrawerOpen(false);
-                  router.push(APP_ROUTES.marketplace);
+                  router.push(APP_ROUTES.findSuppliers);
                 }}
                 onAttached={async (result) => {
                   setLookupSupplierNumber("");

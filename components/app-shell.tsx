@@ -271,7 +271,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
         flow: true,
       },
       {
-        href: APP_ROUTES.marketplace,
+        href: APP_ROUTES.findSuppliers,
         label: "Find suppliers",
         group: "Suppliers",
       },
@@ -633,6 +633,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
       (gate.canWriteSuppliers || gate.canLinkSupplierProducts)
     ) {
       allowed.push(APP_ROUTES.suppliers);
+      allowed.push(APP_ROUTES.findSuppliers);
     }
     if (gate.canViewOrderPad) {
       allowed.push(APP_ROUTES.inventoryOrderPad);
@@ -708,7 +709,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewSuppliers && gate.canAddSupplies;
   if (item.href === APP_ROUTES.purchasingApAging) return gate.canViewApAging;
   if (item.href === APP_ROUTES.suppliers) return gate.canViewSuppliers;
-  // Public marketplace directory — visible to anyone who can manage suppliers.
+  // Tenant marketplace directory — discover & inherit platform suppliers.
+  if (item.href === APP_ROUTES.findSuppliers) return gate.canViewSuppliers;
   if (item.href === APP_ROUTES.marketplace) return gate.canViewSuppliers;
   if (item.href === APP_ROUTES.creditsOnTab)
     return gate.canViewSalesIntelligence || gate.canViewCustomers;
@@ -1605,6 +1607,7 @@ export function AppShell({ children }: AppShellProps) {
       }
       if (supplierToolsEnabled) {
         allowed.push(APP_ROUTES.suppliers);
+        allowed.push(APP_ROUTES.findSuppliers);
       }
       if (canViewOrderPad) {
         allowed.push(APP_ROUTES.inventoryOrderPad);

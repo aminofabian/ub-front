@@ -36,8 +36,8 @@ export function MarketplaceAddSupplierBanner({
               Add from supplier marketplace
             </p>
             <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-              Search by product or vendor, preview catalogue, and import links
-              in one step.
+              Search by product or vendor, preview the shelf, then inherit the
+              supplier and every product into your shop.
             </p>
           </div>
         </div>
@@ -58,7 +58,7 @@ export function MarketplaceAddSupplierBanner({
               size="sm"
               className="h-8 rounded-none px-3 font-semibold"
             >
-              <Link href={APP_ROUTES.marketplace}>
+              <Link href={APP_ROUTES.findSuppliers}>
                 Browse marketplace
                 <ArrowRight className="ml-1.5 size-3.5" aria-hidden />
               </Link>

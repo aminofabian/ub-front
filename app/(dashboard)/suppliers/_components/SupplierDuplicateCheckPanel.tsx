@@ -365,7 +365,7 @@ export function SupplierDuplicateCheckPanel({
                           ) : match.marketplaceSupplierId &&
                             canViewMarketplace ? (
                             <Link
-                              href={`${APP_ROUTES.marketplace}?supplier=${encodeURIComponent(match.marketplaceSupplierId)}`}
+                              href={`${APP_ROUTES.findSuppliers}`}
                               className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
                             >
                               <Store className="size-3" />

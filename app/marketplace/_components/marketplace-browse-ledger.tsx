@@ -114,8 +114,10 @@ function ledgerStats(rows: MarketplaceProductSearchRow[]) {
 
 export function MarketplaceProductLedger({
   rows,
+  onSelectSupplier,
 }: {
   rows: MarketplaceProductSearchRow[];
+  onSelectSupplier?: (supplierId: string) => void;
 }) {
   const stats = ledgerStats(rows);
   return (
@@ -151,12 +153,8 @@ export function MarketplaceProductLedger({
               ? APP_ROUTES.marketplaceSupplier(row.supplierSlug)
               : APP_ROUTES.marketplace);
           const hue = hueFromId(row.productId);
-          return (
-            <Link
-              key={`${row.supplierId}-${row.productId}`}
-              href={href}
-              className={LEDGER_ROW}
-            >
+          const body = (
+            <>
               <div className="flex w-9 shrink-0 items-center justify-center border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] font-mono text-[10px] tabular-nums text-muted-foreground">
                 {index + 1}
               </div>
@@ -191,6 +189,27 @@ export function MarketplaceProductLedger({
                   ? formatMoney(row.unitPrice, row.currency ?? "KES")
                   : "Ask"}
               </div>
+            </>
+          );
+          if (onSelectSupplier) {
+            return (
+              <button
+                key={`${row.supplierId}-${row.productId}`}
+                type="button"
+                className={cn(LEDGER_ROW, "w-full text-left")}
+                onClick={() => onSelectSupplier(row.supplierId)}
+              >
+                {body}
+              </button>
+            );
+          }
+          return (
+            <Link
+              key={`${row.supplierId}-${row.productId}`}
+              href={href}
+              className={LEDGER_ROW}
+            >
+              {body}
             </Link>
           );
         })}
@@ -201,8 +220,10 @@ export function MarketplaceProductLedger({
 
 export function MarketplaceSupplierLedger({
   rows,
+  onSelect,
 }: {
   rows: MarketplaceSupplierSearchRow[];
+  onSelect?: (supplierId: string) => void;
 }) {
   const listed = rows.reduce((sum, row) => sum + (row.productCount ?? 0), 0);
   return (
@@ -232,8 +253,8 @@ export function MarketplaceSupplierLedger({
             ? APP_ROUTES.marketplaceSupplier(row.slug)
             : APP_ROUTES.marketplace;
           const hue = hueFromId(row.id);
-          return (
-            <Link key={row.id} href={href} className={LEDGER_ROW}>
+          const body = (
+            <>
               <div className="flex w-9 shrink-0 items-center justify-center border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] font-mono text-[10px] tabular-nums text-muted-foreground">
                 {index + 1}
               </div>
@@ -264,6 +285,23 @@ export function MarketplaceSupplierLedger({
               <div className="flex w-[5.5rem] shrink-0 items-center justify-end px-2 font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
                 {row.productCount}
               </div>
+            </>
+          );
+          if (onSelect) {
+            return (
+              <button
+                key={row.id}
+                type="button"
+                className={cn(LEDGER_ROW, "w-full text-left")}
+                onClick={() => onSelect(row.id)}
+              >
+                {body}
+              </button>
+            );
+          }
+          return (
+            <Link key={row.id} href={href} className={LEDGER_ROW}>
+              {body}
             </Link>
           );
         })}

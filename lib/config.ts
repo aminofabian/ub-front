@@ -91,6 +91,8 @@ export const APP_ROUTES = {
   supplier: (slug: string) => `/supplier/${encodeURIComponent(slug)}`,
   supplierDirectory: "/supplier",
   marketplace: "/marketplace",
+  /** Tenant-shelled marketplace — discover & inherit suppliers into the shop. */
+  findSuppliers: "/find-suppliers",
   /** Protected tenant order marketplace (stock-aware → PO → confirm as supply). */
   order: "/order",
   orderReceive: "/order/receive",
