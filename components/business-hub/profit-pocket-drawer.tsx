@@ -29,6 +29,8 @@ type ProfitPocketDrawerProps = {
   to: string;
   branchId?: string | null;
   periodLabel: string;
+  /** When set, the amount starts here instead of the jar suggestion. */
+  initialAmount?: number | null;
   onPocketed?: () => void;
 };
 
@@ -39,6 +41,7 @@ export function ProfitPocketDrawer({
   to,
   branchId,
   periodLabel,
+  initialAmount,
   onPocketed,
 }: ProfitPocketDrawerProps) {
   const [loading, setLoading] = useState(false);
@@ -70,7 +73,11 @@ export function ProfitPocketDrawer({
       .then((data) => {
         if (cancelled) return;
         setSurplus(data);
-        setAmount(String(toNum(data.suggestedPocket)));
+        const seeded =
+          initialAmount != null && Number.isFinite(initialAmount) && initialAmount > 0
+            ? initialAmount
+            : toNum(data.suggestedPocket);
+        setAmount(String(seeded));
         setLeaveFloat(String(toNum(data.defaultFloat)));
       })
       .catch((e) => {
@@ -86,11 +93,17 @@ export function ProfitPocketDrawer({
     return () => {
       cancelled = true;
     };
-  }, [open, from, to, branchId]);
+  }, [open, from, to, branchId, initialAmount]);
 
   const amountN = Number(amount);
   const suggested = toNum(surplus?.suggestedPocket);
   const gp = toNum(surplus?.grossProfit);
+  const balance = Math.max(0, toNum(surplus?.profitBalance));
+  const pocketingBalance =
+    balance > 0 &&
+    Number.isFinite(amountN) &&
+    Math.abs(amountN - balance) < 0.02 &&
+    amountN <= gp + 0.009;
   const warnings = useMemo(() => {
     const list: { id: string; text: string }[] = [];
     if (gp < 0) {
@@ -99,7 +112,11 @@ export function ProfitPocketDrawer({
         text: `Gross profit is negative (${fmtMoney(gp)}). Pocketing may leave less float for suppliers — edit the amount if needed.`,
       });
     }
-    if (Number.isFinite(amountN) && amountN > suggested + 0.009) {
+    if (
+      !pocketingBalance &&
+      Number.isFinite(amountN) &&
+      amountN > suggested + 0.009
+    ) {
       list.push({
         id: "above_surplus",
         text: `Amount is above suggested profit pocket (${fmtMoney(suggested)}).`,
@@ -130,11 +147,12 @@ export function ProfitPocketDrawer({
       });
     }
     return list;
-  }, [gp, amountN, suggested, surplus?.openShifts, surplus?.rawSurplus]);
+  }, [gp, amountN, suggested, surplus?.openShifts, surplus?.rawSurplus, pocketingBalance]);
 
   const needsHardConfirm =
-    (Number.isFinite(amountN) && suggested > 0 && amountN > suggested * 1.5) ||
-    warnings.some((w) => w.id === "above_profit");
+    !pocketingBalance &&
+    ((Number.isFinite(amountN) && suggested > 0 && amountN > suggested * 1.5) ||
+      warnings.some((w) => w.id === "above_profit"));
 
   const pocketShare =
     gp > 0 && Number.isFinite(amountN) && amountN >= 0
@@ -252,6 +270,7 @@ export function ProfitPocketDrawer({
               {(
                 [
                   ["Gross profit", surplus.grossProfit],
+                  ["Profit balance", surplus.profitBalance ?? 0],
                   ["Cash surplus", surplus.rawSurplus ?? surplus.suggestedPocket],
                   [
                     Number(surplus.profitJarPct) > 0 &&
@@ -260,7 +279,6 @@ export function ProfitPocketDrawer({
                       : "Suggested",
                     surplus.suggestedPocket,
                   ],
-                  ["Leave float", surplus.defaultFloat],
                 ] as const
               ).map(([label, value]) => (
                 <div key={label} className="bg-white px-2.5 py-2">
@@ -334,6 +352,32 @@ export function ProfitPocketDrawer({
                 disabled={busy}
               />
             </label>
+
+            {balance > 0.009 && !pocketingBalance ? (
+              <button
+                type="button"
+                className="text-left text-xs font-semibold underline"
+                disabled={busy}
+                onClick={() => {
+                  setAmount(balance.toFixed(2));
+                  setConfirmHigh(false);
+                }}
+              >
+                Pocket the profit balance, {fmtMoney(balance)}
+              </button>
+            ) : pocketingBalance ? (
+              <p className="text-xs text-muted-foreground">
+                This is the profit still not pocketed
+                {toNum(surplus?.alreadyPocketed) > 0
+                  ? ` (${fmtMoney(surplus?.alreadyPocketed)} already taken)`
+                  : ""}
+                .
+              </p>
+            ) : gp > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                The profit balance for this period is already pocketed.
+              </p>
+            ) : null}
 
             {pocketShare != null ? (
               <div>

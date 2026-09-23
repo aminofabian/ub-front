@@ -11630,6 +11630,8 @@ export type CashSurplusRecord = {
   customerPayCollisionMessage: string | null;
   profitJarPct: number | string;
   rawSurplus: number | string;
+  alreadyPocketed?: number | string;
+  profitBalance?: number | string;
 };
 
 export async function fetchCashSurplus(opts: {

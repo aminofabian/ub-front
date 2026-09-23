@@ -193,6 +193,7 @@ export function PocketingCalendarPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [cashOpen, setCashOpen] = useState(false);
+  const [cashSeed, setCashSeed] = useState<number | null>(null);
 
   const canOpen = canReadFinanceReports || canWriteFinanceExpenses;
 
@@ -492,7 +493,16 @@ export function PocketingCalendarPage() {
         onSaved={(next) => {
           setData(next);
         }}
-        onMoveCash={() => setCashOpen(true)}
+        onMoveCash={() => {
+          setCashSeed(null);
+          setCashOpen(true);
+        }}
+        onPocketBalance={() => {
+          const remaining = selected ? Math.max(0, num(selected.remainingProfit)) : 0;
+          if (remaining <= 0) return;
+          setCashSeed(remaining);
+          setCashOpen(true);
+        }}
       />
 
       {selected ? (
@@ -503,6 +513,7 @@ export function PocketingCalendarPage() {
           to={selected.date}
           branchId={branchId || null}
           periodLabel={formatDay(selected.date)}
+          initialAmount={cashSeed}
           onPocketed={() => void load()}
         />
       ) : null}
@@ -660,6 +671,7 @@ function DayDrawer({
   onOpenChange,
   onSaved,
   onMoveCash,
+  onPocketBalance,
 }: {
   day: ProfitPocketCalendarDay | null;
   canWrite: boolean;
@@ -668,6 +680,7 @@ function DayDrawer({
   onOpenChange: (open: boolean) => void;
   onSaved: (next: ProfitPocketCalendar) => void;
   onMoveCash: () => void;
+  onPocketBalance: () => void;
 }) {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
@@ -877,6 +890,15 @@ function DayDrawer({
                 onChange={(e) => setReason(e.target.value)}
               />
             </label>
+            {Math.max(0, num(day.remainingProfit)) > 0.009 ? (
+              <button
+                type="button"
+                className="text-left text-xs font-semibold underline"
+                onClick={onPocketBalance}
+              >
+                Pocket the {money(Math.max(0, num(day.remainingProfit)))} profit balance
+              </button>
+            ) : null}
             <button
               type="button"
               className="text-left text-xs font-semibold underline"
