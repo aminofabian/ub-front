@@ -6,6 +6,7 @@ import type { MouseEvent, ReactNode } from "react";
 
 import styles from "@/components/storefront/storefront-account-link.module.css";
 import { useStorefrontSignIn, buildStorefrontSignInHref, type StorefrontSignInPhase } from "@/components/storefront/storefront-sign-in-sheet";
+import { useStorefrontStaffEditOptional } from "@/components/storefront/storefront-staff-edit";
 import {
   useClientHasSession,
   useClientSessionReady,
@@ -31,6 +32,10 @@ export const STOREFRONT_SIGNUP_HREF = buildStorefrontSignInHref({
  * they were reading; the account page is the fallback. When the sign-in sheet
  * provider is mounted and hydrated, clicks are intercepted and the sheet opens
  * in place instead of navigating.
+ *
+ * Staff editing the shop (Edit shop chrome) jump straight to the workspace with
+ * a hard navigation — soft-routing through `/shop/account` throws removeChild
+ * when tearing down StorefrontShell.
  */
 export function useStorefrontAccountLink(): {
   signedIn: boolean;
@@ -54,12 +59,14 @@ export function useStorefrontAccountLink(): {
   const restoreFailed = useSessionRestoreFailed();
   const pathname = usePathname();
   const { available, open, hasPresence } = useStorefrontSignIn();
+  const staffEdit = useStorefrontStaffEditOptional();
 
   // D8 (§10): the server-rendered presence hint keeps the signed-in label
   // through hydration; a failed cookie-only restore downgrades it to
   // "Sign in" once the client knows the hint is stale.
   const clientSignedIn = ready && hasSession;
   const signedIn = clientSignedIn || (hasPresence && !restoreFailed);
+  const staffOnFloor = Boolean(staffEdit && signedIn);
 
   const next = isShopNextPath(pathname) ? pathname : APP_ROUTES.shopAccount;
 
@@ -67,6 +74,11 @@ export function useStorefrontAccountLink(): {
     event: MouseEvent<HTMLAnchorElement>,
     phase: StorefrontSignInPhase,
   ) => {
+    if (staffOnFloor) {
+      event.preventDefault();
+      window.location.assign(APP_ROUTES.business);
+      return;
+    }
     // Signed-in shoppers go straight to the account page — no sheet. The
     // optimistic presence hint is not enough: clicks during the restore window
     // open the sheet, which is the right door for a possibly-stale hint.
@@ -82,10 +94,12 @@ export function useStorefrontAccountLink(): {
 
   return {
     signedIn,
-    href: signedIn
-      ? APP_ROUTES.shopAccount
-      : buildStorefrontSignInHref({ path: next, next }),
-    label: signedIn ? "Account" : "Sign in",
+    href: staffOnFloor
+      ? APP_ROUTES.business
+      : signedIn
+        ? APP_ROUTES.shopAccount
+        : buildStorefrontSignInHref({ path: next, next }),
+    label: staffOnFloor ? "Workspace" : signedIn ? "Account" : "Sign in",
     signUpHref: buildStorefrontSignInHref({ path: next, next, signup: true }),
     onActivate: (event) => openFor(event, "credentials"),
     onSignUpActivate: (event) => openFor(event, "signup"),

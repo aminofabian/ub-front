@@ -47,29 +47,17 @@ export default function ShopAccountPage() {
   const [state, setState] = useState<LoadState>("loading");
   const [staffDest, setStaffDest] = useState<string | null>(null);
   const routingRef = useRef(false);
-  const hardNavTimerRef = useRef<number | null>(null);
 
   const sessionHint = hasSession;
 
-  const goStaffHome = useCallback(
-    (dest: string) => {
-      routingRef.current = true;
-      setStaffDest(dest);
-      setState("routing");
-      router.replace(dest);
-      if (hardNavTimerRef.current != null) {
-        window.clearTimeout(hardNavTimerRef.current);
-      }
-      // Soft nav can stall under storefront chrome — hard-assign if we are
-      // still on the account door after a beat.
-      hardNavTimerRef.current = window.setTimeout(() => {
-        if (window.location.pathname.startsWith(APP_ROUTES.shopAccount)) {
-          window.location.assign(dest);
-        }
-      }, 1800);
-    },
-    [router],
-  );
+  const goStaffHome = useCallback((dest: string) => {
+    routingRef.current = true;
+    setStaffDest(dest);
+    setState("routing");
+    // Soft App Router transitions from StorefrontShell → dashboard shell
+    // throw removeChild mid-unmount and leave this page stuck. Hard-load.
+    window.location.assign(dest);
+  }, []);
 
   const leaveForRole = useCallback(
     async (profile: MeResponse) => {
@@ -137,14 +125,6 @@ export default function ShopAccountPage() {
     return () => window.clearTimeout(id);
   }, [ready, sessionHint]);
 
-  useEffect(() => {
-    return () => {
-      if (hardNavTimerRef.current != null) {
-        window.clearTimeout(hardNavTimerRef.current);
-      }
-    };
-  }, []);
-
   const onLogout = async () => {
     await logoutRemote();
     setMe(null);
@@ -176,9 +156,10 @@ export default function ShopAccountPage() {
             </h1>
             {staffLeaving && continueHref ? (
               <p className={styles.lead}>
-                <Link href={continueHref} className={styles.ghost}>
-                  Continue
-                </Link>
+                {/* Plain <a> — Next Link soft-nav fails storefront → dashboard. */}
+                <a href={continueHref} className={styles.ghost}>
+                  Continue to workspace
+                </a>
               </p>
             ) : null}
           </div>
@@ -281,9 +262,9 @@ export default function ShopAccountPage() {
           <div className={styles.passHead}>
             <h1 className={styles.hello}>Taking you to the workspace</h1>
             <p className={styles.lead}>
-              <Link href={continueHref} className={styles.ghost}>
+              <a href={continueHref} className={styles.ghost}>
                 Continue to workspace
-              </Link>
+              </a>
             </p>
           </div>
           <div className={styles.skel} />
