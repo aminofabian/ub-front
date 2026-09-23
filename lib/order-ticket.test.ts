@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import type { SupplierItemLinkRecord } from "@/lib/api";
 import {
+  buildSupplyInvoiceReorderTicket,
   encodeTenantCartTicket,
   matchOrderTicketToLinks,
   parseOrderTicketFromInput,
@@ -85,8 +86,46 @@ describe("order ticket", () => {
     );
     expect(result.cart).toEqual({ i1: 16, i2: 2 });
     expect(result.packs).toEqual({});
+    expect(result.prices).toEqual({});
     expect(result.matched).toBe(2);
     expect(result.missed).toEqual(["missing"]);
+  });
+
+  it("derives unit prices from ticket line totals", () => {
+    const links = [
+      link({ itemId: "i1", itemName: "Carrots Pair", sku: "CARROTS" }),
+    ];
+    const result = matchOrderTicketToLinks(
+      [{ slug: "CARROTS", qty: 10, lineTotal: 250 }],
+      links,
+    );
+    expect(result.prices).toEqual({ i1: 25 });
+  });
+
+  it("builds a reorder ticket from a supply invoice", () => {
+    const plan = buildSupplyInvoiceReorderTicket({
+      lines: [
+        {
+          itemId: "i1",
+          description: "Garlic",
+          qty: 15,
+          usableQty: 15,
+          unitCost: 10,
+          lineTotal: 150,
+        },
+        {
+          itemId: null,
+          description: "Unlinked",
+          qty: 2,
+          usableQty: 2,
+          lineTotal: 20,
+        },
+      ],
+    });
+    expect(plan.reusable).toBe(1);
+    expect(plan.skipped).toBe(1);
+    expect(plan.ticket).toBe("i1*15*150");
+    expect(plan.estimatedTotal).toBe(150);
   });
 
   it("encodes tenant carts with SKU keys", () => {

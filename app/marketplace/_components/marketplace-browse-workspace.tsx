@@ -9,6 +9,7 @@ import {
   Loader2,
   MapPin,
   Package,
+  Phone,
   Search,
   SlidersHorizontal,
   Store,
@@ -18,6 +19,7 @@ import {
 import { toast } from "sonner";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
+import { TelLink } from "@/components/tel-link";
 import { getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -1175,6 +1177,18 @@ function SupplierFilterColumn({
               <span className="text-[12px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
                 {s.name}
               </span>
+              {s.contactPhone?.trim() ? (
+                <span
+                  className="block max-w-full truncate font-mono text-[10px] tabular-nums text-[var(--pos-primary,#0f766e)]"
+                  title={s.contactPhone}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <TelLink
+                    phone={s.contactPhone}
+                    className="underline-offset-2 hover:underline"
+                  />
+                </span>
+              ) : null}
               <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
                 {s.productCount} product{s.productCount === 1 ? "" : "s"}
               </span>
@@ -1361,6 +1375,21 @@ function SupplierTile({
             ? ` · ${row.productCount} product${row.productCount === 1 ? "" : "s"}`
             : ""}
         </p>
+        {row.contactPhone?.trim() ? (
+          <p
+            className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Phone className="size-3 shrink-0" aria-hidden />
+            <TelLink
+              phone={row.contactPhone}
+              className="underline-offset-2 hover:underline"
+            />
+          </p>
+        ) : null}
+        {row.contactName?.trim() && !row.contactPhone?.trim() ? (
+          <p className="text-[9px] text-muted-foreground">{row.contactName}</p>
+        ) : null}
         {row.listedBy ? (
           <p className="text-[9px] text-muted-foreground">
             Listed by {row.listedBy}

@@ -12,6 +12,8 @@ export type OrderTicketLine = MarketplaceOrderQueryLine;
 export type OrderTicketMatch = {
   cart: Record<string, number>;
   packs: OrderCartPackMeta;
+  /** Unit estimates derived from ticket `lineTotal` / qty when present. */
+  prices: Record<string, number>;
   matched: number;
   missed: string[];
 };
@@ -87,6 +89,7 @@ export function matchOrderTicketToLinks(
 ): OrderTicketMatch {
   const cart: Record<string, number> = {};
   const packs: OrderCartPackMeta = {};
+  const prices: Record<string, number> = {};
   const missed: string[] = [];
   let matched = 0;
 
@@ -112,6 +115,18 @@ export function matchOrderTicketToLinks(
     cart[hit.itemId] = (cart[hit.itemId] ?? 0) + line.qty;
     matched += 1;
 
+    if (
+      line.lineTotal != null &&
+      Number.isFinite(line.lineTotal) &&
+      line.lineTotal > 0 &&
+      line.qty > 0
+    ) {
+      const unit = line.lineTotal / line.qty;
+      if (Number.isFinite(unit) && unit > 0) {
+        prices[hit.itemId] = Math.round(unit * 100) / 100;
+      }
+    }
+
     const packOptionId = line.packOptionId?.trim();
     if (packOptionId) {
       const option = hit.packs?.find((p) => p.id === packOptionId);
@@ -126,7 +141,92 @@ export function matchOrderTicketToLinks(
     }
   }
 
-  return { cart, packs, matched, missed };
+  return { cart, packs, prices, matched, missed };
+}
+
+/** Build a shareable order ticket from a posted supply / GRN invoice. */
+export function buildSupplyInvoiceReorderTicket(
+  detail: {
+    lines: Array<{
+      itemId: string | null;
+      description?: string | null;
+      qty: number | string;
+      usableQty: number | string;
+      unitCost?: number | string;
+      lineTotal?: number | string;
+    }>;
+  },
+  opts?: { includeCosts?: boolean },
+): {
+  ticket: string;
+  lines: OrderTicketLine[];
+  reusable: number;
+  skipped: number;
+  estimatedTotal: number;
+  preview: Array<{ name: string; qty: number; lineTotal: number | null }>;
+} {
+  const includeCosts = opts?.includeCosts !== false;
+  const ticketLines: OrderTicketLine[] = [];
+  const preview: Array<{
+    name: string;
+    qty: number;
+    lineTotal: number | null;
+  }> = [];
+  let reusable = 0;
+  let skipped = 0;
+  let estimatedTotal = 0;
+
+  for (const line of detail.lines) {
+    const itemId = line.itemId?.trim() ?? "";
+    const usable = Number(line.usableQty);
+    const qtyRaw = Number(line.qty);
+    const qty =
+      Number.isFinite(usable) && usable > 0
+        ? usable
+        : Number.isFinite(qtyRaw) && qtyRaw > 0
+          ? qtyRaw
+          : 0;
+    if (!itemId || qty <= 0) {
+      skipped += 1;
+      continue;
+    }
+
+    const roundedQty = Math.max(1, Math.round(qty));
+    const unitCost = Number(line.unitCost);
+    const lineTotalRaw = Number(line.lineTotal);
+    let lineTotal: number | undefined;
+    if (includeCosts) {
+      if (Number.isFinite(lineTotalRaw) && lineTotalRaw > 0) {
+        lineTotal = lineTotalRaw;
+      } else if (Number.isFinite(unitCost) && unitCost > 0) {
+        lineTotal = unitCost * roundedQty;
+      }
+    }
+    if (lineTotal != null) estimatedTotal += lineTotal;
+
+    ticketLines.push({
+      slug: itemId,
+      qty: roundedQty,
+      lineTotal,
+    });
+    reusable += 1;
+    if (preview.length < 8) {
+      preview.push({
+        name: line.description?.trim() || "Item",
+        qty: roundedQty,
+        lineTotal: lineTotal ?? null,
+      });
+    }
+  }
+
+  return {
+    ticket: encodeOrderTicket(ticketLines),
+    lines: ticketLines,
+    reusable,
+    skipped,
+    estimatedTotal,
+    preview,
+  };
 }
 
 /** Encode a tenant cart for sharing — prefer SKU, then barcode, then item id. */

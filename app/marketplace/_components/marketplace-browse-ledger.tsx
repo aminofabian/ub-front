@@ -244,7 +244,8 @@ export function MarketplaceSupplierLedger({
       <div className="flex border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_60%,transparent)]">
         <ColHead label="#" width="w-9" />
         <ColHead label="Supplier" width="min-w-0 flex-1" />
-        <ColHead label="Area" width="w-[8rem] hidden md:flex" />
+        <ColHead label="Phone" width="w-[8.5rem] hidden sm:flex" />
+        <ColHead label="Area" width="w-[7rem] hidden md:flex" />
         <ColHead label="Products" width="w-[5.5rem]" align="right" />
       </div>
       <div>
@@ -253,6 +254,7 @@ export function MarketplaceSupplierLedger({
             ? APP_ROUTES.marketplaceSupplier(row.slug)
             : APP_ROUTES.marketplace;
           const hue = hueFromId(row.id);
+          const phone = row.contactPhone?.trim() || null;
           const body = (
             <>
               <div className="flex w-9 shrink-0 items-center justify-center border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] font-mono text-[10px] tabular-nums text-muted-foreground">
@@ -272,12 +274,24 @@ export function MarketplaceSupplierLedger({
                     {row.name}
                   </p>
                   <p className="truncate text-[10px] text-muted-foreground md:hidden">
+                    {phone ? `${phone} · ` : ""}
                     {row.location || (row.locations?.[0] ?? "—")}
-                    {row.listedBy ? ` · ${row.listedBy}` : ""}
                   </p>
                 </div>
               </div>
-              <div className="hidden w-[8rem] shrink-0 items-center border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] px-2 md:flex">
+              <div className="hidden w-[8.5rem] shrink-0 items-center border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] px-2 sm:flex">
+                {phone ? (
+                  <span
+                    className="truncate font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {phone}
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">—</span>
+                )}
+              </div>
+              <div className="hidden w-[7rem] shrink-0 items-center border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] px-2 md:flex">
                 <span className="truncate text-[11px] text-muted-foreground">
                   {row.location || (row.locations?.[0] ?? "—")}
                 </span>

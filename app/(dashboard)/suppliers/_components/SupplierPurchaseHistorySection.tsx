@@ -5,6 +5,7 @@ import Link from "next/link";
 import { History, Receipt } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useDashboard } from "@/components/dashboard-provider";
 import {
   fetchSupplierPurchaseHistory,
   type SupplierPurchaseHistoryOrderRecord,
@@ -13,6 +14,7 @@ import {
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
+import { ReorderPastSupplyButton } from "./ReorderPastSupplyDialog";
 import { SupLoadingBlock, SupSection } from "./supplier-layout-primitives";
 import {
   paymentStatusBadgeClass,
@@ -97,6 +99,8 @@ export function SupplierPurchaseHistorySection({
   onSelectInvoice?: (order: SupplierPurchaseHistoryOrderRecord) => void;
   historyLimit?: number;
 }) {
+  const { canPathAWrite } = useDashboard();
+  const canReorder = canPathAWrite;
   const compact = variant === "sidebar";
   const selectable = Boolean(onSelectInvoice);
   const [data, setData] = useState<SupplierPurchaseHistoryRecord | null>(null);
@@ -241,6 +245,7 @@ export function SupplierPurchaseHistorySection({
               selectable={selectable}
               selectedInvoiceId={selectedInvoiceId}
               onSelectInvoice={onSelectInvoice}
+              canReorder={canReorder}
               scrollable={false}
             />
           ) : (
@@ -269,6 +274,11 @@ export function SupplierPurchaseHistorySection({
                     <th className="border border-border px-2 py-1 font-semibold">
                       Status
                     </th>
+                    {canReorder ? (
+                      <th className="border border-border px-2 py-1 text-right font-semibold">
+                        Again
+                      </th>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -320,6 +330,20 @@ export function SupplierPurchaseHistorySection({
                             {paymentStatusLabel(row.paymentStatus)}
                           </span>
                         </td>
+                        {canReorder ? (
+                          <td
+                            className="border border-border/70 px-1.5 py-1 text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ReorderPastSupplyButton
+                              invoiceId={row.supplierInvoiceId}
+                              invoiceNumber={row.invoiceNumber}
+                              size="icon"
+                              variant="outline"
+                              className="ml-auto"
+                            />
+                          </td>
+                        ) : null}
                       </tr>
                     );
                   })}
@@ -387,12 +411,14 @@ function SidebarInvoiceList({
   selectable,
   selectedInvoiceId,
   onSelectInvoice,
+  canReorder = false,
   scrollable = true,
 }: {
   orders: SupplierPurchaseHistoryOrderRecord[];
   selectable: boolean;
   selectedInvoiceId?: string | null;
   onSelectInvoice?: (order: SupplierPurchaseHistoryOrderRecord) => void;
+  canReorder?: boolean;
   /** When false, list grows with content (parent column scrolls). */
   scrollable?: boolean;
 }) {
@@ -420,6 +446,9 @@ function SidebarInvoiceList({
             <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-1 text-right font-semibold">
               Due
             </th>
+            {canReorder ? (
+              <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] w-8 px-1 py-1" />
+            ) : null}
           </tr>
         </thead>
         <tbody>
@@ -450,6 +479,20 @@ function SidebarInvoiceList({
                 <td className="border border-border/70 px-1.5 py-0.5 text-right font-mono tabular-nums">
                   {bal > 0.009 ? formatMoney(bal) : "—"}
                 </td>
+                {canReorder ? (
+                  <td
+                    className="border border-border/70 px-0.5 py-0.5 text-right"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ReorderPastSupplyButton
+                      invoiceId={row.supplierInvoiceId}
+                      invoiceNumber={row.invoiceNumber}
+                      size="icon"
+                      variant="ghost"
+                      className="size-6 border-0"
+                    />
+                  </td>
+                ) : null}
               </tr>
             );
           })}

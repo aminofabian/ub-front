@@ -630,7 +630,7 @@ export function TenantOrderWorkspace({
     setCart(result.cart);
     setLineOrder(cartItemIds(result.cart));
     setPackByItemId(result.packs);
-    setPriceByItemId({});
+    setPriceByItemId(result.prices);
     setTotalOverrideByItemId({});
     setMobileOrderOpen(true);
     if (result.missed.length > 0) {
@@ -997,7 +997,7 @@ export function TenantOrderWorkspace({
     setCart(result.cart);
     setLineOrder(cartItemIds(result.cart));
     setPackByItemId(result.packs);
-    setPriceByItemId({});
+    setPriceByItemId(result.prices);
     setTotalOverrideByItemId({});
     setImportOpen(false);
     setImportText("");

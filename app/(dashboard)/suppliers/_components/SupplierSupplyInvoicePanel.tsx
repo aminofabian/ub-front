@@ -23,6 +23,7 @@ import {
   supplyN,
   supplyPaymentStatusBadge,
 } from "../../supplies/_components/supplies-shared";
+import { ReorderPastSupplyButton } from "./ReorderPastSupplyDialog";
 import { SupLoadingBlock } from "./supplier-layout-primitives";
 import { supTableHead, supTableRow } from "./supplier-ui-tokens";
 
@@ -61,7 +62,7 @@ export function SupplierSupplyInvoicePanel({
   invoiceId: string | null;
   onUpdated?: () => void;
 }) {
-  const { me, canPathBWrite } = useDashboard();
+  const { me, canPathBWrite, canPathAWrite } = useDashboard();
   const canPay = hasPermission(
     me?.permissions,
     Permission.PurchasingPaymentWrite,
@@ -71,6 +72,7 @@ export function SupplierSupplyInvoicePanel({
     Permission.PurchasingPaymentRead,
   );
   const canOpenReceipt = canPay || canPaymentRead;
+  const canReorder = canPathAWrite;
 
   const [detail, setDetail] = useState<PathBSupplyInvoiceDetailRecord | null>(
     null,
@@ -212,8 +214,18 @@ export function SupplierSupplyInvoicePanel({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-border/50">
-        <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-1 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-          Lines ({detail.lines.length})
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-1">
+          <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+            Lines ({detail.lines.length})
+          </span>
+          {canReorder ? (
+            <ReorderPastSupplyButton
+              detail={detail}
+              label="Order again"
+              variant="outline"
+              className="h-6 border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)] px-2 text-[10px] text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]"
+            />
+          ) : null}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <table className="w-full text-left text-sm">
@@ -257,6 +269,13 @@ export function SupplierSupplyInvoicePanel({
       ) : null}
 
       <div className="flex shrink-0 flex-wrap gap-1.5 border-t border-border/40 pt-1.5">
+        {canReorder ? (
+          <ReorderPastSupplyButton
+            detail={detail}
+            label="Order again"
+            className="min-w-0 flex-1 sm:flex-none"
+          />
+        ) : null}
         {canOpenReceipt && listRow ? (
           <Button
             type="button"

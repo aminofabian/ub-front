@@ -26,6 +26,7 @@ import {
   MessageCircle,
   Minus,
   Package,
+  Phone,
   Plus,
   Search,
   ShoppingCart,
@@ -1192,7 +1193,10 @@ export function MarketplaceOrderWorkspace({
     const primaryContact =
       detail.contacts.find((c) => c.primaryContact) ?? detail.contacts[0];
     const shelfPhone =
-      primaryContact?.phone?.trim() || detail.contactPhone?.trim() || null;
+      primaryContact?.phone?.trim() ||
+      detail.contactPhone?.trim() ||
+      detail.payoutPhone?.trim() ||
+      null;
     const shelfWa = shelfPhone ? normalizeWhatsAppPhone(shelfPhone) : null;
 
     return (
@@ -1284,44 +1288,30 @@ export function MarketplaceOrderWorkspace({
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-2 pl-2">
-                  <p className="min-w-0 truncate text-[13px] font-semibold text-[var(--pos-ink,#1c1915)]">
-                    {detail.name}
-                    <span className="ml-2 font-mono text-[10px] font-medium tabular-nums text-muted-foreground">
-                      {detail.products.length}
-                    </span>
-                  </p>
-                  <div className="flex shrink-0 items-center gap-2">
+                <div className="space-y-2 pl-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-[13px] font-semibold text-[var(--pos-ink,#1c1915)]">
+                      {detail.name}
+                      <span className="ml-2 font-mono text-[10px] font-medium tabular-nums text-muted-foreground">
+                        {detail.products.length}
+                      </span>
+                    </p>
                     {tenantMode && canInherit && onInherit ? (
                       <button
                         type="button"
                         onClick={onInherit}
-                        className="inline-flex h-7 items-center gap-1 bg-[var(--pos-primary,#0f766e)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white hover:bg-[color-mix(in_srgb,#0f766e_88%,#000)]"
+                        className="inline-flex h-7 shrink-0 items-center gap-1 bg-[var(--pos-primary,#0f766e)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white hover:bg-[color-mix(in_srgb,#0f766e_88%,#000)]"
                       >
                         <Store className="size-3" aria-hidden />
                         Inherit
                       </button>
                     ) : null}
-                    {shelfPhone ? (
-                      <>
-                        <TelLink
-                          phone={shelfPhone}
-                          className="font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
-                        />
-                        {shelfWa ? (
-                          <a
-                            href={`https://wa.me/${shelfWa}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                          >
-                            <MessageCircle className="size-3" />
-                            WhatsApp
-                          </a>
-                        ) : null}
-                      </>
-                    ) : null}
                   </div>
+                  <SupplierShelfContactBar
+                    detail={detail}
+                    areaLabel={areaLabel}
+                    emphasizePhone={tenantMode}
+                  />
                 </div>
               )}
             </section>
@@ -1792,6 +1782,91 @@ export function MarketplaceOrderWorkspace({
   );
 }
 
+function SupplierShelfContactBar({
+  detail,
+  areaLabel,
+  emphasizePhone = false,
+}: {
+  detail: MarketplaceSupplierDetail;
+  areaLabel: string;
+  emphasizePhone?: boolean;
+}) {
+  const primary =
+    detail.contacts.find((c) => c.primaryContact) ?? detail.contacts[0];
+  const phone =
+    primary?.phone?.trim() ||
+    detail.contactPhone?.trim() ||
+    detail.payoutPhone?.trim() ||
+    null;
+  const email =
+    primary?.email?.trim() || detail.contactEmail?.trim() || null;
+  const contactName = [primary?.name, primary?.roleLabel]
+    .filter(Boolean)
+    .join(" · ");
+  const wa = phone ? normalizeWhatsAppPhone(phone) : null;
+
+  if (!phone && !email && !areaLabel && !contactName) {
+    return (
+      <p className="text-[11px] text-muted-foreground">
+        No phone listed for this supplier yet.
+      </p>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-3 gap-y-1.5",
+        emphasizePhone &&
+          "border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)] px-2 py-1.5",
+      )}
+    >
+      {phone ? (
+        <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+            <Phone className="size-3" aria-hidden />
+            Phone
+          </span>
+          <TelLink
+            phone={phone}
+            className="font-mono text-[13px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+          />
+          {wa ? (
+            <a
+              href={`https://wa.me/${wa}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              <MessageCircle className="size-3" />
+              WhatsApp
+            </a>
+          ) : null}
+        </span>
+      ) : null}
+      {contactName ? (
+        <span className="truncate text-[11px] text-muted-foreground">
+          {contactName}
+        </span>
+      ) : null}
+      {email ? (
+        <a
+          href={`mailto:${email}`}
+          className="truncate text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          {email}
+        </a>
+      ) : null}
+      {areaLabel ? (
+        <span className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground">
+          <MapPin className="size-3" />
+          {areaLabel}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 function SupplierContactSection({
   detail,
   areaLabel,
@@ -1850,6 +1925,10 @@ function SupplierContactSection({
       c.phone,
       c.email,
     );
+  }
+
+  if (contactLines.length === 0 && detail.payoutPhone?.trim()) {
+    addContact("Payout phone", detail.payoutPhone, null);
   }
 
   if (

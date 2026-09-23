@@ -171,7 +171,16 @@ export function InheritSupplierDialog({
                   .slice(0, 2)
                   .join(" · ") || "Marketplace supplier"}
               </p>
-              <p className="mt-2 inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
+              {(detail.contactPhone?.trim() ||
+                detail.contacts.find((c) => c.phone?.trim())?.phone ||
+                detail.payoutPhone?.trim()) && (
+                <p className="mt-1.5 font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
+                  {detail.contactPhone?.trim() ||
+                    detail.contacts.find((c) => c.phone?.trim())?.phone ||
+                    detail.payoutPhone}
+                </p>
+              )}
+              <p className="mt-2 inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
                 <Package className="size-3.5" aria-hidden />
                 {productCount} product{productCount === 1 ? "" : "s"} on shelf
               </p>
