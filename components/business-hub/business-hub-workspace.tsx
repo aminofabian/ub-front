@@ -1280,8 +1280,6 @@ export function BusinessHubWorkspace() {
     });
   }, [cashierNames]);
 
-  if (loading) return <BusinessHubSkeleton />;
-
   const topMovers = ownerSummary?.topSkusLast30Days ?? [];
   const showMovers = canViewOwnerSummary && topMovers.length > 0;
   const shopName =
@@ -1469,6 +1467,8 @@ export function BusinessHubWorkspace() {
     openWebOrders,
     todaySupplies,
   ]);
+
+  if (loading) return <BusinessHubSkeleton />;
 
   return (
     <BusinessPageLayout
