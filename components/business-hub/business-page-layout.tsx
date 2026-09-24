@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 export const BUSINESS_HUB_VARS = {
   ["--hub-ink" as string]: "#141414",
   ["--hub-paper" as string]: "#ffffff",
+  ["--hub-bg" as string]: "#F6F7F6",
   ["--hub-accent" as string]: "#0f766e",
   ["--hub-accent-deep" as string]: "#0f766e",
   ["--hub-slip" as string]: "#ffffff",
@@ -105,7 +106,7 @@ export function BusinessPageLayout({
         "sm:px-1 sm:pb-4 sm:pt-1",
         className,
       )}
-      style={BUSINESS_HUB_VARS}
+      style={{ ...BUSINESS_HUB_VARS, backgroundColor: "var(--hub-bg)" }}
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-2 sm:gap-3">
         {/* `data-hub-chrome` lets in-page jumps measure the sticky header they
@@ -114,10 +115,10 @@ export function BusinessPageLayout({
           data-hub-chrome=""
           className={cn(
             "sticky top-0 z-20 shrink-0 border-b bg-white/92",
-            "border-[color-mix(in_srgb,var(--hub-ink)_10%,transparent)]",
+            "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
             "backdrop-blur-xl supports-[backdrop-filter]:bg-white/80",
             // Edge-flush under shell gutters on phone
-            "-mx-3 sm:mx-0 sm:border",
+            "-mx-3 sm:mx-0 sm:rounded-xl sm:border",
           )}
         >
           {/* Tablet up: the hub's own pages. Phones use the identity row's menu. */}

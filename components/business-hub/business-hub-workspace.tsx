@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart3,
   Boxes,
+  CircleDollarSign,
   ClipboardCheck,
   CreditCard,
+  Globe,
   MessageCircle,
   MonitorSmartphone,
   Package,
@@ -15,7 +17,9 @@ import {
   Settings,
   ShoppingCart,
   Store,
+  Truck,
   Users,
+  Wallet,
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
@@ -27,19 +31,20 @@ import { BusinessPageLayout } from "@/components/business-hub/business-page-layo
 import { ShopOpenBoard } from "@/components/business-hub/shop-open-board";
 import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
-import {
-  JumpInGrid,
-  type JumpInLink,
-} from "@/components/business-hub/jump-in-grid";
+import { type JumpInLink } from "@/components/business-hub/jump-in-grid";
 import { BusinessHubMenuButton } from "@/components/business-hub/hub-menu";
 import { FloorTapeDrawer } from "@/components/business-hub/floor-tape-drawer";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
-import { HubDeskStack } from "@/components/business-hub/hub-desk-stack";
+import { HubGreeting } from "@/components/business-hub/hub-greeting";
+import { HubKpiRow, type HubKpi } from "@/components/business-hub/hub-kpi-row";
 import { HubLiveStatus } from "@/components/business-hub/hub-live-status";
+import { HubPaymentSplit } from "@/components/business-hub/hub-payment-split";
+import { HubQuickActions } from "@/components/business-hub/hub-quick-actions";
+import { HubTipCard } from "@/components/business-hub/hub-tip-card";
+import { HubWorkSummary } from "@/components/business-hub/hub-work-summary";
 import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { OpenWorkBoard } from "@/components/business-hub/open-work-board";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
-import { PulseHero } from "@/components/business-hub/pulse-hero";
 import { MarginLeaksDrawer } from "@/components/business-hub/margin-leaks-drawer";
 import { ProfitPocketDrawer } from "@/components/business-hub/profit-pocket-drawer";
 import { ReceiveMpesaSetupCard } from "@/components/business-hub/receive-mpesa-setup-card";
@@ -1244,8 +1249,8 @@ export function BusinessHubWorkspace() {
   const galleryOpen = selectedCashiers.length >= 3;
   const showTillStage =
     canViewSalesIntelligence && !shopNotReady && !salesEmpty;
-  /** Desk ops ride the live-sales column on xl; stay in the main flow below. */
-  const deskInSideRail = showTillStage && !galleryOpen;
+  /** Clean right rail: live activity, shortcuts, payment, tills. */
+  const showCleanRail = !shopNotReady && !galleryOpen;
 
   useEffect(() => {
     setSelectedCashiers((prev) => {
@@ -1300,77 +1305,170 @@ export function BusinessHubWorkspace() {
     hasPermission(me?.permissions, Permission.PaymentsGatewaysRead) ||
     hasPermission(me?.permissions, Permission.PaymentsGatewaysWrite);
 
-  const deskStackBoard = (
-    <HubDeskStack
-      attention={
-        showAttentionSection ? (
-          actionItems.length > 0 ? (
-            <ActionItemsStrip items={actionItems} />
-          ) : salesEmpty ? null : (
-            <HubAllClear />
-          )
-        ) : null
-      }
-      payment={
-        canShowPaymentMethod ? (
-          <ReceiveMpesaSetupCard
-            ownerPhone={me?.phone}
-            countryCode={business?.countryCode}
-            permissions={me?.permissions}
-          />
-        ) : null
-      }
-      tills={
-        canManageBusinessSettings ? (
-          <ManageTillsHubCard
-            branches={branches}
-            branchId={branchId}
-            initiallyOpen={manageTillsInitiallyOpen}
-          />
-        ) : null
-      }
-    />
-  );
+  const tenderTotals = useMemo(() => {
+    if (!canViewSalesIntelligence) return null;
+    return paymentTenderTotals(paymentBreakdown);
+  }, [canViewSalesIntelligence, paymentBreakdown]);
 
-  const deskStackRail = (
-    <HubDeskStack
-      framed
-      attention={
-        showAttentionSection ? (
-          actionItems.length > 0 ? (
-            <ActionItemsStrip
-              items={actionItems}
-              density={dualLanes ? "board" : "rail"}
-            />
-          ) : (
-            <HubAllClear />
-          )
-        ) : null
-      }
-      payment={
-        canShowPaymentMethod ? (
-          <ReceiveMpesaSetupCard
-            rail={!dualLanes}
-            compact={dualLanes}
-            ownerPhone={me?.phone}
-            countryCode={business?.countryCode}
-            permissions={me?.permissions}
-          />
-        ) : null
-      }
-      tills={
-        canManageBusinessSettings ? (
-          <ManageTillsHubCard
-            rail={!dualLanes}
-            compact={dualLanes}
-            branches={branches}
-            branchId={branchId}
-            initiallyOpen={manageTillsInitiallyOpen}
-          />
-        ) : null
-      }
-    />
-  );
+  const hubKpis = useMemo((): HubKpi[] => {
+    const profitActions =
+      canViewAnalytics &&
+      (canViewSalesIntelligence ||
+        canReadFinanceReports ||
+        canWriteFinanceExpenses)
+        ? [
+            ...(canViewSalesIntelligence &&
+            (grossProfit < 0 || (margin != null && margin < 0))
+              ? [
+                  {
+                    label: "Why negative?",
+                    onClick: () => setMarginLeaksOpen(true),
+                    emphasize: true,
+                  },
+                ]
+              : canViewSalesIntelligence && Math.abs(grossProfit) > 0.009
+                ? [
+                    {
+                      label: "See items",
+                      onClick: () => setMarginLeaksOpen(true),
+                    },
+                  ]
+                : []),
+            ...(canReadFinanceReports || canWriteFinanceExpenses
+              ? [
+                  {
+                    label: "Pocket cash…",
+                    onClick: () => setProfitPocketOpen(true),
+                  },
+                ]
+              : []),
+          ]
+        : undefined;
+
+    return [
+      {
+        id: "revenue",
+        label: "Revenue",
+        value: money(revenue),
+        trend: revenueTrend,
+        hint: isToday ? "vs. yesterday" : "vs. last week",
+        icon: BarChart3,
+        tint: "teal",
+        href: APP_ROUTES.sales,
+      },
+      {
+        id: "profit",
+        label: "Gross profit",
+        value: canViewAnalytics ? money(grossProfit) : "—",
+        hint: canViewAnalytics
+          ? margin != null
+            ? `${fmtPct(margin)} margin`
+            : "After cost of goods"
+          : "Analytics access required",
+        icon: CircleDollarSign,
+        tint: "emerald",
+        actions: profitActions,
+      },
+      {
+        id: "orders",
+        label: isToday ? "Orders" : "Units sold",
+        value: fmtCount(orders),
+        trend: ordersTrend,
+        hint: isToday ? "vs. yesterday" : "Quantity moved",
+        icon: ShoppingCart,
+        tint: "violet",
+        href: APP_ROUTES.salesTransactions,
+      },
+      {
+        id: "ticket",
+        label: isToday ? "Avg. ticket" : "Avg / day",
+        value: isToday
+          ? ticket != null
+            ? money(ticket)
+            : "—"
+          : chartPoints.length > 0
+            ? money(revenue / chartPoints.length)
+            : "—",
+        hint: isToday ? "Revenue ÷ sales" : "Across this week",
+        icon: CreditCard,
+        tint: "amber",
+        href: APP_ROUTES.sales,
+      },
+    ];
+  }, [
+    canReadFinanceReports,
+    canViewAnalytics,
+    canViewSalesIntelligence,
+    canWriteFinanceExpenses,
+    chartPoints.length,
+    grossProfit,
+    isToday,
+    margin,
+    money,
+    orders,
+    ordersTrend,
+    revenue,
+    revenueTrend,
+    ticket,
+  ]);
+
+  const workCards = useMemo(() => {
+    const cards = [];
+    if (canViewSupplyBills) {
+      const summary = summarizeSupplyRows(todaySupplies);
+      cards.push({
+        id: "supply",
+        label: "Supplier bills",
+        meta:
+          summary.count > 0
+            ? `${summary.count} · ${money(summary.openBalance)}`
+            : "None today",
+        href: APP_ROUTES.purchasingAddSupplies,
+        icon: Truck,
+      });
+    }
+    if (canViewCreditTabs) {
+      const owed = openCreditTabs.reduce(
+        (sum, tab) => sum + toNum(tab.balanceOwed),
+        0,
+      );
+      cards.push({
+        id: "credit",
+        label: "Customer credit",
+        meta:
+          openCreditTabs.length > 0
+            ? `${openCreditTabs.length} · ${money(owed)}`
+            : "None open",
+        href: APP_ROUTES.creditsOnTab,
+        icon: Wallet,
+      });
+    }
+    if (canShowWebOrders) {
+      const total = openWebOrders.reduce(
+        (sum, order) => sum + toNum(order.grandTotal),
+        0,
+      );
+      cards.push({
+        id: "web",
+        label: "Web orders",
+        meta:
+          openWebOrders.length > 0
+            ? `${openWebOrders.length} · ${money(total)}`
+            : "None open",
+        href: APP_ROUTES.storefrontWebOrders,
+        icon: Globe,
+      });
+    }
+    return cards;
+  }, [
+    canShowWebOrders,
+    canViewCreditTabs,
+    canViewSupplyBills,
+    money,
+    openCreditTabs,
+    openWebOrders,
+    todaySupplies,
+  ]);
 
   return (
     <BusinessPageLayout
@@ -1437,23 +1535,12 @@ export function BusinessHubWorkspace() {
 
           <div
             className={cn(
-              "xl:grid xl:items-start xl:gap-3",
-              deskInSideRail &&
-                !dualLanes &&
-                "xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)]",
-              deskInSideRail &&
-                dualLanes &&
-                "xl:grid-cols-[minmax(0,1fr)_minmax(190px,230px)_minmax(190px,230px)]",
-              showTillStage && galleryOpen && "xl:grid-cols-1",
+              "xl:grid xl:items-start xl:gap-4",
+              showCleanRail &&
+                "xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]",
             )}
           >
-            <div
-              className={cn(
-                "flex flex-col gap-2",
-                deskInSideRail && "xl:pr-1",
-                deskInSideRail && dualLanes && "xl:row-span-2",
-              )}
-            >
+            <div className={cn("flex flex-col gap-2", showCleanRail && "xl:pr-1")}>
               {shopNotReady ? (
                 <>
                   <ShopOpenBoard
@@ -1507,41 +1594,86 @@ export function BusinessHubWorkspace() {
 
               {shopNotReady ? null : (
                 <div className="flex flex-col gap-3.5 sm:gap-4">
-                  {/* 1 — Summary: revenue, tenders, metrics, and the trend
-                      meter read as one panel rather than three sections. */}
+                  <HubGreeting
+                    name={me?.name}
+                    subtitle={
+                      isToday
+                        ? "Here's what's happening at your shop today."
+                        : "Here's how the shop did this week."
+                    }
+                  />
+
+                  {salesEmpty ? null : <HubKpiRow items={hubKpis} />}
+
+                  {tenderTotals ? (
+                    <HubPaymentSplit
+                      cash={tenderTotals.cash}
+                      mpesa={tenderTotals.mpesa}
+                      credit={tenderTotals.credit}
+                      format={money}
+                      periodLabel={isToday ? "Today" : "This week"}
+                    />
+                  ) : null}
+
+                  {showAttentionSection ? (
+                    actionItems.length > 0 ? (
+                      <ActionItemsStrip items={actionItems} />
+                    ) : salesEmpty ? null : (
+                      <HubAllClear />
+                    )
+                  ) : null}
+
                   {salesEmpty ? null : (
-                    <PulseHero
-                      eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
-                      revenueLabel={
-                        isToday ? "Revenue today" : "Revenue this week"
-                      }
-                      revenue={money(revenue)}
-                      revenueBreakdown={revenueBreakdown}
-                      headline={headline}
-                      trend={revenueTrend}
-                      trendTone={revenueFooterTone}
-                      metrics={pulseMetrics}
-                      justUpdated={justUpdated}
-                      footer={
+                    <section className="space-y-2">
+                      <div className="flex items-baseline justify-between px-0.5">
+                        <h3 className="text-[12px] font-semibold tracking-[-0.02em] text-[#141414]">
+                          Revenue · {isToday ? "Today" : "This week"}
+                        </h3>
+                        {revenueTrend ? (
+                          <p className="text-[12px] font-semibold tabular-nums text-[#047857]">
+                            {revenueTrend}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="rounded-xl border border-[color-mix(in_srgb,#141414_9%,transparent)] bg-white p-3 shadow-[0_1px_2px_rgba(20,20,20,0.04)]">
+                        <p
+                          className="mb-2 text-[22px] font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums"
+                          style={{ fontFamily: "var(--font-heading)" }}
+                        >
+                          {money(revenue)}
+                        </p>
                         <RevenueBarChart
                           bare
                           points={chartPoints}
                           ariaLabel={chartAriaLabel}
                           caption={chartCaption}
                         />
-                      }
-                    />
+                      </div>
+                    </section>
                   )}
 
-                  {/* 2–3 — Attention, payment, tills:
-                      On xl with a live till rail they live under sales/drawouts.
-                      Below xl (and when the till stage is off) they stay here. */}
-                  <div className={cn(deskInSideRail && "xl:hidden")}>
-                    {deskStackBoard}
-                  </div>
+                  <HubWorkSummary cards={workCards} />
 
-                  {/* 4 — Jump in: the board a shop actually navigates with */}
-                  <JumpInGrid links={jumpInLinks} />
+                  <div className="flex flex-col gap-3 xl:hidden">
+                    <HubQuickActions links={jumpInLinks} />
+                    {canShowPaymentMethod ? (
+                      <ReceiveMpesaSetupCard
+                        rail
+                        ownerPhone={me?.phone}
+                        countryCode={business?.countryCode}
+                        permissions={me?.permissions}
+                      />
+                    ) : null}
+                    {canManageBusinessSettings ? (
+                      <ManageTillsHubCard
+                        rail
+                        branches={branches}
+                        branchId={branchId}
+                        initiallyOpen={manageTillsInitiallyOpen}
+                      />
+                    ) : null}
+                    <HubTipCard />
+                  </div>
 
                   {/* 5 — Open work (phone: column tabs; sm+: multi-column grid) */}
                   {(canViewSupplyBills &&
@@ -1697,58 +1829,44 @@ export function BusinessHubWorkspace() {
               )}
             </div>
 
-            {deskInSideRail ? (
-              dualLanes ? (
-                <>
-                  {tickLanes.map((lane, index) => (
-                    <div
-                      key={lane.key}
-                      className={cn(
-                        "hidden xl:block",
-                        index === 0 &&
-                          "xl:border-r xl:border-[color-mix(in_srgb,#141414_8%,transparent)] xl:pr-3",
-                        index === 1 && "xl:pl-3",
-                      )}
-                    >
+            {showCleanRail ? (
+              <aside className="hidden xl:flex xl:flex-col xl:gap-3">
+                {showTillStage
+                  ? tickLanes.map((lane, index) => (
                       <RecentTicksRail
+                        key={lane.key}
                         ticks={lane.ticks}
                         drawouts={lane.drawouts}
                         currency={currency}
                         justUpdated={justUpdated && index === 0}
-                        title={lane.title}
+                        title={index === 0 ? "Live activity" : lane.title}
                         subtitle={lane.subtitle}
                         showCashier={lane.showCashier}
                         accent={lane.accent}
-                        laneIndex={index}
                         fillViewport={false}
-                        className="max-h-[min(28rem,52dvh)] border-0 shadow-none xl:border xl:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] xl:shadow-none"
+                        className="max-h-[min(24rem,46dvh)]"
                       />
-                    </div>
-                  ))}
-                  <div className="hidden xl:col-span-2 xl:block xl:pt-1">
-                    {deskStackRail}
-                  </div>
-                </>
-              ) : (
-                <div className="hidden xl:flex xl:flex-col xl:gap-3 xl:pl-1">
-                  {tickLanes.map((lane) => (
-                    <RecentTicksRail
-                      key={lane.key}
-                      ticks={lane.ticks}
-                      drawouts={lane.drawouts}
-                      currency={currency}
-                      justUpdated={justUpdated}
-                      title={lane.title}
-                      subtitle={lane.subtitle}
-                      showCashier={lane.showCashier}
-                      accent={lane.accent}
-                      fillViewport={false}
-                      className="max-h-[min(28rem,52dvh)] border-0 shadow-none xl:border xl:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] xl:shadow-none"
-                    />
-                  ))}
-                  {deskStackRail}
-                </div>
-              )
+                    ))
+                  : null}
+                <HubQuickActions links={jumpInLinks} />
+                {canShowPaymentMethod ? (
+                  <ReceiveMpesaSetupCard
+                    rail
+                    ownerPhone={me?.phone}
+                    countryCode={business?.countryCode}
+                    permissions={me?.permissions}
+                  />
+                ) : null}
+                {canManageBusinessSettings ? (
+                  <ManageTillsHubCard
+                    rail
+                    branches={branches}
+                    branchId={branchId}
+                    initiallyOpen={manageTillsInitiallyOpen}
+                  />
+                ) : null}
+                <HubTipCard />
+              </aside>
             ) : null}
           </div>
         </div>
