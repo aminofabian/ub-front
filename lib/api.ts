@@ -8184,6 +8184,13 @@ export async function cancelNotificationCampaign(
   );
 }
 
+export async function voidWebOrder(orderId: string): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/void`,
+    { method: "POST" },
+  );
+}
+
 export async function updateWebOrderFulfillment(
   orderId: string,
   fulfillmentStatus: "confirmed" | "dispatched" | "completed",
