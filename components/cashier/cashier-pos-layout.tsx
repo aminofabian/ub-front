@@ -2578,7 +2578,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             products={topProducts}
             loading={alwaysShowTopProducts && topProductsLoading}
             title="Frequently sold"
-            subtitle="Based on this cashier's recent sales"
+            subtitle="Tap to add · shelf prices"
+            shelfPrices={tileShelfPrices}
+            online={online}
+            priceLoadingLabel={uiCopy.tileShelfLoading}
+            priceEmptyLabel={uiCopy.tileShelfEmpty}
             cartQtyByItem={cartQtyByItem}
             justAddedId={justAddedId}
             onPick={handleTopProductPick}
