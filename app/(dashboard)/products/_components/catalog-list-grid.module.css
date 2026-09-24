@@ -2,11 +2,13 @@
 
 .shell {
   --cat-col-check: 22px;
-  --cat-col-product: 280px;
-  --cat-col-stock: 48px;
+  --cat-col-product: 240px;
+  --cat-col-stock: 44px;
+  --cat-col-buy: 64px;
   --cat-col-sell: 64px;
-  --cat-col-category: 96px;
-  --cat-sheet-min-width: 510px;
+  --cat-col-margin: 52px;
+  --cat-col-category: 88px;
+  --cat-sheet-min-width: 574px;
 }
 
 .shell[data-resizing="true"] {
@@ -24,7 +26,9 @@
     var(--cat-col-check)
     var(--cat-col-product)
     var(--cat-col-stock)
+    var(--cat-col-buy)
     var(--cat-col-sell)
+    var(--cat-col-margin)
     var(--cat-col-category);
   width: 100%;
   align-items: stretch;

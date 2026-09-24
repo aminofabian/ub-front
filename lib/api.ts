@@ -956,6 +956,11 @@ export type ItemSummaryRecord = {
   /** Reference buying / cost price on the item record. */
   buyingPrice?: number | string | null;
   /**
+   * Effective shelf sell price for list UIs: open selling-price row when present,
+   * otherwise {@link bundlePrice}. Matches price-cleanup “selling set” semantics.
+   */
+  sellingPrice?: number | string | null;
+  /**
    * Live parent item name when this row is a variant. POS uses this so a parent
    * rename shows on till before every child `name` copy is patched.
    */

@@ -18,7 +18,7 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-import { formatAmount, formatStockLabel, toNumber } from "../_utils";
+import { formatStockLabel, toNumber } from "../_utils";
 import {
   CATALOG_FIX_NAME_LABEL,
   findDuplicateCatalogRowIds,
@@ -31,6 +31,11 @@ import { CatalogColResizeHandle } from "./CatalogColResizeHandle";
 import { CATALOG_COL_WIDTHS_RESTORE_SCRIPT } from "./catalog-column-widths";
 import { CatalogListSkeleton } from "./CatalogListSkeleton";
 import { CatalogListThumb } from "./CatalogListThumb";
+import { CatalogPriceInput } from "./CatalogPriceInput";
+import {
+  listMarginPct,
+  listSellPrice,
+} from "./catalog-price-format";
 import sheetStyles from "./catalog-list-grid.module.css";
 import { useCatalogColumnWidths } from "./use-catalog-column-widths";
 import {
@@ -83,6 +88,16 @@ export type VirtualizedCatalogBodyProps = {
   canAddFromCatalog?: boolean;
   onCreateNew?: () => void;
   canCreateNew?: boolean;
+  /** Inline Buy / Sell / Margin edits on sellable rows. */
+  canEditBuyingPrice?: boolean;
+  canEditSellingPrice?: boolean;
+  onCommitBuyingPrice?: (itemId: string, price: number) => void | Promise<void>;
+  onCommitSellingPrice?: (itemId: string, price: number) => void | Promise<void>;
+  onCommitMarginPct?: (
+    itemId: string,
+    marginPct: number,
+    buy: number,
+  ) => void | Promise<void>;
 };
 
 function FixNamePill() {
@@ -91,49 +106,6 @@ function FixNamePill() {
       {CATALOG_FIX_NAME_LABEL}
     </span>
   );
-}
-
-function NoPricePill() {
-  return (
-    <span
-      className="text-[11px] tabular-nums text-foreground/25"
-      title="No sell price set"
-    >
-      –
-    </span>
-  );
-}
-
-/** Compact sheet price — drop trailing .00 when whole. */
-function compactListPrice(value: number): string {
-  const whole = Math.abs(value - Math.round(value)) < 0.005;
-  if (whole) return Math.round(value).toLocaleString();
-  return value.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function formatListSellPrice(
-  row: ItemSummaryRecord,
-  opts: { isGroup: boolean; hasVariants: boolean },
-): {
-  kind: "price" | "empty" | "na";
-  label?: string;
-  title?: string;
-} {
-  if (opts.isGroup) {
-    return { kind: "na", title: "Price on variants" };
-  }
-  const price = toNumber(row.bundlePrice);
-  if (opts.hasVariants && (price == null || price <= 0)) {
-    return { kind: "na", title: "Price on variants" };
-  }
-  if (price == null || price <= 0) {
-    return { kind: "empty", title: "No sell price set" };
-  }
-  const label = compactListPrice(price);
-  return { kind: "price", label, title: formatAmount(price) };
 }
 
 function compactStockDisplay(row: ItemSummaryRecord): {
@@ -187,6 +159,11 @@ export const VirtualizedCatalogBody = forwardRef<
     canAddFromCatalog = false,
     onCreateNew,
     canCreateNew = false,
+    canEditBuyingPrice = false,
+    canEditSellingPrice = false,
+    onCommitBuyingPrice,
+    onCommitSellingPrice,
+    onCommitMarginPct,
   },
   ref,
 ) {
@@ -352,16 +329,46 @@ export const VirtualizedCatalogBody = forwardRef<
           <span
             className={cn(
               catalogListMetricHeaderClass,
+              catalogGridCol.buy,
+              "group/cat-col relative",
+            )}
+          >
+            Buy
+            <CatalogColResizeHandle
+              edge="buy"
+              label="Buying price"
+              onResizeStart={beginResize}
+              onReset={() => resetColumn("buy")}
+            />
+          </span>
+          <span
+            className={cn(
+              catalogListMetricHeaderClass,
               catalogGridCol.sell,
+              "group/cat-col relative",
+            )}
+          >
+            Sell
+            <CatalogColResizeHandle
+              edge="sell"
+              label="Selling price"
+              onResizeStart={beginResize}
+              onReset={() => resetColumn("sell")}
+            />
+          </span>
+          <span
+            className={cn(
+              catalogListMetricHeaderClass,
+              catalogGridCol.margin,
               "group/cat-col relative pr-2.5",
             )}
           >
-            Price
+            Margin
             <CatalogColResizeHandle
-              edge="sell"
-              label="Price"
+              edge="margin"
+              label="Margin"
               onResizeStart={beginResize}
-              onReset={() => resetColumn("sell")}
+              onReset={() => resetColumn("margin")}
             />
           </span>
           <span
@@ -481,14 +488,15 @@ export const VirtualizedCatalogBody = forwardRef<
                 meta.variantCount,
                 variantIdsUnderParent.length,
               );
-              const sell = formatListSellPrice(row, {
-                isGroup,
-                hasVariants: effectiveVariantCount > 0,
-              });
+              const buy = toNumber(row.buyingPrice);
+              const sell = listSellPrice(row, toNumber);
+              const margin = listMarginPct(sell, buy);
               const isParentSelector = isCatalogParentSelectorRow(
                 row,
                 effectiveVariantCount,
               );
+              const pricesOnParent = isParentSelector;
+              const canEditRowPrices = !pricesOnParent && !isGroup;
               const primaryName = nameResolution.label;
               const secondaryLine = resolveCatalogListSubtitle(row, {
                 isVariant,
@@ -758,27 +766,115 @@ export const VirtualizedCatalogBody = forwardRef<
                     <span
                       className={cn(
                         catalogListMetricCellClass,
-                        catalogGridCol.sell,
-                        "pr-1.5",
+                        catalogGridCol.buy,
+                        "px-0.5",
                       )}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
                     >
-                      {isParentSelector ? (
-                        <span className="text-[10px] tabular-nums text-foreground/20">
-                          –
-                        </span>
-                      ) : sell.kind === "empty" ? (
-                        <NoPricePill />
-                      ) : sell.kind === "price" ? (
+                      {pricesOnParent ? (
                         <span
-                          className="text-[11px] font-semibold tabular-nums tracking-tight text-foreground"
-                          title={sell.title}
+                          className="text-[10px] tabular-nums text-foreground/20"
+                          title="Prices on variants"
                         >
-                          {sell.label}
+                          –
                         </span>
                       ) : (
+                        <CatalogPriceInput
+                          value={buy}
+                          editable={
+                            canEditRowPrices &&
+                            canEditBuyingPrice &&
+                            Boolean(onCommitBuyingPrice)
+                          }
+                          ariaLabel={`Buying price for ${primaryName}`}
+                          emptyTitle="No buying price"
+                          warnEmpty
+                          onCommit={(n) => {
+                            if (n == null || !onCommitBuyingPrice) return;
+                            return onCommitBuyingPrice(row.id, n);
+                          }}
+                        />
+                      )}
+                    </span>
+
+                    <span
+                      className={cn(
+                        catalogListMetricCellClass,
+                        catalogGridCol.sell,
+                        "px-0.5",
+                      )}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      {pricesOnParent ? (
+                        <span
+                          className="text-[10px] tabular-nums text-foreground/20"
+                          title="Prices on variants"
+                        >
+                          –
+                        </span>
+                      ) : (
+                        <CatalogPriceInput
+                          value={sell}
+                          editable={
+                            canEditRowPrices &&
+                            canEditSellingPrice &&
+                            Boolean(onCommitSellingPrice)
+                          }
+                          ariaLabel={`Selling price for ${primaryName}`}
+                          emptyTitle="No selling price"
+                          warnEmpty
+                          onCommit={(n) => {
+                            if (n == null || !onCommitSellingPrice) return;
+                            return onCommitSellingPrice(row.id, n);
+                          }}
+                        />
+                      )}
+                    </span>
+
+                    <span
+                      className={cn(
+                        catalogListMetricCellClass,
+                        catalogGridCol.margin,
+                        "px-0.5 pr-1.5",
+                      )}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      {pricesOnParent ? (
                         <span className="text-[10px] tabular-nums text-foreground/20">
                           –
                         </span>
+                      ) : (
+                        <CatalogPriceInput
+                          value={margin}
+                          suffix="%"
+                          editable={
+                            canEditRowPrices &&
+                            canEditSellingPrice &&
+                            Boolean(onCommitMarginPct) &&
+                            buy != null &&
+                            buy > 0
+                          }
+                          ariaLabel={`Margin for ${primaryName}`}
+                          emptyTitle={
+                            buy == null || buy <= 0
+                              ? "Set buying price to edit margin"
+                              : "No margin yet"
+                          }
+                          onCommit={(n) => {
+                            if (
+                              n == null ||
+                              !onCommitMarginPct ||
+                              buy == null ||
+                              buy <= 0
+                            ) {
+                              return;
+                            }
+                            return onCommitMarginPct(row.id, n, buy);
+                          }}
+                        />
                       )}
                     </span>
 

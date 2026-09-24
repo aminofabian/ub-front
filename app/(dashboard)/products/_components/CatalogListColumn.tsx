@@ -56,6 +56,8 @@ type Props = {
   canAddFromCatalog?: boolean;
   onCreateNew?: () => void;
   canCreateNew?: boolean;
+  canEditBuyingPrice?: boolean;
+  canEditSellingPrice?: boolean;
 };
 
 const ROW_TYPE_LEGEND: {
@@ -91,6 +93,8 @@ export function CatalogListColumn({
   canAddFromCatalog = false,
   onCreateNew,
   canCreateNew = false,
+  canEditBuyingPrice = false,
+  canEditSellingPrice = false,
 }: Props) {
   const searchParams = useSearchParams();
   const deepLinkedProductId = searchParams.get("product")?.trim() || null;
@@ -437,6 +441,11 @@ export function CatalogListColumn({
           canAddFromCatalog={canAddFromCatalog}
           onCreateNew={onCreateNew}
           canCreateNew={canCreateNew}
+          canEditBuyingPrice={canEditBuyingPrice}
+          canEditSellingPrice={canEditSellingPrice}
+          onCommitBuyingPrice={catalog.commitListBuyingPrice}
+          onCommitSellingPrice={catalog.commitListSellingPrice}
+          onCommitMarginPct={catalog.commitListMarginPct}
         />
         {catalog.displayRows.length > 0 ? (
           <CatalogLetterJumpRail

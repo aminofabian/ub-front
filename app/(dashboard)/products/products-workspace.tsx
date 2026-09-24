@@ -776,6 +776,8 @@ export function ProductsWorkspace() {
                     canCreateNew={
                       canCatalogWrite && catalog.itemTypes.length > 0
                     }
+                    canEditBuyingPrice={canCatalogWrite}
+                    canEditSellingPrice={canCatalogWrite && canSetSellPrice}
                   />
                 </div>
                 {catalogEmpty ? null : (

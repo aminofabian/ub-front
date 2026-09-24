@@ -9,6 +9,7 @@ import {
   fetchItemsPage,
   fetchItemTypes,
   fetchPriceStatusCounts,
+  patchItem,
   type AisleRecord,
   type BulkPriceRequest,
   type CatalogListScope,
@@ -366,6 +367,12 @@ export function useCatalogList(
           webPublished: row.webPublished,
           stockQty: row.stockQty ?? existing.stockQty,
           bundlePrice: row.bundlePrice ?? existing.bundlePrice,
+          buyingPrice: row.buyingPrice ?? existing.buyingPrice,
+          sellingPrice:
+            row.sellingPrice ??
+            row.bundlePrice ??
+            existing.sellingPrice ??
+            existing.bundlePrice,
           packageVariant: row.packageVariant ?? existing.packageVariant,
           packageUnitsPerSale:
             row.packageUnitsPerSale ?? existing.packageUnitsPerSale,
@@ -669,6 +676,86 @@ export function useCatalogList(
     rowTypeFilter,
   ]);
 
+  const applyListPriceLocal = useCallback(
+    (
+      itemId: string,
+      patch: {
+        buyingPrice?: number;
+        sellingPrice?: number;
+        bundlePrice?: number;
+      },
+    ) => {
+      setListRows((prev) => {
+        const i = prev.findIndex((r) => r.id === itemId);
+        if (i < 0) return prev;
+        const next = [...prev];
+        next[i] = { ...prev[i], ...patch };
+        return next;
+      });
+    },
+    [],
+  );
+
+  const commitListBuyingPrice = useCallback(
+    async (itemId: string, price: number) => {
+      try {
+        await patchItem(itemId, { buyingPrice: price });
+        applyListPriceLocal(itemId, { buyingPrice: price });
+        setMessage("Buying price updated.");
+      } catch (error) {
+        setMessage(
+          error instanceof ApiRequestError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : "Could not update buying price.",
+        );
+        throw error;
+      }
+    },
+    [applyListPriceLocal],
+  );
+
+  const commitListSellingPrice = useCallback(
+    async (itemId: string, price: number) => {
+      try {
+        await patchItem(itemId, { bundlePrice: price });
+        applyListPriceLocal(itemId, {
+          bundlePrice: price,
+          sellingPrice: price,
+        });
+        setMessage("Selling price updated.");
+      } catch (error) {
+        setMessage(
+          error instanceof ApiRequestError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : "Could not update selling price.",
+        );
+        throw error;
+      }
+    },
+    [applyListPriceLocal],
+  );
+
+  const commitListMarginPct = useCallback(
+    async (itemId: string, marginPct: number, buy: number) => {
+      if (!Number.isFinite(marginPct) || marginPct < 0 || marginPct >= 100) {
+        setMessage("Margin must be at least 0% and below 100%.");
+        throw new Error("Invalid margin");
+      }
+      if (!Number.isFinite(buy) || buy < 0) {
+        setMessage("Set a buying price first, then set margin.");
+        throw new Error("Missing buy");
+      }
+      const shelf = Math.round((buy / (1 - marginPct / 100)) * 100) / 100;
+      await commitListSellingPrice(itemId, shelf);
+      setMessage(`Selling price set to ${shelf} from ${marginPct}% margin.`);
+    },
+    [commitListSellingPrice],
+  );
+
   return {
     itemTypes,
     categories,
@@ -724,6 +811,9 @@ export function useCatalogList(
     selectAllMatching,
     clearRowSelection,
     bulkPriceTarget,
+    commitListBuyingPrice,
+    commitListSellingPrice,
+    commitListMarginPct,
     rowSelection,
     setRowSelection,
     onToggleRowSelect,
