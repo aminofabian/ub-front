@@ -27,6 +27,11 @@ type Props = {
   permissions?: string[] | null;
   /** Compact strip for empty-shop boards */
   compact?: boolean;
+  /**
+   * Narrow side-rail layout: stacks the CTA under the copy and drops the
+   * outer border when nested inside HubDeskStack’s money/tills frame.
+   */
+  rail?: boolean;
 };
 
 const METHOD_CHIPS = ["Till", "Paybill", "Bank"] as const;
@@ -40,7 +45,9 @@ export function ReceiveMpesaSetupCard({
   countryCode,
   permissions,
   compact = false,
+  rail = false,
 }: Props) {
+  const dense = compact || rail;
   const canWrite = hasPermission(
     permissions ?? undefined,
     Permission.PaymentsGatewaysWrite,
@@ -92,109 +99,159 @@ export function ReceiveMpesaSetupCard({
   return (
     <>
       <section
+        data-hub-card=""
         aria-label="Payment method — where customers pay"
         className={cn(
           HUB_SURFACE,
           "text-left",
+          rail && "border-0 shadow-none",
           needsSetup &&
+            !rail &&
             "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_32%,transparent)] border-l-[3px] border-l-[var(--pos-primary,#0f766e)]",
+          needsSetup &&
+            rail &&
+            "border-l-[3px] border-l-[var(--pos-primary,#0f766e)]",
         )}
       >
         <div
           className={cn(
             "flex gap-3",
-            compact ? "items-center p-3 sm:p-3.5" : "items-start p-4 sm:p-5",
+            rail
+              ? "flex-col items-stretch gap-2.5 p-3"
+              : dense
+                ? "items-center p-3 sm:p-3.5"
+                : "items-start p-4 sm:p-5",
           )}
         >
-          <span
-            className={cn(
-              "grid shrink-0 place-items-center border text-[var(--pos-primary,#0f766e)]",
-              needsSetup
-                ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)]"
-                : "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]",
-              compact ? "size-10" : "size-11",
-            )}
-            aria-hidden
-          >
-            {summary.icon === "bank" ? (
-              <Landmark className="size-4" />
-            ) : summary.icon === "phone" ? (
-              <Smartphone className="size-4" />
-            ) : (
-              <Store className="size-4" />
-            )}
-          </span>
+          <div className={cn("flex min-w-0 gap-3", rail && "items-start")}>
+            <span
+              className={cn(
+                "grid shrink-0 place-items-center border text-[var(--pos-primary,#0f766e)]",
+                needsSetup
+                  ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)]"
+                  : "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]",
+                dense || rail ? "size-9" : "size-11",
+              )}
+              aria-hidden
+            >
+              {summary.icon === "bank" ? (
+                <Landmark className="size-3.5" />
+              ) : summary.icon === "phone" ? (
+                <Smartphone className="size-3.5" />
+              ) : (
+                <Store className="size-3.5" />
+              )}
+            </span>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-primary,#0f766e)]">
-                Payment method
-              </p>
-              {needsSetup ? (
-                <span className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--pos-primary,#0f766e)]">
-                  Required
-                </span>
-              ) : null}
-              {!loading && configured ? (
-                <span className="inline-flex items-center border border-[color-mix(in_srgb,#141414_10%,transparent)] bg-[#F7F7F5] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-[color-mix(in_srgb,#141414_62%,transparent)]">
-                  Active
-                </span>
-              ) : null}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-primary,#0f766e)]">
+                  Payment method
+                </p>
+                {needsSetup ? (
+                  <span className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--pos-primary,#0f766e)]">
+                    Required
+                  </span>
+                ) : null}
+                {!loading && configured ? (
+                  <span className="inline-flex items-center border border-[color-mix(in_srgb,#141414_10%,transparent)] bg-[#F7F7F5] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-[color-mix(in_srgb,#141414_62%,transparent)]">
+                    Active
+                  </span>
+                ) : null}
+              </div>
+
+              {loading ? (
+                <p className={cn("mt-1 flex items-center gap-2 text-[13px]", HUB_MUTED)}>
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                  Checking…
+                </p>
+              ) : configured ? (
+                <>
+                  {!rail ? (
+                    <p className="mt-1 text-[12px] font-medium text-[color-mix(in_srgb,#141414_55%,transparent)]">
+                      Customers pay to
+                    </p>
+                  ) : null}
+                  <p
+                    className={cn(
+                      "font-semibold tracking-[-0.02em] text-[#141414]",
+                      rail
+                        ? "mt-1 line-clamp-2 text-[13px]"
+                        : "mt-0.5 truncate text-[15px]",
+                    )}
+                  >
+                    {summary.title}
+                  </p>
+                  {summary.detail ? (
+                    <p
+                      className={cn(
+                        rail ? "mt-0.5 line-clamp-2 text-[11px]" : "mt-0.5 truncate text-[12px]",
+                        HUB_MUTED,
+                      )}
+                    >
+                      {summary.detail}
+                    </p>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <p
+                    className={cn(
+                      "font-semibold tracking-[-0.02em] text-[#141414]",
+                      rail ? "mt-1 text-[13px]" : "mt-1 text-[15px]",
+                    )}
+                  >
+                    Set where customers pay
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-1 leading-snug",
+                      rail ? "text-[11px]" : "text-[12px]",
+                      HUB_MUTED,
+                    )}
+                  >
+                    {available
+                      ? rail
+                        ? "Till, paybill, or bank — checkout sends M-Pesa here."
+                        : "Add your till, paybill, or bank. Checkout sends M-Pesa here."
+                      : "Kiosk receive isn’t on yet — you can still prepare where money should land."}
+                  </p>
+                  {!dense ? (
+                    <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Payment options">
+                      {METHOD_CHIPS.map((chip) => (
+                        <li
+                          key={chip}
+                          className="inline-flex items-center border border-[color-mix(in_srgb,#141414_10%,transparent)] bg-[#FAFAF8] px-2 py-1 text-[11px] font-semibold tracking-[-0.01em] text-[#141414]"
+                        >
+                          {chip}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </>
+              )}
             </div>
 
-            {loading ? (
-              <p className={cn("mt-1 flex items-center gap-2 text-[13px]", HUB_MUTED)}>
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                Checking…
-              </p>
-            ) : configured ? (
-              <>
-                <p className="mt-1 text-[12px] font-medium text-[color-mix(in_srgb,#141414_55%,transparent)]">
-                  Customers pay to
-                </p>
-                <p className="mt-0.5 truncate text-[15px] font-semibold tracking-[-0.02em] text-[#141414]">
-                  {summary.title}
-                </p>
-                {summary.detail ? (
-                  <p className={cn("mt-0.5 truncate text-[12px]", HUB_MUTED)}>
-                    {summary.detail}
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <p className="mt-1 text-[15px] font-semibold tracking-[-0.02em] text-[#141414]">
-                  Set where customers pay
-                </p>
-                <p className={cn("mt-1 text-[12px] leading-snug", HUB_MUTED)}>
-                  {available
-                    ? "Add your till, paybill, or bank. Checkout sends M-Pesa here."
-                    : "Kiosk receive isn’t on yet — you can still prepare where money should land."}
-                </p>
-                {!compact ? (
-                  <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Payment options">
-                    {METHOD_CHIPS.map((chip) => (
-                      <li
-                        key={chip}
-                        className="inline-flex items-center border border-[color-mix(in_srgb,#141414_10%,transparent)] bg-[#FAFAF8] px-2 py-1 text-[11px] font-semibold tracking-[-0.01em] text-[#141414]"
-                      >
-                        {chip}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </>
-            )}
+            {canWrite && !rail ? (
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 border border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] px-3 py-2 text-[13px] font-semibold text-white transition-[transform,background-color] duration-150 hover:bg-[#0d6b63] active:scale-[0.98]",
+                  dense && "px-2.5 py-1.5 text-[12px]",
+                )}
+              >
+                {configured ? "Change" : "Add method"}
+                <ArrowRight className="size-3.5" aria-hidden />
+              </button>
+            ) : null}
           </div>
 
-          {canWrite ? (
+          {canWrite && rail ? (
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 border border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] px-3 py-2 text-[13px] font-semibold text-white transition-[transform,background-color] duration-150 hover:bg-[#0d6b63] active:scale-[0.98]",
-                compact && "px-2.5 py-1.5 text-[12px]",
-              )}
+              className="inline-flex w-full items-center justify-center gap-1.5 border border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] px-2.5 py-2 text-[12px] font-semibold text-white transition-[transform,background-color] duration-150 hover:bg-[#0d6b63] active:scale-[0.98]"
             >
               {configured ? "Change" : "Add method"}
               <ArrowRight className="size-3.5" aria-hidden />
@@ -202,7 +259,7 @@ export function ReceiveMpesaSetupCard({
           ) : null}
         </div>
 
-        {!compact && configured ? (
+        {!dense && configured ? (
           <div className="border-t border-[color-mix(in_srgb,#141414_6%,transparent)] bg-[#FAFAF8] px-4 py-2.5 sm:px-5">
             <p className={cn("text-[12px] leading-snug", HUB_MUTED)}>
               Cashiers and your shop send Lipa Na M-Pesa here — no API keys.
@@ -213,7 +270,7 @@ export function ReceiveMpesaSetupCard({
           </div>
         ) : null}
 
-        {!compact && !configured && canWrite ? (
+        {!dense && !configured && canWrite ? (
           <div className="flex flex-col gap-2 border-t border-[color-mix(in_srgb,#141414_6%,transparent)] bg-[#FAFAF8] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <p className={cn("text-[12px] leading-snug", HUB_MUTED)}>
               After you add it, prove the number with a KES 1 prompt.

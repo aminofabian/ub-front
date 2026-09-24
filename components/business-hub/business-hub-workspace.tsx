@@ -34,6 +34,7 @@ import {
 import { BusinessHubMenuButton } from "@/components/business-hub/hub-menu";
 import { FloorTapeDrawer } from "@/components/business-hub/floor-tape-drawer";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
+import { HubDeskStack } from "@/components/business-hub/hub-desk-stack";
 import { HubLiveStatus } from "@/components/business-hub/hub-live-status";
 import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { OpenWorkBoard } from "@/components/business-hub/open-work-board";
@@ -1243,6 +1244,8 @@ export function BusinessHubWorkspace() {
   const galleryOpen = selectedCashiers.length >= 3;
   const showTillStage =
     canViewSalesIntelligence && !shopNotReady && !salesEmpty;
+  /** Desk ops ride the live-sales column on xl; stay in the main flow below. */
+  const deskInSideRail = showTillStage && !galleryOpen;
 
   useEffect(() => {
     setSelectedCashiers((prev) => {
@@ -1292,6 +1295,82 @@ export function BusinessHubWorkspace() {
     logoUrl: business?.branding?.logoUrl,
     faviconUrl: business?.branding?.faviconUrl,
   };
+
+  const canShowPaymentMethod =
+    hasPermission(me?.permissions, Permission.PaymentsGatewaysRead) ||
+    hasPermission(me?.permissions, Permission.PaymentsGatewaysWrite);
+
+  const deskStackBoard = (
+    <HubDeskStack
+      attention={
+        showAttentionSection ? (
+          actionItems.length > 0 ? (
+            <ActionItemsStrip items={actionItems} />
+          ) : salesEmpty ? null : (
+            <HubAllClear />
+          )
+        ) : null
+      }
+      payment={
+        canShowPaymentMethod ? (
+          <ReceiveMpesaSetupCard
+            ownerPhone={me?.phone}
+            countryCode={business?.countryCode}
+            permissions={me?.permissions}
+          />
+        ) : null
+      }
+      tills={
+        canManageBusinessSettings ? (
+          <ManageTillsHubCard
+            branches={branches}
+            branchId={branchId}
+            initiallyOpen={manageTillsInitiallyOpen}
+          />
+        ) : null
+      }
+    />
+  );
+
+  const deskStackRail = (
+    <HubDeskStack
+      framed
+      attention={
+        showAttentionSection ? (
+          actionItems.length > 0 ? (
+            <ActionItemsStrip
+              items={actionItems}
+              density={dualLanes ? "board" : "rail"}
+            />
+          ) : (
+            <HubAllClear />
+          )
+        ) : null
+      }
+      payment={
+        canShowPaymentMethod ? (
+          <ReceiveMpesaSetupCard
+            rail={!dualLanes}
+            compact={dualLanes}
+            ownerPhone={me?.phone}
+            countryCode={business?.countryCode}
+            permissions={me?.permissions}
+          />
+        ) : null
+      }
+      tills={
+        canManageBusinessSettings ? (
+          <ManageTillsHubCard
+            rail={!dualLanes}
+            compact={dualLanes}
+            branches={branches}
+            branchId={branchId}
+            initiallyOpen={manageTillsInitiallyOpen}
+          />
+        ) : null
+      }
+    />
+  );
 
   return (
     <BusinessPageLayout
@@ -1359,11 +1438,10 @@ export function BusinessHubWorkspace() {
           <div
             className={cn(
               "xl:grid xl:items-start xl:gap-3",
-              showTillStage &&
+              deskInSideRail &&
                 !dualLanes &&
-                !galleryOpen &&
-                "xl:grid-cols-[minmax(0,1fr)_minmax(220px,260px)]",
-              showTillStage &&
+                "xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)]",
+              deskInSideRail &&
                 dualLanes &&
                 "xl:grid-cols-[minmax(0,1fr)_minmax(190px,230px)_minmax(190px,230px)]",
               showTillStage && galleryOpen && "xl:grid-cols-1",
@@ -1372,7 +1450,8 @@ export function BusinessHubWorkspace() {
             <div
               className={cn(
                 "flex flex-col gap-2",
-                showTillStage && !galleryOpen && "xl:pr-1",
+                deskInSideRail && "xl:pr-1",
+                deskInSideRail && dualLanes && "xl:row-span-2",
               )}
             >
               {shopNotReady ? (
@@ -1454,30 +1533,12 @@ export function BusinessHubWorkspace() {
                     />
                   )}
 
-                  {/* 2 — Attention: the queue in front of everything else */}
-                  {showAttentionSection ? (
-                    actionItems.length > 0 ? (
-                      <ActionItemsStrip items={actionItems} />
-                    ) : salesEmpty ? null : (
-                      <HubAllClear />
-                    )
-                  ) : null}
-
-                  {/* 3 — Where cash lands (till / paybill / bank) */}
-                  <ReceiveMpesaSetupCard
-                    ownerPhone={me?.phone}
-                    countryCode={business?.countryCode}
-                    permissions={me?.permissions}
-                  />
-
-                  {/* 3b — Trusted POS tills (activate / deactivate / approve waiting) */}
-                  {canManageBusinessSettings ? (
-                    <ManageTillsHubCard
-                      branches={branches}
-                      branchId={branchId}
-                      initiallyOpen={manageTillsInitiallyOpen}
-                    />
-                  ) : null}
+                  {/* 2–3 — Attention, payment, tills:
+                      On xl with a live till rail they live under sales/drawouts.
+                      Below xl (and when the till stage is off) they stay here. */}
+                  <div className={cn(deskInSideRail && "xl:hidden")}>
+                    {deskStackBoard}
+                  </div>
 
                   {/* 4 — Jump in: the board a shop actually navigates with */}
                   <JumpInGrid links={jumpInLinks} />
@@ -1636,35 +1697,59 @@ export function BusinessHubWorkspace() {
               )}
             </div>
 
-            {showTillStage && !galleryOpen
-              ? tickLanes.map((lane, index) => (
-                  <div
-                    key={lane.key}
-                    className={cn(
-                      "hidden xl:block xl:self-stretch",
-                      dualLanes &&
+            {deskInSideRail ? (
+              dualLanes ? (
+                <>
+                  {tickLanes.map((lane, index) => (
+                    <div
+                      key={lane.key}
+                      className={cn(
+                        "hidden xl:block",
                         index === 0 &&
-                        "xl:border-r xl:border-[color-mix(in_srgb,#141414_8%,transparent)] xl:pr-3",
-                      dualLanes && index === 1 && "xl:pl-3",
-                      !dualLanes && "xl:pl-1",
-                    )}
-                  >
+                          "xl:border-r xl:border-[color-mix(in_srgb,#141414_8%,transparent)] xl:pr-3",
+                        index === 1 && "xl:pl-3",
+                      )}
+                    >
+                      <RecentTicksRail
+                        ticks={lane.ticks}
+                        drawouts={lane.drawouts}
+                        currency={currency}
+                        justUpdated={justUpdated && index === 0}
+                        title={lane.title}
+                        subtitle={lane.subtitle}
+                        showCashier={lane.showCashier}
+                        accent={lane.accent}
+                        laneIndex={index}
+                        fillViewport={false}
+                        className="max-h-[min(28rem,52dvh)] border-0 shadow-none xl:border xl:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] xl:shadow-none"
+                      />
+                    </div>
+                  ))}
+                  <div className="hidden xl:col-span-2 xl:block xl:pt-1">
+                    {deskStackRail}
+                  </div>
+                </>
+              ) : (
+                <div className="hidden xl:flex xl:flex-col xl:gap-3 xl:pl-1">
+                  {tickLanes.map((lane) => (
                     <RecentTicksRail
+                      key={lane.key}
                       ticks={lane.ticks}
                       drawouts={lane.drawouts}
                       currency={currency}
-                      justUpdated={justUpdated && index === 0}
+                      justUpdated={justUpdated}
                       title={lane.title}
                       subtitle={lane.subtitle}
                       showCashier={lane.showCashier}
                       accent={lane.accent}
-                      laneIndex={dualLanes ? index : undefined}
                       fillViewport={false}
-                      className="h-full max-h-[min(40rem,72dvh)] border-0 shadow-none xl:border xl:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] xl:shadow-none"
+                      className="max-h-[min(28rem,52dvh)] border-0 shadow-none xl:border xl:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] xl:shadow-none"
                     />
-                  </div>
-                ))
-              : null}
+                  ))}
+                  {deskStackRail}
+                </div>
+              )
+            ) : null}
           </div>
         </div>
       </div>
