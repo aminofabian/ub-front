@@ -227,7 +227,7 @@ export function CatalogListColumn({
             {selectionCount.toLocaleString()}{" "}
             {selectionCount === 1 ? "item" : "items"} selected
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1">
             {pageVsAll ? (
               <Button
                 type="button"

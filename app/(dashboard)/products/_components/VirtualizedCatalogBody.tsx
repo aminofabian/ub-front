@@ -572,6 +572,10 @@ export const VirtualizedCatalogBody = forwardRef<
                       row.active === false && "opacity-50",
                     )}
                     onClick={() => onRowClick(row.id)}
+                    onDoubleClick={(event) => {
+                      event.preventDefault();
+                      void onToggleRowSelect(row.id);
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
@@ -585,6 +589,7 @@ export const VirtualizedCatalogBody = forwardRef<
                         catalogListCheckboxCellClass(isVariant),
                       )}
                       onClick={(event) => event.stopPropagation()}
+                      onDoubleClick={(event) => event.stopPropagation()}
                       onKeyDown={(event) => event.stopPropagation()}
                     >
                       <button
