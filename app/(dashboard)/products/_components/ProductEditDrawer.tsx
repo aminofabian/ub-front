@@ -768,11 +768,19 @@ export function ProductEditDrawer({
                   </ProductFormField>
                 ) : null}
                 <ProductFormField
-                  label={sharedStock ? "Cost of 1 pack" : "Cost price"}
+                  label={
+                    isWeighed
+                      ? "Cost / kg"
+                      : sharedStock
+                        ? "Cost of 1 pack"
+                        : "Cost price"
+                  }
                   hint={
-                    sharedStock
-                      ? "What you paid for the pack. Profit still uses the cost of the units that leave the shelf."
-                      : undefined
+                    isWeighed
+                      ? "What you paid per kilogram. Profit uses the cost of every unit that leaves the shelf."
+                      : sharedStock
+                        ? "What you paid for the pack. Profit still uses the cost of the units that leave the shelf."
+                        : undefined
                   }
                 >
                   <input

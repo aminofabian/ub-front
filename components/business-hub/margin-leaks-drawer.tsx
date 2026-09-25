@@ -7,7 +7,11 @@ import { Loader2 } from "lucide-react";
 import { FormDrawer } from "@/components/form-drawer";
 import { fmtMoney } from "@/lib/business-hub/formatters";
 import { APP_ROUTES } from "@/lib/config";
-import { fetchMarginLeaks, type MarginLeakRow } from "@/lib/api";
+import {
+  fetchMarginLeaks,
+  type MarginLeakRow,
+  type MarginLeaksResponse,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 function toNum(n: number | string | null | undefined): number {
@@ -47,6 +51,67 @@ function reasonLabel(code: string): string {
   }
 }
 
+function BridgeRow({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: number;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span
+        className={
+          strong ? "font-semibold text-foreground" : "text-muted-foreground"
+        }
+      >
+        {label}
+      </span>
+      <span
+        className={cn(
+          "font-mono tabular-nums",
+          strong && "font-semibold",
+          value < 0 ? "text-rose-700" : "text-foreground",
+        )}
+      >
+        {fmtMoney(value)}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Reconciles the card with the item list: `grossProfit = listed + removed + airtime + refunds`.
+ * Without it a card can be negative while the list looks empty or unrelated.
+ */
+function MarginBridgeCard({ data }: { data: MarginLeaksResponse | null }) {
+  if (!data) return null;
+  return (
+    <div className="space-y-1 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2 text-[11px]">
+      <BridgeRow
+        label="Gross profit (this window)"
+        value={toNum(data.grossProfit)}
+        strong
+      />
+      <div className="space-y-1 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] pt-1">
+        <BridgeRow label="Items" value={toNum(data.listedProfit)} />
+        <BridgeRow
+          label="Removed products"
+          value={toNum(data.removedItemsProfit)}
+        />
+        <BridgeRow label="Airtime" value={toNum(data.airtimeProfit)} />
+        <BridgeRow label="Refunds" value={toNum(data.refundsInWindow)} />
+      </div>
+      <p className="pt-1 leading-snug text-muted-foreground">
+        These add up to gross profit. “Items” is the whole product list (winners
+        included), not only the losses below.
+      </p>
+    </div>
+  );
+}
+
 type MarginLeaksDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -69,7 +134,7 @@ export function MarginLeaksDrawer({
   periodLabel,
 }: MarginLeaksDrawerProps) {
   const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<MarginLeakRow[]>([]);
+  const [data, setData] = useState<MarginLeaksResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,12 +147,12 @@ export function MarginLeaksDrawer({
       itemTypeId: itemTypeId ?? undefined,
       limit: 25,
     })
-      .then((data) => {
-        if (!cancelled) setRows(data);
+      .then((res) => {
+        if (!cancelled) setData(res);
       })
       .catch((e) => {
         if (!cancelled) {
-          setRows([]);
+          setData(null);
           setError(
             e instanceof Error ? e.message : "Could not load loss-making items.",
           );
@@ -100,6 +165,11 @@ export function MarginLeaksDrawer({
       cancelled = true;
     };
   }, [open, from, to, branchId, itemTypeId]);
+
+  const rows = data?.rows ?? [];
+  const totalLoss = Math.abs(
+    rows.reduce((sum, r) => sum + toNum(r.netProfit), 0),
+  );
 
   return (
     <FormDrawer
@@ -119,71 +189,82 @@ export function MarginLeaksDrawer({
           </div>
         ) : error ? (
           <p className="text-sm text-rose-700">{error}</p>
-        ) : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No loss-making items in this window. Gross profit may be dragged by
-            aggregate cost timing — check{" "}
-            <Link
-              href={APP_ROUTES.inventoryCostIssues}
-              className="font-semibold underline"
-            >
-              Cost issues
-            </Link>
-            .
-          </p>
         ) : (
-          <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
-            {rows.map((row) => (
-              <li
-                key={row.itemId}
-                className="flex flex-col gap-1 bg-white px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {row.itemName}
-                  </p>
-                  <p className="text-[11px] leading-snug text-muted-foreground">
-                    {saleLine(row)}
-                    {row.sku ? ` · ${row.sku}` : ""}
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {row.reasons.map((r) => (
-                      <span
-                        key={r}
-                        className="border border-rose-500/30 bg-rose-500/5 px-1.5 py-0.5 text-[10px] font-medium text-rose-800"
-                      >
-                        {reasonLabel(r)}
-                      </span>
-                    ))}
-                    <span className="text-[10px] text-muted-foreground">
-                      {toNum(row.shareOfLossPct).toFixed(0)}% of loss
-                    </span>
-                  </div>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p
-                    className={cn(
-                      "font-mono text-sm font-semibold tabular-nums",
-                      toNum(row.netProfit) < 0
-                        ? "text-rose-700"
-                        : "text-foreground",
-                    )}
-                  >
-                    {fmtMoney(toNum(row.netProfit))}
-                  </p>
-                  <Link
-                    href={`${APP_ROUTES.products}?product=${encodeURIComponent(row.itemId)}&search=${encodeURIComponent(
-                      row.sku?.trim() || row.itemName,
-                    )}`}
-                    onClick={() => onOpenChange(false)}
-                    className="text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] underline"
-                  >
-                    Open product
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <>
+            <MarginBridgeCard data={data} />
+            {rows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No loss-making items in this window — every line sold at or above
+                cost. The breakdown above shows how gross profit is made up;{" "}
+                <Link
+                  href={APP_ROUTES.inventoryCostIssues}
+                  className="font-semibold underline"
+                >
+                  Cost issues
+                </Link>{" "}
+                lists products whose cost looks wrong.
+              </p>
+            ) : (
+              <>
+                <p className="text-xs font-medium text-muted-foreground">
+                  {rows.length} loss-making {rows.length === 1 ? "item" : "items"}{" "}
+                  · {fmtMoney(totalLoss)} total loss
+                </p>
+                <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
+                  {rows.map((row) => (
+                    <li
+                      key={row.itemId}
+                      className="flex flex-col gap-1 bg-white px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {row.itemName}
+                        </p>
+                        <p className="text-[11px] leading-snug text-muted-foreground">
+                          {saleLine(row)}
+                          {row.sku ? ` · ${row.sku}` : ""}
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {row.reasons.map((r) => (
+                            <span
+                              key={r}
+                              className="border border-rose-500/30 bg-rose-500/5 px-1.5 py-0.5 text-[10px] font-medium text-rose-800"
+                            >
+                              {reasonLabel(r)}
+                            </span>
+                          ))}
+                          <span className="text-[10px] text-muted-foreground">
+                            {toNum(row.shareOfLossPct).toFixed(0)}% of loss
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p
+                          className={cn(
+                            "font-mono text-sm font-semibold tabular-nums",
+                            toNum(row.netProfit) < 0
+                              ? "text-rose-700"
+                              : "text-foreground",
+                          )}
+                        >
+                          {fmtMoney(toNum(row.netProfit))}
+                        </p>
+                        <Link
+                          href={`${APP_ROUTES.products}?product=${encodeURIComponent(row.itemId)}&search=${encodeURIComponent(
+                            row.sku?.trim() || row.itemName,
+                          )}`}
+                          onClick={() => onOpenChange(false)}
+                          className="text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] underline"
+                        >
+                          Open product
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </>
         )}
         <p className="text-[11px] leading-snug text-muted-foreground">
           A pack can show a healthy margin and still lose money: the margin is

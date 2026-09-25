@@ -7347,6 +7347,22 @@ export type MarginLeakRow = {
   stockSourceName?: string | null;
 };
 
+/**
+ * “Why negative?” drawer payload. The bridge reconciles the item list with the card:
+ * `grossProfit = listedProfit + refundsInWindow + removedItemsProfit + airtimeProfit`.
+ */
+export type MarginLeaksResponse = {
+  from: string | null;
+  to: string | null;
+  branchId: string | null;
+  grossProfit: number | string;
+  listedProfit: number | string;
+  refundsInWindow: number | string;
+  removedItemsProfit: number | string;
+  airtimeProfit: number | string;
+  rows: MarginLeakRow[];
+};
+
 export async function fetchMarginLeaks(
   from?: string,
   to?: string,
@@ -7355,7 +7371,7 @@ export async function fetchMarginLeaks(
     itemTypeId?: string;
     limit?: number;
   },
-): Promise<MarginLeakRow[]> {
+): Promise<MarginLeaksResponse> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
   if (to?.trim()) params.set("to", to.trim());
@@ -7363,7 +7379,7 @@ export async function fetchMarginLeaks(
   if (opts?.itemTypeId?.trim()) params.set("itemTypeId", opts.itemTypeId.trim());
   if (opts?.limit != null) params.set("limit", String(opts.limit));
   const qs = params.toString();
-  return request<MarginLeakRow[]>(
+  return request<MarginLeaksResponse>(
     `/api/v1/sales/intelligence/margin-leaks${qs ? `?${qs}` : ""}`,
   );
 }

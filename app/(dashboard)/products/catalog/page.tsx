@@ -154,6 +154,7 @@ export default function GlobalCatalogPage() {
   const [refreshSell, setRefreshSell] = useState(true);
   const [refreshBuy, setRefreshBuy] = useState(false);
   const [refreshImage, setRefreshImage] = useState(true);
+  const [refreshForceImage, setRefreshForceImage] = useState(false);
   const [skipCustomSell, setSkipCustomSell] = useState(false);
   const [createMissingCategories, setCreateMissingCategories] = useState(
     () => searchParams.get("from") === "onboarding",
@@ -1041,6 +1042,30 @@ export default function GlobalCatalogPage() {
     setReviewOpen(true);
   };
 
+  const handleRefreshEntry = () => {
+    if (!defaultBranchId) {
+      toast.error("No branch selected");
+      return;
+    }
+    if (selectedImported.length === 0) {
+      // Nothing refreshable is selected yet. "Hide items you already have" defaults on, so
+      // reveal the imported items and guide the user instead of failing silently.
+      if (hideImported) {
+        setHideImported(false);
+        toast.message("Showing items you already import", {
+          description:
+            "Select the products to refresh, then choose Refresh from template.",
+        });
+      } else {
+        toast.message("Select products already in your shop to refresh", {
+          description: "Items you already import are annotated in the list.",
+        });
+      }
+      return;
+    }
+    setRefreshOpen(true);
+  };
+
   const handleRefreshFromTemplate = async () => {
     if (!defaultBranchId) {
       toast.error("No branch selected");
@@ -1064,6 +1089,7 @@ export default function GlobalCatalogPage() {
         refreshSellingPrice: refreshSell,
         refreshBuyingPrice: refreshBuy,
         refreshImage,
+        forceImage: refreshImage && refreshForceImage,
         skipCustomizedSellingPrice: skipCustomSell,
       };
       const preview = await previewGlobalCatalogRefresh(body);
@@ -1641,12 +1667,13 @@ export default function GlobalCatalogPage() {
               Replace with pack
             </Button>
           ) : null}
-          {selectedImported.length > 0 && canAdopt ? (
+          {canAdopt ? (
             <Button
               size="sm"
               variant="outline"
               disabled={!defaultBranchId}
-              onClick={() => setRefreshOpen(true)}
+              title="Apply the latest catalog prices or images to items you already import"
+              onClick={handleRefreshEntry}
             >
               Refresh from template
             </Button>
@@ -2202,6 +2229,17 @@ export default function GlobalCatalogPage() {
               />
               Fill missing product images
             </label>
+            {refreshImage ? (
+              <label className="ml-6 flex items-center gap-2 text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="size-4 rounded border"
+                  checked={refreshForceImage}
+                  onChange={(e) => setRefreshForceImage(e.target.checked)}
+                />
+                Replace existing images too
+              </label>
+            ) : null}
             <label className="flex items-center gap-2 text-muted-foreground">
               <input
                 type="checkbox"
